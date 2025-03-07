@@ -1,0 +1,19 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Déconnexion</title>
+    <link rel="stylesheet" href="{% static 'authent/css/logout.css' %}">
+</head>
+<body>
+    <div class="logout-container">
+        <h1>Vous êtes déconnecté.</h1>
+        <div class="logout-actions">
+            <a href="{% url 'login' %}" class="btn">Se reconnecter</a>
+        </div>
+    </div>
+</body>
+</html>

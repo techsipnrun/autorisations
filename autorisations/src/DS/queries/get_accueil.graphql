@@ -1,0 +1,31 @@
+query demarche($number: Int!) {
+  demarche(number: $number) {
+    id
+    number
+    state
+    title
+    dossiers {
+      nodes {
+        id
+        number
+        datePassageEnInstruction
+        state
+        groupeInstructeur{
+            label
+            instructeurs{
+                email
+            }
+        }
+        avis {
+            id
+            dateQuestion
+            dateReponse
+            expert {
+                email
+                id
+            }
+        }
+      }
+    }
+  }
+}

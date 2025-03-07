@@ -1,0 +1,60 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbar</title>
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
+</head>
+<body>
+    <header>
+        <div class="navigation_header">
+
+            <div class="logo-application">
+                <a href="#">
+                    <img class="logo_svg" src="{% static 'instruction/img/logoPNRUN.png' %}">
+                </a>
+            </div>
+
+            <div class="container-links">
+                <ul class="navigation_links">
+
+                    <a href="{% url 'accueil_view' %}">
+                        <li class="{% if request.path == '/' %}active{% endif %}">
+                            Instruction
+                        </li>
+                    </a>
+
+                    <a href="{% url 'avis_view' %}">
+                        <li class="{% if request.path == '/avis/' %}active{% endif %}">
+                            Avis
+                            <span class="notif_avis"> 2 </span>
+                        </li>
+                    </a>
+
+                    <a href="{% url 'archives_view' %}">
+                        <li class="{% if request.path == '/archives/' %}active{% endif %}">
+                            Archives
+                        </li>
+                    </a>
+
+                </ul>
+            </div>
+           
+            <div class="user_information">
+                <strong>{{ user.email }}</strong>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout">Se Déconnecter</button>
+                </form>
+            </div>
+
+        </div>
+
+
+
+    </header>
+</body>
+</html>

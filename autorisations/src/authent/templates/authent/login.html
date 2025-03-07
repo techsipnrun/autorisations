@@ -1,0 +1,23 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion</title>
+    <link rel="stylesheet" href="{% static 'authent/css/login.css' %}">
+    
+</head>
+<body>
+    <div class="login-container">
+        <h2>Connexion</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Se connecter</button>
+        </form>
+        <p>Pas encore inscrit ? Contacter l'administrateur</p>
+    </div>
+</body>
+</html>

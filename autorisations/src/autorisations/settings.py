@@ -1,0 +1,196 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+#BASE_DIR = autorisations\autorisations\src
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Chemin du fichier .env en fonction de l'environnement
+ENVIRONMENT = os.getenv("DJANGO_ENV", "dev")  # dev par défaut, DJANGO_ENV=prod python manage.py runserver pour lancer en prod
+dotenv_path = BASE_DIR / f".env.{ENVIRONMENT}"
+load_dotenv(dotenv_path)
+
+
+
+# SECRET_KEY = 'django-insecure-2#ru%4)n-z4&+jv-6m!6+6j1&s6#ro6+t*l_ldg-5pjif*97is'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'autorisations',
+    'authent',
+    'instruction',
+    'BDD',
+    'DS',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'autorisations.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'instruction/templates/instruction'), os.path.join(BASE_DIR, 'authent/templates/authent')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'autorisations.wsgi.application'
+
+
+# Database
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('BDD_NAME'),
+        'USER': os.environ.get('BDD_USER'),
+        'PASSWORD': os.environ.get('BDD_PASSWORD'),
+        'HOST': os.environ.get('BDD_HOSTNAME'),
+        'PORT': os.environ.get('BDD_PORT'),
+        'OPTIONS': {
+            'options': '-c search_path=avis,documents,instruction,utilisateurs'
+        }
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = 'fr'
+
+TIME_ZONE = 'Indian/Reunion'
+
+USE_I18N = True
+
+USE_TZ = False
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'authent/static/'),
+    os.path.join(BASE_DIR, 'instruction/static/'),
+]
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Redirige vers la page d'accueil après connexion
+LOGIN_REDIRECT_URL = '/'
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+       
+        'ldap_file': {  # fichier pour les logs LDAP
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'authent/LDAP/logs/ldap_logs.log',  # Path LDAP Logs
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'apiDS_file': { # fichier pour les logs de l'API DS
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'DS/logs/apiDS.log', 
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'console': {  # pour affichage en console
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        
+        'LDAP_LOGS': {  # logger pour Active Directory
+            'handlers': ['ldap_file', 'console'],
+            'level': 'DEBUG',  # Permet de tout capturer (INFO, WARNING, ERROR, etc.)
+            'propagate': False,
+        },
+        'API_DS': {  # logger pour API DS
+            'handlers': ['apiDS_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    }
+}
+
+#Choix entre l'authentification LDAP ou classique via Django
+
+AUTHENTICATION_BACKENDS = [os.environ.get('AUTHENTICATION_BACKENDS'), 'django.contrib.auth.backends.ModelBackend']
+
