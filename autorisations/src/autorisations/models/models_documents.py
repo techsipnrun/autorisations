@@ -9,7 +9,7 @@ class DocumentFormat(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'documents.document_format'
+        db_table = '"documents"."document_format"'
 
     def __str__(self):
         return self.format
@@ -21,7 +21,7 @@ class DocumentNature(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'documents.document_nature'
+        db_table = '"documents"."document_nature"'
 
     def __str__(self):
         return self.nature
@@ -42,7 +42,7 @@ class Document(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'documents.document'
+        db_table = '"documents"."document"'
         indexes = [
             models.Index(fields=['id_format'], name='idx_document_id_format'),
             models.Index(fields=['id_nature'], name='idx_document_id_nature'),
@@ -53,6 +53,7 @@ class Document(models.Model):
 
 
 class DossierDocument(models.Model):
+    id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey(
         Dossier, models.CASCADE, db_column='id_dossier'
     )
@@ -62,8 +63,10 @@ class DossierDocument(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'documents.dossier_document'
-        unique_together = (('id_dossier', 'id_document'),)
+        db_table = '"documents"."dossier_document"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_document'], name='idx_dossier_document_unique')
+        ]
 
     def __str__(self):
         return f"Document {self.id_document.id} lié à Dossier {self.id_dossier.id}"
@@ -79,8 +82,10 @@ class MessageDocument(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'documents.message_document'
-        unique_together = (('id_message', 'id_document'),)
+        db_table = '"documents"."message_document"'
+        indexes = [
+            models.Index(fields=['id_message', 'id_document'], name='idx_message_document_unique')
+        ]
 
     def __str__(self):
         return f"Document {self.id_document.id} attaché à Message {self.id_message.id}"

@@ -1,5 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
+
+from autorisations.models.models_documents import DocumentFormat
 
 
 
@@ -13,4 +15,9 @@ def avis(request):
 
 @login_required(login_url='/login/')
 def archives(request):
+
+    # from django.db import connection
+    # doc = DocumentFormat(id=26, format="test format")
+    # doc.save()
+  
     return render(request, 'instruction/archives.html')

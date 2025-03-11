@@ -11,7 +11,7 @@ class AvisNature(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'avis.avis_nature'
+        db_table = '"avis"."avis_nature"'
 
     def __str__(self):
         return self.nature
@@ -23,7 +23,7 @@ class AvisThematique(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'avis.avis_thematique'
+        db_table = '"avis"."avis_thematique"'
 
     def __str__(self):
         return self.thematique
@@ -43,7 +43,7 @@ class Expert(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'avis.expert'
+        db_table = '"avis"."expert"'
 
     def __str__(self):
         return f"Expert {self.id} - {self.email}"
@@ -78,7 +78,7 @@ class Avis(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'avis.avis'
+        db_table = '"avis"."avis"'
         indexes = [
             models.Index(fields=['id_demande_avis'], name='idx_avis_id_demande'),
             models.Index(fields=['id_avis_nature'], name='idx_avis_id_nature'),
@@ -90,6 +90,7 @@ class Avis(models.Model):
 
 
 class AvisDocument(models.Model):
+    id = models.AutoField(primary_key=True)
     id_avis = models.ForeignKey(
         Avis, models.CASCADE, db_column='id_avis', blank=True, null=True
     )
@@ -99,13 +100,17 @@ class AvisDocument(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'avis.avis_document'
+        db_table = '"avis"."avis_document"'
+        indexes = [
+            models.Index(fields=['id_avis', 'id_document'], name='idx_avis_document_unique')
+        ]
 
     def __str__(self):
         return f"Document {self.id_document.id} lié à Avis {self.id_avis.id}"
 
 
 class DemandeAvis(models.Model):
+    id = models.AutoField(primary_key=True)
     id_avis = models.ForeignKey(
         Avis, models.CASCADE, db_column='id_avis'
     )
@@ -115,8 +120,11 @@ class DemandeAvis(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'avis.demande_avis'
-        unique_together = (('id_avis', 'id_demande'),)
+        db_table = '"avis"."demande_avis"'
+        # unique_together = (('id_avis', 'id_demande'),)
+        indexes = [
+            models.Index(fields=['id_avis', 'id_demande'], name='idx_demande_avis_unique')
+        ]
 
     def __str__(self):
         return f"Demande {self.id_demande.id} associée à Avis {self.id_avis.id}"

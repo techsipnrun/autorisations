@@ -87,10 +87,17 @@ DATABASES = {
         'HOST': os.environ.get('BDD_HOSTNAME'),
         'PORT': os.environ.get('BDD_PORT'),
         'OPTIONS': {
-            'options': '-c search_path=avis,documents,instruction,utilisateurs'
+            'options': '-c search_path=public,avis,documents,instruction,utilisateurs'
+        },
+        'TEST': {
+            'NAME': 'test_autorisations',  # Base de test
+            'OPTIONS': {
+                'options': '-c search_path=public,avis,documents,instruction,utilisateurs'
+            },
         }
     }
 }
+
 
 
 # Password validation
@@ -141,6 +148,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redirige vers la page d'accueil après connexion
 LOGIN_REDIRECT_URL = '/'
+# Redirige vers la page de login après déconnexion
+LOGOUT_REDIRECT_URL = '/login/'
 
 
 
@@ -192,5 +201,7 @@ LOGGING = {
 
 #Choix entre l'authentification LDAP ou classique via Django
 
-AUTHENTICATION_BACKENDS = [os.environ.get('AUTHENTICATION_BACKENDS'), 'django.contrib.auth.backends.ModelBackend']
+AUTHENTICATION_BACKENDS = ['authent.LDAP.ldap_backend.LDAPBackend', 'django.contrib.auth.backends.ModelBackend',]
+# AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'authent.LDAP.ldap_backend.LDAPBackend'] #Si on veut verif les users locaux avant LDAP
+
 

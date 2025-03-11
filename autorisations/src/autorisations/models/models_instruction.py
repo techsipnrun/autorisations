@@ -9,7 +9,7 @@ class ChampType(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.champ_type'
+        db_table = '"instruction"."champ_type"'
 
     def __str__(self):
         return self.type
@@ -21,7 +21,7 @@ class EtatDemande(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.etat_demande'
+        db_table = '"instruction"."etat_demande"'
 
     def __str__(self):
         return self.nom
@@ -33,7 +33,7 @@ class EtatDemarche(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.etat_demarche'
+        db_table = '"instruction"."etat_demarche"'
 
     def __str__(self):
         return self.nom
@@ -45,7 +45,7 @@ class EtatDossier(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.etat_dossier'
+        db_table = '"instruction"."etat_dossier"'
 
     def __str__(self):
         return self.nom
@@ -57,7 +57,7 @@ class Priorite(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.priorite'
+        db_table = '"instruction"."priorite"'
 
     def __str__(self):
         return self.niveau
@@ -69,7 +69,7 @@ class DemandeType(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.demande_type'
+        db_table = '"instruction"."demande_type"'
 
     def __str__(self):
         return self.type
@@ -81,7 +81,7 @@ class Groupe(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.groupe'
+        db_table = '"instruction"."groupe"'
 
     def __str__(self):
         return self.nom
@@ -99,7 +99,7 @@ class Demarche(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.demarche'
+        db_table = '"instruction"."demarche"'
 
     def __str__(self):
         return f"Demarche {self.numero} - {self.titre}"
@@ -111,7 +111,7 @@ class DossierType(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.dossier_type'
+        db_table = '"instruction"."dossier_type"'
 
     def __str__(self):
         return self.type
@@ -136,7 +136,7 @@ class Dossier(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.dossier'
+        db_table = '"instruction"."dossier"'
         indexes = [
             models.Index(fields=['id_etat_dossier'], name='idx_dossier_id_etat'),
         ]
@@ -163,7 +163,7 @@ class Demande(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.demande'
+        db_table = '"instruction"."demande"'
         indexes = [
             models.Index(fields=['id_etat_demande'], name='idx_demande_id_etat'),
             models.Index(fields=['id_priorite'], name='idx_demande_id_priorite'),
@@ -183,7 +183,7 @@ class Champ(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.champ'
+        db_table = '"instruction"."champ"'
 
     def __str__(self):
         return self.nom
@@ -199,7 +199,10 @@ class DemandeChamp(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.demande_champ'
+        db_table = '"instruction"."demande_champ"'
+        indexes = [
+            models.Index(fields=['id_demande', 'id_champ'], name='idx_demande_champ_unique')
+        ]
 
     def __str__(self):
         return f"Valeur '{self.valeur}' pour Demande {self.id_demande.id}"
@@ -216,7 +219,7 @@ class Message(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.message'
+        db_table = '"instruction"."message"'
 
     def __str__(self):
         return f"Message {self.id} de {self.email_emetteur}"
@@ -229,7 +232,10 @@ class DossierGroupe(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'instruction.dossier_groupe'
+        db_table = '"instruction"."dossier_groupe"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_groupe'], name='idx_dossier_groupe_unique')
+        ]
 
     def __str__(self):
         return f"Dossier {self.id_dossier.id} assigné à Groupe {self.id_groupe.nom}"
