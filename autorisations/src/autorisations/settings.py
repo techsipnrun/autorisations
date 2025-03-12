@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'instruction',
     'BDD',
     'DS',
+    'drf_yasg', #Swagger
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -203,5 +205,29 @@ LOGGING = {
 
 AUTHENTICATION_BACKENDS = ['authent.LDAP.ldap_backend.LDAPBackend', 'django.contrib.auth.backends.ModelBackend',]
 # AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'authent.LDAP.ldap_backend.LDAPBackend'] #Si on veut verif les users locaux avant LDAP
+
+
+#SWAGGER
+ACCOUNT_LOGOUT_ON_GET= True
+
+SWAGGER_SETTINGS = {
+    'LOGIN_URL': '/login/',
+    'LOGOUT_URL': '/swagger/logout/',
+    'USE_SESSION_AUTH': True, # Active l'authentification basée sur la session
+    'TRANSLATIONS': {
+        'en': 'English',
+        'fr': 'Français'
+    }
+}
+
+# Parametrage de l'API Postgres
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Exige une authentification par défaut
+    ],
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 'PAGE_SIZE': 10,  # Nombre d'éléments par page
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+}
 
 

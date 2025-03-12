@@ -131,7 +131,7 @@ class Dossier(models.Model):
     nom_dossier = models.CharField()
     emplacement = models.CharField(unique=True)
     date_limite_traitement = models.DateField()
-    id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.CASCADE, db_column='id_groupeinstructeur', blank=True, null=True)
+    id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.SET_NULL, db_column='id_groupeinstructeur', blank=True, null=True)
     id_demarche = models.ForeignKey(Demarche, models.SET_NULL, db_column='id_demarche', blank=True, null=True)
 
     class Meta:

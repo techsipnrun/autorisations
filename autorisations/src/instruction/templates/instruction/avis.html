@@ -1,4 +1,6 @@
 {% load static %}
+{% load group_tags %}
+
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -9,7 +11,15 @@
     <link rel="stylesheet" href="{% static 'instruction/css/avis.css' %}">
 </head>
 <body>
+
     {% include 'navbar.html' %}
+    
     <h1>Page des avis</h1>
+    <br>
+
+    {% if request.user|has_group:"Test" %}
+        <p>Vous voyez cette phrase car vous appartenez au groupe 'Test'</p>
+    {% endif %}
+    
 </body>
 </html>

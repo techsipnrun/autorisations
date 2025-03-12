@@ -76,9 +76,9 @@ class DemandeInterlocuteur(models.Model):
         return f"Interlocuteur {self.id_interlocuteur_ds}"
 
 
-class DemandeBeneficiare(models.Model):
+class DemandeBeneficiaire(models.Model):
     id = models.AutoField(primary_key=True)
-    id_demandeur_interlocuteur = models.ForeignKey(DemandeInterlocuteur, models.CASCADE, db_column='id_demandeur_interlocuteur')
+    id_demande_interlocuteur = models.ForeignKey(DemandeInterlocuteur, models.CASCADE, db_column='id_demande_interlocuteur')
     id_beneficiare = models.ForeignKey(ContactExterne, models.SET_NULL, db_column='id_beneficiare', blank=True, null=True)
 
     class Meta:
@@ -117,7 +117,7 @@ class Groupeinstructeur(models.Model):
 
 class GroupeinstructeurDemarche(models.Model):
     id = models.AutoField(primary_key=True)
-    id_groupeinstructeur_ds = models.CharField(unique=True)
+    id_groupeinstructeur_ds = models.CharField(unique=True, blank=True, null=True)
     id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.CASCADE, db_column='id_groupeinstructeur')
     id_demarche = models.ForeignKey('autorisations.Demarche', models.CASCADE, db_column='id_demarche')
 

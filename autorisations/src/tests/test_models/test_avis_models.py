@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.db import IntegrityError, connection
-from autorisations.models.model_avis import Avis, AvisDocument, AvisNature, AvisThematique, DemandeAvis, Expert
+from autorisations.src.autorisations.models.models_avis import Avis, AvisDocument, AvisNature, AvisThematique, DemandeAvis, Expert
 from autorisations.models.models_instruction import Demande, DemandeType, Dossier, DossierType, EtatDemande, EtatDossier, Priorite
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur, TypeContactExterne
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature

@@ -32,7 +32,6 @@ class AvisThematique(models.Model):
 class Expert(models.Model):
     id = models.AutoField(primary_key=True)
     id_expert_ds = models.CharField(unique=True, blank=True, null=True)
-    email = models.CharField(unique=True)
     est_interne = models.BooleanField()
     id_contact_externe = models.ForeignKey(
         ContactExterne, models.SET_NULL, db_column='id_contact_externe', blank=True, null=True
@@ -51,7 +50,7 @@ class Expert(models.Model):
 
 class Avis(models.Model):
     id = models.AutoField(primary_key=True)
-    id_demande_avis = models.CharField(blank=True, null=True)
+    id_ds = models.CharField(blank=True, null=True)
     id_avis_nature = models.ForeignKey(
         AvisNature, models.RESTRICT, db_column='id_avis_nature'
     )
@@ -66,21 +65,15 @@ class Avis(models.Model):
     date_demande_avis = models.DateField()
     date_reponse_avis = models.DateField(blank=True, null=True)
     mode_contact = models.CharField()
-    id_dossier = models.ForeignKey(
-        Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True
-    )
-    id_expert = models.ForeignKey(
-        Expert, models.SET_NULL, db_column='id_expert', blank=True, null=True
-    )
-    id_instructeur = models.ForeignKey(
-        Instructeur, models.SET_NULL, db_column='id_instructeur', blank=True, null=True
-    )
+    id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
+    id_expert = models.ForeignKey(Expert, models.SET_NULL, db_column='id_expert', blank=True, null=True)
+    id_instructeur = models.ForeignKey(Instructeur, models.SET_NULL, db_column='id_instructeur', blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = '"avis"."avis"'
         indexes = [
-            models.Index(fields=['id_demande_avis'], name='idx_avis_id_demande'),
+            models.Index(fields=['id'], name='idx_id_avis'),
             models.Index(fields=['id_avis_nature'], name='idx_avis_id_nature'),
             models.Index(fields=['id_avis_thematique'], name='idx_avis_id_thematique'),
         ]
