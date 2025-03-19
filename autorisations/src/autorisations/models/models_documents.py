@@ -49,7 +49,9 @@ class Document(models.Model):
         ]
 
     def __str__(self):
-        return f"Document {self.id} - {self.emplacement}"
+        if self.numero :
+            return f"{self.id_nature} {self.numero} - {self.emplacement}"  #Extraire le nom du dossier du Path
+        return f"{self.id_nature} - {self.emplacement}" #Extraire le nom du dossier du Path
 
 
 class DossierDocument(models.Model):

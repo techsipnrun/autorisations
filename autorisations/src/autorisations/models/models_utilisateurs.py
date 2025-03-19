@@ -14,6 +14,7 @@ class AgentAutorisations(models.Model):
     class Meta:
         managed = False
         db_table = '"utilisateurs"."agent_autorisations"'
+        verbose_name_plural = "Agents Autorisations"
 
     def __str__(self):
         return f"{self.nom} {self.prenom}" if self.nom and self.prenom else f"Agent {self.id}"
@@ -79,21 +80,21 @@ class DemandeInterlocuteur(models.Model):
 class DemandeBeneficiaire(models.Model):
     id = models.AutoField(primary_key=True)
     id_demande_interlocuteur = models.ForeignKey(DemandeInterlocuteur, models.CASCADE, db_column='id_demande_interlocuteur')
-    id_beneficiare = models.ForeignKey(ContactExterne, models.SET_NULL, db_column='id_beneficiare', blank=True, null=True)
+    id_beneficiaire = models.ForeignKey(ContactExterne, models.SET_NULL, db_column='id_beneficiaire', blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = '"utilisateurs"."demande_beneficiare"'
+        db_table = '"utilisateurs"."demande_beneficiaire"'
 
     def __str__(self):
-        return f"Bénéficiaire {self.id_beneficiare} pour demande {self.id_demandeur_interlocuteur}"
+        return f"Bénéficiaire {self.id_beneficiaire} pour demande {self.id_demandeur_interlocuteur}"
 
 
 class Instructeur(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
     email = models.CharField(unique=True)
-    id_agent_autorisations = models.ForeignKey(AgentAutorisations, models.SET_NULL, db_column='id_agent_autorisations', blank=True, null=True)
+    id_agent_autorisations = models.ForeignKey(AgentAutorisations, models.RESTRICT, db_column='id_agent_autorisations')
 
     class Meta:
         managed = False

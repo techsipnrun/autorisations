@@ -14,10 +14,14 @@ def avis(request):
     return render(request, 'instruction/avis.html')
 
 @login_required(login_url='/login/')
-def archives(request):
+def suivi(request):
 
     # from django.db import connection
     # doc = DocumentFormat(id=26, format="test format")
     # doc.save()
   
-    return render(request, 'instruction/archives.html')
+    return render(request, 'instruction/suivi.html')
+
+@login_required(login_url='/login/')
+def preinstruction(request):
+    return render(request, 'instruction/preinstruction.html')

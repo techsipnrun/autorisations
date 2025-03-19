@@ -53,11 +53,13 @@ class LDAPBackend(BaseBackend):
 
                 # Rechercher l'utilisateur dans LDAP
                 search_filter = f"(&(objectClass=user)(sAMAccountName={username}))"
-                conn.search(self.LDAP_BASE_DN, search_filter, attributes=["cn", "mail", "memberOf"])
+                conn.search(self.LDAP_BASE_DN, search_filter, attributes=["cn", "mail", "memberOf", "givenName", "sn"])
 
                 if conn.entries:
                     entry = conn.entries[0]
-                    email = entry.mail.value if hasattr(entry, 'mail') else f"{username}@pnrun.local"
+                    prenom = entry.givenName.value
+                    nom = entry.sn.value
+                    email = entry.mail.value if entry.mail.value != None else f"{prenom.lower()}.{nom.lower()}@reunion-parcnational.fr"
                     
                     # Vérifier si l'utilisateur existe dans Django, sinon le créer
                     user, created = User.objects.get_or_create(username=username, defaults={'email': email})

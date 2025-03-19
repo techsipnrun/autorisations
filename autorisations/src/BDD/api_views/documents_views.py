@@ -7,6 +7,8 @@ from ..api_serializers.documents_serializers import (
     DossierDocumentSerializer, MessageDocumentSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import DjangoModelPermissions
 
 
 @swagger_auto_schema(tags=["Documents"])
@@ -32,6 +34,8 @@ class DocumentFormatViewSet(viewsets.ModelViewSet):
     """
     queryset = DocumentFormat.objects.all()
     serializer_class = DocumentFormatSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Documents"])
@@ -57,6 +61,8 @@ class DocumentNatureViewSet(viewsets.ModelViewSet):
     """
     queryset = DocumentNature.objects.all()
     serializer_class = DocumentNatureSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Documents"])
@@ -82,6 +88,8 @@ class DocumentViewSet(viewsets.ModelViewSet):
     """
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Documents"])
@@ -107,6 +115,8 @@ class DossierDocumentViewSet(viewsets.ModelViewSet):
     """
     queryset = DossierDocument.objects.all()
     serializer_class = DossierDocumentSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Documents"])
@@ -132,3 +142,5 @@ class MessageDocumentViewSet(viewsets.ModelViewSet):
     """
     queryset = MessageDocument.objects.all()
     serializer_class = MessageDocumentSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]

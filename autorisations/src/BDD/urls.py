@@ -1,4 +1,6 @@
+import os
 from django.urls import path, re_path,include
+from dotenv import load_dotenv
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -6,11 +8,15 @@ from django.contrib.auth import views as auth_views
 from BDD.views import swagger_logout_view
 
 from rest_framework.routers import DefaultRouter
+
+from autorisations.settings import BASE_DIR
 from .api_views import avis_views,documents_views,utilisateurs_views, instruction_views
+from rest_framework.authtoken.views import obtain_auth_token
 
-
-
-
+# Chemin du fichier .env en fonction de l'environnement
+ENVIRONMENT = os.getenv("DJANGO_ENV", "dev")  # dev par défaut, DJANGO_ENV=prod python manage.py runserver pour lancer en prod
+dotenv_path = BASE_DIR / f".env.{ENVIRONMENT}"
+load_dotenv(dotenv_path)
 
 router = DefaultRouter()
 
@@ -34,7 +40,7 @@ router.register(r'agent_autorisations', utilisateurs_views.AgentAutorisationsVie
 router.register(r'type_contact_externe', utilisateurs_views.TypeContactExterneViewSet)
 router.register(r'contact_externe', utilisateurs_views.ContactExterneViewSet)
 router.register(r'demande_interlocuteur', utilisateurs_views.DemandeInterlocuteurViewSet)
-router.register(r'demande_beneficiare', utilisateurs_views.DemandeBeneficiareViewSet)
+router.register(r'demande_beneficiaire', utilisateurs_views.DemandeBeneficiaireViewSet)
 router.register(r'instructeur', utilisateurs_views.InstructeurViewSet)
 router.register(r'groupeinstructeur', utilisateurs_views.GroupeinstructeurViewSet)
 router.register(r'groupeinstructeur_demarche', utilisateurs_views.GroupeinstructeurDemarcheViewSet)
@@ -64,7 +70,7 @@ schema_view = get_schema_view(
       default_version='v1',
       description="Cette API permet d'interragir facilement avec les données propres aux demandes d'autorisations.",
       contact=openapi.Contact(email="louis.calu@reunion-parcnational.fr"),
-      license=openapi.License(name="BSD License"),
+      # license=openapi.License(name="BSD License"),
    ),
    public=True,  #True = API visible dans le Swagger même si le user n'a pas le droit de l'utiliser.
    permission_classes=(permissions.AllowAny,),
@@ -79,6 +85,7 @@ urlpatterns = [
 
    path('swagger/logout/', swagger_logout_view, name='swagger_logout'),
    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='swagger_login'),
-
-   path('api_postgres/', include(router.urls)),
+ 
+   path(f"{os.environ.get('API_PG_URL')}", include(router.urls)),
+   path(f"{os.environ.get('API_PG_URL')}token/", obtain_auth_token, name='api_token_auth'),  # Endpoint pour obtenir un token
 ]

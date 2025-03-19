@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'DS',
     'drf_yasg', #Swagger
     'django_filters',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'BDD.middleware.API_PG_LogMiddleware',
 ]
 
 ROOT_URLCONF = 'autorisations.urls'
@@ -180,6 +182,13 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
+        'apiPG_file': { # fichier pour les logs de l'API DS
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'BDD/logs/apiPG.log', 
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
         'console': {  # pour affichage en console
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -198,6 +207,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'API_PG': {
+            'handlers': ['apiPG_file'],
+            'level': 'INFO',
+            'propagate': False,
+        }
     }
 }
 
@@ -217,16 +231,29 @@ SWAGGER_SETTINGS = {
     'TRANSLATIONS': {
         'en': 'English',
         'fr': 'Français'
-    }
+    },
+    'SECURITY_DEFINITIONS': {
+        'Token': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "Ajoutez '<votre_token>' dans l'en-tête",
+        },
+    },
 }
 
 # Parametrage de l'API Postgres
 REST_FRAMEWORK = {
+
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # Exige une authentification par défaut
     ],
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    # 'PAGE_SIZE': 10,  # Nombre d'éléments par page
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',  # Auth par token
+        'rest_framework.authentication.SessionAuthentication', 
+    ],
+
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 

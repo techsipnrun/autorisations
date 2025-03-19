@@ -45,7 +45,7 @@ class Expert(models.Model):
         db_table = '"avis"."expert"'
 
     def __str__(self):
-        return f"Expert {self.id} - {self.email}"
+        return f"Expert {self.id} - {self.id_contact_externe.email}"
 
 
 class Avis(models.Model):
@@ -65,9 +65,9 @@ class Avis(models.Model):
     date_demande_avis = models.DateField()
     date_reponse_avis = models.DateField(blank=True, null=True)
     mode_contact = models.CharField()
-    id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
-    id_expert = models.ForeignKey(Expert, models.SET_NULL, db_column='id_expert', blank=True, null=True)
-    id_instructeur = models.ForeignKey(Instructeur, models.SET_NULL, db_column='id_instructeur', blank=True, null=True)
+    id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
+    id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
+    id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
 
     class Meta:
         managed = False
@@ -77,6 +77,7 @@ class Avis(models.Model):
             models.Index(fields=['id_avis_nature'], name='idx_avis_id_nature'),
             models.Index(fields=['id_avis_thematique'], name='idx_avis_id_thematique'),
         ]
+        verbose_name_plural = "Avis"
 
     def __str__(self):
         return f"Avis {self.id} - {self.id_avis_nature.nature} - {'Favorable' if self.favorable else 'Défavorable'}"
@@ -118,6 +119,7 @@ class DemandeAvis(models.Model):
         indexes = [
             models.Index(fields=['id_avis', 'id_demande'], name='idx_demande_avis_unique')
         ]
+        verbose_name_plural = "Demandes avis"
 
     def __str__(self):
         return f"Demande {self.id_demande.id} associée à Avis {self.id_avis.id}"

@@ -1,16 +1,19 @@
 from rest_framework import viewsets, permissions
+from rest_framework.authentication import TokenAuthentication
 from autorisations.models.models_avis import (
     AvisNature, AvisThematique, Expert, Avis, AvisDocument, DemandeAvis
 )
-from BDD.permissions import PeutUtiliserMethodeAvis
+
 from ..filters import AvisFilter
 from ..api_serializers.avis_serializers import (
     AvisNatureSerializer, AvisThematiqueSerializer, ExpertSerializer,
     AvisSerializer, AvisDocumentSerializer, DemandeAvisSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import DjangoModelPermissions
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+# from rest_framework.authentication import get_authorization_header
 
 @swagger_auto_schema(tags=["Avis"])
 class AvisNatureViewSet(viewsets.ModelViewSet):
@@ -35,7 +38,8 @@ class AvisNatureViewSet(viewsets.ModelViewSet):
     """
     queryset = AvisNature.objects.all()
     serializer_class = AvisNatureSerializer
-    permission_classes = [PeutUtiliserMethodeAvis]
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Avis"])
@@ -61,8 +65,8 @@ class AvisThematiqueViewSet(viewsets.ModelViewSet):
     """
     queryset = AvisThematique.objects.all()
     serializer_class = AvisThematiqueSerializer
-    permission_classes = [PeutUtiliserMethodeAvis]
-
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 @swagger_auto_schema(tags=["Avis"])
 class ExpertViewSet(viewsets.ModelViewSet):
@@ -87,7 +91,8 @@ class ExpertViewSet(viewsets.ModelViewSet):
     """
     queryset = Expert.objects.all()
     serializer_class = ExpertSerializer
-    permission_classes = [PeutUtiliserMethodeAvis]
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Avis"])
@@ -115,7 +120,8 @@ class AvisViewSet(viewsets.ModelViewSet):
     serializer_class = AvisSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = AvisFilter  # Ajout du filtre personnalisé
-    permission_classes = [PeutUtiliserMethodeAvis]
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -174,7 +180,8 @@ class AvisDocumentViewSet(viewsets.ModelViewSet):
     """
     queryset = AvisDocument.objects.all()
     serializer_class = AvisDocumentSerializer
-    permission_classes = [PeutUtiliserMethodeAvis]
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Avis"])
@@ -200,9 +207,7 @@ class DemandeAvisViewSet(viewsets.ModelViewSet):
     """
     queryset = DemandeAvis.objects.all()
     serializer_class = DemandeAvisSerializer
-    permission_classes = [PeutUtiliserMethodeAvis]
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
-
-
-# Ajouter la recherche textuelle (SearchFilter).
 

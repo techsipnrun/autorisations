@@ -10,6 +10,8 @@ from ..api_serializers.instruction_serializers import (
     DemandeChampSerializer, MessageSerializer, DossierGroupeSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import DjangoModelPermissions
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -35,6 +37,8 @@ class ChampTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = ChampType.objects.all()
     serializer_class = ChampTypeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -60,6 +64,8 @@ class EtatDemandeViewSet(viewsets.ModelViewSet):
     """
     queryset = EtatDemande.objects.all()
     serializer_class = EtatDemandeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -85,6 +91,8 @@ class DemandeViewSet(viewsets.ModelViewSet):
     """
     queryset = Demande.objects.all()
     serializer_class = DemandeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -110,6 +118,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     """
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -135,6 +145,8 @@ class EtatDemarcheViewSet(viewsets.ModelViewSet):
     """
     queryset = EtatDemarche.objects.all()
     serializer_class = EtatDemarcheSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -160,6 +172,8 @@ class EtatDossierViewSet(viewsets.ModelViewSet):
     """
     queryset = EtatDossier.objects.all()
     serializer_class = EtatDossierSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -185,6 +199,8 @@ class PrioriteViewSet(viewsets.ModelViewSet):
     """
     queryset = Priorite.objects.all()
     serializer_class = PrioriteSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -210,6 +226,8 @@ class DemandeTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = DemandeType.objects.all()
     serializer_class = DemandeTypeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -235,6 +253,8 @@ class GroupeViewSet(viewsets.ModelViewSet):
     """
     queryset = Groupe.objects.all()
     serializer_class = GroupeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -260,6 +280,8 @@ class DemarcheViewSet(viewsets.ModelViewSet):
     """
     queryset = Demarche.objects.all()
     serializer_class = DemarcheSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -285,6 +307,8 @@ class DossierTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = DossierType.objects.all()
     serializer_class = DossierTypeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -310,6 +334,8 @@ class DossierViewSet(viewsets.ModelViewSet):
     """
     queryset = Dossier.objects.all()
     serializer_class = DossierSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -335,6 +361,8 @@ class ChampViewSet(viewsets.ModelViewSet):
     """
     queryset = Champ.objects.all()
     serializer_class = ChampSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -360,6 +388,8 @@ class DemandeChampViewSet(viewsets.ModelViewSet):
     """
     queryset = DemandeChamp.objects.all()
     serializer_class = DemandeChampSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Instruction"])
@@ -385,3 +415,5 @@ class DossierGroupeViewSet(viewsets.ModelViewSet):
     """
     queryset = DossierGroupe.objects.all()
     serializer_class = DossierGroupeSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]

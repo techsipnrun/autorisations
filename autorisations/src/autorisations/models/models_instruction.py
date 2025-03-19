@@ -131,8 +131,8 @@ class Dossier(models.Model):
     nom_dossier = models.CharField()
     emplacement = models.CharField(unique=True)
     date_limite_traitement = models.DateField()
-    id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.SET_NULL, db_column='id_groupeinstructeur', blank=True, null=True)
-    id_demarche = models.ForeignKey(Demarche, models.SET_NULL, db_column='id_demarche', blank=True, null=True)
+    id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.RESTRICT, db_column='id_groupeinstructeur')
+    id_demarche = models.ForeignKey(Demarche, models.RESTRICT, db_column='id_demarche')
 
     class Meta:
         managed = False
@@ -159,7 +159,7 @@ class Demande(models.Model):
     en_attente_validation = models.BooleanField()
     pre_instruction_faite = models.BooleanField()
     id_interlocuteur_ds = models.CharField(unique=True, blank=True, null=True)
-    id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
+    id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
 
     class Meta:
         managed = False
@@ -170,7 +170,7 @@ class Demande(models.Model):
         ]
 
     def __str__(self):
-        return f"Demande {self.id} - {self.id_demande_type.type}"
+        return f"Demande {self.id} - {self.id_demande_type.type} (Dossier {self.id_dossier.numero})"
 
 
 class Champ(models.Model):

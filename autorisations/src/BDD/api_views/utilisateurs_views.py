@@ -11,6 +11,8 @@ from ..api_serializers.utilisateurs_serializers import (
     GroupeinstructeurInstructeurSerializer, DossierInstructeurSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import DjangoModelPermissions
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -36,6 +38,8 @@ class AgentAutorisationsViewSet(viewsets.ModelViewSet):
     """
     queryset = AgentAutorisations.objects.all()
     serializer_class = AgentAutorisationsSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 
@@ -62,6 +66,8 @@ class TypeContactExterneViewSet(viewsets.ModelViewSet):
     """
     queryset = TypeContactExterne.objects.all()
     serializer_class = TypeContactExterneSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -87,6 +93,8 @@ class ContactExterneViewSet(viewsets.ModelViewSet):
     """
     queryset = ContactExterne.objects.all()
     serializer_class = ContactExterneSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -112,10 +120,12 @@ class DemandeInterlocuteurViewSet(viewsets.ModelViewSet):
     """
     queryset = DemandeInterlocuteur.objects.all()
     serializer_class = DemandeInterlocuteurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
-class DemandeBeneficiareViewSet(viewsets.ModelViewSet):
+class DemandeBeneficiaireViewSet(viewsets.ModelViewSet):
     """
     retrieve:
     Retourne un bénéficiaire de demande via son ID.
@@ -137,6 +147,8 @@ class DemandeBeneficiareViewSet(viewsets.ModelViewSet):
     """
     queryset = DemandeBeneficiaire.objects.all()
     serializer_class = DemandeBeneficiaireSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -162,6 +174,8 @@ class InstructeurViewSet(viewsets.ModelViewSet):
     """
     queryset = Instructeur.objects.all()
     serializer_class = InstructeurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -187,6 +201,8 @@ class GroupeinstructeurViewSet(viewsets.ModelViewSet):
     """
     queryset = Groupeinstructeur.objects.all()
     serializer_class = GroupeinstructeurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -212,6 +228,9 @@ class GroupeinstructeurDemarcheViewSet(viewsets.ModelViewSet):
     """
     queryset = GroupeinstructeurDemarche.objects.all()
     serializer_class = GroupeinstructeurDemarcheSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
 
 @swagger_auto_schema(tags=["Utilisateurs"])
 class GroupeinstructeurInstructeurViewSet(viewsets.ModelViewSet):
@@ -236,6 +255,8 @@ class GroupeinstructeurInstructeurViewSet(viewsets.ModelViewSet):
     """
     queryset = GroupeinstructeurInstructeur.objects.all()
     serializer_class = GroupeinstructeurInstructeurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
@@ -261,3 +282,5 @@ class DossierInstructeurViewSet(viewsets.ModelViewSet):
     """
     queryset = DossierInstructeur.objects.all()
     serializer_class = DossierInstructeurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
