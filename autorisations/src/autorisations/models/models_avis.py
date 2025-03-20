@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 from .models_documents import Document
 from .models_utilisateurs import ContactExterne, Instructeur
@@ -44,13 +45,45 @@ class Expert(models.Model):
         managed = False
         db_table = '"avis"."expert"'
 
+    def clean(self):
+        """
+        Vérifie la validité des données avant la sauvegarde.
+        """
+        # Empêcher d'avoir les deux champs remplis
+        if self.id_instructeur and self.id_contact_externe:
+            raise ValidationError("Un expert ne peut pas être à la fois interne et externe.")
+
+        # Empêcher que les deux champs soient vides
+        if not self.id_instructeur and not self.id_contact_externe:
+            raise ValidationError("Un expert doit être soit interne (id_instructeur renseigné), soit externe (id_contact_externe renseigné).")
+
+        # Définir automatiquement 'est_interne'
+        if self.id_instructeur:
+            self.est_interne = True
+        elif self.id_contact_externe:
+            self.est_interne = False
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Vérifier avant de sauvegarder
+        super().save(*args, **kwargs)
+
     def __str__(self):
         if self.est_interne :
-            return f"{self.id_instructeur.id_agent_autorisations.prenom} {self.id_instructeur.id_agent_autorisations.nom} (Interne au Parc)"
-        return f"{self.id_contact_externe.prenom} {self.id_contact_externe.nom} ({self.id_contact_externe.id_type.type})"
+            return f"{self.id_instructeur} (Interne au Parc)"
+        return f"{self.id_contact_externe}"
+
+
+
 
 
 class Avis(models.Model):
+
+    MODE_CONTACT_CHOICES = [
+        ("Mail", "Mail"),
+        ("Téléphone", "Téléphone"),
+        ("Courrier papier", "Courrier papier"),
+    ]
+
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(blank=True, null=True)
     id_avis_nature = models.ForeignKey(
@@ -66,8 +99,12 @@ class Avis(models.Model):
     date_presentation = models.DateField(blank=True, null=True)
     date_demande_avis = models.DateField()
     date_reponse_avis = models.DateField(blank=True, null=True)
-    mode_contact = models.CharField()
-    id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
+    mode_contact = models.CharField(
+        max_length=20,
+        choices=MODE_CONTACT_CHOICES,  # Ajout des choix
+        default="Mail",  # Optionnel : valeur par défaut
+    )
+    id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
 
@@ -84,7 +121,7 @@ class Avis(models.Model):
     def __str__(self):
         if self.id_expert.est_interne :
             return (
-                f"{self.id_avis_nature.nature} {self.id} - Expert {self.id_expert.id_instructeur.id_agent_autorisations.prenom}"
+                f"{self.id_avis_nature.nature} {self.id} - Expert {self.id_expert.id_instructeur.id_agent_autorisations.prenom} "
                 f"{self.id_expert.id_instructeur.id_agent_autorisations.nom} (Interne au Parc) {' : Favorable' if self.favorable else ''}"
             )
         return (
@@ -95,12 +132,8 @@ class Avis(models.Model):
 
 class AvisDocument(models.Model):
     id = models.AutoField(primary_key=True)
-    id_avis = models.ForeignKey(
-        Avis, models.CASCADE, db_column='id_avis', blank=True, null=True
-    )
-    id_document = models.ForeignKey(
-        Document, models.CASCADE, db_column='id_document', blank=True, null=True
-    )
+    id_avis = models.ForeignKey(Avis, models.CASCADE, db_column='id_avis')
+    id_document = models.ForeignKey(Document, models.CASCADE, db_column='id_document')
 
     class Meta:
         managed = False
@@ -112,9 +145,9 @@ class AvisDocument(models.Model):
     def __str__(self):
 
         if self.id_avis.id_expert.est_interne :
-                return (f"{self.id_document.id_nature.nature} {self.id_document.id} lié à {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
+                return (f"{self.id_document.id_nature.nature} {self.id_document.id} : {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
                         f"(Expert {self.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom} {self.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom})")
-        return (f"{self.id_document.id_nature.nature} {self.id_document.id} lié à {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
+        return (f"{self.id_document.id_nature.nature} {self.id_document.id} : {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
                         f"(Expert {self.id_avis.id_expert.id_contact_externe.prenom} {self.id_avis.id_expert.id_contact_externe.nom} - {self.id_avis.id_expert.id_contact_externe.id_type.type})")
 
 

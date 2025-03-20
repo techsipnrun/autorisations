@@ -112,7 +112,7 @@ class Instructeur(models.Model):
         db_table = '"utilisateurs"."instructeur"'
 
     def __str__(self):
-        return f"{self.id_agent_autorisations.prenom} {self.id_agent_autorisations.nom} - {self.email}"
+        return f"{self.id_agent_autorisations.nom} {self.id_agent_autorisations.prenom}"
 
 
 class Groupeinstructeur(models.Model):
@@ -173,7 +173,7 @@ class DossierInstructeur(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.id_instructeur.id_agent_autorisations.prenom} {self.id_instructeur.id_agent_autorisations.nom} : Dossier {self.id_dossier.id} ({self.id_dossier.nom_dossier})"
+        return f"{self.id_instructeur} : Dossier {self.id_dossier.id} ({self.id_dossier.nom_dossier})"
     
 
 

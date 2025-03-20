@@ -57,7 +57,7 @@ ROOT_URLCONF = 'autorisations.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'instruction/templates/instruction'), os.path.join(BASE_DIR, 'authent/templates/authent')],
+        'DIRS': [os.path.join(BASE_DIR, 'instruction/templates/instruction'), os.path.join(BASE_DIR, 'authent/templates/authent'), os.path.join(BASE_DIR, 'autorisations/templates/autorisations'),],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

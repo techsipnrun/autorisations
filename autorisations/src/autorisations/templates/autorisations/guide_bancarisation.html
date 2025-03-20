@@ -1,0 +1,94 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{% static 'autorisations/css/guide_bancarisation.css' %}">
+</head>
+<body>
+    
+    <div class="container">
+        <div class="btn_bancariser">
+            <a href="{% url 'bancarisation_view' %}" class="button">
+                Bancariser
+            </a>
+        </div>
+        <h2>🔹 Guide de Bancarisation</h2>
+        
+        <ol>
+            <li>
+                <strong>Dossier</strong>
+                <span>Saisir le dossier</span>
+            </li>
+            <li>
+                <strong>Demande</strong>
+                <span>Saisir la ou les demande(s) associées au dossier (le plus souvent un dossier est associé a une demande du même type..) </span>
+            </li>
+            <li>
+                <strong>Document</strong>
+                <span>
+                    Saisir l'ensemble des documents associés au dossier (arrêtés, délibérations, pièces jointes, captures d'écran, demandes d'avis etc..) <br>
+                    Contacter l'administrateur si le format ou la nature du document n'est pas dans la liste déroulante. 
+                </span>
+            </li>
+            <li>
+                <strong>DossierDocument</strong>
+                <span>Relier les documents saisis précédemment au dossier associé</span>
+            </li>
+            <li>
+                <strong>Instructeur</strong> 
+                <span>Vérifier que l’instructeur en charge du dossier existe, sinon le rajouter</span>
+            </li>
+            <li>
+                <strong>DossierInstructeur</strong>
+                <span>Relier le(s) instructeur(s) en charge du dossier</span>
+            </li>
+            <li>
+                <strong>ContactExterne</strong>
+                <span>S'ils n'éxistent pas : ajouter les contacts externes (bénéficiaire, demandeur intermédiaire, experts..)</span>
+            </li>
+            <li>
+                <strong>Expert</strong>
+                <span>
+                    S'ils n'éxistent pas : ajouter les experts internes/externes contactés <br>
+                    Si l'expert est externe il faut remplir le champ 'Id contact externe' <br>
+                    Si il est interne, il faut remplir le champ 'Id instructeur'
+                </span>
+            </li>
+            <li>
+                <strong>Avis</strong>
+                <span>Saisir le ou les avis demandé(s) au cours de l'instruction du dossier</span>
+            </li>
+            <li>
+                <strong>AvisDocument</strong>
+                <span>Relier le(s) avis à ses documents</span>
+            </li>
+            <li>
+                <strong>DemandeAvis</strong>
+                <span>Relier le(s) avis à leur demande</span>
+            </li>
+            <li>
+                <strong>DemandeInterlocuteur</strong>
+                <span>Identifier le(s) bénéficiaire(s) et le cas échéant : le demandeur intermédiaire</span>
+            </li>
+            <li>
+                <strong>DemandeBeneficiaire</strong>
+                <span>Relier le(s) bénéficiaire(s) de la demande à leurs informations</span>
+            </li>
+            <li>
+                <strong>Groupe</strong>
+                <span>Si plusieurs dossiers sont liés, créer un groupe de dossiers. Choisir un nom cohérent</span>
+            </li>
+            <li>
+                <strong>DossierGroupe</strong>
+                <span>Le cas échéant, relier le dossier à son groupe</span>
+            </li> 
+        </ol>
+    </div>
+
+</body>
+</html>
+    

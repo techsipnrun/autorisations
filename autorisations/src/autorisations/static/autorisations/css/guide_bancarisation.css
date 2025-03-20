@@ -1,0 +1,118 @@
+/* Styles généraux */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f7f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Conteneur */
+.container {
+    background: white;
+    max-width: 800px;
+    width: 90%;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Titre */
+h2 {
+    text-align: center;
+    color: #0026ff;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+/* Liste ordonnée */
+ol {
+    list-style: none;
+    padding: 0;
+    counter-reset: step-counter;
+}
+
+/* Élément de la liste */
+ol li {
+    background: #fff;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column; /* Permet d'empiler les éléments sans débordement */
+    align-items: flex-start;
+    font-size: 16px;
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 50px; /* Décale le texte pour laisser la place au numéro */
+    word-wrap: break-word; /* Coupe les longs mots si besoin */
+    overflow: hidden; /* Empêche le dépassement */
+}
+
+/* Numérotation circulaire */
+ol li:before {
+    content: counter(step-counter);
+    background: #007BFF;
+    color: white;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Style du titre (strong) */
+ol li strong {
+    color: inherit; /* Garde la couleur du texte normal */
+    font-size: 18px;
+    margin-bottom: 2px;
+}
+
+/* Style de la description en italique sous le titre */
+ol li span {
+    display: block; /* Assure un retour à la ligne */
+    font-style: italic;
+    color: #555;
+    font-size: 14px;
+    max-width: 100%; /* Empêche le dépassement de la boîte */
+    word-wrap: break-word; /* Coupe proprement les longues phrases */
+}
+
+/* Conteneur du bouton */
+.btn_bancariser {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+/* Style du bouton */
+.btn_bancariser .button {
+    display: inline-block;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    color: white;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Effet hover */
+.btn_bancariser .button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}

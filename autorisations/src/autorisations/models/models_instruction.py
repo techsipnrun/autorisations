@@ -238,4 +238,4 @@ class DossierGroupe(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.id_dossier} assigné à Groupe '{self.id_groupe.nom}'"
+        return f"{self.id_dossier} : Groupe '{self.id_groupe.nom}'"

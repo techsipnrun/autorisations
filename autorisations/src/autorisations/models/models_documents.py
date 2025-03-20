@@ -29,12 +29,8 @@ class DocumentNature(models.Model):
 
 class Document(models.Model):
     id = models.AutoField(primary_key=True)
-    id_format = models.ForeignKey(
-        DocumentFormat, models.RESTRICT, db_column='id_format', blank=True, null=True
-    )
-    id_nature = models.ForeignKey(
-        DocumentNature, models.RESTRICT, db_column='id_nature', blank=True, null=True
-    )
+    id_format = models.ForeignKey(DocumentFormat, models.RESTRICT, db_column='id_format')
+    id_nature = models.ForeignKey(DocumentNature, models.RESTRICT, db_column='id_nature')
     url_ds = models.CharField(blank=True, null=True)
     emplacement = models.CharField(unique=True)
     description = models.CharField(blank=True, null=True)
@@ -71,7 +67,7 @@ class DossierDocument(models.Model):
         ]
 
     def __str__(self):
-        return f"Document {self.id_document.id} lié à Dossier {self.id_dossier.id}"
+        return f"{self.id_document.id_nature.nature} {self.id_document.id} lié à {self.id_dossier}"
 
 
 class MessageDocument(models.Model):
