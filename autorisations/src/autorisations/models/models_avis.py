@@ -36,8 +36,8 @@ class Expert(models.Model):
     id_contact_externe = models.ForeignKey(
         ContactExterne, models.SET_NULL, db_column='id_contact_externe', blank=True, null=True
     )
-    id_agent_autorisations = models.ForeignKey(
-        Instructeur, models.SET_NULL, db_column='id_agent_autorisations', blank=True, null=True
+    id_instructeur = models.ForeignKey(
+        Instructeur, models.SET_NULL, db_column='id_instructeur', blank=True, null=True
     )
 
     class Meta:
@@ -45,7 +45,9 @@ class Expert(models.Model):
         db_table = '"avis"."expert"'
 
     def __str__(self):
-        return f"Expert {self.id} - {self.id_contact_externe.email}"
+        if self.est_interne :
+            return f"{self.id_instructeur.id_agent_autorisations.prenom} {self.id_instructeur.id_agent_autorisations.nom} (Interne au Parc)"
+        return f"{self.id_contact_externe.prenom} {self.id_contact_externe.nom} ({self.id_contact_externe.id_type.type})"
 
 
 class Avis(models.Model):
@@ -80,7 +82,15 @@ class Avis(models.Model):
         verbose_name_plural = "Avis"
 
     def __str__(self):
-        return f"Avis {self.id} - {self.id_avis_nature.nature} - {'Favorable' if self.favorable else 'Défavorable'}"
+        if self.id_expert.est_interne :
+            return (
+                f"{self.id_avis_nature.nature} {self.id} - Expert {self.id_expert.id_instructeur.id_agent_autorisations.prenom}"
+                f"{self.id_expert.id_instructeur.id_agent_autorisations.nom} (Interne au Parc) {' : Favorable' if self.favorable else ''}"
+            )
+        return (
+                f"{self.id_avis_nature.nature} {self.id} - Expert {self.id_expert.id_contact_externe.prenom} "
+                f"{self.id_expert.id_contact_externe.nom} ({self.id_expert.id_contact_externe.id_type.type}) {' : Favorable' if self.favorable else ''}"
+            )
 
 
 class AvisDocument(models.Model):
@@ -100,7 +110,12 @@ class AvisDocument(models.Model):
         ]
 
     def __str__(self):
-        return f"Document {self.id_document.id} lié à Avis {self.id_avis.id}"
+
+        if self.id_avis.id_expert.est_interne :
+                return (f"{self.id_document.id_nature.nature} {self.id_document.id} lié à {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
+                        f"(Expert {self.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom} {self.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom})")
+        return (f"{self.id_document.id_nature.nature} {self.id_document.id} lié à {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
+                        f"(Expert {self.id_avis.id_expert.id_contact_externe.prenom} {self.id_avis.id_expert.id_contact_externe.nom} - {self.id_avis.id_expert.id_contact_externe.id_type.type})")
 
 
 class DemandeAvis(models.Model):

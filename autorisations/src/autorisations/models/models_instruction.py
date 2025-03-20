@@ -142,7 +142,7 @@ class Dossier(models.Model):
         ]
 
     def __str__(self):
-        return f"Dossier {self.numero} - {self.nom_dossier}"
+        return f"Dossier {self.numero} ({self.nom_dossier})"
 
 
 class Demande(models.Model):
@@ -238,4 +238,4 @@ class DossierGroupe(models.Model):
         ]
 
     def __str__(self):
-        return f"Dossier {self.id_dossier.id} assigné à Groupe {self.id_groupe.nom}"
+        return f"{self.id_dossier} assigné à Groupe '{self.id_groupe.nom}'"

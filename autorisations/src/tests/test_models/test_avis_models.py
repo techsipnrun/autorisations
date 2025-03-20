@@ -79,7 +79,7 @@ class ExpertTestCase(TestCase):
             email="expert@domaine.com",
             est_interne=True,
             id_contact_externe=self.contact_externe,
-            id_agent_autorisations=self.instructeur
+            id_instructeur=self.instructeur
         )
 
     def test_is_correct_instance(self):

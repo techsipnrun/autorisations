@@ -60,13 +60,13 @@ class ContactExterne(models.Model):
         db_table = '"utilisateurs"."contact_externe"'
 
     def __str__(self):
-        return f"{self.nom} {self.prenom} - {self.email}"
+        return f"{self.nom} {self.prenom} ({self.id_type.type})"
 
 
 class DemandeInterlocuteur(models.Model):
     id = models.AutoField(primary_key=True)
     id_interlocuteur_ds = models.CharField(unique=True, blank=True, null=True)
-    id_demande = models.ForeignKey('autorisations.Demande', models.SET_NULL, db_column='id_demande', blank=True, null=True)
+    id_demande = models.ForeignKey('autorisations.Demande', models.RESTRICT, db_column='id_demande')
     id_demandeur_intermediaire = models.ForeignKey(ContactExterne, models.SET_NULL, db_column='id_demandeur_intermediaire', blank=True, null=True)
 
     class Meta:
@@ -74,20 +74,31 @@ class DemandeInterlocuteur(models.Model):
         db_table = '"utilisateurs"."demande_interlocuteur"'
 
     def __str__(self):
-        return f"Interlocuteur {self.id_interlocuteur_ds}"
+        if {self.id_demandeur_intermediaire} :
+            return f"{self.id_demande} - Demandeur intermédiaire : {self.id_demandeur_intermediaire.prenom} {self.id_demandeur_intermediaire.nom}"
+        return f"{self.id_demande} - Pas de demandeur intermédiaire"
 
 
 class DemandeBeneficiaire(models.Model):
     id = models.AutoField(primary_key=True)
     id_demande_interlocuteur = models.ForeignKey(DemandeInterlocuteur, models.CASCADE, db_column='id_demande_interlocuteur')
-    id_beneficiaire = models.ForeignKey(ContactExterne, models.SET_NULL, db_column='id_beneficiaire', blank=True, null=True)
+    id_beneficiaire = models.ForeignKey(ContactExterne, models.RESTRICT, db_column='id_beneficiaire')
 
     class Meta:
         managed = False
         db_table = '"utilisateurs"."demande_beneficiaire"'
 
     def __str__(self):
-        return f"Bénéficiaire {self.id_beneficiaire} pour demande {self.id_demandeur_interlocuteur}"
+        if {self.id_demande_interlocuteur.id_demandeur_intermediaire} :
+            return (
+                f"Bénéficiaire {self.id_beneficiaire.prenom} {self.id_beneficiaire.nom} - "
+                f"Demandeur Intermédiaire {self.id_demande_interlocuteur.id_demandeur_intermediaire.prenom} {self.id_demande_interlocuteur.id_demandeur_intermediaire.nom} : "
+                f"{self.id_demande_interlocuteur.id_demande}"
+            )
+        return (
+                f"Bénéficiaire {self.id_beneficiaire.prenom} {self.id_beneficiaire.nom} : "
+                f"{self.id_demande_interlocuteur.id_demande}"
+            )
 
 
 class Instructeur(models.Model):
@@ -101,7 +112,7 @@ class Instructeur(models.Model):
         db_table = '"utilisateurs"."instructeur"'
 
     def __str__(self):
-        return self.email
+        return f"{self.id_agent_autorisations.prenom} {self.id_agent_autorisations.nom} - {self.email}"
 
 
 class Groupeinstructeur(models.Model):
@@ -162,7 +173,7 @@ class DossierInstructeur(models.Model):
         ]
 
     def __str__(self):
-        return f"Instructeur {self.id_instructeur.email} pour Dossier {self.id_dossier.id}"
+        return f"{self.id_instructeur.id_agent_autorisations.prenom} {self.id_instructeur.id_agent_autorisations.nom} : Dossier {self.id_dossier.id} ({self.id_dossier.nom_dossier})"
     
 
 
