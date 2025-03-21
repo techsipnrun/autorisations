@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from autorisations.models.models_instruction import (
-    ChampType, EtatDemande, EtatDemarche, EtatDossier, Priorite, DemandeType, Groupe,
+    ChampType, DossierChamp, EtatDemande, EtatDemarche, EtatDossier, Priorite, DemandeType, Groupe,
     Demarche, DossierType, Dossier, Demande, Champ, DemandeChamp, Message, DossierGroupe
 )
 
@@ -108,6 +108,23 @@ class DemandeChampSerializer(serializers.ModelSerializer):
     class Meta:
         model = DemandeChamp
         fields = '__all__'
+
+
+class DossierChampSerializer(serializers.ModelSerializer):
+    id_dossier = serializers.PrimaryKeyRelatedField(
+            queryset=Dossier.objects.all(),
+            help_text="ID du dossier.",
+            required=True
+        )
+    id_champ = serializers.PrimaryKeyRelatedField(
+            queryset=Champ.objects.all(),
+            help_text="ID du champ.",
+            required=True
+        )
+    class Meta:
+        model = DossierChamp
+        fields = '__all__'
+
 
 
 class MessageSerializer(serializers.ModelSerializer):

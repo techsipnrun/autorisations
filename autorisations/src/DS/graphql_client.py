@@ -20,14 +20,6 @@ class GraphQLClient:
         self.url = os.environ.get('API_URL')
         self.token = os.environ.get('API_TOKEN')
 
-        # # Configurer le logging
-        # logging.basicConfig(
-        #     filename="DS/logs/apiDS.log",
-        #     level=logging.INFO,
-        #     format="%(asctime)s - %(levelname)s - %(message)s",
-        #     encoding="utf-8"
-        # )
-
         
 
         

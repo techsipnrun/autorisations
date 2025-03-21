@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.db import IntegrityError, connection
-from autorisations.models.models_utilisateurs import AgentAutorisations, AgentAutorisationsUpdateLog, ContactExterne, DemandeBeneficiaire, DemandeInterlocuteur, DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import AgentAutorisations, AgentAutorisationsUpdateLog, ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.models.models_instruction import Demande, DemandeType, Demarche, Dossier, DossierType, EtatDemande, EtatDemarche, EtatDossier, Priorite
 
 class AgentAutorisationsTestCase(TestCase):
@@ -134,7 +134,7 @@ class InstructeurTestCase(TestCase):
 
 
 
-class DemandeInterlocuteurTestCase(TestCase):
+class DossierInterlocuteurTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -175,31 +175,31 @@ class DemandeInterlocuteurTestCase(TestCase):
                                              id_interlocuteur_ds="INT001",
                                              id_dossier=cls.dossier)
 
-        cls.interlocuteur = DemandeInterlocuteur.objects.create(
+        cls.interlocuteur = DossierInterlocuteur.objects.create(
             id_interlocuteur_ds="INT001",
             id_demande=cls.demande,
             id_demandeur_intermediaire=cls.contact_externe
         )
 
     def test_is_correct_instance(self):
-        """Vérifie que l'objet créé est bien une instance de DemandeInterlocuteur"""
-        self.assertIsInstance(self.interlocuteur, DemandeInterlocuteur)
+        """Vérifie que l'objet créé est bien une instance de DossierInterlocuteur"""
+        self.assertIsInstance(self.interlocuteur, DossierInterlocuteur)
 
     def test_unique_interlocuteur_constraint(self):
-        """Vérifie qu'on ne peut pas créer un autre DemandeInterlocuteur avec le même `id_interlocuteur_ds`"""
+        """Vérifie qu'on ne peut pas créer un autre DossierInterlocuteur avec le même `id_interlocuteur_ds`"""
         with self.assertRaises(IntegrityError):
-            DemandeInterlocuteur.objects.create(id_interlocuteur_ds="INT001", id_demande=self.demande)
+            DossierInterlocuteur.objects.create(id_interlocuteur_ds="INT001", id_demande=self.demande)
 
     def test_delete_interlocuteur(self):
-        """Vérifie qu'on peut supprimer un DemandeInterlocuteur"""
+        """Vérifie qu'on peut supprimer un DossierInterlocuteur"""
         self.interlocuteur.delete()
-        with self.assertRaises(DemandeInterlocuteur.DoesNotExist):
-            DemandeInterlocuteur.objects.get(id_interlocuteur_ds="INT001")
+        with self.assertRaises(DossierInterlocuteur.DoesNotExist):
+            DossierInterlocuteur.objects.get(id_interlocuteur_ds="INT001")
 
 
 
 
-class DemandeBeneficiaireTestCase(TestCase):
+class DossierBeneficiaireTestCase(TestCase):
 
     def setUp(self):
         assert connection.settings_dict['NAME'] == 'test_autorisations', "Django utilise la mauvaise base de données !"
@@ -212,22 +212,22 @@ class DemandeBeneficiaireTestCase(TestCase):
             nom="Martin",
             prenom="Paul"
         )
-        self.interlocuteur = DemandeInterlocuteur.objects.create(id_interlocuteur_ds="INT001")
+        self.interlocuteur = DossierInterlocuteur.objects.create(id_interlocuteur_ds="INT001")
 
-        self.beneficiaire = DemandeBeneficiaire.objects.create(
+        self.beneficiaire = DossierBeneficiaire.objects.create(
             id_demandeur_interlocuteur=self.interlocuteur,
             id_beneficiaire=self.contact_externe
         )
 
     def test_is_correct_instance(self):
-        """Vérifie que l'objet créé est bien une instance de DemandeBeneficiaire"""
-        self.assertIsInstance(self.beneficiaire, DemandeBeneficiaire)
+        """Vérifie que l'objet créé est bien une instance de DossierBeneficiaire"""
+        self.assertIsInstance(self.beneficiaire, DossierBeneficiaire)
 
     def test_delete_beneficiaire(self):
-        """Vérifie qu'on peut supprimer un DemandeBeneficiaire"""
+        """Vérifie qu'on peut supprimer un DossierBeneficiaire"""
         self.beneficiaire.delete()
-        with self.assertRaises(DemandeBeneficiaire.DoesNotExist):
-            DemandeBeneficiaire.objects.get(id=self.beneficiaire.id)
+        with self.assertRaises(DossierBeneficiaire.DoesNotExist):
+            DossierBeneficiaire.objects.get(id=self.beneficiaire.id)
 
 
 

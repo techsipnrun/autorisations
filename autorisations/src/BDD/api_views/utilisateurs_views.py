@@ -1,12 +1,12 @@
 from rest_framework import viewsets
 from autorisations.models.models_utilisateurs import (
     AgentAutorisations, AgentAutorisationsUpdateLog, TypeContactExterne, ContactExterne,
-    DemandeInterlocuteur, DemandeBeneficiaire, Instructeur, Groupeinstructeur,
+    DossierInterlocuteur, DossierBeneficiaire, Instructeur, Groupeinstructeur,
     GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur
 )
 from ..api_serializers.utilisateurs_serializers import (
     AgentAutorisationsSerializer, TypeContactExterneSerializer,
-    ContactExterneSerializer, DemandeInterlocuteurSerializer, DemandeBeneficiaireSerializer,
+    ContactExterneSerializer, DossierInterlocuteurSerializer, DossierBeneficiaireSerializer,
     InstructeurSerializer, GroupeinstructeurSerializer, GroupeinstructeurDemarcheSerializer,
     GroupeinstructeurInstructeurSerializer, DossierInstructeurSerializer
 )
@@ -98,34 +98,34 @@ class ContactExterneViewSet(viewsets.ModelViewSet):
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
-class DemandeInterlocuteurViewSet(viewsets.ModelViewSet):
+class DossierInterlocuteurViewSet(viewsets.ModelViewSet):
     """
     retrieve:
-    Retourne un interlocuteur de demande via son ID.
+    Retourne un interlocuteur de dossier via son ID.
 
     list:
     Retourne la liste de tous les interlocuteurs des demandes.
 
     create:
-    Crée un nouvel interlocuteur de demande.
+    Crée un nouvel interlocuteur de dossier.
 
     update:
-    Met à jour un interlocuteur de demande existant (remplacement total).
+    Met à jour un interlocuteur de dossier existant (remplacement total).
 
     partial_update:
-    Met à jour partiellement un interlocuteur de demande.
+    Met à jour partiellement un interlocuteur de dossier.
 
     delete:
     Supprime un interlocuteur de demande.
     """
-    queryset = DemandeInterlocuteur.objects.all()
-    serializer_class = DemandeInterlocuteurSerializer
+    queryset = DossierInterlocuteur.objects.all()
+    serializer_class = DossierInterlocuteurSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
-class DemandeBeneficiaireViewSet(viewsets.ModelViewSet):
+class DossierBeneficiaireViewSet(viewsets.ModelViewSet):
     """
     retrieve:
     Retourne un bénéficiaire de demande via son ID.
@@ -145,8 +145,8 @@ class DemandeBeneficiaireViewSet(viewsets.ModelViewSet):
     delete:
     Supprime un bénéficiaire de demande.
     """
-    queryset = DemandeBeneficiaire.objects.all()
-    serializer_class = DemandeBeneficiaireSerializer
+    queryset = DossierBeneficiaire.objects.all()
+    serializer_class = DossierBeneficiaireSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]
 

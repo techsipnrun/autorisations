@@ -3,7 +3,7 @@ from django.db.models import Case, When, Value, CharField
 from .models.models_avis import Avis, AvisDocument, Expert
 from .models.models_documents import Document, DossierDocument
 from .models.models_instruction import Dossier, Demande, DossierGroupe, Groupe
-from .models.models_utilisateurs import ContactExterne, DossierInstructeur, DemandeInterlocuteur, DemandeBeneficiaire, Instructeur
+from .models.models_utilisateurs import ContactExterne, DossierInstructeur, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 
 
 class CustomAdminSite(admin.AdminSite):
@@ -22,7 +22,7 @@ class CustomAdminSite(admin.AdminSite):
             "Dossier", "Demande", "Document",
             "DossierDocument", "Instructeur", "DossierInstructeur", "ContactExterne",
             "Expert", "Avis", "AvisDocument",
-            "DemandeInterlocuteur", "DemandeBeneficiaire", "Groupe", "DossierGroupe",
+            "DossierInterlocuteur", "DossierBeneficiaire", "Groupe", "DossierGroupe",
         ]
 
         for app in app_list:
@@ -123,14 +123,14 @@ class AvisDocumentAdmin(admin.ModelAdmin):
     list_filter = ('id_avis',)
 custom_admin_site.register(AvisDocument, AvisDocumentAdmin)
 
-class DemandeInterlocuteurAdmin(admin.ModelAdmin):
+class DossierInterlocuteurAdmin(admin.ModelAdmin):
     exclude = ('id_interlocuteur_ds', 'id_expert_ds', )
-    list_filter = ('id_demande',)
-custom_admin_site.register(DemandeInterlocuteur, DemandeInterlocuteurAdmin)
+    list_filter = ('id_dossier',)
+custom_admin_site.register(DossierInterlocuteur, DossierInterlocuteurAdmin)
 
-class DemandeBeneficiaireAdmin(admin.ModelAdmin):
+class DossierBeneficiaireAdmin(admin.ModelAdmin):
     list_filter = ('id_beneficiaire',)
-custom_admin_site.register(DemandeBeneficiaire, DemandeBeneficiaireAdmin)
+custom_admin_site.register(DossierBeneficiaire, DossierBeneficiaireAdmin)
 
 custom_admin_site.register(Groupe)
 

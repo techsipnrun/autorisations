@@ -153,11 +153,6 @@ class Demande(models.Model):
     date_depot = models.DateField()
     date_fin_instruction = models.DateField(blank=True, null=True)
     soumis_controle = models.BooleanField()
-    en_attente_avis = models.BooleanField()
-    avis_a_faire = models.BooleanField()
-    en_attente_demandeur = models.BooleanField()
-    en_attente_validation = models.BooleanField()
-    pre_instruction_faite = models.BooleanField()
     id_interlocuteur_ds = models.CharField(unique=True, blank=True, null=True)
     id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
 
@@ -180,6 +175,7 @@ class Champ(models.Model):
     id_champ_type = models.ForeignKey(ChampType, models.RESTRICT, db_column='id_champ_type')
     description = models.CharField()
     id_demarche = models.ForeignKey(Demarche, models.SET_NULL, db_column='id_demarche', blank=True, null=True)
+    requis = models.BooleanField()
 
     class Meta:
         managed = False
@@ -208,6 +204,27 @@ class DemandeChamp(models.Model):
         return f"Valeur '{self.valeur}' pour Demande {self.id_demande.id}"
 
 
+
+class DossierChamp(models.Model):
+    id = models.AutoField(primary_key=True)
+    valeur = models.CharField()
+    date_saisie = models.DateField()
+    geometrie = models.JSONField(blank=True, null=True)
+    id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
+    id_champ = models.ForeignKey(Champ, models.SET_NULL, db_column='id_champ', blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."dossier_champ"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_champ'], name='idx_dossier_champ_unique')
+        ]
+
+    def __str__(self):
+        return f"'{self.id_champ.nom}' : Dossier {self.id_dossier}"
+
+
+
 class Message(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField()
@@ -216,6 +233,7 @@ class Message(models.Model):
     piece_jointe = models.BooleanField()
     email_emetteur = models.CharField()
     id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
+    lu = models.BooleanField()
 
     class Meta:
         managed = False

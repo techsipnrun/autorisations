@@ -1,0 +1,93 @@
+query demarche($number: Int!) {
+  demarche(number: $number) {
+    id
+    number
+    state
+    title
+    dateCreation
+    dateDerniereModification
+    description
+    champDescriptors {
+      description
+      id
+      label
+      required
+      type
+    }
+    dossiers {
+      nodes {
+        id
+        number
+        dateDepot
+        datePassageEnConstruction
+        datePassageEnInstruction
+        dateTraitement
+        demandeur {
+          id
+        }
+        instructeurs {
+          id
+          email
+        }
+        groupeInstructeur {
+            label
+            number
+        }
+        champs {
+            label
+            stringValue
+            id
+            updatedAt
+             ... on CarteChamp {
+              geoAreas {
+                geometry {
+                    coordinates
+                    type
+                }
+              }
+            }
+            ... on PieceJustificativeChamp {
+                files {
+                    url
+                    filename
+                }
+            }
+        } 
+        state
+        messages {
+            id
+            body
+            createdAt
+            email
+            attachments {
+                url
+                filename
+            }
+        }
+        avis {
+          id
+          reponse
+          dateQuestion
+          dateReponse
+          expert {
+            id
+            email
+          }
+          attachments {
+            url
+            filename
+          }
+        }
+      }
+    }
+    groupeInstructeurs {
+      number
+      label
+      id
+      instructeurs {
+        id
+        email
+      }
+    }
+  }
+}

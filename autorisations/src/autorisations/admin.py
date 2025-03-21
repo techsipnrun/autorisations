@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, MessageDocument
-from .models.models_instruction import Champ, DossierGroupe, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Priorite
-from .models.models_utilisateurs import AgentAutorisationsUpdateLog, ContactExterne, DemandeBeneficiaire, DemandeInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne
+from .models.models_instruction import Champ, DossierChamp, DossierGroupe, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Priorite
+from .models.models_utilisateurs import AgentAutorisationsUpdateLog, ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne
 
 
 # Personnalisation globale de l'admin
@@ -47,6 +47,7 @@ admin.site.register(Demarche)
 admin.site.register(ChampType)
 admin.site.register(Champ)
 admin.site.register(DemandeChamp)
+admin.site.register(DossierChamp)
 admin.site.register(Message)
 admin.site.register(DossierGroupe)
 admin.site.register(Groupe)
@@ -66,7 +67,7 @@ admin.site.register(Groupeinstructeur)
 admin.site.register(GroupeinstructeurDemarche)
 admin.site.register(GroupeinstructeurInstructeur)
 admin.site.register(DossierInstructeur)
-admin.site.register(DemandeInterlocuteur)
-admin.site.register(DemandeBeneficiaire)
+admin.site.register(DossierInterlocuteur)
+admin.site.register(DossierBeneficiaire)
 
 

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from autorisations.models.models_utilisateurs import (
     AgentAutorisations, TypeContactExterne, ContactExterne,
-    DemandeInterlocuteur, DemandeBeneficiaire, Instructeur, Groupeinstructeur,
+    DossierInterlocuteur, DossierBeneficiaire, Instructeur, Groupeinstructeur,
     GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur
 )
 from autorisations.models.models_instruction import Demande
@@ -25,25 +25,25 @@ class ContactExterneSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class DemandeInterlocuteurSerializer(serializers.ModelSerializer):
+class DossierInterlocuteurSerializer(serializers.ModelSerializer):
     id_demande = serializers.PrimaryKeyRelatedField(
         queryset=Demande.objects.all(),
         help_text="ID de la demande."
     )
 
     class Meta:
-        model = DemandeInterlocuteur
+        model = DossierInterlocuteur
         fields = '__all__'
 
 
-class DemandeBeneficiaireSerializer(serializers.ModelSerializer):
+class DossierBeneficiaireSerializer(serializers.ModelSerializer):
     id_beneficiaire = serializers.PrimaryKeyRelatedField(
-        queryset=DemandeBeneficiaire.objects.all(),
+        queryset=DossierBeneficiaire.objects.all(),
         help_text="ID du bénéficiaire (table contact externe)."
     )
 
     class Meta:
-        model = DemandeBeneficiaire
+        model = DossierBeneficiaire
         fields = ['id','id_demande_interlocuteur','id_beneficiaire']
 
 
