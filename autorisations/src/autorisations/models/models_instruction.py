@@ -1,5 +1,7 @@
 from django.db import models
 
+from django.apps import apps
+
 from .models_utilisateurs import Groupeinstructeur
 
 
@@ -192,6 +194,7 @@ class DemandeChamp(models.Model):
     geometrie = models.JSONField(blank=True, null=True)
     id_demande = models.ForeignKey(Demande, models.SET_NULL, db_column='id_demande', blank=True, null=True)
     id_champ = models.ForeignKey(Champ, models.SET_NULL, db_column='id_champ', blank=True, null=True)
+    id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -212,6 +215,7 @@ class DossierChamp(models.Model):
     geometrie = models.JSONField(blank=True, null=True)
     id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
     id_champ = models.ForeignKey(Champ, models.SET_NULL, db_column='id_champ', blank=True, null=True)
+    id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:
         managed = False

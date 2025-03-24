@@ -4,6 +4,10 @@ import sys
 import os
 import django
 
+from autorisations.models.models_instruction import Demarche
+from DS.graphql_client import GraphQLClient
+
+
 # Spécifie le fichier de logs
 logger = logging.getLogger("API_DS")
 
@@ -23,34 +27,35 @@ def init_setup():
 
 
 
-def Get_demarche_Postgres():
-    
-    from autorisations.models.models_instruction import Demarche
+def get_number_demarche_Postgres():
+    """
+        Récupère sur Postgres le numéro 'Démarches-Simplifiées' de nos démarches
+    """
 
     # Récupérer toutes les démarches avec leur numéro
     demarches = Demarche.objects.all().values('numero', 'titre')
 
+    list_number_demarches = []
+
     # Affichage dans la console
     for d in demarches:
-        print(f"Numéro : {d['numero']}, Titre : {d['titre']}")
+        list_number_demarches.append(d['numero'])
 
-
-    number = demarches[0]['numero']
-    return number
+    return list_number_demarches
 
 
 
 
 
-def recup_data_DS(client, number):
+def recup_data_DS(number):
     '''
     Récupère les informations interessantes pour une démarche via l'API D-S
 
     Args:
-        client : Le client GraphQL habilité à utiliser l'API
         number : numéro de la démarche
     '''
 
+    client = GraphQLClient()
 
     # Query graphQL
     query_file = "DS/queries/get_all.graphql"
@@ -67,22 +72,22 @@ def recup_data_DS(client, number):
     # list_demarches_DS.append(response["data"])
     # return list_demarches_DS
 
-
+    # Ecriture Json pour check
     output_file = "DS/response_ds.json"
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(response["data"], f, ensure_ascii=False, indent=4)
     print(f"Données enregistrées dans {output_file}")
-    # return response["data"]
+
+    return response["data"]
 
 
 
 if __name__ == "__main__":
 
     init_setup()
+    # numero_demarche = get_number_demarche_Postgres()
+    # from DS.graphql_client import GraphQLClient
+    # from autorisations.models.models_instruction import Demarche
 
-    numero_demarche = Get_demarche_Postgres()
-
-    from DS.graphql_client import GraphQLClient
-    client = GraphQLClient()
-    recup_data_DS(client, numero_demarche)
+    # datas_DS = recup_data_DS(numero_demarche)
 
