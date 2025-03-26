@@ -1,9 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from .models_documents import Document
 from .models_utilisateurs import ContactExterne, Instructeur
-from .models_instruction import Demande, Dossier
 
 
 class AvisNature(models.Model):
@@ -104,7 +102,7 @@ class Avis(models.Model):
         choices=MODE_CONTACT_CHOICES,  # Ajout des choix
         default="Mail",  # Optionnel : valeur par défaut
     )
-    id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier', blank=True, null=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.RESTRICT, db_column='id_dossier', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
 
@@ -133,7 +131,7 @@ class Avis(models.Model):
 class AvisDocument(models.Model):
     id = models.AutoField(primary_key=True)
     id_avis = models.ForeignKey(Avis, models.CASCADE, db_column='id_avis')
-    id_document = models.ForeignKey(Document, models.CASCADE, db_column='id_document')
+    id_document = models.ForeignKey('autorisations.Document', models.CASCADE, db_column='id_document')
 
     class Meta:
         managed = False
@@ -153,12 +151,8 @@ class AvisDocument(models.Model):
 
 class DemandeAvis(models.Model):
     id = models.AutoField(primary_key=True)
-    id_avis = models.ForeignKey(
-        Avis, models.CASCADE, db_column='id_avis'
-    )
-    id_demande = models.ForeignKey(
-        Demande, models.CASCADE, db_column='id_demande'
-    )
+    id_avis = models.ForeignKey(Avis, models.CASCADE, db_column='id_avis')
+    id_demande = models.ForeignKey('autorisations.Demande', models.CASCADE, db_column='id_demande')
 
     class Meta:
         managed = False

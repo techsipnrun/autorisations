@@ -2,6 +2,8 @@ from django.db import models
 
 from django.apps import apps
 
+from .models_avis import Avis
+
 from .models_utilisateurs import Groupeinstructeur
 
 
@@ -135,6 +137,7 @@ class Dossier(models.Model):
     date_limite_traitement = models.DateField()
     id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.RESTRICT, db_column='id_groupeinstructeur')
     id_demarche = models.ForeignKey(Demarche, models.RESTRICT, db_column='id_demarche')
+    geometrie = models.JSONField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -189,11 +192,11 @@ class Champ(models.Model):
 
 class DemandeChamp(models.Model):
     id = models.AutoField(primary_key=True)
-    valeur = models.CharField()
+    valeur = models.CharField(blank=True, null=True)
     date_saisie = models.DateField()
     geometrie = models.JSONField(blank=True, null=True)
-    id_demande = models.ForeignKey(Demande, models.SET_NULL, db_column='id_demande', blank=True, null=True)
-    id_champ = models.ForeignKey(Champ, models.SET_NULL, db_column='id_champ', blank=True, null=True)
+    id_demande = models.ForeignKey(Demande, models.CASCADE, db_column='id_demande')
+    id_champ = models.ForeignKey(Champ, models.CASCADE, db_column='id_champ')
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:
@@ -210,11 +213,11 @@ class DemandeChamp(models.Model):
 
 class DossierChamp(models.Model):
     id = models.AutoField(primary_key=True)
-    valeur = models.CharField()
+    valeur = models.CharField(blank=True, null=True)
     date_saisie = models.DateField()
     geometrie = models.JSONField(blank=True, null=True)
-    id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
-    id_champ = models.ForeignKey(Champ, models.SET_NULL, db_column='id_champ', blank=True, null=True)
+    id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
+    id_champ = models.ForeignKey(Champ, models.CASCADE, db_column='id_champ')
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:
@@ -231,12 +234,13 @@ class DossierChamp(models.Model):
 
 class Message(models.Model):
     id = models.AutoField(primary_key=True)
-    id_ds = models.CharField()
+    id_ds = models.CharField(blank=True, null=True)
     body = models.CharField()
     date_envoi = models.DateField()
     piece_jointe = models.BooleanField()
     email_emetteur = models.CharField()
-    id_dossier = models.ForeignKey(Dossier, models.SET_NULL, db_column='id_dossier', blank=True, null=True)
+    id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier', blank=True, null=True)
+    id_avis = models.ForeignKey(Avis, models.CASCADE, db_column='id_avis', blank=True, null=True)
     lu = models.BooleanField()
 
     class Meta:

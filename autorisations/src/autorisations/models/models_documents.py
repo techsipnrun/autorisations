@@ -35,6 +35,7 @@ class Document(models.Model):
     emplacement = models.CharField(unique=True)
     description = models.CharField(blank=True, null=True)
     numero = models.CharField(blank=True, null=True)
+    titre = models.CharField()
 
     class Meta:
         managed = False

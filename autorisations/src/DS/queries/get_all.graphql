@@ -22,8 +22,28 @@ query demarche($number: Int!) {
         datePassageEnConstruction
         datePassageEnInstruction
         dateTraitement
+        prenomMandataire
+        nomMandataire
+        pdf {
+            createdAt
+            filename
+            url
+        }
+        geojson {
+            url
+        }
+        usager {
+          id
+          email
+        }
         demandeur {
           id
+          ... on PersonnePhysique {
+                civilite
+                email
+                nom
+                prenom
+            }
         }
         instructeurs {
           id
@@ -36,6 +56,7 @@ query demarche($number: Int!) {
         champs {
             label
             stringValue
+            __typename
             id
             updatedAt
              ... on CarteChamp {

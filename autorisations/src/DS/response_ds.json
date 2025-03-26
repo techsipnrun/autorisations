@@ -1,874 +1,547 @@
 {
     "demarche": {
-        "id": "UHJvY2VkdXJlLTExNDI5Nw==",
-        "number": 114297,
+        "id": "UHJvY2VkdXJlLTExNDU0Mw==",
+        "number": 114543,
         "state": "brouillon",
-        "title": "Demande d'autorisation : Activités commerciales en cœur du Parc national de la Réunion",
-        "dateCreation": "2025-03-04T06:08:18+01:00",
-        "dateDerniereModification": "2025-03-19T12:36:49+01:00",
-        "description": "Il s'agit ici d'un formulaire pour demander l'autorisation de créer,  de renouveler ou de modifier une activité commerciale en cœur du Parc national. Le Parc national de La Réunion, est à la fois un territoire de préservation du patrimoine naturel, culturel et paysager des Hauts, et un espace de vie, de loisirs et de découvertes. C’est pourquoi, les activités commerciales et artisanales sont réglementées dans le cœur du Parc.",
+        "title": "Types Champ",
+        "dateCreation": "2025-03-06T08:17:51+01:00",
+        "dateDerniereModification": "2025-03-26T07:36:24+01:00",
+        "description": "lister les types de champ",
         "champDescriptors": [
             {
                 "description": "",
-                "id": "Q2hhbXAtNDc2MDg3Nw==",
-                "label": "CIBLAGE DE LA DEMANDE",
+                "id": "Q2hhbXAtNTAyNTM1NQ==",
+                "label": "Titre de section",
                 "required": false,
                 "type": "header_section"
             },
             {
-                "description": "En cœur de Parc, la création, modification ou le renouvellement d'une activité commerciale ou artisanale, peuvent être soumis à autorisation du Directeur du Parc national.",
-                "id": "Q2hhbXAtNDc2MDk0NA==",
-                "label": "Les activités commerciales et artisanales",
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM1Ng==",
+                "label": "Bloc répétable",
+                "required": false,
+                "type": "repetition"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM1OQ==",
+                "label": "Numéro de dossier déposé sur %{app_name}",
+                "required": false,
+                "type": "dossier_link"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM2MQ==",
+                "label": "Explication",
                 "required": false,
                 "type": "explication"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzEzOQ==",
-                "label": "Type de demande",
-                "required": true,
-                "type": "drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNDU5ODI2",
-                "label": "IDENTIFICATION DU BÉNÉFICIAIRE",
+                "id": "Q2hhbXAtNTAyNTM2Mg==",
+                "label": "Civilité",
                 "required": false,
-                "type": "header_section"
+                "type": "civilite"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzg4MQ==",
-                "label": "Vous êtes le bénéficiaire de la demande",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzg4Mg==",
-                "label": "Identification du demandeur intermédiaire",
+                "id": "Q2hhbXAtNTAyNTM2Mw==",
+                "label": "Adresse électronique",
                 "required": false,
-                "type": "header_section"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzg4NQ==",
-                "label": "Email du demandeur intermédiaire",
-                "required": true,
                 "type": "email"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzg4Ng==",
-                "label": "Adresse du demandeur intermédiaire",
+                "id": "Q2hhbXAtNTAyNTM2NA==",
+                "label": "Numéro de téléphone",
+                "required": false,
+                "type": "phone"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM2NQ==",
+                "label": "Adresse",
                 "required": false,
                 "type": "address"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzg4Nw==",
-                "label": "Numéro de téléphone du demandeur intermédiaire",
-                "required": true,
-                "type": "phone"
-            },
-            {
-                "description": "le cas échéant",
-                "id": "Q2hhbXAtNTAxMzg5MA==",
-                "label": "Nom de l'organisation du demandeur intermédiaire",
+                "id": "Q2hhbXAtNTAyNTM2Ng==",
+                "label": "Commune",
                 "required": false,
-                "type": "text"
+                "type": "communes"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzg5Mg==",
-                "label": "Identification du bénéficiaire de la demande",
+                "id": "Q2hhbXAtNTAyNTM2Nw==",
+                "label": "Département",
                 "required": false,
-                "type": "header_section"
+                "type": "departements"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzg5NQ==",
-                "label": "Email du bénéficiaire",
-                "required": true,
-                "type": "email"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMTc3MQ==",
-                "label": "Email du bénéficiaire",
+                "id": "Q2hhbXAtNTAyNTM2OA==",
+                "label": "Région",
                 "required": false,
-                "type": "email"
+                "type": "regions"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzg5Ng==",
-                "label": "Adresse du bénéficiaire",
-                "required": true,
-                "type": "address"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzg5Nw==",
-                "label": "Numéro de téléphone du bénéficiaire",
-                "required": true,
-                "type": "phone"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMTc5MQ==",
-                "label": "Numéro de téléphone du bénéficiaire",
+                "id": "Q2hhbXAtNTAyNTM2OQ==",
+                "label": "Pays",
                 "required": false,
-                "type": "phone"
+                "type": "pays"
             },
             {
-                "description": "le cas échéant",
-                "id": "Q2hhbXAtNTAxMzg5OQ==",
-                "label": "Nom de l'organisation",
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM3MA==",
+                "label": "Établissements publics de coopération intercommunale (EPCI)",
                 "required": false,
-                "type": "text"
+                "type": "epci"
             },
             {
-                "description": "le cas échéant",
-                "id": "Q2hhbXAtNTAxMzkwMA==",
-                "label": "Numéro SIRET de l'organisation",
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM3MQ==",
+                "label": "IBAN",
+                "required": false,
+                "type": "iban"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM3Mg==",
+                "label": "Numéro SIRET",
                 "required": false,
                 "type": "siret"
             },
             {
-                "description": "le cas échéant",
-                "id": "Q2hhbXAtNTAxMzkwMQ==",
-                "label": "Raison sociale du bénéficiaire",
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTM3Mw==",
+                "label": "Texte court",
                 "required": false,
                 "type": "text"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxOTkwNw==",
-                "label": "IDENTIFICATION DU PROJET",
+                "id": "Q2hhbXAtNTAyNTM3NQ==",
+                "label": "Texte long",
                 "required": false,
-                "type": "header_section"
-            },
-            {
-                "description": "Si vous le possédez",
-                "id": "Q2hhbXAtNTAxOTkwOA==",
-                "label": "Numéro du dossier précédent",
-                "required": false,
-                "type": "text"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkwOQ==",
-                "label": "Année de la dernière autorisation du Parc",
-                "required": true,
-                "type": "integer_number"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNDg4NTA3",
-                "label": "PRÉSENTATION DU PROJET",
-                "required": false,
-                "type": "header_section"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzkwMw==",
-                "label": "Type d'activité",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "Description synthétique de l'activité commerciale ou artisanale",
-                "id": "Q2hhbXAtNDg4NTA4",
-                "label": "Description du projet",
-                "required": true,
                 "type": "textarea"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNDg4NjE5",
-                "label": "Vous pouvez joindre un dossier de présentation si nécessaire",
+                "id": "Q2hhbXAtNTAyNTQ1Mg==",
+                "label": "Nombre décimal",
                 "required": false,
-                "type": "piece_justificative"
+                "type": "decimal_number"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxMzkwNA==",
-                "label": "Type d'hébergement",
-                "required": true,
-                "type": "drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzkwNQ==",
-                "label": "Nombre de chambres",
-                "required": true,
+                "id": "Q2hhbXAtNTAyNTQ1Mw==",
+                "label": "Nombre entier",
+                "required": false,
                 "type": "integer_number"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxOTkxMA==",
-                "label": "Nombre de chambres",
-                "required": true,
-                "type": "integer_number"
-            },
-            {
-                "description": "Nombre maximum de personnes pouvant être accueillies",
-                "id": "Q2hhbXAtNTAxMzkwNg==",
-                "label": "Capacité",
-                "required": true,
-                "type": "integer_number"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzkwNw==",
-                "label": "Nombre de tentes",
-                "required": true,
-                "type": "integer_number"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzkwOA==",
-                "label": "Les installations sont-elles pérennes ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzk3Nw==",
-                "label": "Couleur des tentes",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "Vous pouvez posséder les 2 types de tente",
-                "id": "Q2hhbXAtNTAxMzk3OA==",
-                "label": "Type de tente",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxMzk3OQ==",
-                "label": "Type de sports de nature – services touristiques",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxNDMyNQ==",
-                "label": "Restauration pour des clients extérieurs",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg2OA==",
-                "label": "Approvisionnement local",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkxMQ==",
-                "label": "Approvisionnement local",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg2OQ==",
-                "label": "Avez-vous un bac de rétention de graisse (huile) ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkxMg==",
-                "label": "Avez-vous un bac de rétention de graisse (huile) ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg3MA==",
-                "label": "Date du début de l'activité",
-                "required": true,
+                "id": "Q2hhbXAtNTAyNTQ1NA==",
+                "label": "Date",
+                "required": false,
                 "type": "date"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxOTg3Mg==",
-                "label": "L'activité a lieu à Mafate ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg3Mw==",
-                "label": "Vous êtes un résident permanent du cœur habité (Mafate) ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg3NA==",
-                "label": "Type de terrain",
-                "required": true,
-                "type": "drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg3NQ==",
-                "label": "Numéro de la concession",
-                "required": true,
-                "type": "text"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg3Ng==",
-                "label": "Préciser",
-                "required": true,
-                "type": "drop_down_list"
-            },
-            {
-                "description": "La pièce jointe ci-dessous délimite le cœur du Parc. Si votre activité n'en fait pas partie, elle n'est pas soumise à autorisation. En revanche, si elle se situe dans le cœur du Parc ou si vous avez un doute, nous vous invitons à poursuivre le formulaire.",
-                "id": "Q2hhbXAtNTA1MTk3NQ==",
-                "label": "Concernant la localisation de l'activité",
+                "id": "Q2hhbXAtNTAyNTQ1Ng==",
+                "label": "Date et Heure",
                 "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "Faire apparaitre les éventuels équipements et installations (groupe électrogène, éclairage extérieur, table de pique-nique…)",
-                "id": "Q2hhbXAtNTAxOTg3Nw==",
-                "label": "Localisation de l'activité",
-                "required": true,
-                "type": "carte"
-            },
-            {
-                "description": "Ne pas oublier la localisation des éventuels équipements et installations",
-                "id": "Q2hhbXAtNTAyMjExNw==",
-                "label": "Localisation de l'activité",
-                "required": true,
-                "type": "textarea"
+                "type": "datetime"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxOTg3OA==",
-                "label": "Vous avez besoin de réaliser des travaux ou des aménagements ? (groupe électrogène, éclairage extérieur, table de pique-nique…)",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "À faire ?",
-                "id": "Q2hhbXAtNTAxOTg3OQ==",
-                "label": "Préconisations du parc concernant la réalisation de travaux ou d'aménagements",
-                "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg4MA==",
-                "label": "Équipements et installations",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg4MQ==",
-                "label": "Le groupe électrogène est",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg4Mg==",
-                "label": "Que mettez-vous en place concernant l'éclairage artificiel ?",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "Si les équipements et les installations n'ont pas été renseignés sur le module cartographique plus haut, vous pouvez fournir une pièce justificative (dessin/photo/schéma..) permettant de les localiser.",
-                "id": "Q2hhbXAtNTAxOTg4NQ==",
-                "label": "Localisation des équipements et installations",
+                "id": "Q2hhbXAtNTAyNTQ1Nw==",
+                "label": "Pièce justificative",
                 "required": false,
                 "type": "piece_justificative"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxOTg4Mw==",
-                "label": "Des savoir-faires traditionnels sont mis en place ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg4NA==",
-                "label": "Types de savoir-faire",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDM5OA==",
-                "label": "Autre(s) type(s) de savoir faire :",
-                "required": true,
-                "type": "text"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkxNw==",
-                "label": "MODIFICATION DE L'ACTIVITÉ",
+                "id": "Q2hhbXAtNTAyNTQ1OQ==",
+                "label": "Pièce d'identité",
                 "required": false,
-                "type": "header_section"
+                "type": "titre_identite"
             },
             {
                 "description": "",
-                "id": "Q2hhbXAtNTAxOTkxOA==",
-                "label": "Modification de l'activité",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMTc5Ng==",
-                "label": "Modification de l'activité renouvelée",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTk1Ng==",
-                "label": "Description synthétique des modifications",
-                "required": true,
-                "type": "textarea"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTk1Nw==",
-                "label": "Détails de la nouvelle construction",
+                "id": "Q2hhbXAtNTAyNTQ2MA==",
+                "label": "Case à cocher seule",
                 "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTk3Ng==",
-                "label": "Équipements et installations",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTk5OQ==",
-                "label": "Le groupe électrogène est",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDIwNA==",
-                "label": "Que mettez-vous en place concernant l'éclairage artificiel ?",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDI3OA==",
-                "label": "Localisation des équipements et installations",
-                "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDM5Mg==",
-                "label": "Pour localiser vos équipements et installations, vous préférez :",
-                "required": true,
-                "type": "drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDMyOQ==",
-                "label": "Localisation des équipements et installations mentionnées",
-                "required": true,
-                "type": "carte"
-            },
-            {
-                "description": "Cette dernière doit permettre de localiser vos équipements et installations",
-                "id": "Q2hhbXAtNTAyMDM5Mw==",
-                "label": "Pièce jointe (dessin/photo/schéma)",
-                "required": true,
-                "type": "piece_justificative"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDM5NQ==",
-                "label": "Des savoir-faires traditionnels sont mis en place ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDM5Nw==",
-                "label": "Types de savoir-faire",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAyMDM5OQ==",
-                "label": "Autre(s) type(s) de savoir-faire :",
-                "required": true,
-                "type": "text"
-            },
-            {
-                "description": "Début de l'activité, nombre de clients accueillis, partenaires impliqués, sensibilisation réalisée…",
-                "id": "Q2hhbXAtNTAyMDQwMA==",
-                "label": "Bilan d'activité",
-                "required": false,
-                "type": "textarea"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxNDMyNw==",
-                "label": "INSERTION DU PROJET DANS LE COEUR DU PARC",
-                "required": false,
-                "type": "header_section"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg4OA==",
-                "label": "Existe t’il une activité équivalente à proximité ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg4OQ==",
-                "label": "Expliquez en quoi votre activité offre un service d’un nouveau type aux usagers",
-                "required": true,
-                "type": "textarea"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5MA==",
-                "label": "Expliquez en quoi votre activité pourrait être valorisante pour le site d’implantation",
-                "required": true,
-                "type": "textarea"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5MQ==",
-                "label": "Quelles sont les bonnes pratiques que vous comptez mettre en œuvre dans le cadre de l’activité ?",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5Mg==",
-                "label": "Autre bonne pratique :",
-                "required": true,
-                "type": "text"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5Mw==",
-                "label": "Avez-vous mis en place des modes de gestion des déchets durables ?",
-                "required": false,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5NA==",
-                "label": "Présentez les mesures mises en place pour limiter au maximum le risque d’introduction et de dissémination des espèces invasives au sein des milieux naturels",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5NQ==",
-                "label": "Autre(s) mesure(s) mise(s) en place",
-                "required": true,
-                "type": "text"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5Ng==",
-                "label": "Avez-vous un extincteur ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkxNQ==",
-                "label": "Avez-vous un extincteur ?",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5OA==",
-                "label": "Comment sont acheminées les matières premières ?",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTg5OQ==",
-                "label": "Comment les clients accèdent-ils au site de l'activité ?",
-                "required": true,
-                "type": "multiple_drop_down_list"
-            },
-            {
-                "description": "À faire ?",
-                "id": "Q2hhbXAtNTAxOTkwMA==",
-                "label": "Préconisations du Parc concernant le survol en hélicoptère",
-                "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "À faire ?",
-                "id": "Q2hhbXAtNTAxOTkxNg==",
-                "label": "Préconisations du Parc concernant le survol en hélicoptère",
-                "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkwMQ==",
-                "label": "L’usage d’un drone est prévu",
-                "required": true,
-                "type": "yes_no"
-            },
-            {
-                "description": "À faire ?",
-                "id": "Q2hhbXAtNTAxOTkwMg==",
-                "label": "Préconisations du Parc concernant le survol en drone",
-                "required": false,
-                "type": "explication"
-            },
-            {
-                "description": "",
-                "id": "Q2hhbXAtNTAxOTkwMw==",
-                "label": "Je certifie la véracité des informations transmises dans le dossier et reconnais avoir pris connaissance de la réglementation spécifique au cœur du Parc national de La Réunion, notamment celle édictée par la Charte du Parc national de La Réunion et sa modalité d’application de la réglementation n°21.",
-                "required": true,
                 "type": "checkbox"
             },
             {
-                "description": "Lieu actuel",
-                "id": "Q2hhbXAtNTAxOTkwNA==",
-                "label": "Fait à",
-                "required": true,
-                "type": "communes"
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2MQ==",
+                "label": "Choix simple",
+                "required": false,
+                "type": "drop_down_list"
             },
             {
-                "description": "Date du jour",
-                "id": "Q2hhbXAtNTAxOTkwNQ==",
-                "label": "le",
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2Mw==",
+                "label": "Choix multiple",
+                "required": false,
+                "type": "multiple_drop_down_list"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2NA==",
+                "label": "Deux menus déroulants liés",
+                "required": false,
+                "type": "linked_drop_down_list"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2NQ==",
+                "label": "Oui/Non",
+                "required": false,
+                "type": "yes_no"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2Ng==",
+                "label": "Établissement",
+                "required": false,
+                "type": "annuaire_education"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2Nw==",
+                "label": "Numéro RNA",
+                "required": false,
+                "type": "rna"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2OA==",
+                "label": "Numéro RNF",
+                "required": false,
+                "type": "rnf"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTAyNTQ2OQ==",
+                "label": "Carte1",
                 "required": true,
-                "type": "date"
+                "type": "carte"
+            },
+            {
+                "description": "",
+                "id": "Q2hhbXAtNTA5ODI5Mg==",
+                "label": "Carte2",
+                "required": true,
+                "type": "carte"
             }
         ],
         "dossiers": {
             "nodes": [
                 {
-                    "id": "RG9zc2llci0yMzEzNDMwMw==",
-                    "number": 23134303,
-                    "dateDepot": "2025-03-19T12:36:48+01:00",
-                    "datePassageEnConstruction": "2025-03-19T12:36:48+01:00",
-                    "datePassageEnInstruction": "2025-03-19T12:36:49+01:00",
+                    "id": "RG9zc2llci0yMzI0ODEyOQ==",
+                    "number": 23248129,
+                    "dateDepot": "2025-03-25T12:57:27+01:00",
+                    "datePassageEnConstruction": "2025-03-25T12:57:27+01:00",
+                    "datePassageEnInstruction": null,
                     "dateTraitement": null,
+                    "prenomMandataire": null,
+                    "nomMandataire": null,
+                    "geojson": {
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpJME9ERXlPVDlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMjZUMDg6MzQ6NDEuNzU2WiIsInB1ciI6ImFwaV92MiJ9fQ==--14f279228924b384388c15e2d83c421ef3eaeb5d"
+                    },
+                    "usager": {
+                        "id": "VXNlci04MTQ4ODQ0",
+                        "email": "louis.calu@reunion-parcnational.fr"
+                    },
                     "demandeur": {
-                        "id": "SW5kaXZpZHVhbC0xOTUwMzE5OA=="
+                        "id": "SW5kaXZpZHVhbC0xOTY0NDc0OA==",
+                        "civilite": "Mme",
+                        "email": null,
+                        "nom": "zfzfzf",
+                        "prenom": "fezz"
                     },
                     "instructeurs": [],
                     "groupeInstructeur": {
                         "label": "défaut",
-                        "number": 279555
+                        "number": 278809
                     },
                     "champs": [
                         {
-                            "label": "CIBLAGE DE LA DEMANDE",
+                            "label": "Titre de section",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNDc2MDg3Nw==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM1NQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Les activités commerciales et artisanales",
+                            "label": "Bloc répétable",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNDc2MDk0NA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "RepetitionChamp",
+                            "id": "Q2hhbXAtNTAyNTM1Ng==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Type de demande",
-                            "stringValue": "Création d'activité",
-                            "id": "Q2hhbXAtNTAxMzEzOQ==",
-                            "updatedAt": "2025-03-19T12:32:12+01:00"
-                        },
-                        {
-                            "label": "IDENTIFICATION DU BÉNÉFICIAIRE",
+                            "label": "Numéro de dossier déposé sur %{app_name}",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNDU5ODI2",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "DossierLinkChamp",
+                            "id": "Q2hhbXAtNTAyNTM1OQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Vous êtes le bénéficiaire de la demande",
-                            "stringValue": "true",
-                            "id": "Q2hhbXAtNTAxMzg4MQ==",
-                            "updatedAt": "2025-03-19T12:32:14+01:00"
-                        },
-                        {
-                            "label": "Identification du bénéficiaire de la demande",
+                            "label": "Explication",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNTAxMzg5Mg==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2MQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Email du bénéficiaire",
-                            "stringValue": "louis.test@test.fr",
-                            "id": "Q2hhbXAtNTAxMzg5NQ==",
-                            "updatedAt": "2025-03-19T12:32:24+01:00"
-                        },
-                        {
-                            "label": "Adresse du bénéficiaire",
-                            "stringValue": "La Plaine-des-Palmistes (97431)",
-                            "id": "Q2hhbXAtNTAxMzg5Ng==",
-                            "updatedAt": "2025-03-19T12:32:59+01:00"
-                        },
-                        {
-                            "label": "Numéro de téléphone du bénéficiaire",
-                            "stringValue": "06 00 00 00 00",
-                            "id": "Q2hhbXAtNTAxMzg5Nw==",
-                            "updatedAt": "2025-03-19T12:33:12+01:00"
-                        },
-                        {
-                            "label": "Nom de l'organisation",
-                            "stringValue": "Le Parc",
-                            "id": "Q2hhbXAtNTAxMzg5OQ==",
-                            "updatedAt": "2025-03-19T12:33:21+01:00"
-                        },
-                        {
-                            "label": "Numéro SIRET de l'organisation",
+                            "label": "Civilité",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNTAxMzkwMA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "CiviliteChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Mg==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Raison sociale du bénéficiaire",
+                            "label": "Adresse électronique",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNTAxMzkwMQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Mw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "PRÉSENTATION DU PROJET",
+                            "label": "Numéro de téléphone",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNDg4NTA3",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2NA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Type d'activité",
-                            "stringValue": "Hébergement",
-                            "id": "Q2hhbXAtNTAxMzkwMw==",
-                            "updatedAt": "2025-03-19T12:34:17+01:00"
-                        },
-                        {
-                            "label": "Description du projet",
-                            "stringValue": "Mon projet d'hébergement est le suivant : blablabla",
-                            "id": "Q2hhbXAtNDg4NTA4",
-                            "updatedAt": "2025-03-19T12:34:45+01:00"
-                        },
-                        {
-                            "label": "Vous pouvez joindre un dossier de présentation si nécessaire",
+                            "label": "Adresse",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNDg4NjE5",
-                            "updatedAt": "2025-03-19T12:36:48+01:00",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2NQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Commune",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Ng==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Département",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Nw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Région",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2OA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Pays",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2OQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Établissements publics de coopération intercommunale (EPCI)",
+                            "stringValue": "",
+                            "__typename": "EpciChamp",
+                            "id": "Q2hhbXAtNTAyNTM3MA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "IBAN",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM3MQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Numéro SIRET",
+                            "stringValue": "",
+                            "__typename": "SiretChamp",
+                            "id": "Q2hhbXAtNTAyNTM3Mg==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Texte court",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM3Mw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Texte long",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM3NQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Nombre décimal",
+                            "stringValue": "",
+                            "__typename": "DecimalNumberChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Mg==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Nombre entier",
+                            "stringValue": "",
+                            "__typename": "IntegerNumberChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Mw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Date",
+                            "stringValue": "",
+                            "__typename": "DateChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1NA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Date et Heure",
+                            "stringValue": "",
+                            "__typename": "DateChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Ng==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Pièce justificative",
+                            "stringValue": "",
+                            "__typename": "PieceJustificativeChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Nw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00",
                             "files": []
                         },
                         {
-                            "label": "Type d'hébergement",
-                            "stringValue": "Gîte",
-                            "id": "Q2hhbXAtNTAxMzkwNA==",
-                            "updatedAt": "2025-03-19T12:34:45+01:00"
-                        },
-                        {
-                            "label": "Nombre de chambres",
-                            "stringValue": "12",
-                            "id": "Q2hhbXAtNTAxMzkwNQ==",
-                            "updatedAt": "2025-03-19T12:34:48+01:00"
-                        },
-                        {
-                            "label": "Capacité",
-                            "stringValue": "24",
-                            "id": "Q2hhbXAtNTAxMzkwNg==",
-                            "updatedAt": "2025-03-19T12:34:51+01:00"
-                        },
-                        {
-                            "label": "Restauration pour des clients extérieurs",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxNDMyNQ==",
-                            "updatedAt": "2025-03-19T12:34:52+01:00"
-                        },
-                        {
-                            "label": "Approvisionnement local",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxOTg2OA==",
-                            "updatedAt": "2025-03-19T12:34:52+01:00"
-                        },
-                        {
-                            "label": "Avez-vous un bac de rétention de graisse (huile) ?",
-                            "stringValue": "true",
-                            "id": "Q2hhbXAtNTAxOTkxMg==",
-                            "updatedAt": "2025-03-19T12:34:54+01:00"
-                        },
-                        {
-                            "label": "Date du début de l'activité",
-                            "stringValue": "19 mars 2025",
-                            "id": "Q2hhbXAtNTAxOTg3MA==",
-                            "updatedAt": "2025-03-19T12:34:58+01:00"
-                        },
-                        {
-                            "label": "L'activité a lieu à Mafate ?",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxOTg3Mg==",
-                            "updatedAt": "2025-03-19T12:34:58+01:00"
-                        },
-                        {
-                            "label": "Concernant la localisation de l'activité",
+                            "label": "Pièce d'identité",
                             "stringValue": "",
-                            "id": "Q2hhbXAtNTA1MTk3NQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "__typename": "TitreIdentiteChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1OQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
                         },
                         {
-                            "label": "Localisation de l'activité",
+                            "label": "Case à cocher seule",
+                            "stringValue": "false",
+                            "__typename": "CheckboxChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2MA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Choix simple",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2MQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Choix multiple",
+                            "stringValue": "",
+                            "__typename": "MultipleDropDownListChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2Mw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Deux menus déroulants liés",
+                            "stringValue": "",
+                            "__typename": "LinkedDropDownListChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2NA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Oui/Non",
+                            "stringValue": "",
+                            "__typename": "CheckboxChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2NQ==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Établissement",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2Ng==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Numéro RNA",
+                            "stringValue": "",
+                            "__typename": "RNAChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2Nw==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Numéro RNF",
+                            "stringValue": "",
+                            "__typename": "RNFChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2OA==",
+                            "updatedAt": "2025-03-25T12:57:27+01:00"
+                        },
+                        {
+                            "label": "Carte1",
                             "stringValue": null,
-                            "id": "Q2hhbXAtNTAxOTg3Nw==",
-                            "updatedAt": "2025-03-19T12:35:50+01:00",
+                            "__typename": "CarteChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2OQ==",
+                            "updatedAt": "2025-03-25T12:55:05+01:00",
                             "geoAreas": [
+                                {
+                                    "geometry": {
+                                        "coordinates": [
+                                            55.623611,
+                                            -21.135278
+                                        ],
+                                        "type": "Point"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "label": "Carte2",
+                            "stringValue": null,
+                            "__typename": "CarteChamp",
+                            "id": "Q2hhbXAtNTA5ODI5Mg==",
+                            "updatedAt": "2025-03-25T12:57:23+01:00",
+                            "geoAreas": [
+                                {
+                                    "geometry": {
+                                        "coordinates": [
+                                            55.63104939931938,
+                                            -21.13424111943681
+                                        ],
+                                        "type": "Point"
+                                    }
+                                },
                                 {
                                     "geometry": {
                                         "coordinates": [
                                             [
                                                 [
-                                                    55.60863123296761,
-                                                    -21.13249415171788
+                                                    55.63373010980564,
+                                                    -21.132578501293622
                                                 ],
                                                 [
-                                                    55.613203236263246,
-                                                    -21.14849988879847
+                                                    55.629177305217866,
+                                                    -21.135219669812827
                                                 ],
                                                 [
-                                                    55.63803219660883,
-                                                    -21.142154274758752
+                                                    55.62753015233835,
+                                                    -21.13169810132976
                                                 ],
                                                 [
-                                                    55.639714116138066,
-                                                    -21.129848782861544
-                                                ],
-                                                [
-                                                    55.621675567683866,
-                                                    -21.123310636011922
-                                                ],
-                                                [
-                                                    55.60863123296761,
-                                                    -21.13249415171788
+                                                    55.63373010980564,
+                                                    -21.132578501293622
                                                 ]
                                             ]
                                         ],
@@ -876,130 +549,315 @@
                                     }
                                 }
                             ]
-                        },
-                        {
-                            "label": "Vous avez besoin de réaliser des travaux ou des aménagements ? (groupe électrogène, éclairage extérieur, table de pique-nique…)",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxOTg3OA==",
-                            "updatedAt": "2025-03-19T12:35:52+01:00"
-                        },
-                        {
-                            "label": "Équipements et installations",
-                            "stringValue": "Groupe électrogène, Barnum",
-                            "id": "Q2hhbXAtNTAxOTg4MA==",
-                            "updatedAt": "2025-03-19T12:35:57+01:00"
-                        },
-                        {
-                            "label": "Le groupe électrogène est",
-                            "stringValue": "en extérieur",
-                            "id": "Q2hhbXAtNTAxOTg4MQ==",
-                            "updatedAt": "2025-03-19T12:36:00+01:00"
-                        },
-                        {
-                            "label": "Localisation des équipements et installations",
-                            "stringValue": "",
-                            "id": "Q2hhbXAtNTAxOTg4NQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00",
-                            "files": []
-                        },
-                        {
-                            "label": "Des savoir-faires traditionnels sont mis en place ?",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxOTg4Mw==",
-                            "updatedAt": "2025-03-19T12:36:06+01:00"
-                        },
-                        {
-                            "label": "INSERTION DU PROJET DANS LE COEUR DU PARC",
-                            "stringValue": "",
-                            "id": "Q2hhbXAtNTAxNDMyNw==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
-                        },
-                        {
-                            "label": "Existe t’il une activité équivalente à proximité ?",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxOTg4OA==",
-                            "updatedAt": "2025-03-19T12:36:08+01:00"
-                        },
-                        {
-                            "label": "Expliquez en quoi votre activité pourrait être valorisante pour le site d’implantation",
-                            "stringValue": "Mon activité est valorisante car .....",
-                            "id": "Q2hhbXAtNTAxOTg5MA==",
-                            "updatedAt": "2025-03-19T12:36:18+01:00"
-                        },
-                        {
-                            "label": "Quelles sont les bonnes pratiques que vous comptez mettre en œuvre dans le cadre de l’activité ?",
-                            "stringValue": "Gestion des déchets",
-                            "id": "Q2hhbXAtNTAxOTg5MQ==",
-                            "updatedAt": "2025-03-19T12:36:20+01:00"
-                        },
-                        {
-                            "label": "Avez-vous mis en place des modes de gestion des déchets durables ?",
-                            "stringValue": "Consigne",
-                            "id": "Q2hhbXAtNTAxOTg5Mw==",
-                            "updatedAt": "2025-03-19T12:36:22+01:00"
-                        },
-                        {
-                            "label": "Présentez les mesures mises en place pour limiter au maximum le risque d’introduction et de dissémination des espèces invasives au sein des milieux naturels",
-                            "stringValue": "Enlever la terre de ses chaussures avant une activité en pleine nature",
-                            "id": "Q2hhbXAtNTAxOTg5NA==",
-                            "updatedAt": "2025-03-19T12:36:23+01:00"
-                        },
-                        {
-                            "label": "Avez-vous un extincteur ?",
-                            "stringValue": "true",
-                            "id": "Q2hhbXAtNTAxOTg5Ng==",
-                            "updatedAt": "2025-03-19T12:36:26+01:00"
-                        },
-                        {
-                            "label": "Comment sont acheminées les matières premières ?",
-                            "stringValue": "Accès pédestre",
-                            "id": "Q2hhbXAtNTAxOTg5OA==",
-                            "updatedAt": "2025-03-19T12:36:27+01:00"
-                        },
-                        {
-                            "label": "Comment les clients accèdent-ils au site de l'activité ?",
-                            "stringValue": "Accès pédestre",
-                            "id": "Q2hhbXAtNTAxOTg5OQ==",
-                            "updatedAt": "2025-03-19T12:36:28+01:00"
-                        },
-                        {
-                            "label": "L’usage d’un drone est prévu",
-                            "stringValue": "false",
-                            "id": "Q2hhbXAtNTAxOTkwMQ==",
-                            "updatedAt": "2025-03-19T12:36:34+01:00"
-                        },
-                        {
-                            "label": "Je certifie la véracité des informations transmises dans le dossier et reconnais avoir pris connaissance de la réglementation spécifique au cœur du Parc national de La Réunion, notamment celle édictée par la Charte du Parc national de La Réunion et sa modalité d’application de la réglementation n°21.",
-                            "stringValue": "true",
-                            "id": "Q2hhbXAtNTAxOTkwMw==",
-                            "updatedAt": "2025-03-19T12:36:31+01:00"
-                        },
-                        {
-                            "label": "Fait à",
-                            "stringValue": "La Plaine-des-Palmistes (97431)",
-                            "id": "Q2hhbXAtNTAxOTkwNA==",
-                            "updatedAt": "2025-03-19T12:36:44+01:00"
-                        },
-                        {
-                            "label": "le",
-                            "stringValue": "19 mars 2025",
-                            "id": "Q2hhbXAtNTAxOTkwNQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
                         }
                     ],
-                    "state": "en_instruction",
+                    "state": "en_construction",
                     "messages": [
                         {
-                            "id": "Q29tbWVudGFpcmUtNTQ0ODk5NjQ=",
-                            "body": "<p>[Votre dossier nº 23134303 a bien été reçu]</p><div>Bonjour M. Calu,<br><br>\n</div><div>le Parc national de la Réunion vous confirme <strong>la bonne réception </strong>de votre demande d'autorisation déposée le 19/03/2025.</div><div>À tout moment, vous pouvez consulter votre dossier à cette adresse : <a target=\"_blank\" rel=\"noopener\" href=\"https://www.demarches-simplifiees.fr/dossiers/23134303\">https://www.demarches-simplifiees.fr/dossiers/23134303</a>\n</div><div>Vous serez informé par e-mail de la suite donnée à votre demande.</div><div>Cordialement, <br><br>\n</div><div>Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion</div>",
-                            "createdAt": "2025-03-19T12:36:49+01:00",
+                            "id": "Q29tbWVudGFpcmUtNTQ3NDg2MDk=",
+                            "body": "<p>[Votre dossier nº 23248129 a bien été déposé (Types Champ)]</p><p> Bonjour, </p> <p> Votre dossier nº 23248129\n<strong>a bien été déposé</strong>.\nSi besoin est, vous pouvez encore y apporter des modifications.\n</p> <p> Cordialement, <br>  \n</p> \n",
+                            "createdAt": "2025-03-25T12:57:27+01:00",
                             "email": "contact@demarches-simplifiees.fr",
                             "attachments": []
+                        }
+                    ],
+                    "avis": []
+                },
+                {
+                    "id": "RG9zc2llci0yMjg2ODI5Mg==",
+                    "number": 22868292,
+                    "dateDepot": "2025-03-26T07:36:24+01:00",
+                    "datePassageEnConstruction": "2025-03-26T07:36:24+01:00",
+                    "datePassageEnInstruction": null,
+                    "dateTraitement": null,
+                    "prenomMandataire": null,
+                    "nomMandataire": null,
+                    "geojson": {
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TWpnMk9ESTVNajlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMjZUMDg6MzQ6NDEuNzcyWiIsInB1ciI6ImFwaV92MiJ9fQ==--84bb5a7c697e556b0e8461afcac238dc70ae1cff"
+                    },
+                    "usager": {
+                        "id": "VXNlci04MTQ4ODQ0",
+                        "email": "louis.calu@reunion-parcnational.fr"
+                    },
+                    "demandeur": {
+                        "id": "SW5kaXZpZHVhbC0xOTE3NDUzNg==",
+                        "civilite": "Mme",
+                        "email": null,
+                        "nom": "fezef",
+                        "prenom": "Sylvie"
+                    },
+                    "instructeurs": [],
+                    "groupeInstructeur": {
+                        "label": "défaut",
+                        "number": 278809
+                    },
+                    "champs": [
+                        {
+                            "label": "Titre de section",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM1NQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
                         },
                         {
-                            "id": "Q29tbWVudGFpcmUtNTQ0ODk5NjU=",
-                            "body": "<p>[Votre dossier nº 23134303 va être examiné]</p><div>Bonjour  M. Calu ,<br><br>\n</div><div>Votre dossier nº 23134303 a bien été reçu et <strong>pris en charge</strong>. Il va maintenant être <strong>examiné </strong>par le Parc. </div><div>\n<br>Cordialement,<br><br> Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion </div>",
-                            "createdAt": "2025-03-19T12:36:49+01:00",
+                            "label": "Bloc répétable",
+                            "stringValue": "",
+                            "__typename": "RepetitionChamp",
+                            "id": "Q2hhbXAtNTAyNTM1Ng==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Numéro de dossier déposé sur %{app_name}",
+                            "stringValue": "",
+                            "__typename": "DossierLinkChamp",
+                            "id": "Q2hhbXAtNTAyNTM1OQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Explication",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2MQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Civilité",
+                            "stringValue": "M.",
+                            "__typename": "CiviliteChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Mg==",
+                            "updatedAt": "2025-03-26T07:35:49+01:00"
+                        },
+                        {
+                            "label": "Adresse électronique",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Mw==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Numéro de téléphone",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2NA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Adresse",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2NQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Commune",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Ng==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Département",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2Nw==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Région",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2OA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Pays",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM2OQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Établissements publics de coopération intercommunale (EPCI)",
+                            "stringValue": "",
+                            "__typename": "EpciChamp",
+                            "id": "Q2hhbXAtNTAyNTM3MA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "IBAN",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM3MQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Numéro SIRET",
+                            "stringValue": "",
+                            "__typename": "SiretChamp",
+                            "id": "Q2hhbXAtNTAyNTM3Mg==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Texte court",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM3Mw==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Texte long",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTM3NQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Nombre décimal",
+                            "stringValue": "",
+                            "__typename": "DecimalNumberChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Mg==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Nombre entier",
+                            "stringValue": "",
+                            "__typename": "IntegerNumberChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Mw==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Date",
+                            "stringValue": "",
+                            "__typename": "DateChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1NA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Date et Heure",
+                            "stringValue": "",
+                            "__typename": "DateChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Ng==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Pièce justificative",
+                            "stringValue": null,
+                            "__typename": "PieceJustificativeChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1Nw==",
+                            "updatedAt": "2025-03-26T07:36:00+01:00",
+                            "files": [
+                                {
+                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/03/26/TG/TGs3hHEL1n773DgjbvsZHELpQyGQ?temp_url_sig=2e7305c932fb8aee22edbceca42705248cac3e9b&temp_url_expires=1742978081&filename=doc_pr%C3%A9_bancarisation.pdf&inline",
+                                    "filename": "doc_pré_bancarisation.pdf"
+                                }
+                            ]
+                        },
+                        {
+                            "label": "Pièce d'identité",
+                            "stringValue": "",
+                            "__typename": "TitreIdentiteChamp",
+                            "id": "Q2hhbXAtNTAyNTQ1OQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Case à cocher seule",
+                            "stringValue": "false",
+                            "__typename": "CheckboxChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2MA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Choix simple",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2MQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Choix multiple",
+                            "stringValue": "",
+                            "__typename": "MultipleDropDownListChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2Mw==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Deux menus déroulants liés",
+                            "stringValue": "",
+                            "__typename": "LinkedDropDownListChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2NA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Oui/Non",
+                            "stringValue": "",
+                            "__typename": "CheckboxChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2NQ==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Établissement",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2Ng==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Numéro RNA",
+                            "stringValue": "",
+                            "__typename": "RNAChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2Nw==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Numéro RNF",
+                            "stringValue": "",
+                            "__typename": "RNFChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2OA==",
+                            "updatedAt": "2025-03-26T07:36:24+01:00"
+                        },
+                        {
+                            "label": "Carte1",
+                            "stringValue": null,
+                            "__typename": "CarteChamp",
+                            "id": "Q2hhbXAtNTAyNTQ2OQ==",
+                            "updatedAt": "2025-03-26T07:36:15+01:00",
+                            "geoAreas": [
+                                {
+                                    "geometry": {
+                                        "coordinates": [
+                                            55.623611,
+                                            -21.135278
+                                        ],
+                                        "type": "Point"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "label": "Carte2",
+                            "stringValue": null,
+                            "__typename": "CarteChamp",
+                            "id": "Q2hhbXAtNTA5ODI5Mg==",
+                            "updatedAt": "2025-03-26T07:36:21+01:00",
+                            "geoAreas": [
+                                {
+                                    "geometry": {
+                                        "coordinates": [
+                                            2.4284406601976514,
+                                            46.53820079174079
+                                        ],
+                                        "type": "Point"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "state": "en_construction",
+                    "messages": [
+                        {
+                            "id": "Q29tbWVudGFpcmUtNTQ3ODI3NTQ=",
+                            "body": "<p>[Votre dossier nº 22868292 a bien été déposé (Types Champ)]</p><p> Bonjour, </p> <p> Votre dossier nº 22868292\n<strong>a bien été déposé</strong>.\nSi besoin est, vous pouvez encore y apporter des modifications.\n</p> <p> Cordialement, <br>  \n</p> \n",
+                            "createdAt": "2025-03-26T07:36:24+01:00",
                             "email": "contact@demarches-simplifiees.fr",
                             "attachments": []
                         }
@@ -1010,9 +868,9 @@
         },
         "groupeInstructeurs": [
             {
-                "number": 279555,
+                "number": 278809,
                 "label": "défaut",
-                "id": "R3JvdXBlSW5zdHJ1Y3RldXItMjc5NTU1",
+                "id": "R3JvdXBlSW5zdHJ1Y3RldXItMjc4ODA5",
                 "instructeurs": [
                     {
                         "id": "SW5zdHJ1Y3RldXItMTMwMjYw",
