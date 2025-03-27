@@ -100,6 +100,7 @@ class Demarche(models.Model):
     date_creation = models.DateField()
     date_derniere_modif = models.DateField()
     description = models.CharField(blank=True, null=True)
+    delais_jours_instruction = models.IntegerField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -160,6 +161,8 @@ class Demande(models.Model):
     soumis_controle = models.BooleanField()
     id_interlocuteur_ds = models.CharField(unique=True, blank=True, null=True)
     id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
+    suite_controle_conforme = models.BooleanField()
+    numero_oscean = models.CharField()
 
     class Meta:
         managed = False

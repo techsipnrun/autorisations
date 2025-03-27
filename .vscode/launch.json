@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug synchro.py",
+      "name": "Debug normalisation.py",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/autorisations/src/synchronisation/src/synchro.py",
+      "program": "${workspaceFolder}/autorisations/src/synchronisation/src/normalisation.py",
       "cwd": "${workspaceFolder}/autorisations/src",
       "env": {
         "DJANGO_SETTINGS_MODULE": "autorisations.settings",

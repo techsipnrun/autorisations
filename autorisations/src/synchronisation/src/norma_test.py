@@ -226,6 +226,8 @@ def dossiers_champs_normalize(d, liste_documents):
     return liste_dossiers_champs
 
 
+
+
 def contact_externe_normalize(d):
     """ 
         Beneficiare, DemandeurIntermédiaire --> Besoin de recup des champs du formulaire 

@@ -1,0 +1,754 @@
+[
+    {
+        "id_ds": "Q2hhbXAtNDc2MDg3Nw==",
+        "nom": "CIBLAGE DE LA DEMANDE",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNDc2MDk0NA==",
+        "nom": "Les activités commerciales et artisanales",
+        "id_champ_type": 4,
+        "description": "En cœur de Parc, la création, modification ou le renouvellement d'une activité commerciale ou artisanale, peuvent être soumis à autorisation du Directeur du Parc national.",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzEzOQ==",
+        "nom": "Type de demande",
+        "id_champ_type": 25,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNDU5ODI2",
+        "nom": "IDENTIFICATION DU BÉNÉFICIAIRE",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg4MQ==",
+        "nom": "Vous êtes le bénéficiaire de la demande",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg4Mg==",
+        "nom": "Identification du demandeur intermédiaire",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg4NQ==",
+        "nom": "Email du demandeur intermédiaire",
+        "id_champ_type": 6,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg4Ng==",
+        "nom": "Adresse du demandeur intermédiaire",
+        "id_champ_type": 8,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg4Nw==",
+        "nom": "Numéro de téléphone du demandeur intermédiaire",
+        "id_champ_type": 7,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg5MA==",
+        "nom": "Nom de l'organisation du demandeur intermédiaire",
+        "id_champ_type": 16,
+        "description": "le cas échéant",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg5Mg==",
+        "nom": "Identification du bénéficiaire de la demande",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg5NQ==",
+        "nom": "Email du bénéficiaire",
+        "id_champ_type": 6,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMTc3MQ==",
+        "nom": "Email du bénéficiaire",
+        "id_champ_type": 6,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg5Ng==",
+        "nom": "Adresse du bénéficiaire",
+        "id_champ_type": 8,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg5Nw==",
+        "nom": "Numéro de téléphone du bénéficiaire",
+        "id_champ_type": 7,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMTc5MQ==",
+        "nom": "Numéro de téléphone du bénéficiaire",
+        "id_champ_type": 7,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzg5OQ==",
+        "nom": "Nom de l'organisation",
+        "id_champ_type": 16,
+        "description": "le cas échéant",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwMA==",
+        "nom": "Numéro SIRET de l'organisation",
+        "id_champ_type": 15,
+        "description": "le cas échéant",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwMQ==",
+        "nom": "Raison sociale du bénéficiaire",
+        "id_champ_type": 16,
+        "description": "le cas échéant",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwNw==",
+        "nom": "IDENTIFICATION DU PROJET",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwOA==",
+        "nom": "Numéro du dossier précédent",
+        "id_champ_type": 16,
+        "description": "Si vous le possédez",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwOQ==",
+        "nom": "Année de la dernière autorisation du Parc",
+        "id_champ_type": 19,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNDg4NTA3",
+        "nom": "PRÉSENTATION DU PROJET",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwMw==",
+        "nom": "Type d'activité",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNDg4NTA4",
+        "nom": "Description du projet",
+        "id_champ_type": 17,
+        "description": "Description synthétique de l'activité commerciale ou artisanale",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNDg4NjE5",
+        "nom": "Vous pouvez joindre un dossier de présentation si nécessaire",
+        "id_champ_type": 22,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwNA==",
+        "nom": "Type d'hébergement",
+        "id_champ_type": 25,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwNQ==",
+        "nom": "Nombre de chambres",
+        "id_champ_type": 19,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxMA==",
+        "nom": "Nombre de chambres",
+        "id_champ_type": 19,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwNg==",
+        "nom": "Capacité",
+        "id_champ_type": 19,
+        "description": "Nombre maximum de personnes pouvant être accueillies",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwNw==",
+        "nom": "Nombre de tentes",
+        "id_champ_type": 19,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzkwOA==",
+        "nom": "Les installations sont-elles pérennes ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzk3Nw==",
+        "nom": "Couleur des tentes",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzk3OA==",
+        "nom": "Type de tente",
+        "id_champ_type": 26,
+        "description": "Vous pouvez posséder les 2 types de tente",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxMzk3OQ==",
+        "nom": "Type de sports de nature – services touristiques",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxNDMyNQ==",
+        "nom": "Restauration pour des clients extérieurs",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg2OA==",
+        "nom": "Approvisionnement local",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxMQ==",
+        "nom": "Approvisionnement local",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg2OQ==",
+        "nom": "Avez-vous un bac de rétention de graisse (huile) ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxMg==",
+        "nom": "Avez-vous un bac de rétention de graisse (huile) ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3MA==",
+        "nom": "Date du début de l'activité",
+        "id_champ_type": 20,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3Mg==",
+        "nom": "L'activité a lieu à Mafate ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3Mw==",
+        "nom": "Vous êtes un résident permanent du cœur habité (Mafate) ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3NA==",
+        "nom": "Type de terrain",
+        "id_champ_type": 25,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3NQ==",
+        "nom": "Numéro de la concession",
+        "id_champ_type": 16,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3Ng==",
+        "nom": "Préciser",
+        "id_champ_type": 25,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTA1MTk3NQ==",
+        "nom": "Concernant la localisation de l'activité",
+        "id_champ_type": 4,
+        "description": "La pièce jointe ci-dessous délimite le cœur du Parc. Si votre activité n'en fait pas partie, elle n'est pas soumise à autorisation. En revanche, si elle se situe dans le cœur du Parc ou si vous avez un doute, nous vous invitons à poursuivre le formulaire.",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3Nw==",
+        "nom": "Localisation de l'activité",
+        "id_champ_type": 32,
+        "description": "Faire apparaitre les éventuels équipements et installations (groupe électrogène, éclairage extérieur, table de pique-nique…)",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMjExNw==",
+        "nom": "Localisation de l'activité",
+        "id_champ_type": 17,
+        "description": "Ne pas oublier la localisation des éventuels équipements et installations",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3OA==",
+        "nom": "Vous avez besoin de réaliser des travaux ou des aménagements ? (groupe électrogène, éclairage extérieur, table de pique-nique…)",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg3OQ==",
+        "nom": "Préconisations du parc concernant la réalisation de travaux ou d'aménagements",
+        "id_champ_type": 4,
+        "description": "À faire ?",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4MA==",
+        "nom": "Équipements et installations",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4MQ==",
+        "nom": "Le groupe électrogène est",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4Mg==",
+        "nom": "Que mettez-vous en place concernant l'éclairage artificiel ?",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4NQ==",
+        "nom": "Localisation des équipements et installations",
+        "id_champ_type": 22,
+        "description": "Si les équipements et les installations n'ont pas été renseignés sur le module cartographique plus haut, vous pouvez fournir une pièce justificative (dessin/photo/schéma..) permettant de les localiser.",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4Mw==",
+        "nom": "Des savoir-faires traditionnels sont mis en place ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4NA==",
+        "nom": "Types de savoir-faire",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDM5OA==",
+        "nom": "Autre(s) type(s) de savoir faire :",
+        "id_champ_type": 16,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxNw==",
+        "nom": "MODIFICATION DE L'ACTIVITÉ",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxOA==",
+        "nom": "Modification de l'activité",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMTc5Ng==",
+        "nom": "Modification de l'activité renouvelée",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTk1Ng==",
+        "nom": "Description synthétique des modifications",
+        "id_champ_type": 17,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTk1Nw==",
+        "nom": "Détails de la nouvelle construction",
+        "id_champ_type": 4,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTk3Ng==",
+        "nom": "Équipements et installations",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTk5OQ==",
+        "nom": "Le groupe électrogène est",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDIwNA==",
+        "nom": "Que mettez-vous en place concernant l'éclairage artificiel ?",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDI3OA==",
+        "nom": "Localisation des équipements et installations",
+        "id_champ_type": 4,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDM5Mg==",
+        "nom": "Pour localiser vos équipements et installations, vous préférez :",
+        "id_champ_type": 25,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDMyOQ==",
+        "nom": "Localisation des équipements et installations mentionnées",
+        "id_champ_type": 32,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDM5Mw==",
+        "nom": "Pièce jointe (dessin/photo/schéma)",
+        "id_champ_type": 22,
+        "description": "Cette dernière doit permettre de localiser vos équipements et installations",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDM5NQ==",
+        "nom": "Des savoir-faires traditionnels sont mis en place ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDM5Nw==",
+        "nom": "Types de savoir-faire",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDM5OQ==",
+        "nom": "Autre(s) type(s) de savoir-faire :",
+        "id_champ_type": 16,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAyMDQwMA==",
+        "nom": "Bilan d'activité",
+        "id_champ_type": 17,
+        "description": "Début de l'activité, nombre de clients accueillis, partenaires impliqués, sensibilisation réalisée…",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxNDMyNw==",
+        "nom": "INSERTION DU PROJET DANS LE COEUR DU PARC",
+        "id_champ_type": 1,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4OA==",
+        "nom": "Existe t’il une activité équivalente à proximité ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg4OQ==",
+        "nom": "Expliquez en quoi votre activité offre un service d’un nouveau type aux usagers",
+        "id_champ_type": 17,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5MA==",
+        "nom": "Expliquez en quoi votre activité pourrait être valorisante pour le site d’implantation",
+        "id_champ_type": 17,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5MQ==",
+        "nom": "Quelles sont les bonnes pratiques que vous comptez mettre en œuvre dans le cadre de l’activité ?",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5Mg==",
+        "nom": "Autre bonne pratique :",
+        "id_champ_type": 16,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5Mw==",
+        "nom": "Avez-vous mis en place des modes de gestion des déchets durables ?",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5NA==",
+        "nom": "Présentez les mesures mises en place pour limiter au maximum le risque d’introduction et de dissémination des espèces invasives au sein des milieux naturels",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5NQ==",
+        "nom": "Autre(s) mesure(s) mise(s) en place",
+        "id_champ_type": 16,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5Ng==",
+        "nom": "Avez-vous un extincteur ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxNQ==",
+        "nom": "Avez-vous un extincteur ?",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5OA==",
+        "nom": "Comment sont acheminées les matières premières ?",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTg5OQ==",
+        "nom": "Comment les clients accèdent-ils au site de l'activité ?",
+        "id_champ_type": 26,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwMA==",
+        "nom": "Préconisations du Parc concernant le survol en hélicoptère",
+        "id_champ_type": 4,
+        "description": "À faire ?",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkxNg==",
+        "nom": "Préconisations du Parc concernant le survol en hélicoptère",
+        "id_champ_type": 4,
+        "description": "À faire ?",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwMQ==",
+        "nom": "L’usage d’un drone est prévu",
+        "id_champ_type": 28,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwMg==",
+        "nom": "Préconisations du Parc concernant le survol en drone",
+        "id_champ_type": 4,
+        "description": "À faire ?",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwMw==",
+        "nom": "Je certifie la véracité des informations transmises dans le dossier et reconnais avoir pris connaissance de la réglementation spécifique au cœur du Parc national de La Réunion, notamment celle édictée par la Charte du Parc national de La Réunion et sa modalité d’application de la réglementation n°21.",
+        "id_champ_type": 24,
+        "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwNA==",
+        "nom": "Fait à",
+        "id_champ_type": 9,
+        "description": "Lieu actuel",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTAxOTkwNQ==",
+        "nom": "le",
+        "id_champ_type": 20,
+        "description": "Date du jour",
+        "id_demarche": 1,
+        "requis": true
+    }
+]

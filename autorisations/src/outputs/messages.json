@@ -1,0 +1,26 @@
+[
+    {
+        "id_ds": "Q29tbWVudGFpcmUtNTQ0ODk5NjQ=",
+        "body": "<p>[Votre dossier nº 23134303 a bien été reçu]</p><div>Bonjour M. Calu,<br><br>\n</div><div>le Parc national de la Réunion vous confirme <strong>la bonne réception </strong>de votre demande d'autorisation déposée le 19/03/2025.</div><div>À tout moment, vous pouvez consulter votre dossier à cette adresse : <a target=\"_blank\" rel=\"noopener\" href=\"https://www.demarches-simplifiees.fr/dossiers/23134303\">https://www.demarches-simplifiees.fr/dossiers/23134303</a>\n</div><div>Vous serez informé par e-mail de la suite donnée à votre demande.</div><div>Cordialement, <br><br>\n</div><div>Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion</div>",
+        "date_envoi": "2025-03-19T12:36:49+01:00",
+        "piece_jointe": false,
+        "email_emetteur": "contact@demarches-simplifiees.fr",
+        "id_dossier": null
+    },
+    {
+        "id_ds": "Q29tbWVudGFpcmUtNTQ0ODk5NjU=",
+        "body": "<p>[Votre dossier nº 23134303 va être examiné]</p><div>Bonjour  M. Calu ,<br><br>\n</div><div>Votre dossier nº 23134303 a bien été reçu et <strong>pris en charge</strong>. Il va maintenant être <strong>examiné </strong>par le Parc. </div><div>\n<br>Cordialement,<br><br> Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion </div>",
+        "date_envoi": "2025-03-19T12:36:49+01:00",
+        "piece_jointe": false,
+        "email_emetteur": "contact@demarches-simplifiees.fr",
+        "id_dossier": null
+    },
+    {
+        "id_ds": "Q29tbWVudGFpcmUtNTQ3NDYxMDM=",
+        "body": "test\r\n",
+        "date_envoi": "2025-03-25T12:13:47+01:00",
+        "piece_jointe": false,
+        "email_emetteur": "louis.calu@reunion-parcnational.fr",
+        "id_dossier": null
+    }
+]

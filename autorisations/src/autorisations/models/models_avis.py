@@ -72,8 +72,6 @@ class Expert(models.Model):
 
 
 
-
-
 class Avis(models.Model):
 
     MODE_CONTACT_CHOICES = [
@@ -98,6 +96,7 @@ class Avis(models.Model):
     date_demande_avis = models.DateField()
     date_reponse_avis = models.DateField(blank=True, null=True)
     mode_contact = models.CharField(
+        blank=True, null=True,
         max_length=20,
         choices=MODE_CONTACT_CHOICES,  # Ajout des choix
         default="Mail",  # Optionnel : valeur par défaut

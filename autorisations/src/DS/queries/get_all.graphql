@@ -38,6 +38,7 @@ query demarche($number: Int!) {
         }
         demandeur {
           id
+          __typename
           ... on PersonnePhysique {
                 civilite
                 email
