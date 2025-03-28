@@ -22,5 +22,13 @@
         "piece_jointe": false,
         "email_emetteur": "louis.calu@reunion-parcnational.fr",
         "id_dossier": null
+    },
+    {
+        "id_ds": "Q29tbWVudGFpcmUtNTQ5MDE2NTM=",
+        "body": "ce message possède une pièce jointe\r\n",
+        "date_envoi": "2025-03-28T08:49:31+01:00",
+        "piece_jointe": true,
+        "email_emetteur": "louis.calu@reunion-parcnational.fr",
+        "id_dossier": null
     }
 ]

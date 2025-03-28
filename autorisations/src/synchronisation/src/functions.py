@@ -3,12 +3,12 @@
 """
 
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import os
 import requests
 import json
-
-from autorisations.models.models_instruction import DemandeType
+from django.utils.timezone import now, make_aware
+from autorisations.models.models_instruction import DemandeType, Priorite, Demarche
 
 
 def fetch_geojson(url):
@@ -75,10 +75,62 @@ def convert_datetime(obj):
     raise TypeError(f"Type {type(obj)} non sérialisable en JSON")
 
 
-def save_to_json(data_dict, folder="outputs"):
+def save_to_json(data_dict, folder="synchronisation/src/outputs"):
     os.makedirs(folder, exist_ok=True)  # Crée le dossier s'il n'existe pas
 
     for key, value in data_dict.items():
         with open(os.path.join(folder, f"{key}.json"), "w", encoding="utf-8") as f:
             json.dump(value, f, ensure_ascii=False, indent=4, default=convert_datetime)
         print(f" Données enregistrées dans : {key}.json")
+
+
+def calcul_priorite_instruction(id_demarche, doss):
+    # Plusieurs cas :
+        #Dossier deja traité __> id_prio 4
+        #Dossier en cours --> on regarde datedepot et le colonne demarche.delais_jours_instruction
+
+    if doss["state"] == "" :
+        return Priorite.objects.filter(niveau="traite").values_list("id", flat=True).first()
+    
+    else :
+        date_depot_dossier = doss["dateDepot"]
+
+        if id_demarche != 3 :  
+            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche).values_list("delais_jours_instruction", flat=True).first()
+
+        else :  # pour les travaux soumis à urbanisme le temps d'instruction max n'est pas le meme (selon  Permis Construire ou Déclaration Préalable)
+            # si DP : 45 jours
+            # sinon 120 jours (valeur de la colonne delais_jours_instruction)
+            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche).values_list("delais_jours_instruction", flat=True).first()
+    
+        if not date_depot_dossier :
+            print("Erreur lors du calcul de Priorité d'instruction du dossier : la date de dépot du dossier est null")
+            return None
+
+        if delais_jours_instruction is None :
+            print("Erreur lors du calcul de Priorité d'instruction du dossier : la colonne delais_jours_instruction de la " +
+                   f"{Demarche.objects.filter(id_ds=id_demarche).values_list("description", flat=True).first()} est null")
+            return None
+
+        # Conversion de la date ISO 8601 en datetime Python
+        try:
+            date_depot = make_aware(datetime.fromisoformat(date_depot_dossier))
+        except ValueError:
+            return None  # ou logguer une erreur
+
+        date_limite = date_depot + timedelta(days=delais_jours_instruction)
+        today = now()
+
+
+        # Calcul du ratio restant
+        jours_restants = (date_limite - today).total_seconds() / (3600 * 24)
+        ratio_restant = jours_restants / delais_jours_instruction
+
+        if ratio_restant < 0.3:
+            niveau = "haute"
+        elif ratio_restant < 0.8:
+            niveau = "moyenne"
+        else:
+            niveau = "faible"
+
+        return Priorite.objects.filter(niveau=niveau).values_list("id", flat=True).first()

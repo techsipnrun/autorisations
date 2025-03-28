@@ -22,3 +22,6 @@ venv.bak/
 
 #Project structure
 docs
+
+#Doc pas utiles
+*.json

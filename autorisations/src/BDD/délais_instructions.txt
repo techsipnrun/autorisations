@@ -1,8 +1,11 @@
-Avis conformes sur des travaux soumis à permis de construire, permis de démolir, permis d’aménager
+Avis conformes sur des travaux soumis à autorisation d’urbanisme (permis de construire, permis de démolir, permis d’aménager)
 4 mois
 
-Avis conformes sur des travaux soumis à déclaration préalable
+Avis conformes sur des travaux soumis à autorisation d’urbanisme (déclaration préalable)
 45 jours
+
+Avis simple sur des travaux en aire d’adhésion
+30 jours
 
 Autorisations pour travaux non soumis à autorisation d’urbanisme
 3 mois

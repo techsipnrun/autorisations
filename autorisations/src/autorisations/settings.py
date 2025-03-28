@@ -189,6 +189,13 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
+        'ORM_django_file': { # fichier pour les logs de l'ORM Django
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'BDD/logs/ORM_django.log', 
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
         'console': {  # pour affichage en console
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -209,6 +216,11 @@ LOGGING = {
         },
         'API_PG': {
             'handlers': ['apiPG_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'ORM_DJANGO': {
+            'handlers': ['ORM_django_file'],
             'level': 'INFO',
             'propagate': False,
         }

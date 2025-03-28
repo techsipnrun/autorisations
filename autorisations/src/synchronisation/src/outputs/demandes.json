@@ -1,7 +1,7 @@
 [
     {
         "id_etat_demande": 6,
-        "id_priorite": "",
+        "id_priorite": null,
         "id_dossier": null,
         "id_demande_type": 7,
         "date_depot": "2025-03-19T12:36:48+01:00",
