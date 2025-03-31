@@ -170,7 +170,7 @@ def contact_externe_normalize(doss):
             "email": doss['usager']['email'],
             "id_type": TypeContactExterne.objects.filter(type="demandeur_intermediaire").values_list("id", flat=True).first(),
             "nom": doss['nomMandataire'],
-            "prenom": doss['prenomMandataire'],
+            "prenom": doss['prenomMandataire']
         }
 
         # Bénéficiaire sachant qu'il y a un demandeur intermédiaire

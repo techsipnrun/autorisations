@@ -45,7 +45,7 @@ class TypeContactExterne(models.Model):
 
 class ContactExterne(models.Model):
     id = models.AutoField(primary_key=True)
-    email = models.CharField(unique=True, blank=True, null=True)
+    email = models.CharField(blank=True, null=True)
     id_type = models.ForeignKey(TypeContactExterne, models.RESTRICT, db_column='id_type')
     nom = models.CharField()
     prenom = models.CharField()
@@ -58,6 +58,9 @@ class ContactExterne(models.Model):
     class Meta:
         managed = False
         db_table = '"utilisateurs"."contact_externe"'
+        constraints = [
+            models.UniqueConstraint(fields=['email', 'id_type'], name='contact_externe_email_type_unique')
+        ]
 
     def __str__(self):
         return f"{self.nom} {self.prenom} ({self.id_type.type})"
