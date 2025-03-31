@@ -45,7 +45,7 @@ def normalize_process(d):
 
     """On laisse de côté en attendant la finalisation des forms sur DS"""
     # demandes_champs = demande_champ_normalize(d)
-    # documents = document_normalize(d)
+        # documents = document_normalize(d)
 
 
     
@@ -67,7 +67,7 @@ def demarche_normalize(d):
         "id_etat" : EtatDemarche.objects.filter(nom=d["state"]).values_list("id", flat=True).first(),
         "date_creation": datetime.fromisoformat(d["dateCreation"]),
         "date_derniere_modif": datetime.fromisoformat(d["dateDerniereModification"]),
-        "description": d["description"],
+        # "description": d["description"], #Pas besoin de la description
     }
     return dico_demarche
 
@@ -76,11 +76,17 @@ def groupeinstructeur_demarche_normalize(d):
 
     liste_gi = []   
     for gi in d["groupeInstructeurs"]:
-        liste_gi.append({
-            "id_demarche":d["id"],
-            "id_groupeinstructeur":Groupeinstructeur.objects.filter(nom=gi["label"]).values_list("id", flat=True).first(),  # Routage DS pour commencer
-            "id_groupeinstructeur_ds":gi["id"],
-        })
+        if gi["label"]!= 'Groupe inactif' :
+
+            id_gi = Groupeinstructeur.objects.filter(nom=gi["label"]).values_list("id", flat=True).first()
+            if not id_gi :
+                logger.error(f"[ERROR] L'ID du groupe instructeur {gi['label']} n'a pas été trouvé sur Postgres.")
+            else :
+                liste_gi.append({
+                    "id_demarche":Demarche.objects.filter(id_ds=d["id"], numero=d["number"]).values_list("id", flat=True).first(),
+                    "id_groupeinstructeur":Groupeinstructeur.objects.filter(nom=gi["label"]).values_list("id", flat=True).first(), 
+                    "id_groupeinstructeur_ds":gi["id"],
+                })
 
     return liste_gi
 
@@ -115,20 +121,16 @@ def dossiers_normalize_process(d):
             'contacts_externes': contact_externe_normalize(doss),
             'dossier_interlocuteur': dossier_interlocuteur_normalize(doss, id_dossier),
             'dossier_beneficiaire': dossier_beneficiaire_normalize(doss),
+            # Pour le moment on renseigne tous les champs dans dossier_champs (plus tard on fera une distinction avec demande_champs)
             'dossier_champs': dossiers_champs_normalize(doss, id_dossier),
-            'dossier_document': {}, # A FINIR 
-            'dossier_document': [{}],
-            'messages': [{}],
-            'demandes': [{}]
+            'dossier_document': dossier_document_normalize(doss, id_dossier),
+            'messages': message_normalize(doss, id_dossier),
+            'demandes': demande_normalize(d["id"], d["title"], doss, id_dossier)
         }
-        
-        
-        liste_documents = []
-        dossiers_documents = dossier_document_normalize(d, liste_documents) # + Résumé dossier pdf
-        liste_messages_documents = []
-        messages = message_normalize(d, liste_messages_documents, liste_documents) # + Document + Message_document
-        demandes = demande_normalize(d)
 
+        dossiers.append(dico_dossier)
+        
+    return dossiers
 
 
 def dossier_normalize(id_demarche, doss):
@@ -275,14 +277,11 @@ def dossiers_champs_normalize(doss, id_dossier):
             }
 
             liste_dossiers_champs.append({
-                    'documents': None,
                     'champ': dico_champ
                 })
 
 
     return liste_dossiers_champs
-
-
 
 
 
@@ -315,107 +314,111 @@ def dossier_beneficiaire_normalize(doss):
                 "id_beneficiaire": id_beneficiaire,
             }
 
-    return liste_doss_benef
 
 
-def dossier_document_normalize(d, liste_documents):
+def dossier_document_normalize(doss, id_dossier):
    
-    liste_doss_docu = []
+    nom_fichier, extension_fichier = extraire_nom_et_extension(doss["pdf"]["filename"])
 
-    for doss in d["dossiers"]["nodes"] :
+    dico_pdf = {
+        "numero": doss["number"],
+        "id_format": DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first(),
+        "id_nature": DocumentNature.objects.filter(nature="Résumé dossier").values_list("id", flat=True).first(),
+        "url_ds": doss["pdf"]["url"],
+        "emplacement":"/emplacement/a_definir/",
+        "description": f"Résumé du dossier {doss["number"]}",
+        "titre": nom_fichier,
+    }
 
-        id_dossier = Dossier.objects.filter(id_ds=doss["id"], numero=doss["number"]).values_list("id", flat=True).first()
-        nom_fichier, extension_fichier = extraire_nom_et_extension(doss["pdf"]["filename"])
+    id_pdf_format = DocumentFormat.objects.filter(format="pdf").values_list("id", flat=True).first(),
+    id_nature_resume_dossier = DocumentNature.objects.filter(nature="Résumé dossier").values_list("id", flat=True).first(),
+    dossier_document = {
+        "id_dossier": id_dossier,
+        "id_document": Document.objects.filter(id_format=id_pdf_format, id_nature=id_nature_resume_dossier, numero=doss["number"]).values_list("id", flat=True).first(),
+    }
 
-        liste_documents.append({
-            "numero": doss["number"],
-            "id_format": DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first(),
-            "id_nature": DocumentNature.objects.filter(nature="Résumé dossier").values_list("id", flat=True).first(),
-            "url_ds": doss["pdf"]["url"],
-            "emplacement":"/emplacement/a_definir/",
-            "description": f"Résumé du dossier {doss["number"]}",
-            "titre": nom_fichier,
-        })
+    return {
+        'resume_pdf': dico_pdf,
+        'dossier_document': dossier_document,
+    }
 
-        id_pdf_format = DocumentFormat.objects.filter(format="pdf").values_list("id", flat=True).first(),
-        id_nature_resume_dossier = DocumentNature.objects.filter(nature="Résumé dossier").values_list("id", flat=True).first(),
-        liste_doss_docu.append({
-            "id_dossier": id_dossier,
-            "id_document": Document.objects.filter(id_format=id_pdf_format, id_nature=id_nature_resume_dossier, numero=doss["number"]).values_list("id", flat=True).first(),
-        })
 
-    return liste_doss_docu
 
-def message_normalize(d, liste_msg_doc, liste_doc):
+def message_normalize(doss, id_dossier):
     
     liste_messages = []
 
-    for doss in d["dossiers"]["nodes"] :
-        id_dossier = Dossier.objects.filter(id_ds=doss["id"], numero=doss["number"]).values_list("id", flat=True).first()
-        for m in doss["messages"] :
+    for m in doss["messages"] :
 
-            contient_pj = True if m["attachments"] else False
-            liste_messages.append({
-                            "id_ds": m["id"],
-                            "body": m["body"],
-                            "date_envoi": m["createdAt"],
-                            "piece_jointe": contient_pj,
-                            "email_emetteur": m["email"],
-                            "id_dossier": id_dossier,
-                            # "lu": False,  #Faux par défaut
-                        })
-            
-            # if m["attachments"] :
-            if m.get("attachments") and not m.get("email", "").endswith("@reunion-parcnational.fr"):
-                for file in m["attachments"]:
+        contient_pj = True if m["attachments"] else False
 
-                    nom_fichier, extension_fichier = extraire_nom_et_extension(file["filename"])
-                    id_format_doc = DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first()
-                    id_nature_doc = DocumentNature.objects.filter(nature="Pièce jointe demandeur").values_list("id", flat=True).first()
-                    liste_doc.append({
-                        # "numero": "",  pas concerné ici
-                        "id_format": id_format_doc,
-                        "id_nature": id_nature_doc,
-                        "url_ds": file["url"],
-                        "emplacement":"/emplacement/a_definir/",  #TO DO
-                        "description": f"Pièce jointe dans la messagerie du dossier {doss["number"]}",
-                        "titre": nom_fichier,
-                    })
+        dico_message = {
+            "id_ds": m["id"],
+            "body": m["body"],
+            "date_envoi": m["createdAt"],
+            "piece_jointe": contient_pj,
+            "email_emetteur": m["email"],
+            "id_dossier": id_dossier,
+            # "lu": False,  #Faux par défaut
+        }
 
-                    liste_msg_doc.append({
-                        "id_message": Message.objects.filter(id_ds=m["id"],id_dossier=id_dossier).values_list("id", flat=True).first(),
-                        #A terme filtrer sur l'emplacement du fichier
-                        "id_document": Document.objects.filter(id_format=id_format_doc, id_nature=id_nature_doc, url_ds=file["url"]).values_list("id", flat=True).first(),
-                    })
+        liste_files_message = []
+        liste_msg_doc = []
+
+        if contient_pj and not m.get("email", "").endswith("@reunion-parcnational.fr"):
+        # if contient_pj :
+            for file in m["attachments"]:
+
+                nom_fichier, extension_fichier = extraire_nom_et_extension(file["filename"])
+                id_format_doc = DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first()
+                id_nature_doc = DocumentNature.objects.filter(nature="Pièce jointe demandeur").values_list("id", flat=True).first()
+                liste_files_message.append({
+                    # "numero": "",  pas concerné ici
+                    "id_format": id_format_doc,
+                    "id_nature": id_nature_doc,
+                    "url_ds": file["url"],
+                    "emplacement":"/emplacement/a_definir/",  #TO DO
+                    "description": f"Pièce jointe dans la messagerie du dossier {doss["number"]}",
+                    "titre": nom_fichier,
+                })
+
+                liste_msg_doc.append({
+                    "id_message": Message.objects.filter(id_ds=m["id"],id_dossier=id_dossier).values_list("id", flat=True).first(),
+                    # A terme filtrer sur l'emplacement du fichier
+                    "id_document": Document.objects.filter(id_format=id_format_doc, id_nature=id_nature_doc, url_ds=file["url"]).values_list("id", flat=True).first(),
+                })
+
+        liste_messages.append({
+            'message': dico_message,
+            'documents': liste_files_message,
+            'message_documents': liste_msg_doc
+        })
 
     return liste_messages
 
 
-def demande_normalize(d):
+def demande_normalize(demarche_id_ds, demarche_title, doss, id_dossier):
     
-    liste_dem = []
-    type_demande_par_defaut = type_demande_from_nom_demarche(d["title"])
+    liste_demandes = []
 
+    type_demande_par_defaut = type_demande_from_nom_demarche(demarche_title)
 
-    for doss in d["dossiers"]["nodes"] :
-        id_dossier = Dossier.objects.filter(id_ds=doss["id"], numero=doss["number"]).values_list("id", flat=True).first()
+    if type_demande_par_defaut == 999 : # on est sur la demarche PDV son et survol drone
+        print("Demande PDV SON ou Survol drone : Script de normalisation à faire pour l'objet demande")
+        # if demande survol --> liste_dem.append(demande survol)
+        # if demande PDV son --> liste_dem.append(demande PDV son)
 
-        if type_demande_par_defaut == 999 : # on est sur la demarche PDV son et survol drone
-            print("Demande PDV SON ou Survol drone : Script de normalisation à faire pour l'objet demande")
-            # if demande survol --> liste_dem.append(demande survol)
-            # if demande PDV son --> liste_dem.append(demande PDV son)
-
-        else:
-            id_priorite = calcul_priorite_instruction(d["id"], doss) # À condition que la colonne delais_jours_instruction soit remplie pour la démarche
-            liste_dem.append({
-                        "id_etat_demande": EtatDemande.objects.filter(nom=doss["state"]).values_list("id", flat=True).first(), # par défaut meme etat que le dossier
-                        "id_priorite": id_priorite,
-                        "id_dossier": id_dossier,
-                        "id_demande_type": type_demande_par_defaut, #TO DO
-                        "date_depot": doss["dateDepot"], # plus tard champ["updatedAt"]
-                        "date_fin_instruction": doss["dateTraitement"],  # par défaut meme date de fin que le dossier
-                        # "soumis_controle": "", #false par défaut
-                    })
+    else:
+        id_priorite = calcul_priorite_instruction(demarche_id_ds, doss) # À condition que la colonne delais_jours_instruction soit remplie pour la démarche
+        liste_demandes.append({
+                    "id_etat_demande": EtatDemande.objects.filter(nom=doss["state"]).values_list("id", flat=True).first(), # par défaut meme etat que le dossier
+                    "id_priorite": id_priorite,
+                    "id_dossier": id_dossier,
+                    "id_demande_type": type_demande_par_defaut, #TO DO
+                    "date_depot": doss["dateDepot"], # plus tard champ["updatedAt"]
+                    "date_fin_instruction": doss["dateTraitement"],  # par défaut meme date de fin que le dossier
+                    # "soumis_controle": "", #false par défaut
+                })
 
 
         # if tel champ est "oui" alors je créé un objet demande (exemple: votre demande de travaux inclut-elle un survol de drone?)
@@ -429,7 +432,7 @@ def demande_normalize(d):
             # "soumis_controle": "", #false par défaut
         })"""
 
-    return liste_dem
+    return liste_demandes
 
 
 
@@ -443,7 +446,7 @@ if __name__ == "__main__":
     from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, Message, MessageDocument
     from DS.call_DS_test import get_number_demarche_Postgres, recup_data_DS
     from synchronisation.src.functions import fetch_geojson, extraire_nom_et_extension, type_demande_from_nom_demarche, save_to_json, calcul_priorite_instruction
-    from BDD.synchronisation import *
+    from synchronisation.src.synchro import *
     # numeros_demarche = get_number_demarche_Postgres()
 
 

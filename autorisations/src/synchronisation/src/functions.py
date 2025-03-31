@@ -84,7 +84,7 @@ def save_to_json(data_dict, folder="synchronisation/src/outputs"):
         print(f" Données enregistrées dans : {key}.json")
 
 
-def calcul_priorite_instruction(id_demarche, doss):
+def calcul_priorite_instruction(id_demarche_ds, doss):
     # Plusieurs cas :
         #Dossier deja traité __> id_prio 4
         #Dossier en cours --> on regarde datedepot et le colonne demarche.delais_jours_instruction
@@ -95,13 +95,13 @@ def calcul_priorite_instruction(id_demarche, doss):
     else :
         date_depot_dossier = doss["dateDepot"]
 
-        if id_demarche != 3 :  
-            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche).values_list("delais_jours_instruction", flat=True).first()
+        if id_demarche_ds != 3 :  
+            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche_ds).values_list("delais_jours_instruction", flat=True).first()
 
         else :  # pour les travaux soumis à urbanisme le temps d'instruction max n'est pas le meme (selon  Permis Construire ou Déclaration Préalable)
             # si DP : 45 jours
             # sinon 120 jours (valeur de la colonne delais_jours_instruction)
-            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche).values_list("delais_jours_instruction", flat=True).first()
+            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche_ds).values_list("delais_jours_instruction", flat=True).first()
     
         if not date_depot_dossier :
             print("Erreur lors du calcul de Priorité d'instruction du dossier : la date de dépot du dossier est null")
@@ -109,7 +109,7 @@ def calcul_priorite_instruction(id_demarche, doss):
 
         if delais_jours_instruction is None :
             print("Erreur lors du calcul de Priorité d'instruction du dossier : la colonne delais_jours_instruction de la " +
-                   f"{Demarche.objects.filter(id_ds=id_demarche).values_list("description", flat=True).first()} est null")
+                   f"{Demarche.objects.filter(id_ds=id_demarche_ds).values_list("description", flat=True).first()} est null")
             return None
 
         # Conversion de la date ISO 8601 en datetime Python
@@ -134,3 +134,9 @@ def calcul_priorite_instruction(id_demarche, doss):
             niveau = "faible"
 
         return Priorite.objects.filter(niveau=niveau).values_list("id", flat=True).first()
+    
+
+def retrouve_nom_groupe_intructeur():
+    name_gi = ""
+
+    return name_gi

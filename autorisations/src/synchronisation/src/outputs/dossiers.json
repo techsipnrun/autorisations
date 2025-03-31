@@ -1,73 +1,649 @@
 [
     {
-        "id_ds": "RG9zc2llci0yMzEzNDMwMw==",
-        "id_etat_dossier": 6,
-        "id_demarche": 1,
-        "numero": 23134303,
-        "id_groupeinstructeur": null,
-        "date_depot": "2025-03-19T12:36:48+01:00",
-        "date_fin_instruction": null,
-        "id_dossier_type": 1,
-        "id_ds_dossier_parent": "",
-        "note": "",
-        "nom_dossier": "23134303_Calu_Louis",
-        "emplacement": "/emplacement/a_definir/",
-        "date_limite_traitement": "2050-01-01T00:00:00",
-        "geometrie": {
-            "type": "FeatureCollection",
-            "id": 23134303,
-            "bbox": [
-                55.639714116138066,
-                -21.123310636011922,
-                55.60863123296761,
-                -21.14849988879847
-            ],
-            "features": [
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [
-                            [
+        "dossier": {
+            "id_ds": "RG9zc2llci0yMzEzNDMwMw==",
+            "id_etat_dossier": 6,
+            "id_demarche": 1,
+            "numero": 23134303,
+            "id_groupeinstructeur": 12,
+            "date_depot": "2025-03-19T12:36:48+01:00",
+            "date_fin_instruction": null,
+            "id_dossier_type": 1,
+            "id_ds_dossier_parent": "",
+            "note": "",
+            "nom_dossier": "23134303_Calu_Louis",
+            "emplacement": "/emplacement/a_definir/",
+            "date_limite_traitement": "2050-01-01T00:00:00",
+            "geometrie": {
+                "type": "FeatureCollection",
+                "id": 23134303,
+                "bbox": [
+                    55.639714116138066,
+                    -21.123310636011922,
+                    55.60863123296761,
+                    -21.14849988879847
+                ],
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [
                                 [
-                                    55.60863123296761,
-                                    -21.13249415171788
-                                ],
-                                [
-                                    55.613203236263246,
-                                    -21.14849988879847
-                                ],
-                                [
-                                    55.63803219660883,
-                                    -21.142154274758752
-                                ],
-                                [
-                                    55.639714116138066,
-                                    -21.129848782861544
-                                ],
-                                [
-                                    55.621675567683866,
-                                    -21.123310636011922
-                                ],
-                                [
-                                    55.60863123296761,
-                                    -21.13249415171788
+                                    [
+                                        55.60863123296761,
+                                        -21.13249415171788
+                                    ],
+                                    [
+                                        55.613203236263246,
+                                        -21.14849988879847
+                                    ],
+                                    [
+                                        55.63803219660883,
+                                        -21.142154274758752
+                                    ],
+                                    [
+                                        55.639714116138066,
+                                        -21.129848782861544
+                                    ],
+                                    [
+                                        55.621675567683866,
+                                        -21.123310636011922
+                                    ],
+                                    [
+                                        55.60863123296761,
+                                        -21.13249415171788
+                                    ]
                                 ]
                             ]
+                        },
+                        "properties": {
+                            "source": "selection_utilisateur",
+                            "area": 6099371.8,
+                            "description": "mon gite",
+                            "id": 4794034,
+                            "champ_label": "Localisation de l'activité",
+                            "champ_id": 5019877,
+                            "champ_private": false,
+                            "dossier_id": 23134303
+                        }
+                    }
+                ]
+            }
+        },
+        "contacts_externes": {
+            "beneficiaire": {
+                "email": [
+                    "louis.calu@reunion-parcnational.fr"
+                ],
+                "id_type": 1,
+                "nom": "Calu",
+                "prenom": "Louis"
+            },
+            "demandeur_intermediaire": {}
+        },
+        "dossier_interlocuteur": {
+            "id_interlocuteur_ds": "VXNlci04MTQ4ODQ0",
+            "id_demandeur_intermediaire": null,
+            "id_dossier": null
+        },
+        "dossier_beneficiaire": {
+            "id_dossier_interlocuteur": null,
+            "id_beneficiaire": [
+                null
+            ]
+        },
+        "dossier_champs": [
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 2,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 3,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 4,
+                    "valeur": "Création d'activité",
+                    "date_saisie": "2025-03-19T12:32:12+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 5,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 6,
+                    "valeur": "true",
+                    "date_saisie": "2025-03-19T12:32:14+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 12,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 13,
+                    "valeur": "louis.test@test.fr",
+                    "date_saisie": "2025-03-19T12:32:24+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 15,
+                    "valeur": "La Plaine-des-Palmistes (97431)",
+                    "date_saisie": "2025-03-19T12:32:59+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 16,
+                    "valeur": "06 00 00 00 00",
+                    "date_saisie": "2025-03-19T12:33:12+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 18,
+                    "valeur": "Le Parc",
+                    "date_saisie": "2025-03-19T12:33:21+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 19,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 20,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 24,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 25,
+                    "valeur": "Hébergement",
+                    "date_saisie": "2025-03-19T12:34:17+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 26,
+                    "valeur": "Mon projet d'hébergement est le suivant : blablabla",
+                    "date_saisie": "2025-03-19T12:34:45+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 28,
+                    "valeur": "Gîte",
+                    "date_saisie": "2025-03-19T12:34:45+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 29,
+                    "valeur": "12",
+                    "date_saisie": "2025-03-19T12:34:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 31,
+                    "valeur": "24",
+                    "date_saisie": "2025-03-19T12:34:51+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 37,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:34:52+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 38,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:34:52+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 41,
+                    "valeur": "true",
+                    "date_saisie": "2025-03-19T12:34:54+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 42,
+                    "valeur": "19 mars 2025",
+                    "date_saisie": "2025-03-19T12:34:58+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 43,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:34:58+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 48,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 49,
+                    "valeur": null,
+                    "date_saisie": "2025-03-19T12:35:50+01:00",
+                    "geometrie": {
+                        "type": "FeatureCollection",
+                        "id": 23134303,
+                        "bbox": [
+                            55.639714116138066,
+                            -21.123310636011922,
+                            55.60863123296761,
+                            -21.14849988879847
+                        ],
+                        "features": [
+                            {
+                                "type": "Feature",
+                                "geometry": {
+                                    "type": "Polygon",
+                                    "coordinates": [
+                                        [
+                                            [
+                                                55.60863123296761,
+                                                -21.13249415171788
+                                            ],
+                                            [
+                                                55.613203236263246,
+                                                -21.14849988879847
+                                            ],
+                                            [
+                                                55.63803219660883,
+                                                -21.142154274758752
+                                            ],
+                                            [
+                                                55.639714116138066,
+                                                -21.129848782861544
+                                            ],
+                                            [
+                                                55.621675567683866,
+                                                -21.123310636011922
+                                            ],
+                                            [
+                                                55.60863123296761,
+                                                -21.13249415171788
+                                            ]
+                                        ]
+                                    ]
+                                },
+                                "properties": {
+                                    "source": "selection_utilisateur",
+                                    "area": 6099371.8,
+                                    "description": "mon gite",
+                                    "id": 4794034,
+                                    "champ_label": "Localisation de l'activité",
+                                    "champ_id": 5019877,
+                                    "champ_private": false,
+                                    "dossier_id": 23134303
+                                }
+                            }
                         ]
                     },
-                    "properties": {
-                        "source": "selection_utilisateur",
-                        "area": 6099371.8,
-                        "description": "mon gite",
-                        "id": 4794034,
-                        "champ_label": "Localisation de l'activité",
-                        "champ_id": 5019877,
-                        "champ_private": false,
-                        "dossier_id": 23134303
-                    }
+                    "id_document": null
                 }
-            ]
-        }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 51,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:35:52+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 53,
+                    "valeur": "Groupe électrogène, Barnum",
+                    "date_saisie": "2025-03-19T12:35:57+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 54,
+                    "valeur": "en extérieur",
+                    "date_saisie": "2025-03-19T12:36:00+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 57,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:36:06+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 76,
+                    "valeur": "",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 77,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:36:08+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 79,
+                    "valeur": "Mon activité est valorisante car .....",
+                    "date_saisie": "2025-03-19T12:36:18+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 80,
+                    "valeur": "Gestion des déchets",
+                    "date_saisie": "2025-03-19T12:36:20+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 82,
+                    "valeur": "Consigne",
+                    "date_saisie": "2025-03-19T12:36:22+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 83,
+                    "valeur": "Enlever la terre de ses chaussures avant une activité en pleine nature",
+                    "date_saisie": "2025-03-19T12:36:23+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 85,
+                    "valeur": "true",
+                    "date_saisie": "2025-03-19T12:36:26+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 87,
+                    "valeur": "Accès pédestre",
+                    "date_saisie": "2025-03-19T12:36:27+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 88,
+                    "valeur": "Accès pédestre",
+                    "date_saisie": "2025-03-19T12:36:28+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 91,
+                    "valeur": "false",
+                    "date_saisie": "2025-03-19T12:36:34+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 93,
+                    "valeur": "true",
+                    "date_saisie": "2025-03-19T12:36:31+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 94,
+                    "valeur": "La Plaine-des-Palmistes (97431)",
+                    "date_saisie": "2025-03-19T12:36:44+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            },
+            {
+                "champ": {
+                    "id_dossier": null,
+                    "id_champ": 95,
+                    "valeur": "19 mars 2025",
+                    "date_saisie": "2025-03-19T12:36:48+01:00",
+                    "geometrie": null,
+                    "id_document": null
+                }
+            }
+        ],
+        "dossier_document": {
+            "resume_pdf": {
+                "numero": 23134303,
+                "id_format": 1,
+                "id_nature": 10,
+                "url_ds": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMzFUMDg6NTg6NDQuNzM4WiIsInB1ciI6ImFwaV92MiJ9fQ==--2d2aaf270371b72be157715814cbae676a82738d",
+                "emplacement": "/emplacement/a_definir/",
+                "description": "Résumé du dossier 23134303",
+                "titre": "dossier-23134303"
+            },
+            "dossier_document": {
+                "id_dossier": null,
+                "id_document": null
+            }
+        },
+        "messages": [
+            {
+                "message": {
+                    "id_ds": "Q29tbWVudGFpcmUtNTQ0ODk5NjQ=",
+                    "body": "<p>[Votre dossier nº 23134303 a bien été reçu]</p><div>Bonjour M. Calu,<br><br>\n</div><div>le Parc national de la Réunion vous confirme <strong>la bonne réception </strong>de votre demande d'autorisation déposée le 19/03/2025.</div><div>À tout moment, vous pouvez consulter votre dossier à cette adresse : <a target=\"_blank\" rel=\"noopener\" href=\"https://www.demarches-simplifiees.fr/dossiers/23134303\">https://www.demarches-simplifiees.fr/dossiers/23134303</a>\n</div><div>Vous serez informé par e-mail de la suite donnée à votre demande.</div><div>Cordialement, <br><br>\n</div><div>Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion</div>",
+                    "date_envoi": "2025-03-19T12:36:49+01:00",
+                    "piece_jointe": false,
+                    "email_emetteur": "contact@demarches-simplifiees.fr",
+                    "id_dossier": null
+                },
+                "documents": [],
+                "message_documents": []
+            },
+            {
+                "message": {
+                    "id_ds": "Q29tbWVudGFpcmUtNTQ0ODk5NjU=",
+                    "body": "<p>[Votre dossier nº 23134303 va être examiné]</p><div>Bonjour  M. Calu ,<br><br>\n</div><div>Votre dossier nº 23134303 a bien été reçu et <strong>pris en charge</strong>. Il va maintenant être <strong>examiné </strong>par le Parc. </div><div>\n<br>Cordialement,<br><br> Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion </div>",
+                    "date_envoi": "2025-03-19T12:36:49+01:00",
+                    "piece_jointe": false,
+                    "email_emetteur": "contact@demarches-simplifiees.fr",
+                    "id_dossier": null
+                },
+                "documents": [],
+                "message_documents": []
+            },
+            {
+                "message": {
+                    "id_ds": "Q29tbWVudGFpcmUtNTQ3NDYxMDM=",
+                    "body": "test\r\n",
+                    "date_envoi": "2025-03-25T12:13:47+01:00",
+                    "piece_jointe": false,
+                    "email_emetteur": "louis.calu@reunion-parcnational.fr",
+                    "id_dossier": null
+                },
+                "documents": [],
+                "message_documents": []
+            },
+            {
+                "message": {
+                    "id_ds": "Q29tbWVudGFpcmUtNTQ5MDE2NTM=",
+                    "body": "ce message possède une pièce jointe\r\n",
+                    "date_envoi": "2025-03-28T08:49:31+01:00",
+                    "piece_jointe": true,
+                    "email_emetteur": "louis.calu@reunion-parcnational.fr",
+                    "id_dossier": null
+                },
+                "documents": [],
+                "message_documents": []
+            }
+        ],
+        "demandes": [
+            {
+                "id_etat_demande": 6,
+                "id_priorite": null,
+                "id_dossier": null,
+                "id_demande_type": 7,
+                "date_depot": "2025-03-19T12:36:48+01:00",
+                "date_fin_instruction": null
+            }
+        ]
     }
 ]

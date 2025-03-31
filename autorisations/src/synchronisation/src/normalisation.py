@@ -416,7 +416,7 @@ if __name__ == "__main__":
     from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, Message, MessageDocument
     from DS.call_DS_test import get_number_demarche_Postgres, recup_data_DS
     from synchronisation.src.functions import fetch_geojson, extraire_nom_et_extension, type_demande_from_nom_demarche, save_to_json, calcul_priorite_instruction
-    from BDD.synchronisation import *
+    from autorisations.src.synchronisation.src.synchro import *
     # numeros_demarche = get_number_demarche_Postgres()
 
 
@@ -429,4 +429,4 @@ if __name__ == "__main__":
 
     resultats = normalize_process(datas_DS["demarche"])
     save_to_json(resultats)
-    synchro_process(resultats)
+    # synchro_process(resultats)

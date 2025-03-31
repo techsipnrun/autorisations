@@ -5,7 +5,7 @@
         "state": "brouillon",
         "title": "Demande d'autorisation : Activités commerciales en cœur du Parc national de la Réunion",
         "dateCreation": "2025-03-04T06:08:18+01:00",
-        "dateDerniereModification": "2025-03-19T12:36:49+01:00",
+        "dateDerniereModification": "2025-03-31T09:12:10+02:00",
         "description": "Il s'agit ici d'un formulaire pour demander l'autorisation de créer,  de renouveler ou de modifier une activité commerciale en cœur du Parc national. Le Parc national de La Réunion, est à la fois un territoire de préservation du patrimoine naturel, culturel et paysager des Hauts, et un espace de vie, de loisirs et de découvertes. C’est pourquoi, les activités commerciales et artisanales sont réglementées dans le cœur du Parc.",
         "champDescriptors": [
             {
@@ -679,12 +679,12 @@
                     "prenomMandataire": null,
                     "nomMandataire": null,
                     "pdf": {
-                        "createdAt": "2025-03-28T09:01:03+01:00",
+                        "createdAt": "2025-03-31T09:58:44+02:00",
                         "filename": "dossier-23134303.pdf",
-                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMjhUMDk6MDE6MDMuMTY1WiIsInB1ciI6ImFwaV92MiJ9fQ==--b5d15989c08743074bb28af94d4dc00855e53efa"
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMzFUMDg6NTg6NDQuNzM4WiIsInB1ciI6ImFwaV92MiJ9fQ==--2d2aaf270371b72be157715814cbae676a82738d"
                     },
                     "geojson": {
-                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMjhUMDk6MDE6MDMuMTY1WiIsInB1ciI6ImFwaV92MiJ9fQ==--b5d15989c08743074bb28af94d4dc00855e53efa"
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMzFUMDg6NTg6NDQuNzM5WiIsInB1ciI6ImFwaV92MiJ9fQ==--eb635d732e253546784d8ba2427749a73d4f6184"
                     },
                     "usager": {
                         "id": "VXNlci04MTQ4ODQ0",
@@ -705,7 +705,7 @@
                         }
                     ],
                     "groupeInstructeur": {
-                        "label": "défaut",
+                        "label": "Activités commerciales",
                         "number": 279555
                     },
                     "champs": [
@@ -1085,7 +1085,7 @@
                             "email": "louis.calu@reunion-parcnational.fr",
                             "attachments": [
                                 {
-                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/03/28/6X/6X8zutZRDzGvmcM7T3Yn2sEC2Qgf?temp_url_sig=90e60cc62a9868b24338c04537a9b05d5f0e7030&temp_url_expires=1743152463&filename=arbo_dossiers.drawio.pdf&inline",
+                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/03/28/6X/6X8zutZRDzGvmcM7T3Yn2sEC2Qgf?temp_url_sig=43f0841de8b398df95da54637322f3e952a49459&temp_url_expires=1743411524&filename=arbo_dossiers.drawio.pdf&inline",
                                     "filename": "arbo_dossiers.drawio.pdf"
                                 }
                             ]
@@ -1098,7 +1098,7 @@
         "groupeInstructeurs": [
             {
                 "number": 279555,
-                "label": "défaut",
+                "label": "Activités commerciales",
                 "id": "R3JvdXBlSW5zdHJ1Y3RldXItMjc5NTU1",
                 "instructeurs": [
                     {
@@ -1108,6 +1108,17 @@
                     {
                         "id": "SW5zdHJ1Y3RldXItMTMwOTQ3",
                         "email": "louis.calu@hotmail.fr"
+                    }
+                ]
+            },
+            {
+                "number": 284228,
+                "label": "Groupe inactif",
+                "id": "R3JvdXBlSW5zdHJ1Y3RldXItMjg0MjI4",
+                "instructeurs": [
+                    {
+                        "id": "SW5zdHJ1Y3RldXItMTMwMjYw",
+                        "email": "louis.calu@reunion-parcnational.fr"
                     }
                 ]
             }
