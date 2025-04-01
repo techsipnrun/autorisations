@@ -7,8 +7,11 @@ from datetime import date, datetime, timedelta
 import os
 import requests
 import json
-from django.utils.timezone import now, make_aware
+from django.utils.timezone import now, is_naive, get_current_timezone, make_aware
 from autorisations.models.models_instruction import DemandeType, Priorite, Demarche
+from django.db import models
+from dateutil.parser import parse
+
 
 
 def fetch_geojson(url):
@@ -30,7 +33,6 @@ def extraire_nom_et_extension(filename):
     nom = nom.replace('.', '_')
     extension = extension.lstrip('.')  # Enlever le point
     return nom, extension
-
 
 
 def type_demande_from_nom_demarche(nom_demarche):
@@ -68,7 +70,6 @@ def type_demande_from_nom_demarche(nom_demarche):
         return None
     
 
-
 def convert_datetime(obj):
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()  # Format ISO 8601 lisible : '2025-03-27'
@@ -84,24 +85,24 @@ def save_to_json(data_dict, folder="synchronisation/src/outputs"):
         print(f" Données enregistrées dans : {key}.json")
 
 
-def calcul_priorite_instruction(id_demarche_ds, doss):
+def calcul_priorite_instruction(id_demarche, doss):
     # Plusieurs cas :
         #Dossier deja traité __> id_prio 4
         #Dossier en cours --> on regarde datedepot et le colonne demarche.delais_jours_instruction
 
-    if doss["state"] == "" :
+    if doss["state"] == "accepte" or doss["state"] == "refuse" or doss["state"] == "sans_suite" :
         return Priorite.objects.filter(niveau="traite").values_list("id", flat=True).first()
     
     else :
         date_depot_dossier = doss["dateDepot"]
 
-        if id_demarche_ds != 3 :  
-            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche_ds).values_list("delais_jours_instruction", flat=True).first()
+        if id_demarche != 3 :  
+            delais_jours_instruction = Demarche.objects.filter(id=id_demarche).values_list("delais_jours_instruction", flat=True).first()
 
         else :  # pour les travaux soumis à urbanisme le temps d'instruction max n'est pas le meme (selon  Permis Construire ou Déclaration Préalable)
             # si DP : 45 jours
             # sinon 120 jours (valeur de la colonne delais_jours_instruction)
-            delais_jours_instruction = Demarche.objects.filter(id_ds=id_demarche_ds).values_list("delais_jours_instruction", flat=True).first()
+            delais_jours_instruction = Demarche.objects.filter(id=id_demarche).values_list("delais_jours_instruction", flat=True).first()
     
         if not date_depot_dossier :
             print("Erreur lors du calcul de Priorité d'instruction du dossier : la date de dépot du dossier est null")
@@ -109,17 +110,20 @@ def calcul_priorite_instruction(id_demarche_ds, doss):
 
         if delais_jours_instruction is None :
             print("Erreur lors du calcul de Priorité d'instruction du dossier : la colonne delais_jours_instruction de la " +
-                   f"{Demarche.objects.filter(id_ds=id_demarche_ds).values_list("description", flat=True).first()} est null")
+                   f"{Demarche.objects.filter(id=id_demarche).values_list("description", flat=True).first()} est null")
             return None
 
         # Conversion de la date ISO 8601 en datetime Python
         try:
-            date_depot = make_aware(datetime.fromisoformat(date_depot_dossier))
+            date_depot = datetime.fromisoformat(date_depot_dossier)
         except ValueError:
             return None  # ou logguer une erreur
 
         date_limite = date_depot + timedelta(days=delais_jours_instruction)
         today = now()
+
+        if is_naive(today):
+            today = make_aware(today, get_current_timezone())
 
 
         # Calcul du ratio restant
@@ -136,7 +140,54 @@ def calcul_priorite_instruction(id_demarche_ds, doss):
         return Priorite.objects.filter(niveau=niveau).values_list("id", flat=True).first()
     
 
-def retrouve_nom_groupe_intructeur():
-    name_gi = ""
+def update_fields(obj, data: dict, date_fields: list = []):
+    updated = []
+    for field, new_val in data.items():
+        old_val = getattr(obj, field)
+        if field in date_fields:
+            old_val = clean_date(old_val)
+            new_val = clean_date(new_val)
 
-    return name_gi
+        if old_val != new_val:
+            setattr(obj, field, new_val)
+            updated.append(field)
+    return updated
+
+
+def foreign_keys_add_suffixe_id(model_class, data):
+    corrected = {}
+    for field, value in data.items():
+        if hasattr(model_class, field):
+            model_field = getattr(model_class, field)
+            if hasattr(model_field, 'field') and isinstance(model_field.field, models.ForeignKey):
+                corrected[f"{field}_id"] = value
+            else:
+                corrected[field] = value
+        else:
+            corrected[field] = value
+    return corrected
+
+
+def clean_date(val):
+    if isinstance(val, datetime):
+        return val.date()
+    elif isinstance(val, str):
+        return parse(val).date()
+    return val  # si c’est déjà une date, on ne fait rien
+
+
+def get_first_id(model, **filters):
+    """
+    Renvoie le premier ID d’un objet correspondant aux filtres donnés.
+    :param model: Le modèle Django à interroger
+    :param filters: Les champs de filtrage (ex: nom="Jean", type="pdf")
+    :return: L'ID (int) ou None
+    """
+    return model.objects.filter(**filters).values_list("id", flat=True).first()
+
+
+def clean_email(value):
+    return value.strip().lower() if value else None
+
+def clean_name(value):
+    return value.strip().capitalize() if value else ""

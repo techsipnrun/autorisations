@@ -5,7 +5,7 @@
       "name": "Debug normalisation.py",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/autorisations/src/synchronisation/src/normalisationv2.py",
+      "program": "${workspaceFolder}/autorisations/src/synchronisation/src/normalisation_old.py",
       "cwd": "${workspaceFolder}/autorisations/src",
       "env": {
         "DJANGO_SETTINGS_MODULE": "autorisations.settings",

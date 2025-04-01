@@ -89,7 +89,7 @@ class DossierBeneficiaire(models.Model):
 
     class Meta:
         managed = False
-        db_table = '"utilisateurs"."demande_beneficiaire"'
+        db_table = '"utilisateurs"."dossier_beneficiaire"'
 
     def __str__(self):
         if {self.id_demande_interlocuteur.id_demandeur_intermediaire} :

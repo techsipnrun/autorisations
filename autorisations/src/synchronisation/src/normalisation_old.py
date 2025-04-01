@@ -64,7 +64,7 @@ def demarche_normalize(d):
         "id_ds": d["id"],
         "numero": d["number"],
         "titre": d["title"],
-        "id_etat" : EtatDemarche.objects.filter(nom=d["state"]).values_list("id", flat=True).first(),
+        "id_etat" : get_first_id(EtatDemarche,nom=d["state"]),
         "date_creation": datetime.fromisoformat(d["dateCreation"]),
         "date_derniere_modif": datetime.fromisoformat(d["dateDerniereModification"]),
         # "description": d["description"], #Pas besoin de la description
@@ -78,13 +78,14 @@ def groupeinstructeur_demarche_normalize(d):
     for gi in d["groupeInstructeurs"]:
         if gi["label"]!= 'Groupe inactif' :
 
-            id_gi = Groupeinstructeur.objects.filter(nom=gi["label"]).values_list("id", flat=True).first()
+            id_gi = get_first_id(Groupeinstructeur, nom=gi["label"])
+
             if not id_gi :
                 logger.error(f"[ERROR] L'ID du groupe instructeur {gi['label']} n'a pas été trouvé sur Postgres.")
             else :
                 liste_gi.append({
-                    "id_demarche":Demarche.objects.filter(id_ds=d["id"], numero=d["number"]).values_list("id", flat=True).first(),
-                    "id_groupeinstructeur":Groupeinstructeur.objects.filter(nom=gi["label"]).values_list("id", flat=True).first(), 
+                    "id_demarche":get_first_id(Demarche, id_ds=d["id"], numero=d["number"]),
+                    "id_groupeinstructeur": id_gi, 
                     "id_groupeinstructeur_ds":gi["id"],
                 })
 
@@ -97,9 +98,9 @@ def champ_normalize(d):
         liste_ch.append({
                             "id_ds": ch["id"],
                             "nom": ch["label"],
-                            "id_champ_type": ChampType.objects.filter(type=ch["type"]).values_list("id", flat=True).first(),
+                            "id_champ_type": get_first_id(ChampType, type=ch["type"]),
                             "description": ch["description"],
-                            "id_demarche": Demarche.objects.filter(id_ds=d["id"], numero=d["number"]).values_list("id", flat=True).first(),
+                            "id_demarche": get_first_id(Demarche, id_ds=d["id"], numero=d["number"]),
                             "requis":ch["required"],
                         })
     
@@ -109,23 +110,23 @@ def champ_normalize(d):
 
 def dossiers_normalize_process(d):
 
-    id_demarche = Demarche.objects.filter(id_ds=d["id"], numero=d["number"]).values_list("id", flat=True).first()
+    id_demarche = get_first_id(Demarche, id_ds=d["id"], numero=d["number"])
 
     dossiers = []
     for doss in d["dossiers"]["nodes"] :
 
-        id_dossier = Dossier.objects.filter(id_ds=doss["id"], numero=doss["number"]).values_list("id", flat=True).first()
+        id_dossier = get_first_id(Dossier, id_ds=doss["id"], numero=doss["number"])
 
         dico_dossier = {
             'dossier': dossier_normalize(id_demarche, doss),
             'contacts_externes': contact_externe_normalize(doss),
             'dossier_interlocuteur': dossier_interlocuteur_normalize(doss, id_dossier),
-            'dossier_beneficiaire': dossier_beneficiaire_normalize(doss),
+            # 'dossier_beneficiaire': dossier_beneficiaire_normalize(doss),
             # Pour le moment on renseigne tous les champs dans dossier_champs (plus tard on fera une distinction avec demande_champs)
             'dossier_champs': dossiers_champs_normalize(doss, id_dossier),
-            'dossier_document': dossier_document_normalize(doss, id_dossier),
+            'dossier_document': dossier_document_normalize(doss),
             'messages': message_normalize(doss, id_dossier),
-            'demandes': demande_normalize(d["id"], d["title"], doss, id_dossier)
+            'demandes': demande_normalize(id_demarche, d["title"], doss, id_dossier)
         }
 
         dossiers.append(dico_dossier)
@@ -139,13 +140,13 @@ def dossier_normalize(id_demarche, doss):
 
     return({
             "id_ds": doss["id"],
-            "id_etat_dossier": EtatDossier.objects.filter(nom=doss["state"]).values_list("id", flat=True).first(),
+            "id_etat_dossier": get_first_id(EtatDossier, nom=doss["state"]),
             "id_demarche": id_demarche,
             "numero": doss["number"],
-            "id_groupeinstructeur": Groupeinstructeur.objects.filter(nom=doss["groupeInstructeur"]["label"]).values_list("id", flat=True).first(),  # Routage DS pour commencer
+            "id_groupeinstructeur": get_first_id(Groupeinstructeur, nom=doss["groupeInstructeur"]["label"]),  # Routage DS pour commencer
             "date_depot": datetime.fromisoformat(doss["dateDepot"]),
             "date_fin_instruction": doss["dateTraitement"],
-            "id_dossier_type": DossierType.objects.filter(type="nouveau").values_list("id", flat=True).first(),  # Nouveau par défaut
+            "id_dossier_type": get_first_id(DossierType, type="nouveau"),  # Nouveau par défaut
             "id_ds_dossier_parent": "",  # Laisser vide pour commencer
             "note": "",
             "nom_dossier": f"{doss["number"]}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}",  # En attendant la norme de nommage
@@ -167,34 +168,34 @@ def contact_externe_normalize(doss):
     if (doss.get("prenomMandataire") is not None and doss.get("nomMandataire") is not None):
 
         contacts_externes['demandeur_intermediaire'] = {
-            "email": doss['usager']['email'],
-            "id_type": TypeContactExterne.objects.filter(type="demandeur_intermediaire").values_list("id", flat=True).first(),
-            "nom": doss['nomMandataire'],
-            "prenom": doss['prenomMandataire']
+            "email": clean_email(doss['usager']['email']),
+            "id_type": get_first_id(TypeContactExterne, type="demandeur_intermediaire"),
+            "nom": clean_name(doss['nomMandataire']),
+            "prenom": clean_name(doss['prenomMandataire'])
         }
 
         # Bénéficiaire sachant qu'il y a un demandeur intermédiaire
         email_beneficaire = None
         if doss['demandeur']['__typename'] == "PersonnePhysique" :
-            email_beneficaire = doss['demandeur']['email'] if doss['demandeur']['email'] else None
+            email_beneficaire = clean_email(doss['demandeur']['email'])
 
         contacts_externes['beneficiaire'] = {
             "email": email_beneficaire,
-            "id_type": TypeContactExterne.objects.filter(type="beneficiaire").values_list("id", flat=True).first(),
-            "nom": doss['demandeur']['nom'],
-            "prenom": doss['demandeur']['prenom'],
+            "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
+            "nom": clean_name(doss['demandeur']['nom']),
+            "prenom": clean_name(doss['demandeur']['prenom']),
         }
 
 
     # Bénéficiaire sans demandeur intermédiaire
     else :
-        email_beneficaire = doss['usager']['email'],
+        email_beneficaire = clean_email(doss['usager']['email'])
 
         contacts_externes['beneficiaire'] = {
             "email": email_beneficaire,
-            "id_type": TypeContactExterne.objects.filter(type="beneficiaire").values_list("id", flat=True).first(),
-            "nom": doss['demandeur']['nom'],
-            "prenom": doss['demandeur']['prenom'],
+            "id_type": get_first_id(TypeContactExterne,type="beneficiaire"),
+            "nom": clean_name(doss['demandeur']['nom']),
+            "prenom": clean_name(doss['demandeur']['prenom']),
         }
 
     return contacts_externes
@@ -208,8 +209,8 @@ def dossier_interlocuteur_normalize(doss, id_dossier):
         id_demandeur_intermediaire = None
 
     else:
-        type_demandeur_intermediaire = TypeContactExterne.objects.filter(type="demandeur_intermediaire").values_list("id", flat=True).first()
-        id_demandeur_intermediaire = ContactExterne.objects.filter(email=doss["usager"]["email"], id_type=type_demandeur_intermediaire).values_list("id", flat=True).first()
+        type_demandeur_intermediaire = get_first_id(TypeContactExterne, type="demandeur_intermediaire")
+        id_demandeur_intermediaire = get_first_id(ContactExterne, email=clean_email(doss["usager"]["email"]), id_type=type_demandeur_intermediaire)
 
     return  {
                 "id_interlocuteur_ds": doss["usager"]["id"],
@@ -238,19 +239,20 @@ def dossiers_champs_normalize(doss, id_dossier):
 
                 liste_documents.append({
                     # "numero":"",   concerne plutot les arretés, demande d'avis etc..
-                    "id_format": DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first(),
-                    "id_nature": DocumentNature.objects.filter(nature="Pièce jointe demandeur").values_list("id", flat=True).first(),
-                    "url_ds": ch["files"]["url"],
+                    "id_format": get_first_id(DocumentFormat, format=extension_fichier),
+                    "id_nature": get_first_id(DocumentNature, nature="Pièce jointe demandeur"),
+                    "url_ds": f["url"],
                     "emplacement":"/emplacement/a_definir/",
                     "description":ch["label"],
                     "titre": nom_fichier,
                 })
 
-                id_document = Document.objects.filter(format=extension_fichier, titre=nom_fichier, url_ds=ch["files"]["url"]).values_list("id", flat=True).first() # plus tard filtrer sur l'emplacement du doc
+                # plus tard filtrer sur l'emplacement du doc
+                id_document = get_first_id(Document, format=extension_fichier, titre=nom_fichier, url_ds=f["url"])
 
                 dico_champ = {
                     "id_dossier": id_dossier,
-                    "id_champ": Champ.objects.filter(id_ds=ch["id"], nom=ch["label"]).values_list("id", flat=True).first(),
+                    "id_champ": get_first_id(Champ, id_ds=ch["id"], nom=ch["label"]),
                     "valeur": ch["stringValue"],
                     "date_saisie": datetime.fromisoformat(ch["updatedAt"]),
                     "geometrie": None,
@@ -269,7 +271,7 @@ def dossiers_champs_normalize(doss, id_dossier):
 
             dico_champ = {
                 "id_dossier": id_dossier,
-                "id_champ": Champ.objects.filter(id_ds=ch["id"], nom=ch["label"]).values_list("id", flat=True).first(),
+                "id_champ": get_first_id(Champ, id_ds=ch["id"], nom=ch["label"]),
                 "valeur": ch["stringValue"],
                 "date_saisie": datetime.fromisoformat(ch["updatedAt"]),
                 "geometrie": geometrie_du_champ,
@@ -285,62 +287,21 @@ def dossiers_champs_normalize(doss, id_dossier):
 
 
 
-def dossier_beneficiaire_normalize(doss):
- 
-    id_type_contact_externe = TypeContactExterne.objects.filter(type="beneficiaire").values_list("id", flat=True).first()
-
-    email_beneficaire = None
-
-    if (doss.get("prenomMandataire") is None and doss.get("nomMandataire") is None): # pas de demandeur intermédiaire
-        email_beneficaire = doss['demandeur']['email']
-
-    elif doss['demandeur']['__typename'] == "PersonnePhysique" : # demandeur intermédiaire mais le mail du bénéficiare est tout de meme renseigné
-        # plus tard : prévoir le cas des personnes morales
-        email_beneficaire = doss['demandeur']['email'] if doss['demandeur']['email'] else None
-
-    if email_beneficaire :
-        id_beneficiaire = ContactExterne.objects.filter(id_type=id_type_contact_externe, 
-                                                        nom=doss['demandeur']['nom'], 
-                                                        prenom=doss['demandeur']['prenom'],
-                                                        email=email_beneficaire,
-                                                        ).values_list("id", flat=True).first(),
-    else:
-        # problème ici ça garantit pas l'unicité  (idée : choper l'id du beneficaire juste avant (au moment du get or create))
-        id_beneficiaire = ContactExterne.objects.filter(id_type=id_type_contact_externe, nom=doss['demandeur']['nom'], prenom=doss['demandeur']['prenom']).values_list("id", flat=True).first(),
-
-
-    return  {
-                "id_dossier_interlocuteur": DossierInterlocuteur.objects.filter(id_interlocuteur_ds=doss["usager"]["id"]).values_list("id", flat=True).first(),
-                "id_beneficiaire": id_beneficiaire,
-            }
-
-
-
-def dossier_document_normalize(doss, id_dossier):
+def dossier_document_normalize(doss):
    
     nom_fichier, extension_fichier = extraire_nom_et_extension(doss["pdf"]["filename"])
 
     dico_pdf = {
         "numero": doss["number"],
-        "id_format": DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first(),
-        "id_nature": DocumentNature.objects.filter(nature="Résumé dossier").values_list("id", flat=True).first(),
+        "id_format": get_first_id(DocumentFormat, format=extension_fichier),
+        "id_nature": get_first_id(DocumentNature, nature="Résumé dossier"),
         "url_ds": doss["pdf"]["url"],
-        "emplacement":"/emplacement/a_definir/",
+        "emplacement":f"/emplacement/a_definir/{doss["number"]}",
         "description": f"Résumé du dossier {doss["number"]}",
         "titre": nom_fichier,
     }
 
-    id_pdf_format = DocumentFormat.objects.filter(format="pdf").values_list("id", flat=True).first(),
-    id_nature_resume_dossier = DocumentNature.objects.filter(nature="Résumé dossier").values_list("id", flat=True).first(),
-    dossier_document = {
-        "id_dossier": id_dossier,
-        "id_document": Document.objects.filter(id_format=id_pdf_format, id_nature=id_nature_resume_dossier, numero=doss["number"]).values_list("id", flat=True).first(),
-    }
-
-    return {
-        'resume_pdf': dico_pdf,
-        'dossier_document': dossier_document,
-    }
+    return dico_pdf
 
 
 
@@ -357,7 +318,7 @@ def message_normalize(doss, id_dossier):
             "body": m["body"],
             "date_envoi": m["createdAt"],
             "piece_jointe": contient_pj,
-            "email_emetteur": m["email"],
+            "email_emetteur": clean_email(m["email"]),
             "id_dossier": id_dossier,
             # "lu": False,  #Faux par défaut
         }
@@ -365,27 +326,29 @@ def message_normalize(doss, id_dossier):
         liste_files_message = []
         liste_msg_doc = []
 
+        # On recupère seulement les PJ du pétitionnaire (celles de l'instructeur seront créées depuis l'appli)
         if contient_pj and not m.get("email", "").endswith("@reunion-parcnational.fr"):
         # if contient_pj :
+
             for file in m["attachments"]:
 
                 nom_fichier, extension_fichier = extraire_nom_et_extension(file["filename"])
-                id_format_doc = DocumentFormat.objects.filter(format=extension_fichier).values_list("id", flat=True).first()
-                id_nature_doc = DocumentNature.objects.filter(nature="Pièce jointe demandeur").values_list("id", flat=True).first()
+                id_format_doc = get_first_id(DocumentFormat, format=extension_fichier)
+                id_nature_doc = get_first_id(DocumentNature, nature="Pièce jointe demandeur")
                 liste_files_message.append({
                     # "numero": "",  pas concerné ici
                     "id_format": id_format_doc,
                     "id_nature": id_nature_doc,
                     "url_ds": file["url"],
-                    "emplacement":"/emplacement/a_definir/",  #TO DO
+                    "emplacement":f"/emplacement/a_definir/message{m["id"]}",  #TO DO
                     "description": f"Pièce jointe dans la messagerie du dossier {doss["number"]}",
                     "titre": nom_fichier,
                 })
 
                 liste_msg_doc.append({
-                    "id_message": Message.objects.filter(id_ds=m["id"],id_dossier=id_dossier).values_list("id", flat=True).first(),
+                    "id_message": get_first_id(Message, id_ds=m["id"],id_dossier=id_dossier),
                     # A terme filtrer sur l'emplacement du fichier
-                    "id_document": Document.objects.filter(id_format=id_format_doc, id_nature=id_nature_doc, url_ds=file["url"]).values_list("id", flat=True).first(),
+                    "id_document": get_first_id(Document, id_format=id_format_doc, id_nature=id_nature_doc, url_ds=file["url"]),
                 })
 
         liste_messages.append({
@@ -397,7 +360,7 @@ def message_normalize(doss, id_dossier):
     return liste_messages
 
 
-def demande_normalize(demarche_id_ds, demarche_title, doss, id_dossier):
+def demande_normalize(demarche_id, demarche_title, doss, id_dossier):
     
     liste_demandes = []
 
@@ -409,16 +372,16 @@ def demande_normalize(demarche_id_ds, demarche_title, doss, id_dossier):
         # if demande PDV son --> liste_dem.append(demande PDV son)
 
     else:
-        id_priorite = calcul_priorite_instruction(demarche_id_ds, doss) # À condition que la colonne delais_jours_instruction soit remplie pour la démarche
+        id_priorite = calcul_priorite_instruction(demarche_id, doss) # À condition que la colonne delais_jours_instruction soit remplie pour la démarche
         liste_demandes.append({
-                    "id_etat_demande": EtatDemande.objects.filter(nom=doss["state"]).values_list("id", flat=True).first(), # par défaut meme etat que le dossier
-                    "id_priorite": id_priorite,
-                    "id_dossier": id_dossier,
-                    "id_demande_type": type_demande_par_defaut, #TO DO
-                    "date_depot": doss["dateDepot"], # plus tard champ["updatedAt"]
-                    "date_fin_instruction": doss["dateTraitement"],  # par défaut meme date de fin que le dossier
-                    # "soumis_controle": "", #false par défaut
-                })
+            "id_etat_demande": get_first_id(EtatDemande, nom=doss["state"]), # par défaut meme etat que le dossier
+            "id_priorite": id_priorite,
+            "id_dossier": id_dossier,
+            "id_demande_type": type_demande_par_defaut, #TO DO
+            "date_depot": doss["dateDepot"], # plus tard champ["updatedAt"]
+            "date_fin_instruction": doss["dateTraitement"],  # par défaut meme date de fin que le dossier
+            # "soumis_controle": "", #false par défaut
+        })
 
 
         # if tel champ est "oui" alors je créé un objet demande (exemple: votre demande de travaux inclut-elle un survol de drone?)
@@ -439,14 +402,19 @@ def demande_normalize(demarche_id_ds, demarche_title, doss, id_dossier):
 
 if __name__ == "__main__":
     
+    from normalisation.setup import init_setup
+
     init_setup()
 
     from autorisations.models.models_instruction import EtatDemarche, Demarche, ChampType, DossierType, EtatDossier, Dossier, Champ, Demande, EtatDemande, DemandeType
     from autorisations.models.models_utilisateurs import Groupeinstructeur, ContactExterne, Instructeur, DossierBeneficiaire, TypeContactExterne, DossierInterlocuteur
     from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, Message, MessageDocument
     from DS.call_DS_test import get_number_demarche_Postgres, recup_data_DS
-    from synchronisation.src.functions import fetch_geojson, extraire_nom_et_extension, type_demande_from_nom_demarche, save_to_json, calcul_priorite_instruction
-    from synchronisation.src.synchro import *
+    from synchronisation.src.functions import *
+    from synchronisation.src.synchro.sync_process import synchro_process
+    import logging
+    from normalisation.normalize_main import normalize_process
+    logger = logging.getLogger('ORM_DJANGO')
     # numeros_demarche = get_number_demarche_Postgres()
 
 

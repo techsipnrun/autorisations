@@ -73,9 +73,7 @@
         },
         "contacts_externes": {
             "beneficiaire": {
-                "email": [
-                    "louis.calu@reunion-parcnational.fr"
-                ],
+                "email": "louis.calu@reunion-parcnational.fr",
                 "id_type": 1,
                 "nom": "Calu",
                 "prenom": "Louis"
@@ -86,12 +84,6 @@
             "id_interlocuteur_ds": "VXNlci04MTQ4ODQ0",
             "id_demandeur_intermediaire": null,
             "id_dossier": 3
-        },
-        "dossier_beneficiaire": {
-            "id_dossier_interlocuteur": 3,
-            "id_beneficiaire": [
-                10
-            ]
         },
         "dossier_champs": [
             {
@@ -571,19 +563,13 @@
             }
         ],
         "dossier_document": {
-            "resume_pdf": {
-                "numero": 23134303,
-                "id_format": 1,
-                "id_nature": 10,
-                "url_ds": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDMtMzFUMTM6MjE6MTIuMjM2WiIsInB1ciI6ImFwaV92MiJ9fQ==--23b6300c3f0c9a00867cb33e721dfd7329da1a60",
-                "emplacement": "/emplacement/a_definir/",
-                "description": "Résumé du dossier 23134303",
-                "titre": "dossier-23134303"
-            },
-            "dossier_document": {
-                "id_dossier": 3,
-                "id_document": null
-            }
+            "numero": 23134303,
+            "id_format": 1,
+            "id_nature": 10,
+            "url_ds": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDFUMTI6MDE6MjIuMzI2WiIsInB1ciI6ImFwaV92MiJ9fQ==--5e6f6f6686537a1bb6cfdbaaab373fa5740547ce",
+            "emplacement": "/emplacement/a_definir/23134303",
+            "description": "Résumé du dossier 23134303",
+            "titre": "dossier-23134303"
         },
         "messages": [
             {
@@ -633,12 +619,24 @@
                 },
                 "documents": [],
                 "message_documents": []
+            },
+            {
+                "message": {
+                    "id_ds": "Q29tbWVudGFpcmUtNTUwNDM2MTg=",
+                    "body": "Voici une pièce jointe de la part du pétitionnaire",
+                    "date_envoi": "2025-04-01T08:27:05+02:00",
+                    "piece_jointe": true,
+                    "email_emetteur": "louis.calu@reunion-parcnational.fr",
+                    "id_dossier": 3
+                },
+                "documents": [],
+                "message_documents": []
             }
         ],
         "demandes": [
             {
                 "id_etat_demande": 6,
-                "id_priorite": null,
+                "id_priorite": 3,
                 "id_dossier": 3,
                 "id_demande_type": 7,
                 "date_depot": "2025-03-19T12:36:48+01:00",
