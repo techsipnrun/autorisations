@@ -10,6 +10,7 @@ class AgentAutorisations(models.Model):
     prenom = models.CharField(blank=True, null=True)
     mail_1 = models.CharField(blank=True, null=True)
     mail_2 = models.CharField(blank=True, null=True)
+    actif = models.BooleanField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -92,15 +93,16 @@ class DossierBeneficiaire(models.Model):
         db_table = '"utilisateurs"."dossier_beneficiaire"'
 
     def __str__(self):
-        if {self.id_demande_interlocuteur.id_demandeur_intermediaire} :
+
+        if (self.id_dossier_interlocuteur.id_demandeur_intermediaire != None) :
             return (
                 f"Bénéficiaire {self.id_beneficiaire.prenom} {self.id_beneficiaire.nom} - "
-                f"Demandeur Intermédiaire {self.id_demande_interlocuteur.id_demandeur_intermediaire.prenom} {self.id_demande_interlocuteur.id_demandeur_intermediaire.nom} : "
-                f"{self.id_demande_interlocuteur.id_demande}"
+                f"Demandeur Intermédiaire {self.id_dossier_interlocuteur.id_demandeur_intermediaire.prenom} {self.id_dossier_interlocuteur.id_demandeur_intermediaire.nom} : "
+                f"{self.id_dossier_interlocuteur.id_dossier}"
             )
         return (
                 f"Bénéficiaire {self.id_beneficiaire.prenom} {self.id_beneficiaire.nom} : "
-                f"{self.id_demande_interlocuteur.id_demande}"
+                f"{self.id_dossier_interlocuteur.id_dossier}"
             )
 
 
@@ -115,7 +117,10 @@ class Instructeur(models.Model):
         db_table = '"utilisateurs"."instructeur"'
 
     def __str__(self):
-        return f"{self.id_agent_autorisations.nom} {self.id_agent_autorisations.prenom}"
+        if self.id_agent_autorisations_id :
+            return f"{self.id_agent_autorisations.nom} {self.id_agent_autorisations.prenom}"
+        else :
+            return self.email
 
 
 class Groupeinstructeur(models.Model):
@@ -160,7 +165,10 @@ class GroupeinstructeurInstructeur(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.id_instructeur.email} dans {self.id_groupeinstructeur.nom}"
+        if self.id_instructeur.id_agent_autorisations :
+            return f"{self.id_instructeur.id_agent_autorisations.nom} {self.id_instructeur.id_agent_autorisations.prenom} dans {self.id_groupeinstructeur.nom}"
+        else:
+            return f"{self.id_instructeur.email} dans {self.id_groupeinstructeur.nom}"
 
 
 class DossierInstructeur(models.Model):

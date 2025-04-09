@@ -148,7 +148,7 @@ class Dossier(models.Model):
         ]
 
     def __str__(self):
-        return f"Dossier {self.numero} ({self.nom_dossier})"
+        return f"Dossier {self.nom_dossier}"
 
 
 class Demande(models.Model):

@@ -30,6 +30,27 @@
                 "type": "drop_down_list"
             },
             {
+                "description": "Pour les demandes de travaux soumis à autorisation d'urbanisme (permis de construire, permis d'aménager, permis de démolir ou décision prise sur la déclaration préalable) : Rapprochez vous de votre commune.\r\n\r\nFormulaire pour les demandes de travaux non soumis à autorisation d'urbanisme : https://reunion-parcnational.fr/fr/travaux_hors_urbanisme\r\n\r\nFormulaire pour les demandes de travaux en aire d'adhésion : https://reunion-parcnational.fr/fr/travaux_aire_adhesion",
+                "id": "Q2hhbXAtNTE0MjM0OA==",
+                "label": "Rappel : si vous prévoyez de réaliser des travaux dans le cadre de cette demande, une autre demande est nécessaire :",
+                "required": false,
+                "type": "explication"
+            },
+            {
+                "description": "https://reunion-parcnational.fr/fr/pdv-et-son-ou-survol-drone",
+                "id": "Q2hhbXAtNTE0MjQ3OA==",
+                "label": "Rappel : si vous prévoyez un survol en drone, une autre demande peut-être nécessaire :",
+                "required": false,
+                "type": "explication"
+            },
+            {
+                "description": "https://reunion-parcnational.fr/fr/survol-helicoptere",
+                "id": "Q2hhbXAtNTE0MjM1MA==",
+                "label": "Rappel : si vous prévoyez un acheminement du matériel ou des personnes par hélicoptère, une autre demande est nécessaire :",
+                "required": false,
+                "type": "explication"
+            },
+            {
                 "description": "",
                 "id": "Q2hhbXAtNDU5ODI2",
                 "label": "IDENTIFICATION DU BÉNÉFICIAIRE",
@@ -149,6 +170,13 @@
                 "type": "header_section"
             },
             {
+                "description": "Afin de nous permettre d’identifier votre dossier précédent, merci de nous transmettre a minima le dernier numéro de dossier ou le numéro du dernier acte (Arrêté ou Délibération) d'autorisation délivré.\r\n\r\nSi vous ne disposez d’aucune de ces informations, n’hésitez pas à nous contacter pour obtenir de l’aide : autorisations@reunion-parcnational.fr",
+                "id": "Q2hhbXAtNTE0MTk5MQ==",
+                "label": "Conditions d'identification",
+                "required": false,
+                "type": "explication"
+            },
+            {
                 "description": "Si vous le possédez",
                 "id": "Q2hhbXAtNTAxOTkwOA==",
                 "label": "Numéro du dossier précédent",
@@ -161,6 +189,13 @@
                 "label": "Année de la dernière autorisation du Parc",
                 "required": true,
                 "type": "integer_number"
+            },
+            {
+                "description": "Si vous le possédez",
+                "id": "Q2hhbXAtNTE0MTk5MA==",
+                "label": "Numéro du dernier arrêté délivré",
+                "required": true,
+                "type": "text"
             },
             {
                 "description": "",
@@ -679,12 +714,12 @@
                     "prenomMandataire": null,
                     "nomMandataire": null,
                     "pdf": {
-                        "createdAt": "2025-04-01T13:01:22+02:00",
+                        "createdAt": "2025-04-07T14:39:49+02:00",
                         "filename": "dossier-23134303.pdf",
-                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDFUMTI6MDE6MjIuMzI2WiIsInB1ciI6ImFwaV92MiJ9fQ==--5e6f6f6686537a1bb6cfdbaaab373fa5740547ce"
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDdUMTM6Mzk6NDkuNjk3WiIsInB1ciI6ImFwaV92MiJ9fQ==--beefc0a851539e81480ece4209fb8604ba65ba36"
                     },
                     "geojson": {
-                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDFUMTI6MDE6MjIuMzI2WiIsInB1ciI6ImFwaV92MiJ9fQ==--5e6f6f6686537a1bb6cfdbaaab373fa5740547ce"
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDdUMTM6Mzk6NDkuNjk3WiIsInB1ciI6ImFwaV92MiJ9fQ==--beefc0a851539e81480ece4209fb8604ba65ba36"
                     },
                     "usager": {
                         "id": "VXNlci04MTQ4ODQ0",
@@ -729,6 +764,27 @@
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxMzEzOQ==",
                             "updatedAt": "2025-03-19T12:32:12+01:00"
+                        },
+                        {
+                            "label": "Rappel : si vous prévoyez de réaliser des travaux dans le cadre de cette demande, une autre demande est nécessaire :",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTE0MjM0OA==",
+                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                        },
+                        {
+                            "label": "Rappel : si vous prévoyez un survol en drone, une autre demande peut-être nécessaire :",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTE0MjQ3OA==",
+                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                        },
+                        {
+                            "label": "Rappel : si vous prévoyez un acheminement du matériel ou des personnes par hélicoptère, une autre demande est nécessaire :",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTE0MjM1MA==",
+                            "updatedAt": "2025-03-19T12:36:48+01:00"
                         },
                         {
                             "label": "IDENTIFICATION DU BÉNÉFICIAIRE",
@@ -1085,7 +1141,7 @@
                             "email": "louis.calu@reunion-parcnational.fr",
                             "attachments": [
                                 {
-                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/03/28/6X/6X8zutZRDzGvmcM7T3Yn2sEC2Qgf?temp_url_sig=8d2873e20f04b69780ac07d0e0b54a840fe264a9&temp_url_expires=1743508882&filename=arbo_dossiers.drawio.pdf&inline",
+                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/03/28/6X/6X8zutZRDzGvmcM7T3Yn2sEC2Qgf?temp_url_sig=9f0380c792a0fcaa83316b2bb753452acdbf252f&temp_url_expires=1744033189&filename=arbo_dossiers.drawio.pdf&inline",
                                     "filename": "arbo_dossiers.drawio.pdf"
                                 }
                             ]
@@ -1097,7 +1153,7 @@
                             "email": "louis.calu@reunion-parcnational.fr",
                             "attachments": [
                                 {
-                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/04/01/rC/rCyEctECHGtdamzLEn41XPorbLzV?temp_url_sig=af968dec5d74ab7b6d1ad8e939ba9323300d5cf3&temp_url_expires=1743508882&filename=doc_pr%C3%A9_bancarisation.pdf&inline",
+                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/04/01/rC/rCyEctECHGtdamzLEn41XPorbLzV?temp_url_sig=82ad989f4a1230cc23f24eeaf1146371083f15a2&temp_url_expires=1744033189&filename=doc_pr%C3%A9_bancarisation.pdf&inline",
                                     "filename": "doc_pré_bancarisation.pdf"
                                 }
                             ]
