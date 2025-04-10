@@ -87,7 +87,7 @@ def save_to_json(data_dict, folder="synchronisation/src/outputs"):
 
 def calcul_priorite_instruction(id_demarche, doss):
     # Plusieurs cas :
-        #Dossier deja traité __> id_prio 4
+        #Dossier deja traité --> id_prio 4
         #Dossier en cours --> on regarde datedepot et le colonne demarche.delais_jours_instruction
 
     if doss["state"] == "accepte" or doss["state"] == "refuse" or doss["state"] == "sans_suite" :
@@ -190,4 +190,82 @@ def clean_email(value):
     return value.strip().lower() if value else None
 
 def clean_name(value):
-    return value.strip().capitalize() if value else ""
+    return value.strip().lower().capitalize() if value else ""
+
+def clean_surname(value):
+    return value.strip().upper() if value else ""
+
+
+def calcul_date_limite_instruction(date_depot_iso: str, id_demarche: int):
+    from autorisations.models.models_instruction import Demarche
+    from datetime import datetime, timedelta
+
+    if not date_depot_iso:
+        return None
+    try:
+        date_depot = datetime.fromisoformat(date_depot_iso)
+        delais = Demarche.objects.filter(id=id_demarche).values_list("delais_jours_instruction", flat=True).first()
+        if delais is not None:
+            return date_depot + timedelta(days=delais)
+    except Exception as e:
+        print(f"[ERREUR] calcul_date_limite_instruction: {e}")
+    return None
+
+
+
+
+def construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche):
+    # 1. Type autorisation
+    titre = titre_demarche.lower()
+    if "travaux" in titre:
+        type_autorisation = "Travaux"
+    elif "mission scientifique" in titre:
+        type_autorisation = "Missions_scientifiques"
+    elif "activités commerciales" in titre:
+        type_autorisation = "Activites_commerciales"
+    elif "activité agricole" in titre:
+        type_autorisation = "Activite_agricoles"
+    elif "prise de vue" in titre or "drone" in titre:
+        type_autorisation = "PDV_et_son"
+    elif "survol hélicoptère" in titre:
+        type_autorisation = "Survol"
+    elif "courses d’arêtes" in titre:
+        type_autorisation = "Aretes"
+    else:
+        type_autorisation = "Autre"
+
+    # 2. Type démarche (si applicable)
+    type_demarche = ""
+    if type_autorisation == "Travaux":
+        if "soumis à autorisation d'urbanisme" in titre:
+            type_demarche = "Soumis_urbanisme"
+        elif "non soumis" in titre:
+            type_demarche = "Non_soumis_urbanisme"
+        elif "aire d’adhésion" in titre or "aire d'adhésion" in titre:
+            type_demarche = "Aire_adhesion"
+    elif type_autorisation == "Missions_scientifiques":
+        if "cœur du parc" in titre or "coeur du parc" in titre:
+            type_demarche = "Coeur_de_parc"
+        elif "espace protégé" in titre:
+            type_demarche = "Espace_protege"
+
+    # 3. Année
+    try:
+        date_depot = datetime.fromisoformat(doss["dateDepot"])
+        annee = str(date_depot.year)
+    except:
+        annee = "0000"
+
+    # 4. Dossier = numero_nom_prenom
+    numero = str(doss["number"])
+    nom = contact_beneficiaire.get("nom", "Inconnu").replace(" ", "_").upper()
+    prenom = contact_beneficiaire.get("prenom", "Inconnu").replace(" ", "_").lower().capitalize()
+    dossier_part = f"{numero}_{nom}_{prenom}"
+
+    path_parts = [type_autorisation, annee]
+    if type_demarche:
+        path_parts.append(type_demarche)
+    path_parts.append(dossier_part)
+
+    return "/".join(path_parts)
+

@@ -178,7 +178,7 @@ def sync_doss(dossier):
         "date_depot": datetime,
         "date_fin_instruction": datetime | None,
         "id_dossier_type": int,
-        "id_ds_dossier_parent": str | None,
+        "id_dossier_parent": str | None,
         "note": str,
         "nom_dossier": str,
         "emplacement": str,

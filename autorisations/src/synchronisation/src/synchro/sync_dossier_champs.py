@@ -1,16 +1,27 @@
 from autorisations.models.models_instruction import DossierChamp, Champ, ChampType
 from autorisations.models.models_documents import Document
-from functions import update_fields, clean_date
+from functions import get_first_id, update_fields, clean_date
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")
 
 def sync_dossier_champs(dossier_champs, id_dossier):
+    """
+    Synchronise les DossierChamps
+    
+    {
+        "documents": [{"numero", "id_format", "id_nature", "url_ds", "emplacement", "description", "titre"}, ...],
+        "champ": {"nom_champ", "id_ds", "valeur", "date_saisie", "geometrie", "id_document"=None}
+    }
+    """
+     
     for ch in dossier_champs:
         dossier_champ = ch["champ"]
         documents = ch.get("documents", [])
 
-        id_champ_type = Champ.objects.filter(id=dossier_champ["id_champ"]).values_list("id_champ_type_id", flat=True).first()
+        id_champ=get_first_id(Champ, id_ds=dossier_champ["id_ds"], nom=dossier_champ["nom_champ"])
+
+        id_champ_type = Champ.objects.filter(id=id_champ).values_list("id_champ_type_id", flat=True).first()
         type_du_champ = ChampType.objects.filter(id=id_champ_type).values_list("type", flat=True).first()
 
         if documents:
@@ -26,11 +37,11 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 )
 
                 if doc_created:
-                    logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {dossier_champ['id_champ']} du Dossier {id_dossier} créé.")
+                    logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {id_champ} du Dossier {id_dossier} créé.")
 
                 champ_obj, created = DossierChamp.objects.get_or_create(
                     id_dossier_id=id_dossier,
-                    id_champ_id=dossier_champ["id_champ"],
+                    id_champ_id=id_champ,
                     id_document_id=document_obj.id,
                     defaults={
                         "valeur": dossier_champ["valeur"],
@@ -40,7 +51,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 )
 
                 if created:
-                    logger.info(f"[CREATE] DossierChamp (champ: {dossier_champ['id_champ']}, dossier: {id_dossier}) créé.")
+                    logger.info(f"[CREATE] DossierChamp (champ: {id_champ}, dossier: {id_dossier}) créé.")
                 else:
                     updated_fields = update_fields(champ_obj, {
                         "valeur": dossier_champ["valeur"],
@@ -50,11 +61,11 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
                     if updated_fields:
                         champ_obj.save()
-                        logger.info(f"[SAVE] DossierChamp mis à jour (champ: {dossier_champ['id_champ']}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
+                        logger.info(f"[SAVE] DossierChamp mis à jour (champ: {id_champ}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
         else:
             champ_obj, created = DossierChamp.objects.get_or_create(
                 id_dossier_id=id_dossier,
-                id_champ_id=dossier_champ["id_champ"],
+                id_champ_id=id_champ,
                 defaults={
                     "valeur": dossier_champ["valeur"],
                     "date_saisie": dossier_champ["date_saisie"],
@@ -63,7 +74,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
             )
 
             if created:
-                logger.info(f"[CREATE] DossierChamp (champ: {dossier_champ['id_champ']}, dossier: {id_dossier}) créé.")
+                logger.info(f"[CREATE] DossierChamp (champ: {id_champ}, dossier: {id_dossier}) créé.")
             else:
                 updated_fields = update_fields(champ_obj, {
                     "valeur": dossier_champ["valeur"],
@@ -73,4 +84,4 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
                 if updated_fields:
                     champ_obj.save()
-                    logger.info(f"[SAVE] DossierChamp mis à jour (champ: {dossier_champ['id_champ']}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
+                    logger.info(f"[SAVE] DossierChamp mis à jour (champ: {id_champ}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")

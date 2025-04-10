@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug normalisation.py",
+      "name": "Debug normalisation_old.py",
       "type": "python",
       "request": "launch",
       "program": "${workspaceFolder}/autorisations/src/synchronisation/src/normalisation_old.py",

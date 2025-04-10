@@ -6,6 +6,15 @@ import logging
 logger = logging.getLogger("ORM_DJANGO")
 
 def sync_messages(messages, id_dossier):
+    """
+    Synchronise les Messages, Message_Documents et Documents (pour les PJ)
+    
+    {
+        'message':  {"id_ds", "body", "date_envoi", "piece_jointe", "email_emetteur"},
+        'documents': {"id_format", "id_nature", "url_ds", "emplacement", "description", "titre"},
+    }
+    
+    """
     for entry in messages:
         message_data = entry.get("message")
         docs = entry.get("documents", [])

@@ -5,6 +5,11 @@ import logging
 logger = logging.getLogger("ORM_DJANGO")
 
 def sync_demandes(demandes, id_dossier):
+    """
+    Synchronisation des demandes
+    [{"id_etat_demande", "id_priorite", "id_demande_type", "date_depot", "date_fin_instruction"}, ...]
+    
+    """
     for demande in demandes:
         defaults = {
             "date_depot": clean_date(demande["date_depot"]),

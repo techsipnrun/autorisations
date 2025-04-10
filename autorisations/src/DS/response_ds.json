@@ -5,7 +5,7 @@
         "state": "brouillon",
         "title": "Demande d'autorisation : Activités commerciales en cœur du Parc national de la Réunion",
         "dateCreation": "2025-03-04T06:08:18+01:00",
-        "dateDerniereModification": "2025-03-31T09:12:10+02:00",
+        "dateDerniereModification": "2025-04-10T09:20:52+02:00",
         "description": "Il s'agit ici d'un formulaire pour demander l'autorisation de créer,  de renouveler ou de modifier une activité commerciale en cœur du Parc national. Le Parc national de La Réunion, est à la fois un territoire de préservation du patrimoine naturel, culturel et paysager des Hauts, et un espace de vie, de loisirs et de découvertes. C’est pourquoi, les activités commerciales et artisanales sont réglementées dans le cœur du Parc.",
         "champDescriptors": [
             {
@@ -39,7 +39,7 @@
             {
                 "description": "https://reunion-parcnational.fr/fr/pdv-et-son-ou-survol-drone",
                 "id": "Q2hhbXAtNTE0MjQ3OA==",
-                "label": "Rappel : si vous prévoyez un survol en drone, une autre demande peut-être nécessaire :",
+                "label": "Rappel : si vous prévoyez un survol de drone en cœur de Parc, une autre demande peut-être nécessaire :",
                 "required": false,
                 "type": "explication"
             },
@@ -394,9 +394,9 @@
                 "type": "yes_no"
             },
             {
-                "description": "À faire ?",
+                "description": "Pour les demandes de travaux soumis à autorisation d'urbanisme (permis de construire, permis d'aménager, permis de démolir ou décision prise sur la déclaration préalable) : Rapprochez vous de votre commune.\r\n\r\nPour les demandes de travaux en coeur de Parc, non soumis à autorisation d'urbanisme : si ce n'est pas déjà fait, un formulaire est à compléter : https://reunion-parcnational.fr/fr/travaux_hors_urbanisme",
                 "id": "Q2hhbXAtNTAxOTg3OQ==",
-                "label": "Préconisations du parc concernant la réalisation de travaux ou d'aménagements",
+                "label": "Rappel : si vous prévoyez de réaliser des travaux dans le cadre de cette demande, une autre démarche est nécessaire :",
                 "required": false,
                 "type": "explication"
             },
@@ -653,16 +653,16 @@
                 "type": "multiple_drop_down_list"
             },
             {
-                "description": "À faire ?",
+                "description": "https://reunion-parcnational.fr/fr/survol-helicoptere",
                 "id": "Q2hhbXAtNTAxOTkwMA==",
-                "label": "Préconisations du Parc concernant le survol en hélicoptère",
+                "label": "Rappel : si vous prévoyez un survol motorisé (en hélicoptères, ULM, petits avions, etc.), une autre demande est nécessaire :",
                 "required": false,
                 "type": "explication"
             },
             {
-                "description": "À faire ?",
+                "description": "https://reunion-parcnational.fr/fr/survol-helicoptere",
                 "id": "Q2hhbXAtNTAxOTkxNg==",
-                "label": "Préconisations du Parc concernant le survol en hélicoptère",
+                "label": "Rappel : si vous prévoyez un survol motorisé (en hélicoptères, ULM, petits avions, etc.), une autre demande est nécessaire :",
                 "required": false,
                 "type": "explication"
             },
@@ -674,9 +674,9 @@
                 "type": "yes_no"
             },
             {
-                "description": "À faire ?",
+                "description": "https://reunion-parcnational.fr/fr/pdv-et-son-ou-survol-drone",
                 "id": "Q2hhbXAtNTAxOTkwMg==",
-                "label": "Préconisations du Parc concernant le survol en drone",
+                "label": "Rappel : si vous prévoyez un survol de drone en cœur de Parc, une autre demande est nécessaire :",
                 "required": false,
                 "type": "explication"
             },
@@ -705,40 +705,35 @@
         "dossiers": {
             "nodes": [
                 {
-                    "id": "RG9zc2llci0yMzEzNDMwMw==",
-                    "number": 23134303,
-                    "dateDepot": "2025-03-19T12:36:48+01:00",
-                    "datePassageEnConstruction": "2025-03-19T12:36:48+01:00",
-                    "datePassageEnInstruction": "2025-03-19T12:36:49+01:00",
+                    "id": "RG9zc2llci0yMzU4NzUzMA==",
+                    "number": 23587530,
+                    "dateDepot": "2025-04-10T08:25:34+02:00",
+                    "datePassageEnConstruction": "2025-04-10T08:25:34+02:00",
+                    "datePassageEnInstruction": "2025-04-10T08:25:34+02:00",
                     "dateTraitement": null,
-                    "prenomMandataire": null,
-                    "nomMandataire": null,
+                    "prenomMandataire": "Prénom-Demandeur-Intermédiaire",
+                    "nomMandataire": "Nom-Demandeur-Intermédiaire",
                     "pdf": {
-                        "createdAt": "2025-04-07T14:39:49+02:00",
-                        "filename": "dossier-23134303.pdf",
-                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDdUMTM6Mzk6NDkuNjk3WiIsInB1ciI6ImFwaV92MiJ9fQ==--beefc0a851539e81480ece4209fb8604ba65ba36"
+                        "createdAt": "2025-04-10T14:03:38+02:00",
+                        "filename": "dossier-23587530.pdf",
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/pdf/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpVNE56VXpNRDlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMTBUMTM6MDM6MzguMDQwWiIsInB1ciI6ImFwaV92MiJ9fQ==--0e15dce2e35f3a99fd8c4c2383f567092ac74f31"
                     },
                     "geojson": {
-                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpFek5ETXdNejlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMDdUMTM6Mzk6NDkuNjk3WiIsInB1ciI6ImFwaV92MiJ9fQ==--beefc0a851539e81480ece4209fb8604ba65ba36"
+                        "url": "https://www.demarches-simplifiees.fr/api/v2/dossiers/geojson/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaTluYVdRNkx5OTBjSE12Ukc5emMybGxjaTh5TXpVNE56VXpNRDlsZUhCcGNtVnpYMmx1UFRNMk1EQUdPZ1pGVkE9PSIsImV4cCI6IjIwMjUtMDQtMTBUMTM6MDM6MzguMDQxWiIsInB1ciI6ImFwaV92MiJ9fQ==--e4a21b150cdf3058d2fc9dbb61e08f6ee19a4667"
                     },
                     "usager": {
                         "id": "VXNlci04MTQ4ODQ0",
                         "email": "louis.calu@reunion-parcnational.fr"
                     },
                     "demandeur": {
-                        "id": "SW5kaXZpZHVhbC0xOTUwMzE5OA==",
+                        "id": "SW5kaXZpZHVhbC0yMDAyNzI1Ng==",
                         "__typename": "PersonnePhysique",
                         "civilite": "M",
-                        "email": null,
-                        "nom": "Calu",
-                        "prenom": "Louis"
+                        "email": "emailBeneficiaire@mail.fr",
+                        "nom": "Nom-Bénéficiaire",
+                        "prenom": "Prénom-Bénéficiaire"
                     },
-                    "instructeurs": [
-                        {
-                            "id": "SW5zdHJ1Y3RldXItMTMwMjYw",
-                            "email": "louis.calu@reunion-parcnational.fr"
-                        }
-                    ],
+                    "instructeurs": [],
                     "groupeInstructeur": {
                         "label": "Activités commerciales",
                         "number": 279555
@@ -749,236 +744,226 @@
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNDc2MDg3Nw==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Les activités commerciales et artisanales",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNDc2MDk0NA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Type de demande",
                             "stringValue": "Création d'activité",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxMzEzOQ==",
-                            "updatedAt": "2025-03-19T12:32:12+01:00"
+                            "updatedAt": "2025-04-10T08:22:15+02:00"
                         },
                         {
                             "label": "Rappel : si vous prévoyez de réaliser des travaux dans le cadre de cette demande, une autre demande est nécessaire :",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTE0MjM0OA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
-                            "label": "Rappel : si vous prévoyez un survol en drone, une autre demande peut-être nécessaire :",
+                            "label": "Rappel : si vous prévoyez un survol de drone en cœur de Parc, une autre demande peut-être nécessaire :",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTE0MjQ3OA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Rappel : si vous prévoyez un acheminement du matériel ou des personnes par hélicoptère, une autre demande est nécessaire :",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTE0MjM1MA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "IDENTIFICATION DU BÉNÉFICIAIRE",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNDU5ODI2",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Vous êtes le bénéficiaire de la demande",
-                            "stringValue": "true",
+                            "stringValue": "false",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxMzg4MQ==",
-                            "updatedAt": "2025-03-19T12:32:14+01:00"
+                            "updatedAt": "2025-04-10T08:22:18+02:00"
+                        },
+                        {
+                            "label": "Identification du demandeur intermédiaire",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAxMzg4Mg==",
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
+                        },
+                        {
+                            "label": "Email du demandeur intermédiaire",
+                            "stringValue": "email-demandeur-intermédiaire@mail.fr",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAxMzg4NQ==",
+                            "updatedAt": "2025-04-10T08:22:37+02:00"
+                        },
+                        {
+                            "label": "Adresse du demandeur intermédiaire",
+                            "stringValue": "17 Rue Edmond Biré 44000 Nantes",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAxMzg4Ng==",
+                            "updatedAt": "2025-04-10T08:22:50+02:00"
+                        },
+                        {
+                            "label": "Numéro de téléphone du demandeur intermédiaire",
+                            "stringValue": "06 12 34 56 78",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAxMzg4Nw==",
+                            "updatedAt": "2025-04-10T08:22:59+02:00"
+                        },
+                        {
+                            "label": "Nom de l'organisation du demandeur intermédiaire",
+                            "stringValue": "Nom Organisation Demandeur Intermédiaire",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAxMzg5MA==",
+                            "updatedAt": "2025-04-10T08:23:16+02:00"
                         },
                         {
                             "label": "Identification du bénéficiaire de la demande",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxMzg5Mg==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Email du bénéficiaire",
-                            "stringValue": "louis.test@test.fr",
+                            "stringValue": "",
                             "__typename": "TextChamp",
-                            "id": "Q2hhbXAtNTAxMzg5NQ==",
-                            "updatedAt": "2025-03-19T12:32:24+01:00"
+                            "id": "Q2hhbXAtNTAyMTc3MQ==",
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Adresse du bénéficiaire",
-                            "stringValue": "La Plaine-des-Palmistes (97431)",
+                            "stringValue": "11 Rue Fieux 31100 Toulouse",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxMzg5Ng==",
-                            "updatedAt": "2025-03-19T12:32:59+01:00"
+                            "updatedAt": "2025-04-10T08:23:31+02:00"
                         },
                         {
                             "label": "Numéro de téléphone du bénéficiaire",
-                            "stringValue": "06 00 00 00 00",
+                            "stringValue": "",
                             "__typename": "TextChamp",
-                            "id": "Q2hhbXAtNTAxMzg5Nw==",
-                            "updatedAt": "2025-03-19T12:33:12+01:00"
+                            "id": "Q2hhbXAtNTAyMTc5MQ==",
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Nom de l'organisation",
-                            "stringValue": "Le Parc",
+                            "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxMzg5OQ==",
-                            "updatedAt": "2025-03-19T12:33:21+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Numéro SIRET de l'organisation",
                             "stringValue": "",
                             "__typename": "SiretChamp",
                             "id": "Q2hhbXAtNTAxMzkwMA==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Raison sociale du bénéficiaire",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxMzkwMQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "PRÉSENTATION DU PROJET",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNDg4NTA3",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Type d'activité",
-                            "stringValue": "Hébergement",
+                            "stringValue": "Restauration",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxMzkwMw==",
-                            "updatedAt": "2025-03-19T12:34:17+01:00"
+                            "updatedAt": "2025-04-10T08:23:37+02:00"
                         },
                         {
                             "label": "Description du projet",
-                            "stringValue": "Mon projet d'hébergement est le suivant : blablabla",
+                            "stringValue": "Ceci est la description du projet de Restauration : blablabla",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNDg4NTA4",
-                            "updatedAt": "2025-03-19T12:34:45+01:00"
+                            "updatedAt": "2025-04-10T08:23:53+02:00"
                         },
                         {
                             "label": "Vous pouvez joindre un dossier de présentation si nécessaire",
                             "stringValue": "",
                             "__typename": "PieceJustificativeChamp",
                             "id": "Q2hhbXAtNDg4NjE5",
-                            "updatedAt": "2025-03-19T12:36:48+01:00",
+                            "updatedAt": "2025-04-10T08:25:34+02:00",
                             "files": []
                         },
                         {
-                            "label": "Type d'hébergement",
-                            "stringValue": "Gîte",
-                            "__typename": "TextChamp",
-                            "id": "Q2hhbXAtNTAxMzkwNA==",
-                            "updatedAt": "2025-03-19T12:34:45+01:00"
-                        },
-                        {
-                            "label": "Nombre de chambres",
-                            "stringValue": "12",
-                            "__typename": "IntegerNumberChamp",
-                            "id": "Q2hhbXAtNTAxMzkwNQ==",
-                            "updatedAt": "2025-03-19T12:34:48+01:00"
-                        },
-                        {
                             "label": "Capacité",
-                            "stringValue": "24",
+                            "stringValue": "50",
                             "__typename": "IntegerNumberChamp",
                             "id": "Q2hhbXAtNTAxMzkwNg==",
-                            "updatedAt": "2025-03-19T12:34:51+01:00"
-                        },
-                        {
-                            "label": "Restauration pour des clients extérieurs",
-                            "stringValue": "false",
-                            "__typename": "CheckboxChamp",
-                            "id": "Q2hhbXAtNTAxNDMyNQ==",
-                            "updatedAt": "2025-03-19T12:34:52+01:00"
+                            "updatedAt": "2025-04-10T08:23:57+02:00"
                         },
                         {
                             "label": "Approvisionnement local",
-                            "stringValue": "false",
+                            "stringValue": "true",
                             "__typename": "CheckboxChamp",
-                            "id": "Q2hhbXAtNTAxOTg2OA==",
-                            "updatedAt": "2025-03-19T12:34:52+01:00"
+                            "id": "Q2hhbXAtNTAxOTkxMQ==",
+                            "updatedAt": "2025-04-10T08:23:58+02:00"
                         },
                         {
                             "label": "Avez-vous un bac de rétention de graisse (huile) ?",
                             "stringValue": "true",
                             "__typename": "CheckboxChamp",
-                            "id": "Q2hhbXAtNTAxOTkxMg==",
-                            "updatedAt": "2025-03-19T12:34:54+01:00"
+                            "id": "Q2hhbXAtNTAxOTg2OQ==",
+                            "updatedAt": "2025-04-10T08:23:59+02:00"
                         },
                         {
                             "label": "Date du début de l'activité",
-                            "stringValue": "19 mars 2025",
+                            "stringValue": "17 mai 2025",
                             "__typename": "DateChamp",
                             "id": "Q2hhbXAtNTAxOTg3MA==",
-                            "updatedAt": "2025-03-19T12:34:58+01:00"
+                            "updatedAt": "2025-04-10T08:24:04+02:00"
                         },
                         {
                             "label": "L'activité a lieu à Mafate ?",
                             "stringValue": "false",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxOTg3Mg==",
-                            "updatedAt": "2025-03-19T12:34:58+01:00"
+                            "updatedAt": "2025-04-10T08:24:05+02:00"
                         },
                         {
                             "label": "Concernant la localisation de l'activité",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTA1MTk3NQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Localisation de l'activité",
                             "stringValue": null,
                             "__typename": "CarteChamp",
                             "id": "Q2hhbXAtNTAxOTg3Nw==",
-                            "updatedAt": "2025-03-19T12:35:50+01:00",
+                            "updatedAt": "2025-04-10T08:24:22+02:00",
                             "geoAreas": [
                                 {
                                     "geometry": {
                                         "coordinates": [
-                                            [
-                                                [
-                                                    55.60863123296761,
-                                                    -21.13249415171788
-                                                ],
-                                                [
-                                                    55.613203236263246,
-                                                    -21.14849988879847
-                                                ],
-                                                [
-                                                    55.63803219660883,
-                                                    -21.142154274758752
-                                                ],
-                                                [
-                                                    55.639714116138066,
-                                                    -21.129848782861544
-                                                ],
-                                                [
-                                                    55.621675567683866,
-                                                    -21.123310636011922
-                                                ],
-                                                [
-                                                    55.60863123296761,
-                                                    -21.13249415171788
-                                                ]
-                                            ]
+                                            55.620278,
+                                            -21.141944
                                         ],
-                                        "type": "Polygon"
+                                        "type": "Point"
                                     }
                                 }
                             ]
@@ -988,28 +973,21 @@
                             "stringValue": "false",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxOTg3OA==",
-                            "updatedAt": "2025-03-19T12:35:52+01:00"
+                            "updatedAt": "2025-04-10T08:24:27+02:00"
                         },
                         {
                             "label": "Équipements et installations",
-                            "stringValue": "Groupe électrogène, Barnum",
+                            "stringValue": "Chauffe eau solaire",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxOTg4MA==",
-                            "updatedAt": "2025-03-19T12:35:57+01:00"
-                        },
-                        {
-                            "label": "Le groupe électrogène est",
-                            "stringValue": "en extérieur",
-                            "__typename": "MultipleDropDownListChamp",
-                            "id": "Q2hhbXAtNTAxOTg4MQ==",
-                            "updatedAt": "2025-03-19T12:36:00+01:00"
+                            "updatedAt": "2025-04-10T08:24:30+02:00"
                         },
                         {
                             "label": "Localisation des équipements et installations",
                             "stringValue": "",
                             "__typename": "PieceJustificativeChamp",
                             "id": "Q2hhbXAtNTAxOTg4NQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00",
+                            "updatedAt": "2025-04-10T08:25:34+02:00",
                             "files": []
                         },
                         {
@@ -1017,144 +995,132 @@
                             "stringValue": "false",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxOTg4Mw==",
-                            "updatedAt": "2025-03-19T12:36:06+01:00"
+                            "updatedAt": "2025-04-10T08:24:39+02:00"
                         },
                         {
                             "label": "INSERTION DU PROJET DANS LE COEUR DU PARC",
                             "stringValue": "",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxNDMyNw==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "Existe t’il une activité équivalente à proximité ?",
                             "stringValue": "false",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxOTg4OA==",
-                            "updatedAt": "2025-03-19T12:36:08+01:00"
+                            "updatedAt": "2025-04-10T08:24:41+02:00"
                         },
                         {
                             "label": "Expliquez en quoi votre activité pourrait être valorisante pour le site d’implantation",
-                            "stringValue": "Mon activité est valorisante car .....",
+                            "stringValue": "mon activité est cool car je fais des bons plats",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxOTg5MA==",
-                            "updatedAt": "2025-03-19T12:36:18+01:00"
+                            "updatedAt": "2025-04-10T08:24:56+02:00"
                         },
                         {
                             "label": "Quelles sont les bonnes pratiques que vous comptez mettre en œuvre dans le cadre de l’activité ?",
-                            "stringValue": "Gestion des déchets",
+                            "stringValue": "Organisation de l’accès par un transport en commun, Gestion des déchets",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxOTg5MQ==",
-                            "updatedAt": "2025-03-19T12:36:20+01:00"
+                            "updatedAt": "2025-04-10T08:25:07+02:00"
                         },
                         {
                             "label": "Avez-vous mis en place des modes de gestion des déchets durables ?",
                             "stringValue": "Consigne",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxOTg5Mw==",
-                            "updatedAt": "2025-03-19T12:36:22+01:00"
+                            "updatedAt": "2025-04-10T08:25:10+02:00"
                         },
                         {
                             "label": "Présentez les mesures mises en place pour limiter au maximum le risque d’introduction et de dissémination des espèces invasives au sein des milieux naturels",
-                            "stringValue": "Enlever la terre de ses chaussures avant une activité en pleine nature",
+                            "stringValue": "Enlever la terre de ses chaussures avant une activité en pleine nature, Ne pas planter des espèces connues pour être envahissantes",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxOTg5NA==",
-                            "updatedAt": "2025-03-19T12:36:23+01:00"
+                            "updatedAt": "2025-04-10T08:25:12+02:00"
                         },
                         {
                             "label": "Avez-vous un extincteur ?",
-                            "stringValue": "true",
+                            "stringValue": "false",
                             "__typename": "CheckboxChamp",
-                            "id": "Q2hhbXAtNTAxOTg5Ng==",
-                            "updatedAt": "2025-03-19T12:36:26+01:00"
+                            "id": "Q2hhbXAtNTAxOTkxNQ==",
+                            "updatedAt": "2025-04-10T08:25:13+02:00"
                         },
                         {
                             "label": "Comment sont acheminées les matières premières ?",
-                            "stringValue": "Accès pédestre",
+                            "stringValue": "Accès en hélicoptère",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxOTg5OA==",
-                            "updatedAt": "2025-03-19T12:36:27+01:00"
+                            "updatedAt": "2025-04-10T08:25:15+02:00"
                         },
                         {
                             "label": "Comment les clients accèdent-ils au site de l'activité ?",
                             "stringValue": "Accès pédestre",
                             "__typename": "MultipleDropDownListChamp",
                             "id": "Q2hhbXAtNTAxOTg5OQ==",
-                            "updatedAt": "2025-03-19T12:36:28+01:00"
+                            "updatedAt": "2025-04-10T08:25:17+02:00"
+                        },
+                        {
+                            "label": "Rappel : si vous prévoyez un survol motorisé (en hélicoptères, ULM, petits avions, etc.), une autre demande est nécessaire :",
+                            "stringValue": "",
+                            "__typename": "TextChamp",
+                            "id": "Q2hhbXAtNTAxOTkxNg==",
+                            "updatedAt": "2025-04-10T08:25:34+02:00"
                         },
                         {
                             "label": "L’usage d’un drone est prévu",
                             "stringValue": "false",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxOTkwMQ==",
-                            "updatedAt": "2025-03-19T12:36:34+01:00"
+                            "updatedAt": "2025-04-10T08:25:20+02:00"
                         },
                         {
                             "label": "Je certifie la véracité des informations transmises dans le dossier et reconnais avoir pris connaissance de la réglementation spécifique au cœur du Parc national de La Réunion, notamment celle édictée par la Charte du Parc national de La Réunion et sa modalité d’application de la réglementation n°21.",
                             "stringValue": "true",
                             "__typename": "CheckboxChamp",
                             "id": "Q2hhbXAtNTAxOTkwMw==",
-                            "updatedAt": "2025-03-19T12:36:31+01:00"
+                            "updatedAt": "2025-04-10T08:25:22+02:00"
                         },
                         {
                             "label": "Fait à",
-                            "stringValue": "La Plaine-des-Palmistes (97431)",
+                            "stringValue": "Le Mans (72000)",
                             "__typename": "TextChamp",
                             "id": "Q2hhbXAtNTAxOTkwNA==",
-                            "updatedAt": "2025-03-19T12:36:44+01:00"
+                            "updatedAt": "2025-04-10T08:25:29+02:00"
                         },
                         {
                             "label": "le",
-                            "stringValue": "19 mars 2025",
+                            "stringValue": "10 avril 2025",
                             "__typename": "DateChamp",
                             "id": "Q2hhbXAtNTAxOTkwNQ==",
-                            "updatedAt": "2025-03-19T12:36:48+01:00"
+                            "updatedAt": "2025-04-10T08:25:33+02:00"
                         }
                     ],
                     "state": "en_instruction",
                     "messages": [
                         {
-                            "id": "Q29tbWVudGFpcmUtNTQ0ODk5NjQ=",
-                            "body": "<p>[Votre dossier nº 23134303 a bien été reçu]</p><div>Bonjour M. Calu,<br><br>\n</div><div>le Parc national de la Réunion vous confirme <strong>la bonne réception </strong>de votre demande d'autorisation déposée le 19/03/2025.</div><div>À tout moment, vous pouvez consulter votre dossier à cette adresse : <a target=\"_blank\" rel=\"noopener\" href=\"https://www.demarches-simplifiees.fr/dossiers/23134303\">https://www.demarches-simplifiees.fr/dossiers/23134303</a>\n</div><div>Vous serez informé par e-mail de la suite donnée à votre demande.</div><div>Cordialement, <br><br>\n</div><div>Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion</div>",
-                            "createdAt": "2025-03-19T12:36:49+01:00",
+                            "id": "Q29tbWVudGFpcmUtNTU1MzUwMzE=",
+                            "body": "<p>[Votre dossier nº 23587530 a bien été reçu]</p><div>Bonjour M. Nom-Bénéficiaire,<br><br></div><div>le Parc national de la Réunion vous confirme <strong>la bonne réception </strong>de votre demande d'autorisation déposée le 10/04/2025.</div><div>À tout moment, vous pouvez consulter votre dossier à cette adresse : <a target=\"_blank\" rel=\"noopener\" href=\"https://www.demarches-simplifiees.fr/dossiers/23587530\">https://www.demarches-simplifiees.fr/dossiers/23587530</a></div><div>Vous serez informé par e-mail de la suite donnée à votre demande.</div><div>Cordialement,&nbsp;<br><br></div><div>Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion</div>",
+                            "createdAt": "2025-04-10T08:25:34+02:00",
                             "email": "contact@demarches-simplifiees.fr",
                             "attachments": []
                         },
                         {
-                            "id": "Q29tbWVudGFpcmUtNTQ0ODk5NjU=",
-                            "body": "<p>[Votre dossier nº 23134303 va être examiné]</p><div>Bonjour  M. Calu ,<br><br>\n</div><div>Votre dossier nº 23134303 a bien été reçu et <strong>pris en charge</strong>. Il va maintenant être <strong>examiné </strong>par le Parc. </div><div>\n<br>Cordialement,<br><br> Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion </div>",
-                            "createdAt": "2025-03-19T12:36:49+01:00",
+                            "id": "Q29tbWVudGFpcmUtNTU1MzUwMzI=",
+                            "body": "<p>[Votre dossier nº 23587530 va être examiné]</p><div>Bonjour&nbsp; M. Nom-Bénéficiaire ,<br><br></div><div>Votre dossier nº 23587530 a bien été reçu et <strong>pris en charge</strong>. Il va maintenant être <strong>examiné </strong>par le Parc.&nbsp;</div><div><br>Cordialement,<br><br>&nbsp;Service Appui à l’Aménagement et au Développement Durables (SAADD), Parc national de La Réunion&nbsp;</div>",
+                            "createdAt": "2025-04-10T08:25:34+02:00",
                             "email": "contact@demarches-simplifiees.fr",
                             "attachments": []
                         },
                         {
-                            "id": "Q29tbWVudGFpcmUtNTQ3NDYxMDM=",
-                            "body": "test\r\n",
-                            "createdAt": "2025-03-25T12:13:47+01:00",
-                            "email": "louis.calu@reunion-parcnational.fr",
-                            "attachments": []
-                        },
-                        {
-                            "id": "Q29tbWVudGFpcmUtNTQ5MDE2NTM=",
-                            "body": "ce message possède une pièce jointe\r\n",
-                            "createdAt": "2025-03-28T08:49:31+01:00",
+                            "id": "Q29tbWVudGFpcmUtNTU1NTgyODQ=",
+                            "body": "je suis le péti et mon msg a une pj",
+                            "createdAt": "2025-04-10T13:08:51+02:00",
                             "email": "louis.calu@reunion-parcnational.fr",
                             "attachments": [
                                 {
-                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/03/28/6X/6X8zutZRDzGvmcM7T3Yn2sEC2Qgf?temp_url_sig=9f0380c792a0fcaa83316b2bb753452acdbf252f&temp_url_expires=1744033189&filename=arbo_dossiers.drawio.pdf&inline",
-                                    "filename": "arbo_dossiers.drawio.pdf"
-                                }
-                            ]
-                        },
-                        {
-                            "id": "Q29tbWVudGFpcmUtNTUwNDM2MTg=",
-                            "body": "Voici une pièce jointe de la part du pétitionnaire",
-                            "createdAt": "2025-04-01T08:27:05+02:00",
-                            "email": "louis.calu@reunion-parcnational.fr",
-                            "attachments": [
-                                {
-                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/04/01/rC/rCyEctECHGtdamzLEn41XPorbLzV?temp_url_sig=82ad989f4a1230cc23f24eeaf1146371083f15a2&temp_url_expires=1744033189&filename=doc_pr%C3%A9_bancarisation.pdf&inline",
-                                    "filename": "doc_pré_bancarisation.pdf"
+                                    "url": "https://static.demarches-simplifiees.fr:443/v1/AUTH_db3cbfc79c914f87b192ff7c6bb176f0/ds_activestorage_backup/2025/04/10/EQ/EQBgQZvQuQQrstyUy7zWwyKYERG3?temp_url_sig=de40dee3b348ac9b8d7ced8cdd293fae71ea2be8&temp_url_expires=1744290218&filename=actif_sans_mail.csv",
+                                    "filename": "actif_sans_mail.csv"
                                 }
                             ]
                         }

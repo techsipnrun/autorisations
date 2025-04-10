@@ -9,6 +9,11 @@ logger = logging.getLogger('ORM_DJANGO')
 def sync_doss(dossier):
     """
     Synchronise un objet Dossier à partir des données D-S.
+
+    { "id_ds", "id_etat_dossier", "id_demarche", "numero", "id_groupeinstructeur", 
+    "date_depot", "date_fin_instruction", "id_dossier_type", "id_dossier_parent", 
+    "note", "nom_dossier", "emplacement", "date_limite_traitement", "geometrie" }
+
     """
     defaults = foreign_keys_add_suffixe_id(Dossier, dossier)
 

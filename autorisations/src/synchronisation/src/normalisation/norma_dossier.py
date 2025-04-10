@@ -1,9 +1,9 @@
 from datetime import datetime
-from synchronisation.src.functions import fetch_geojson, get_first_id
+from synchronisation.src.functions import fetch_geojson, get_first_id, calcul_date_limite_instruction
 from autorisations.models.models_instruction import EtatDossier, Groupeinstructeur, DossierType
 
 
-def dossier_normalize(id_demarche, doss):
+def dossier_normalize(id_demarche, doss, emplacement_dossier):
     """
     Normalise les données d'un dossier en provenance de Démarches Simplifiées.
     :param id_demarche: ID interne de la démarche (FK)
@@ -21,11 +21,13 @@ def dossier_normalize(id_demarche, doss):
         "id_groupeinstructeur": get_first_id(Groupeinstructeur, nom=doss["groupeInstructeur"]["label"]),
         "date_depot": datetime.fromisoformat(doss["dateDepot"]),
         "date_fin_instruction": doss["dateTraitement"],
-        "id_dossier_type": get_first_id(DossierType, type="nouveau"),
-        "id_ds_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
+        "id_dossier_type": get_first_id(DossierType, type="nouveau"), # nouveau par défaut mais chopper info dans les champs
+        "id_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
         "note": "",
         "nom_dossier": f"{doss['number']}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}",
-        "emplacement": "/emplacement/a_definir/",
-        "date_limite_traitement": datetime(2050, 1, 1),
+        # "emplacement":f"/{doss["number"]}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}", # Arborescence à compléter
+        "emplacement": emplacement_dossier,
+        "date_limite_traitement": calcul_date_limite_instruction(doss["dateDepot"], id_demarche),
+        # "date_limite_traitement": datetime(2050, 1, 1),
         "geometrie": geojson,
     }

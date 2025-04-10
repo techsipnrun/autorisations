@@ -37,7 +37,7 @@ custom_admin_site = CustomAdminSite(name="custom_admin")
 
 
 class DossierAdmin(admin.ModelAdmin):
-    exclude = ('id_ds','id_ds_dossier_parent')
+    exclude = ('id_ds','id_dossier_parent')
     list_filter = ('id_demarche',)
 custom_admin_site.register(Dossier, DossierAdmin)
 

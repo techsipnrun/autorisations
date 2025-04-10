@@ -1,4 +1,4 @@
-from synchronisation.src.functions import clean_email, clean_name
+from synchronisation.src.functions import clean_email, clean_name, clean_surname
 from synchronisation.src.functions import get_first_id
 from autorisations.models.models_utilisateurs import TypeContactExterne
 
@@ -19,7 +19,7 @@ def contact_externe_normalize(doss):
         contacts_externes['demandeur_intermediaire'] = {
             "email": clean_email(doss['usager']['email']),
             "id_type": get_first_id(TypeContactExterne, type="demandeur_intermediaire"),
-            "nom": clean_name(doss['nomMandataire']),
+            "nom": clean_surname(doss['nomMandataire']),
             "prenom": clean_name(doss['prenomMandataire']),
         }
 
@@ -30,7 +30,7 @@ def contact_externe_normalize(doss):
         contacts_externes['beneficiaire'] = {
             "email": email_benef,
             "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
-            "nom": clean_name(doss['demandeur']['nom']),
+            "nom": clean_surname(doss['demandeur']['nom']),
             "prenom": clean_name(doss['demandeur']['prenom']),
         }
 
@@ -39,7 +39,7 @@ def contact_externe_normalize(doss):
         contacts_externes['beneficiaire'] = {
             "email": clean_email(doss['usager']['email']),
             "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
-            "nom": clean_name(doss['demandeur']['nom']),
+            "nom": clean_surname(doss['demandeur']['nom']),
             "prenom": clean_name(doss['demandeur']['prenom']),
         }
 

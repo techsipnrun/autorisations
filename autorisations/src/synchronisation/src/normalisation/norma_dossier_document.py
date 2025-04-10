@@ -3,7 +3,7 @@ from synchronisation.src.functions import extraire_nom_et_extension, get_first_i
 from autorisations.models.models_documents import DocumentFormat, DocumentNature
 
 
-def dossier_document_normalize(doss):
+def dossier_document_normalize(doss, emplacement_dossier):
     """
     Normalise les données du document résumé PDF associé à un dossier.
     """
@@ -14,7 +14,7 @@ def dossier_document_normalize(doss):
         "id_format": get_first_id(DocumentFormat, format=extension_fichier),
         "id_nature": get_first_id(DocumentNature, nature="Résumé dossier"),
         "url_ds": doss["pdf"]["url"],
-        "emplacement": f"/emplacement/a_definir/{doss['number']}",
+        "emplacement": emplacement_dossier,
         "description": f"Résumé du dossier {doss['number']}",
         "titre": nom_fichier,
     }

@@ -24,12 +24,12 @@ def sync_dossier_document(dossier_document, id_dossier):
     doc_obj, created = Document.objects.get_or_create(
         id_nature_id=dossier_document["id_nature"],
         numero=dossier_document["numero"],
-        emplacement=dossier_document["emplacement"],
         defaults={
             "id_format_id": dossier_document["id_format"],
             "url_ds": dossier_document["url_ds"],
             "description": dossier_document["description"],
             "titre": dossier_document["titre"],
+            "emplacement": dossier_document["emplacement"],
         }
     )
 
@@ -41,6 +41,7 @@ def sync_dossier_document(dossier_document, id_dossier):
             "url_ds": dossier_document["url_ds"],
             "description": dossier_document["description"],
             "titre": dossier_document["titre"],
+            "emplacement": dossier_document["emplacement"],
         })
         if updated_fields:
             doc_obj.save()

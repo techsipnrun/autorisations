@@ -28,7 +28,7 @@ class EtatDemande(models.Model):
         db_table = '"instruction"."etat_demande"'
 
     def __str__(self):
-        return self.nom
+        return self.nom.capitalize()
 
 
 class EtatDemarche(models.Model):
@@ -40,7 +40,7 @@ class EtatDemarche(models.Model):
         db_table = '"instruction"."etat_demarche"'
 
     def __str__(self):
-        return self.nom
+        return self.nom.capitalize()
 
 
 class EtatDossier(models.Model):
@@ -52,7 +52,7 @@ class EtatDossier(models.Model):
         db_table = '"instruction"."etat_dossier"'
 
     def __str__(self):
-        return self.nom
+        return self.nom.capitalize()
 
 
 class Priorite(models.Model):
@@ -64,7 +64,7 @@ class Priorite(models.Model):
         db_table = '"instruction"."priorite"'
 
     def __str__(self):
-        return self.niveau
+        return self.niveau.capitalize()
 
 
 class DemandeType(models.Model):
@@ -131,7 +131,8 @@ class Dossier(models.Model):
     date_debut_instruction = models.DateField(blank=True, null=True)
     date_fin_instruction = models.DateField(blank=True, null=True)
     id_dossier_type = models.ForeignKey(DossierType, models.DO_NOTHING, db_column='id_dossier_type')
-    id_ds_dossier_parent = models.CharField(blank=True, null=True)
+    # id_ds_dossier_parent = models.CharField(blank=True, null=True)
+    id_dossier_parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, db_column='id_dossier_parent', related_name='dossiers_enfants')
     note = models.CharField(blank=True, null=True)
     nom_dossier = models.CharField()
     emplacement = models.CharField(unique=True)
@@ -161,7 +162,7 @@ class Demande(models.Model):
     soumis_controle = models.BooleanField(default=False)
     id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
     suite_controle_conforme = models.BooleanField()
-    numero_oscean = models.CharField()
+    numero_oscean = models.CharField(blank=True, null=True)
 
     class Meta:
         managed = False

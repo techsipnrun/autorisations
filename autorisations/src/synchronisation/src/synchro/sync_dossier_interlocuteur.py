@@ -6,10 +6,10 @@ logger = logging.getLogger("ORM_DJANGO")
 
 def sync_dossier_interlocuteur(dossier_interlocuteur, ids_beneficiaire_intermediaire, id_dossier):
     """
+    Synchronise les Dossier_Interlocuteur
     {
         "id_interlocuteur_ds": str,
         "id_demandeur_intermediaire": int | None,
-        "id_dossier": int
     }
     """
 

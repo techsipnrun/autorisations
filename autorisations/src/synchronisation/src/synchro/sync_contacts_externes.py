@@ -8,7 +8,10 @@ logger = logging.getLogger("ORM_DJANGO")
 def sync_contacts_externes(contacts_externes):
     """
     Synchronise les contacts externes (bénéficiaire et demandeur intermédiaire).
+    { 'beneficiaire': {"email", "id_type", "nom", "prenom"},
+      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom"} }
     """
+
     result_ids = {
         "beneficiaire": None,
         "demandeur_intermediaire": None
@@ -19,19 +22,28 @@ def sync_contacts_externes(contacts_externes):
             continue
 
         try:
-            nom = data["nom"].strip().capitalize()
-            prenom = data["prenom"].strip().capitalize()
-            email = data["email"].strip().lower()
-
-            obj, created = ContactExterne.objects.get_or_create(
-                email=email,
-                id_type_id=data["id_type"],
-                defaults={
-                    "nom": nom,
-                    "prenom": prenom,
-                    "email": email
-                }
-            )
+            nom = data["nom"]
+            prenom = data["prenom"]
+            email = data["email"]
+            if email :
+                obj, created = ContactExterne.objects.get_or_create(
+                    email=email,
+                    id_type_id=data["id_type"],
+                    defaults={
+                        "nom": nom,
+                        "prenom": prenom,
+                        "email": email
+                    }
+                )
+            else :
+                obj, created = ContactExterne.objects.get_or_create(
+                    id_type_id=data["id_type"],
+                    nom=nom,
+                    prenom=prenom,
+                    defaults={
+                        "email": email
+                    }
+                )
 
             if created:
                 logger.info(f"[CREATE] ContactExterne {role} - {obj.prenom} {obj.nom} (email: {obj.email}) créé.")

@@ -2,7 +2,7 @@ from synchronisation.src.functions import get_first_id, clean_email
 from autorisations.models.models_utilisateurs import ContactExterne, TypeContactExterne
 
 
-def dossier_interlocuteur_normalize(doss, id_dossier):
+def dossier_interlocuteur_normalize(doss):
     """
     Normalise les données du DossierInterlocuteur à partir d’un dossier DS.
     """
@@ -20,5 +20,4 @@ def dossier_interlocuteur_normalize(doss, id_dossier):
     return {
         "id_interlocuteur_ds": doss["usager"]["id"],
         "id_demandeur_intermediaire": id_demandeur_intermediaire,
-        "id_dossier": id_dossier,
     }

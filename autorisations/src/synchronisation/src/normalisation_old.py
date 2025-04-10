@@ -54,7 +54,7 @@ def normalize_process(d):
         "demarche": demarche,
         "groupeinstructeurs_demarches": groupeinstructeurs_demarches, #id_groupeinstructeur
         "champs": champs,
-        "dossiers": dossiers, #id_groupeinstructeur, id_ds_dossier_parent, emplacement
+        "dossiers": dossiers, #id_groupeinstructeur, id_dossier_parent, emplacement
     }
 
 
@@ -147,10 +147,10 @@ def dossier_normalize(id_demarche, doss):
             "date_depot": datetime.fromisoformat(doss["dateDepot"]),
             "date_fin_instruction": doss["dateTraitement"],
             "id_dossier_type": get_first_id(DossierType, type="nouveau"),  # Nouveau par défaut
-            "id_ds_dossier_parent": "",  # Laisser vide pour commencer
+            "id_dossier_parent": "",  # Laisser vide pour commencer
             "note": "",
             "nom_dossier": f"{doss["number"]}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}",  # En attendant la norme de nommage
-            "emplacement": "/emplacement/a_definir/",  # Arborescence à définir
+            "emplacement":f"/{doss["number"]}_nomPétitionnaire_prenom_Petitionnaire", # Arborescence à compléter
             "date_limite_traitement": datetime(2050, 1, 1),  # En attendant les calculs par rapport à la date de début d'instruction
             "geometrie": geojson,
     })
@@ -170,7 +170,7 @@ def contact_externe_normalize(doss):
         contacts_externes['demandeur_intermediaire'] = {
             "email": clean_email(doss['usager']['email']),
             "id_type": get_first_id(TypeContactExterne, type="demandeur_intermediaire"),
-            "nom": clean_name(doss['nomMandataire']),
+            "nom": clean_surname(doss['nomMandataire']),
             "prenom": clean_name(doss['prenomMandataire'])
         }
 
@@ -182,7 +182,7 @@ def contact_externe_normalize(doss):
         contacts_externes['beneficiaire'] = {
             "email": email_beneficaire,
             "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
-            "nom": clean_name(doss['demandeur']['nom']),
+            "nom": clean_surname(doss['demandeur']['nom']),
             "prenom": clean_name(doss['demandeur']['prenom']),
         }
 
@@ -194,7 +194,7 @@ def contact_externe_normalize(doss):
         contacts_externes['beneficiaire'] = {
             "email": email_beneficaire,
             "id_type": get_first_id(TypeContactExterne,type="beneficiaire"),
-            "nom": clean_name(doss['demandeur']['nom']),
+            "nom": clean_surname(doss['demandeur']['nom']),
             "prenom": clean_name(doss['demandeur']['prenom']),
         }
 

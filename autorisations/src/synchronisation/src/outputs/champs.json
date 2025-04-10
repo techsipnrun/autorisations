@@ -24,6 +24,30 @@
         "requis": true
     },
     {
+        "id_ds": "Q2hhbXAtNTE0MjM0OA==",
+        "nom": "Rappel : si vous prévoyez de réaliser des travaux dans le cadre de cette demande, une autre demande est nécessaire :",
+        "id_champ_type": 4,
+        "description": "Pour les demandes de travaux soumis à autorisation d'urbanisme (permis de construire, permis d'aménager, permis de démolir ou décision prise sur la déclaration préalable) : Rapprochez vous de votre commune.\r\n\r\nFormulaire pour les demandes de travaux non soumis à autorisation d'urbanisme : https://reunion-parcnational.fr/fr/travaux_hors_urbanisme\r\n\r\nFormulaire pour les demandes de travaux en aire d'adhésion : https://reunion-parcnational.fr/fr/travaux_aire_adhesion",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTE0MjQ3OA==",
+        "nom": "Rappel : si vous prévoyez un survol de drone en cœur de Parc, une autre demande peut-être nécessaire :",
+        "id_champ_type": 4,
+        "description": "https://reunion-parcnational.fr/fr/pdv-et-son-ou-survol-drone",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
+        "id_ds": "Q2hhbXAtNTE0MjM1MA==",
+        "nom": "Rappel : si vous prévoyez un acheminement du matériel ou des personnes par hélicoptère, une autre demande est nécessaire :",
+        "id_champ_type": 4,
+        "description": "https://reunion-parcnational.fr/fr/survol-helicoptere",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
         "id_ds": "Q2hhbXAtNDU5ODI2",
         "nom": "IDENTIFICATION DU BÉNÉFICIAIRE",
         "id_champ_type": 1,
@@ -160,6 +184,14 @@
         "requis": false
     },
     {
+        "id_ds": "Q2hhbXAtNTE0MTk5MQ==",
+        "nom": "Conditions d'identification",
+        "id_champ_type": 4,
+        "description": "Afin de nous permettre d’identifier votre dossier précédent, merci de nous transmettre a minima le dernier numéro de dossier ou le numéro du dernier acte (Arrêté ou Délibération) d'autorisation délivré.\r\n\r\nSi vous ne disposez d’aucune de ces informations, n’hésitez pas à nous contacter pour obtenir de l’aide : autorisations@reunion-parcnational.fr",
+        "id_demarche": 1,
+        "requis": false
+    },
+    {
         "id_ds": "Q2hhbXAtNTAxOTkwOA==",
         "nom": "Numéro du dossier précédent",
         "id_champ_type": 16,
@@ -172,6 +204,14 @@
         "nom": "Année de la dernière autorisation du Parc",
         "id_champ_type": 19,
         "description": "",
+        "id_demarche": 1,
+        "requis": true
+    },
+    {
+        "id_ds": "Q2hhbXAtNTE0MTk5MA==",
+        "nom": "Numéro du dernier arrêté délivré",
+        "id_champ_type": 16,
+        "description": "Si vous le possédez",
         "id_demarche": 1,
         "requis": true
     },
@@ -401,9 +441,9 @@
     },
     {
         "id_ds": "Q2hhbXAtNTAxOTg3OQ==",
-        "nom": "Préconisations du parc concernant la réalisation de travaux ou d'aménagements",
+        "nom": "Rappel : si vous prévoyez de réaliser des travaux dans le cadre de cette demande, une autre démarche est nécessaire :",
         "id_champ_type": 4,
-        "description": "À faire ?",
+        "description": "Pour les demandes de travaux soumis à autorisation d'urbanisme (permis de construire, permis d'aménager, permis de démolir ou décision prise sur la déclaration préalable) : Rapprochez vous de votre commune.\r\n\r\nPour les demandes de travaux en coeur de Parc, non soumis à autorisation d'urbanisme : si ce n'est pas déjà fait, un formulaire est à compléter : https://reunion-parcnational.fr/fr/travaux_hors_urbanisme",
         "id_demarche": 1,
         "requis": false
     },
@@ -697,17 +737,17 @@
     },
     {
         "id_ds": "Q2hhbXAtNTAxOTkwMA==",
-        "nom": "Préconisations du Parc concernant le survol en hélicoptère",
+        "nom": "Rappel : si vous prévoyez un survol motorisé (en hélicoptères, ULM, petits avions, etc.), une autre demande est nécessaire :",
         "id_champ_type": 4,
-        "description": "À faire ?",
+        "description": "https://reunion-parcnational.fr/fr/survol-helicoptere",
         "id_demarche": 1,
         "requis": false
     },
     {
         "id_ds": "Q2hhbXAtNTAxOTkxNg==",
-        "nom": "Préconisations du Parc concernant le survol en hélicoptère",
+        "nom": "Rappel : si vous prévoyez un survol motorisé (en hélicoptères, ULM, petits avions, etc.), une autre demande est nécessaire :",
         "id_champ_type": 4,
-        "description": "À faire ?",
+        "description": "https://reunion-parcnational.fr/fr/survol-helicoptere",
         "id_demarche": 1,
         "requis": false
     },
@@ -721,9 +761,9 @@
     },
     {
         "id_ds": "Q2hhbXAtNTAxOTkwMg==",
-        "nom": "Préconisations du Parc concernant le survol en drone",
+        "nom": "Rappel : si vous prévoyez un survol de drone en cœur de Parc, une autre demande est nécessaire :",
         "id_champ_type": 4,
-        "description": "À faire ?",
+        "description": "https://reunion-parcnational.fr/fr/pdv-et-son-ou-survol-drone",
         "id_demarche": 1,
         "requis": false
     },

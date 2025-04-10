@@ -13,7 +13,7 @@ class AvisNature(models.Model):
         db_table = '"avis"."avis_nature"'
 
     def __str__(self):
-        return self.nature
+        return self.nature.capitalize()
 
 
 class AvisThematique(models.Model):
