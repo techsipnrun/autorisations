@@ -13,12 +13,12 @@ def sync_champs(champs_list):
     for ch in champs_list:
 
         obj, created = Champ.objects.get_or_create(
-            id_ds=ch["id_ds"],
+            id_ds=ch["id_ds"], id_demarche_id=ch["id_demarche"],
             defaults={
                 "nom": ch["nom"],
                 "id_champ_type_id": ch["id_champ_type"],
                 "description": ch["description"],
-                "id_demarche_id": ch.get("id_demarche"),
+                # "id_demarche_id": ch.get("id_demarche"),
                 "requis": ch["requis"],
             }
         )
@@ -32,7 +32,7 @@ def sync_champs(champs_list):
                 "nom": ch["nom"],
                 "id_champ_type_id": ch["id_champ_type"],
                 "description": ch["description"],
-                "id_demarche_id": ch.get("id_demarche"),
+                # "id_demarche_id": ch.get("id_demarche"),
                 "requis": ch["requis"],
             })
 

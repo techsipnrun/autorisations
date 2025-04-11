@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug normalisation_old.py",
+      "name": "Debug sync_norma_debug.py",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/autorisations/src/synchronisation/src/normalisation_old.py",
+      "program": "${workspaceFolder}/autorisations/src/synchronisation/src/sync_norma_debug.py",
       "cwd": "${workspaceFolder}/autorisations/src",
       "env": {
         "DJANGO_SETTINGS_MODULE": "autorisations.settings",

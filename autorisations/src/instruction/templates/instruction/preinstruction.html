@@ -8,8 +8,50 @@
     <title>Page de pré-instruction</title>
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
 </head>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".clickable-row").forEach(function (row) {
+            row.addEventListener("click", function () {
+                window.location.href = this.dataset.href;
+            });
+        });
+    });
+</script>
+
 <body>
     {% include 'navbar.html' %}
     <!-- <h1> Bienvenu sur la page de pré-instruction ! </h1> -->
+
+    <h1>Dossiers en cours de pré-instruction</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>DOSSIERS</th>
+                <th>Déposé le</th>
+                <th>Demandeur</th>
+                <th>Nom du projet</th>
+                <th>Numéro dossier</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in dossier_infos %}
+                <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.numero %}">
+                    <td>{{ d.demarche }}</td>
+                    <td>{{ d.date_depot }}</td>
+                    <td>{{ d.demandeur }}</td>
+                    <td>{{ d.nom_projet }}</td>
+                    <td>{{ d.numero }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">Aucun dossier en construction pour le moment.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        
+    </table>
+
 </body>
 </html>

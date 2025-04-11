@@ -101,6 +101,7 @@ class Demarche(models.Model):
     date_derniere_modif = models.DateField()
     description = models.CharField(blank=True, null=True)
     delais_jours_instruction = models.IntegerField(blank=True, null=True)
+    type = models.CharField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -239,7 +240,8 @@ class Message(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(blank=True, null=True)
     body = models.CharField()
-    date_envoi = models.DateField()
+    # date_envoi = models.DateField()
+    date_envoi = models.DateTimeField()
     piece_jointe = models.BooleanField()
     email_emetteur = models.CharField()
     id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier', blank=True, null=True)

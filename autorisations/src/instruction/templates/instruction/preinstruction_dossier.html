@@ -1,0 +1,60 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page de pré-instruction</title>
+    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
+</head>
+<body>
+    {% include 'navbar.html' %}
+    
+    <div class="page-container">
+        <!-- Colonne gauche : formulaire -->
+        <div class="formulaire">
+            <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+
+            <div class="champs">
+                {% for champ in champs %}
+                    {% if champ.type == 'header' %}
+                        <h2>{{ champ.titre }}</h2>
+                    {% elif champ.type == 'champ' %}
+                        <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+                    {% endif %}
+                {% empty %}
+                    <p>Aucun champ saisi pour ce dossier.</p>
+                {% endfor %}
+            </div>
+            
+        </div>
+
+        <!-- Colonne droite : navigation -->
+        <div class="nav_preinstruction">
+            <div class="nav_top">
+                <!-- Form messagerie à gauche -->
+                <div class="form_messagerie">
+                    <a href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
+                        <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
+                            Formulaire
+                        </div>
+                    </a>
+                    <a href="{% url 'preinstruction_dossier_messagerie' numero=dossier.numero %}">
+                        <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
+                            Messagerie
+                        </div>
+                    </a>
+                </div>
+                
+                
+                <!-- Lien dossier à droite -->
+                <div class="lien_dossier">
+                    <a href="#"><img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

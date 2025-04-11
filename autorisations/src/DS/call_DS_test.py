@@ -73,10 +73,10 @@ def recup_data_DS(number):
     # return list_demarches_DS
 
     # Ecriture Json pour check
-    output_file = "DS/response_ds.json"
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(response["data"], f, ensure_ascii=False, indent=4)
-    print(f"Données enregistrées dans {output_file}")
+    # output_file = "DS/response_ds.json"
+    # with open(output_file, "w", encoding="utf-8") as f:
+    #     json.dump(response["data"], f, ensure_ascii=False, indent=4)
+    # print(f"Données enregistrées dans {output_file}")
 
     return response["data"]
 

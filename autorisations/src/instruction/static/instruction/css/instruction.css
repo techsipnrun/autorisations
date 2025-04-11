@@ -1,0 +1,78 @@
+/* Global table style */
+table {
+    width: 95%;
+    max-width: 900px;
+    margin: 2rem auto;
+    border-collapse: collapse;
+    font-family: sans-serif;
+    font-size: 1rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #ccc;
+}
+
+/* Table header */
+thead {
+    background-color: rgb(219, 219, 219);
+    border-bottom: 2px solid black;
+}
+
+thead th {
+    text-align: left;
+    color: #115e31;
+}
+
+/* Table rows */
+tbody td {
+    border-bottom: 1px solid #ddd;
+}
+
+/* Styles pour les colonnes */
+thead th,
+tbody td {
+    padding: 12px;
+    border-right: 1px solid #ccc;
+    /* max-width: 20%; */
+    word-wrap: break-word;
+}
+
+/* Alternating row colors */
+tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+/* Hover effect */
+tbody tr:hover {
+    background-color: #eef8ee;
+    cursor: pointer;
+}
+
+/* Empty state */
+tbody td[colspan="5"] {
+    text-align: center;
+    font-style: italic;
+    color: #555;
+}
+
+/* Centrer les 3 colonnes numériques */
+thead th:nth-child(2),
+thead th:nth-child(3),
+thead th:nth-child(4),
+tbody td:nth-child(2),
+tbody td:nth-child(3),
+tbody td:nth-child(4) {
+    text-align: center;
+}
+
+/* Gras pour la colonne DOSSIERS */
+thead th:nth-child(1),
+tbody td:nth-child(1) {
+    font-weight: bold;
+}
+
+/* Page title */
+h1 {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 1.8rem;
+    color: #115e31;
+}

@@ -22,21 +22,21 @@
                 <ul class="navigation_links">
 
                     <a href="{% url 'preinstruction_view' %}">
-                        <li class="{% if request.path == '/preinstruction/' %}active{% endif %}">
+                        <li class="{% if '/preinstruction' in request.path %}active{% endif %}">
                             Pré-instruction
                             <!-- <span class="notif_pastille"> 5 </span> -->
                         </li>
                     </a>
 
                     <a href="{% url 'accueil_view' %}">
-                        <li class="{% if request.path == '/' %}active{% endif %}">
+                        <li class="{% if '/instruction' in request.path %}active{% endif %}">
                             Instruction
                             <span class="notif_pastille"> 5 </span>
                         </li>
                     </a>
 
                     <a href="{% url 'avis_view' %}">
-                        <li class="{% if request.path == '/avis/' %}active{% endif %}">
+                        <li class="{% if '/avis' in request.path %}active{% endif %}">
                             Avis
                             <span class="notif_pastille"> 2 </span>
                         </li>

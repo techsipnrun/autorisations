@@ -11,5 +11,33 @@
 <body>
     {% include 'navbar.html' %}
     <!-- <h1> Bienvenu sur la page d'accueil ! </h1> -->
+
+    <h1>Dossiers en cours d'instruction</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>DOSSIERS</th>
+                <th>En pré-instruction</th>
+                <th>Suivis</th>
+                <th>Traités cette année</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in dossier_infos %}
+                <tr>
+                    <td>{{ d.demarche }}</td>
+                    <td>{{ d.nb_pre_instruction }}</td>
+                    <td>{{ d.nb_suivis }}</td>
+                    <td>{{ d.nb_traites }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">Aucun dossier pour le moment.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
 </body>
 </html>
