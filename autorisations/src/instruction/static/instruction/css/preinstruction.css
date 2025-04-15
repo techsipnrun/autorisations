@@ -7,6 +7,7 @@ table {
     font-size: 1rem;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     border: 1px solid #ccc;
+    table-layout: auto;
 }
 
 /* Table header */
@@ -47,11 +48,11 @@ tbody tr:nth-child(even) {
 }
 
 /* Hover effect */
-tbody tr:hover {
+/* tbody tr:hover {
     background-color: #eef8ee;
     cursor: pointer;
     font-weight: bold;
-}
+} */
 
 /* Empty state */
 tbody td[colspan="5"] {
@@ -60,26 +61,19 @@ tbody td[colspan="5"] {
     color: #555;
 }
 
+.clickable-row:hover {
+    background-color: #eef8ee;
+    cursor: pointer;
+    /* font-weight: bold; */
+    /* font-weight: 600; */
+}
+
+
 /* Page title */
 h1 {
     text-align: center;
     margin-top: 3rem;
     font-size: 1.8rem;
     color: #115e31;
-}
-
-/* td a {
-    display: block;
-    padding: 12px;
-    margin: 0;
-    text-decoration: none;
-    color: inherit;
-    background-color: #115e31;
-} */
-
-.clickable-row:hover {
-    background-color: #eef8ee;
-    cursor: pointer;
-    font-weight: bold;
 }
 

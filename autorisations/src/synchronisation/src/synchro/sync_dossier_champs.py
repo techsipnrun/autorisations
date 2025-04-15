@@ -1,6 +1,6 @@
 from autorisations.models.models_instruction import DossierChamp, Champ, ChampType
 from autorisations.models.models_documents import Document
-from functions import get_first_id, update_fields, clean_date
+from ..functions import get_first_id, update_fields
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -27,10 +27,10 @@ def sync_dossier_champs(dossier_champs, id_dossier):
         if documents:
             for doc in documents:
                 document_obj, doc_created = Document.objects.get_or_create(
-                    url_ds=doc["url_ds"], id_nature_id=doc["id_nature"],
+                    emplacement=doc["emplacement"],id_nature_id=doc["id_nature"],
                     defaults={
                         "id_format_id": doc["id_format"],
-                        "emplacement": doc["emplacement"],
+                        "url_ds": doc["url_ds"], 
                         "description": doc["description"],
                         "titre": doc["titre"],
                     }
@@ -55,7 +55,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 else:
                     updated_fields = update_fields(champ_obj, {
                         "valeur": dossier_champ["valeur"],
-                        "date_saisie": clean_date(dossier_champ["date_saisie"]),
+                        "date_saisie": dossier_champ["date_saisie"],
                         "geometrie": dossier_champ.get("geometrie"),
                     }, date_fields=["date_saisie"])
 
@@ -78,7 +78,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
             else:
                 updated_fields = update_fields(champ_obj, {
                     "valeur": dossier_champ["valeur"],
-                    "date_saisie": clean_date(dossier_champ["date_saisie"]),
+                    "date_saisie": dossier_champ["date_saisie"],
                     "geometrie": dossier_champ.get("geometrie"),
                 }, date_fields=["date_saisie"])
 

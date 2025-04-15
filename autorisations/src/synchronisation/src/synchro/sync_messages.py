@@ -1,6 +1,6 @@
 from autorisations.models.models_documents import Document, MessageDocument
 from autorisations.models.models_instruction import Message
-from functions import update_fields, clean_date
+from ..functions import update_fields
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -24,7 +24,7 @@ def sync_messages(messages, id_dossier):
             id_dossier_id=id_dossier,
             defaults={
                 "body": message_data["body"],
-                "date_envoi": clean_date(message_data["date_envoi"]),
+                "date_envoi": message_data["date_envoi"],
                 "piece_jointe": message_data["piece_jointe"],
                 "email_emetteur": message_data["email_emetteur"],
                 "lu": False,
@@ -36,7 +36,7 @@ def sync_messages(messages, id_dossier):
         else:
             updated_fields = update_fields(msg_obj, {
                 "body": message_data["body"],
-                "date_envoi": clean_date(message_data["date_envoi"]),
+                "date_envoi": message_data["date_envoi"],
                 "piece_jointe": message_data["piece_jointe"],
                 "email_emetteur": message_data["email_emetteur"],
             }, date_fields=["date_envoi"])

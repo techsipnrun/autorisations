@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'drf_yasg', #Swagger
     'django_filters',
     'rest_framework.authtoken',
+    'leaflet',
 ]
 
 MIDDLEWARE = [

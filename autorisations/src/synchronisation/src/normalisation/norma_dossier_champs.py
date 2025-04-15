@@ -2,7 +2,7 @@ from datetime import datetime
 import logging
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature
 from autorisations.models.models_instruction import Champ, ChampType
-from synchronisation.src.functions import fetch_geojson, get_first_id, extraire_nom_et_extension
+from synchronisation.src.functions import fetch_geojson, get_first_id, extraire_nom_et_extension, parse_datetime_with_tz
 
 logger = logging.getLogger('ORM_DJANGO')
 def dossiers_champs_normalize(doss, emplacement_dossier):
@@ -41,7 +41,7 @@ def dossiers_champs_normalize(doss, emplacement_dossier):
                     "id_ds": ch["id"],
                     # "id_champ": id_champ,
                     "valeur": ch["stringValue"],
-                    "date_saisie": datetime.fromisoformat(ch["updatedAt"]),
+                    "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
                     "geometrie": None,
                     "id_document": None,
                 }
@@ -65,7 +65,7 @@ def dossiers_champs_normalize(doss, emplacement_dossier):
                 "nom_champ": ch["label"],
                 "id_ds": ch["id"],
                 "valeur": ch["stringValue"],
-                "date_saisie": datetime.fromisoformat(ch["updatedAt"]),
+                "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
                 "geometrie": geometrie_du_champ,
                 "id_document": None,
             }

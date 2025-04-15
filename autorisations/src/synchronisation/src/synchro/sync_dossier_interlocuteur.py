@@ -1,5 +1,5 @@
 from autorisations.models.models_utilisateurs import DossierInterlocuteur
-from functions import update_fields
+from ..functions import update_fields
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")

@@ -1,5 +1,5 @@
 from autorisations.models.models_instruction import Demande
-from functions import update_fields, clean_date
+from ..functions import update_fields
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -12,8 +12,8 @@ def sync_demandes(demandes, id_dossier):
     """
     for demande in demandes:
         defaults = {
-            "date_depot": clean_date(demande["date_depot"]),
-            "date_fin_instruction": clean_date(demande["date_fin_instruction"]),
+            "date_depot": demande["date_depot"],
+            "date_fin_instruction": demande["date_fin_instruction"],
             "id_etat_demande_id": demande["id_etat_demande"],
             "id_priorite_id": demande["id_priorite"],
         }

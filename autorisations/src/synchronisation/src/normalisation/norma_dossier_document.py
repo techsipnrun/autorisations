@@ -1,4 +1,3 @@
-from datetime import datetime
 from synchronisation.src.functions import extraire_nom_et_extension, get_first_id
 from autorisations.models.models_documents import DocumentFormat, DocumentNature
 

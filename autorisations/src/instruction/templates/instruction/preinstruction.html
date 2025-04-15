@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page de pré-instruction</title>
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
 </head>
 
 <script>
@@ -19,9 +20,21 @@
     });
 </script>
 
+<script src="{% static 'instruction/js/preinstruction_actualiser.js' %}"></script>
+
 <body>
     {% include 'navbar.html' %}
-    <!-- <h1> Bienvenu sur la page de pré-instruction ! </h1> -->
+
+    <div class="actualiser-wrapper">
+        <button id="btn-actualiser"
+                data-url="{% url 'actualiser_donnees' %}"
+                data-csrf="{{ csrf_token }}"
+                title="Actualiser les données">
+            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
+        </button>
+
+        <span id="message-actualisation" class="actualisation-texte"></span>
+    </div>
 
     <h1>Dossiers en cours de pré-instruction</h1>
 
@@ -54,4 +67,29 @@
     </table>
 
 </body>
+
+<!-- <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("btn-actualiser").addEventListener("click", function (e) {
+            e.preventDefault();
+    
+            fetch("{% url 'actualiser_donnees' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);  // 🟢 Simple pour tester
+                // OU affichage stylisé en toast / bandeau / spinner
+            })
+            .catch(error => {
+                alert("Erreur lors de la requête : " + error);
+            });
+        });
+    });
+    </script> -->
+    
 </html>

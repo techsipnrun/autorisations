@@ -33,7 +33,7 @@ def dossiers_normalize_process(d):
             "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier),
             "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
             "messages": message_normalize(doss),
-            "demandes": demande_normalize(id_demarche, d["title"], doss)
+            "demandes": demande_normalize(id_demarche, titre_demarche, doss)
         }
 
         dossiers.append(dico_dossier)

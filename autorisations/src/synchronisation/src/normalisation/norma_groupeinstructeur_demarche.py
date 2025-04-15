@@ -1,4 +1,3 @@
-from datetime import datetime
 from autorisations.models.models_instruction import Demarche
 from autorisations.models.models_utilisateurs import Groupeinstructeur
 from synchronisation.src.functions import get_first_id

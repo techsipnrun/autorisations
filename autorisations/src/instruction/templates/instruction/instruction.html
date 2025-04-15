@@ -7,10 +7,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page d'accueil de l'application</title>
     <link rel="stylesheet" href="{% static 'instruction/css/instruction.css' %}">
+
+    <!-- Bouton actualiser -->
+    <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
+    <!-- JS pour l'actualisation -->
+    <script src="{% static 'instruction/js/preinstruction_actualiser.js' %}"></script>
+
 </head>
+
 <body>
     {% include 'navbar.html' %}
-    <!-- <h1> Bienvenu sur la page d'accueil ! </h1> -->
+
+    <div class="actualiser-wrapper">
+        <button
+            id="btn-actualiser"
+            data-url="{% url 'actualiser_donnees' %}"
+            data-csrf="{{ csrf_token }}"
+            title="Actualiser les données">
+            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
+        </button>
+        <span id="message-actualisation" class="actualisation-texte"></span>
+    </div>
+    
 
     <h1>Dossiers en cours d'instruction</h1>
 
@@ -28,7 +46,7 @@
                 <tr>
                     <td>{{ d.demarche }}</td>
                     <td>{{ d.nb_pre_instruction }}</td>
-                    <td>{{ d.nb_suivis }}</td>
+                    <td class="suivis_instruction">{{ d.nb_suivis }}</td>
                     <td>{{ d.nb_traites }}</td>
                 </tr>
             {% empty %}

@@ -7,24 +7,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page de pré-instruction</title>
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Turf.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+
 </head>
+
+
 <body>
     {% include 'navbar.html' %}
     
     <div class="page-container">
         <!-- Colonne gauche : formulaire -->
         <div class="formulaire">
+
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+            
+            <!-- <div class="etat-dossier">
+                <span class="etat-badge">{{ etat_dossier }}</span>
+            </div> -->
+
+            <div class="etat-dossier">
+                <div class="etat-badge-menu" id="etat-toggle">
+                    {{ etat_dossier }}
+                    <span class="arrow-down">▾</span>
+                </div>
+                <ul class="etat-menu" id="etat-menu">
+                    <li><a href="#" data-action="en_instruction">Passer en instruction</a></li>
+                    <li><a href="#" data-action="historise">Historiser</a></li>
+                </ul>
+                
+            </div>
+            
+            <div id="etat-result" class="etat-result"></div>
 
             <div class="champs">
                 {% for champ in champs %}
                     {% if champ.type == 'header' %}
                         <h2>{{ champ.titre }}</h2>
+
                     {% elif champ.type == 'champ' %}
                         <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+
+                    {% elif champ.type == 'carte' %}
+                        <h3>{{ champ.nom }}</h3>
+                        <div class="carte-container">
+                            <div class="carte" data-geojson='{{ champ.geojson }}'></div>
+                        </div>
                     {% endif %}
-                {% empty %}
-                    <p>Aucun champ saisi pour ce dossier.</p>
                 {% endfor %}
             </div>
             
@@ -50,11 +85,83 @@
                 
                 <!-- Lien dossier à droite -->
                 <div class="lien_dossier">
-                    <a href="#"><img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier"></a>
+                    <a href="#" onclick="copierChemin('{{ dossier.emplacement }}')">
+                        <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
 </body>
+
+
+<!-- 1. Données JSON pour le fond de carte -->
+{{ fond_de_carte_data|json_script:"fond-data" }}
+
+<!-- 2. Variables globales accessibles à ton JS -->
+<script>
+    window._fondDeCarteData = JSON.parse(document.getElementById("fond-data").textContent);
+</script>
+
+<!-- 3. Script Leaflet personnalisé -->
+<script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
+
+
+<!-- Menu déroulant pour l'état du dossier -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const badge = document.getElementById("etat-toggle");
+        const menu = document.getElementById("etat-menu");
+
+        if (!badge || !menu) return;
+
+        badge.addEventListener("click", function (e) {
+            e.stopPropagation(); // Empêche fermeture immédiate
+            const isOpen = menu.style.display === "block";
+            menu.style.display = isOpen ? "none" : "block";
+
+            const container = document.querySelector(".etat-dossier");
+            if (isOpen) {
+                container.classList.remove("menu-ouvert");  // Retirer le margin-bottom
+            } else {
+                container.classList.add("menu-ouvert");    // Ajouter le margin-bottom
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!badge.contains(e.target) && !menu.contains(e.target)) {
+                menu.style.display = "none";
+                const container = document.querySelector(".etat-dossier");
+                container.classList.remove("menu-ouvert");  // Retirer le margin-bottom quand on clique ailleurs
+            }
+        });
+    });
+
+
+    document.querySelectorAll(".etat-menu a").forEach(link => {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+            const action = this.dataset.action;
+            changerEtat(action);
+        });
+    });
+
+    function changerEtat(nouvelEtat) {
+        const resultBox = document.getElementById("etat-result");
+        let message = "";
+
+        if (nouvelEtat === "en_instruction") {
+            message = "📤 Ce dossier va passer en instruction.";
+        } else if (nouvelEtat === "historise") {
+            message = "📦 Ce dossier sera historisé.";
+        }
+
+        resultBox.textContent = message;
+    }
+
+
+    </script>
+
+
 </html>

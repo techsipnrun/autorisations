@@ -76,3 +76,7 @@ h1 {
     font-size: 1.8rem;
     color: #115e31;
 }
+
+.suivis_instruction {
+    font-weight: bold;
+}

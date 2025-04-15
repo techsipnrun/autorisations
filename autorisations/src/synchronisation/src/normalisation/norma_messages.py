@@ -1,5 +1,5 @@
 from datetime import datetime
-from synchronisation.src.functions import get_first_id, clean_email, extraire_nom_et_extension
+from synchronisation.src.functions import get_first_id, clean_email, extraire_nom_et_extension, parse_datetime_with_tz
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, Message, MessageDocument
 
 
@@ -24,7 +24,7 @@ def message_normalize(doss):
         dico_message = {
             "id_ds": m["id"],
             "body": m["body"],
-            "date_envoi": m["createdAt"],
+            "date_envoi": parse_datetime_with_tz(m["createdAt"]),
             "piece_jointe": contient_pj,
             "email_emetteur": clean_email(m["email"]),
         }

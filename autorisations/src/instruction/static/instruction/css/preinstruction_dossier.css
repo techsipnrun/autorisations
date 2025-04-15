@@ -15,14 +15,104 @@
 }
 
 .champs p {
-    margin-bottom: 1rem;
+    margin: 1rem 0;
     font-size: 1rem;
+    line-height: 1.5;
 }
+
+.champs strong {
+    color: #222;
+}
+
 
 h1 {
     color: #115e31;
+    margin-bottom: 1rem;
+}
+
+
+
+/* Etat du dossier */
+/* .etat-dossier {
+    text-align: left;
     margin-bottom: 2rem;
 }
+
+.etat-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background-color: #e0e0e0;
+    color: #333;
+    font-size: 1.3rem;
+    font-style: italic;
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+} */
+
+.etat-dossier {
+    /* text-align: center; */
+    position: relative;
+    display: inline-block;
+    /* margin-bottom: 1rem; */
+}
+
+.etat-dossier.menu-ouvert {
+    margin-bottom: 3rem; /* ou la valeur que tu veux */
+}
+
+
+.etat-badge-menu {
+    display: inline-block;
+    padding: 6px 16px;
+    background-color: #e0e0e0;
+    color: #333;
+    font-size: 1.3rem;
+    font-style: italic;
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    position: relative;
+}
+
+.arrow-down {
+    margin-left: 8px;
+    font-size: 0.9em;
+}
+
+.etat-menu {
+    display: none;
+    position: absolute;
+    margin-top: 6px;
+    list-style: none;
+    background: #fff;
+    border: 1px solid #ccc;
+    /* border-radius: 6px; */
+    min-width: 180px;
+    text-align: center;
+}
+
+.etat-menu li {
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.etat-menu li:hover {
+    background-color: #f2f2f2;
+}
+
+.etat-menu li a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.etat-result {
+    margin-top: 4rem;
+    font-style: italic;
+    color: #444;
+    transition: opacity 0.3s ease;
+}
+
+
 
 h2 {
     margin-top: 3rem;
@@ -30,6 +120,7 @@ h2 {
 }
 
 /* Navigation - Partie Droite */
+
 
 .nav_top {
     display: flex;
@@ -85,3 +176,24 @@ h2 {
 .lien_dossier img:hover {
     transform: scale(1.1);
 }
+
+/* CARTO */
+
+.leaflet-container {
+    height: 400px;
+    width: 100%;
+    border: 1px solid #ccc;
+    margin: 1.5rem 0 2rem 0;
+    border-radius: 8px;
+}
+
+.legend {
+    background: rgba(255, 255, 255, 0.596);
+    padding: 5px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    line-height: 1.4em;
+}
+
+

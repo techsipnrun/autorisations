@@ -11,6 +11,7 @@ from django.utils.timezone import now, is_naive, get_current_timezone, make_awar
 from autorisations.models.models_instruction import DemandeType, Priorite, Demarche
 from django.db import models
 from dateutil.parser import parse
+from pytz import timezone
 
 
 
@@ -67,6 +68,7 @@ def type_demande_from_nom_demarche(nom_demarche):
     elif nom_demarche == "Demande d'autorisation : Prise de vue et de son et/ou survol de drone en cœur du Parc national de la Réunion":
         return 999  # Cas particulier à traiter à part
     else:
+        print(nom_demarche)
         return None
     
 
@@ -115,7 +117,7 @@ def calcul_priorite_instruction(id_demarche, doss):
 
         # Conversion de la date ISO 8601 en datetime Python
         try:
-            date_depot = datetime.fromisoformat(date_depot_dossier)
+            date_depot = parse_datetime_with_tz(date_depot_dossier)
         except ValueError:
             return None  # ou logguer une erreur
 
@@ -145,8 +147,8 @@ def update_fields(obj, data: dict, date_fields: list = []):
     for field, new_val in data.items():
         old_val = getattr(obj, field)
         if field in date_fields:
-            old_val = clean_date(old_val)
-            new_val = clean_date(new_val)
+            old_val = parse_datetime_with_tz(old_val)
+            new_val = parse_datetime_with_tz(new_val)
 
         if old_val != new_val:
             setattr(obj, field, new_val)
@@ -176,6 +178,34 @@ def clean_date(val):
     return val  # si c’est déjà une date, on ne fait rien
 
 
+def parse_datetime_with_tz(dt_input):
+    """
+    Convertit une chaîne ISO 8601 ou un datetime (naïf ou aware)
+    en datetime avec le fuseau horaire Indian/Reunion.
+    """
+    if not dt_input:
+        return None
+
+    # 1. Parse string si besoin
+    if isinstance(dt_input, str):
+        dt = parse(dt_input)
+    elif isinstance(dt_input, datetime):
+        dt = dt_input
+    else:
+        raise TypeError(f"Entrée non supportée : {dt_input} ({type(dt_input)})")
+
+    # 2. Si naïf, on suppose qu’il est en Europe/Paris
+    paris_tz = timezone("Europe/Paris")
+    if is_naive(dt):
+        dt = paris_tz.localize(dt)
+
+    # 3. Conversion explicite vers Indian/Reunion
+    reunion_tz = timezone("Indian/Reunion")
+    dt = dt.astimezone(reunion_tz)
+
+    return dt
+
+
 def get_first_id(model, **filters):
     """
     Renvoie le premier ID d’un objet correspondant aux filtres donnés.
@@ -203,7 +233,7 @@ def calcul_date_limite_instruction(date_depot_iso: str, id_demarche: int):
     if not date_depot_iso:
         return None
     try:
-        date_depot = datetime.fromisoformat(date_depot_iso)
+        date_depot = parse_datetime_with_tz(date_depot_iso)
         delais = Demarche.objects.filter(id=id_demarche).values_list("delais_jours_instruction", flat=True).first()
         if delais is not None:
             return date_depot + timedelta(days=delais)
@@ -251,7 +281,7 @@ def construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche):
 
     # 3. Année
     try:
-        date_depot = datetime.fromisoformat(doss["dateDepot"])
+        date_depot = parse_datetime_with_tz(doss["dateDepot"])
         annee = str(date_depot.year)
     except:
         annee = "0000"

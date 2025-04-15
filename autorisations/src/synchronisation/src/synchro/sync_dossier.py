@@ -1,5 +1,5 @@
 from autorisations.models.models_instruction import Dossier
-from functions import update_fields, clean_date, foreign_keys_add_suffixe_id
+from ..functions import update_fields, foreign_keys_add_suffixe_id
 from django.db import models
 from datetime import date, datetime
 import logging
@@ -11,7 +11,7 @@ def sync_doss(dossier):
     Synchronise un objet Dossier à partir des données D-S.
 
     { "id_ds", "id_etat_dossier", "id_demarche", "numero", "id_groupeinstructeur", 
-    "date_depot", "date_fin_instruction", "id_dossier_type", "id_dossier_parent", 
+    "date_depot", "date_fin_instruction", "id_dossier_type", 
     "note", "nom_dossier", "emplacement", "date_limite_traitement", "geometrie" }
 
     """
@@ -31,7 +31,7 @@ def sync_doss(dossier):
         for field, new_value in dossier.items():
             model_field = getattr(obj.__class__, field, None)
             field_name = f"{field}_id" if isinstance(getattr(model_field, 'field', None), models.ForeignKey) else field
-            update_data[field_name] = clean_date(new_value) if isinstance(new_value, (date, datetime)) else new_value
+            update_data[field_name] = new_value if isinstance(new_value, (date, datetime)) else new_value
 
         updated_fields = update_fields(
             obj,

@@ -5,6 +5,8 @@ from django.db import connection
 import requests
 from typing import Type, Tuple, Optional
 
+from autorisations.models.models_instruction import Demarche
+
 # #Définir le module de paramètres Django
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "instructionDS.settings")
 # # Initialiser Django
@@ -160,3 +162,18 @@ def update_object(model, filters, updates):
         return None
 
 
+def get_number_demarche_Postgres():
+    """
+        Récupère sur Postgres le numéro 'Démarches-Simplifiées' de nos démarches
+    """
+
+    # Récupérer toutes les démarches avec leur numéro
+    demarches = Demarche.objects.all().values('numero', 'titre')
+
+    list_number_demarches = []
+
+    # Affichage dans la console
+    for d in demarches:
+        list_number_demarches.append(d['numero'])
+
+    return list_number_demarches

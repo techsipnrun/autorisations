@@ -1,5 +1,5 @@
 from datetime import datetime
-from synchronisation.src.functions import fetch_geojson, get_first_id, calcul_date_limite_instruction
+from synchronisation.src.functions import fetch_geojson, get_first_id, calcul_date_limite_instruction, parse_datetime_with_tz
 from autorisations.models.models_instruction import EtatDossier, Groupeinstructeur, DossierType
 
 
@@ -19,10 +19,10 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
         "id_demarche": id_demarche,
         "numero": doss["number"],
         "id_groupeinstructeur": get_first_id(Groupeinstructeur, nom=doss["groupeInstructeur"]["label"]),
-        "date_depot": datetime.fromisoformat(doss["dateDepot"]),
-        "date_fin_instruction": doss["dateTraitement"],
+        "date_depot": parse_datetime_with_tz(doss["dateDepot"]),
+        "date_fin_instruction": parse_datetime_with_tz(doss["dateTraitement"]),
         "id_dossier_type": get_first_id(DossierType, type="nouveau"), # nouveau par défaut mais chopper info dans les champs
-        "id_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
+        # "id_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
         "note": "",
         "nom_dossier": f"{doss['number']}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}",
         # "emplacement":f"/{doss["number"]}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}", # Arborescence à compléter

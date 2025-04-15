@@ -409,7 +409,7 @@ if __name__ == "__main__":
     from autorisations.models.models_instruction import EtatDemarche, Demarche, ChampType, DossierType, EtatDossier, Dossier, Champ, Demande, EtatDemande, DemandeType
     from autorisations.models.models_utilisateurs import Groupeinstructeur, ContactExterne, Instructeur, DossierBeneficiaire, TypeContactExterne, DossierInterlocuteur
     from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, Message, MessageDocument
-    from DS.call_DS_test import get_number_demarche_Postgres, recup_data_DS
+    from autorisations.src.DS.call_DS import get_number_demarche_Postgres, recup_data_DS
     from synchronisation.src.functions import *
     from synchronisation.src.synchro.sync_process import synchro_process
     import logging
