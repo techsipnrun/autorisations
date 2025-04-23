@@ -1,6 +1,7 @@
 from datetime import date
 import json
 import os
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import localtime
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,13 +9,24 @@ from django.contrib.auth.decorators import login_required
 
 from autorisations.models.models_documents import DocumentFormat
 from autorisations.models.models_instruction import Demarche, Dossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import DossierInterlocuteur, DossierBeneficiaire
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 
-from django.http import JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from BDD.pg_functions import create_message_bdd
+from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils import format_etat_dossier
 from synchronisation.src.utils import lancer_normalisation_et_synchronisation
 from threading import Thread, Lock
+
+import tempfile
+from django.core.files.uploadedfile import UploadedFile
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+
+import logging
+logger = logging.getLogger("ORM_DJANGO")
+loggerDS = logging.getLogger("API_DS")  
 
 
 
@@ -245,3 +257,149 @@ def actualiser_donnees(request):
 @login_required
 def etat_actualisation(request):
     return JsonResponse({"en_cours": etat_sync["en_cours"]})
+
+
+
+
+
+@require_POST
+@csrf_exempt
+def envoyer_message_dossier(request, numero):
+    from DS.call_DS import envoyer_message_avec_pj
+    from DS.graphql_client import GraphQLClient
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    body = request.POST.get("body")
+    fichier = request.FILES.get("piece_jointe")
+
+    if not body:
+        logger.warning(f"[ENVOI MESSAGE] Message vide envoyé par {request.user.email}")
+        return HttpResponseBadRequest("Message vide")
+
+    # 🔍 Récupérer le dossier
+    dossier = get_object_or_404(Dossier, numero=numero)
+    dossier_id_ds = dossier.id_ds
+
+    # 🔍 Récupérer l'instructeur
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    instructeur_id_ds = instructeur.id_ds if instructeur else None
+
+    if not dossier_id_ds or not instructeur_id_ds:
+        logger.error(f"[ENVOI MESSAGE] ID manquant — dossier_id_ds: {dossier_id_ds}, instructeur_id_ds: {instructeur_id_ds}")
+        return HttpResponse("Session incomplète", status=401)
+
+    # Par défaut, aucun fichier temporaire
+    tmp_file_path = None
+
+
+
+    # PUT Message sur D-S
+    try:
+        # if fichier:
+        #     loggerDS.info(f" Envoi message AVEC pièce jointe pour dossier {numero}")
+        #     # Créer et écrire fichier temporaire
+        #     # LE PROBLEME EST ICI (HASH INVALIDE) ET MALGRÉ CELA CA ECRIT EN BDD!!! IL FAUT QU'ON ECRIVE LE DOC AUSSI...
+        #     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(fichier.name)[1]) as tmp_file:
+        #         tmp_file.write(fichier.read())
+        #         tmp_file_path = tmp_file.name
+
+        #     # Appel à DS
+        #     envoyer_message_avec_pj(
+        #         dossier_id=dossier_id_ds,
+        #         instructeur_id=instructeur_id_ds,
+        #         chemin_fichier_original=tmp_file_path,
+        #         content_type=fichier.content_type
+        #     )
+
+        # # SANS PJ
+        # else:
+        #     loggerDS.info(f"Envoi message SANS pièce jointe pour dossier {numero}")
+        #     client = GraphQLClient()
+        #     variables = {
+        #         "input": {
+        #             "dossierId": dossier_id_ds,
+        #             "instructeurId": instructeur_id_ds,
+        #             "body": body
+        #         }
+        #     }
+        #     result = client.execute_query("DS/mutations/send_message.graphql", variables)
+        #     # {'data': {'dossierEnvoyerMessage': {'message': {'id': 'Q29tbWVudGFpcmUtNTYwNzU2Nzg=', 'body': 'message sans pj2'}, 'errors': None}}}
+        #     if result["data"]:
+        #         id_msg_ds = result["data"]['dossierEnvoyerMessage']['message']['id']
+        #         loggerDS.info(f"Message (sans PJ) {id_msg_ds} envoyé")
+
+        if fichier:
+            tmp_file_path = prepare_temp_file(fichier)
+            result_API_DS = envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier, fichier.content_type, tmp_file_path, numero)
+        else:
+            result_API_DS = envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, num_dossier=numero)
+        
+        message_ds = result_API_DS["data"]['dossierEnvoyerMessage'].get('message')
+        
+        if message_ds and message_ds.get('id'):
+            id_msg_ds = message_ds['id']
+            loggerDS.info(f"Message {id_msg_ds} envoyé sur D-S")
+            logger.info(f"Message {id_msg_ds} envoyé sur D-S")
+        else:
+            erreurs = result_API_DS["data"]['dossierEnvoyerMessage'].get('errors')
+            erreurs_str = "; ".join(err['message'] for err in erreurs) if erreurs else "Erreur inconnue"
+            loggerDS.error(f"Message (dossier {numero}) pas envoyé sur D-S : {erreurs_str}")
+            logger.error(f"Message (dossier {numero}) pas envoyé sur D-S : {erreurs_str}")
+            
+            return HttpResponse(f"Erreur envoi message D-S (dossier {numero}) : {erreurs_str}", status=500)
+
+
+
+            
+    except Exception as e:
+        logger.exception(f"[API DS] Erreur lors de l'envoi du message via l'API DS (dossier {numero})")
+        if tmp_file_path and os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+        return HttpResponse(f"Erreur d'envoi : {e}", status=500)
+
+
+
+    # ✅ Enregistrement local en BDD
+    try:
+        # if fichier and tmp_file_path and os.path.exists(tmp_file_path):
+        #     with open(tmp_file_path, "rb") as temp_read_file:
+        #         fichier_bdd = SimpleUploadedFile(
+        #             name=fichier.name,
+        #             content=temp_read_file.read(),
+        #             content_type=fichier.content_type
+        #         )
+
+        #     create_message_bdd(
+        #         body=body,
+        #         email_emetteur=request.user.email,
+        #         dossier_obj=dossier,
+        #         date_envoi=timezone.now(),
+        #         document_file=fichier_bdd,
+        #         document_title=fichier.name,
+        #         document_format_str=fichier.name.split('.')[-1].lower()
+        #     )
+        # else:
+        #     # Message sans pièce jointe
+        #     create_message_bdd(
+        #         body=body,
+        #         email_emetteur=request.user.email,
+        #         dossier_obj=dossier,
+        #         date_envoi=timezone.now()
+        #     )
+
+        if fichier:
+            enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=id_msg_ds)
+        else:
+            enregistrer_message_bdd(dossier, request.user.email, body, None, id_ds=id_msg_ds)
+
+        logger.info(f"Message {id_msg_ds} enregistré en BDD (dossier {numero}) par {request.user.email}")
+
+    except Exception as e:
+        logger.exception(f"[BDD] Erreur lors de l'enregistrement local")
+        return HttpResponse(f"Erreur d'enregistrement en base : {e}", status=500)
+
+    finally:
+        if tmp_file_path and os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+
+    return redirect(reverse("preinstruction_dossier", kwargs={"numero": numero}))

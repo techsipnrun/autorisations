@@ -161,7 +161,7 @@ class Demande(models.Model):
     date_depot = models.DateTimeField()
     date_fin_instruction = models.DateTimeField(blank=True, null=True)
     soumis_controle = models.BooleanField(default=False)
-    id_dossier = models.ForeignKey(Dossier, models.RESTRICT, db_column='id_dossier')
+    id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
     suite_controle_conforme = models.BooleanField()
     numero_oscean = models.CharField(blank=True, null=True)
 

@@ -15,7 +15,7 @@ def dossier_document_normalize(doss, emplacement_dossier):
         "url_ds": doss["pdf"]["url"],
         "emplacement": emplacement_dossier,
         "description": f"Résumé du dossier {doss['number']}",
-        "titre": nom_fichier,
+        "titre": f"{nom_fichier}.{extension_fichier}",
     }
 
     return dico_pdf

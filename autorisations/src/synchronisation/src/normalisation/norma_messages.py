@@ -1,9 +1,8 @@
-from datetime import datetime
 from synchronisation.src.functions import get_first_id, clean_email, extraire_nom_et_extension, parse_datetime_with_tz
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, Message, MessageDocument
 
 
-def message_normalize(doss):
+def message_normalize(doss, emplacement_dossier):
     """
     Transforme les données brutes des messages en structure normalisée pour l'enregistrement.
     
@@ -44,9 +43,9 @@ def message_normalize(doss):
                     "id_format": id_format_doc,
                     "id_nature": id_nature_doc,
                     "url_ds": file["url"],
-                    "emplacement": f"/emplacement/a_definir/message{m['id']}",
+                    "emplacement": f"{emplacement_dossier}/Annexes/",
                     "description": f"Pièce jointe dans la messagerie du dossier {doss['number']}",
-                    "titre": nom_fichier,
+                    "titre": f"{nom_fichier}.{extension_fichier}",
                 })
 
                 # liste_msg_doc.append({

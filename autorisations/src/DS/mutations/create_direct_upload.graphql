@@ -1,0 +1,11 @@
+mutation ($input: CreateDirectUploadInput!) {
+  createDirectUpload(input: $input) {
+    clientMutationId
+    directUpload {
+      blobId
+      headers
+      signedBlobId
+      url
+    }
+  }
+}

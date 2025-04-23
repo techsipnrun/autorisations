@@ -6,6 +6,9 @@ import requests
 from typing import Type, Tuple, Optional
 
 from autorisations.models.models_instruction import Demarche
+from autorisations.models.models_instruction import Message
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
+from django.utils import timezone
 
 # #Définir le module de paramètres Django
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "instructionDS.settings")
@@ -177,3 +180,86 @@ def get_number_demarche_Postgres():
         list_number_demarches.append(d['numero'])
 
     return list_number_demarches
+
+
+
+
+def create_message_bdd(
+    body, email_emetteur, dossier_obj, 
+    date_envoi=None, 
+    document_file=None,  # fichier ouvert, ou None
+    document_title=None,  # titre affiché (nom d'origine)
+    document_format_str=None,  # ex: 'pdf', 'jpg'
+    document_nature_str="Pièce jointe message",  # à adapter à ta nomenclature
+    document_description=None,
+    id_ds=None
+):
+    """
+    Crée un message en base (Postgres) et la pièce jointe si présente.
+
+    Retourne : (message_obj, document_obj ou None)
+    """
+
+    try:
+
+        # 1. Création du message (sans pièce jointe pour l'instant)
+        msg = Message.objects.create(
+            body=body,
+            date_envoi=date_envoi or timezone.now(),
+            piece_jointe=bool(document_file),
+            email_emetteur=email_emetteur,
+            id_dossier=dossier_obj,
+            lu=False,
+            id_ds=id_ds
+        )
+        logger.info(f"Message {id_ds} créé pour dossier {dossier_obj.numero}")
+
+        doc = None
+        if document_file:
+
+            try:
+
+                # 2. Créer le Document
+                # Récupérer ou créer le format et la nature
+                doc_format, _ = DocumentFormat.objects.get_or_create(format=document_format_str)
+                doc_nature, _ = DocumentNature.objects.get_or_create(nature=document_nature_str)
+
+                # Définir le chemin de destination
+                repertoire_annexes = os.path.join(dossier_obj.emplacement, "Annexes")
+                emplacement = os.path.join(repertoire_annexes, document_title)
+
+                # Créer le répertoire si besoin
+                os.makedirs(repertoire_annexes, exist_ok=True)
+
+                with open(emplacement, 'wb+') as dest:
+                    for chunk in document_file.chunks():
+                        dest.write(chunk)
+
+                doc = Document.objects.create(
+                    id_format=doc_format,
+                    id_nature=doc_nature,
+                    emplacement=emplacement,
+                    titre=document_title,
+                    description=document_description or "",
+                )
+
+                logger.info(f"Document {doc.id} enregistré à {emplacement}")
+
+                # 3. Créer le lien message-document
+                MessageDocument.objects.create(
+                    id_message=msg,
+                    id_document=doc
+                )
+                logger.info(f"Lien Message {msg.id} ↔ Document {doc.id} créé")
+
+            except Exception as e_doc:
+                logger.error(f"[BDD] Erreur lors de la création de la pièce jointe pour Message {msg.id} : {e_doc}")
+                msg.delete()  # rollback du message si le document échoue
+                raise Exception(f"Erreur lors de la création du document : {e_doc}")
+
+        return msg, doc
+    
+
+    except Exception as e:
+        logger.exception(f"Échec création message pour dossier {dossier_obj.numero}")
+        raise  # pour remonter l'erreur plus haut si besoin

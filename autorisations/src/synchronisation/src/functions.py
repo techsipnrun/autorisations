@@ -4,7 +4,9 @@
 
 
 from datetime import date, datetime, timedelta
+import logging
 import os
+from dotenv import load_dotenv
 import requests
 import json
 from django.utils.timezone import now, is_naive, get_current_timezone, make_aware
@@ -13,7 +15,14 @@ from django.db import models
 from dateutil.parser import parse
 from pytz import timezone
 
+from autorisations.settings import BASE_DIR
 
+# Chemin du fichier .env en fonction de l'environnement
+# ENVIRONMENT = os.getenv("DJANGO_ENV", "dev")  # dev par défaut, DJANGO_ENV=prod python manage.py runserver pour lancer en prod
+# dotenv_path = BASE_DIR / f".env.{ENVIRONMENT}"
+# load_dotenv(dotenv_path)
+
+logger = logging.getLogger("ORM_DJANGO")
 
 def fetch_geojson(url):
     try:
@@ -299,3 +308,137 @@ def construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche):
 
     return "/".join(path_parts)
 
+
+def create_emplacement(emplacement_dossier):
+    """
+    Crée l'emplacement physique du dossier sur le disque selon le path fourni,
+    en y ajoutant les sous-dossiers standards.
+
+    :param emplacement_dossier: chaîne de type "Travaux/2025/Soumis_urbanisme/123456_DUPONT_Jean"
+    """
+
+    racine = os.environ.get('ROOT_FOLDER')
+    # ROOT_FOLDER = 'J:\0_Fonctionnement_general\08_AUTORISATIONS\080_Projet_Application\Bancarisation\'
+
+    if not racine:
+        print("[ERREUR] Variable d’environnement ROOT_FOLDER non définie.")
+        return
+
+    chemin_complet = os.path.join(racine, emplacement_dossier)
+
+    try:
+        if not os.path.exists(chemin_complet):
+            os.makedirs(chemin_complet)
+            print(f"[INFO] Dossier principal créé : {chemin_complet}")
+        else:
+            print(f"[INFO] Dossier déjà existant : {chemin_complet}")
+
+        # Sous-dossiers standards
+        sous_dossiers = ["Annexes", "Actes", "Avis", "Carto", "Work"]
+        for nom in sous_dossiers:
+            chemin_sous_dossier = os.path.join(chemin_complet, nom)
+            if not os.path.exists(chemin_sous_dossier):
+                os.makedirs(chemin_sous_dossier)
+                print(f"    → Création : {chemin_sous_dossier}")
+            else:
+                print(f"    → Déjà présent : {chemin_sous_dossier}")
+
+    except Exception as e:
+        print(f"[ERREUR] Impossible de créer les dossiers pour {emplacement_dossier} : {e}")
+
+
+def write_resume_pdf(emplacement, name, url_du_pdf):
+    """
+    Télécharge un PDF depuis une URL et l’écrit dans le dossier spécifié.
+
+    :param emplacement: Chemin relatif à ROOT_FOLDER
+    :param name: Nom du fichier sans extension
+    :param url_du_pdf: URL publique du fichier à télécharger
+    """
+    racine = os.environ.get("ROOT_FOLDER")
+    if not racine:
+        logger.error(f"[ERREUR] ROOT_FOLDER non défini dans les variables d’environnement (création du résumé {{name}}.pdf)")
+        return
+
+    chemin_dossier = os.path.join(racine, emplacement)
+    chemin_fichier = os.path.join(chemin_dossier, f"{name}.pdf")
+
+    try:
+        os.makedirs(chemin_dossier, exist_ok=True)
+
+        response = requests.get(url_du_pdf, timeout=15)
+        response.raise_for_status()
+
+        with open(chemin_fichier, "wb") as f:
+            f.write(response.content)
+
+        logger.info(f"[FILE] PDF téléchargé et écrit : {chemin_fichier}")
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"[HTTP ERROR] Impossible de télécharger le PDF : {e}")
+    except Exception as e:
+        logger.error(f"[FILE ERROR] Impossible d’écrire le fichier {chemin_fichier} : {e}")
+
+
+
+def write_geojson(emplacement, nom_geojson, contenu_geojson):
+    """
+    Écrit un fichier .geojson dans le dossier spécifié.
+    Écrase le fichier s'il existe déjà.
+
+    :param emplacement: Chemin relatif à ROOT_FOLDER
+    :param nom_geojson: Nom du fichier (sans extension)
+    :param contenu_geojson: Dictionnaire ou JSON serialisable (géométrie)
+    """
+    racine = os.environ.get("ROOT_FOLDER")
+    if not racine:
+        logger.error(f"[ERREUR] ROOT_FOLDER non défini dans les variables d’environnement (écriture du geojson : {nom_geojson}).")
+        return
+
+    chemin_dossier = os.path.join(racine, emplacement)
+    chemin_fichier = os.path.join(chemin_dossier, f"{nom_geojson}")
+
+    try:
+        os.makedirs(chemin_dossier, exist_ok=True)
+        with open(chemin_fichier, "w", encoding="utf-8") as f:
+            json.dump(contenu_geojson, f, ensure_ascii=False, indent=2)
+            
+        logger.info(f"[GEOJSON] Fichier écrit : {chemin_fichier}")
+    except Exception as e:
+        logger.error(f"[ERREUR] Impossible d’écrire le fichier GeoJSON {chemin_fichier} : {e}")
+
+def write_pj(emplacement, name, url_pj):
+    """
+    Télécharge une pièce jointe depuis une URL et l’écrit dans le dossier spécifié.
+
+    :param emplacement: chemin relatif à ROOT_FOLDER (ex: Activites/2025/123456_DUPONT/Annexes/)
+    :param name: nom du fichier avec extension 
+    :param url_pj: URL de téléchargement de la pièce jointe
+    """
+    racine = os.environ.get("ROOT_FOLDER")
+    if not racine:
+        logger.error("[ERREUR] ROOT_FOLDER non défini dans les variables d’environnement (écriture de PJ)")
+        return
+
+    chemin_dossier = os.path.join(racine, emplacement)
+    chemin_fichier = os.path.join(chemin_dossier, name)
+
+    try:
+        os.makedirs(chemin_dossier, exist_ok=True)
+        
+        
+        if os.path.exists(chemin_fichier):
+            logger.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucun téléchargement effectué.")
+            return
+
+        response = requests.get(url_pj, timeout=15)
+        response.raise_for_status()
+
+        with open(chemin_fichier, "wb") as f:
+            f.write(response.content)
+
+        logger.info(f"[PJ] Pièce jointe téléchargée et écrite : {chemin_fichier}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"[HTTP ERROR] Impossible de télécharger la pièce jointe ({name}) : {e}")
+    except Exception as e:
+        logger.error(f"[FILE ERROR] Impossible d’écrire la pièce jointe {chemin_fichier} : {e}")

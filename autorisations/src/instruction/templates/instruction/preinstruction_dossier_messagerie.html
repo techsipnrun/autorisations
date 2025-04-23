@@ -31,6 +31,17 @@
                 {% endfor %}
             </div>
 
+            <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
+                {% csrf_token %}
+                <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
+                <textarea name="body" placeholder="Écrire un message..." required></textarea>
+                <div class="pj-actions">
+                    <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                    <button type="submit">Envoyer</button>
+                </div>
+            </form>
+            
+
         </div>
 
         <!-- Colonne droite : navigation -->

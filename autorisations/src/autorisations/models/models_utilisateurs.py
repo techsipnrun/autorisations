@@ -70,7 +70,7 @@ class ContactExterne(models.Model):
 class DossierInterlocuteur(models.Model):
     id = models.AutoField(primary_key=True)
     id_interlocuteur_ds = models.CharField(unique=True, blank=True, null=True)
-    id_dossier = models.ForeignKey('autorisations.Dossier', models.RESTRICT, db_column='id_dossier')
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
     id_demandeur_intermediaire = models.ForeignKey(ContactExterne, models.SET_NULL, db_column='id_demandeur_intermediaire', blank=True, null=True)
 
     class Meta:
@@ -78,7 +78,7 @@ class DossierInterlocuteur(models.Model):
         db_table = '"utilisateurs"."dossier_interlocuteur"'
 
     def __str__(self):
-        if {self.id_demandeur_intermediaire} :
+        if self.id_demandeur_intermediaire :
             return f"{self.id_dossier} - Demandeur intermédiaire : {self.id_demandeur_intermediaire.prenom} {self.id_demandeur_intermediaire.nom}"
         return f"{self.id_dossier} - Pas de demandeur intermédiaire"
 

@@ -114,3 +114,49 @@
 .lien_dossier img:hover {
     transform: scale(1.1);
 }
+
+
+/* Ecrire message + PJ */
+
+.message-form {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2rem;
+    border-top: 1px solid #ccc;
+    padding-top: 1rem;
+}
+
+.message-form textarea {
+    resize: vertical;
+    min-height: 80px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+}
+
+.pj-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pj-actions input[type="file"] {
+    flex: 1;
+}
+
+.pj-actions button {
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    margin-left: 1rem;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.pj-actions button:hover {
+    background-color: #0072a3;
+}

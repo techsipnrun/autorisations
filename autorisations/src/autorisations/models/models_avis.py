@@ -101,7 +101,7 @@ class Avis(models.Model):
         choices=MODE_CONTACT_CHOICES,  # Ajout des choix
         default="Mail",  # Optionnel : valeur par défaut
     )
-    id_dossier = models.ForeignKey('autorisations.Dossier', models.RESTRICT, db_column='id_dossier', blank=True, null=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
 

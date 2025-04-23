@@ -1,5 +1,5 @@
 from autorisations.models.models_instruction import Dossier
-from ..functions import update_fields, foreign_keys_add_suffixe_id
+from ..functions import create_emplacement, update_fields, foreign_keys_add_suffixe_id
 from django.db import models
 from datetime import date, datetime
 import logging
@@ -25,6 +25,11 @@ def sync_doss(dossier):
 
     if created:
         logger.info(f"[CREATE] Dossier {obj.numero} (id_ds: {obj.id_ds}) créé.")
+
+        # Création des folders
+        print(f"Tentative de création de l'emplacement : {defaults["emplacement"]}")
+        create_emplacement(defaults["emplacement"])
+
     else:
         update_data = {}
 

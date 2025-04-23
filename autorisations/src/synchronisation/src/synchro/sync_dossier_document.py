@@ -1,5 +1,5 @@
 from autorisations.models.models_documents import Document, DossierDocument
-from ..functions import update_fields
+from ..functions import update_fields, write_resume_pdf
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -35,6 +35,7 @@ def sync_dossier_document(dossier_document, id_dossier):
 
     if created:
         logger.info(f"[CREATE] Document résumé PDF pour Dossier {id_dossier} créé.")
+        write_resume_pdf(dossier_document["emplacement"], dossier_document["titre"], dossier_document["url_ds"])
     else:
         updated_fields = update_fields(doc_obj, {
             "id_format_id": dossier_document["id_format"],
@@ -45,6 +46,9 @@ def sync_dossier_document(dossier_document, id_dossier):
         })
         if updated_fields:
             doc_obj.save()
+
+            #On écrase le fichier existant
+            write_resume_pdf(dossier_document["emplacement"], dossier_document["titre"], dossier_document["url_ds"])
             logger.info(f"[SAVE] Document résumé PDF mis à jour (Dossier {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
 
     link_obj, created = DossierDocument.objects.get_or_create(
