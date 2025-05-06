@@ -6,7 +6,8 @@
 
 .formulaire {
     width: 70%;
-    /* border: red solid; */
+    border-right: #272727 solid 1px;
+    padding: 0.5rem;
 }
 
 .nav_preinstruction {
@@ -31,87 +32,18 @@ h1 {
 }
 
 
-
 /* Etat du dossier */
-/* .etat-dossier {
-    text-align: left;
-    margin-bottom: 2rem;
-}
-
-.etat-badge {
-    display: inline-block;
-    padding: 6px 16px;
-    background-color: #e0e0e0;
-    color: #333;
-    font-size: 1.3rem;
-    font-style: italic;
-    border-radius: 999px;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
-} */
-
-.etat-dossier {
-    /* text-align: center; */
-    position: relative;
-    display: inline-block;
-    /* margin-bottom: 1rem; */
-}
-
-.etat-dossier.menu-ouvert {
-    margin-bottom: 3rem; /* ou la valeur que tu veux */
-}
-
-
 .etat-badge-menu {
     display: inline-block;
     padding: 6px 16px;
     background-color: #e0e0e0;
-    color: #333;
+    color: #272727;
     font-size: 1.3rem;
     font-style: italic;
     border-radius: 999px;
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
     position: relative;
 }
-
-.arrow-down {
-    margin-left: 8px;
-    font-size: 0.9em;
-}
-
-.etat-menu {
-    display: none;
-    position: absolute;
-    margin-top: 6px;
-    list-style: none;
-    background: #fff;
-    border: 1px solid #ccc;
-    /* border-radius: 6px; */
-    min-width: 180px;
-    text-align: center;
-}
-
-.etat-menu li {
-    padding: 10px 20px;
-    cursor: pointer;
-}
-
-.etat-menu li:hover {
-    background-color: #f2f2f2;
-}
-
-.etat-menu li a {
-    text-decoration: none;
-    color: inherit;
-}
-
-.etat-result {
-    margin-top: 4rem;
-    font-style: italic;
-    color: #444;
-    transition: opacity 0.3s ease;
-}
-
 
 
 h2 {
@@ -119,9 +51,8 @@ h2 {
     margin-bottom: 1rem;
 }
 
+
 /* Navigation - Partie Droite */
-
-
 .nav_top {
     display: flex;
     justify-content: center;
@@ -139,7 +70,7 @@ h2 {
 .form_messagerie {
     display: flex;
     flex-direction: row;
-    gap: 4px;
+    gap: 8px;
 }
 
 .form_msg_box.active {
@@ -176,6 +107,116 @@ h2 {
 .lien_dossier img:hover {
     transform: scale(1.1);
 }
+
+/* Historiser et Passer en instruction */
+
+.etat-actions {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 2rem;
+    margin: 3rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    /* justify-content: center; */
+    align-items: center;
+}
+
+
+.actions-liste {
+    display: flex;
+    /* flex-direction: column; */
+    gap: 2rem;
+}
+
+.action-btn {
+    background-color: white;
+    border: 1px solid black;
+    color: black;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    /* transition: background-color 0.3s ease; */
+    font-size: large;
+}
+
+.action-btn.active {
+    background-color: #e3fbe3;
+    font-weight: bold;
+}
+
+.action-btn:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+    transform-origin: center;
+}
+
+.etat-result {
+    margin: 0 auto;
+    font-size: 0.95rem;
+    color: black;
+    width: 100%;
+}
+
+/* Bloc du formulaire (déjà masqué via inline style dans le HTML) */
+.etat-message {
+    background-color: #f1f1f1;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: opacity 0.3s ease; /* Pour un effet doux */
+    margin-top: 2rem;
+}
+
+/* Formulaire dans la colonne de droite */
+/* .etat-message form {
+    width: 90%;
+    margin: 0 auto;
+} */
+
+/* Labels */
+.etat-message form label {
+    font-weight: bold;
+    display: block;
+    margin: 0.5rem 0 0.2rem 0;
+}
+
+/* Champs texte, select, textarea */
+.etat-message form input[type="text"],
+.etat-message form select,
+.etat-message form textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+}
+
+/* Textarea plus grand */
+.etat-message form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Bouton Valider */
+.valider-btn {
+    background-color: #115e31;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.valider-btn:hover {
+    background-color: #0e4c27;
+}
+
+
+
 
 /* CARTO */
 

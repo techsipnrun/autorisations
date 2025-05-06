@@ -1,0 +1,12 @@
+mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
+  dossierPasserEnInstruction(input: $input) {
+    clientMutationId
+    dossier {
+      id
+      number
+    }
+    errors {
+      message
+    }
+  }
+}

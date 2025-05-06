@@ -172,28 +172,35 @@ LOGGING = {
         'ldap_file': {  # fichier pour les logs LDAP
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': 'authent/LDAP/logs/ldap_logs.log',  # Path LDAP Logs
+            'filename': 'logs/active_directory.log',  # Path LDAP Logs
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'folder_file': {  # fichier pour les logs Lecture/Ecriture fichiers par l'application
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/app-fichiers.log',  # Path LDAP Logs
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
         'apiDS_file': { # fichier pour les logs de l'API DS
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'DS/logs/apiDS.log', 
+            'filename': 'logs/apiDS.log', 
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
-        'apiPG_file': { # fichier pour les logs de l'API DS
+        'apiPG_file': { # fichier pour les logs de l'API Postgres
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'BDD/logs/apiPG.log', 
+            'filename': 'logs/apiPG.log', 
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
         'ORM_django_file': { # fichier pour les logs de l'ORM Django
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'BDD/logs/ORM_django.log', 
+            'filename': 'logs/ORM_django.log', 
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
@@ -222,6 +229,11 @@ LOGGING = {
         },
         'ORM_DJANGO': {
             'handlers': ['ORM_django_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'APP_FILES': {
+            'handlers': ['folder_file'],
             'level': 'INFO',
             'propagate': False,
         }

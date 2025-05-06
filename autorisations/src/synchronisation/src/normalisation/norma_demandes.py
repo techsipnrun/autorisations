@@ -15,6 +15,7 @@ def demande_normalize(demarche_id, demarche_title, doss):
     liste_demandes = []
 
     id_type_demande_par_defaut = type_demande_from_nom_demarche(demarche_title)
+    # print(id_type_demande_par_defaut)
 
     if id_type_demande_par_defaut == 999:
         print("Demande PDV SON ou Survol drone : Script de normalisation à faire pour l'objet demande")
@@ -24,7 +25,7 @@ def demande_normalize(demarche_id, demarche_title, doss):
         # if demande PDV son --> liste_dem.append(demande PDV son)
     else:
         id_priorite = calcul_priorite_instruction(demarche_id, doss)
-
+        # print(f"id priorité : {id_priorite}")
         liste_demandes.append({
             "id_etat_demande": get_first_id(EtatDemande, nom=doss["state"]),
             "id_priorite": id_priorite,

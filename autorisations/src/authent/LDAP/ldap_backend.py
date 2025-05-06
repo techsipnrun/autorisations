@@ -35,7 +35,10 @@ class LDAPBackend(BaseBackend):
     LDAP_GROUP_BASE_DN = os.environ.get('LDAP_GROUP_BASE_DN')  # Emplacement des groupes LDAP
 
     def authenticate(self, request, username=None, password=None, **kwargs):
-        """ Authentifie l'utilisateur et le synchronise dans Django """
+        """
+        Authentifie l'utilisateur et le synchronise dans Django
+        """
+
         logger.info("  ")
         logger.info(f"Tentative de connexion LDAP pour : {username}")
 
@@ -69,13 +72,17 @@ class LDAPBackend(BaseBackend):
                   
                     return user
                 else:
-                    logger.warning(f"Utilisateur {username} trouvé dans AD mais sans informations exploitables.")
+                    logger.warning(f"Utilisateur {username} trouvé dans l'AD mais sans informations exploitables.")
 
             logger.warning(f"Échec de l'authentification LDAP pour : {username}")
             return None
 
         except Exception as e:
-            logger.error(f"Erreur LDAP : {str(e)}")
+            message = str(e)
+            if "invalidCredentials" in message:
+                logger.warning(f"{username} : échec de l'authentification — identifiants invalides.")
+            else:
+                logger.error(f"Erreur LDAP : {message}")
             return None
 
 

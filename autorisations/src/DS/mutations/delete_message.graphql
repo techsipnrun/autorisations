@@ -1,0 +1,17 @@
+mutation dossierSupprimerMessage($input: DossierSupprimerMessageInput!) {
+  dossierSupprimerMessage(input: $input) {
+    clientMutationId
+    errors {
+      message
+    }
+    message {
+      id
+      body
+      correction {
+        reason
+        dateResolution
+      }
+      
+    }
+  }
+}

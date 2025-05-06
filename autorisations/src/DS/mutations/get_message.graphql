@@ -1,0 +1,13 @@
+query dossier($number: Int!) {
+  dossier(number: $number) {
+    messages {
+        id
+        email
+        body
+        createdAt
+        attachments{
+            url
+        }
+    }
+  }
+}

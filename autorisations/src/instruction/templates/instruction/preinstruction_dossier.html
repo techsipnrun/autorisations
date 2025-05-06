@@ -23,28 +23,16 @@
     {% include 'navbar.html' %}
     
     <div class="page-container">
+        
         <!-- Colonne gauche : formulaire -->
         <div class="formulaire">
 
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
-            
-            <!-- <div class="etat-dossier">
-                <span class="etat-badge">{{ etat_dossier }}</span>
-            </div> -->
+               
+            <div class="etat-badge-menu">
+                {{ etat_dossier }}
+            </div> 
 
-            <div class="etat-dossier">
-                <div class="etat-badge-menu" id="etat-toggle">
-                    {{ etat_dossier }}
-                    <span class="arrow-down">▾</span>
-                </div>
-                <ul class="etat-menu" id="etat-menu">
-                    <li><a href="#" data-action="en_instruction">Passer en instruction</a></li>
-                    <li><a href="#" data-action="historise">Historiser</a></li>
-                </ul>
-                
-            </div>
-            
-            <div id="etat-result" class="etat-result"></div>
 
             <div class="champs">
                 {% for champ in champs %}
@@ -90,6 +78,60 @@
                     </a>
                 </div>
             </div>
+
+            <div class="etat-actions">
+
+                <div class="actions-liste">
+                    <button class="action-btn" data-action="en_instruction">Passer en instruction</button>
+                    <button class="action-btn" data-action="historise">Historiser</button>
+                </div>
+
+                <div id="etat-result" class="etat-result">
+
+                    <div id="form-en_instruction" class="etat-message" style="display: none;">
+
+                        <form method="post" action="{% url 'changer_groupe_instructeur' %}">
+                            {% csrf_token %}
+                            
+                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        
+                            <label for="groupe">Groupe instructeur :</label><br>
+                            <select id="groupe" name="groupeInstructeurId" required>
+                                <option value="">-- Sélectionner --</option>
+                                {% for groupe in groupes_instructeurs %}
+                                    <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                {% endfor %}
+                            </select><br>
+                        
+                            <button type="submit" class="valider-btn">Valider</button>
+                        </form>
+                        
+
+                    </div>
+                
+                    <div id="form-historise" class="etat-message" style="display: none;">
+
+                        <form>
+                            <label for="motif">Choix :</label><br>
+
+                            <select id="motif" name="motif" required>
+                                <option value="">-- Sélectionner --</option>
+                                <option value="non_autorisation">Non soumis à autorisation</option>
+                                <option value="sans_suite">Classer sans suite</option>
+                            </select><br>
+
+                            <label for="raison">Raison :</label><br>
+
+                            <textarea id="raison" name="raison" maxlength="600"></textarea><br>
+
+                            <button type="button" class="valider-btn">Valider</button>
+                        </form>
+
+                    </div>
+                </div>
+                
+            </div>
+
         </div>
     </div>
 
@@ -108,60 +150,48 @@
 <script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
 
 
-<!-- Menu déroulant pour l'état du dossier -->
+<!-- Menu déroulant pour l'historisation et le passage en instruction -->
+
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const badge = document.getElementById("etat-toggle");
-        const menu = document.getElementById("etat-menu");
 
-        if (!badge || !menu) return;
+    function afficherFormulaireAction(action) {
+        // Cacher tous les formulaires
+        document.querySelectorAll('.etat-message').forEach(div => div.style.display = 'none');
 
-        badge.addEventListener("click", function (e) {
-            e.stopPropagation(); // Empêche fermeture immédiate
-            const isOpen = menu.style.display === "block";
-            menu.style.display = isOpen ? "none" : "block";
-
-            const container = document.querySelector(".etat-dossier");
-            if (isOpen) {
-                container.classList.remove("menu-ouvert");  // Retirer le margin-bottom
-            } else {
-                container.classList.add("menu-ouvert");    // Ajouter le margin-bottom
-            }
-        });
-
-        document.addEventListener("click", function (e) {
-            if (!badge.contains(e.target) && !menu.contains(e.target)) {
-                menu.style.display = "none";
-                const container = document.querySelector(".etat-dossier");
-                container.classList.remove("menu-ouvert");  // Retirer le margin-bottom quand on clique ailleurs
-            }
-        });
-    });
-
-
-    document.querySelectorAll(".etat-menu a").forEach(link => {
-        link.addEventListener("click", function (e) {
-            e.preventDefault();
-            const action = this.dataset.action;
-            changerEtat(action);
-        });
-    });
-
-    function changerEtat(nouvelEtat) {
-        const resultBox = document.getElementById("etat-result");
-        let message = "";
-
-        if (nouvelEtat === "en_instruction") {
-            message = "📤 Ce dossier va passer en instruction.";
-        } else if (nouvelEtat === "historise") {
-            message = "📦 Ce dossier sera historisé.";
+        // Afficher le bon formulaire
+        const cible = document.getElementById(`form-${action}`);
+        if (cible) {
+            cible.style.display = 'block';
         }
+    }
 
-        resultBox.textContent = message;
+    // Boutons
+    document.querySelectorAll(".action-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const action = this.dataset.action;
+            afficherFormulaireAction(action);
+
+            // Toggle active sur les boutons
+            document.querySelectorAll(".action-btn").forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+        });
+        
+    });
+
+    // Au chargement
+    if (currentAction) {
+        afficherFormulaireAction(currentAction);
+        const btnActif = document.querySelector(`.action-btn[data-action="${currentAction}"]`);
+        if (btnActif) {
+            btnActif.classList.add("active");
+        }
     }
 
 
-    </script>
+</script>
+
+
+
 
 
 </html>

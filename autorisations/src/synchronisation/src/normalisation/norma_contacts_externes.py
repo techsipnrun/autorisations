@@ -36,11 +36,26 @@ def contact_externe_normalize(doss):
 
     else:
         # Si pas de mandataire, le demandeur est le bénéficiaire
-        contacts_externes['beneficiaire'] = {
-            "email": clean_email(doss['usager']['email']),
-            "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
-            "nom": clean_surname(doss['demandeur']['nom']),
-            "prenom": clean_name(doss['demandeur']['prenom']),
-        }
+        if doss['demandeur']['__typename'] == 'PersonnePhysique' :
+            contacts_externes['beneficiaire'] = {
+                "email": clean_email(doss['usager']['email']),
+                "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
+                "nom": clean_surname(doss['demandeur']['nom']),
+                "prenom": clean_name(doss['demandeur']['prenom']),
+            }
+        if doss['demandeur']['__typename'] == 'PersonneMorale' :
+            contacts_externes['personne_morale'] = {
+                "email": clean_email(doss['usager']['email']),
+                "id_type": get_first_id(TypeContactExterne, type="personne_morale"),
+                "siret": doss['demandeur']['siret'],
+                "raison_sociale": doss['demandeur']['entreprise']['raisonSociale'] if doss['demandeur'].get('entreprise') else None,
+                "organisation":   doss['demandeur']['entreprise']['nom'] if doss['demandeur'].get('entreprise') else (doss['demandeur']['association']['titre'] if doss['demandeur'].get('association') else None),
+                # "organisation": (
+                #     doss.get('demandeur', {}).get('entreprise', {}).get('nom') or
+                #     doss.get('demandeur', {}).get('association', {}).get('titre')
+                # ),
+                "adresse": doss['demandeur']['address']['cityName']
+
+            }
 
     return contacts_externes

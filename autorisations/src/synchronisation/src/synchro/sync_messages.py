@@ -48,10 +48,11 @@ def sync_messages(messages, id_dossier):
         if message_data["piece_jointe"]:
             for doc in docs:
                 doc_obj, doc_created = Document.objects.get_or_create(
-                    id_nature_id=doc["id_nature"], emplacement=doc["emplacement"], id_format_id=doc["id_format"], titre=doc["titre"],
+                    emplacement=doc["emplacement"], id_format_id=doc["id_format"], titre=doc["titre"],
                     defaults={
                         "url_ds": doc["url_ds"],
                         "description": doc["description"],
+                        "id_nature_id": doc["id_nature"],
                     }
                 )
 
@@ -60,11 +61,11 @@ def sync_messages(messages, id_dossier):
 
                     write_pj(doc["emplacement"], doc["titre"], doc["url_ds"])
 
-                # else:
-                #     updated_fields = update_fields(doc_obj, {"url_ds": doc["url_ds"]})
-                #     if updated_fields:
-                #         doc_obj.save()
-                #         logger.info(f"[SAVE] Document {doc_obj.id} ({doc_obj.id_nature.nature}) mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+                else:
+                    updated_fields = update_fields(doc_obj, {"url_ds": doc["url_ds"], "id_nature_id": doc["id_nature"]})
+                    if updated_fields:
+                        doc_obj.save()
+                        logger.info(f"[SAVE] Document {doc_obj.id} ({doc_obj.id_nature.nature}) mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
                 msg_doc_obj, link_created = MessageDocument.objects.get_or_create(
                     id_message_id=msg_obj.id,

@@ -64,7 +64,10 @@ class ContactExterne(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.nom} {self.prenom} ({self.id_type.type})"
+        if self.id_type.type != 'personne_morale' :
+            return f"{self.nom} {self.prenom} ({self.id_type.type})"
+        else :
+            return f"{self.raison_sociale} ({self.id_type.type})"
 
 
 class DossierInterlocuteur(models.Model):
@@ -184,7 +187,7 @@ class DossierInstructeur(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.id_instructeur} : Dossier {self.id_dossier.id} ({self.id_dossier.nom_dossier})"
+        return f"{self.id_instructeur} : Dossier {self.id_dossier.numero} ({self.id_dossier.nom_dossier})"
     
 
 

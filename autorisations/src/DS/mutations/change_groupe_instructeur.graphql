@@ -1,0 +1,22 @@
+mutation 
+dossierChangerGroupeInstructeur($input: DossierChangerGroupeInstructeurInput!) {
+  dossierChangerGroupeInstructeur(input: $input) {
+    clientMutationId
+    dossier {
+      id
+      number
+      groupeInstructeur {
+        number
+        label
+        instructeurs {
+            id
+            email
+        }
+      }
+    }
+    errors {
+      message
+      __typename
+    }
+  }
+}

@@ -23,8 +23,9 @@ def dossiers_normalize_process(d):
 
         contact_beneficiaire = doss["demandeur"]  # ou selon ta structure réelle
         titre_demarche = d["title"]
-        emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
 
+        #Mettre à un autre endroit car si le nom du doss change on créer une deuxiemen dossier ici (au lieu de le renommer)
+        emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
 
         dico_dossier = {
             "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),

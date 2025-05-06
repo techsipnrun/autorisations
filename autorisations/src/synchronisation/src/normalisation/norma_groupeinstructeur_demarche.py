@@ -12,6 +12,8 @@ def groupeinstructeur_demarche_normalize(d):
     :return: Liste de dictionnaires normalisés GroupeinstructeurDemarche
     """
     liste_gi = []
+    liste_i = []
+    emails_vus = set()
     
     for gi in d.get("groupeInstructeurs", []):
         if gi["label"] != 'Groupe inactif':
@@ -25,5 +27,18 @@ def groupeinstructeur_demarche_normalize(d):
                     "id_groupeinstructeur": id_gi,
                     "id_groupeinstructeur_ds": gi["id"],
                 })
+            
+            # On récupère les id DS des instructeurs
+            for i in gi["instructeurs"]:
+                email_instructeur = i["email"]
+                id_DS_instructeur = i["id"]
 
-    return liste_gi
+                if email_instructeur not in emails_vus:
+                    liste_i.append({
+                        "email": email_instructeur,
+                        "id_instructeur_ds": id_DS_instructeur
+                    })
+                    emails_vus.add(email_instructeur)
+
+    return {"gi": liste_gi, 
+            "i": liste_i}

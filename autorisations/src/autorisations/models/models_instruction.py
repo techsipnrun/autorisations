@@ -232,7 +232,7 @@ class DossierChamp(models.Model):
         ]
 
     def __str__(self):
-        return f"'{self.id_champ.nom}' : Dossier {self.id_dossier}"
+        return f"'{self.id_champ.nom}' : Dossier {self.id_dossier.numero}"
 
 
 

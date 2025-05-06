@@ -27,7 +27,6 @@ def sync_doss(dossier):
         logger.info(f"[CREATE] Dossier {obj.numero} (id_ds: {obj.id_ds}) créé.")
 
         # Création des folders
-        print(f"Tentative de création de l'emplacement : {defaults["emplacement"]}")
         create_emplacement(defaults["emplacement"])
 
     else:

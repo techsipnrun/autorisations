@@ -9,7 +9,9 @@ def sync_contacts_externes(contacts_externes):
     """
     Synchronise les contacts externes (bénéficiaire et demandeur intermédiaire).
     { 'beneficiaire': {"email", "id_type", "nom", "prenom"},
-      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom"} }
+      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom"},
+      'personne_morale': {"email", "id_type", "siret", "raison_sociale", "organisation", "adresse"}
+    }
     """
 
     result_ids = {
@@ -22,41 +24,72 @@ def sync_contacts_externes(contacts_externes):
             continue
 
         try:
-            nom = data["nom"]
-            prenom = data["prenom"]
-            email = data["email"]
-            if email :
-                obj, created = ContactExterne.objects.get_or_create(
-                    email=email,
-                    id_type_id=data["id_type"],
-                    defaults={
+
+            if role != 'personne_morale' :
+                nom = data["nom"]
+                prenom = data["prenom"]
+                email = data["email"]
+                if email :
+                    obj, created = ContactExterne.objects.get_or_create(
+                        email=email,
+                        id_type_id=data["id_type"],
+                        defaults={
+                            "nom": nom,
+                            "prenom": prenom
+                        }
+                    )
+                else :
+                    obj, created = ContactExterne.objects.get_or_create(
+                        id_type_id=data["id_type"],
+                        nom=nom,
+                        prenom=prenom,
+                        defaults={
+                            "email": email
+                        }
+                    )
+
+                if created:
+                    logger.info(f"[CREATE] ContactExterne {role} - {obj.prenom} {obj.nom} (email: {obj.email}) créé.")
+                else:
+                    updated_fields = update_fields(obj, {
                         "nom": nom,
                         "prenom": prenom,
-                        "email": email
-                    }
-                )
+                    })
+
+                    if updated_fields:
+                        obj.save()
+                        champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
+                        logger.info(f"[SAVE] Contact Externe {role} - {obj.prenom} {obj.nom} mis à jour. Champs modifiés : {champs}.")
             else :
+
+                # {"email", "id_type", "siret", "raison_sociale", "organisation", "adresse"}
+                
+                defaults = {
+                    k: v for k, v in {
+                        "siret": data.get("siret"),
+                        "raison_sociale": data.get("raison_sociale"),
+                        "organisation": data.get("organisation"),
+                        "adresse": data.get("adresse"),
+                    }.items() if v is not None
+                }
+
                 obj, created = ContactExterne.objects.get_or_create(
+                    email=data["email"],
                     id_type_id=data["id_type"],
-                    nom=nom,
-                    prenom=prenom,
-                    defaults={
-                        "email": email
-                    }
+                    defaults=defaults
                 )
 
-            if created:
-                logger.info(f"[CREATE] ContactExterne {role} - {obj.prenom} {obj.nom} (email: {obj.email}) créé.")
-            else:
-                updated_fields = update_fields(obj, {
-                    "nom": nom,
-                    "prenom": prenom,
-                })
+                if created:
+                    logger.info(f"[CREATE] ContactExterne {obj.id} créé.")
+                else:
+                    updated_fields = update_fields(obj, defaults)
 
-                if updated_fields:
-                    obj.save()
-                    champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
-                    logger.info(f"[SAVE] Contact Externe {role} - {obj.prenom} {obj.nom} mis à jour. Champs modifiés : {champs}.")
+                    if updated_fields:
+                        obj.save()
+                        champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
+                        logger.info(f"[SAVE] Contact Externe {obj.id} mis à jour. Champs modifiés : {champs}.")
+
+
 
         except IntegrityError as e:
             obj = ContactExterne.objects.filter(email=data["email"]).first()

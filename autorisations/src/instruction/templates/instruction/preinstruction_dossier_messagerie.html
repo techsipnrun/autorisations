@@ -13,17 +13,46 @@
     
     <div class="page-container">
 
-        <!-- Colonne gauche : formulaire -->
+        <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
-            <h1>Messagerie</h1>
+
+            <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+
+            <div class="etat-badge-menu">
+                {{ etat_dossier }}
+            </div> 
+
+            <div class="refresh-messages">
+                <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
+                    {% csrf_token %}
+                    <button type="submit" class="refresh-button">🔄 Actualiser la messagerie</button>
+                </form>
+            </div>
+            
 
             <div class="chat-container">
                 {% for msg in messages %}
                     <div class="message message-{{ msg.align }}">
                         <div class="msg-body">
                             {{ msg.body|safe }}
+                            {% if msg.pj_url %}
+                                <div class="pj-download">
+                                    <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a>
+                                </div>
+                            {% endif %}
                         </div>
-                        <span class="timestamp">{{ msg.date_envoi }}</span>
+                        <span class="timestamp">
+                            {{ msg.date_envoi }}
+
+                            {% if msg.align == 'right' %}
+                                <!-- Formulaire pour supprimer le message -->
+                                <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="delete-button"></button>
+                                </form>
+                            {% endif %}
+
+                        </span>
 
                     </div>
                 {% empty %}
@@ -31,14 +60,19 @@
                 {% endfor %}
             </div>
 
+
             <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
                 {% csrf_token %}
                 <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
                 <textarea name="body" placeholder="Écrire un message..." required></textarea>
                 <div class="pj-actions">
-                    <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                    <div class="pj-input-wrapper">
+                        <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                        <span class="pj-max">(20 Mo max)</span>
+                    </div>
                     <button type="submit">Envoyer</button>
                 </div>
+                
             </form>
             
 
@@ -67,8 +101,41 @@
                     <a href="#"><img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier"></a>
                 </div>
             </div>
+
+            <div class="infos-dossier">
+                {% if beneficiaire %}
+                    <p><strong>Bénéficiaire :</strong> {{ beneficiaire.prenom }} {{ beneficiaire.nom }}</p>
+                {% endif %}
+                {% if demandeur %}
+                    <p><strong>Demandeur :</strong> {{ demandeur.prenom }} {{ demandeur.nom }}</p>
+                {% endif %}
+                {% if dossier %}
+                    <p><strong>Dossier déposé le :</strong> {{ dossier.date_depot }}</p>
+                {% endif %}
+               
+            </div>
+
         </div>
     </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+    
+            const messageForm = document.querySelector('.message-form');
+            const sendButton = messageForm.querySelector('button[type="submit"]');
+    
+            messageForm.addEventListener('submit', function() {
+                sendButton.disabled = true;
+                sendButton.innerText = 'Envoi...';
+            });
+        });
+    </script>
+    
+    
 
 </body>
 </html>

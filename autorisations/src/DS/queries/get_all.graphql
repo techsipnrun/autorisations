@@ -45,6 +45,19 @@ query demarche($number: Int!) {
                 nom
                 prenom
             }
+          ... on PersonneMorale {
+              entreprise {
+                raisonSociale
+                nom
+              }
+              association {
+                titre
+              }
+              siret
+              address {
+                cityName
+              }
+          }
         }
         instructeurs {
           id

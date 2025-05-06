@@ -2,6 +2,7 @@
     display: flex;
     gap: 2rem;
     padding: 4rem;
+    margin-bottom: 3rem;
 }
 
 .messagerie {
@@ -16,6 +17,47 @@
 
 
 /* === MESSAGERIE === */
+h1 {
+    color: #115e31; /* même vert que preinstruction_dossier.css */
+    /* margin-bottom: 3rem; */
+}
+
+
+/* Etat du dossier */
+.etat-badge-menu {
+    display: inline-block;
+    margin: 1rem 0 3rem 0;
+    padding: 6px 16px;
+    background-color: #e0e0e0;
+    color: #272727;
+    font-size: 1.3rem;
+    font-style: italic;
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* Actualiser Messagerie */
+.refresh-messages {
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
+.refresh-button {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.refresh-button:hover {
+    background-color: #e0e0e0;
+}
+
+
 .chat-container {
     display: flex;
     flex-direction: column;
@@ -27,6 +69,7 @@
     overflow-y: auto;
     border: 1px solid #ccc;
 }
+
 
 .message {
     max-width: 70%;
@@ -55,6 +98,26 @@
     display: block;
     text-align: right;
 }
+
+/* Supprimer message */
+.delete-button {
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+}
+
+/* Force la couleur des emojis en rouge via filter */
+.delete-button::before {
+    content: "🗑️";
+}
+
+.delete-button:hover::before {
+    filter: grayscale(1) brightness(0) sepia(1) hue-rotate(-50deg) saturate(5); /* Teinte rouge */
+}
+
 
 
 
@@ -116,6 +179,22 @@
 }
 
 
+/* Infos sous navigation */
+.infos-dossier {
+    /* background-color: #f0f9f0;
+    border: 1px solid #b4d8b4; */
+    padding: 1rem;
+    margin-top: 5rem;
+    border-radius: 8px;
+}
+
+.infos-dossier p {
+    margin: 1rem 0;
+    color: black;
+    font-size: large;
+}
+
+
 /* Ecrire message + PJ */
 
 .message-form {
@@ -147,7 +226,7 @@
 }
 
 .pj-actions button {
-    background-color: #008CBA;
+    background-color: #00455c;
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -157,6 +236,25 @@
     cursor: pointer;
 }
 
+.pj-actions button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+
 .pj-actions button:hover {
     background-color: #0072a3;
 }
+
+.pj-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    color: rgb(65, 65, 65);
+}
+
+.pj-max {
+    margin-top: 6px;
+    font-style: italic;
+}
+

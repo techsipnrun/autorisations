@@ -45,10 +45,8 @@ class GraphQLClient:
             if response.status_code == 200:
                 return response.json()
             else:
-                logger.error(
-                    f"Erreur lors de la requête {query_file} : {response.status_code} - {response.text}"
-                )
+                logger.error(f"Erreur lors de la requête {query_file} : {response.status_code} - {response.text}")
                 raise Exception(f"Erreur {response.status_code}: {response.text}")
         except Exception as e:
-            logger.exception(f"Exception lors de l'exécution de la requête : {e}")
+            logger.exception(f"Erreur lors de l'exécution de la requête {query_file} : {e}")
             raise

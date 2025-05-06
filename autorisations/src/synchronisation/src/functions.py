@@ -47,37 +47,28 @@ def extraire_nom_et_extension(filename):
 
 def type_demande_from_nom_demarche(nom_demarche):
 
-    if nom_demarche == "Demande d'autorisation : Activités commerciales en cœur du Parc national de la Réunion":
+    if "Activités commerciales" in nom_demarche :
         return DemandeType.objects.filter(type="Activités commerciales").values_list("id", flat=True).first()
         # return 7
-    elif nom_demarche == "Demande d'autorisation : Travaux en cœur du Parc national de la Réunion, non soumis à autorisation d'urbanisme":
+    elif "Travaux" in nom_demarche:
         return DemandeType.objects.filter(type="Travaux").values_list("id", flat=True).first()
         # return 4
-    elif nom_demarche == "Demande d'autorisation : Travaux en cœur du Parc national de la Réunion et soumis à autorisation d'urbanisme":
-        return DemandeType.objects.filter(type="Travaux").values_list("id", flat=True).first()
-        # return 4
-    elif nom_demarche == "Demande d'autorisation : Travaux en aire d’adhésion":
-        return DemandeType.objects.filter(type="Travaux").values_list("id", flat=True).first()
-        # return 4
-    elif nom_demarche == "Demande d'autorisation : Mission scientifique en cœur du Parc national de la Réunion":
+    elif "Mission scientifique" in nom_demarche :
         return DemandeType.objects.filter(type="Missions scientifiques").values_list("id", flat=True).first()
         # return 5
-    elif nom_demarche == "Demande d'autorisation : Mission scientifique en espace protégé":
-        return DemandeType.objects.filter(type="Missions scientifiques").values_list("id", flat=True).first()
-        # return 5
-    elif nom_demarche == "Demande d'autorisation : Survol hélicoptère en cœur du Parc national de la Réunion":
+    elif "Survol motorisé" in nom_demarche :
         return DemandeType.objects.filter(type="Survol hélicoptère").values_list("id", flat=True).first()
         # return 9
-    elif nom_demarche == "Demande d'autorisation : Courses d’arêtes en cœur du Parc national de la Réunion":
+    elif "arêtes" in nom_demarche :
         return DemandeType.objects.filter(type="Arêtes").values_list("id", flat=True).first()
         # return 3
-    elif nom_demarche == "Demande d'autorisation : Activités agricoles en cœur du Parc national de la Réunion":
+    elif "Activités agricoles" in nom_demarche :
         return DemandeType.objects.filter(type="Activités agricoles").values_list("id", flat=True).first()
         # return 6
-    elif nom_demarche == "Demande d'autorisation : Prise de vue et de son et/ou survol de drone en cœur du Parc national de la Réunion":
-        return 999  # Cas particulier à traiter à part
+    elif "Prise de vue et de son" in nom_demarche :
+        return 999  # Cas particulier à traiter à part (drone OU pdv)
     else:
-        print(nom_demarche)
+        # print(nom_demarche)
         return None
     
 
@@ -142,9 +133,9 @@ def calcul_priorite_instruction(id_demarche, doss):
         ratio_restant = jours_restants / delais_jours_instruction
 
         if ratio_restant < 0.3:
-            niveau = "haute"
+            niveau = "urgent"
         elif ratio_restant < 0.8:
-            niveau = "moyenne"
+            niveau = "normal"
         else:
             niveau = "faible"
 
@@ -295,11 +286,15 @@ def construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche):
     except:
         annee = "0000"
 
-    # 4. Dossier = numero_nom_prenom
+    # 4. Dossier = numero_nom_prenom pour PersonnPhysique et numero_nom pour PersonneMorale
     numero = str(doss["number"])
-    nom = contact_beneficiaire.get("nom", "Inconnu").replace(" ", "_").upper()
-    prenom = contact_beneficiaire.get("prenom", "Inconnu").replace(" ", "_").lower().capitalize()
-    dossier_part = f"{numero}_{nom}_{prenom}"
+    if doss['demandeur']['__typename'] == 'PersonnePhysique' :
+        nom = contact_beneficiaire.get("nom", "Inconnu").replace(" ", "_").upper()
+        prenom = contact_beneficiaire.get("prenom", "Inconnu").replace(" ", "_").lower().capitalize()
+        dossier_part = f"{numero}_{nom}_{prenom}_{date_depot.strftime("%d-%m")}"
+
+    if doss['demandeur']['__typename'] == 'PersonneMorale' :
+        dossier_part = f"{numero}_{formater_nom_personne_morale(doss["demandeur"])}_{date_depot.strftime("%d-%m")}"
 
     path_parts = [type_autorisation, annee]
     if type_demarche:
@@ -442,3 +437,22 @@ def write_pj(emplacement, name, url_pj):
         logger.error(f"[HTTP ERROR] Impossible de télécharger la pièce jointe ({name}) : {e}")
     except Exception as e:
         logger.error(f"[FILE ERROR] Impossible d’écrire la pièce jointe {chemin_fichier} : {e}")
+
+
+def formater_nom_personne_morale(data):
+    """
+    Extrait et formate le nom d'une Personne Morale (entreprise ou association) en minuscules avec des underscores.
+
+    :param data: Dictionnaire contenant les champs 'entreprise' ou 'association'
+    :return: Chaîne formatée (str)
+    """
+
+    if data.get("entreprise") :
+        raison = data.get("entreprise", {}).get("raisonSociale")
+        nom_entreprise = data.get("entreprise", {}).get("nom")
+
+    if data.get("association") :
+        titre = data.get("association", {}).get("titre")
+
+    nom = raison or nom_entreprise or titre or ""
+    return nom.strip().lower().replace(" ", "_")
