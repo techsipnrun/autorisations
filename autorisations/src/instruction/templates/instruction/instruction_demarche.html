@@ -6,7 +6,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page d'accueil de l'application</title>
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction.css' %}">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}">
 
     <!-- Bouton actualiser -->
     <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
@@ -28,34 +31,36 @@
         </button>
         <span id="message-actualisation" class="actualisation-texte"></span>
     </div>
-    
 
-    <h1>Dossiers en cours d'instruction</h1>
+    <h1>{{ demarche.titre }}</h1>
+    <h2>Les dossiers en instructions</h2>
 
     <table>
         <thead>
-            <tr>
-                <th>DOSSIERS</th>
-                <th>En pré-instruction</th>
-                <th>Suivis</th>
-                <th>Traités cette année</th>
-            </tr>
+          <tr>
+            <th>Dossier</th>
+            <th>Type</th>
+            <th>Numéro</th>
+            <th>Bénéficiaire</th>
+            <th>Reçu le</th>
+            <th>Groupe Instructeur</th>
+          </tr>
         </thead>
         <tbody>
-            {% for d in dossier_infos %}
-                <tr class="clickable-row" data-href="{% url 'instruction_demarche' d.demarche.numero %}">
-                    <td>{{ d.demarche.type }}</td>
-                    <td>{{ d.nb_pre_instruction }}</td>
-                    <td class="suivis_instruction">{{ d.nb_suivis }}</td>
-                    <td>{{ d.nb_traites }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="5">Aucun dossier pour le moment.</td>
-                </tr>
-            {% endfor %}
+          {% for d in dossiers %}
+            <tr class="clickable-row" data-href="{% url 'instruction_dossier' d.numero %}">
+                <td>{{ d.nom_dossier }}</td>
+                <td>{{ d.type }}</td>
+                <td>{{ d.numero }}</td>
+                <td>{{ d.beneficiaire }}</td>
+                <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                <td>{{ d.groupe }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
+          {% endfor %}
         </tbody>
-    </table>
+      </table>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {

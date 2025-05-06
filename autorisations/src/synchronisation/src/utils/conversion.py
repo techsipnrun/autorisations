@@ -147,8 +147,10 @@ def formater_nom_personne_morale(data: Dict) -> str:
         str: Nom formaté (ex: "sarl_toto", "les_amis_du_parc"), ou chaîne vide si aucun nom trouvé.
     """
     raison = data.get("entreprise", {}).get("raisonSociale", "")
-    nom_entreprise = data.get("entreprise", {}).get("nom", "")
-    titre = data.get("association", {}).get("titre", "")
+    if data["entreprise"] :
+        nom_entreprise = data.get("entreprise", {}).get("nom", "")
+    if data["association"] :
+        titre = data.get("association", {}).get("titre", "")
 
     nom = raison or nom_entreprise or titre
     return nom.strip().lower().replace(" ", "_")

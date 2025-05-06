@@ -4,10 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from autorisations.models.models_instruction import Dossier, EtatDossier
-from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire
+from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from instruction.utils import format_etat_dossier
-from DS.call_DS import change_groupe_instructeur_ds
+from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -117,3 +117,29 @@ def changer_groupe_instructeur(request):
         logger.error(f"Echec du changement de Groupe Instructeur (Dossier {dossier_num} --> {nom_groupe})")
 
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+
+@require_POST
+def passer_en_instruction(request):
+    
+
+    dossier_id = request.POST.get("dossierId")
+    instructeur_email = request.user.email
+
+    instructeur_id_ds = Instructeur.objects.filter(email=instructeur_email).values_list("id_ds", flat=True).first()
+
+    if not dossier_id or not instructeur_id_ds:
+        messages.error(request, "Paramètres manquants.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    result = passer_en_instruction_ds(dossier_id, instructeur_id_ds)
+
+    if result["success"]:
+        logger.info(f"[DS] Passage en instruction réussi pour le dossier {dossier_id}")
+        messages.success(request, "Dossier passé en instruction avec succès.")
+    else:
+        logger.error(f"[DS] Échec du passage en instruction pour le dossier {dossier_id} : {result['message']}")
+        messages.error(request, f"Erreur : {result['message']}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))

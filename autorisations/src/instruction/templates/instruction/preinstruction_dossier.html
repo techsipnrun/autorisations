@@ -105,7 +105,13 @@
                         
                             <button type="submit" class="valider-btn">Valider</button>
                         </form>
-                        
+
+                        <form method="post" action="{% url 'passer_en_instruction' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                            <button type="submit" class="btn_passer_en_instruction">Passer en instruction</button>
+                        </form>
+                                                
 
                     </div>
                 

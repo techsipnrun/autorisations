@@ -1,0 +1,39 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page d'accueil de l'application</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
+
+    <!-- Bouton actualiser -->
+    <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
+    <!-- JS pour l'actualisation -->
+    <script src="{% static 'instruction/js/preinstruction_actualiser.js' %}"></script>
+
+</head>
+
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="actualiser-wrapper">
+        <button
+            id="btn-actualiser"
+            data-url="{% url 'actualiser_donnees' %}"
+            data-csrf="{{ csrf_token }}"
+            title="Actualiser les données">
+            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
+        </button>
+        <span id="message-actualisation" class="actualisation-texte"></span>
+    </div>
+
+    <h2>Zoom sur un doss</h2>
+
+
+</body>
+</html>

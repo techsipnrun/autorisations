@@ -309,3 +309,52 @@ def change_groupe_instructeur_ds(dossier_id, groupe_instructeur_id):
         loggerDS.exception(f"Erreur dans la mutation change_groupe_instructeur.graphql (Dossier {num_dossier_pg}) : {e}")
         return {"success": False, "message": str(e)}
 
+
+
+def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
+    """
+    Passe un dossier en instruction via l’API DS.
+
+    Args:
+        dossier_id_ds (str): ID du dossier D-S.
+        instructeur_id_ds (str): ID de l’instructeur D-S.
+
+    Returns:
+        dict: Résultat de la mutation avec 'success' et 'message'.
+    """
+    client = GraphQLClient()
+
+    num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+
+    loggerDS.info(f"Tentative de passage en instruction du dossier {num_dossier_pg} par {email_instructeur}")
+
+    try:
+        variables = {
+            "input": {
+                "dossierId": dossier_id_ds,
+                "instructeurId": instructeur_id_ds
+            }
+        }
+
+        result = client.execute_query("DS/mutations/passer_en_instruction.graphql", variables)
+
+        if not result or "data" not in result:
+            loggerDS.error(f"[DS] Réponse vide lors du passage en instruction du dossier {num_dossier_pg}")
+            return {"success": False, "message": "Réponse vide ou invalide."}
+
+        response_data = result["data"]["dossierPasserEnInstruction"]
+        if response_data and not response_data['errors']:
+            loggerDS.info(f"[DS] Passage en instruction réussi pour le dossier {num_dossier_pg}")
+            return {"success": True, "message": response_data.get("message", "OK")}
+        else:
+            erreurs = response_data.get("errors", [])
+            msg = "; ".join([err["message"] for err in erreurs]) if erreurs else "Erreur inconnue"
+            loggerDS.warning(f"[DS] Passage en instruction échoué pour le dossier {num_dossier_pg} : {msg}")
+            return {"success": False, "message": msg}
+
+    except Exception as e:
+        loggerDS.exception(f"[DS] Exception lors du passage en instruction du dossier {num_dossier_pg}")
+        return {"success": False, "message": str(e)}
+
+
