@@ -257,7 +257,12 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
         annee = "0000"
 
     # 4. Nom du dossier
-    numero = str(doss.get("number", "000000"))
+    if not doss["number"] :
+        loggerDS.error(f"Erreur lors de la construction de l'emplacement du Dossier {doss["id"]} : le number n'a pas été récupéré sur DS")
+    else:
+        numero = str(doss.get("number", "000000"))
+
+
     demandeur_type = doss.get("demandeur", {}).get("__typename")
 
     if demandeur_type == "PersonnePhysique":
