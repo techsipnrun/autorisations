@@ -1,5 +1,10 @@
 from datetime import datetime
-from synchronisation.src.functions import fetch_geojson, formater_nom_personne_morale, get_first_id, calcul_date_limite_instruction, parse_datetime_with_tz
+from synchronisation.src.utils.model_helpers import get_first_id, parse_datetime_with_tz
+from synchronisation.src.utils.conversion import formater_nom_personne_morale
+from synchronisation.src.utils.instruction import calcul_date_limite_instruction
+from synchronisation.src.utils.fichiers import fetch_geojson
+
+
 from autorisations.models.models_instruction import EtatDossier, Groupeinstructeur, DossierType
 
 
@@ -14,6 +19,7 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
     geojson = fetch_geojson(doss["geojson"]["url"]) if doss["geojson"] else None
 
     date_depot = parse_datetime_with_tz(doss["dateDepot"])
+
 
     if doss['demandeur']['__typename'] == 'PersonneMorale' :
         nom_personne_morale = formater_nom_personne_morale(doss['demandeur'])

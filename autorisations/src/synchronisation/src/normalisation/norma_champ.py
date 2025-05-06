@@ -1,5 +1,5 @@
 from autorisations.models.models_instruction import ChampType, Champ, Demarche
-from synchronisation.src.functions import get_first_id
+from synchronisation.src.utils.model_helpers import get_first_id
 
 
 def champ_normalize(d):

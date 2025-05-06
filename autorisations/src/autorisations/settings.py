@@ -176,10 +176,10 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
-        'folder_file': {  # fichier pour les logs Lecture/Ecriture fichiers par l'application
+        'app_file': {  # fichier pour les logs Lecture/Ecriture fichiers par l'application
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': 'logs/app-fichiers.log',  # Path LDAP Logs
+            'filename': 'logs/app.log',  # Path LDAP Logs
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
@@ -232,8 +232,8 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'APP_FILES': {
-            'handlers': ['folder_file'],
+        'APP': {
+            'handlers': ['app_file'],
             'level': 'INFO',
             'propagate': False,
         }

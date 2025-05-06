@@ -1,7 +1,7 @@
 from datetime import datetime
 from autorisations.models.models_instruction import EtatDemande, DemandeType
-from synchronisation.src.functions import get_first_id, calcul_priorite_instruction, parse_datetime_with_tz, type_demande_from_nom_demarche
-
+from synchronisation.src.utils.model_helpers import get_first_id, parse_datetime_with_tz
+from synchronisation.src.utils.instruction import calcul_priorite_instruction, type_demande_from_nom_demarche
 
 def demande_normalize(demarche_id, demarche_title, doss):
     """

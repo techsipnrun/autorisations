@@ -1,4 +1,5 @@
-from synchronisation.src.functions import extraire_nom_et_extension, get_first_id
+from synchronisation.src.utils.conversion import extraire_nom_et_extension
+from synchronisation.src.utils.model_helpers import get_first_id
 from autorisations.models.models_documents import DocumentFormat, DocumentNature
 
 

@@ -1,5 +1,6 @@
-from synchronisation.src.functions import get_first_id, clean_email, extraire_nom_et_extension, parse_datetime_with_tz
-from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, Message, MessageDocument
+from synchronisation.src.utils.conversion import clean_email, extraire_nom_et_extension, parse_datetime_with_tz
+from synchronisation.src.utils.model_helpers import get_first_id
+from autorisations.models.models_documents import DocumentFormat, DocumentNature, Message, MessageDocument
 
 
 def message_normalize(doss, emplacement_dossier):

@@ -11,7 +11,7 @@ from BDD.pg_functions import create_message_bdd
 
 logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")  
-loggerFiles = logging.getLogger("APP_FILES")
+loggerFiles = logging.getLogger("APP")
 
 
 def prepare_temp_file(fichier):

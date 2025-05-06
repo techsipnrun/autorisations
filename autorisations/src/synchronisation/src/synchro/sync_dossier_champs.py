@@ -1,6 +1,7 @@
 from autorisations.models.models_instruction import Dossier, DossierChamp, Champ, ChampType
 from autorisations.models.models_documents import Document
-from ..functions import get_first_id, update_fields, write_geojson, write_pj
+from ..utils.model_helpers import get_first_id, update_fields
+from ..utils.fichiers import write_geojson, write_pj
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")

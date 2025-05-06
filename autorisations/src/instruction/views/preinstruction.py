@@ -9,6 +9,7 @@ from autorisations import settings
 from instruction.utils import format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds
 import logging
+
 logger = logging.getLogger("ORM_DJANGO")
 
 @login_required

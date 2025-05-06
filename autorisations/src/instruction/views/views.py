@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from synchronisation.src.utils import lancer_normalisation_et_synchronisation
+from synchronisation.src.main import lancer_normalisation_et_synchronisation
 from threading import Thread, Lock
 import logging
 

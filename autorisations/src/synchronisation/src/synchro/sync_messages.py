@@ -1,6 +1,7 @@
 from autorisations.models.models_documents import Document, MessageDocument
 from autorisations.models.models_instruction import Message
-from ..functions import update_fields, write_pj
+from ..utils.model_helpers import update_fields
+from ..utils.fichiers import write_pj
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")

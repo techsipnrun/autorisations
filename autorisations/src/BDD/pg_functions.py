@@ -198,11 +198,12 @@ def update_object(model: Type, filters: dict, updates: dict) -> Optional[object]
 
 def get_number_demarche_Postgres():
     """
-    Récupère tous les numéros des démarches enregistrées dans Postgres
-    (liées à Démarches-Simplifiées via le champ `numero`).
+    Récupère tous les numéros des démarches enregistrées dans Postgres,
+    associées à Démarches-Simplifiées via le champ `numero`.
 
     Returns:
-        list[str]: Liste des numéros de démarches DS présents en base.
+        list[str]: Liste des numéros de démarches (DS) présents en base,
+        ou liste vide en cas d’erreur.
     """
     try:
         # Récupère uniquement les champs nécessaires
@@ -227,11 +228,28 @@ def create_message_bdd(
     url_ds=None
 ):
     """
-    Crée un message en base (Postgres) et la pièce jointe si présente.
+    Crée un message (et éventuellement une pièce jointe) dans la base de données.
 
-    Retourne : (message_obj, document_obj ou None)
+    Args:
+        body (str): Contenu textuel du message.
+        email_emetteur (str): Email de l'expéditeur.
+        dossier_obj (Dossier): Instance du dossier lié au message.
+        date_envoi (datetime, optional): Date d’envoi du message. Utilise l’heure actuelle si None.
+        document_file (UploadedFile, optional): Fichier joint (format Django), ou None.
+        document_title (str, optional): Nom d’origine de la pièce jointe (ex: "photo.pdf").
+        document_format_str (str, optional): Format du document (ex: "pdf", "jpg").
+        document_nature_str (str, optional): Nature du document (défaut: "Pièce jointe message").
+        document_description (str, optional): Description libre du document.
+        id_ds (str, optional): ID du message sur Démarches Simplifiées (DS).
+        url_ds (str, optional): URL publique vers la pièce jointe sur DS.
+
+    Returns:
+        Tuple[Message, Optional[Document]]: 
+            Le message créé et, s’il y en a une, la pièce jointe associée.
+
+    Raises:
+        Exception: En cas d’erreur lors de la création du document ou du lien.
     """
-
     try:
 
         # 1. Création du message (sans pièce jointe pour l'instant)

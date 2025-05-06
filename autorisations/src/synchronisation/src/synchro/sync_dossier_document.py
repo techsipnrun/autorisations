@@ -1,5 +1,6 @@
 from autorisations.models.models_documents import Document, DossierDocument
-from ..functions import update_fields, write_resume_pdf
+from ..utils.model_helpers import update_fields
+from ..utils.fichiers import write_resume_pdf
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")

@@ -1,5 +1,5 @@
-from synchronisation.src.functions import clean_email, clean_name, clean_surname
-from synchronisation.src.functions import get_first_id
+from synchronisation.src.utils.conversion import clean_email, clean_name, clean_surname
+from synchronisation.src.utils.model_helpers import get_first_id
 from autorisations.models.models_utilisateurs import TypeContactExterne
 
 

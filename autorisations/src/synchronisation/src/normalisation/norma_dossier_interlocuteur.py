@@ -1,7 +1,3 @@
-from synchronisation.src.functions import get_first_id, clean_email
-from autorisations.models.models_utilisateurs import ContactExterne, TypeContactExterne
-
-
 def dossier_interlocuteur_normalize(doss):
     """
     Normalise les données du DossierInterlocuteur (retourne simplement l'id DS du demandeur).

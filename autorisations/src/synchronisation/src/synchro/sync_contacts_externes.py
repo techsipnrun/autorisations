@@ -1,6 +1,6 @@
 from autorisations.models.models_utilisateurs import ContactExterne
 from django.db import IntegrityError
-from ..functions import update_fields
+from ..utils.model_helpers import update_fields
 import logging
 
 logger = logging.getLogger("ORM_DJANGO")

@@ -1,5 +1,6 @@
 from autorisations.models.models_instruction import Dossier
-from ..functions import create_emplacement, update_fields, foreign_keys_add_suffixe_id
+from ..utils.model_helpers import update_fields, foreign_keys_add_suffixe_id
+from ..utils.fichiers import create_emplacement
 from django.db import models
 from datetime import date, datetime
 import logging

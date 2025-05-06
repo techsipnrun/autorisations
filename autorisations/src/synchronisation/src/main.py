@@ -1,5 +1,3 @@
-# normalisation/utils.py
-
 from DS.call_DS import recup_data_DS
 from BDD.pg_functions import get_number_demarche_Postgres
 from .synchro.sync_process import synchro_process

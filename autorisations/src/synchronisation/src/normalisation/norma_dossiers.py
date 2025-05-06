@@ -5,8 +5,9 @@ from .norma_dossier_champs import dossiers_champs_normalize
 from .norma_dossier_document import dossier_document_normalize
 from .norma_messages import message_normalize
 from .norma_demandes import demande_normalize
-from synchronisation.src.functions import construire_emplacement_dossier, get_first_id
-from autorisations.models.models_instruction import Demarche, Dossier
+from synchronisation.src.utils.model_helpers import get_first_id
+from synchronisation.src.utils.fichiers import construire_emplacement_dossier
+from autorisations.models.models_instruction import Demarche
 
 
 def dossiers_normalize_process(d):

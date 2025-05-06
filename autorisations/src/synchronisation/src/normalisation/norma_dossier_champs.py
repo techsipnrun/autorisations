@@ -2,7 +2,9 @@ from datetime import datetime
 import logging
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature
 from autorisations.models.models_instruction import Champ, ChampType
-from synchronisation.src.functions import fetch_geojson, get_first_id, extraire_nom_et_extension, parse_datetime_with_tz
+from synchronisation.src.utils.model_helpers import get_first_id, parse_datetime_with_tz
+from synchronisation.src.utils.fichiers import fetch_geojson
+from synchronisation.src.utils.conversion import extraire_nom_et_extension
 
 logger = logging.getLogger('ORM_DJANGO')
 def dossiers_champs_normalize(doss, emplacement_dossier):

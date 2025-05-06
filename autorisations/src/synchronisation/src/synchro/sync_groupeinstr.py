@@ -1,6 +1,6 @@
 import logging
 from autorisations.models.models_utilisateurs import GroupeinstructeurDemarche, Instructeur
-from ..functions import update_fields
+from ..utils.model_helpers import update_fields
 
 logger = logging.getLogger("ORM_DJANGO")
 
