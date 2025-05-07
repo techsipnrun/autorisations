@@ -29,9 +29,58 @@
 
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
                
-            <div class="etat-badge-menu">
+            <!-- <div class="etat-badge-menu">
                 {{ etat_dossier }}
-            </div> 
+            </div>  -->
+
+
+            <div class="etat-badge-container">
+                <div class="etat-badge-menu-dropdown">
+                    <div class="etat-badge-label" id="etatMenuToggle">
+                        {{ etat_dossier }}
+                        <span class="dropdown-arrow">&#9660;</span>
+                    </div>
+                    <div class="etat-badge-menu-content" id="etatMenuContent">
+                        {% if dossier.id_groupeinstructeur %}
+                            <form method="post" action="{% url 'passer_en_instruction' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                <button type="submit" class="btn_dropdown_instruction">Passer en instruction</button>
+                            </form>
+                        {% else %}
+                            <div class="instruction-warning">
+                                Veuillez d’abord sélectionner un groupe instructeur.
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                </div>
+                
+
+                <!-- Select groupe instructeur -->
+                <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+
+                    <label for="groupe" class="groupe-label">Groupe instructeur :</label>
+                   <select name="groupeInstructeurId" onchange="this.form.submit()">
+                        {% if not dossier.id_groupeinstructeur %}
+                            <option value="" selected>-- Sélectionner --</option>
+                        {% else %}
+                            <option value="{{ dossier.id_groupeinstructeur.id }}" selected disabled>
+                                {{ dossier.id_groupeinstructeur.nom }}
+                            </option>
+                        {% endif %}
+
+                        {% for groupe in groupes_instructeurs %}
+                            {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
+                                <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </form>
+
+            </div>
 
 
             <div class="champs">
@@ -43,7 +92,7 @@
                         <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
 
                     {% elif champ.type == 'carte' %}
-                        <h3>{{ champ.nom }}</h3>
+                        <h2>{{ champ.nom }}</h2>
                         <div class="carte-container">
                             <div class="carte" data-geojson='{{ champ.geojson }}'></div>
                         </div>
@@ -82,13 +131,13 @@
             <div class="etat-actions">
 
                 <div class="actions-liste">
-                    <button class="action-btn" data-action="en_instruction">Passer en instruction</button>
+                    <!-- <button class="action-btn" data-action="en_instruction">Passer en instruction</button> -->
                     <button class="action-btn" data-action="historise">Historiser</button>
                 </div>
 
                 <div id="etat-result" class="etat-result">
 
-                    <div id="form-en_instruction" class="etat-message" style="display: none;">
+                    <!-- <div id="form-en_instruction" class="etat-message" style="display: none;">
 
                         <form method="post" action="{% url 'changer_groupe_instructeur' %}">
                             {% csrf_token %}
@@ -110,10 +159,8 @@
                             {% csrf_token %}
                             <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                             <button type="submit" class="btn_passer_en_instruction">Passer en instruction</button>
-                        </form>
-                                                
-
-                    </div>
+                        </form>                       
+                    </div> -->
                 
                     <div id="form-historise" class="etat-message" style="display: none;">
 
@@ -197,7 +244,26 @@
 </script>
 
 
-
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleBtn = document.getElementById("etatMenuToggle");
+        const menuContent = document.getElementById("etatMenuContent");
+        const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
+    
+        toggleBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            menuContent.classList.toggle("show");
+            dropdownWrapper.classList.toggle("open");
+        });
+    
+        document.addEventListener("click", function () {
+            menuContent.classList.remove("show");
+            dropdownWrapper.classList.remove("open");
+        });
+    });
+    </script>
+    
+    
 
 
 </html>

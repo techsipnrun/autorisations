@@ -29,7 +29,14 @@ def sync_contacts_externes(contacts_externes):
                 nom = data["nom"]
                 prenom = data["prenom"]
                 email = data["email"]
+
+                if nom == 'DURAND' :
+                    print(f'DURAND email : {data["email"]}')
+            
+
                 if email :
+                
+                    # Deux Contact Externes ne peuvent pas avoir le même email
                     obj, created = ContactExterne.objects.get_or_create(
                         email=email,
                         id_type_id=data["id_type"],
@@ -38,14 +45,15 @@ def sync_contacts_externes(contacts_externes):
                             "prenom": prenom
                         }
                     )
+
+
+                    if nom == 'DURAND' :
+                        print("L'objet : ", obj)
                 else :
                     obj, created = ContactExterne.objects.get_or_create(
                         id_type_id=data["id_type"],
                         nom=nom,
                         prenom=prenom,
-                        defaults={
-                            "email": email
-                        }
                     )
 
                 if created:

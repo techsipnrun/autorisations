@@ -18,8 +18,8 @@
 
 /* === MESSAGERIE === */
 h1 {
-    color: #115e31; /* même vert que preinstruction_dossier.css */
-    /* margin-bottom: 3rem; */
+    color: #115e31;
+
 }
 
 
@@ -184,8 +184,10 @@ h1 {
     /* background-color: #f0f9f0;
     border: 1px solid #b4d8b4; */
     padding: 1rem;
-    margin-top: 5rem;
+    margin-top: 8rem;
     border-radius: 8px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
 }
 
 .infos-dossier p {

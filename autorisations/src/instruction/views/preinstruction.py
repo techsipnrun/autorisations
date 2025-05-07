@@ -1,3 +1,5 @@
+from django.urls import reverse
+from django.utils import timezone
 import json, os
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
@@ -102,10 +104,11 @@ def changer_groupe_instructeur(request):
 
     nom_groupe = Groupeinstructeur.objects.filter(id=groupe_id).values_list("nom", flat=True).first()
     groupe_id_ds = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur=groupe_id).values_list("id_groupeinstructeur_ds", flat=True).first()
-    dossier_num = Dossier.objects.filter(id_ds=dossier_id).values_list("numero", flat=True).first()
+    dossier = Dossier.objects.filter(id_ds=dossier_id).first()
+    dossier_num = dossier.numero
 
     if not dossier_id or not groupe_id_ds:
-        messages.error(request, "Champs manquants.")
+        logger.error(f"[FORM] Changement groupe instructeur : paramètres manquants (dossier_id={dossier_id}, groupe_id_ds={groupe_id_ds})")
         return redirect(request.META.get('HTTP_REFERER', '/'))
     
     result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
@@ -113,33 +116,57 @@ def changer_groupe_instructeur(request):
     if result["success"]:
         logger.info(f"[UPDATE] Groupe Instructeur changé avec succès (Dossier {dossier_num} --> {nom_groupe})")
 
+        # mettre à jour le groupe instructeur en base
+        try:
+            dossier.id_groupeinstructeur_id = groupe_id
+            dossier.save()
+            logger.info(f"[PG] Groupe Instructeur mis à jour dans Postgres (Dossier {dossier_num} --> {nom_groupe})")
+
+        except Exception as e:
+            logger.error(f"[PG] Erreur de mise à jour du groupe instructeur (groupe mis à jour sur DS) : {e}")
+
+
     else:
         logger.error(f"Echec du changement de Groupe Instructeur (Dossier {dossier_num} --> {nom_groupe})")
 
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
-
 @require_POST
 def passer_en_instruction(request):
-    
-
     dossier_id = request.POST.get("dossierId")
     instructeur_email = request.user.email
 
     instructeur_id_ds = Instructeur.objects.filter(email=instructeur_email).values_list("id_ds", flat=True).first()
+    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
 
-    if not dossier_id or not instructeur_id_ds:
-        messages.error(request, "Paramètres manquants.")
+    # Vérifie qu'un groupe instructeur est affecté
+    if not dossier.id_groupeinstructeur:
+        logger.warning(f"[FORM] Tentative de passage en instruction sans groupe instructeur affecté (Dossier {dossier_id})")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not instructeur_id_ds:
+        logger.error(f"Passage Dossier en instruction : Instructeur non reconnu pour l'email : {instructeur_email}")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     result = passer_en_instruction_ds(dossier_id, instructeur_id_ds)
 
     if result["success"]:
         logger.info(f"[DS] Passage en instruction réussi pour le dossier {dossier_id}")
-        messages.success(request, "Dossier passé en instruction avec succès.")
+
+        try:
+            etat_instruction = EtatDossier.objects.get(nom__iexact="en_instruction")
+            dossier.id_etat_dossier = etat_instruction
+            dossier.date_debut_instruction = timezone.now()
+            dossier.save()
+            logger.info(f"[PG] État du dossier {dossier.nom_dossier} mis à jour en 'en_instruction'.")
+            
+            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+        except Exception as e:
+            logger.error(f"[PG] Erreur lors de la mise à jour de l'état du dossier : {e}")
+
     else:
         logger.error(f"[DS] Échec du passage en instruction pour le dossier {dossier_id} : {result['message']}")
-        messages.error(request, f"Erreur : {result['message']}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))

@@ -32,7 +32,7 @@ def instruction_demarche(request, num_demarche):
 
     # Récupérer l'ID de l'état "en_instruction"
     etat = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
-    print('etat: ', etat)
+
     dossiers = Dossier.objects.filter(
                 id_etat_dossier=etat,
                 id_demarche=demarche.id
@@ -43,8 +43,8 @@ def instruction_demarche(request, num_demarche):
 
     dossier_infos = []
     for dossier in dossiers:
+        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
 
-        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
         beneficiaire = None
         if interlocuteur:
             dossier_beneficiaire = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
@@ -59,6 +59,7 @@ def instruction_demarche(request, num_demarche):
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A"
         })
+
 
     return render(request, "instruction/instruction_demarche.html", {
     "demarche": demarche,

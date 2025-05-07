@@ -43,6 +43,12 @@ def contact_externe_normalize(doss):
                 "nom": clean_surname(doss['demandeur']['nom']),
                 "prenom": clean_name(doss['demandeur']['prenom']),
             }
+
+            if doss['demandeur']['nom'] :
+                if doss['demandeur']['nom'] == 'Durand':
+                    print(contacts_externes)
+
+
         if doss['demandeur']['__typename'] == 'PersonneMorale' :
             contacts_externes['personne_morale'] = {
                 "email": clean_email(doss['usager']['email']),
