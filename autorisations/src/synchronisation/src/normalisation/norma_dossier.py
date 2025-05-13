@@ -5,7 +5,7 @@ from synchronisation.src.utils.instruction import calcul_date_limite_instruction
 from synchronisation.src.utils.fichiers import fetch_geojson
 
 
-from autorisations.models.models_instruction import EtatDossier, Groupeinstructeur, DossierType
+from autorisations.models.models_instruction import EtapeDossier, EtatDossier, Groupeinstructeur, DossierType
 
 
 def dossier_normalize(id_demarche, doss, emplacement_dossier):
@@ -27,7 +27,8 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
 
     return {
         "id_ds": doss["id"],
-        "id_etat_dossier": get_first_id(EtatDossier, nom=doss["state"]),
+        "id_etat_dossier": get_first_id(EtatDossier, nom=doss["state"]), #format_etat_dossier(doss["state"])
+        # "id_etape_dossier": get_first_id(EtapeDossier, etape='En pré-instruction'), deja valeur par défaut dans PG
         "id_demarche": id_demarche,
         "numero": doss["number"],
         "id_groupeinstructeur": get_first_id(Groupeinstructeur, nom=doss["groupeInstructeur"]["label"]),

@@ -1,0 +1,101 @@
+query dossier($number: Int!) {
+  dossier(number: $number) {
+        id
+        number
+        dateDepot
+        datePassageEnConstruction
+        datePassageEnInstruction
+        dateTraitement
+        prenomMandataire
+        nomMandataire
+        pdf {
+            createdAt
+            filename
+            url
+        }
+        geojson {
+            url
+        }
+        usager {
+            id
+            email
+        }
+        demandeur {
+            id
+            __typename
+            ... on PersonnePhysique {
+                civilite
+                email
+                nom
+                prenom
+            }
+            ... on PersonneMorale {
+                entreprise {
+                    raisonSociale
+                    nom
+                }
+                association {
+                    titre
+                }
+                siret
+                address {
+                    cityName
+                }
+            }
+        }
+        instructeurs {
+            id
+            email
+        }
+        groupeInstructeur {
+            label
+            number
+        }
+        champs {
+            label
+            stringValue
+            __typename
+            id
+            updatedAt
+                ... on CarteChamp {
+                    geoAreas {
+                        geometry {
+                            coordinates
+                            type
+                        }
+                    }
+                }
+            ... on PieceJustificativeChamp {
+                files {
+                    url
+                    filename
+                }
+            }
+        } 
+        state
+        messages {
+            id
+            body
+            createdAt
+            email
+            attachments {
+                url
+                filename
+            }
+        }
+        avis {
+            id
+            reponse
+            dateQuestion
+            dateReponse
+            expert {
+                id
+                email
+            }
+            attachments {
+                url
+                filename
+            }
+        }
+    }
+}

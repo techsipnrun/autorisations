@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page de pré-instruction</title>
+
+    <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
 
     <!-- Leaflet -->
@@ -14,7 +16,6 @@
 
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
 
 </head>
 
@@ -105,6 +106,7 @@
         <!-- Colonne droite : navigation -->
         <div class="nav_preinstruction">
             <div class="nav_top">
+
                 <!-- Form messagerie à gauche -->
                 <div class="form_messagerie">
                     <a href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
@@ -118,8 +120,7 @@
                         </div>
                     </a>
                 </div>
-                
-                
+
                 <!-- Lien dossier à droite -->
                 <div class="lien_dossier">
                     <a href="#" onclick="copierChemin('{{ dossier.emplacement }}')">
@@ -127,63 +128,19 @@
                     </a>
                 </div>
             </div>
-
-            <div class="etat-actions">
-
-                <div class="actions-liste">
-                    <!-- <button class="action-btn" data-action="en_instruction">Passer en instruction</button> -->
-                    <button class="action-btn" data-action="historise">Historiser</button>
+            
+            {% if dossier.id_groupeinstructeur %}
+                <div class="groupe-instructeur-info">
+                    <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
+                    <ul class="groupe-instructeur-liste">
+                        {% for instructeur in membres_groupe %}
+                            <li>{{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
+            {% endif %}
 
-                <div id="etat-result" class="etat-result">
-
-                    <!-- <div id="form-en_instruction" class="etat-message" style="display: none;">
-
-                        <form method="post" action="{% url 'changer_groupe_instructeur' %}">
-                            {% csrf_token %}
-                            
-                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        
-                            <label for="groupe">Groupe instructeur :</label><br>
-                            <select id="groupe" name="groupeInstructeurId" required>
-                                <option value="">-- Sélectionner --</option>
-                                {% for groupe in groupes_instructeurs %}
-                                    <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
-                                {% endfor %}
-                            </select><br>
-                        
-                            <button type="submit" class="valider-btn">Valider</button>
-                        </form>
-
-                        <form method="post" action="{% url 'passer_en_instruction' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                            <button type="submit" class="btn_passer_en_instruction">Passer en instruction</button>
-                        </form>                       
-                    </div> -->
-                
-                    <div id="form-historise" class="etat-message" style="display: none;">
-
-                        <form>
-                            <label for="motif">Choix :</label><br>
-
-                            <select id="motif" name="motif" required>
-                                <option value="">-- Sélectionner --</option>
-                                <option value="non_autorisation">Non soumis à autorisation</option>
-                                <option value="sans_suite">Classer sans suite</option>
-                            </select><br>
-
-                            <label for="raison">Raison :</label><br>
-
-                            <textarea id="raison" name="raison" maxlength="600"></textarea><br>
-
-                            <button type="button" class="valider-btn">Valider</button>
-                        </form>
-
-                    </div>
-                </div>
-                
-            </div>
+            
 
         </div>
     </div>

@@ -61,6 +61,48 @@ def preinstruction_dossier_messagerie(request, numero):
 
 
 
+@login_required
+def instruction_dossier_messagerie(request, num_dossier):
+    dossier = get_object_or_404(Dossier, numero=num_dossier)
+    raw_messages = Message.objects.filter(id_dossier=dossier).order_by("date_envoi")
+    messages_fmt = []
+
+    for msg in raw_messages:
+
+        emetteur = msg.email_emetteur.lower().strip()
+
+        # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
+        align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
+        date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
+
+        # Recherche de la pièce jointe liée au message
+        pj_url = pj_title = None
+        if msg.piece_jointe:
+
+            message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
+
+            if message_doc and message_doc.id_document:
+                
+                pj_url, pj_title = message_doc.id_document.url_ds, message_doc.id_document.titre
+
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title})
+
+    interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
+    demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
+    beneficiaire = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first().id_beneficiaire if interlocuteur else None
+
+    return render(request, 'instruction/instruction_dossier_messagerie.html', {
+        "dossier": dossier,
+        "messages": messages_fmt,
+        "is_formulaire_active": False,
+        "is_messagerie_active": True,
+        "beneficiaire": beneficiaire,
+        "demandeur": demandeur,
+        "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
+    })
+
+
+
 @require_POST
 @csrf_exempt
 def envoyer_message_dossier(request, numero):
@@ -153,7 +195,10 @@ def actualiser_messages(request, numero):
 
     try:
         # Appel API DS pour récupérer les messages
-        result = client.execute_query("DS/mutations/get_message.graphql", {"number": dossier.numero})
+        result = client.execute_query("DS/queries/get_message.graphql", {"number": dossier.numero})
+
+        if "errors" in result and result["errors"]:
+            raise Exception(f"Erreur(s) GraphQL (Actualisation de la messagerie pour le dossier {numero}): {result['errors']}")
 
         # Normalisation
         messages_norm = message_normalize({"messages": result["data"]["dossier"]["messages"], "number": dossier.numero, "usager": {}, "demandeur": {}}, dossier.emplacement)

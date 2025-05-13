@@ -1,0 +1,10 @@
+.avis-page-container {
+    display: flex;
+    gap: 2rem;
+    padding: 4rem;
+    margin-bottom: 3rem;
+}
+
+.avis {
+    width: 70%;
+}

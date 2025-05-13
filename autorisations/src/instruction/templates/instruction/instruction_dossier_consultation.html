@@ -1,0 +1,59 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page de de formulation et de consultation des avis</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_consultation.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
+
+</head>
+<body>
+
+    {% include 'navbar.html' %}
+
+    <div class="avis-page-container">
+
+        <div class="avis"></div>
+    
+        <!-- Colonne droite : navigation -->
+        <div class="nav_preinstruction">
+            <div class="nav_top">
+            
+                <div class="form_messagerie">
+                    <a href="{% url 'instruction_dossier' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
+                            Formulaire
+                        </div>
+                    </a>
+                    <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
+                            Messagerie
+                        </div>
+                    </a>
+                    <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
+                            Consultation
+                        </div>
+                    </a>
+                </div>
+                
+                
+                <!-- Lien dossier à droite -->
+                <div class="lien_dossier">
+                    <a href="#" onclick="copierChemin('{{ dossier.emplacement }}')">
+                        <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, MessageDocument
-from .models.models_instruction import Champ, DossierChamp, DossierGroupe, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Priorite
+from .models.models_instruction import Champ, DossierChamp, DossierGroupe, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Priorite
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne
 
 
@@ -324,6 +324,8 @@ admin.site.register(DemandeType)
 admin.site.register(EtatDemande)
 
 admin.site.register(EtatDossier)
+
+admin.site.register(EtapeDossier)
 
 admin.site.register(EtatDemarche)
 

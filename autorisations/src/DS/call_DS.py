@@ -232,7 +232,7 @@ def get_msg_DS(num_doss, message_id_ds):
 
     try:
 
-        result = client.execute_query("DS/mutations/get_message.graphql", var)
+        result = client.execute_query("DS/queries/get_message.graphql", var)
 
         if result["data"]["dossier"]["messages"] :
 

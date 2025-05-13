@@ -11,12 +11,28 @@
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
 
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Turf.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
 </head>
 
 <body>
     {% include 'navbar.html' %}
 
+    <div class="refresh-doss">
+        <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+            {% csrf_token %}
+            <button type="submit" class="refresh-button">
+                <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                Actualiser
+            </button>
+        </form>
+    </div>
+    
     <div class="page-container">
         
         <!-- Colonne gauche : formulaire -->
@@ -25,26 +41,28 @@
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
 
             <div class="etat-badge-container">
-                <div class="etat-badge-menu-dropdown">
-                    <div class="etat-badge-label" id="etatMenuToggle">
-                        {{ etat_dossier }}
+               <div class="etat-badge-menu-dropdown">
+                    <div class="etat-badge-label" id="etapeMenuToggle">
+                        {{ etape_actuelle.etape|default:"Non défini" }}
                         <span class="dropdown-arrow">&#9660;</span>
                     </div>
-                    <!-- <div class="etat-badge-menu-content" id="etatMenuContent">
-                        {% if dossier.id_groupeinstructeur %}
-                            <form method="post" action="{% url 'passer_en_instruction' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <button type="submit" class="btn_dropdown_instruction">Passer en instruction</button>
-                            </form>
-                        {% else %}
-                            <div class="instruction-warning">
-                                Veuillez d’abord sélectionner un groupe instructeur.
-                            </div>
-                        {% endif %}
-                    </div> -->
-                    
+
+                    <div class="etat-badge-menu-content" id="etapeMenuContent">
+                        <form method="post" action="{% url 'changer_etape_dossier' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+
+                            {% for etape in etapes_possibles %}
+                                {% if not etape_actuelle or etape.id != etape_actuelle.id %}
+                                    <button type="submit" name="etapeDossierId" value="{{ etape.id }}" class="btn_dropdown_instruction">
+                                        {{ etape.etape }}
+                                    </button>
+                                {% endif %}
+                            {% endfor %}
+                        </form>
+                    </div>
                 </div>
+
                 
 
                 <!-- Select groupe instructeur -->
@@ -102,9 +120,14 @@
                             Formulaire
                         </div>
                     </a>
-                    <a href="#">
+                    <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
                             Messagerie
+                        </div>
+                    </a>
+                    <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
+                            Consultation
                         </div>
                     </a>
                 </div>
@@ -118,8 +141,50 @@
                 </div>
             </div>
 
+            {% if dossier.id_groupeinstructeur %}
+                <div class="groupe-instructeur-info">
+                    <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
+                    <ul class="groupe-instructeur-liste">
+                        {% for instructeur in membres_groupe %}
+                            <li>{{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
         </div>
     </div>
+
+    
+<!-- 1. Données JSON pour le fond de carte -->
+{{ fond_de_carte_data|json_script:"fond-data" }}
+
+<!-- 2. Variables globales accessibles à ton JS -->
+<script> window._fondDeCarteData = JSON.parse(document.getElementById("fond-data").textContent);</script>
+
+<!-- 3. Script Leaflet personnalisé -->
+<script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
+
+
+<!-- Menu déroulant état dossier -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const toggleBtn = document.getElementById("etapeMenuToggle");
+    const menuContent = document.getElementById("etapeMenuContent");
+    const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
+
+    toggleBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        menuContent.classList.toggle("show");
+        dropdownWrapper.classList.toggle("open");
+    });
+
+    document.addEventListener("click", function () {
+        menuContent.classList.remove("show");
+        dropdownWrapper.classList.remove("open");
+    });
+});
+</script>
 
 
 </body>

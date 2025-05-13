@@ -17,7 +17,7 @@ logger = logging.getLogger("ORM_DJANGO")
 @login_required
 def preinstruction(request):
 
-    # Récupérer l'ID de l'état "en_construction"
+    # Récupérer l'ID de l'état "en_construction"  ICI
     etat = EtatDossier.objects.filter(nom__iexact="en_construction").first()
 
     dossiers = Dossier.objects.filter(id_etat_dossier=etat).select_related("id_demarche").order_by("date_depot")
@@ -84,6 +84,12 @@ def preinstruction_dossier(request, numero):
     #Récupérer tous les noms de groupes instructeurs pour la démarche en question
     groupes_instructeurs = Groupeinstructeur.objects.filter(groupeinstructeurdemarche__id_demarche=dossier.id_demarche).order_by("nom")
 
+    membres_groupe = []
+    if dossier.id_groupeinstructeur:
+        membres_groupe = dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations").values_list("id_instructeur", flat=False)
+        membres_groupe = [m.id_instructeur for m in dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")]
+
+
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -92,6 +98,7 @@ def preinstruction_dossier(request, numero):
         "is_formulaire_active": True,
         "is_messagerie_active": False,
         "groupes_instructeurs": groupes_instructeurs,
+        "membres_groupe": membres_groupe,
     })
 
 

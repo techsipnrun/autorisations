@@ -53,6 +53,18 @@ class EtatDossier(models.Model):
 
     def __str__(self):
         return self.nom.capitalize()
+    
+
+class EtapeDossier(models.Model):
+    id = models.AutoField(primary_key=True)
+    etape = models.CharField(unique=True)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."etape_dossier"'
+
+    def __str__(self):
+        return self.etape.capitalize()
 
 
 class Priorite(models.Model):
@@ -127,6 +139,7 @@ class Dossier(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
     id_etat_dossier = models.ForeignKey(EtatDossier, models.RESTRICT, db_column='id_etat_dossier')
+    id_etape_dossier = models.ForeignKey(EtapeDossier, models.RESTRICT, db_column='id_etape_dossier')
     numero = models.IntegerField(unique=True)
     date_depot = models.DateTimeField()
     date_debut_instruction = models.DateTimeField(blank=True, null=True)

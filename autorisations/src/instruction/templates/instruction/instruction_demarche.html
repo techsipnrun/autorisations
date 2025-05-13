@@ -44,6 +44,7 @@
             <th>Bénéficiaire</th>
             <th>Reçu le</th>
             <th>Groupe Instructeur</th>
+            <th>Étape</th>
           </tr>
         </thead>
         <tbody>
@@ -55,6 +56,7 @@
                 <td>{{ d.beneficiaire }}</td>
                 <td>{{ d.date_depot|date:"d/m/Y" }}</td>
                 <td>{{ d.groupe }}</td>
+                <td>{{d.etape}}</td>
             </tr>
           {% empty %}
             <tr><td colspan="6" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>

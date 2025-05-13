@@ -8,7 +8,7 @@
     <title>Page de pré-instruction</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier_messagerie.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
 </head>
 <body>
@@ -90,14 +90,19 @@
             <div class="nav_top">
                 <!-- Form messagerie à gauche -->
                 <div class="form_messagerie">
-                    <a href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
+                    <a href="{% url 'instruction_dossier' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
                             Formulaire
                         </div>
                     </a>
-                    <a href="{% url 'preinstruction_dossier_messagerie' numero=dossier.numero %}">
+                    <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
                             Messagerie
+                        </div>
+                    </a>
+                    <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
+                            Consultation
                         </div>
                     </a>
                 </div>

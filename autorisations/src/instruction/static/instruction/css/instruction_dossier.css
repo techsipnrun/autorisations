@@ -1,13 +1,56 @@
-.page-container {
-    display: flex;
-    gap: 2rem;
-    padding: 4rem;
+/* ---------------------------------------------------------------- */
+/*                        ACTUALISER DOSSIER                        */
+/* ---------------------------------------------------------------- */
+
+.refresh-doss {
+    text-align: left;
+    padding: 1rem 4rem 0 4rem;
 }
+
+.refresh-doss form {
+    display: inline-block;
+}
+
+.refresh-button {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+    background-color: #e0e0e0;
+}
+
+.refresh-icon {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.4s ease-in-out;
+}
+
+.refresh-button:hover .refresh-icon {
+    transform: rotate(180deg);
+}
+
+
+
 
 
 /* ---------------------------------------------------------------- */
 /*                        FORMULAIRE                                */
 /* ---------------------------------------------------------------- */
+.page-container {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 4rem 6rem 4rem;
+}
 
 .formulaire {
     width: 70%;
@@ -83,7 +126,7 @@ h2 {
 }
 
 .etat-badge-menu-dropdown.open {
-    margin-bottom: 3.5rem;
+    margin-bottom: 14rem;
 }
 
 .etat-badge-label {
@@ -249,4 +292,29 @@ h2 {
 
 .lien_dossier img:hover {
     transform: scale(1.1);
+}
+
+
+/* Groupe instructeur - Membres */
+.groupe-instructeur-info {
+    margin: 1rem 2rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-left: 4px solid #115e31;
+    font-size: 0.95rem;
+}
+
+.groupe-instructeur-info h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: #115e31;
+}
+
+.groupe-instructeur-liste {
+    list-style: none;
+    padding-left: 0;
+}
+
+.groupe-instructeur-liste li {
+    margin-bottom: 0.4rem;
 }

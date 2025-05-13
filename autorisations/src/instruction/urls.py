@@ -5,7 +5,11 @@ urlpatterns = [
     path('', instruction.accueil, name='accueil_view'),
     path('instruction/', instruction.accueil, name='accueil_view'),
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
-    path('instruction-dossier/<int:num_dossier>', instruction.instruction_dossier, name='instruction_dossier'),
+    path('instruction/<int:num_dossier>', instruction.instruction_dossier, name='instruction_dossier'),
+    path('instruction/<int:num_dossier>/actualiser', instruction.actualiser_dossier, name='actualiser_dossier'),
+    path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
+    path("instruction/<int:num_dossier>/consultation", instruction.instruction_dossier_consultation, name="instruction_dossier_consultation"),
+
 
     path('preinstruction/', preinstruction.preinstruction, name='preinstruction_view'),
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
@@ -16,10 +20,11 @@ urlpatterns = [
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path("actualiser/", views.actualiser_donnees, name="actualiser_donnees"),
     path("etat-actualisation/", views.etat_actualisation, name="etat_actualisation"),
+    path('changer-etape-dossier/', views.changer_etape_dossier, name='changer_etape_dossier'),
     path('changer-groupe-instructeur/', preinstruction.changer_groupe_instructeur, name='changer_groupe_instructeur'),
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
 
     
     path('avis/', views.avis, name='avis_view'),
-    path('suivi/', views.suivi, name='suivi_view'),
+    path('requetes/', views.requetes, name='requetes_view'),
 ]

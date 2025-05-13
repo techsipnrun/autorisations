@@ -1,0 +1,208 @@
+/* ---------------------------------------------------------------- */
+/*                    TITRE + ETAT DOSSIER                          */
+/* ---------------------------------------------------------------- */
+h1 {
+    color: #115e31;
+}
+
+.etat-badge-menu {
+    display: inline-block;
+    margin: 1rem 0 3rem 0;
+    padding: 6px 16px;
+    background-color: #e0e0e0;
+    color: #272727;
+    font-size: 1.3rem;
+    font-style: italic;
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+
+/* ---------------------------------------------------------------- */
+/*                        BOUTON ACTUALISER                         */
+/* ---------------------------------------------------------------- */
+.refresh-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #f1f1f1;
+    margin-bottom: 4px;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.refresh-button:hover {
+    background-color: #e0e0e0;
+}
+
+.refresh-icon {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.4s ease-in-out;
+}
+
+.refresh-button:hover .refresh-icon {
+    transform: rotate(180deg);
+}
+
+
+/* ---------------------------------------------------------------- */
+/*                        MESSAGES                                  */
+/* ---------------------------------------------------------------- */
+.page-container {
+    display: flex;
+    gap: 2rem;
+    padding: 4rem;
+    margin-bottom: 3rem;
+}
+
+.messagerie {
+    width: 70%;
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+}
+
+.message {
+    max-width: 70%;
+    padding: 1rem;
+    border-radius: 10px;
+    position: relative;
+    word-wrap: break-word;
+    font-size: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.message-left {
+    align-self: flex-start;
+    background-color: #e0e0e0;
+}
+
+.message-right {
+    align-self: flex-end;
+    background-color: #d3f9d8;
+}
+
+.timestamp {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.5rem;
+    display: block;
+    text-align: right;
+}
+
+
+/* Supprimer message */
+.delete-button {
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+}
+
+.delete-button::before {
+    content: "🗑️";
+}
+
+.delete-button:hover::before {
+    filter: grayscale(1) brightness(0) sepia(1) hue-rotate(-50deg) saturate(5); /* Teinte rouge */
+}
+
+
+
+/* ---------------------------------------------------------------- */
+/*                        Ecrire message + PJ                       */
+/* ---------------------------------------------------------------- */
+.message-form {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2rem;
+    border-top: 1px solid #ccc;
+    padding-top: 1rem;
+}
+
+.message-form textarea {
+    resize: vertical;
+    min-height: 80px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+}
+
+.pj-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pj-actions input[type="file"] {
+    flex: 1;
+}
+
+.pj-actions button {
+    background-color: #00455c;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    margin-left: 1rem;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.pj-actions button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.pj-actions button:hover {
+    background-color: #0072a3;
+}
+
+.pj-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    color: rgb(65, 65, 65);
+}
+
+.pj-max {
+    margin-top: 6px;
+    font-style: italic;
+}
+
+
+/* ---------------------------------------------------------------- */
+/*            Informations Dossier - Partie de droite               */
+/* ---------------------------------------------------------------- */
+.infos-dossier {
+    padding: 1rem;
+    margin-top: 8rem;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+}
+
+.infos-dossier p {
+    margin: 1rem 0;
+    color: black;
+    font-size: large;
+}
