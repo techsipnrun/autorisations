@@ -4,7 +4,7 @@ from django.apps import apps
 
 from .models_avis import Avis
 
-from .models_utilisateurs import Groupeinstructeur
+from .models_utilisateurs import Groupeinstructeur, Instructeur
 
 
 class ChampType(models.Model):
@@ -139,7 +139,7 @@ class Dossier(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
     id_etat_dossier = models.ForeignKey(EtatDossier, models.RESTRICT, db_column='id_etat_dossier')
-    id_etape_dossier = models.ForeignKey(EtapeDossier, models.RESTRICT, db_column='id_etape_dossier')
+    id_etape_dossier = models.ForeignKey(EtapeDossier, models.RESTRICT, db_column='id_etape_dossier', default=10)
     numero = models.IntegerField(unique=True)
     date_depot = models.DateTimeField()
     date_debut_instruction = models.DateTimeField(blank=True, null=True)
@@ -282,3 +282,34 @@ class DossierGroupe(models.Model):
 
     def __str__(self):
         return f"{self.id_dossier} : Groupe '{self.id_groupe.nom}'"
+
+
+class ModificationType(models.Model):
+    id = models.AutoField(primary_key=True)
+    modification = models.CharField(max_length=255)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."modification_type"'
+
+    def __str__(self):
+        return self.modification
+
+
+class DossierAction(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
+    date = models.DateTimeField(auto_now_add=True)
+    id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
+    id_modification_type = models.ForeignKey(ModificationType, models.RESTRICT, db_column='id_modification_type')
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."dossier_actions"'
+
+    def __str__(self):
+        return (
+            f"Action {self.id_modification_type.modification} sur dossier {self.id_dossier.nom_dossier} "
+            f"par {self.id_instructeur} le {self.date.strftime('%Y-%m-%d %H:%M')}"
+        )

@@ -38,15 +38,15 @@
             <div class="etat-badge-container">
                 <div class="etat-badge-menu-dropdown">
                     <div class="etat-badge-label" id="etatMenuToggle">
-                        {{ etat_dossier }}
+                        {{ etape_dossier }}
                         <span class="dropdown-arrow">&#9660;</span>
                     </div>
                     <div class="etat-badge-menu-content" id="etatMenuContent">
                         {% if dossier.id_groupeinstructeur %}
-                            <form method="post" action="{% url 'passer_en_instruction' %}">
+                            <form method="post" action="{% url 'passer_etape_en_preinstruction' %}">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <button type="submit" class="btn_dropdown_instruction">Passer en instruction</button>
+                                <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
                             </form>
                         {% else %}
                             <div class="instruction-warning">
@@ -59,7 +59,7 @@
                 
 
                 <!-- Select groupe instructeur -->
-                <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select">
+                <!-- <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select">
                     {% csrf_token %}
                     <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
 
@@ -79,7 +79,7 @@
                             {% endif %}
                         {% endfor %}
                     </select>
-                </form>
+                </form> -->
 
             </div>
 
@@ -131,17 +131,41 @@
             
             {% if dossier.id_groupeinstructeur %}
                 <div class="groupe-instructeur-info">
+
                     <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
                     <ul class="groupe-instructeur-liste">
                         {% for instructeur in membres_groupe %}
                             <li>{{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}</li>
                         {% endfor %}
                     </ul>
+                
+
+                    <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <select name="groupeInstructeurId" onchange="this.form.submit()">
+                            <option value="" selected disabled hidden> Changer le groupe instructeur </option>
+                            
+                            {% for groupe in groupes_instructeurs %}
+                                {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
+                                    <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
                 </div>
             {% endif %}
 
-            
+            <div class="groupe-instructeur-info notes_instructeurs">
+                <h3>Notes de l'instructeur :</h3>
 
+                <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                    <textarea name="note" rows="6" style="resize: vertical;">{{ dossier.note }}</textarea>
+                    <button type="submit" class="valider-btn" style="margin-top: 1rem;">Enregistrer</button>
+                </form>
+            </div>
         </div>
     </div>
 

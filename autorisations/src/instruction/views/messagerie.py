@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -47,7 +47,14 @@ def preinstruction_dossier_messagerie(request, numero):
 
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
-    beneficiaire = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first().id_beneficiaire if interlocuteur else None
+
+    beneficiaire = None 
+    benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+    if benef :
+        beneficiaire = benef.id_beneficiaire
+    else:
+        msg = f"Le dossier {numero} n'a pas de bénéficiaire de renseigné"
+        logger.warning(msg)
 
     return render(request, 'instruction/preinstruction_dossier_messagerie.html', {
         "dossier": dossier,
@@ -89,7 +96,13 @@ def instruction_dossier_messagerie(request, num_dossier):
 
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
-    beneficiaire = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first().id_beneficiaire if interlocuteur else None
+    
+    beneficiaire = None 
+    benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+    if benef :
+        beneficiaire = benef.id_beneficiaire if interlocuteur else None
+    else:
+        logger.warning(f"Le dossier {num_dossier} n'a pas de bénéficiaire de renseigné")
 
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
         "dossier": dossier,

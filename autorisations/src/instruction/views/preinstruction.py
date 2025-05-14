@@ -1,3 +1,4 @@
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from django.utils import timezone
 import json, os
@@ -5,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Dossier, EtatDossier
+from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from instruction.utils import format_etat_dossier
@@ -18,9 +19,13 @@ logger = logging.getLogger("ORM_DJANGO")
 def preinstruction(request):
 
     # Récupérer l'ID de l'état "en_construction"  ICI
-    etat = EtatDossier.objects.filter(nom__iexact="en_construction").first()
+    # etat = EtatDossier.objects.filter(nom__iexact="en_construction").first()
+    # dossiers = Dossier.objects.filter(id_etat_dossier=etat).select_related("id_demarche").order_by("date_depot")
 
-    dossiers = Dossier.objects.filter(id_etat_dossier=etat).select_related("id_demarche").order_by("date_depot")
+
+    etape = EtapeDossier.objects.filter(etape="À affecter").first()
+    dossiers = Dossier.objects.filter(id_etape_dossier=etape).select_related("id_demarche").order_by("date_depot")
+
     dossier_infos = []
 
     for dossier in dossiers:
@@ -93,6 +98,7 @@ def preinstruction_dossier(request, numero):
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
+        "etape_dossier": dossier.id_etape_dossier.etape,
         "champs": champs_prepares,
         "fond_de_carte_data": fond_geojson,
         "is_formulaire_active": True,
@@ -175,5 +181,54 @@ def passer_en_instruction(request):
 
     else:
         logger.error(f"[DS] Échec du passage en instruction pour le dossier {dossier_id} : {result['message']}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+
+@require_POST
+def passer_etape_en_preinstruction(request):
+
+    dossier_id = request.POST.get("dossierId")
+
+    if not dossier_id:
+        return HttpResponseBadRequest("Tentative de passage en préinstruction : Paramètre 'dossierId' manquant.")
+
+    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
+
+    try:
+        etape = EtapeDossier.objects.get(etape="En pré-instruction")
+    except EtapeDossier.DoesNotExist:
+        logger.error("Étape 'En pré-instruction' introuvable en base.")
+        return HttpResponseBadRequest("Étape 'En pré-instruction' non définie.")
+
+    dossier.id_etape_dossier = etape
+    dossier.save()
+
+    logger.info(f"Etape du dossier {dossier.numero} mise à jour en 'En pré-instruction'.")
+  
+    return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+
+@require_POST
+@login_required
+def sauvegarder_note_dossier(request):
+    dossier_id = request.POST.get("dossierId")
+    nouvelle_note = request.POST.get("note")
+
+    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
+    dossier.note = nouvelle_note
+    dossier.save()
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).select_related("id_agent_autorisations").first()
+
+    if instructeur and instructeur.id_agent_autorisations:
+        nom = instructeur.id_agent_autorisations.nom
+        prenom = instructeur.id_agent_autorisations.prenom
+        logger.info(f"Dossier {dossier.numero} : note modifiée par {prenom} {nom} ({instructeur.email})")
+    else:
+        logger.info(f"Dossier {dossier.numero} : note modifiée par {request.user.email} (utilisateur non identifié comme instructeur)")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))

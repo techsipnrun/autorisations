@@ -36,8 +36,8 @@
         <thead>
             <tr>
                 <th>DOSSIERS</th>
-                <th>En pré-instruction</th>
-                <th>Suivis</th>
+                <th>Réception</th>
+                <th>Instruction</th>
                 <th>Traités cette année</th>
             </tr>
         </thead>
@@ -45,7 +45,7 @@
             {% for d in dossier_infos %}
                 <tr class="clickable-row" data-href="{% url 'instruction_demarche' d.demarche.numero %}">
                     <td>{{ d.demarche.type }}</td>
-                    <td>{{ d.nb_pre_instruction }}</td>
+                    <td>{{ d.nb_reception }}</td>
                     <td class="suivis_instruction">{{ d.nb_suivis }}</td>
                     <td>{{ d.nb_traites }}</td>
                 </tr>

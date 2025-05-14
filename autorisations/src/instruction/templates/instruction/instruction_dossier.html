@@ -62,33 +62,8 @@
                         </form>
                     </div>
                 </div>
-
-                
-
-                <!-- Select groupe instructeur -->
-                <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select">
-                    {% csrf_token %}
-                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-
-                    <label for="groupe" class="groupe-label">Groupe instructeur :</label>
-                   <select name="groupeInstructeurId" onchange="this.form.submit()">
-                        {% if not dossier.id_groupeinstructeur %}
-                            <option value="" selected>-- Sélectionner --</option>
-                        {% else %}
-                            <option value="{{ dossier.id_groupeinstructeur.id }}" selected disabled>
-                                {{ dossier.id_groupeinstructeur.nom }}
-                            </option>
-                        {% endif %}
-
-                        {% for groupe in groupes_instructeurs %}
-                            {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
-                                <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </form>
-
             </div>
+
 
 
             <div class="champs">
@@ -146,11 +121,45 @@
                     <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
                     <ul class="groupe-instructeur-liste">
                         {% for instructeur in membres_groupe %}
-                            <li>{{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}</li>
+                            {% if instructeur.id in instructeurs_dossier_ids %}
+                                <li class="instructeur_du_dossier" title="Instructeur affecté à ce dossier">
+                                    {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
+                                </li>
+                            {% else %}
+                                <li class="pas_instructeur_du_dossier">
+                                    {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+                                </li>
+                            {% endif %}
                         {% endfor %}
                     </ul>
+
+                    <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <select name="groupeInstructeurId" id="select-changer-groupe">
+                            <option value="" selected disabled hidden>Changer le groupe instructeur</option>
+                            {% for groupe in groupes_instructeurs %}
+                                {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
+                                    <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
                 </div>
             {% endif %}
+
+
+            <div class="groupe-instructeur-info notes_instructeurs">
+                <h3>Notes de l'instructeur :</h3>
+
+                <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                    <textarea name="note" rows="6" style="resize: vertical;">{{ dossier.note }}</textarea>
+                    <button type="submit" class="valider-btn" style="margin-top: 1rem;">Enregistrer</button>
+                </form>
+            </div>
 
         </div>
     </div>
@@ -185,6 +194,27 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
+
+<!-- POP UP de validation du chagement de groupe instructeur -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const select = document.getElementById("select-changer-groupe");
+    const form = document.getElementById("form-changer-groupe");
+
+    select.addEventListener("change", function() {
+        const selectedOption = select.options[select.selectedIndex].text;
+        const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
+
+        if (confirmed) {
+            form.submit();
+        } else {
+            // Réinitialise le select sur le placeholder
+            select.selectedIndex = 0;
+        }
+    });
+});
+</script>
+
 
 
 </body>

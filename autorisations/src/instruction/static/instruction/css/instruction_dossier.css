@@ -4,6 +4,7 @@
 
 .refresh-doss {
     text-align: left;
+    margin-top: 2rem;
     padding: 1rem 4rem 0 4rem;
 }
 
@@ -198,7 +199,7 @@ h2 {
 
 /* ====== Groupe Instructeur ====== */
 
-.etat-badge-container {
+/* .etat-badge-container {
     display: flex;
     align-items: flex-start;
     gap: 6rem;
@@ -212,19 +213,13 @@ h2 {
     font-size: 0.95rem;
 }
 
-.groupe-label {
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    font-size: 1rem;
-}
-
 .form_groupe_select select {
     padding: 0.4rem;
     border-radius: 6px;
     border: 1px solid #ccc;
     font-size: 1rem;
     cursor: pointer;
-}
+} */
 
 
 
@@ -306,7 +301,7 @@ h2 {
 
 .groupe-instructeur-info h3 {
     margin-bottom: 1rem;
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     color: #115e31;
 }
 
@@ -316,5 +311,42 @@ h2 {
 }
 
 .groupe-instructeur-liste li {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
 }
+
+.groupe-instructeur-liste li:hover {
+    cursor: pointer;
+}
+
+
+.logo_instructeur {
+    height: 18px; 
+    vertical-align: text-bottom; 
+    margin-right: 5px;
+}
+
+.groupe-instructeur-liste .instructeur_du_dossier {
+    font-weight: bold;
+}
+
+.groupe-instructeur-liste .pas_instructeur_du_dossier {
+    color: red;
+}
+
+
+
+/* Notes Instructeur */
+
+textarea[name="note"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background-color: #fff;
+}
+
+.notes_instructeurs {
+    margin-top: 2rem;
+}
+

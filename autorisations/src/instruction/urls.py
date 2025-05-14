@@ -23,6 +23,9 @@ urlpatterns = [
     path('changer-etape-dossier/', views.changer_etape_dossier, name='changer_etape_dossier'),
     path('changer-groupe-instructeur/', preinstruction.changer_groupe_instructeur, name='changer_groupe_instructeur'),
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
+    path('passer_etape_en_preinstruction/', preinstruction.passer_etape_en_preinstruction, name='passer_etape_en_preinstruction'),
+    path('preinstruction/note/', preinstruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
+
 
     
     path('avis/', views.avis, name='avis_view'),

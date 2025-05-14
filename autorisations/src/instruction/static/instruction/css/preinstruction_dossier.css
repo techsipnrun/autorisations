@@ -152,7 +152,6 @@ h2 {
 
 
 
-
 /* ====== Groupe Instructeur ====== */
 
 .etat-badge-container {
@@ -167,13 +166,15 @@ h2 {
     display: flex;
     flex-direction: column;
     font-size: 0.95rem;
+    margin-top: 2rem;
+
 }
 
-.groupe-label {
+/* .groupe-label {
     margin-bottom: 0.5rem;
     font-weight: bold;
     font-size: 1rem;
-}
+} */
 
 .form_groupe_select select {
     padding: 0.4rem;
@@ -182,6 +183,7 @@ h2 {
     font-size: 1rem;
     cursor: pointer;
 }
+
 
 
 
@@ -375,10 +377,15 @@ h2 {
     background-color: #0e4c27;
 }
 
-/* Passer en instruction */
-/* .btn_passer_en_instruction{
-    margin-top: 1rem;
-    padding: 0.5rem 1.5rem;
+textarea[name="note"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
     border-radius: 6px;
-    cursor: pointer;
-} */
+    font-size: 0.95rem;
+    background-color: #fff;
+}
+
+.notes_instructeurs {
+    margin-top: 2rem;
+}

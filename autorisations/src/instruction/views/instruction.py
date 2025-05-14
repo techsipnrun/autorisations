@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from autorisations.models.models_instruction import Demarche, Dossier, EtapeDossier, EtatDossier
-from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur, Groupeinstructeur
+from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from synchronisation.src.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -23,11 +23,13 @@ from instruction.utils import format_etat_dossier
 
 logger = logging.getLogger('ORM_DJANGO')
 
-def get_dossier_counts(demarche, etat_construction, etat_instruction, etats_termines, current_year):
+def get_dossier_counts(demarche, etape_a_affecter, etat_instruction, etats_termines, current_year):
+    ids_etats_termines = list(etats_termines.values_list("id", flat=True))
+
     return {
         "demarche": demarche,
-        "nb_pre_instruction": Dossier.objects.filter(id_demarche=demarche, id_etat_dossier=etat_construction).count(),
-        "nb_suivis": Dossier.objects.filter(id_demarche=demarche, id_etat_dossier=etat_instruction).count(),
+        "nb_reception": Dossier.objects.filter(id_demarche=demarche, id_etape_dossier=etape_a_affecter).count(),
+        "nb_suivis": Dossier.objects.filter(id_demarche=demarche).exclude(id_etape_dossier=etape_a_affecter).exclude(id_etat_dossier__in=ids_etats_termines).count(),
         "nb_traites": Dossier.objects.filter(id_demarche=demarche, id_etat_dossier__in=etats_termines, date_fin_instruction__year=current_year).count(),
     }
 
@@ -36,10 +38,13 @@ def accueil(request):
     etat_construction = EtatDossier.objects.filter(nom__iexact="en_construction").first()
     etat_instruction = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
     etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
+    
+
+    etape_a_affecter = EtapeDossier.objects.filter(etape="À affecter").first()
 
     current_year = date.today().year
     demarches = Demarche.objects.all().order_by("titre")
-    dossier_infos = [get_dossier_counts(d, etat_construction, etat_instruction, etats_termines, current_year) for d in demarches]
+    dossier_infos = [get_dossier_counts(d, etape_a_affecter, etat_instruction, etats_termines, current_year) for d in demarches]
 
     return render(request, 'instruction/instruction.html', {"dossier_infos": dossier_infos})
 
@@ -49,12 +54,17 @@ def instruction_demarche(request, num_demarche):
 
     demarche = get_object_or_404(Demarche, numero=num_demarche)
 
-    # Récupérer l'ID de l'état "en_instruction"
-    etat = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
+    etapes = EtapeDossier.objects.exclude(etape="À affecter")
+
+    etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
+    ids_etats_termines = list(etats_termines.values_list("id", flat=True))
+
 
     dossiers = Dossier.objects.filter(
-                id_etat_dossier=etat,
+                id_etape_dossier__in=etapes,
                 id_demarche=demarche.id
+            ).exclude(
+                id_etat_dossier__in=ids_etats_termines
             ).select_related(
                 "id_dossier_type",
                 "id_groupeinstructeur"
@@ -104,6 +114,9 @@ def instruction_dossier(request, num_dossier):
 
         ct = champ.id_champ.id_champ_type.type
         nom = champ.id_champ.nom
+        if nom.endswith(":"):
+            nom = nom.rstrip(":").strip()
+
 
         # Ignorer les champs de type explication
         if ct == "explication": continue
@@ -136,6 +149,12 @@ def instruction_dossier(request, num_dossier):
     etapes_possibles = EtapeDossier.objects.all().order_by("etape")
     etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
 
+    instructeurs_dossier = set(
+        DossierInstructeur.objects.filter(id_dossier=dossier)
+        .values_list("id_instructeur_id", flat=True)
+    )
+
+
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -147,13 +166,10 @@ def instruction_dossier(request, num_dossier):
         "membres_groupe": membres_groupe,
         "etapes_possibles": etapes_possibles,
         "etape_actuelle": etape_actuelle,
+        "instructeurs_dossier_ids": instructeurs_dossier,
     })
 
 
-
-from synchronisation.src.normalisation.normalize_main import normalize_process
-from synchronisation.src.synchro.sync_process import synchro_process
-from autorisations.models.models_instruction import Dossier
 
 @login_required
 def actualiser_dossier(request, num_dossier):
