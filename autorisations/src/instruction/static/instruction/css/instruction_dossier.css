@@ -96,6 +96,37 @@ h2 {
     position: relative;
 }
 
+.etat-badge-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 2rem 0 1.5rem 0;
+}
+
+
+.form-declarer-instructeur {
+    margin: 0;
+}
+
+.btn-declarer {
+    background-color: #155a32;
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.95rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.3s ease;
+}
+
+.btn-declarer:hover {
+    background-color: #0e4c27;
+}
+
+
+
 
 
 /* ====== Carto Leaflet ====== */
@@ -116,6 +147,32 @@ h2 {
     box-shadow: 0 0 8px rgba(0,0,0,0.2);
     line-height: 1.4em;
 }
+
+
+/* Bouton 'Modifier Carto' */
+.titre-carte-avec-bouton {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.btn-edit-carto {
+  font-size: 1.2rem;
+  background-color: #f0f0f0;
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  text-decoration: none;
+  color: #333;
+  transition: background 0.2s;
+  line-height: 1.3;
+  margin-top: 2rem;
+}
+
+.btn-edit-carto:hover {
+  background-color: #ddd;
+}
+
 
 
 
@@ -290,7 +347,9 @@ h2 {
 }
 
 
-/* Groupe instructeur - Membres */
+/* ---------------------------------------*/
+/*            Groupe Instructeur          */
+/* -------------------------------------- */
 .groupe-instructeur-info {
     margin: 1rem 2rem;
     padding: 1rem;
@@ -318,25 +377,94 @@ h2 {
     cursor: pointer;
 }
 
-
 .logo_instructeur {
     height: 18px; 
     vertical-align: text-bottom; 
     margin-right: 5px;
 }
 
-.groupe-instructeur-liste .instructeur_du_dossier {
+.instructeur_du_dossier {
     font-weight: bold;
-}
-
-.groupe-instructeur-liste .pas_instructeur_du_dossier {
-    color: red;
+    position: relative;
 }
 
 
+/* ----- Retirer instructeur ----- */
+.form-retirer-instructeur {
+    display: inline-block;
+    margin-left: 0.3rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
 
-/* Notes Instructeur */
+.instructeur_du_dossier:hover .form-retirer-instructeur {
+    opacity: 0.6;
+}
 
+.form-retirer-instructeur:hover {
+    opacity: 1 !important;
+}
+
+.btn-retirer-instructeur {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1;
+    color: #a00;
+}
+
+.croix-retirer {
+    font-weight: bold;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+
+
+/* ----- Ajouter instructeur ----- */
+.pas_instructeur_du_dossier {
+    position: relative;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.form-ajout-instructeur {
+    display: inline-block;
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.pas_instructeur_du_dossier:hover .form-ajout-instructeur {
+    opacity: 0.6;
+}
+
+.pas_instructeur_du_dossier:hover .form-ajout-instructeur:hover {
+    opacity: 1 !important;
+}
+
+.btn-ajout-instructeur {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+}
+
+.btn-ajout-instructeur img {
+    height: 18px;
+    vertical-align: text-bottom;
+}
+
+
+/* --------------------------*/
+/*     Notes Instructeur     */
+/* ------------------------- */
 textarea[name="note"] {
     width: 100%;
     padding: 0.5rem;

@@ -40,6 +40,7 @@
 
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
 
+
             <div class="etat-badge-container">
                <div class="etat-badge-menu-dropdown">
                     <div class="etat-badge-label" id="etapeMenuToggle">
@@ -62,6 +63,18 @@
                         </form>
                     </div>
                 </div>
+
+                {% if peut_se_declarer %}
+                    <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-declarer-instructeur">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                        <input type="hidden" name="instructeur_id" value="{{ instructeur_connecte.id }}">
+                        <button type="submit" class="btn-declarer">
+                            Se déclarer comme instructeur.trice du dossier
+                        </button>
+                    </form>
+                {% endif %}
+
             </div>
 
 
@@ -75,10 +88,16 @@
                         <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
 
                     {% elif champ.type == 'carte' %}
-                        <h2>{{ champ.nom }}</h2>
-                        <div class="carte-container">
-                            <div class="carte" data-geojson='{{ champ.geojson }}'></div>
+                        <div class="titre-carte-avec-bouton">
+                            <h2>{{ champ.nom }}</h2>
+                            <a href="{% url 'edit_carto' numero_dossier=dossier.numero %}" class="btn-edit-carto">✎ Modifier la géométrie</a>
                         </div>
+                        
+                        <div class="carte-container">
+                            <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                        </div>
+
+
                     {% endif %}
                 {% endfor %}
             </div>
@@ -122,14 +141,36 @@
                     <ul class="groupe-instructeur-liste">
                         {% for instructeur in membres_groupe %}
                             {% if instructeur.id in instructeurs_dossier_ids %}
-                                <li class="instructeur_du_dossier" title="Instructeur affecté à ce dossier">
+                                
+                                <li class="instructeur_du_dossier">
                                     {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
                                     <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
+                                    
+                                    <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                        <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                        <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
+                                            <span class="croix-retirer">✕</span>
+                                        </button>
+                                    </form>
                                 </li>
+
                             {% else %}
+
                                 <li class="pas_instructeur_du_dossier">
                                     {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+
+                                    <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                        <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                        <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                            <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                        </button>
+                                    </form>
                                 </li>
+
                             {% endif %}
                         {% endfor %}
                     </ul>
@@ -166,10 +207,36 @@
 
     
 <!-- 1. Données JSON pour le fond de carte -->
-{{ fond_de_carte_data|json_script:"fond-data" }}
+{{ coeurData|json_script:"fond-data" }}
+{{ adhesionData|json_script:"adhesion-data" }}
 
 <!-- 2. Variables globales accessibles à ton JS -->
-<script> window._fondDeCarteData = JSON.parse(document.getElementById("fond-data").textContent);</script>
+<script> 
+    window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
+    window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
+</script>
+
+
+<!-- Mise en forme des geojson (géométries du pétitionnaire ou modifiée par instructeur) -->
+<script>
+   document.querySelectorAll(".carte").forEach((carte, index) => {
+        const script = document.getElementById(`geojson-${index + 1}`);
+
+        if (!script) {
+            console.warn("Pas de GeoJSON pour :", carte);
+            return;
+        }
+
+        try {
+            carte.dataset.geojson = script.textContent;
+        } catch (e) {
+            console.error("Erreur de parsing GeoJSON pour la carte", carte.id, ":", e);
+        }
+    });
+
+</script>
+
+
 
 <!-- 3. Script Leaflet personnalisé -->
 <script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>

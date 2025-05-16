@@ -1,6 +1,7 @@
 import logging
 import tempfile
 import os
+from django.http import HttpResponse
 from django.utils import timezone
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -64,12 +65,20 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
                 "body": body
             }
         }
-        
+
+        msgerror = f"Échec envoi message sans pièce jointe pour le dossier {num_dossier} (peut être qu'il n'existe pas sur Démarches Simplifiées)"
+
         try:
-            return client.execute_query("DS/mutations/send_message.graphql", variables)
+            result = client.execute_query("DS/mutations/send_message.graphql", variables)
+            
+            if not result["data"] and result["errors"] :
+                loggerDS.error(msgerror)
+                return HttpResponse(msgerror, status=500)
+            
+            return result
         except Exception as e:
-            loggerDS.exception(f"[ENVOI] Échec envoi message sans pièce jointe pour dossier {num_dossier}")
-            return {"success": False, "message": str(e)}
+            loggerDS.exception(f"Échec envoi message sans pièce jointe pour le dossier {num_dossier}")
+            return HttpResponse(msgerror, status=500)
 
 
 def enregistrer_message_bdd(dossier, user_email, body, fichier=None, id_ds=None, url_ds = None):

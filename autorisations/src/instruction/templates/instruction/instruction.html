@@ -44,7 +44,13 @@
         <tbody>
             {% for d in dossier_infos %}
                 <tr class="clickable-row" data-href="{% url 'instruction_demarche' d.demarche.numero %}">
-                    <td>{{ d.demarche.type }}</td>
+                    <td>
+                        {{ d.demarche.type }}
+                        {% if d.nb_suivis_user > 0 %}
+                            <span class="pastille-user">{{ d.nb_suivis_user }}</span>
+                        {% endif %}
+                    </td>
+
                     <td>{{ d.nb_reception }}</td>
                     <td class="suivis_instruction">{{ d.nb_suivis }}</td>
                     <td>{{ d.nb_traites }}</td>

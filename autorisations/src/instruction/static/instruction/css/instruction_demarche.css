@@ -1,7 +1,7 @@
 /* Page title */
 h1 {
     text-align: center;
-    margin-top: 3rem;
+    margin-top: 5rem;
     font-size: 1.8rem;
     color: #115e31;
 }
@@ -15,4 +15,26 @@ h2 {
 
 .aucun_doss{
     text-align: center;
+}
+
+/* Filtre : Afficher mes dossiers */
+.filtre-au-dessus {
+  display: flex;
+  justify-content: flex-start;
+  margin-left: 16vh;
+  margin-top: 2rem;
+  font-weight: bold;
+}
+
+.label-filtre {
+  cursor: pointer;
+}
+.label-filtre input[type="checkbox"] {
+  cursor: pointer;
+}
+
+
+
+.table_demarche_instru {
+    margin-top: 1rem;
 }

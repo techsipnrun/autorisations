@@ -131,21 +131,49 @@
             
             {% if dossier.id_groupeinstructeur %}
                 <div class="groupe-instructeur-info">
-
                     <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
                     <ul class="groupe-instructeur-liste">
                         {% for instructeur in membres_groupe %}
-                            <li>{{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}</li>
+                            {% if instructeur.id in instructeurs_dossier_ids %}
+                                
+                                <li class="instructeur_du_dossier">
+                                    {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
+                                    
+                                    <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                        <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                        <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
+                                            <span class="croix-retirer">✕</span>
+                                        </button>
+                                    </form>
+                                </li>
+
+                            {% else %}
+
+                                <li class="pas_instructeur_du_dossier">
+                                    {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+
+                                    <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                        <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                        <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                            <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                        </button>
+                                    </form>
+                                </li>
+
+                            {% endif %}
                         {% endfor %}
                     </ul>
-                
 
-                    <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select">
+                    <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <select name="groupeInstructeurId" onchange="this.form.submit()">
-                            <option value="" selected disabled hidden> Changer le groupe instructeur </option>
-                            
+                        <select name="groupeInstructeurId" id="select-changer-groupe">
+                            <option value="" selected disabled hidden>Changer le groupe instructeur</option>
                             {% for groupe in groupes_instructeurs %}
                                 {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
                                     <option value="{{ groupe.id }}">{{ groupe.nom }}</option>

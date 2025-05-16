@@ -253,8 +253,9 @@ h2 {
     transform: scale(1.1);
 }
 
-
-/* Groupe instructeur - Membres */
+/* ---------------------------------------*/
+/*            Groupe Instructeur          */
+/* -------------------------------------- */
 .groupe-instructeur-info {
     margin: 1rem 2rem;
     padding: 1rem;
@@ -265,7 +266,7 @@ h2 {
 
 .groupe-instructeur-info h3 {
     margin-bottom: 1rem;
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     color: #115e31;
 }
 
@@ -275,9 +276,96 @@ h2 {
 }
 
 .groupe-instructeur-liste li {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
 }
 
+.groupe-instructeur-liste li:hover {
+    cursor: pointer;
+}
+
+.logo_instructeur {
+    height: 18px; 
+    vertical-align: text-bottom; 
+    margin-right: 5px;
+}
+
+.instructeur_du_dossier {
+    font-weight: bold;
+    position: relative;
+}
+
+
+/* ----- Retirer instructeur ----- */
+.form-retirer-instructeur {
+    display: inline-block;
+    margin-left: 0.3rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.instructeur_du_dossier:hover .form-retirer-instructeur {
+    opacity: 0.6;
+}
+
+.form-retirer-instructeur:hover {
+    opacity: 1 !important;
+}
+
+.btn-retirer-instructeur {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1;
+    color: #a00;
+}
+
+.croix-retirer {
+    font-weight: bold;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+
+
+/* ----- Ajouter instructeur ----- */
+.pas_instructeur_du_dossier {
+    position: relative;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.form-ajout-instructeur {
+    display: inline-block;
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.pas_instructeur_du_dossier:hover .form-ajout-instructeur {
+    opacity: 0.6;
+}
+
+.pas_instructeur_du_dossier:hover .form-ajout-instructeur:hover {
+    opacity: 1 !important;
+}
+
+.btn-ajout-instructeur {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+}
+
+.btn-ajout-instructeur img {
+    height: 18px;
+    vertical-align: text-bottom;
+}
 
 
 

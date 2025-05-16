@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const fondDeCarte = window._fondDeCarteData;
+    const fond_coeur_de_Parc = window._coeurData;
     const cartes = document.querySelectorAll(".carte");
 
     if (cartes.length === 0) {
@@ -8,68 +8,65 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     cartes.forEach((div) => {
-        let geojson = null;
+        const data = div.dataset.geojson;
 
+        if (!data || data.trim() === "") {
+            console.warn("Pas de GeoJSON pour :", div);
+            return; // on ignore cette carte
+        }
+
+        let geojson = null;
         try {
-            geojson = JSON.parse(div.dataset.geojson);
+            geojson = JSON.parse(data);
         } catch (e) {
-            console.error("GeoJSON invalide :", div.dataset.geojson);
+            console.error("GeoJSON invalide :", data);
             return;
         }
 
         const map = L.map(div).setView([-21.1, 55.5], 10);
 
-        // Fond OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        // Fond satellite ESRI
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri & NASA',
+            maxZoom: 19
         }).addTo(map);
 
-        // 1. Créer la couche du cœur de parc
-        let fondLayer = null;
-        if (fondDeCarte) {
-            fondLayer = L.geoJSON(fondDeCarte, {
-                style: feature => ({
+
+        // Couches de fond : cœur + adhésion
+        const overlayMaps = {};
+
+        if (fond_coeur_de_Parc) {
+            const fondLayer = L.geoJSON(fond_coeur_de_Parc, {
+                style: {
                     color: "#3182bd",
                     weight: 2,
                     opacity: 1,
                     fillColor: "#6baed6",
-                    fillOpacity: 0.4
-                }),
-                onEachFeature: (feature, layer) => {
-                    if (feature.properties) {
-                        let popupContent = "<strong>Informations :</strong><br>";
-                        for (const [key, value] of Object.entries(feature.properties)) {
-                            popupContent += `<strong>${key}</strong> : ${value}<br>`;
-                        }
-                        layer.bindPopup(popupContent);
-                    }
+                    fillOpacity: 0.3
                 }
             });
-            fondLayer.addTo(map);
+            overlayMaps["Cœur du Parc National"] = fondLayer;
+            fondLayer.addTo(map); // visible par défaut
         }
 
-        // 2. Ajouter le contrôle de visibilité (checkbox)
-        if (fondLayer) {
-            const overlayMaps = {
-                "Cœur du Parc National": fondLayer
-            };
-            L.control.layers(null, overlayMaps, {
-                collapsed: false,
-                position: "topright"
-            }).addTo(map);
+        if (window._adhesionData) {
+            const adhesionLayer = L.geoJSON(window._adhesionData, {
+                style: {
+                    color: "#388E3C",
+                    weight: 1.5,
+                    fillColor: "#A5D6A7",
+                    fillOpacity: 0.4
+                }
+            });
+            overlayMaps["Aire d’adhésion"] = adhesionLayer;
+            // adhesionLayer.addTo(map); // visible par défaut
         }
 
-        // 3. Ajouter une légende
-        // const legend = L.control({ position: "bottomright" });
-        // legend.onAdd = function (map) {
-        //     const div = L.DomUtil.create("div", "legend");
-        //     div.innerHTML += `
-        //         <i style="background: #6baed6; border: 2px solid #3182bd; display:inline-block; width: 18px; height: 18px; margin-right: 8px;"></i>
-        //         Cœur du Parc National
-        //     `;
-        //     return div;
-        // };
-        // legend.addTo(map);
+        L.control.layers(null, overlayMaps, {
+            collapsed: false,
+            position: "topright"
+        }).addTo(map);
+
 
         // 4. Ajouter la géométrie du pétitionnaire
         const layer = L.geoJSON(geojson, {
@@ -91,9 +88,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }).addTo(map);
 
         // 6. Calcul d'intersection entre fond et géométrie pétitionnaire
-        if (fondDeCarte && geojson) {
+        if (fond_coeur_de_Parc && geojson) {
             try {
-                const featuresFond = fondDeCarte.features;
+                const featuresFond = fond_coeur_de_Parc.features;
                 const petitionnaireFeatures = geojson.features || [geojson];
 
                 let intersecte = false;
@@ -133,7 +130,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // 5. Centrer sur la géométrie pétitionnaire
-        map.fitBounds(layer.getBounds());
+        map.fitBounds(layer.getBounds(), {
+            maxZoom: 12,
+            padding: [20, 20]  //espace autour de la géométrie
+        });
     });
 });
 

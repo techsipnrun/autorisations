@@ -80,3 +80,19 @@ h1 {
 .suivis_instruction {
     font-weight: bold;
 }
+
+
+/* Pastilles Démarche */
+.pastille-user {
+    margin-left: 0.5rem;
+    border-radius: 50%;
+    background-color: rgb(255, 216, 216);
+    border: solid red 1px;
+    color: red;
+    padding: 3px 6px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+
+

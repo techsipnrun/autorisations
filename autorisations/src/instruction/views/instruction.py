@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from autorisations.models.models_instruction import Demarche, Dossier, EtapeDossier, EtatDossier
-from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur
+from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from synchronisation.src.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -23,30 +23,49 @@ from instruction.utils import format_etat_dossier
 
 logger = logging.getLogger('ORM_DJANGO')
 
-def get_dossier_counts(demarche, etape_a_affecter, etat_instruction, etats_termines, current_year):
+def get_dossier_counts(demarche, etape_a_affecter, etat_instruction, etats_termines, current_year, groupes_user=None):
     ids_etats_termines = list(etats_termines.values_list("id", flat=True))
+
+    query_suivis = Dossier.objects.filter(id_demarche=demarche).exclude(id_etape_dossier=etape_a_affecter).exclude(id_etat_dossier__in=ids_etats_termines)
+
+    nb_suivis_user = 0
+    if groupes_user:
+        nb_suivis_user = query_suivis.filter(id_groupeinstructeur_id__in=groupes_user).count()
 
     return {
         "demarche": demarche,
         "nb_reception": Dossier.objects.filter(id_demarche=demarche, id_etape_dossier=etape_a_affecter).count(),
-        "nb_suivis": Dossier.objects.filter(id_demarche=demarche).exclude(id_etape_dossier=etape_a_affecter).exclude(id_etat_dossier__in=ids_etats_termines).count(),
-        "nb_traites": Dossier.objects.filter(id_demarche=demarche, id_etat_dossier__in=etats_termines, date_fin_instruction__year=current_year).count(),
+        "nb_suivis": query_suivis.count(),
+        "nb_traites": Dossier.objects.filter(id_demarche=demarche, id_etat_dossier__in=ids_etats_termines, date_fin_instruction__year=current_year).count(),
+        "nb_suivis_user": nb_suivis_user
     }
+
 
 @login_required
 def accueil(request):
     etat_construction = EtatDossier.objects.filter(nom__iexact="en_construction").first()
     etat_instruction = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
     etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
-    
-
     etape_a_affecter = EtapeDossier.objects.filter(etape="À affecter").first()
 
     current_year = date.today().year
     demarches = Demarche.objects.all().order_by("titre")
-    dossier_infos = [get_dossier_counts(d, etape_a_affecter, etat_instruction, etats_termines, current_year) for d in demarches]
+
+    # ✅ Sécurisation
+    groupes_user = []
+    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+    if instructeur:
+        groupes_user = list(
+            instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True)
+        )
+
+    dossier_infos = [
+        get_dossier_counts(d, etape_a_affecter, etat_instruction, etats_termines, current_year, groupes_user)
+        for d in demarches
+    ]
 
     return render(request, 'instruction/instruction.html', {"dossier_infos": dossier_infos})
+
 
 
 @login_required
@@ -59,16 +78,24 @@ def instruction_demarche(request, num_demarche):
     etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
     ids_etats_termines = list(etats_termines.values_list("id", flat=True))
 
+    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+    groupes_user = []
+    if instructeur:
+        groupes_user = instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True)
 
-    dossiers = Dossier.objects.filter(
-                id_etape_dossier__in=etapes,
-                id_demarche=demarche.id
-            ).exclude(
-                id_etat_dossier__in=ids_etats_termines
-            ).select_related(
-                "id_dossier_type",
-                "id_groupeinstructeur"
-            ).order_by("date_depot")
+
+    # Filtrage conditionnel si la case est cochée
+    dossiers_query = Dossier.objects.filter(
+        id_etape_dossier__in=etapes,
+        id_demarche=demarche.id
+    ).exclude(
+        id_etat_dossier__in=ids_etats_termines
+    )
+
+    if request.GET.get("mes_dossiers") == "1" and groupes_user:
+        dossiers_query = dossiers_query.filter(id_groupeinstructeur_id__in=groupes_user)
+
+    dossiers = dossiers_query.select_related("id_dossier_type", "id_groupeinstructeur").order_by("date_depot")
 
     dossier_infos = []
     for dossier in dossiers:
@@ -104,10 +131,15 @@ def instruction_dossier(request, num_dossier):
     dossier = get_object_or_404(Dossier, numero=num_dossier)
 
     # Charger le fond de carte GeoJSON (une seule fois)
-    fond_path = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+    with open(fond_coeur_de_parc, encoding="utf-8") as f:
+        fond_coeur_de_parc = json.load(f)
 
-    with open(fond_path, encoding="utf-8") as f:
-        fond_geojson = json.load(f)
+
+    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
+    with open(fond_aire_adhesion, encoding="utf-8") as f:
+        fond_aire_adhesion = json.load(f)
+
 
     champs_prepares = []
     for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("id"):
@@ -155,11 +187,45 @@ def instruction_dossier(request, num_dossier):
     )
 
 
+    '''
+        ### pour savoir si on affiche le bouton 'Se déclarer comme l'instructeur du dossier'
+    '''
+    # Identifier l'instructeur lié à l'utilisateur connecté
+    instructeur_connecte = (
+        Instructeur.objects
+        .filter(id_agent_autorisations__mail_1=request.user.email)
+        .select_related("id_agent_autorisations")
+        .first()
+    )
+
+    # Par défaut, on n'affiche pas le bouton
+    peut_se_declarer = False
+
+    if dossier.id_groupeinstructeur and instructeur_connecte:
+        instructeurs_du_groupe = set(
+            dossier.id_groupeinstructeur
+            .groupeinstructeurinstructeur_set
+            .values_list("id_instructeur_id", flat=True)
+        )
+
+        instructeurs_dossier = set(
+            DossierInstructeur.objects.filter(id_dossier=dossier)
+            .values_list("id_instructeur_id", flat=True)
+        )
+
+        # Si aucun instructeur du groupe n'est affecté au dossier,
+        # et que l'utilisateur connecté fait partie du groupe : il peut se déclarer
+        if not instructeurs_dossier & instructeurs_du_groupe and instructeur_connecte.id in instructeurs_du_groupe:
+            peut_se_declarer = True
+
+
+
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
         "champs": champs_prepares,
-        "fond_de_carte_data": fond_geojson,
+        "coeurData": fond_coeur_de_parc,
+        "adhesionData": fond_aire_adhesion,
         "is_formulaire_active": True,
         "is_messagerie_active": False,
         "groupes_instructeurs": groupes_instructeurs,
@@ -167,6 +233,9 @@ def instruction_dossier(request, num_dossier):
         "etapes_possibles": etapes_possibles,
         "etape_actuelle": etape_actuelle,
         "instructeurs_dossier_ids": instructeurs_dossier,
+        "peut_se_declarer": peut_se_declarer,
+        "instructeur_connecte": instructeur_connecte,
+        "geometrie_modif": json.dumps(dossier.geometrie_modif) if dossier.geometrie_modif else None,  # ✅ string JSON
     })
 
 

@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
-from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from instruction.utils import format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
@@ -95,6 +95,23 @@ def preinstruction_dossier(request, numero):
         membres_groupe = [m.id_instructeur for m in dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")]
 
 
+    # Instructeurs déjà affectés au dossier
+    instructeurs_dossier_ids = set(
+        DossierInstructeur.objects.filter(id_dossier=dossier)
+        .values_list("id_instructeur_id", flat=True)
+    )
+
+    # Instructeur connecté (pour le bouton 'se déclarer instructeur')
+    instructeur_connecte = (
+        Instructeur.objects
+        .filter(id_agent_autorisations__mail_1=request.user.email)
+        .select_related("id_agent_autorisations")
+        .first()
+    )
+
+
+
+
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -105,6 +122,8 @@ def preinstruction_dossier(request, numero):
         "is_messagerie_active": False,
         "groupes_instructeurs": groupes_instructeurs,
         "membres_groupe": membres_groupe,
+        "instructeurs_dossier_ids": instructeurs_dossier_ids,
+        "instructeur_connecte": instructeur_connecte,
     })
 
 

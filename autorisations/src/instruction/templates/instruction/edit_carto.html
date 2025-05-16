@@ -1,0 +1,107 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page de pré-instruction</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="{% static 'instruction/css/carto_test.css' %}">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Leaflet-Geoman -->
+  <link href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css" rel="stylesheet" />
+  <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
+
+  <!-- Turf.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+</head>
+
+<body>
+    
+    {% include 'navbar.html' %}
+
+    <div class="header-retour">
+      <a href="{% url 'instruction_dossier' num_dossier=numero_dossier %}" class="btn-retour-formulaire">
+        ← Revenir au formulaire
+      </a>
+      <h1>Édition de la géométrie du dossier {{ numero_dossier }}</h1>
+    </div>
+
+
+
+    <!-- Enregistrement : Message de succès ou d'erreur -->
+    {% if request.GET.msg %}
+      <div class="message-flash {% if request.GET.status == 'ok' %}success{% else %}error{% endif %}">
+        {{ request.GET.msg }}
+      </div>
+    {% endif %}
+
+  <!-- Conteneur carte avec GeoJSON injecté dynamiquement -->
+  <div class="carte-container">
+
+    <!-- Le GeoJSON est stocké proprement ici -->
+    <script type="application/json" id="geojson-data">
+      {{ geojson|safe }}
+    </script>
+
+    <!-- La carte ne contient rien pour l’instant -->
+    <div class="carte" data-geojson=""></div>
+
+    <form method="post" action="{% url 'enregistrer_geom' %}" id="form-geom">
+      {% csrf_token %}
+      <input type="hidden" name="dossier_numero" value="{{ numero_dossier }}">
+      <input type="hidden" name="geojson_geom" id="geom-result">
+      <button type="button" id="valider-geom" class="btn-sur-carte">✅ Valider la géométrie</button>
+
+    </form>
+
+  </div>
+
+
+  <script>
+    const geojsonElement = document.getElementById("geojson-data");
+    if (geojsonElement) {
+      try {
+        const geojson = JSON.parse(geojsonElement.textContent);
+        document.querySelector(".carte").dataset.geojson = JSON.stringify(geojson);
+      } catch (err) {
+        console.error("Erreur lors du parsing du GeoJSON :", err);
+      }
+    }
+  </script>
+
+
+  <script>
+    Promise.all([
+      fetch("{% static 'instruction/carto/fond_coeur_de_parc.geojson' %}").then(res => res.json()),
+      fetch("{% static 'instruction/carto/aire_adhesion.geojson' %}").then(res => res.json()),
+    ])
+      .then(([fondData, adhesionData]) => {
+        window._fondDeCarteData = fondData;
+        window._adhesionData = adhesionData;
+
+        const script = document.createElement("script");
+        script.src = "{% static 'instruction/js/carto_test.js' %}";
+        script.onload = () => {
+          // ✅ Appeler setupValidationButton ici, une fois le script chargé
+          if (typeof setupValidationButton === "function") {
+            setupValidationButton();
+          } else {
+            console.error("setupValidationButton non trouvée");
+          }
+        };
+        document.body.appendChild(script);
+      })
+      .catch(err => console.error("Erreur chargement GeoJSON :", err));
+
+  </script>
+</body>
+
+</html>

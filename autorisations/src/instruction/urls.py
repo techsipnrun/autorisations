@@ -25,9 +25,15 @@ urlpatterns = [
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
     path('passer_etape_en_preinstruction/', preinstruction.passer_etape_en_preinstruction, name='passer_etape_en_preinstruction'),
     path('preinstruction/note/', preinstruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
+    path('instruction/se-declarer-instructeur/', views.se_declarer_instructeur, name='se_declarer_instructeur'),
+    path('instruction/retirer-instructeur/', views.retirer_instructeur, name='retirer_instructeur'),
+    path("instruction/<int:numero_dossier>/edit_carto", views.edit_carto, name="edit_carto"),
+    path("instruction/enregistrer-geom/", views.enregistrer_geom, name="enregistrer_geom"),
 
 
-    
+
+
+    path('carto_test/', views.carto_test, name='carto_test'),  #url de Test
     path('avis/', views.avis, name='avis_view'),
     path('requetes/', views.requetes, name='requetes_view'),
 ]

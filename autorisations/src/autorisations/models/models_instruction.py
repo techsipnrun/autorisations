@@ -154,6 +154,7 @@ class Dossier(models.Model):
     id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.RESTRICT, db_column='id_groupeinstructeur')
     id_demarche = models.ForeignKey(Demarche, models.RESTRICT, db_column='id_demarche')
     geometrie = models.JSONField(blank=True, null=True)
+    geometrie_modif = models.JSONField(blank=True, null=True)
 
     class Meta:
         managed = False

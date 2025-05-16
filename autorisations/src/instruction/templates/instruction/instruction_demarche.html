@@ -33,9 +33,19 @@
     </div>
 
     <h1>{{ demarche.titre }}</h1>
-    <h2>Les dossiers en instructions</h2>
+    
+    <div class="filtre-au-dessus">
+      <form method="get">
+        <label class="label-filtre">
+          <input type="checkbox" name="mes_dossiers" value="1" onchange="this.form.submit()"
+            {% if request.GET.mes_dossiers %}checked{% endif %}>
+          Afficher mes dossiers
+        </label>
+      </form>
+    </div>
 
-    <table>
+
+    <table class="table_demarche_instru">
         <thead>
           <tr>
             <th>Dossier</th>

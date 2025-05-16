@@ -1,0 +1,150 @@
+/* Page title */
+h1 {
+    text-align: center;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    color: #115e31;
+}
+
+/* Bouton retour formulaire */
+.header-retour {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  gap: 2rem;
+  margin: 3rem 5rem
+}
+
+.btn-retour-formulaire {
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid #115e31;
+  border-radius: 4px;
+  color: #115e31;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-retour-formulaire:hover {
+  background-color: #e6ffed;
+}
+
+
+
+/* -------------------------------- */
+/*           Carte Leaflet          */
+/* -------------------------------- */
+.carte, .leaflet-container {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #eee;
+  margin: 1.5rem 0;
+}
+
+.carte-container {
+  position: relative;
+  height: 80vh;
+  margin-left: 5rem;
+  margin-right: 5rem;
+  margin-bottom: 5rem;
+}
+
+.carte {
+  height: 100%;
+  background: #eee;
+}
+
+/* ===== Légende & Popup ===== */
+.legend {
+  background: rgba(255, 255, 255, 0.6);
+  padding: 5px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.2);
+}
+
+.leaflet-popup-content strong {
+  color: #2E7D32;
+  font-size: 1rem;
+}
+
+
+/* ===== Bouton sur la carte ===== */  
+.btn-sur-carte {
+position: absolute;
+bottom: 10px;
+left: 10px;
+z-index: 1000;
+background-color: white;
+border: 1px solid #ccc;
+padding: 6px 10px;
+font-size: 14px;
+border-radius: 4px;
+cursor: pointer;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+
+/* Style général du panneau Leaflet */
+.leaflet-control-layers {
+    font-family: "Segoe UI", sans-serif;
+    font-size: 14px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    padding-top: 10px;
+    border: 1px solid #ccc;
+  }
+  
+/* ===== Panneau de couches Leaflet ===== */
+.leaflet-control-layers {
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  padding-top: 10px;
+  border: 1px solid #ccc;
+}
+
+.leaflet-control-layers .layer-title {
+  font-weight: bold;
+  font-size: 15px;
+  text-align: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #ddd;
+  color: #2E7D32;
+}
+
+.leaflet-control-layers label {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+}
+
+.leaflet-control-layers-selector {
+  margin-right: 8px;
+  accent-color: #4CAF50;
+}
+  
+
+/* -------------------------------- */
+/*     Message Succès ou Erreur     */
+/* -------------------------------- */
+.message-flash {
+  margin: 0 5rem 2rem 5rem;
+  padding: 1rem;
+  border-radius: 5px;
+  font-weight: bold;
+}
+.message-flash.success {
+  background-color: #e6ffed;
+  color: #237d3b;
+  border: 1px solid #b5dfc3;
+}
+.message-flash.error {
+  background-color: #ffecec;
+  color: #a33;
+  border: 1px solid #e6b5b5;
+}

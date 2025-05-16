@@ -30,14 +30,17 @@
                     <a href="{% url 'accueil_view' %}">
                         <li class="{% if '/instruction' in request.path %}active{% endif %}">
                             Instruction
-                            <span class="notif_pastille"> 5 </span>
+                            {% if nb_dossiers_instruction > 0 %}
+                                <span class="notif_pastille">{{ nb_dossiers_instruction }}</span>
+                            {% endif %}
+
                         </li>
                     </a>
 
                     <a href="{% url 'avis_view' %}">
                         <li class="{% if '/avis' in request.path %}active{% endif %}">
                             Avis
-                            <span class="notif_pastille"> 2 </span>
+                            <!-- <span class="notif_pastille"> 2 </span> -->
                         </li>
                     </a>
 

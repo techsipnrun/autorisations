@@ -154,14 +154,22 @@ def envoyer_message_dossier(request, numero):
 
             result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, num_dossier=numero)
 
-        msg_ds = result_API_DS["data"]['dossierEnvoyerMessage'].get('message') 
-        if msg_ds and msg_ds.get('id'):
 
+            
+        if result_API_DS.get("data"):
+            msg_ds = None
+            dossier_env_msg = result_API_DS["data"].get("dossierEnvoyerMessage")
+
+            if dossier_env_msg is not None:
+                msg_ds = dossier_env_msg.get('message')
+
+        if msg_ds and msg_ds.get('id'):
             url_ds = get_msg_DS(numero, msg_ds['id']) if fichier else None
             enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=msg_ds['id'], url_ds=url_ds)
 
         else:
-            return HttpResponse("Erreur envoi message DS", status=500)
+            loggerDS.error(f"Dossier {numero} : Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)")
+            return HttpResponse(f"Dossier {numero} : Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)", status=500)
         
     except Exception as e:
 
