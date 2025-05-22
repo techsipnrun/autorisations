@@ -1,4 +1,5 @@
 {% load static %}
+{% load breadcrumb_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -27,10 +28,18 @@
     
     {% include 'navbar.html' %}
 
+    {% breadcrumb breadcrumb_items %}
+
     <div class="header-retour">
-      <a href="{% url 'instruction_dossier' num_dossier=numero_dossier %}" class="btn-retour-formulaire">
-        ← Revenir au formulaire
-      </a>
+      {% if etape_dossier != "À affecter" %}
+        <a href="{% url 'instruction_dossier' num_dossier=numero_dossier %}" class="btn-retour-formulaire">
+          ← Revenir au formulaire
+        </a>
+      {% else %}
+        <a href="{% url 'preinstruction_dossier' numero=numero_dossier %}" class="btn-retour-formulaire">
+          ← Revenir au formulaire
+        </a>
+      {% endif %}
       <h1>Édition de la géométrie du dossier {{ numero_dossier }}</h1>
     </div>
 
@@ -54,13 +63,14 @@
     <!-- La carte ne contient rien pour l’instant -->
     <div class="carte" data-geojson=""></div>
 
-    <form method="post" action="{% url 'enregistrer_geom' %}" id="form-geom">
-      {% csrf_token %}
-      <input type="hidden" name="dossier_numero" value="{{ numero_dossier }}">
-      <input type="hidden" name="geojson_geom" id="geom-result">
-      <button type="button" id="valider-geom" class="btn-sur-carte">✅ Valider la géométrie</button>
-
-    </form>
+      <form method="post" action="{% url 'enregistrer_geom' %}" id="form-geom">
+        {% csrf_token %}
+        <input type="hidden" name="dossier_numero" value="{{ numero_dossier }}">
+        <input type="hidden" name="id_champ" value="{{ id_champ }}">
+        <input type="hidden" name="geojson_geom" id="geom-result">
+        <input type="hidden" name="nb_cartes" value="{{ nb_cartes }}">
+        <button type="button" id="valider-geom" class="btn-sur-carte">✅ Valider la géométrie</button>
+      </form>
 
   </div>
 

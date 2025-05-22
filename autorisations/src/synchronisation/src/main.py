@@ -9,3 +9,9 @@ def lancer_normalisation_et_synchronisation():
         datas_DS = recup_data_DS(num)
         resultats = normalize_process(datas_DS["demarche"])
         synchro_process(resultats)
+
+
+def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
+    datas_DS = recup_data_DS(num_demarche)
+    resultats = normalize_process(datas_DS["demarche"])
+    synchro_process(resultats)

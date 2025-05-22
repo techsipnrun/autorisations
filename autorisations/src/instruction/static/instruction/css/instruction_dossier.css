@@ -30,6 +30,11 @@
     background-color: #e0e0e0;
 }
 
+.refresh-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .refresh-icon {
     width: 18px;
     height: 18px;
@@ -476,5 +481,82 @@ textarea[name="note"] {
 
 .notes_instructeurs {
     margin-top: 2rem;
+}
+
+
+/* ANNEXES INSTRUCTEUR */
+.form-ajout-annexe {
+    display: inline-block;
+}
+
+.annexe-label {
+    cursor: pointer;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.annexe-icon {
+    height: 20px;
+    vertical-align: middle;
+}
+
+.annexe-icon:hover {
+    transform: scale(1.2);
+}
+
+.annexe-input {
+    display: none;
+}
+
+.liste-annexes-instructeur {
+    list-style: none;
+    padding-left: 0;
+    margin: 0.5rem 0 1rem;
+}
+
+.annexe-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+}
+
+.liste-annexes-instructeur li a {
+    text-decoration: none;
+    color: #115e31;
+}
+
+.annexe-item:hover .annexe-texte {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* --- Bouton copier --- */
+.btn-copier-chemin {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+}
+
+.annexe-item:hover .btn-copier-chemin {
+    opacity: 1;
+}
+
+.copie-feedback {
+    opacity: 0;
+    margin-left: 0.5rem;
+    color: green;
+    font-weight: bold;
+    transition: opacity 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.copie-feedback.show {
+    opacity: 1;
 }
 

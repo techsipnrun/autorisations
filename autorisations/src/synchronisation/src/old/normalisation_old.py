@@ -3,6 +3,9 @@ import os
 import sys
 import django
 
+from utils.instruction import calcul_priorite_instruction, type_demande_from_nom_demarche
+from utils.model_helpers import get_first_id
+
 
 
 def init_setup():

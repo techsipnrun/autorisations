@@ -45,30 +45,31 @@ def write_resume_pdf(emplacement, name, url_du_pdf):
 
     Args:
         emplacement (str): Chemin relatif à ROOT_FOLDER.
-        name (str): Nom du fichier PDF (sans extension).
+        name (str): Nom du fichier PDF (avec extension).
         url_du_pdf (str): URL publique du fichier PDF à télécharger.
 
     Returns:
         Optional[str]: Chemin absolu du fichier créé, ou None en cas d’échec.
     """
     chemin_fichier = ensure_dossier_root(emplacement)
+    chemin_complet = os.path.join(chemin_fichier, name)
 
     try:
 
         response = requests.get(url_du_pdf, timeout=15)
         response.raise_for_status()
 
-        with open(chemin_fichier, "wb") as f:
+        with open(chemin_complet, "wb") as f:
             f.write(response.content)
 
-        loggerFile.info(f"[FILE] PDF téléchargé et écrit : {chemin_fichier}")
+        loggerFile.info(f"[FILE] PDF téléchargé et écrit : {name}")
 
     except requests.exceptions.RequestException as e:
         loggerFile.error(f"[HTTP ERROR] Impossible de télécharger le PDF : {e}")
     except Exception as e:
-        loggerFile.error(f"[FILE ERROR] Impossible d’écrire le fichier {chemin_fichier} : {e}")
+        loggerFile.error(f"[FILE ERROR] Impossible d’écrire le fichier {chemin_complet} : {e}")
 
-    return chemin_fichier
+    return chemin_complet
 
 
 
@@ -85,14 +86,15 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
         Optional[str]: Chemin absolu du fichier écrit, ou None en cas d’échec.
     """
     chemin_fichier = ensure_dossier_root(emplacement)
+    chemin_complet = os.path.join(chemin_fichier, nom_geojson)
 
     try:
-        with open(chemin_fichier, "w", encoding="utf-8") as f:
+        with open(chemin_complet, "w", encoding="utf-8") as f:
             json.dump(contenu_geojson, f, ensure_ascii=False, indent=2)
             
-        loggerFile.info(f"[GEOJSON] Fichier écrit : {chemin_fichier}")
+        loggerFile.info(f"[GEOJSON] Fichier écrit : {nom_geojson}")
     except Exception as e:
-        loggerFile.error(f"[ERREUR] Impossible d’écrire le fichier GeoJSON {chemin_fichier} : {e}")
+        loggerFile.error(f"[ERREUR] Impossible d’écrire le fichier GeoJSON {chemin_complet} : {e}")
 
     return chemin_fichier
 
@@ -200,6 +202,29 @@ def fetch_geojson(url: str) -> Optional[dict]:
     return None
 
 
+import json
+
+def geoareas_to_geojson_text(geoareas):
+    """
+    Convertit une liste de géométries (geoAreas) en texte GeoJSON exploitable.
+    
+    :param geoareas: Liste de dictionnaires contenant des objets {"geometry": {...}}
+    :return: Chaîne GeoJSON (format texte JSON)
+    """
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": item["geometry"],
+                "properties": {}
+            }
+            for item in geoareas if "geometry" in item
+        ]
+    }
+    return geojson
+
+
 
 def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre_demarche: str) -> str:
     """
@@ -222,14 +247,18 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
         type_autorisation = "Missions_scientifiques"
     elif "activités commerciales" in titre:
         type_autorisation = "Activites_commerciales"
-    elif "activité agricole" in titre:
-        type_autorisation = "Activite_agricoles"
+    elif "activités agricoles" in titre:
+        type_autorisation = "Activites_agricoles"
     elif "prise de vue" in titre or "drone" in titre:
         type_autorisation = "PDV_et_son"
-    elif "survol hélicoptère" in titre:
-        type_autorisation = "Survol"
-    elif "courses d’arêtes" in titre:
+    elif "hélicoptère" in titre:
+        type_autorisation = "Survol_hélicoptere"
+    elif "arêtes" in titre:
         type_autorisation = "Aretes"
+    elif "manifestations publiques" in titre:
+        type_autorisation = "Manifestations_publiques"
+    elif "planification et d'urbanisme" in titre:
+        type_autorisation = "Documents_planification_urbanisme"
     else:
         type_autorisation = "Autre"
 

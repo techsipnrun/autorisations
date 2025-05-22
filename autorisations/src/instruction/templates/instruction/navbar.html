@@ -28,7 +28,7 @@
                     </a>
 
                     <a href="{% url 'accueil_view' %}">
-                        <li class="{% if '/instruction' in request.path %}active{% endif %}">
+                        <li class="{% if '/instruction' in request.path or request.path == '/' %}active{% endif %}">
                             Instruction
                             {% if nb_dossiers_instruction > 0 %}
                                 <span class="notif_pastille">{{ nb_dossiers_instruction }}</span>

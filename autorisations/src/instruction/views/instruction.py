@@ -9,6 +9,7 @@ from autorisations.models.models_instruction import Demarche, Dossier, EtapeDoss
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
+from autorisations.models.models_documents import DossierDocument
 from synchronisation.src.normalisation.norma_contacts_externes import contact_externe_normalize
 from synchronisation.src.normalisation.norma_demandes import demande_normalize
 from synchronisation.src.normalisation.norma_dossier_champs import dossiers_champs_normalize
@@ -20,6 +21,7 @@ from synchronisation.src.utils.fichiers import construire_emplacement_dossier
 from synchronisation.src.normalisation.norma_dossier import dossier_normalize
 from synchronisation.src.normalisation.norma_dossiers import dossiers_normalize_process
 from instruction.utils import format_etat_dossier
+from synchronisation.src.main import lancer_normalisation_et_synchronisation_pour_une_demarche
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -92,7 +94,7 @@ def instruction_demarche(request, num_demarche):
         id_etat_dossier__in=ids_etats_termines
     )
 
-    if request.GET.get("mes_dossiers") == "1" and groupes_user:
+    if request.GET.get("mes_dossiers") == "1" :
         dossiers_query = dossiers_query.filter(id_groupeinstructeur_id__in=groupes_user)
 
     dossiers = dossiers_query.select_related("id_dossier_type", "id_groupeinstructeur").order_by("date_depot")
@@ -130,6 +132,8 @@ def instruction_dossier(request, num_dossier):
 
     dossier = get_object_or_404(Dossier, numero=num_dossier)
 
+    demarche = dossier.id_demarche
+
     # Charger le fond de carte GeoJSON (une seule fois)
     fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
     with open(fond_coeur_de_parc, encoding="utf-8") as f:
@@ -140,7 +144,7 @@ def instruction_dossier(request, num_dossier):
     with open(fond_aire_adhesion, encoding="utf-8") as f:
         fond_aire_adhesion = json.load(f)
 
-
+    nb_cartes = 0
     champs_prepares = []
     for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("id"):
 
@@ -162,7 +166,9 @@ def instruction_dossier(request, num_dossier):
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": "Oui" if val == "true" else "Non" if val == "false" else "Non renseigné"})
 
         elif ct == "carte" and champ.geometrie:
-            champs_prepares.append({"type": "carte", "nom": nom, "geojson": json.dumps(champ.geometrie)})
+            nb_cartes += 1
+            geojson_source = champ.geometrie_modif or champ.geometrie
+            champs_prepares.append({"type": "carte", "nom": nom, "geojson": json.dumps(geojson_source), "id":champ.id})
 
         elif ct == "header_section":
             champs_prepares.append({"type": "header", "titre": nom})
@@ -219,6 +225,30 @@ def instruction_dossier(request, num_dossier):
             peut_se_declarer = True
 
 
+    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
+    emplacements_documents = [doc.id_document.emplacement for doc in dossier_documents]
+
+    # Documents de nature "Annexe instructeur"
+    annexes_instructeur = [
+        doc.id_document for doc in dossier_documents
+        if doc.id_document.id_nature.nature.lower() == "annexe instructeur"
+    ]
+
+    # Recup des infos sur le bénéficiaire
+    beneficiaire = None
+    demandeur_intermediaire = None
+    interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
+
+    if interlocuteur:
+        dossier_benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+        if dossier_benef:
+            beneficiaire = dossier_benef.id_beneficiaire
+
+         # Demandeur intermédiaire
+        if interlocuteur.id_demandeur_intermediaire:
+            demandeur_intermediaire = interlocuteur.id_demandeur_intermediaire
+
+
 
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
@@ -226,6 +256,7 @@ def instruction_dossier(request, num_dossier):
         "champs": champs_prepares,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
+        "nb_cartes": nb_cartes,
         "is_formulaire_active": True,
         "is_messagerie_active": False,
         "groupes_instructeurs": groupes_instructeurs,
@@ -235,7 +266,13 @@ def instruction_dossier(request, num_dossier):
         "instructeurs_dossier_ids": instructeurs_dossier,
         "peut_se_declarer": peut_se_declarer,
         "instructeur_connecte": instructeur_connecte,
-        "geometrie_modif": json.dumps(dossier.geometrie_modif) if dossier.geometrie_modif else None,  # ✅ string JSON
+        # "geometrie_modif": json.dumps(dossier.geometrie_modif) if dossier.geometrie_modif else None,
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "emplacements_documents": emplacements_documents,
+        "annexes_instructeur": annexes_instructeur,
+        "demarche": demarche,
+        "beneficiaire": beneficiaire,
+        "demandeur_intermediaire": demandeur_intermediaire,
     })
 
 
@@ -279,7 +316,8 @@ def actualiser_dossier(request, num_dossier):
         sync_dossiers([dico_dossier])
 
         logger.info(f"[DOSSIER] Actualisation complète du dossier {num_dossier} réussie.")
-        return redirect('instruction_dossier', num_dossier=num_dossier)
+        # return redirect('instruction_dossier', num_dossier=num_dossier)
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     except Exception as e:
         logger.exception(f"[DOSSIER] Échec de l'actualisation complète du dossier {num_dossier} : {e}")
@@ -297,3 +335,6 @@ def instruction_dossier_consultation(request, num_dossier):
         "is_messagerie_active": False,
         "is_consultation_active": True,
     })
+
+
+

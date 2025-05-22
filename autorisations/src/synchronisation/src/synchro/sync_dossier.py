@@ -1,6 +1,6 @@
 from autorisations.models.models_instruction import Dossier
 from ..utils.model_helpers import update_fields, foreign_keys_add_suffixe_id
-from ..utils.fichiers import create_emplacement
+from ..utils.fichiers import create_emplacement, write_geojson
 from django.db import models
 from datetime import date, datetime
 import logging
@@ -30,6 +30,9 @@ def sync_doss(dossier):
         # Création des folders
         create_emplacement(defaults["emplacement"])
 
+        # Write geojson
+        write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero}.geojson",obj.geometrie)
+
     else:
         update_data = {}
 
@@ -47,6 +50,9 @@ def sync_doss(dossier):
         if updated_fields:
             obj.save()
             logger.info(f"[SAVE] Dossier {obj.numero} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+            if "geometrie" in updated_fields :
+                # Write geojson
+                write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero}.geojson",obj.geometrie)
         else:
             logger.info(f"[NO CHANGE] Dossier {obj.numero} inchangé.")
 

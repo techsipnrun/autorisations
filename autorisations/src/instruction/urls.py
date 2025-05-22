@@ -27,8 +27,17 @@ urlpatterns = [
     path('preinstruction/note/', preinstruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
     path('instruction/se-declarer-instructeur/', views.se_declarer_instructeur, name='se_declarer_instructeur'),
     path('instruction/retirer-instructeur/', views.retirer_instructeur, name='retirer_instructeur'),
-    path("instruction/<int:numero_dossier>/edit_carto", views.edit_carto, name="edit_carto"),
+    # path("instruction/<int:numero_dossier>/edit_carto", views.edit_carto, name="edit_carto"),
+    path("instruction/<int:numero_dossier>/edit_carto/<int:id_champ>/",views.edit_carto,name="edit_carto"),
     path("instruction/enregistrer-geom/", views.enregistrer_geom, name="enregistrer_geom"),
+
+    # path('instruction/<str:numero_dossier>/champ/<int:id_champ>/edit_carto/', views.edit_carto_champ, name='edit_carto_champ'),
+    # path('instruction/enregistrer_geom_champ/', views.enregistrer_geom_champ, name='enregistrer_geom_champ'),
+    
+    path('ajouter_annexe/<int:dossier_id>/', views.ajouter_annexe_dossier, name='ajouter_annexe_dossier'),
+    path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
+
+
 
 
 

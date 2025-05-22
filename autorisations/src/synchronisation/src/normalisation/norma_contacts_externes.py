@@ -45,18 +45,20 @@ def contact_externe_normalize(doss):
             }
 
         if doss['demandeur']['__typename'] == 'PersonneMorale' :
+
+            # contacts_externes['beneficiaire'] avec les champs du form
+
+            raison_sociale = doss['demandeur']['entreprise']['raisonSociale'] if doss['demandeur'].get('entreprise') else None
+            orga = doss['demandeur']['entreprise']['nom'] if doss['demandeur'].get('entreprise') else (doss['demandeur']['association']['titre'] if doss['demandeur'].get('association') else None)
+
             contacts_externes['personne_morale'] = {
+                "nom": raison_sociale or orga or "",
                 "email": clean_email(doss['usager']['email']),
                 "id_type": get_first_id(TypeContactExterne, type="personne_morale"),
                 "siret": doss['demandeur']['siret'],
-                "raison_sociale": doss['demandeur']['entreprise']['raisonSociale'] if doss['demandeur'].get('entreprise') else None,
-                "organisation":   doss['demandeur']['entreprise']['nom'] if doss['demandeur'].get('entreprise') else (doss['demandeur']['association']['titre'] if doss['demandeur'].get('association') else None),
-                # "organisation": (
-                #     doss.get('demandeur', {}).get('entreprise', {}).get('nom') or
-                #     doss.get('demandeur', {}).get('association', {}).get('titre')
-                # ),
-                "adresse": doss['demandeur']['address']['cityName']
-
+                "raison_sociale": raison_sociale,
+                "organisation": orga,
+                "adresse": doss['demandeur']['address']['cityName'],
             }
 
     return contacts_externes

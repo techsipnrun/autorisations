@@ -1,4 +1,5 @@
 {% load static %}
+{% load breadcrumb_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -13,6 +14,8 @@
 </head>
 <body>
     {% include 'navbar.html' %}
+
+    {% breadcrumb breadcrumb_items %}
     
     <div class="page-container">
 
@@ -29,7 +32,7 @@
             <div class="refresh-messages">
                 <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
                     {% csrf_token %}
-                    <button type="submit" class="refresh-button">
+                    <button type="submit" class="refresh-button" id="btn-refresh-messages">
                         <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
                         Actualiser
                     </button>
@@ -142,6 +145,23 @@
         });
     </script>
     
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const refreshForm = document.querySelector(".refresh-messages form");
+            const refreshButton = document.getElementById("btn-refresh-messages");
+
+            if (refreshForm && refreshButton) {
+                refreshForm.addEventListener("submit", function () {
+                    refreshButton.disabled = true;
+                    refreshButton.innerHTML = `
+                        <img src="{% static 'instruction/img/actualiser.png' %}" class="refresh-icon" />
+                        Traitement en cours...
+                    `;
+                });
+            }
+        });
+    </script>
+
     
 
 </body>

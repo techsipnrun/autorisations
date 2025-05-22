@@ -1,4 +1,5 @@
 import json
+import os
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
@@ -7,7 +8,8 @@ from django.http import JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, EtapeDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur
-from synchronisation.src.main import lancer_normalisation_et_synchronisation
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
+from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Thread, Lock
 import logging
 
@@ -129,13 +131,21 @@ def retirer_instructeur(request):
 @login_required
 def enregistrer_geom(request):
     try:
-        # dossier_id = request.POST.get("dossier_id")
         dossier_numero = request.POST.get("dossier_numero")
         geojson_str = request.POST.get("geojson_geom")
-        print(f"Valeur reçue pour geojson_geom: {geojson_str}")
+        id_champ = request.POST.get("id_champ")
+        nb_cartes = request.POST.get("nb_cartes")
+
+        print('dossier_numero : ', dossier_numero)
+        print('geojson_str : ', geojson_str)
+        print('id_champ : ', id_champ)
+        print('nb_cartes : ', nb_cartes)
 
         dossier = get_object_or_404(Dossier, numero=dossier_numero)
+        champ = get_object_or_404(DossierChamp, id=id_champ, id_dossier=dossier, id_champ__id_champ_type__type="carte")
 
+        # print(dossier)
+        # print(champ)
 
         if not geojson_str:
             msg = "Aucune géométrie reçue (champ geojson_geom vide)."
@@ -146,26 +156,28 @@ def enregistrer_geom(request):
 
         geojson_data = json.loads(geojson_str)
 
-        # MAJ champ
-        champ = DossierChamp.objects.filter(id_dossier=dossier, id_champ__id_champ_type__type="carte").first()
+        # # MAJ champ
+        # champ = DossierChamp.objects.filter(id_dossier=dossier, id_champ__id_champ_type__type="carte").first()
         if not champ:
             msg = "Champ carte non trouvé."
             logger.error(f"[ENREGISTREMENT GEOMETRIE] Erreur sur le dossier {dossier.numero} : {msg}")
-            return redirect(f"{reverse('edit_carto', kwargs={'numero_dossier': dossier.numero})}?status=error&msg={urllib.parse.quote(msg)}")
+            return redirect(f"{reverse('edit_carto', kwargs={'numero_dossier': dossier.numero, 'id_champ': request.POST.get('id_champ')})}?status=error&msg={urllib.parse.quote(msg)}")
 
-        champ.geometrie = geojson_data
+        champ.geometrie_modif = geojson_data
         champ.save()
 
-        # MAJ geometrie dossier
-        dossier.geometrie_modif = geojson_data
-        dossier.save()
+        # MAJ géométrie dossier seulement s'il n'existe qu'un champ de type carte
+        if nb_cartes == 1:
+            dossier.geometrie_modif = geojson_data
+            dossier.save()
+
         msg = "Géométrie mise à jour avec succès."
         logger.info(f"{msg} pour le dossier {dossier.numero}")
-        return redirect(f"{reverse('edit_carto', kwargs={'numero_dossier': dossier.numero})}?status=ok&msg={urllib.parse.quote(msg)}")
+        return redirect(f"{reverse('edit_carto', kwargs={'numero_dossier': dossier.numero, 'id_champ': id_champ})}?status=ok&msg={urllib.parse.quote(msg)}")
 
     except Exception as e:
         logger.error(f"[ENREGISTREMENT GEOMETRIE] Erreur sur le dossier {request.POST.get('dossier_id')} : {e}")
-        return redirect(f"/instruction/{request.POST.get('dossier_numero')}/edit_carto?status=error&msg={urllib.parse.quote(str(e))}")
+        return redirect(f"/instruction/{request.POST.get('dossier_numero')}/edit_carto/{request.POST.get('id_champ')}?status=error&msg={urllib.parse.quote(str(e))}")
 
 
 
@@ -176,14 +188,79 @@ def carto_test(request):
 
 
 @login_required
-def edit_carto(request, numero_dossier):
+def edit_carto(request, numero_dossier, id_champ):
     dossier = get_object_or_404(Dossier, numero=numero_dossier)
     
-    geojson_source = dossier.geometrie_modif or dossier.geometrie
+    # Récupère tous les champs carte
+    nb_cartes = dossier.dossierchamp_set.filter(id_champ__id_champ_type__type="carte").count()
+
+    champ = get_object_or_404(
+            DossierChamp,
+            id=id_champ,
+            id_dossier=dossier,
+            id_champ__id_champ_type__type="carte"
+        )
+        
+    geojson_source = champ.geometrie_modif or champ.geometrie or {}
+    
+
+    # geojson_source = dossier.geometrie_modif or dossier.geometrie
     geojson = json.dumps(geojson_source) if geojson_source else "{}"
 
 
-    return render(request, 'edit_carto.html', {"numero_dossier": numero_dossier, "geojson": geojson})
+    return render(request, 'edit_carto.html', {
+                                                "numero_dossier": numero_dossier, 
+                                                "geojson": geojson, 
+                                                "etape_dossier": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else None,
+                                                "nb_cartes": nb_cartes,
+                                                'id_champ': id_champ,
+                                               })
+
+
+
+# @require_POST
+# @login_required
+# def enregistrer_geom_champ(request):
+#     try:
+#         dossier_numero = request.POST.get("dossier_numero")
+#         id_champ = request.POST.get("id_champ")
+#         geojson_str = request.POST.get("geojson_geom")
+
+#         dossier = get_object_or_404(Dossier, numero=dossier_numero)
+#         champ = get_object_or_404(DossierChamp, id=id_champ, id_dossier=dossier, id_champ__id_champ_type__type="carte")
+
+#         if not geojson_str:
+#             msg = "Aucune géométrie reçue."
+#             return redirect(
+#                 f"{reverse('edit_carto_champ', kwargs={'numero_dossier': dossier_numero, 'id_champ': id_champ})}?status=error&msg={urllib.parse.quote(msg)}"
+#             )
+
+#         geojson_data = json.loads(geojson_str)
+#         champ.geometrie_modif = geojson_data
+#         champ.save()
+
+#         msg = "Géométrie du champ mise à jour."
+#         return redirect(f"{reverse('edit_carto_champ', kwargs={'numero_dossier': dossier_numero, 'id_champ': id_champ})}?status=ok&msg={urllib.parse.quote(msg)}")
+
+#     except Exception as e:
+#         return redirect(f"/instruction/{dossier_numero}/champ/{id_champ}/edit_carto?status=error&msg={urllib.parse.quote(str(e))}")
+
+# @login_required
+# def edit_carto_champ(request, numero_dossier, id_champ):
+#     dossier = get_object_or_404(Dossier, numero=numero_dossier)
+#     champ = get_object_or_404(DossierChamp, id=id_champ, id_dossier=dossier, id_champ__id_champ_type__type="carte")
+
+#     geojson_source = champ.geometrie_modif or champ.geometrie or {}
+#     geojson = json.dumps(geojson_source)
+
+#     return render(request, 'edit_carto.html', {
+#         "numero_dossier": numero_dossier,
+#         "geojson": geojson,
+#         "etape_dossier": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else None,
+#         "id_champ": champ.id,
+#         "champ_nom": champ.id_champ.nom
+#     })
+
 
 
 def mes_dossiers_a_traiter_count(request):
@@ -205,5 +282,89 @@ def mes_dossiers_a_traiter_count(request):
     )
 
     return {"nb_dossiers_instruction": dossiers.count()}
+
+
+@login_required(login_url='/login/')
+def ajouter_annexe_dossier(request, dossier_id):
+
+    if request.method == "POST" and request.FILES.get('annexe'):
+        fichier = request.FILES['annexe']
+
+        # Vérification de la taille (max 50 Mo)
+        if fichier.size > 50 * 1024 * 1024:
+            logger.warning(f"[ANNEXE REFUSÉE] Taille > 50 Mo pour {fichier.name}")
+            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+        # Extension du fichier
+        nom, extension = os.path.splitext(fichier.name)
+        extension = extension.lstrip('.').lower()
+
+        # Récupérer le format
+        format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
+        if not format_obj:
+            logger.warning(f"[ANNEXE REFUSÉE] Format non reconnu : .{extension}")
+            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+
+        # Nature "Annexe instructeur"
+        nature_obj = DocumentNature.objects.filter(nature__iexact="Annexe instructeur").first()
+        if not nature_obj:
+            logger.error("[ANNEXE REFUSÉE] La nature 'Annexe instructeur' est introuvable.")
+            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+        
+
+        # Création du Document
+        dossier = get_object_or_404(Dossier, pk=dossier_id)
+        emplacement = f"{dossier.emplacement}/Annexes/{fichier.name}"
+        chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
+
+        # Vérification si un Document avec le même emplacement existe déjà en base, si on est ici c'est qu'on a confirmé l'écrasement dans le pop up JS
+        if Document.objects.filter(emplacement=emplacement).exists():
+            
+            #ancien document
+            ancien_doc = Document.objects.filter(emplacement=emplacement).first()
+            # Supprimer le lien avec le dossier
+            DossierDocument.objects.filter(id_document=ancien_doc).delete()
+            # Supprimer le document lui-même
+            ancien_doc.delete()
+
+            logger.info(f"[ANNEXE ÉCRASÉE] {fichier.name} (.{extension}) écrasé pour Dossier {dossier.numero} — ancien document supprimé.")
+
+
+        doc = Document.objects.create(
+            id_format=format_obj,
+            id_nature=nature_obj,
+            titre=fichier.name,
+            emplacement=emplacement,
+            description=f"Annexe ajouté par l'instructeur sur le dossier {dossier.numero}"
+        )
+
+
+        # Lien avec le Dossier
+        DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+
+      # Enregistrement physique
+        os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+        with open(chemin_complet, 'wb+') as destination:
+            for chunk in fichier.chunks():
+                destination.write(chunk)
+
+        logger.info(f"[ANNEXE AJOUTÉE] {fichier.name} (.{extension}) liée à Dossier {dossier.numero}")
+        return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+
+    logger.warning("[ANNEXE NON TRAITÉE] Aucune pièce jointe reçue.")
+    return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+
+
+@login_required
+def synchroniser_demarche(request, num_demarche):
+    if request.method == "POST":
+        try:
+            lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+        except Exception as e:
+            logger.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+    return redirect("instruction_demarche", num_demarche=num_demarche)
 
 

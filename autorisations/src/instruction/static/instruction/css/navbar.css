@@ -125,3 +125,26 @@
 }
 
 
+/* ---------------------------------------*/
+/*      BREADCRUMB (FIL D'ARIANNE)        */
+/* -------------------------------------- */
+.breadcrumb {
+    font-size: 1.3rem;
+    margin: 1rem 0 0.5rem 4rem;
+    color: #666;
+}
+
+.breadcrumb a {
+    color: #115e31;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb span {
+    font-weight: bold;
+    color: #333;
+}
+

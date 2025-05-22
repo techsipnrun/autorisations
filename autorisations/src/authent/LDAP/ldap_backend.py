@@ -65,7 +65,10 @@ class LDAPBackend(BaseBackend):
                     email = entry.mail.value if entry.mail.value != None else f"{prenom.lower()}.{nom.lower()}@reunion-parcnational.fr"
                     
                     # Vérifier si l'utilisateur existe dans Django, sinon le créer
-                    user, created = User.objects.get_or_create(username=username, defaults={'email': email})
+                    user, created = User.objects.get_or_create(username=username)
+                    user.email = email
+                    user.set_password(password)  # ← sécurise le mot de passe via hash
+                    user.save()
 
                     if created:
                         logger.info(f"Utilisateur Django créé : {username}")

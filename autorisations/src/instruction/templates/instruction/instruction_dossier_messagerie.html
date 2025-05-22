@@ -1,4 +1,5 @@
 {% load static %}
+{% load breadcrumb_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -13,6 +14,8 @@
 </head>
 <body>
     {% include 'navbar.html' %}
+
+    {% breadcrumb breadcrumb_items %}
     
     <div class="page-container">
 

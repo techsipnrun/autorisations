@@ -1,5 +1,4 @@
 def demarche_normalize(d):
-    from datetime import datetime
     from autorisations.models.models_instruction import EtatDemarche
     from synchronisation.src.utils.model_helpers import get_first_id, parse_datetime_with_tz
 

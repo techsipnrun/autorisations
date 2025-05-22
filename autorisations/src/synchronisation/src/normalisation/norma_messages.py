@@ -1,7 +1,9 @@
+import logging
 from synchronisation.src.utils.conversion import clean_email, extraire_nom_et_extension, parse_datetime_with_tz
 from synchronisation.src.utils.model_helpers import get_first_id
 from autorisations.models.models_documents import DocumentFormat, DocumentNature, Message, MessageDocument
 
+logger = logging.getLogger('ORM_DJANGO')
 
 def message_normalize(doss, emplacement_dossier):
     """
@@ -40,7 +42,12 @@ def message_normalize(doss, emplacement_dossier):
                 for file in m["attachments"]:
 
                     nom_fichier, extension_fichier = extraire_nom_et_extension(file["filename"])
+
                     id_format_doc = get_first_id(DocumentFormat, format=extension_fichier)
+                    if not id_format_doc:
+                        logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss["number"]}")
+                        continue
+
                     id_nature_doc = get_first_id(DocumentNature, nature="Pièce jointe message")
                     liste_files_message.append({
                         "id_format": id_format_doc,

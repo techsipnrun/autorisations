@@ -36,7 +36,7 @@
         <span id="message-actualisation" class="actualisation-texte"></span>
     </div>
 
-    <h1>Dossiers en cours de pré-instruction</h1>
+    <h1>Réception des demandes d'autorisation</h1>
 
     <table>
         <thead>
@@ -67,29 +67,5 @@
     </table>
 
 </body>
-
-<!-- <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("btn-actualiser").addEventListener("click", function (e) {
-            e.preventDefault();
-    
-            fetch("{% url 'actualiser_donnees' %}", {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}",
-                    "Content-Type": "application/json"
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);  // 🟢 Simple pour tester
-                // OU affichage stylisé en toast / bandeau / spinner
-            })
-            .catch(error => {
-                alert("Erreur lors de la requête : " + error);
-            });
-        });
-    });
-    </script> -->
     
 </html>

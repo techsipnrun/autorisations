@@ -67,6 +67,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'instruction.views.views.mes_dossiers_a_traiter_count',
+                'instruction.context_processors.breadcrumb_context',
             ],
         },
     },
@@ -243,8 +244,8 @@ LOGGING = {
 
 #Choix entre l'authentification LDAP ou classique via Django
 
-AUTHENTICATION_BACKENDS = ['authent.LDAP.ldap_backend.LDAPBackend', 'django.contrib.auth.backends.ModelBackend',]
-# AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'authent.LDAP.ldap_backend.LDAPBackend'] #Si on veut verif les users locaux avant LDAP
+# AUTHENTICATION_BACKENDS = ['authent.LDAP.ldap_backend.LDAPBackend', 'django.contrib.auth.backends.ModelBackend',]
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend', 'authent.LDAP.ldap_backend.LDAPBackend'] #Si on veut verif les users locaux avant LDAP
 
 
 #SWAGGER

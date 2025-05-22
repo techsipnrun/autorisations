@@ -27,21 +27,22 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
 
     return {
         "id_ds": doss["id"],
-        "id_etat_dossier": get_first_id(EtatDossier, nom=doss["state"]), #format_etat_dossier(doss["state"])
-        # "id_etape_dossier": get_first_id(EtapeDossier, etape='En pré-instruction'), deja valeur par défaut dans PG
+        "id_etat_dossier": get_first_id(EtatDossier, nom=doss["state"]),
         "id_demarche": id_demarche,
         "numero": doss["number"],
         "id_groupeinstructeur": get_first_id(Groupeinstructeur, nom=doss["groupeInstructeur"]["label"]),
         "date_depot": date_depot,
         "date_fin_instruction": parse_datetime_with_tz(doss["dateTraitement"]),
+
         "id_dossier_type": get_first_id(DossierType, type="nouveau"), # nouveau par défaut mais chopper info dans les champs
         # "id_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
+        
         "note": "",
-        "nom_dossier": f"{doss['number']}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}_{date_depot.strftime("%d-%m")}" if doss['demandeur']['__typename'] == 'PersonnePhysique'  #Personne Physique
+        "nom_dossier": f"{doss['number']}_{doss['demandeur']['nom'].upper()}_{doss['demandeur']['prenom']}_{date_depot.strftime("%d-%m")}" if doss['demandeur']['__typename'] == 'PersonnePhysique'  #Personne Physique
                                                                                                     else f"{doss['number']}_{nom_personne_morale}_{date_depot.strftime("%d-%m")}", # Personne Morale
-        # "emplacement":f"/{doss["number"]}_{doss['demandeur']['nom']}_{doss['demandeur']['prenom']}", # Arborescence à compléter
         "emplacement": emplacement_dossier,
-        "date_limite_traitement": calcul_date_limite_instruction(doss["dateDepot"], id_demarche),
-        # "date_limite_traitement": datetime(2050, 1, 1),
+        "date_limite_traitement": calcul_date_limite_instruction(doss["dateDepot"], id_demarche),  #On est sur que le délais d'instruction est lancé dès la reception du doss ?
         "geometrie": geojson,
     }
+
+    #Check champ formulaire : dossierGroupe pour identifier les dossier liés (peut etre plus cohérent de lemettre dans le syncho file)

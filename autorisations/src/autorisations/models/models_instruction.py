@@ -234,6 +234,7 @@ class DossierChamp(models.Model):
     valeur = models.CharField(blank=True, null=True)
     date_saisie = models.DateTimeField()
     geometrie = models.JSONField(blank=True, null=True)
+    geometrie_modif = models.JSONField(blank=True, null=True)
     id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
     id_champ = models.ForeignKey(Champ, models.CASCADE, db_column='id_champ')
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)

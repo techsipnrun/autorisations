@@ -1,13 +1,60 @@
-.page-container {
-    display: flex;
-    gap: 2rem;
-    padding: 4rem 4rem 6rem 4rem;
+/* ---------------------------------------------------------------- */
+/*                        ACTUALISER DOSSIER                        */
+/* ---------------------------------------------------------------- */
+
+.refresh-doss {
+    text-align: left;
+    margin-top: 2rem;
+    padding: 1rem 4rem 0 4rem;
 }
+
+.refresh-doss form {
+    display: inline-block;
+}
+
+.refresh-button {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+    background-color: #e0e0e0;
+}
+
+.refresh-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.refresh-icon {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.4s ease-in-out;
+}
+
+.refresh-button:hover .refresh-icon {
+    transform: rotate(180deg);
+}
+
 
 
 /* ---------------------------------------------------------------- */
 /*                        FORMULAIRE                                */
 /* ---------------------------------------------------------------- */
+.page-container {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 4rem 6rem 4rem;
+}
 
 .formulaire {
     width: 70%;
@@ -73,6 +120,29 @@ h2 {
     line-height: 1.4em;
 }
 
+/* Bouton 'Modifier Carto' */
+.titre-carte-avec-bouton {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.btn-edit-carto {
+  font-size: 1.2rem;
+  background-color: #f0f0f0;
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  text-decoration: none;
+  color: #333;
+  transition: background 0.2s;
+  line-height: 1.3;
+  margin-top: 2rem;
+}
+
+.btn-edit-carto:hover {
+  background-color: #ddd;
+}
 
 
 /* ====== Passer en Instruction ====== */
@@ -170,11 +240,7 @@ h2 {
 
 }
 
-/* .groupe-label {
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    font-size: 1rem;
-} */
+
 
 .form_groupe_select select {
     padding: 0.4rem;
@@ -465,6 +531,8 @@ h2 {
     background-color: #0e4c27;
 }
 
+/* Notes instructeur */
+
 textarea[name="note"] {
     width: 100%;
     padding: 0.5rem;
@@ -476,4 +544,94 @@ textarea[name="note"] {
 
 .notes_instructeurs {
     margin-top: 2rem;
+}
+
+.notes-titre {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.4rem;
+    color: #115e31;
+    margin-bottom: 1rem;
+}
+
+
+/* --- Formulaire d’ajout d’annexe --- */
+.form-ajout-annexe {
+    display: inline-block;
+}
+
+.annexe-label {
+    cursor: pointer;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.annexe-icon {
+    height: 20px;
+    vertical-align: middle;
+}
+
+.annexe-icon:hover {
+    transform: scale(1.2);
+}
+
+
+.annexe-input {
+    display: none;
+}
+
+/* --- Liste des annexes instructeurs --- */
+.liste-annexes-instructeur {
+    list-style: none;
+    padding-left: 0;
+    margin: 0.5rem 0 1rem;
+}
+
+.annexe-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+}
+
+/* --- Lien (si utilisé) --- */
+.liste-annexes-instructeur li a {
+    text-decoration: none;
+    color: #115e31;
+}
+
+.annexe-item:hover .annexe-texte {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+
+/* --- Bouton copier 📋 --- */
+.btn-copier-chemin {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+}
+
+.annexe-item:hover .btn-copier-chemin {
+    opacity: 1;
+}
+
+.copie-feedback {
+    opacity: 0;
+    margin-left: 0.5rem;
+    color: green;
+    font-weight: bold;
+    transition: opacity 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.copie-feedback.show {
+    opacity: 1;
 }

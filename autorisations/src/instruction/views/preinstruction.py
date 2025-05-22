@@ -9,6 +9,7 @@ from django.contrib import messages
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
+from autorisations.models.models_documents import DossierDocument
 from instruction.utils import format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
@@ -54,12 +55,17 @@ def preinstruction_dossier(request, numero):
 
     dossier = get_object_or_404(Dossier, numero=numero)
 
-    # Charger le fond de carte GeoJSON (une seule fois)
-    fond_path = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+     # Charger le fond de carte GeoJSON (une seule fois)
+    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+    with open(fond_coeur_de_parc, encoding="utf-8") as f:
+        fond_coeur_de_parc = json.load(f)
 
-    with open(fond_path, encoding="utf-8") as f:
-        fond_geojson = json.load(f)
 
+    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
+    with open(fond_aire_adhesion, encoding="utf-8") as f:
+        fond_aire_adhesion = json.load(f)
+
+    nb_cartes = 0
     champs_prepares = []
     for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("id"):
 
@@ -78,10 +84,15 @@ def preinstruction_dossier(request, numero):
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": "Oui" if val == "true" else "Non" if val == "false" else "Non renseigné"})
 
         elif ct == "carte" and champ.geometrie:
-            champs_prepares.append({"type": "carte", "nom": nom, "geojson": json.dumps(champ.geometrie)})
+            nb_cartes += 1
+            geojson_source = champ.geometrie_modif or champ.geometrie
+            champs_prepares.append({"type": "carte", "nom": nom, "geojson": json.dumps(geojson_source), "id":champ.id})
 
         elif ct == "header_section":
             champs_prepares.append({"type": "header", "titre": nom})
+
+        elif ct == "piece_justificative":
+            champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
 
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
@@ -109,6 +120,28 @@ def preinstruction_dossier(request, numero):
         .first()
     )
 
+    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
+    emplacements_documents = [doc.id_document.emplacement for doc in dossier_documents]
+
+    # Documents de nature "Annexe instructeur"
+    annexes_instructeur = [
+        doc.id_document for doc in dossier_documents
+        if doc.id_document.id_nature.nature.lower() == "annexe instructeur"
+    ]
+
+    # Recup des infos sur le bénéficiaire
+    beneficiaire = None
+    demandeur_intermediaire = None
+    interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
+
+    if interlocuteur:
+        dossier_benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+        if dossier_benef:
+            beneficiaire = dossier_benef.id_beneficiaire
+
+         # Demandeur intermédiaire
+        if interlocuteur.id_demandeur_intermediaire:
+            demandeur_intermediaire = interlocuteur.id_demandeur_intermediaire
 
 
 
@@ -117,13 +150,20 @@ def preinstruction_dossier(request, numero):
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
         "etape_dossier": dossier.id_etape_dossier.etape,
         "champs": champs_prepares,
-        "fond_de_carte_data": fond_geojson,
+        "coeurData": fond_coeur_de_parc,
+        "adhesionData": fond_aire_adhesion,
+        "nb_cartes": nb_cartes,
         "is_formulaire_active": True,
         "is_messagerie_active": False,
         "groupes_instructeurs": groupes_instructeurs,
         "membres_groupe": membres_groupe,
         "instructeurs_dossier_ids": instructeurs_dossier_ids,
         "instructeur_connecte": instructeur_connecte,
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "emplacements_documents": emplacements_documents,
+        "annexes_instructeur": annexes_instructeur,
+        "beneficiaire": beneficiaire,
+        "demandeur_intermediaire": demandeur_intermediaire,
     })
 
 

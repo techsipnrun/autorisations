@@ -1,4 +1,5 @@
 {% load static %}
+{% load breadcrumb_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -12,16 +13,18 @@
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}">
 
     <!-- Bouton actualiser -->
-    <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
+    <!-- <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}"> -->
     <!-- JS pour l'actualisation -->
-    <script src="{% static 'instruction/js/preinstruction_actualiser.js' %}"></script>
+    <!-- <script src="{% static 'instruction/js/preinstruction_actualiser.js' %}"></script> -->
 
 </head>
 
 <body>
     {% include 'navbar.html' %}
 
-    <div class="actualiser-wrapper">
+    {% breadcrumb breadcrumb_items %}
+
+    <!-- <div class="actualiser-wrapper">
         <button
             id="btn-actualiser"
             data-url="{% url 'actualiser_donnees' %}"
@@ -30,10 +33,20 @@
             <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
         </button>
         <span id="message-actualisation" class="actualisation-texte"></span>
-    </div>
+    </div> -->
 
     <h1>{{ demarche.titre }}</h1>
     
+    <div class="refresh-doss">
+        <form method="post" action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}">
+            {% csrf_token %}
+            <button type="submit" class="refresh-button" id="btn-sync">
+                <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
+                Actualiser
+            </button>
+        </form>
+    </div>
+
     <div class="filtre-au-dessus">
       <form method="get">
         <label class="label-filtre">
@@ -43,7 +56,7 @@
         </label>
       </form>
     </div>
-
+    
 
     <table class="table_demarche_instru">
         <thead>
@@ -86,6 +99,19 @@
             });
         });
     </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+          const syncForm = document.querySelector("form[action*='synchroniser']");
+          const syncButton = document.getElementById("btn-sync");
+
+          syncForm.addEventListener("submit", function () {
+              syncButton.disabled = true;
+              syncButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
+          });
+      });
+</script>
+
 
 </body>
 </html>

@@ -12,6 +12,8 @@ def demande_normalize(demarche_id, demarche_title, doss):
     :param doss: Dictionnaire contenant les données du dossier (dict)
     :return: Liste de demandes normalisées (list)
     """
+
+    # A reprendre plus proprement ici. Il faudra aussi regarder les champs (pour les forms concernés) afin de voir si le dossier inclut une autre demande que celle par défaut. 
     liste_demandes = []
 
     id_type_demande_par_defaut = type_demande_from_nom_demarche(demarche_title, doss['champs'])
@@ -20,7 +22,6 @@ def demande_normalize(demarche_id, demarche_title, doss):
 
     if id_type_demande_par_defaut == 999:
         # Ajout des objets Demande(s) pour la démarche PDV son et/ou survol drone
-        print("Demande PDV SON ou Survol drone : Script de normalisation à faire pour l'objet demande")
 
         for c in doss['champs'] :
             if c['label'] == 'Votre demande concerne' :
