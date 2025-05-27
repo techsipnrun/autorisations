@@ -64,7 +64,7 @@ class EtapeDossier(models.Model):
         db_table = '"instruction"."etape_dossier"'
 
     def __str__(self):
-        return self.etape.capitalize()
+        return self.etape
 
 
 class Priorite(models.Model):

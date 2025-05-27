@@ -1,5 +1,7 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load custom_filters %}
+
 
 
 <!DOCTYPE html>
@@ -22,6 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
 </head>
+
 
 <body>
     {% include 'navbar.html' %}
@@ -59,13 +62,17 @@
                             {% csrf_token %}
                             <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
 
-                            {% for etape in etapes_possibles %}
-                                {% if not etape_actuelle or etape.id != etape_actuelle.id %}
-                                    <button type="submit" name="etapeDossierId" value="{{ etape.id }}" class="btn_dropdown_instruction">
-                                        {{ etape.etape }}
-                                    </button>
+                            {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
+                                {% if actions %}
+                                    {% for label in actions %}
+                                        <button type="button" class="btn_dropdown_instruction">{{ label }}</button>
+                                    {% endfor %}
+                                {% else %}
+                                    <p>Aucune action disponible</p>
                                 {% endif %}
-                            {% endfor %}
+                            {% endwith %}
+
+
                         </form>
                     </div>
                 </div>
@@ -263,81 +270,96 @@
     </div>
 
     
-<!-- 1. Données JSON pour le fond de carte -->
-{{ coeurData|json_script:"fond-data" }}
-{{ adhesionData|json_script:"adhesion-data" }}
+    <!-- 1. Données JSON pour le fond de carte -->
+    {{ coeurData|json_script:"fond-data" }}
+    {{ adhesionData|json_script:"adhesion-data" }}
 
-<!-- 2. Variables globales accessibles à ton JS -->
-<script> 
-    window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
-    window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
-</script>
+    <!-- 2. Variables globales accessibles à ton JS -->
+    <script> 
+        window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
+        window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
+    </script>
 
 
-<!-- Mise en forme des geojson (géométries du pétitionnaire ou modifiée par instructeur) -->
-<script>
-   document.querySelectorAll(".carte").forEach((carte, index) => {
-        const script = document.getElementById(`geojson-${index + 1}`);
+    <!-- Mise en forme des geojson (géométries du pétitionnaire ou modifiée par instructeur) -->
+    <script>
+    document.querySelectorAll(".carte").forEach((carte, index) => {
+            const script = document.getElementById(`geojson-${index + 1}`);
 
-        if (!script) {
-            console.warn("Pas de GeoJSON pour :", carte);
-            return;
-        }
+            if (!script) {
+                console.warn("Pas de GeoJSON pour :", carte);
+                return;
+            }
 
-        try {
-            carte.dataset.geojson = script.textContent;
-        } catch (e) {
-            console.error("Erreur de parsing GeoJSON pour la carte", carte.id, ":", e);
-        }
+            try {
+                carte.dataset.geojson = script.textContent;
+            } catch (e) {
+                console.error("Erreur de parsing GeoJSON pour la carte", carte.id, ":", e);
+            }
+        });
+
+    </script>
+
+
+    <!-- 3. Script Leaflet personnalisé -->
+    <script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
+
+
+    <!-- Menu déroulant état dossier  + margin bottom auto -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleBtn = document.getElementById("etapeMenuToggle");
+        const menuContent = document.getElementById("etapeMenuContent");
+        const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
+
+        toggleBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+    
+            const isOpen = !dropdownWrapper.classList.contains("open");
+    
+            if (isOpen) {
+                menuContent.classList.add("show");
+                dropdownWrapper.classList.add("open");
+
+                // Appliquer la hauteur comme margin-bottom
+                const hauteur = menuContent.scrollHeight;
+                dropdownWrapper.style.marginBottom = `${hauteur}px`;
+            } else {
+                menuContent.classList.remove("show");
+                dropdownWrapper.classList.remove("open");
+                dropdownWrapper.style.marginBottom = "";
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!dropdownWrapper.contains(e.target)) {
+                menuContent.classList.remove("show");
+                dropdownWrapper.classList.remove("open");
+                dropdownWrapper.style.marginBottom = "";
+            }
+        });
     });
+    </script>
 
-</script>
+    <!-- POP UP de validation du changement de groupe instructeur -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const select = document.getElementById("select-changer-groupe");
+        const form = document.getElementById("form-changer-groupe");
 
+        select.addEventListener("change", function() {
+            const selectedOption = select.options[select.selectedIndex].text;
+            const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
 
-
-<!-- 3. Script Leaflet personnalisé -->
-<script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
-
-
-<!-- Menu déroulant état dossier -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const toggleBtn = document.getElementById("etapeMenuToggle");
-    const menuContent = document.getElementById("etapeMenuContent");
-    const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
-
-    toggleBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        menuContent.classList.toggle("show");
-        dropdownWrapper.classList.toggle("open");
+            if (confirmed) {
+                form.submit();
+            } else {
+                // Réinitialise le select sur le placeholder
+                select.selectedIndex = 0;
+            }
+        });
     });
-
-    document.addEventListener("click", function () {
-        menuContent.classList.remove("show");
-        dropdownWrapper.classList.remove("open");
-    });
-});
-</script>
-
-<!-- POP UP de validation du changement de groupe instructeur -->
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const select = document.getElementById("select-changer-groupe");
-    const form = document.getElementById("form-changer-groupe");
-
-    select.addEventListener("change", function() {
-        const selectedOption = select.options[select.selectedIndex].text;
-        const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
-
-        if (confirmed) {
-            form.submit();
-        } else {
-            // Réinitialise le select sur le placeholder
-            select.selectedIndex = 0;
-        }
-    });
-});
-</script>
+    </script>
 
 
  <!-- Annulation ou écrasage du document en cas de doublon -->
@@ -393,8 +415,6 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         });
     </script>
-
-
 
 
 </body>
