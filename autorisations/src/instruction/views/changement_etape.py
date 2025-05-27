@@ -6,8 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import Instructeur
-from DS.call_DS import get_msg_DS, passer_en_instruction_ds
+from DS.call_DS import get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
+from instruction.utils import changer_etape_si_differente
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -75,16 +76,83 @@ def demander_des_complements(request):
 
 
 
+
 @login_required
 def dossier_non_soumis_a_autorisation(request):
-    print("On est dans la vue Classer le dossier comme non soumis à autorisation")
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        motivation = request.POST.get("motivation", "").strip()
+
+        if not motivation:
+            return HttpResponseBadRequest("Une justification est requise pour classer sans suite.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+
+        if not instructeur or not instructeur.id_ds:
+            logger.error("Instructeur introuvable ou non connecté à DS.")
+            return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
+
+        # Appel API GraphQL
+        result = classer_sans_suite_ds(dossier.id_ds, instructeur.id_ds, motivation)
+        if not result.get("success"):
+            logger.error(f"Classement sans suite DS échoué : {result.get('message')}")
+            return HttpResponseBadRequest("Erreur DS : classement sans suite échoué.")
+
+        # Étape locale : changer l'état et l'étape
+        etat = EtatDossier.objects.filter(nom__iexact="sans_suite").first()
+        if etat:
+            dossier.id_etat_dossier = etat
+
+        etape = EtapeDossier.objects.filter(etape__iexact="Non soumis à autorisation").first()
+        if etape:
+            dossier.id_etape_dossier = etape
+
+        dossier.save()
+        logger.info(f"[LOCAL] Dossier {dossier.numero} mis à jour : état='sans_suite', étape='Non soumis à autorisation'")
+
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
 
 
 @login_required
 def refuse_le_dossier(request):
-    print("On est dans la vue Classer le dossier comme refusé")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        motivation = request.POST.get("motivation", "").strip()
+
+        if not motivation:
+            return HttpResponseBadRequest("Une justification est requise pour refuser le dossier.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+
+        if not instructeur or not instructeur.id_ds:
+            logger.error("Instructeur introuvable ou non connecté à DS.")
+            return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
+
+        # Appel de l'API DS
+        result = refuser_dossier_ds(dossier.id_ds, instructeur.id_ds, motivation)
+        if not result.get("success"):
+            logger.error(f"[DS] Refus échoué pour dossier {dossier.numero} : {result.get('message')}")
+            return HttpResponseBadRequest("Erreur Démarches Simplifiées : refus échoué.")
+
+        # Mise à jour de l'état et de l'étape
+        etat = EtatDossier.objects.filter(nom__iexact="refuse").first()
+        if etat:
+            dossier.id_etat_dossier = etat
+
+        etape = EtapeDossier.objects.filter(etape__iexact="Refusé").first()
+        if etape:
+            dossier.id_etape_dossier = etape
+
+        dossier.save()
+        logger.info(f"[REFUS] Dossier {dossier.numero} → état='refuse', étape='Refusé'")
+
+        return redirect(reverse('instruction_dossier', kwargs={'num_dossier': dossier.numero}))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
@@ -122,62 +190,183 @@ def passer_en_instruction(request):
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+
+
 @login_required
 def envoyer_pour_validation_avant_demande_avis(request):
-    print("On est dans la vue Envoyer pour validation avant demande d'avis")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "À valider avant demande d'avis")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
+
 
 
 @login_required
 def envoyer_pour_validation_avant_signature(request):
-    print("On est dans la vue Envoyer pour validation avant signature")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "À valider avant signature")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
+
+
+@login_required
+def avis_envoye(request):
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "En attente réponse d'avis")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
+
 
 
 @login_required
 def valider_le_modele_de_demande_d_avis_et_le_projet_d_acte(request):
-    print("On est dans la vue Valider le modèle de demande d'avis et le projet d'acte")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "Avis à envoyer")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
 def repasser_en_instruction(request):
-    print("On est dans la vue Repasser en instruction")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+
+        if not instructeur or not instructeur.id_ds:
+            return HttpResponseBadRequest("Instructeur introuvable ou non connecté à DS.")
+
+        # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
+        if dossier.id_etat_dossier.nom.lower() != "en_instruction":
+            result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+            if not result.get("success"):
+                logger.error(f"[DS] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
+                return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
+
+        # Mise à jour État
+        nouvel_etat = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
+        if nouvel_etat and dossier.id_etat_dossier != nouvel_etat:
+            dossier.id_etat_dossier = nouvel_etat
+
+        # Mise à jour Étape
+        nouvelle_etape = EtapeDossier.objects.filter(etape__iexact="En instruction").first()
+        if nouvelle_etape and dossier.id_etape_dossier != nouvelle_etape:
+            dossier.id_etape_dossier = nouvelle_etape
+
+        dossier.save()
+        logger.info(f"[REPASSAGE] Dossier {dossier.numero} → état='en_instruction', étape='En instruction'")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
 def envoyer_pour_relecture_qualite(request):
-    print("On est dans la vue Envoyer pour relecture qualité")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "En relecture qualité")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
 def envoyer_les_modifications_pour_validation(request):
-    print("On est dans la vue Envoyer les modifications pour validation")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "À valider avant signature")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
 def envoyer_pour_signature(request):
-    print("On est dans la vue Envoyer pour signature")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "En attente de signature")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
-def acte_envoye(request):
-    print("On est dans la vue Acte envoyé")
+def envoyer_l_acte(request):
+    print("On est dans la vue Envoyer l'acte")
+    # GraphQL : Accepter un dossier et y joindre un justificatif (une PJ)
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 @login_required
 def acte_pret_a_etre_envoye(request):
-    print("On est dans la vue Acte prêt à être envoyé")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "Acte à envoyer")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 
 
 @login_required
-def accepte_le_dossier(request):
-    print("On est dans la vue Publication faite, je classe le dossier comme accepté")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+def classer_le_dossier_comme_accepte(request):
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "Accepté")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
 

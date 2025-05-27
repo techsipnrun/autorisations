@@ -202,7 +202,7 @@
 
             <div class="groupe-instructeur-info notes_instructeurs">
                 <h3 class="notes-titre">
-                    <span>Notes de l'instructeur :</span>
+                    <span>Notes :</span>
 
                     <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
                         {% csrf_token %}

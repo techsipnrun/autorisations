@@ -373,3 +373,133 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
         return {"success": False, "message": str(e)}
 
 
+
+def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
+    """
+    Classe un dossier comme "sans suite" via l'API Démarches Simplifiées.
+
+    Args:
+        dossier_id_ds (str): ID du dossier D-S.
+        instructeur_id_ds (str): ID de l'instructeur D-S.
+        motivation (str): Justification du 'classement sans suite'
+
+    Returns:
+        dict: Résultat de la mutation avec 'success' et 'message'.
+    """
+    client = GraphQLClient()
+
+    num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
+    loggerDS.info(f"Tentative de classement sans suite du dossier {num_dossier_pg} via DS")
+
+    try:
+        variables = {
+            "input": {
+                "dossierId": dossier_id_ds,
+                "instructeurId": instructeur_id_ds,
+                "motivation": motivation
+            }
+        }
+
+        result = client.execute_query("DS/mutations/classer_sans_suite.graphql", variables)
+
+        response_data = result.get("data", {}).get("dossierClasserSansSuite", {})
+
+        if not response_data or response_data.get("errors"):
+            erreurs = "; ".join([err.get("message", "Erreur inconnue") for err in response_data.get("errors", [])])
+            loggerDS.warning(f"[DS] Classement sans suite échoué pour dossier {num_dossier_pg} : {erreurs}")
+            return {"success": False, "message": erreurs}
+
+        loggerDS.info(f"[DS] Classement sans suite réussi pour le dossier {num_dossier_pg}")
+        return {"success": True, "message": response_data.get("message", "OK")}
+
+    except Exception as e:
+        loggerDS.exception(f"[DS] Exception lors du classement sans suite du dossier {num_dossier_pg}")
+        return {"success": False, "message": str(e)}
+
+
+
+
+def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
+    """
+    Refuse un dossier via l'API Démarches Simplifiées.
+
+    Args:
+        dossier_id_ds (str): ID du dossier D-S.
+        instructeur_id_ds (str): ID de l'instructeur D-S.
+        motivation (str): Justification du refus
+
+    Returns:
+        dict: Résultat de la mutation avec 'success' et 'message'.
+    """
+    client = GraphQLClient()
+
+    num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
+    loggerDS.info(f"Tentative de refus du dossier {num_dossier_pg} via DS")
+
+    try:
+        variables = {
+            "input": {
+                "dossierId": dossier_id_ds,
+                "instructeurId": instructeur_id_ds,
+                "motivation": motivation
+            }
+        }
+
+        result = client.execute_query("DS/mutations/refuser_dossier.graphql", variables)
+
+        response_data = result.get("data", {}).get("dossierRefuser", {})
+
+        if not response_data or response_data.get("errors"):
+            erreurs = "; ".join([err.get("message", "Erreur inconnue") for err in response_data.get("errors", [])])
+            loggerDS.warning(f"[DS] Refus échoué pour dossier {num_dossier_pg} : {erreurs}")
+            return {"success": False, "message": erreurs}
+
+        loggerDS.info(f"[DS] Refus réussi pour le dossier {num_dossier_pg}")
+        return {"success": True, "message": response_data.get("message", "OK")}
+
+    except Exception as e:
+        loggerDS.exception(f"[DS] Exception lors du refus du dossier {num_dossier_pg}")
+        return {"success": False, "message": str(e)}
+
+
+def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
+    """
+    Rebascule un dossier en instruction via l'API Démarches Simplifiées.
+
+    Args:
+        dossier_id_ds (str): ID du dossier D-S.
+        instructeur_id_ds (str): ID de l'instructeur D-S.
+
+    Returns:
+        dict: Résultat de la mutation avec 'success' et 'message'.
+    """
+    client = GraphQLClient()
+
+    num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
+    loggerDS.info(f"Tentative de rebasculer en instruction le dossier {num_dossier_pg} via DS")
+
+    try:
+        variables = {
+            "input": {
+                "dossierId": dossier_id_ds,
+                "instructeurId": instructeur_id_ds
+            }
+        }
+
+        result = client.execute_query("DS/mutations/repasser_en_instruction.graphql", variables)
+
+        print(result)
+        response_data = result.get("data", {}).get("dossierRepasserEnInstruction", {})
+
+        if not response_data or response_data.get("errors"):
+            erreurs = "; ".join([err.get("message", "Erreur inconnue") for err in response_data.get("errors", [])])
+            loggerDS.warning(f"[DS] Repassage échoué pour dossier {num_dossier_pg} : {erreurs}")
+            return {"success": False, "message": erreurs}
+
+        loggerDS.info(f"[DS] Repassage en instruction réussi pour le dossier {num_dossier_pg}")
+        return {"success": True, "message": response_data.get("message", "OK")}
+
+    except Exception as e:
+        loggerDS.exception(f"[DS] Exception lors du repassage en instruction du dossier {num_dossier_pg}")
+        return {"success": False, "message": str(e)}
+

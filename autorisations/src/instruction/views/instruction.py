@@ -258,9 +258,10 @@ def instruction_dossier(request, num_dossier):
         "À valider avant signature": ["Repasser en instruction", "Envoyer pour relecture qualité"],
         "En relecture qualité": ["Repasser en instruction", "Envoyer pour signature"],
         "En attente réponse d'avis": ["Envoyer les modifications pour validation", "Envoyer pour relecture qualité"],
+        "Avis à envoyer":["Avis envoyé"],
         "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé"],
-        "Acte à envoyer": ["Acte envoyé"],
-        "À publier au RAA": ["Accepter le dossier"],  #message de confirmation (publication au RAA faite ?)
+        "Acte à envoyer": ["Envoyer l'acte"],
+        "À publier au RAA": ["Classer le dossier comme accepté"],  #message de confirmation (publication au RAA faite ?)
         "Non soumis à autorisation": ["Repasser en instruction"],
         "Accepté": ["Repasser en instruction"],
         "Refusé": ["Repasser en instruction"]

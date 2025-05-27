@@ -63,6 +63,15 @@
                                 {% for label in actions %}
                                     {% if label == "Demander des compléments" %}
                                         <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
+                                    
+                                    {% elif label == "Classer le dossier comme non soumis à autorisation" %}
+                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
+                                    
+                                    {% elif label == "Classer le dossier comme refusé" %}
+                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
+
+                                    
+
                                     {% else %}
                                         <form method="post" action="{% url label|url_name_from_label %}">
                                             {% csrf_token %}
@@ -93,7 +102,7 @@
 
             </div>
 
-            <!-- Container masqué pour la demande de compléments -->
+            <!-- Zone masquée pour la demande de compléments -->
             <div id="formulaire-complement" class="zone-complement">
                 <form id="form-complement" method="post" enctype="multipart/form-data" action="{% url 'demander_des_complements_url' %}">
                     {% csrf_token %}
@@ -107,8 +116,29 @@
                 </form>
             </div>
 
+            <!-- Zone masquée : justification classement sans suite, refus dossier -->
+            <div id="formulaire-classement" class="zone-complement">
+                <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                    <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required></textarea>
+                    <div class="zone-pj-complement">
+                        <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
+                    </div>
+                </form>
+            </div>
 
-
+            <!-- Zone masquée : justification du refus -->
+            <div id="formulaire-refus" class="zone-complement">
+                <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                    <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required></textarea>
+                    <div class="zone-pj-complement">
+                        <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
+                    </div>
+                </form>
+            </div>
 
             <div class="champs">
                 {% for champ in champs %}
@@ -247,7 +277,7 @@
 
             <div class="groupe-instructeur-info notes_instructeurs">
                 <h3 class="notes-titre">
-                    <span>Notes de l'instructeur :</span>
+                    <span>Notes :</span>
 
                     <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
                         {% csrf_token %}
@@ -435,14 +465,35 @@
     </script>
 
 
-    <!-- Afficher le bloc 'Demande de Compléments' -->
-    <script>
-        function afficherFormulaireComplement() {
-            // Affiche/masque le formulaire
-            const zone = document.getElementById("formulaire-complement");
-            zone.classList.toggle("show");
+   
 
-            // Ferme le menu déroulant d’étape
+    <!-- Gère l'ouverture et la fermeture des Zones textuelles -->
+    <script>
+        function masquerToutesZonesComplementaires() {
+            const zones = document.querySelectorAll(".zone-complement");
+            zones.forEach(zone => zone.classList.remove("show"));
+        }
+
+        function afficherFormulaireComplement() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-complement").classList.add("show");
+            fermerMenuEtape();
+        }
+
+        function afficherFormulaireClassement() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-classement").classList.add("show");
+            fermerMenuEtape();
+        }
+
+        function afficherFormulaireRefus() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-refus").classList.add("show");
+            fermerMenuEtape();
+        }
+
+
+        function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
             const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
 
@@ -454,7 +505,15 @@
         }
     </script>
 
-
+    <!-- POP UP de validation pour s'assurer que le valideur a bien informé l'instructeur (des modifications à faire) avant de repasser le dossier en instruction -->
+    <script>
+        function confirmerRetourInstruction() {
+            const confirmation = confirm("Vous avez bien informé l'instructeur des modifications à mettre en place ?");
+            if (confirmation) {
+                document.getElementById("form-retour-instruction").submit();
+            }
+        }
+    </script>
 
 </body>
 </html>

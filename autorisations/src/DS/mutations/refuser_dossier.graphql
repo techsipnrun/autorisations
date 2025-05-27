@@ -1,0 +1,16 @@
+mutation dossierRefuser($input: DossierRefuserInput!) {
+  dossierRefuser(input: $input) {
+    clientMutationId
+    dossier {
+      id
+      number
+      instructeurs {
+        email
+        id
+      }
+    }
+    errors {
+      message
+    }
+  }
+}
