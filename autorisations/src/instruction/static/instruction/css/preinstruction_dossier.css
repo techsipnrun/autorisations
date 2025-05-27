@@ -145,7 +145,7 @@ h2 {
 }
 
 
-/* ====== Passer en Instruction ====== */
+/* ====== Passer en Pré-Instruction ====== */
 
 .etat-badge-menu-dropdown {
     position: relative;
@@ -177,22 +177,48 @@ h2 {
     color: #000000;
 }
 
+
 .etat-badge-menu-content {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #f9f9f9;
-    min-width: 200px;
-    padding: 0.7rem 0.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: #fff;
+    min-width: 220px;
+    /* padding: 0.5rem 0; */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     border-radius: 8px;
-    margin-top: 6px;
     z-index: 1000;
+    border: 1px solid #ddd;
+    font-size: 0.95rem;
+    margin-top: 6px;
 }
 
 .etat-badge-menu-content.show {
     display: block;
+}
+
+.btn_dropdown_instruction {
+    background-color: transparent;
+    border: none;
+    color: #333;
+    text-align: left;
+    padding: 0.6rem 1.2rem;
+    width: 100%;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.btn_dropdown_instruction:last-child {
+    border-bottom: none;
+}
+
+.btn_dropdown_instruction:hover {
+    background-color: #115e31;
+    color: white;
+    border-radius: 8px;
 }
 
 .instruction-warning {
@@ -200,24 +226,6 @@ h2 {
     font-style: italic;
     font-size: 0.95rem;
     padding: 0.5rem;
-}
-
-.btn_dropdown_instruction {
-    color: black;
-    border: none;
-    padding: 0.4rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    white-space: nowrap;
-    width: 100%;
-    text-align: center;
-    display: inline-block;
-}
-
-.btn_dropdown_instruction:hover {
-    background-color: #0e4c27;
-    color: white;
 }
 
 

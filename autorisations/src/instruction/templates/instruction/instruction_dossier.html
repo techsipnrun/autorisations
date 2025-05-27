@@ -58,23 +58,26 @@
                     </div>
 
                     <div class="etat-badge-menu-content" id="etapeMenuContent">
-                        <form method="post" action="{% url 'changer_etape_dossier' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
+                            {% if actions %}
+                                {% for label in actions %}
+                                    {% if label == "Demander des compléments" %}
+                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
+                                    {% else %}
+                                        <form method="post" action="{% url label|url_name_from_label %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                            <button type="submit" class="btn_dropdown_instruction">{{ label }}</button>
+                                        </form>
+                                    {% endif %}
 
-                            {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
-                                {% if actions %}
-                                    {% for label in actions %}
-                                        <button type="button" class="btn_dropdown_instruction">{{ label }}</button>
-                                    {% endfor %}
-                                {% else %}
-                                    <p>Aucune action disponible</p>
-                                {% endif %}
-                            {% endwith %}
-
-
-                        </form>
+                                {% endfor %}
+                            {% else %}
+                                <p>Aucune action disponible</p>
+                            {% endif %}
+                        {% endwith %}
                     </div>
+
                 </div>
 
                 {% if peut_se_declarer %}
@@ -89,6 +92,21 @@
                 {% endif %}
 
             </div>
+
+            <!-- Container masqué pour la demande de compléments -->
+            <div id="formulaire-complement" class="zone-complement">
+                <form id="form-complement" method="post" enctype="multipart/form-data" action="{% url 'demander_des_complements_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
+                    <input type="hidden" name="correction" value='True'>
+                    <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required></textarea>
+                    <div class="zone-pj-complement">
+                        <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
+                        <button type="submit" class="btn-envoyer-complement">Envoyer</button>
+                    </div>
+                </form>
+            </div>
+
 
 
 
@@ -415,6 +433,27 @@
             });
         });
     </script>
+
+
+    <!-- Afficher le bloc 'Demande de Compléments' -->
+    <script>
+        function afficherFormulaireComplement() {
+            // Affiche/masque le formulaire
+            const zone = document.getElementById("formulaire-complement");
+            zone.classList.toggle("show");
+
+            // Ferme le menu déroulant d’étape
+            const menuContent = document.getElementById("etapeMenuContent");
+            const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
+
+            if (menuContent && menuWrapper) {
+                menuContent.classList.remove("show");
+                menuWrapper.classList.remove("open");
+                menuWrapper.style.marginBottom = "";
+            }
+        }
+    </script>
+
 
 
 </body>

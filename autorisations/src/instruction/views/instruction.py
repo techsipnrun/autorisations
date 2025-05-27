@@ -255,12 +255,12 @@ def instruction_dossier(request, num_dossier):
         "En attente de compléments": ["Passer en instruction"],
         "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Envoyer pour validation avant demande d'avis", "Envoyer pour validation avant signature"],
         "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
-        "À valider avant signature": ["Repasser en instruction", "Valider pour relecture qualité"],
+        "À valider avant signature": ["Repasser en instruction", "Envoyer pour relecture qualité"],
         "En relecture qualité": ["Repasser en instruction", "Envoyer pour signature"],
-        "En attente réponse d'avis": ["Envoyer les modifications pour validation", "Envoyer pour relecture qualité avant signature"],
+        "En attente réponse d'avis": ["Envoyer les modifications pour validation", "Envoyer pour relecture qualité"],
         "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé"],
         "Acte à envoyer": ["Acte envoyé"],
-        "À publier au RAA": ["Publication faite, je classe le dossier comme accepté"],
+        "À publier au RAA": ["Accepter le dossier"],  #message de confirmation (publication au RAA faite ?)
         "Non soumis à autorisation": ["Repasser en instruction"],
         "Accepté": ["Repasser en instruction"],
         "Refusé": ["Repasser en instruction"]

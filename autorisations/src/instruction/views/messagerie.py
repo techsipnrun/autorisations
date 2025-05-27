@@ -120,7 +120,12 @@ def instruction_dossier_messagerie(request, num_dossier):
 @csrf_exempt
 def envoyer_message_dossier(request, numero):
 
-    # Récupéraion message et PJ de l'instructeur
+    if request.POST.get("correction") :
+        correction = request.POST.get("correction")
+    else:
+        correction = False
+
+    # Récupération message et PJ de l'instructeur
     body = request.POST.get("body")
     fichier = request.FILES.get("piece_jointe")
 
@@ -148,11 +153,11 @@ def envoyer_message_dossier(request, numero):
         if fichier:
 
             tmp_file_path = prepare_temp_file(fichier)
-            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, fichier, fichier.content_type, tmp_file_path, numero)
+            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, fichier, fichier.content_type, tmp_file_path, numero, correction=correction)
 
         else:
 
-            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, num_dossier=numero)
+            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, num_dossier=numero, correction=correction)
 
 
             
@@ -181,7 +186,7 @@ def envoyer_message_dossier(request, numero):
         if tmp_file_path and os.path.exists(tmp_file_path):
             os.remove(tmp_file_path)
 
-    return redirect('preinstruction_dossier_messagerie', numero=numero)
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 

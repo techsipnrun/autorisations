@@ -180,17 +180,12 @@ h2 {
 
 
 
-
-/* ====== Changer Statut ====== */
+/* ====== Changer Etape Dossier ====== */
 
 .etat-badge-menu-dropdown {
     position: relative;
     display: inline-block;
 }
-
-/* .etat-badge-menu-dropdown.open {
-    margin-bottom: 14rem;
-} */
 
 .etat-badge-label {
     background-color: #e0e0e0;
@@ -218,71 +213,84 @@ h2 {
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #f9f9f9;
-    min-width: 200px;
-    padding: 0.7rem 0.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: #fff;
+    min-width: 220px;
+    padding: 0.5rem 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     border-radius: 8px;
-    margin-top: 6px;
     z-index: 1000;
+    border: 1px solid #ddd;
+    font-size: 0.95rem;
 }
 
 .etat-badge-menu-content.show {
     display: block;
 }
 
-.instruction-warning {
-    color: #a00;
-    font-style: italic;
-    font-size: 0.95rem;
-    padding: 0.5rem;
+.btn_dropdown_instruction {
+    background-color: transparent;
+    border: none;
+    color: #333;
+    text-align: left;
+    padding: 0.6rem 1.2rem;
+    width: 100%;
+    font-size: 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.btn_dropdown_instruction {
-    color: black;
-    border: none;
-    padding: 0.4rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    white-space: nowrap;
-    width: 100%;
-    text-align: center;
-    display: inline-block;
+.btn_dropdown_instruction:last-child {
+    border-bottom: none;
 }
 
 .btn_dropdown_instruction:hover {
-    background-color: #0e4c27;
+    background-color: #115e31;
     color: white;
+    border-radius: 0;
 }
 
 
 
-
-/* ====== Groupe Instructeur ====== */
-
-/* .etat-badge-container {
-    display: flex;
-    align-items: flex-start;
-    gap: 6rem;
-    margin-bottom: 5rem;
-    margin-top: 2rem;
+/* ====== Bloc demande de compléments ====== */
+.zone-complement {
+    display: none;
+    margin-top: 1rem;
 }
 
-.form_groupe_select {
-    display: flex;
-    flex-direction: column;
+.zone-complement.show {
+    display: block;
+}
+
+.textarea-complement {
+    width: 100%;
+    min-height: 100px;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
     font-size: 0.95rem;
 }
 
-.form_groupe_select select {
-    padding: 0.4rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    cursor: pointer;
-} */
+.zone-pj-complement {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    gap: 1rem;
+}
 
+.btn-envoyer-complement {
+    background-color: #155a32;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-envoyer-complement:hover {
+    background-color: #0e4c27;
+}
 
 
 

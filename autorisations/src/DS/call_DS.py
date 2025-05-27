@@ -83,7 +83,7 @@ def recup_data_DS(number):
 
 
 
-def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_original, content_type="application/pdf", body=None):
+def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_original, content_type="application/pdf", body=None, correction=False):
     '''
     Envoie un message avec une pièce jointe via l’API Démarches Simplifiées.
 
@@ -147,14 +147,27 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
 
 
         # Étape 3 : Envoyer le message avec l’attachment
-        send_message_vars = {
-            "input": {
-                "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds,
-                "body": body,
-                "attachment": signed_blob_id
+        if not correction :
+            send_message_vars = {
+                "input": {
+                    "dossierId": dossier_id_ds,
+                    "instructeurId": instructeur_id_ds,
+                    "body": body,
+                    "attachment": signed_blob_id
+                }
             }
-        }
+        else : 
+            send_message_vars = {
+                "input": {
+                    "dossierId": dossier_id_ds,
+                    "instructeurId": instructeur_id_ds,
+                    "body": body,
+                    "attachment": signed_blob_id,
+                    "correction": 'incomplete'
+                }
+            }
+
+
 
         result = client.execute_query("DS/mutations/send_message.graphql", send_message_vars)
 
@@ -217,7 +230,7 @@ def get_msg_DS(num_doss, message_id_ds):
     Récupère l'URL de la pièce jointe associée à un message dans un dossier D-S.
 
     Args:
-        num_doss (str): Numéro de la démarche D-S.
+        num_doss (int): Numéro du dossier.
         msg_id (str): ID D-S du message à retrouver.
 
     Returns:
@@ -233,22 +246,24 @@ def get_msg_DS(num_doss, message_id_ds):
     try:
 
         result = client.execute_query("DS/queries/get_message.graphql", var)
+        
 
-        if result["data"]["dossier"]["messages"] :
+        if result.get("data") :
+            if result["data"]["dossier"]["messages"] :
 
-            for m in result["data"]["dossier"]["messages"]:
-                if m["id"] == message_id_ds :
+                for m in result["data"]["dossier"]["messages"]:
+                    if m["id"] == message_id_ds :
 
-                    if m["attachments"] :
-                        return m["attachments"][0]["url"]
-                    else:
-                        loggerDS.warning(f"Message {message_id_ds} (Dossier {num_doss}) trouvé mais sans pièce jointe.")
-                        return None
-                    
-            loggerDS.warning(f"Aucun message avec l'ID {message_id_ds} trouvé pour le dossier {num_doss}.")
-            return None
+                        if m["attachments"] :
+                            return m["attachments"][0]["url"]
+                        else:
+                            loggerDS.warning(f"Message {message_id_ds} (Dossier {num_doss}) trouvé mais sans pièce jointe.")
+                            return None
+                        
+                loggerDS.warning(f"Aucun message avec l'ID {message_id_ds} trouvé pour le dossier {num_doss}.")
+                return None
         else :
-            loggerDS.error(f"Erreur : Envoie Message avec PJ --> Echec de récupération de l'url de la PG --> Aucun message trouvé pour le dossier {num_doss} ")
+            loggerDS.error(f"Erreur : Envoie Message avec PJ --> Echec de récupération de l'url de la PJ (dossier {num_doss}) : {result.get('errors')[0].get('message')} ")
     
     except Exception as e:
         loggerDS.error(f"Erreur lors de la récupération du message {message_id_ds} pour le dossier {num_doss} : {e}")

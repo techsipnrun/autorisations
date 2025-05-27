@@ -29,7 +29,7 @@ def prepare_temp_file(fichier):
         return None
 
 
-def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, content_type=None, chemin_fichier=None, num_dossier=None):
+def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, content_type=None, chemin_fichier=None, num_dossier=None, correction=False):
     """
     Envoie un message via l’API Démarches Simplifiées, avec ou sans pièce jointe.
     """
@@ -48,23 +48,46 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
             f"[ENVOI] Message AVEC pièce jointe pour dossier {num_dossier or dossier_id_ds} — "
             f"Fichier='{fichier.name}', content_type={content_type}"
         )
-        return ds_envoyer_message_avec_pj(
-            dossier_id_ds=dossier_id_ds,
-            instructeur_id_ds=instructeur_id_ds,
-            chemin_fichier_original=chemin_fichier,
-            content_type=content_type,
-            body=body
-        )
+        if not correction :
+            return ds_envoyer_message_avec_pj(
+                dossier_id_ds=dossier_id_ds,
+                instructeur_id_ds=instructeur_id_ds,
+                chemin_fichier_original=chemin_fichier,
+                content_type=content_type,
+                body=body,
+            )
+        else:
+            return ds_envoyer_message_avec_pj(
+                dossier_id_ds=dossier_id_ds,
+                instructeur_id_ds=instructeur_id_ds,
+                chemin_fichier_original=chemin_fichier,
+                content_type=content_type,
+                body=body,
+                correction=True
+            )
+
     
     else:
         loggerDS.info(f"[ENVOI] Message SANS pièce jointe pour dossier {num_dossier or dossier_id_ds}")
-        variables = {
-            "input": {
-                "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds,
-                "body": body
+
+        if not correction :
+            variables = {
+                "input": {
+                    "dossierId": dossier_id_ds,
+                    "instructeurId": instructeur_id_ds,
+                    "body": body
+                }
             }
-        }
+        else:
+            variables = {
+                "input": {
+                    "dossierId": dossier_id_ds,
+                    "instructeurId": instructeur_id_ds,
+                    "body": body,
+                    "correction": 'incomplete'
+                }
+            }
+
 
         msgerror = f"Échec envoi message sans pièce jointe pour le dossier {num_dossier} (peut être qu'il n'existe pas sur Démarches Simplifiées)"
 
