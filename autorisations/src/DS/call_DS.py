@@ -488,7 +488,6 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
 
         result = client.execute_query("DS/mutations/repasser_en_instruction.graphql", variables)
 
-        print(result)
         response_data = result.get("data", {}).get("dossierRepasserEnInstruction", {})
 
         if not response_data or response_data.get("errors"):
@@ -501,5 +500,66 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
 
     except Exception as e:
         loggerDS.exception(f"[DS] Exception lors du repassage en instruction du dossier {num_dossier_pg}")
+        return {"success": False, "message": str(e)}
+
+
+
+
+
+def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=None):
+    client = GraphQLClient()
+    signed_blob_id = None
+
+    if fichier:
+        try:
+            file_data = fichier.read()
+            byte_size = len(file_data)
+            checksum = base64.b64encode(hashlib.md5(file_data).digest()).decode()
+
+            upload_vars = {
+                "input": {
+                    "filename": fichier.name,
+                    "byteSize": byte_size,
+                    "checksum": checksum,
+                    "contentType": fichier.content_type,
+                    "dossierId": dossier_id_ds
+                }
+            }
+
+            upload_response = client.execute_query("DS/mutations/create_direct_upload.graphql", upload_vars)
+            direct_upload = upload_response["data"]["createDirectUpload"]["directUpload"]
+            signed_blob_id = direct_upload["signedBlobId"]
+
+            response = requests.put(
+                direct_upload["url"],
+                headers=json.loads(direct_upload["headers"]),
+                data=BytesIO(file_data),
+                stream=True
+            )
+
+            if response.status_code not in [200, 201]:
+                raise Exception("Échec de l'upload : " + response.text)
+        except Exception as e:
+            loggerDS.error("[ACCEPTATION DOSSIER] Erreur lors de l'upload du fichier : ", str(e))
+            return {"success": False, "message": str(e)}
+
+    try:
+        variables = {
+            "input": {
+                "dossierId": dossier_id_ds,
+                "instructeurId": instructeur_id_ds,
+                "motivation": motivation
+            }
+        }
+        if signed_blob_id:
+            variables["input"]["justificatif"] = signed_blob_id
+
+        result = client.execute_query("DS/mutations/accepter_dossier.graphql", variables)
+        response_data = result.get("data", {}).get("dossierAccepter", {})
+        if response_data.get("errors"):
+            return {"success": False, "message": response_data["errors"]}
+        return {"success": True, "message": response_data.get("message", "OK")}
+    except Exception as e:
+        loggerDS.error("Erreur lors de l’acceptation du dossier : ", str(e))
         return {"success": False, "message": str(e)}
 

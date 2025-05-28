@@ -1,16 +1,18 @@
 import logging
 import os
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import Instructeur
-from DS.call_DS import get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
+from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente
+from django.views.decorators.http import require_POST
 
 logger = logging.getLogger('ORM_DJANGO')
+loggerDS = logging.getLogger("API_DS")
 
 @login_required
 def passer_en_pre_instruction(request):
@@ -31,7 +33,7 @@ def passer_en_pre_instruction(request):
 @login_required
 def demander_des_complements(request):
     if request.method == "POST":
-        numero = request.POST.get("numero_dossier")  # à ajouter dans le form
+        numero = request.POST.get("numero_dossier")
         body = request.POST.get("body")
         fichier = request.FILES.get("piece_jointe")
 
@@ -259,22 +261,27 @@ def repasser_en_instruction(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        etat_actuel_dossier = get_object_or_404(EtatDossier, id=dossier.id_etat_dossier_id)
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
         if not instructeur or not instructeur.id_ds:
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à DS.")
-
+   
         # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
-        if dossier.id_etat_dossier.nom.lower() != "en_instruction":
+        if etat_actuel_dossier.nom.lower() != "en_instruction":
             result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+
             if not result.get("success"):
-                logger.error(f"[DS] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
-                return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
+                if result.get('message') == "Le dossier est déjà en instruction" :
+                    logger.warning(f"[DS] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
+                else:
+                    logger.error(f"[DS] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
+                    return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
 
         # Mise à jour État
         nouvel_etat = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
-        if nouvel_etat and dossier.id_etat_dossier != nouvel_etat:
-            dossier.id_etat_dossier = nouvel_etat
+        if nouvel_etat and dossier.id_etat_dossier_id != nouvel_etat:
+            dossier.id_etat_dossier_id = nouvel_etat
 
         # Mise à jour Étape
         nouvelle_etape = EtapeDossier.objects.filter(etape__iexact="En instruction").first()
@@ -334,11 +341,7 @@ def envoyer_pour_signature(request):
     return HttpResponseBadRequest("Méthode non autorisée.")
 
 
-@login_required
-def envoyer_l_acte(request):
-    print("On est dans la vue Envoyer l'acte")
-    # GraphQL : Accepter un dossier et y joindre un justificatif (une PJ)
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 
 @login_required
@@ -370,3 +373,44 @@ def classer_le_dossier_comme_accepte(request):
 
     return HttpResponseBadRequest("Méthode non autorisée.")
 
+
+@login_required
+@require_POST
+def envoyer_l_acte(request):
+    dossier_id_ds = request.POST.get("dossierId")
+    dossier_numero = request.POST.get("dossier_numero")
+    motivation = request.POST.get("motivation", "Votre demande a été acceptée.")
+    fichier = request.FILES.get("piece_jointe")
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not dossier_id_ds or not instructeur or not instructeur.id_ds:
+        return HttpResponse(f"Echec de l'acceptation du dossier {dossier_numero} (dossier_id_ds = {dossier_id_ds}, motivation = {motivation}, fichier = {fichier})", status=401)
+
+    try:
+        result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
+        if result["success"]:
+            loggerDS.info(f"Dossier {dossier_numero} accepté avec succès.")
+            # Mettre à jour l'étape et l'état en BDD
+            dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+            etape_raa = EtapeDossier.objects.filter(etape__iexact="À publier au RAA").first()
+            etat_accepte = EtatDossier.objects.filter(nom__iexact="accepte").first()
+
+            if dossier:
+                modified = False
+                if etape_raa and dossier.id_etape_dossier != etape_raa:
+                    dossier.id_etape_dossier = etape_raa
+                    logger.info(f"Dossier {dossier.numero} → étape : À publier au RAA")
+                    modified = True
+                if etat_accepte and dossier.id_etat_dossier != etat_accepte:
+                    dossier.id_etat_dossier = etat_accepte
+                    logger.info(f"Dossier {dossier.numero} → état : Accepté")
+                    modified = True
+                if modified:
+                    dossier.save()
+        else:
+            loggerDS.error(f"Erreur lors de l'acceptation du dossier {dossier_numero} : {result['message']}")
+
+    except Exception as e:
+        logger.error(request, f"Exception lors de l’acceptation du dossier {dossier_numero} : {str(e)}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))#

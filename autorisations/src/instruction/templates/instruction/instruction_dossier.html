@@ -69,8 +69,16 @@
                                     
                                     {% elif label == "Classer le dossier comme refusé" %}
                                         <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
+                                    {% elif label == "Envoyer l'acte" %}
+                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte</button>
 
-                                    
+                                    {% elif label == "Repasser en instruction" %}
+
+                                            <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                <button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
+                                            </form>
 
                                     {% else %}
                                         <form method="post" action="{% url label|url_name_from_label %}">
@@ -140,6 +148,21 @@
                 </form>
             </div>
 
+            <!-- Zone masquée pour accepter l'acte -->
+            <div id="formulaire-acceptation" class="zone-complement">
+                <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                    <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+                    <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Votre demande a été acceptée.</textarea>
+                    <div class="zone-pj-complement">
+                        <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
+                        <button type="submit" class="btn-envoyer-complement">Confirmer l'envoi de l'acte</button>
+                    </div>
+                </form>
+            </div>
+
+
             <div class="champs">
                 {% for champ in champs %}
                     {% if champ.type == 'header' %}
@@ -181,7 +204,9 @@
                             <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
                         </div>
 
-
+                     {% elif champ.type == 'piece_justificative' %}
+                        <p><strong>{{ champ.nom }}</strong> : <a href="{{champ.url}}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
+    
                     {% endif %}
                 {% endfor %}
             </div>
@@ -217,6 +242,7 @@
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>
                 </div>
+
             </div>
 
             {% if dossier.id_groupeinstructeur %}
@@ -449,6 +475,8 @@
                     alert("Erreur lors de la copie du chemin : " + err);
                 });
         }
+
+        
     </script>
 
     <!-- Bouton actualiser -->
@@ -492,6 +520,11 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireAcceptation() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-acceptation").classList.add("show");
+            fermerMenuEtape();
+        }
 
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");

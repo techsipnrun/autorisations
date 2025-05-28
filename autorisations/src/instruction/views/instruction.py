@@ -173,6 +173,9 @@ def instruction_dossier(request, num_dossier):
         elif ct == "header_section":
             champs_prepares.append({"type": "header", "titre": nom})
 
+        elif ct == "piece_justificative":
+            champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
+
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
 

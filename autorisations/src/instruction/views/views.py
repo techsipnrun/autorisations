@@ -136,16 +136,11 @@ def enregistrer_geom(request):
         id_champ = request.POST.get("id_champ")
         nb_cartes = request.POST.get("nb_cartes")
 
-        print('dossier_numero : ', dossier_numero)
-        print('geojson_str : ', geojson_str)
-        print('id_champ : ', id_champ)
-        print('nb_cartes : ', nb_cartes)
+   
 
         dossier = get_object_or_404(Dossier, numero=dossier_numero)
         champ = get_object_or_404(DossierChamp, id=id_champ, id_dossier=dossier, id_champ__id_champ_type__type="carte")
 
-        # print(dossier)
-        # print(champ)
 
         if not geojson_str:
             msg = "Aucune géométrie reçue (champ geojson_geom vide)."

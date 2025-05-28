@@ -16,8 +16,8 @@ def dossiers_champs_normalize(doss, emplacement_dossier):
 
         if ch["__typename"] == "PieceJustificativeChamp" :
             for f in ch["files"]:
-                nom_fichier, extension_fichier = extraire_nom_et_extension(f["filename"])
-
+                
+                nom_fichier, extension_fichier = extraire_nom_et_extension(f["filename"])               
                 id_format = get_first_id(DocumentFormat, format=extension_fichier)
                 if not id_format:
                     logger.error(f"Format de document inconnu : {extension_fichier} pour le dossier {doss["number"]}")

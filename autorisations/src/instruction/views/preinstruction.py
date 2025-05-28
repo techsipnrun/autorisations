@@ -67,7 +67,7 @@ def preinstruction_dossier(request, numero):
 
     nb_cartes = 0
     champs_prepares = []
-    for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("id"):
+    for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type", "id_document").order_by("id"):
 
         ct = champ.id_champ.id_champ_type.type
         nom = champ.id_champ.nom
@@ -92,6 +92,8 @@ def preinstruction_dossier(request, numero):
             champs_prepares.append({"type": "header", "titre": nom})
 
         elif ct == "piece_justificative":
+            # print(champ)
+            # print(vars(champ))
             champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
 
         else:

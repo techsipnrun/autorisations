@@ -124,7 +124,7 @@ def extraire_nom_et_extension(filename):
         tuple[str, str]: Tuple (nom_sans_extension, extension) (ex: ("rapport_final", "pdf")).
     """
     nom, extension = os.path.splitext(filename)
-    nom = nom.replace('.', '_')
+    nom = nom.replace('.', '_').replace(' ', '_')
     extension = extension.lstrip('.')  # Enlever le point
     return nom, extension
 
