@@ -2,7 +2,7 @@ import logging
 from autorisations.models.models_instruction import Demarche
 from ..utils.model_helpers import update_fields
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_demarche(demarche_ds):
     demarche_obj, created = Demarche.objects.get_or_create(
@@ -30,5 +30,5 @@ def sync_demarche(demarche_ds):
         if updated_fields:
             demarche_obj.save()
             logger.info(f"[SAVE] Demarche {demarche_obj.numero} mise à jour. Champs modifiés : {', '.join(updated_fields)}.")
-        else:
-            logger.info(f"[NO CHANGE] Demarche {demarche_obj.numero} inchangée.")
+        # else:
+        #     logger.info(f"[NO CHANGE] Demarche {demarche_obj.numero} inchangée.")

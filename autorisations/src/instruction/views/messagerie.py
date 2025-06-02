@@ -53,8 +53,7 @@ def preinstruction_dossier_messagerie(request, numero):
     if benef :
         beneficiaire = benef.id_beneficiaire
     else:
-        msg = f"Le dossier {numero} n'a pas de bénéficiaire de renseigné"
-        logger.warning(msg)
+        logger.warning(f"[DOSSIER {dossier.numero}] Affichage messagerie : Le dossier n'a pas de bénéficaire de renseigné")
 
     return render(request, 'instruction/preinstruction_dossier_messagerie.html', {
         "dossier": dossier,
@@ -102,7 +101,7 @@ def instruction_dossier_messagerie(request, num_dossier):
     if benef :
         beneficiaire = benef.id_beneficiaire if interlocuteur else None
     else:
-        logger.warning(f"Le dossier {num_dossier} n'a pas de bénéficiaire de renseigné")
+        logger.warning(f"[DOSSIER {dossier.numero}] Affichage messagerie : Le dossier n'a pas de bénéficaire de renseigné")
 
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
         "dossier": dossier,
@@ -130,12 +129,13 @@ def envoyer_message_dossier(request, numero):
     fichier = request.FILES.get("piece_jointe")
 
     if not body:
-        logger.warning(f"[ENVOI MESSAGE] Message vide envoyé par {request.user.email}")
+        logger.warning(f"[DOSSIER {dossier.numero}] Message vide envoyé par {request.user}")
         return HttpResponseBadRequest("Message vide")
     
     # Vérification taille fichier (20 Mo max)
     if fichier and fichier.size > 20 * 1024 * 1024:
         messages.error(request, "Fichier trop volumineux. Taille maximale : 20 Mo.")
+        logger.warning(f"[DOSSIER {dossier.numero}] {request.user} a voulu joindre un document > 20Mo à son message.")
         return redirect('preinstruction_dossier_messagerie', numero=numero)
     
     # Récupérer le dossier
@@ -145,6 +145,7 @@ def envoyer_message_dossier(request, numero):
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     if not dossier.id_ds or not instructeur or not instructeur.id_ds:
+        logger.error(f"[DOSSIER {dossier.numero}] Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas")
         return HttpResponse("Session incomplète", status=401)
     
     tmp_file_path = None
@@ -173,12 +174,12 @@ def envoyer_message_dossier(request, numero):
             enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=msg_ds['id'], url_ds=url_ds)
 
         else:
-            loggerDS.error(f"Dossier {numero} : Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)")
+            loggerDS.error(f"[DOSSIER {dossier.numero}] Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)")
             return HttpResponse(f"Dossier {numero} : Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)", status=500)
         
     except Exception as e:
 
-        logger.exception(f"[API DS] Erreur envoi message : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur envoi message sur DS : {e}")
         return HttpResponse(f"Erreur : {e}", status=500)
     
     finally:
@@ -203,19 +204,17 @@ def supprimer_message(request, id):
     try:
         suppr_msg_DS(message)
         message.delete()
-        logger.info(f"Message {id} (Dossier {message.id_dossier.numero}) supprimé de la BDD")
+        logger.info(f"[DOSSIER {message.id_dossier.numero}] Message {id} supprimé de la BDD")
         return redirect('preinstruction_dossier_messagerie', numero=message.id_dossier.numero)
     
     except Exception as e:
-        logger.exception(f"Erreur lors de la suppression du message {id} (Dossier {message.id_dossier.numero}) : {e}")
+        logger.error(f"[DOSSIER {message.id_dossier.numero}] Erreur lors de la suppression du message {id} par {request.user}: {e}")
         return HttpResponse(f"Erreur : {e}", status=500)
-
 
 
 
 @login_required
 def actualiser_messages(request, numero):
-
     dossier = get_object_or_404(Dossier, numero=numero)
     client = GraphQLClient()
 
@@ -232,11 +231,10 @@ def actualiser_messages(request, numero):
         # Synchronisation en base
         sync_messages(messages_norm, dossier.id)
 
-        logger.info(f"[MESSAGERIE] Actualisation des messages du dossier {numero} réussie.")
+        logger.info(f"[DOSSIER {numero}] Actualisation des messages réussie par {request.user}.")
         return redirect('preinstruction_dossier_messagerie', numero=numero)
     
     except Exception as e:
-
-        logger.exception(f"[MESSAGERIE] Échec de l'actualisation des messages pour le dossier {numero} : {e}")
-        return HttpResponse(f"Erreur : {e}", status=500)
+        logger.exception(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user}: {e}")
+        return HttpResponse(f"Erreur lors de l'actualisation des messages du dossier {numero} par {request.user} : {e}", status=500)
     

@@ -171,17 +171,17 @@ LOGGING = {
     },
     'handlers': {
        
-        'ldap_file': {  # fichier pour les logs LDAP
+        'ldap_file': {  # fichier pour les logs lié à l'authentification LDAP
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': 'logs/active_directory.log',  # Path LDAP Logs
+            'filename': 'logs/active_directory.log',
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
         'app_file': {  # fichier pour les logs Lecture/Ecriture fichiers par l'application
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': 'logs/app.log',  # Path LDAP Logs
+            'filename': 'logs/app.log',
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
@@ -199,10 +199,17 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
-        'ORM_django_file': { # fichier pour les logs de l'ORM Django
+        'instruction_file': { # fichier pour les logs de l'ORM Django dans le cadre de l'instruction
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'logs/ORM_django.log', 
+            'filename': 'logs/instruction.log', 
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'synchro_file': { # fichier pour les logs lors de la synchronisation entre Postgres et Démarches Simplifiées
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/synchronisation.log', 
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
@@ -230,7 +237,12 @@ LOGGING = {
             'propagate': False,
         },
         'ORM_DJANGO': {
-            'handlers': ['ORM_django_file'],
+            'handlers': ['instruction_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'SYNCHRONISATION': {
+            'handlers': ['synchro_file'],
             'level': 'INFO',
             'propagate': False,
         },

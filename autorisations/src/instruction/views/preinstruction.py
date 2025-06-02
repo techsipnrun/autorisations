@@ -92,9 +92,10 @@ def preinstruction_dossier(request, numero):
             champs_prepares.append({"type": "header", "titre": nom})
 
         elif ct == "piece_justificative":
-            # print(champ)
-            # print(vars(champ))
-            champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
+            if champ.id_document :
+                champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
+            else : 
+                champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
 
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
@@ -182,26 +183,25 @@ def changer_groupe_instructeur(request):
     dossier_num = dossier.numero
 
     if not dossier_id or not groupe_id_ds:
-        logger.error(f"[FORM] Changement groupe instructeur : paramètres manquants (dossier_id={dossier_id}, groupe_id_ds={groupe_id_ds})")
+        logger.error(f"[DOSSIER {dossier_num}] Changement groupe instructeur : paramètres manquants (dossier_id={dossier_id}, groupe_id_ds={groupe_id_ds})")
         return redirect(request.META.get('HTTP_REFERER', '/'))
     
     result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
 
     if result["success"]:
-        logger.info(f"[UPDATE] Groupe Instructeur changé avec succès (Dossier {dossier_num} --> {nom_groupe})")
+        logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur changé avec succès sur DS par {request.user} --> Affecté au groupe {nom_groupe}.")
 
         # mettre à jour le groupe instructeur en base
         try:
             dossier.id_groupeinstructeur_id = groupe_id
             dossier.save()
-            logger.info(f"[PG] Groupe Instructeur mis à jour dans Postgres (Dossier {dossier_num} --> {nom_groupe})")
+            logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur mis à jour dans Postgres par {request.user} --> Affecté au groupe {nom_groupe}.")
 
         except Exception as e:
-            logger.error(f"[PG] Erreur de mise à jour du groupe instructeur (groupe mis à jour sur DS) : {e}")
-
+            logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur en BDD par {request.user} (groupe mis à jour sur DS) : {e}")
 
     else:
-        logger.error(f"Echec du changement de Groupe Instructeur (Dossier {dossier_num} --> {nom_groupe})")
+        logger.error(f"[DOSSIER {dossier_num}] Echec du changement de Groupe Instructeur par {request.user} (Affectation souhaitée : {nom_groupe})")
 
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
@@ -216,61 +216,35 @@ def passer_en_instruction(request):
 
     # Vérifie qu'un groupe instructeur est affecté
     if not dossier.id_groupeinstructeur:
-        logger.warning(f"[FORM] Tentative de passage en instruction sans groupe instructeur affecté (Dossier {dossier_id})")
+        logger.warning(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : aucun groupe instructeur affecté.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     if not instructeur_id_ds:
-        logger.error(f"Passage Dossier en instruction : Instructeur non reconnu pour l'email : {instructeur_email}")
+        logger.error(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : Mail de l'instructeur non reconnu en BDD.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     result = passer_en_instruction_ds(dossier_id, instructeur_id_ds)
 
     if result["success"]:
-        logger.info(f"[DS] Passage en instruction réussi pour le dossier {dossier_id}")
+        logger.info(f"[DOSSIER {dossier.numero}] Passage en instruction réussi sur DS par {instructeur_email}")
 
         try:
             etat_instruction = EtatDossier.objects.get(nom__iexact="en_instruction")
             dossier.id_etat_dossier = etat_instruction
             dossier.date_debut_instruction = timezone.now()
             dossier.save()
-            logger.info(f"[PG] État du dossier {dossier.nom_dossier} mis à jour en 'en_instruction'.")
+            logger.info(f"[DOSSIER {dossier.numero}] État du dossier mis à jour en 'en_instruction' par {instructeur_email}.")
             
             return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
         except Exception as e:
-            logger.error(f"[PG] Erreur lors de la mise à jour de l'état du dossier : {e}")
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la mise à jour en 'en_instruction' par {instructeur_email}: {e}")
 
     else:
-        logger.error(f"[DS] Échec du passage en instruction pour le dossier {dossier_id} : {result['message']}")
+        logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS par {instructeur_email}: {result['message']}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
-
-
-
-
-@require_POST
-def passer_etape_en_preinstruction(request):
-
-    dossier_id = request.POST.get("dossierId")
-
-    if not dossier_id:
-        return HttpResponseBadRequest("Tentative de passage en préinstruction : Paramètre 'dossierId' manquant.")
-
-    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
-
-    try:
-        etape = EtapeDossier.objects.get(etape="En pré-instruction")
-    except EtapeDossier.DoesNotExist:
-        logger.error("Étape 'En pré-instruction' introuvable en base.")
-        return HttpResponseBadRequest("Étape 'En pré-instruction' non définie.")
-
-    dossier.id_etape_dossier = etape
-    dossier.save()
-
-    logger.info(f"Etape du dossier {dossier.numero} mise à jour en 'En pré-instruction'.")
-  
-    return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
 @require_POST
@@ -288,8 +262,8 @@ def sauvegarder_note_dossier(request):
     if instructeur and instructeur.id_agent_autorisations:
         nom = instructeur.id_agent_autorisations.nom
         prenom = instructeur.id_agent_autorisations.prenom
-        logger.info(f"Dossier {dossier.numero} : note modifiée par {prenom} {nom} ({instructeur.email})")
+        logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {prenom} {nom} ({instructeur.email})")
     else:
-        logger.info(f"Dossier {dossier.numero} : note modifiée par {request.user.email} (utilisateur non identifié comme instructeur)")
+        logger.warning(f"[DOSSIER {dossier.numero}] Note modifiée par {request.user.email} (utilisateur non identifié comme instructeur)")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))

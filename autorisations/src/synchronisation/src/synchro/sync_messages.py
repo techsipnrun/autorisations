@@ -4,7 +4,7 @@ from ..utils.model_helpers import update_fields
 from ..utils.fichiers import write_pj
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_messages(messages, id_dossier):
     """
@@ -64,7 +64,7 @@ def sync_messages(messages, id_dossier):
 
                 else:
                     updated_fields = update_fields(doc_obj, {"url_ds": doc["url_ds"], "id_nature_id": doc["id_nature"]})
-                    if updated_fields:
+                    if updated_fields and updated_fields != ['url_ds']: # url_ds est recalculée à chaque fois, on evite de surcharger les logs
                         doc_obj.save()
                         logger.info(f"[SAVE] Document {doc_obj.id} ({doc_obj.id_nature.nature}) mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 

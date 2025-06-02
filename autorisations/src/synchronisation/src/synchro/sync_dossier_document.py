@@ -3,7 +3,7 @@ from ..utils.model_helpers import update_fields
 from ..utils.fichiers import write_resume_pdf
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_dossier_document(dossier_document, id_dossier):
     """
@@ -50,7 +50,7 @@ def sync_dossier_document(dossier_document, id_dossier):
 
             #On écrase le fichier existant
             write_resume_pdf(dossier_document["emplacement"], dossier_document["titre"], dossier_document["url_ds"])
-            logger.info(f"[SAVE] Document résumé PDF mis à jour (Dossier {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
+            # logger.info(f"[SAVE] Document résumé PDF mis à jour (Dossier {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
 
     link_obj, created = DossierDocument.objects.get_or_create(
         id_dossier_id=id_dossier,

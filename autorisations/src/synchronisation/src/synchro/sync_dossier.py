@@ -5,7 +5,7 @@ from django.db import models
 from datetime import date, datetime
 import logging
 
-logger = logging.getLogger('ORM_DJANGO')
+logger = logging.getLogger('SYNCHRONISATION')
 
 def sync_doss(dossier):
     """
@@ -53,7 +53,7 @@ def sync_doss(dossier):
             if "geometrie" in updated_fields :
                 # Write geojson
                 write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero}.geojson",obj.geometrie)
-        else:
-            logger.info(f"[NO CHANGE] Dossier {obj.numero} inchangé.")
+        # else:
+        #     logger.info(f"[NO CHANGE] Dossier {obj.numero} inchangé.")
 
     return obj.id

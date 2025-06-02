@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from DS.graphql_client import GraphQLClient
 from DS.call_DS import envoyer_message_avec_pj as ds_envoyer_message_avec_pj
 from BDD.pg_functions import create_message_bdd
+from autorisations.models.models_utilisateurs import Instructeur
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -33,21 +34,21 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
     """
     Envoie un message via l’API Démarches Simplifiées, avec ou sans pièce jointe.
     """
-
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    
     client = GraphQLClient()
 
     if not all([dossier_id_ds, instructeur_id_ds, body]):
         loggerDS.error(
-            f"[ENVOI MESSAGE Dossier {num_dossier}] Paramètres manquants : "
-            f"dossier_id_ds={dossier_id_ds}, instructeur_id_ds={instructeur_id_ds}, body présent ? {bool(body)}"
+            f"[DOSSIER {num_dossier}] Paramètres manquants pour l'envoi du message : "
+            f"dossier_id_ds={dossier_id_ds}, instructeur_id_ds={instructeur_id_ds}, body présent --> {bool(body)}"
         )
         return {"success": False, "message": "Paramètres requis manquants."}
 
     if fichier and chemin_fichier:
-        loggerDS.info(
-            f"[ENVOI] Message AVEC pièce jointe pour dossier {num_dossier or dossier_id_ds} — "
-            f"Fichier='{fichier.name}', content_type={content_type}"
-        )
+        
+        loggerDS.info(f"[DOSSIER {num_dossier}] Tentative envoi du message avec PJ par {email_instructeur}")
+
         if not correction :
             return ds_envoyer_message_avec_pj(
                 dossier_id_ds=dossier_id_ds,
@@ -66,9 +67,8 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
                 correction=True
             )
 
-    
     else:
-        loggerDS.info(f"[ENVOI] Message SANS pièce jointe pour dossier {num_dossier or dossier_id_ds}")
+        loggerDS.info(f"[DOSSIER {num_dossier}] Tentative d'envoi du message sans PJ par {email_instructeur}")
 
         if not correction :
             variables = {
@@ -89,7 +89,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
             }
 
 
-        msgerror = f"Échec envoi message sans pièce jointe pour le dossier {num_dossier} (peut être qu'il n'existe pas sur Démarches Simplifiées)"
+        msgerror = f"[DOSSIER {num_dossier}] Échec envoi message sans PJ (peut être que le dossier n'existe pas sur Démarches Simplifiées)"
 
         try:
             result = client.execute_query("DS/mutations/send_message.graphql", variables)
@@ -100,7 +100,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
             
             return result
         except Exception as e:
-            loggerDS.exception(f"Échec envoi message sans pièce jointe pour le dossier {num_dossier}")
+            loggerDS.error (f"[DOSSIER {num_dossier}] Échec envoi message sans PJ.")
             return HttpResponse(msgerror, status=500)
 
 

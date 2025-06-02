@@ -1,3 +1,4 @@
+import logging
 from .sync_dossier import sync_doss
 from .sync_contacts_externes import sync_contacts_externes
 from .sync_dossier_interlocuteur import sync_dossier_interlocuteur
@@ -25,8 +26,12 @@ def sync_dossiers(dossiers_list):
         ...
     ]
     """
-
+    logger = logging.getLogger('SYNCHRONISATION')
+    
     for doss in dossiers_list:
+        
+        logger.info(f"Dossier {doss['dossier']['nom_dossier']}")
+
         id_dossier = sync_doss(doss['dossier'])
         ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
         id_dossier_interlocuteur = sync_dossier_interlocuteur(doss['dossier_interlocuteur'], ids_beneficiaire_intermediaire, id_dossier)
@@ -35,3 +40,5 @@ def sync_dossiers(dossiers_list):
         sync_dossier_document(doss['dossier_document'], id_dossier)
         sync_messages(doss['messages'], id_dossier)
         sync_demandes(doss['demandes'], id_dossier)
+
+        logger.info("------------------------------------------------")

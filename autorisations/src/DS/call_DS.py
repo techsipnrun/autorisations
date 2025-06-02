@@ -16,6 +16,7 @@ from autorisations.models.models_utilisateurs import GroupeinstructeurDemarche, 
 
 # Spécifie le fichier de logs
 loggerDS = logging.getLogger("API_DS")
+logger = logging.getLogger("ORM_DJANGO")
 
 
 def init_setup():
@@ -44,10 +45,8 @@ def get_number_demarche_Postgres():
         # Récupérer toutes les démarches avec leur numéro
         demarches = Demarche.objects.all().values('numero', 'titre')
     except Exception as e:
-        loggerDS.error(f"Echec de la récupération des numéros des démarches : {e}")
+        logger.error(f"Echec de la récupération des numéros de démarches : {e}")
     
-    
-
     list_number_demarches = []
 
     # Affichage dans la console
@@ -77,7 +76,7 @@ def recup_data_DS(number):
     try:
         response = client.execute_query(query_file, {"number": number})
     except Exception as e:
-        loggerDS.error(f"Erreur lors de l'exécution de la querie get_all.graphql : {e}")
+        loggerDS.error(f"Erreur lors de la récupération de la démarche {number} sur DS (get_all.graphql) : {e}")
     
     return response["data"]
 
@@ -101,9 +100,9 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    id_instructeur_pg = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("id", flat=True).first()
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
 
-    loggerDS.info(f"Début d'envoi de pièce jointe pour dossier {num_dossier_pg}, instructeur {instructeur_id_ds}, fichier '{os.path.basename(chemin_fichier_original)}'")
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative envoi de mesasge avec PJ par {email_instructeur} (fichier '{os.path.basename(chemin_fichier_original)}')")
 
     try:
         # Lire le contenu du fichier
@@ -128,7 +127,7 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
 
         if "data" not in upload_response or "createDirectUpload" not in upload_response["data"]:
 
-            loggerDS.error(f"[UPLOAD] Réponse invalide de DS lors du Create Upload (Message avec PJ - Dossier {num_dossier_pg}) : {upload_response}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Échec envoi message avec PJ sur DS (Create Upload) : {upload_response}")
             raise Exception("La mutation createDirectUpload a échoué. Clé 'data' manquante.")
 
         direct_upload = upload_response["data"]["createDirectUpload"]["directUpload"]
@@ -142,7 +141,7 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
         response = requests.put(upload_url, headers=upload_headers, data=BytesIO(file_data), stream=True)
 
         if response.status_code not in [200, 201]:
-            loggerDS.error(f"[UPLOAD] Échec de l'upload du fichier (message avec PJ pour le dossier {num_dossier_pg}): {response.status_code} - {response.text}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Échec de l'upload du fichier (message avec PJ): {response.status_code} - {response.text}")
             raise Exception(f"Échec de l'upload du fichier (message avec PJ pour le dossier {num_dossier_pg}): {response.status_code} - {response.text}")
 
 
@@ -172,14 +171,16 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
         result = client.execute_query("DS/mutations/send_message.graphql", send_message_vars)
 
         if result["data"]["dossierEnvoyerMessage"]['errors'] :
-            loggerDS.info(f"Erreur : Message avec PJ (Dossier {num_dossier_pg}) pas envoyé : {result["data"]["dossierEnvoyerMessage"]['errors']}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Échec de l'envoi du message avec PJ par {email_instructeur} : {result["data"]["dossierEnvoyerMessage"]['errors']}")
         else :
-            loggerDS.info(f"Message envoyé avec PJ — réponse : {result["data"]["dossierEnvoyerMessage"]["message"]}")
+            message_data = result["data"]["dossierEnvoyerMessage"]["message"]
+            message_preview = message_data[:100] + "..." if len(message_data) > 100 else message_data
+            loggerDS.info(f"[DOSSIER {num_dossier_pg}] Message envoyé avec PJ par {email_instructeur} : {message_preview}")
         return result
     
 
     except Exception as e:
-        loggerDS.exception(f"Erreur inattendue pendant l'envoi de pièce jointe pour le Dossier {num_dossier_pg}")
+        loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur inattendue pendant l'envoi du message avec PJ : {str(e)}")
         raise
 
 
@@ -217,10 +218,10 @@ def suppr_msg_DS(msg):
     # Vérification des erreurs possibles
     if result["data"]["dossierSupprimerMessage"]["errors"]:
         erreurs = "; ".join(err['message'] for err in result['errors'])
-        loggerDS.error(f"Erreur suppression du message {msg.id} (Dossier {msg.id_dossier.numero}) sur D-S : {erreurs}")
+        loggerDS.error(f"[DOSSIER {msg.id_dossier.numero}] Erreur suppression du message {msg.id} sur D-S : {erreurs}")
         raise Exception(f"Erreur suppression message (Dossier {msg.id_dossier.numero}) sur D-S : {erreurs}")
     else:
-        loggerDS.info(f"Message {msg.id} supprimé avec succès (Dossier {msg.id_dossier.numero})")
+        loggerDS.info(f"[DOSSIER {msg.id_dossier.numero}] Message {msg.id} supprimé avec succès sur DS")
         return {"success": True, "message": f"Message {msg.id} supprimé avec succès (Dossier {msg.id_dossier.numero})"}
     
 
@@ -257,16 +258,16 @@ def get_msg_DS(num_doss, message_id_ds):
                         if m["attachments"] :
                             return m["attachments"][0]["url"]
                         else:
-                            loggerDS.warning(f"Message {message_id_ds} (Dossier {num_doss}) trouvé mais sans pièce jointe.")
+                            loggerDS.warning(f"[DOSSIER {num_doss}] Message {message_id_ds} trouvé mais sans pièce jointe.")
                             return None
                         
-                loggerDS.warning(f"Aucun message avec l'ID {message_id_ds} trouvé pour le dossier {num_doss}.")
+                loggerDS.warning(f"[DOSSIER {num_doss}] Aucun message avec l'ID {message_id_ds} trouvé.")
                 return None
         else :
-            loggerDS.error(f"Erreur : Envoie Message avec PJ --> Echec de récupération de l'url de la PJ (dossier {num_doss}) : {result.get('errors')[0].get('message')} ")
+            loggerDS.error(f"[DOSSIER {num_doss}] Envoi Message avec PJ --> Echec de récupération de l'url de la PJ : {result.get('errors')[0].get('message')}")
     
     except Exception as e:
-        loggerDS.error(f"Erreur lors de la récupération du message {message_id_ds} pour le dossier {num_doss} : {e}")
+        loggerDS.error(f"[DOSSIER {num_doss}] Erreur lors de la récupération du message {message_id_ds} : {e}")
         return None
 
 
@@ -289,7 +290,7 @@ def change_groupe_instructeur_ds(dossier_id, groupe_instructeur_id):
     id_groupe_pg = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur_ds=groupe_instructeur_id).values_list("id_groupeinstructeur_id", flat=True).first()
 
     nom_groupe = Groupeinstructeur.objects.filter(id=id_groupe_pg).values_list("nom", flat=True).first()
-    loggerDS.info(f"Tentative de changement du groupe instructeur pour le dossier {num_dossier_pg} vers {nom_groupe}")
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de changement du groupe instructeur vers {nom_groupe}")
 
     try:
         client = GraphQLClient()
@@ -305,23 +306,23 @@ def change_groupe_instructeur_ds(dossier_id, groupe_instructeur_id):
         result = client.execute_query(query_path, variables)
 
         if not result:
-            loggerDS.error(f"Réponse vide du serveur lors de la mutation change_groupe_instructeur.graphql (Dossier {num_dossier_pg})")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Réponse vide du serveur lors de la mutation change_groupe_instructeur.graphql")
             return {"success": False, "message": "Réponse vide du serveur."}
 
         if "errors" in result:
-            loggerDS.error(f"Erreur lors de la mutation change_groupe_instructeur.graphql (Dossier {num_dossier_pg}) : {result['errors']}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de la mutation change_groupe_instructeur.graphql : {result['errors']}")
             return {"success": False, "message": result["errors"]}
 
         response_data = result.get("data", {}).get("dossierChangerGroupeInstructeur", {})
         if response_data:
-            loggerDS.info(f"Groupe instructeur changé avec succès pour le dossier {num_dossier_pg}")
+            loggerDS.info(f"[DOSSIER {num_dossier_pg}] Groupe instructeur changé avec succès.")
             return {"success": True, "message": response_data.get("message", "OK")}
 
-        loggerDS.warning(f"Mutation change_groupe_instructeur.graphql (Dossier {num_dossier_pg}) réussie mais réponse inattendue.")
+        loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Mutation change_groupe_instructeur.graphql réussie mais réponse inattendue.")
         return {"success": False, "message": "Réponse inattendue de la mutation."}
 
     except Exception as e:
-        loggerDS.exception(f"Erreur dans la mutation change_groupe_instructeur.graphql (Dossier {num_dossier_pg}) : {e}")
+        loggerDS.exception(f"[DOSSIER {num_dossier_pg}] Erreur dans la mutation change_groupe_instructeur.graphql : {e}")
         return {"success": False, "message": str(e)}
 
 
@@ -342,7 +343,7 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
     email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
 
-    loggerDS.info(f"Tentative de passage en instruction du dossier {num_dossier_pg} par {email_instructeur}")
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de passage en instruction sur DS par {email_instructeur}")
 
     try:
         variables = {
@@ -355,21 +356,21 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
         result = client.execute_query("DS/mutations/passer_en_instruction.graphql", variables)
 
         if not result or "data" not in result:
-            loggerDS.error(f"[DS] Réponse vide lors du passage en instruction du dossier {num_dossier_pg}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Réponse vide lors du passage en instruction sur DS")
             return {"success": False, "message": "Réponse vide ou invalide."}
 
         response_data = result["data"]["dossierPasserEnInstruction"]
         if response_data and not response_data['errors']:
-            loggerDS.info(f"[DS] Passage en instruction réussi pour le dossier {num_dossier_pg}")
+            loggerDS.info(f"[DOSSIER {num_dossier_pg}] Passage en instruction réussi sur DS")
             return {"success": True, "message": response_data.get("message", "OK")}
         else:
             erreurs = response_data.get("errors", [])
             msg = "; ".join([err["message"] for err in erreurs]) if erreurs else "Erreur inconnue"
-            loggerDS.warning(f"[DS] Passage en instruction échoué pour le dossier {num_dossier_pg} : {msg}")
+            loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Passage en instruction échoué sur DS : {msg}")
             return {"success": False, "message": msg}
 
     except Exception as e:
-        loggerDS.exception(f"[DS] Exception lors du passage en instruction du dossier {num_dossier_pg}")
+        loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors du passage en instruction sur DS.")
         return {"success": False, "message": str(e)}
 
 
@@ -389,7 +390,8 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    loggerDS.info(f"Tentative de classement sans suite du dossier {num_dossier_pg} via DS")
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de classement sans suite sur DS par {email_instructeur}")
 
     try:
         variables = {
@@ -406,14 +408,14 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
 
         if not response_data or response_data.get("errors"):
             erreurs = "; ".join([err.get("message", "Erreur inconnue") for err in response_data.get("errors", [])])
-            loggerDS.warning(f"[DS] Classement sans suite échoué pour dossier {num_dossier_pg} : {erreurs}")
+            loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Classement sans suite échoué sur DS : {erreurs}")
             return {"success": False, "message": erreurs}
 
-        loggerDS.info(f"[DS] Classement sans suite réussi pour le dossier {num_dossier_pg}")
+        loggerDS.info(f"[DOSSIER {num_dossier_pg}] Classement sans suite réussi sur DS.")
         return {"success": True, "message": response_data.get("message", "OK")}
 
     except Exception as e:
-        loggerDS.exception(f"[DS] Exception lors du classement sans suite du dossier {num_dossier_pg}")
+        loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors du classement sans suite sur DS : {str(e)}")
         return {"success": False, "message": str(e)}
 
 
@@ -434,7 +436,8 @@ def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    loggerDS.info(f"Tentative de refus du dossier {num_dossier_pg} via DS")
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de refus du dossier sur DS par {email_instructeur}")
 
     try:
         variables = {
@@ -451,14 +454,14 @@ def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
 
         if not response_data or response_data.get("errors"):
             erreurs = "; ".join([err.get("message", "Erreur inconnue") for err in response_data.get("errors", [])])
-            loggerDS.warning(f"[DS] Refus échoué pour dossier {num_dossier_pg} : {erreurs}")
+            loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Echec de refus du dossier sur DS : {erreurs}")
             return {"success": False, "message": erreurs}
 
-        loggerDS.info(f"[DS] Refus réussi pour le dossier {num_dossier_pg}")
+        loggerDS.info(f"[DOSSIER {num_dossier_pg}] Refus du dossier réussi sur DS.")
         return {"success": True, "message": response_data.get("message", "OK")}
 
     except Exception as e:
-        loggerDS.exception(f"[DS] Exception lors du refus du dossier {num_dossier_pg}")
+        loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors du refus du dossier sur DS : {str(e)}")
         return {"success": False, "message": str(e)}
 
 
@@ -476,7 +479,8 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    loggerDS.info(f"Tentative de rebasculer en instruction le dossier {num_dossier_pg} via DS")
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de repasser en instruction le dossier sur DS par {email_instructeur}")
 
     try:
         variables = {
@@ -492,14 +496,14 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
 
         if not response_data or response_data.get("errors"):
             erreurs = "; ".join([err.get("message", "Erreur inconnue") for err in response_data.get("errors", [])])
-            loggerDS.warning(f"[DS] Repassage échoué pour dossier {num_dossier_pg} : {erreurs}")
+            loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Echec du repassage en instruction : {erreurs}")
             return {"success": False, "message": erreurs}
 
-        loggerDS.info(f"[DS] Repassage en instruction réussi pour le dossier {num_dossier_pg}")
+        loggerDS.info(f"[DOSSIER {num_dossier_pg}] Repassage en instruction réussi pour le dossier sur DS.")
         return {"success": True, "message": response_data.get("message", "OK")}
 
     except Exception as e:
-        loggerDS.exception(f"[DS] Exception lors du repassage en instruction du dossier {num_dossier_pg}")
+        loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors du repassage en instruction sur DS : {str(e)}")
         return {"success": False, "message": str(e)}
 
 
@@ -509,6 +513,10 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
 def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=None):
     client = GraphQLClient()
     signed_blob_id = None
+
+    num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
+    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative d'acceptation du dossier sur DS (mutation create_direct_upload.graphql) par {email_instructeur}")
 
     if fichier:
         try:
@@ -538,9 +546,10 @@ def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=No
             )
 
             if response.status_code not in [200, 201]:
+                loggerDS.error(f"[DOSSIER {num_dossier_pg}] Réponse innatendue lors de l'acceptation du dossier sur DS (mutation create_direct_upload.graphql) : ", response.text)
                 raise Exception("Échec de l'upload : " + response.text)
         except Exception as e:
-            loggerDS.error("[ACCEPTATION DOSSIER] Erreur lors de l'upload du fichier : ", str(e))
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Echec de l'acceptation du dossier sur DS (mutation create_direct_upload.graphql) : ", str(e))
             return {"success": False, "message": str(e)}
 
     try:
@@ -557,9 +566,10 @@ def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=No
         result = client.execute_query("DS/mutations/accepter_dossier.graphql", variables)
         response_data = result.get("data", {}).get("dossierAccepter", {})
         if response_data.get("errors"):
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de l’acceptation du dossier sur DS : {response_data.get("errors")}")
             return {"success": False, "message": response_data["errors"]}
         return {"success": True, "message": response_data.get("message", "OK")}
     except Exception as e:
-        loggerDS.error("Erreur lors de l’acceptation du dossier : ", str(e))
+        loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de l’acceptation du dossier sur DS : ", str(e))
         return {"success": False, "message": str(e)}
 

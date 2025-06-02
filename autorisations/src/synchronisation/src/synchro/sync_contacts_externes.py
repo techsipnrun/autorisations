@@ -3,7 +3,7 @@ from django.db import IntegrityError
 from ..utils.model_helpers import update_fields
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_contacts_externes(contacts_externes):
     """

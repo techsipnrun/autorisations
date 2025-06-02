@@ -40,12 +40,12 @@ def calcul_priorite_instruction(id_demarche, doss):
             delais_jours_instruction = Demarche.objects.filter(id=id_demarche).values_list("delais_jours_instruction", flat=True).first()
     
         if not date_depot_dossier :
-            loggerORM.error(f"Erreur lors du calcul de Priorité d'instruction du dossier {doss['number']} : la date de dépot du dossier est null")
+            loggerORM.error(f"[DOSSIER {doss['number']}] Erreur lors du calcul de Priorité d'instruction du dossier : la date de dépot du dossier est null")
             return None
 
         if delais_jours_instruction is None :
-            loggerORM.error("Erreur lors du calcul de Priorité d'instruction du dossier : la colonne delais_jours_instruction de la Démarche " +
-                   f"{Demarche.objects.filter(id=id_demarche).values_list("titre", flat=True).first()} est null")
+            loggerORM.error(f"[DOSSIER {doss['number']}] Erreur lors du calcul de Priorité d'instruction du dossier : la colonne delais_jours_instruction de la Démarche " +
+                   f"{Demarche.objects.filter(id=id_demarche).values_list("type", flat=True).first()} est null")
             return None
 
         # Conversion de la date ISO 8601 en datetime Python

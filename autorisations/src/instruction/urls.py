@@ -22,10 +22,10 @@ urlpatterns = [
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path("actualiser/", views.actualiser_donnees, name="actualiser_donnees"),
     path("etat-actualisation/", views.etat_actualisation, name="etat_actualisation"),
-    path('changer-etape-dossier/', views.changer_etape_dossier, name='changer_etape_dossier'),
+    # path('changer-etape-dossier/', views.changer_etape_dossier, name='changer_etape_dossier'),
     path('changer-groupe-instructeur/', preinstruction.changer_groupe_instructeur, name='changer_groupe_instructeur'),
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
-    path('passer_etape_en_preinstruction/', preinstruction.passer_etape_en_preinstruction, name='passer_etape_en_preinstruction'),
+    # path('passer_etape_en_preinstruction/', preinstruction.passer_etape_en_preinstruction, name='passer_etape_en_preinstruction'),
     path('preinstruction/note/', preinstruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
     path('instruction/se-declarer-instructeur/', views.se_declarer_instructeur, name='se_declarer_instructeur'),
     path('instruction/retirer-instructeur/', views.retirer_instructeur, name='retirer_instructeur'),
@@ -40,7 +40,7 @@ urlpatterns = [
     path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
 
 
-    path('carto_test/', views.carto_test, name='carto_test'),  #url de Test
+    # path('carto_test/', views.carto_test, name='carto_test'),  #url de Test
     path('avis/', views.avis, name='avis_view'),
     path('requetes/', views.requetes, name='requetes_view'),
 

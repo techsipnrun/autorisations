@@ -2,7 +2,7 @@ from autorisations.models.models_instruction import Demande
 from ..utils.model_helpers import update_fields
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_demandes(demandes, id_dossier):
     """
@@ -32,5 +32,5 @@ def sync_demandes(demandes, id_dossier):
                 obj.save()
                 champs = ", ".join(updated_fields)
                 logger.info(f"[SAVE] Demande {obj.id} pour Dossier {id_dossier} mise à jour. Champs modifiés : {champs}.")
-            else:
-                logger.info(f"[NO CHANGE] Demande {obj.id} pour Dossier {id_dossier} inchangée.")
+            # else:
+            #     logger.info(f"[NO CHANGE] Demande {obj.id} pour Dossier {id_dossier} inchangée.")

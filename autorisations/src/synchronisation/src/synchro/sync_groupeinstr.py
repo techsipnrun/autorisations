@@ -2,7 +2,7 @@ import logging
 from autorisations.models.models_utilisateurs import GroupeinstructeurDemarche, Instructeur
 from ..utils.model_helpers import update_fields
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_groupeinstructeurs_demarches(gi_demarche_list):
     for gi in gi_demarche_list["gi"]:

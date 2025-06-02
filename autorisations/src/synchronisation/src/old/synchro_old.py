@@ -60,8 +60,8 @@ def sync_demarche(demarche_ds):
             demarche_obj.save()
             champs = ", ".join(updated_fields)
             logger.info(f"[SAVE] Demarche {demarche_obj.numero} mise à jour. Champs modifiés : {champs}.")
-        else:
-            logger.info(f"[NO CHANGE] Demarche {demarche_obj.numero} inchangée.")
+        # else:
+        #     logger.info(f"[NO CHANGE] Demarche {demarche_obj.numero} inchangée.")
 
 
 
@@ -213,8 +213,8 @@ def sync_doss(dossier):
         if updated_fields:
             obj.save()
             logger.info(f"[SAVE] Dossier {obj.numero} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
-        else:
-            logger.info(f"[NO CHANGE] Dossier {obj.numero} inchangé.")
+        # else:
+        #     logger.info(f"[NO CHANGE] Dossier {obj.numero} inchangé.")
 
     return obj.id
 
@@ -682,7 +682,7 @@ def sync_demandes(demandes, id_dossier):
                 obj.save()
                 champs = ", ".join(updated_fields)
                 logger.info(f"[SAVE] Demande {obj.id} pour Dossier {id_dossier} mise à jour. Champs modifiés : {champs}.")
-            else:
-                logger.info(f"[NO CHANGE] Demande {obj.id} pour Dossier {id_dossier} inchangée.")
+            # else:
+            #     logger.info(f"[NO CHANGE] Demande {obj.id} pour Dossier {id_dossier} inchangée.")
 
 

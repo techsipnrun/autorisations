@@ -62,12 +62,12 @@ def write_resume_pdf(emplacement, name, url_du_pdf):
         with open(chemin_complet, "wb") as f:
             f.write(response.content)
 
-        loggerFile.info(f"[FILE] PDF téléchargé et écrit : {name}")
+        # loggerFile.info(f"RÉSUMÉ PDF téléchargé et écrit : {name}")
 
     except requests.exceptions.RequestException as e:
-        loggerFile.error(f"[HTTP ERROR] Impossible de télécharger le PDF : {e}")
+        loggerFile.error(f"[ERREUR] Impossible de télécharger le RÉSUMÉ PDF : {e}")
     except Exception as e:
-        loggerFile.error(f"[FILE ERROR] Impossible d’écrire le fichier {chemin_complet} : {e}")
+        loggerFile.error(f"[ERREUR] Impossible d’écrire le RÉSUMÉ PDF {chemin_complet} : {e}")
 
     return chemin_complet
 

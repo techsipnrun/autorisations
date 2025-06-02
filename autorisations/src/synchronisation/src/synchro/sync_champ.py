@@ -2,7 +2,7 @@ from autorisations.models.models_instruction import Champ
 from ..utils.model_helpers import update_fields
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_champs(champs_list):
     """

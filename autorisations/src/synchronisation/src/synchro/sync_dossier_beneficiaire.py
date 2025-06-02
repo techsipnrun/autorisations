@@ -1,7 +1,7 @@
 from autorisations.models.models_utilisateurs import DossierBeneficiaire
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 def sync_dossier_beneficiaire(ids_beneficiaire_intermediaire, id_dossierInterlocuteur):
     """

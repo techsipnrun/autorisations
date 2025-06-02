@@ -338,7 +338,7 @@ def actualiser_dossier(request, num_dossier):
         # 3. Synchronisation en base
         sync_dossiers([dico_dossier])
 
-        logger.info(f"[DOSSIER] Actualisation complète du dossier {num_dossier} réussie.")
+        # logger.info(f"[DOSSIER] Actualisation du dossier {num_dossier} réussie.")
         # return redirect('instruction_dossier', num_dossier=num_dossier)
         return redirect(request.META.get("HTTP_REFERER", "/"))
 

@@ -4,7 +4,7 @@ from ..utils.model_helpers import get_first_id, update_fields
 from ..utils.fichiers import write_geojson, write_pj
 import logging
 
-logger = logging.getLogger("ORM_DJANGO")
+logger = logging.getLogger("SYNCHRONISATION")
 
 # def sync_dossier_champs(dossier_champs, id_dossier):
 #     """
@@ -136,21 +136,28 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 if doc_created:
                     logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {id_champ} du Dossier {id_dossier} créé.")
                     write_pj(doc["emplacement"], doc["titre"], doc["url_ds"])
+
+                    champ_obj = DossierChamp.objects.filter(
+                        id_dossier_id=id_dossier,
+                        id_champ_id=id_champ,
+                        id_document__isnull=True
+                    ).order_by("id").first()
+
                 else:
                     updated_fields = update_fields(document_obj, {
                         "url_ds": doc["url_ds"],
                         "description": doc["description"],
                     })
-                    if updated_fields:
+                    if updated_fields and updated_fields != ['url_ds']: # url_ds est recalculée à chaque fois, on evite de surcharger les logs
                         document_obj.save()
                         logger.info(f"[SAVE] Document mis à jour (doc: {document_obj.id}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
 
-                # 🔄 Réutiliser un champ sans document si possible
-                champ_obj = DossierChamp.objects.filter(
-                    id_dossier_id=id_dossier,
-                    id_champ_id=id_champ,
-                    id_document__isnull=True
-                ).order_by("id").first()
+                    champ_obj = DossierChamp.objects.filter(
+                        id_dossier_id=id_dossier,
+                        id_champ_id=id_champ,
+                        id_document_id=document_obj.id,
+                    ).order_by("id").first()
+
 
                 if champ_obj:
                     updated_fields = update_fields(champ_obj, {
@@ -172,6 +179,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         geometrie=dossier_champ.get("geometrie"),
                     )
                     logger.info(f"[CREATE] Nouveau DossierChamp (champ: {id_champ}, dossier: {id_dossier}) avec PJ.")
+
         else:
             # Pour les champs sans document
             champ_obj, created = DossierChamp.objects.get_or_create(
