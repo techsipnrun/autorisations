@@ -3,7 +3,7 @@ h1 {
     text-align: center;
     margin-top: 3rem;
     margin-bottom: 3rem;
-    color: #115e31;
+    color: #006131;
 }
 
 /* Bouton retour formulaire */
@@ -18,9 +18,9 @@ h1 {
 .btn-retour-formulaire {
   text-decoration: none;
   padding: 0.5rem 1rem;
-  border: 1px solid #115e31;
+  border: 1px solid #006131;
   border-radius: 4px;
-  color: #115e31;
+  color: #006131;
   font-weight: bold;
   transition: background-color 0.3s ease;
 }
@@ -44,10 +44,11 @@ h1 {
 
 .carte-container {
   position: relative;
-  height: 80vh;
+  height: 70vh;
   margin-left: 5rem;
   margin-right: 5rem;
   margin-bottom: 5rem;
+  z-index: 1;
 }
 
 .carte {
@@ -148,3 +149,10 @@ box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   color: #a33;
   border: 1px solid #e6b5b5;
 }
+
+.leaflet-control-container,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 500 !important;
+}
+

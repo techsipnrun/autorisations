@@ -1,5 +1,5 @@
 import logging
-from autorisations.models.models_instruction import EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Action, DossierAction, EtapeDossier, EtatDossier
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -71,3 +71,14 @@ def changer_etat_si_different(dossier, nom_etat, user):
 
     logger.debug(f"[DOSSIER {dossier.numero}] État inchangé (déjà '{dossier.id_etat_dossier.nom}').")
     return False
+
+
+def enregistrer_action(dossier, instructeur, nom_action, description=None):
+    action_obj = Action.objects.filter(action=nom_action).first()
+    if action_obj and instructeur:
+        DossierAction.objects.create(
+            id_dossier=dossier,
+            id_instructeur=instructeur,
+            id_action=action_obj,
+            description=description
+        )

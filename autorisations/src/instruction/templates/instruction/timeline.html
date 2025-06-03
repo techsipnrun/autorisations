@@ -1,0 +1,113 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/timeline.css' %}">
+</head>
+
+<body>
+    
+    <div id="left-sidebar" class="sidebar-hover-zone">
+
+        <div class="sidebar-header">
+            <div class="sidebar-text">
+                <span class="sidebar-timeline-title">TIMELINE ⸱&nbsp; </span>
+                <span class="sidebar-dossier-title">Dossier {{ numero_dossier }}</span>
+            </div>
+            <img src="{% static 'instruction/img/timeline/timeline.png' %}" alt="Timeline Logo" class="timeline-logo">
+        </div>
+
+
+        <div class="sidebar-content">
+
+            <div class="timeline-vertical-line"></div>
+            
+            {% for action in dossier_actions %}
+
+                <div class="timeline-item">
+
+                    <img src="{% static 'instruction/img/timeline/' %}{{ action.id_action.action|slugify }}.png"
+                    class="action-logo"
+                    alt="{{ action.id_action.action }}"
+                    onerror='this.onerror=null; this.src="{% static "instruction/img/timeline/timeline.png" %}"'>
+
+
+
+                    <div class="timeline-text">
+                        <div class="timeline-date">{{ action.date|date:"d/m/Y H:i" }}</div>
+
+                        <div class="timeline-action">
+                            {{ action.id_action.action }}
+                            {% if action.description %}
+                                {{ action.description }}
+                            {% endif %}
+                        </div>
+
+                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" %}
+                            <div class="timeline-user">
+                                {{ action.id_instructeur.id_agent_autorisations.nom|upper }}
+                                {{ action.id_instructeur.id_agent_autorisations.prenom|capfirst }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            {% endfor %}
+        </div>
+
+    </div>
+</body>
+
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const sidebar = document.getElementById("left-sidebar");
+        const mainContent = document.querySelector(".page_instruction_dossier");
+
+        sidebar.addEventListener("mouseenter", () => {
+            sidebar.classList.add("expanded");
+            if (mainContent) mainContent.classList.add("faded");
+        });
+
+        sidebar.addEventListener("mouseleave", () => {
+            sidebar.classList.remove("expanded");
+            if (mainContent) mainContent.classList.remove("faded");
+        });
+    });
+
+    function updateTimelineHeight() {
+        const sidebarContent = document.querySelector(".sidebar-content");
+        const timelineLine = document.querySelector(".timeline-vertical-line");
+
+        if (sidebarContent && timelineLine) {
+            const scrollHeight = sidebarContent.scrollHeight;
+            timelineLine.style.height = scrollHeight + "px";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        updateTimelineHeight();
+
+        const sidebar = document.getElementById("left-sidebar");
+        sidebar.addEventListener("mouseenter", () => {
+            updateTimelineHeight();
+        });
+
+        // si tu as du contenu qui se charge dynamiquement :
+        window.addEventListener("resize", updateTimelineHeight);
+    });
+
+</script>
+
+
+
+
+</html>

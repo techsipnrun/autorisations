@@ -5,7 +5,7 @@ import os
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-from autorisations.models.models_instruction import Demarche, Dossier, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
@@ -45,9 +45,9 @@ def get_dossier_counts(demarche, etape_a_affecter, etat_instruction, etats_termi
 
 @login_required
 def accueil(request):
-    etat_construction = EtatDossier.objects.filter(nom__iexact="en_construction").first()
-    etat_instruction = EtatDossier.objects.filter(nom__iexact="en_instruction").first()
-    etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
+    # etat_construction = EtatDossier.objects.filter(nom__iexact="en_construction").first()
+    etat_instruction = EtapeDossier.objects.exclude(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"])
+    etats_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
     etape_a_affecter = EtapeDossier.objects.filter(etape="À affecter").first()
 
     current_year = date.today().year
@@ -76,8 +76,10 @@ def instruction_demarche(request, num_demarche):
     demarche = get_object_or_404(Demarche, numero=num_demarche)
 
     etapes = EtapeDossier.objects.exclude(etape="À affecter")
-
-    etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
+ 
+    etats_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
+    # etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
+    
     ids_etats_termines = list(etats_termines.values_list("id", flat=True))
 
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
@@ -270,6 +272,8 @@ def instruction_dossier(request, num_dossier):
         "Refusé": ["Repasser en instruction"]
     }
 
+    # Dossier Actions
+    dossier_actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date')
 
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -296,6 +300,7 @@ def instruction_dossier(request, num_dossier):
         "beneficiaire": beneficiaire,
         "demandeur_intermediaire": demandeur_intermediaire,
         "etapes_custom": etapes_custom,
+        "dossier_actions": dossier_actions,
     })
 
 

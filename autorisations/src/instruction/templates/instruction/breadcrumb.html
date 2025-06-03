@@ -1,10 +1,28 @@
-<nav class="breadcrumb">
-  {% for item in items %}
-    {% if item.url %}
-      <a href="{{ item.url }}">{{ item.label }}</a>
-      {% if not forloop.last %}&nbsp;&gt;&nbsp;{% endif %}
-    {% else %}
-      <span>{{ item.label }}</span>
-    {% endif %}
-  {% endfor %}
-</nav>
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breadcrumb</title>
+  <!-- CSS -->
+  <link rel="stylesheet" href="{% static 'instruction/css/breadcrumb.css' %}">
+</head>
+
+<body>
+  <nav class="breadcrumb">
+    {% for item in items %}
+      {% if item.url %}
+        <a href="{{ item.url }}">{{ item.label }}</a>
+        {% if not forloop.last %}&nbsp;&gt;&nbsp;{% endif %}
+      {% else %}
+        <span>{{ item.label }}</span>
+      {% endif %}
+    {% endfor %}
+  </nav>
+</body>
+</html>
+
+
+

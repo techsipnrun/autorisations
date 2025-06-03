@@ -18,7 +18,7 @@ thead {
 
 thead th {
     text-align: left;
-    color: #115e31;
+    color: #006131;
 }
 
 /* Table rows */
@@ -74,7 +74,7 @@ h1 {
     text-align: center;
     margin-top: 3rem;
     font-size: 1.8rem;
-    color: #115e31;
+    color: #006131;
 }
 
 .suivis_instruction {

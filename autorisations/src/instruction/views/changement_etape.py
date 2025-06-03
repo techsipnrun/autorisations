@@ -4,11 +4,11 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
 from autorisations.models.models_utilisateurs import Instructeur
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
-from instruction.utils import changer_etape_si_differente, changer_etat_si_different
+from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -55,6 +55,10 @@ def demander_des_complements(request):
                 # Mettre à jour étape + état si besoin
                 changer_etape_si_differente(dossier, "En attente de compléments", request.user)
                 changer_etat_si_different(dossier, "en_construction", request.user)
+
+                # Dossiers Actions
+                enregistrer_action(dossier, instructeur, "Demande de compléments")
+
           
         finally:
             if tmp_file_path and os.path.exists(tmp_file_path):
@@ -90,6 +94,10 @@ def dossier_non_soumis_a_autorisation(request):
         changer_etape_si_differente(dossier, "Non soumis à autorisation", request.user)
         changer_etat_si_different(dossier, "sans_suite", request.user)
 
+        # Dossiers Actions
+        enregistrer_action(dossier, instructeur, "Classé sans suite")
+
+
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -120,6 +128,10 @@ def refuse_le_dossier(request):
         changer_etape_si_differente(dossier, "Refusé", request.user)
         changer_etat_si_different(dossier, "refuse", request.user)
 
+        # Dossier Action
+        enregistrer_action(dossier, instructeur, "Classé comme refusé")
+
+
         return redirect(reverse('instruction_dossier', kwargs={'num_dossier': dossier.numero}))
 
     return HttpResponseBadRequest("Méthode non autorisée.")
@@ -147,6 +159,10 @@ def passer_en_instruction(request):
         # Changer l'étape et l'état si besoin
         changer_etape_si_differente(dossier, "En instruction", request.user)
         changer_etat_si_different(dossier, "en_instruction", request.user)
+        
+        # Enregistrer dossier action
+        enregistrer_action(dossier, instructeur, "Passage en instruction")
+
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -160,7 +176,13 @@ def envoyer_pour_validation_avant_demande_avis(request):
             return HttpResponseBadRequest("ID dossier manquant.")
 
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+
+        # Changer Etape
         changer_etape_si_differente(dossier, "À valider avant demande d'avis", request.user)
+
+        # Dossier Action
+        enregistrer_action(dossier, instructeur, "Validé avant demande d'avis")
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -175,8 +197,14 @@ def envoyer_pour_validation_avant_signature(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer Etape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
+
+        # Dossier Action
+        # instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        # enregistrer_action(dossier, instructeur, "Validé avant signature")
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -241,6 +269,9 @@ def repasser_en_instruction(request):
         changer_etape_si_differente(dossier, "En instruction", request.user)
         changer_etat_si_different(dossier, "en_instruction", request.user)
 
+        # Enregistrer dossier action
+        enregistrer_action(dossier, instructeur, "Repassage en instruction")
+
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     return HttpResponseBadRequest("Méthode non autorisée.")
@@ -254,8 +285,14 @@ def envoyer_pour_relecture_qualite(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "En relecture qualité",request.user)
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Relecture qualité")
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -270,6 +307,7 @@ def envoyer_les_modifications_pour_validation(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
 
@@ -286,8 +324,14 @@ def envoyer_pour_signature(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "En attente de signature", request.user)
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Envoyé pour signature")
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -302,8 +346,14 @@ def acte_pret_a_etre_envoye(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "Acte à envoyer", request.user)
+
+         # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Acte signé")
+        
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -318,8 +368,14 @@ def classer_le_dossier_comme_accepte(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer Etape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "Accepté", request.user)
+
+        #Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Classé comme accepté")
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -342,7 +398,7 @@ def envoyer_l_acte(request):
     try:
         result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
         if result["success"]:
-            loggerDS.info(f"[DOSSIER {dossier.numero}] accepté avec succès par {instructeur.email}")
+            loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur.email}")
             # Mettre à jour l'étape et l'état en BDD
             dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
             etape_raa = EtapeDossier.objects.filter(etape__iexact="À publier au RAA").first()
@@ -355,12 +411,17 @@ def envoyer_l_acte(request):
 
                 if etat_accepte and dossier.id_etat_dossier != etat_accepte:
                     changer_etat_si_different(dossier, 'accepte', request.user)
+            
+            # Dossier Action
+            enregistrer_action(dossier, instructeur, "Acte envoyé")
+
+
 
         else:
-            loggerDS.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
+            loggerDS.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
 
     except Exception as e:
-        logger.error(request, f"[DOSSIER {dossier.numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
+        logger.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 

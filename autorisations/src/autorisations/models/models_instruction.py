@@ -286,16 +286,16 @@ class DossierGroupe(models.Model):
         return f"{self.id_dossier} : Groupe '{self.id_groupe.nom}'"
 
 
-class ModificationType(models.Model):
+class Action(models.Model):
     id = models.AutoField(primary_key=True)
-    modification = models.CharField(max_length=255)
+    action = models.CharField(max_length=255)
 
     class Meta:
         managed = False
-        db_table = '"instruction"."modification_type"'
+        db_table = '"instruction"."action"'
 
     def __str__(self):
-        return self.modification
+        return self.action
 
 
 class DossierAction(models.Model):
@@ -303,7 +303,7 @@ class DossierAction(models.Model):
     id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
     date = models.DateTimeField(auto_now_add=True)
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
-    id_modification_type = models.ForeignKey(ModificationType, models.RESTRICT, db_column='id_modification_type')
+    id_action = models.ForeignKey(Action, models.RESTRICT, db_column='id_action')
     description = models.TextField(blank=True, null=True)
 
     class Meta:
@@ -311,7 +311,4 @@ class DossierAction(models.Model):
         db_table = '"instruction"."dossier_actions"'
 
     def __str__(self):
-        return (
-            f"Action {self.id_modification_type.modification} sur dossier {self.id_dossier.nom_dossier} "
-            f"par {self.id_instructeur} le {self.date.strftime('%Y-%m-%d %H:%M')}"
-        )
+        return (f"{self.id_action.action} - Dossier {self.id_dossier.numero} par {self.id_instructeur}")

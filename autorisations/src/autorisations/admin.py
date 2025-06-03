@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, MessageDocument
-from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, ModificationType, Priorite
+from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne
 
 
@@ -327,9 +327,17 @@ admin.site.register(EtatDossier)
 
 admin.site.register(EtapeDossier)
 
-admin.site.register(ModificationType)
+admin.site.register(Action)
 
-admin.site.register(DossierAction)
+
+@admin.register(DossierAction)
+class DossierActionAdmin(admin.ModelAdmin):
+    # list_display = ('id', 'id_dossier', 'id_instructeur', 'id_action', 'date')
+    list_filter = ('id_action', 'id_instructeur')
+    search_fields = ('id_dossier__numero', 'id_instructeur__email', 'id_action__action')
+    readonly_fields = ('date',)
+    ordering = ('-date',)
+
 
 admin.site.register(EtatDemarche)
 

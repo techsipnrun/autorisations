@@ -74,7 +74,7 @@
 }
 
 h1 {
-    color: #115e31;
+    color: #006131;
     margin-bottom: 1rem;
 }
 
@@ -216,7 +216,7 @@ h2 {
 }
 
 .btn_dropdown_instruction:hover {
-    background-color: #115e31;
+    background-color: #006131;
     color: white;
     border-radius: 8px;
 }
@@ -334,14 +334,14 @@ h2 {
     margin: 1rem 2rem;
     padding: 1rem;
     background-color: #f9f9f9;
-    border-left: 4px solid #115e31;
+    border-left: 4px solid #006131;
     font-size: 0.95rem;
 }
 
 .groupe-instructeur-info h3 {
     margin-bottom: 1rem;
     font-size: 1.4rem;
-    color: #115e31;
+    color: #006131;
 }
 
 .groupe-instructeur-liste {
@@ -526,7 +526,7 @@ h2 {
 
 /* Bouton Valider */
 .valider-btn {
-    background-color: #115e31;
+    background-color: #006131;
     color: white;
     border: none;
     padding: 0.5rem 1.5rem;
@@ -559,7 +559,7 @@ textarea[name="note"] {
     align-items: center;
     justify-content: space-between;
     font-size: 1.4rem;
-    color: #115e31;
+    color: #006131;
     margin-bottom: 1rem;
 }
 
@@ -607,7 +607,7 @@ textarea[name="note"] {
 /* --- Lien (si utilisé) --- */
 .liste-annexes-instructeur li a {
     text-decoration: none;
-    color: #115e31;
+    color: #006131;
 }
 
 .annexe-item:hover .annexe-texte {

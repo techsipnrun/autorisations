@@ -9,6 +9,7 @@ import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, EtapeDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
+from instruction.utils import enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Thread, Lock
 import logging
@@ -108,6 +109,12 @@ def se_declarer_instructeur(request):
             DossierInstructeur.objects.get_or_create(id_dossier=dossier, id_instructeur=instructeur)
             logger.info(f"[DOSSIER {dossier.numero}] Affectation à l'instructeur {instructeur.email}")
 
+            nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+
+            # Dossier Action
+            enregistrer_action(dossier, instructeur, "Instructeur.e ajouté.e", nom_prenom)
+
+
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -125,6 +132,10 @@ def retirer_instructeur(request):
 
     DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
     logger.info(f"[DOSSIER {dossier.numero}] On retire l'instructeur {instructeur.email} du dossier.")
+
+    # Dossier Action
+    nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+    enregistrer_action(dossier, instructeur, "Instructeur.e retiré.e", nom_prenom)
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
