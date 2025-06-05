@@ -1,6 +1,7 @@
 from django.db import models
 
 from django.apps import apps
+from django.utils import timezone
 
 from .models_avis import Avis
 
@@ -301,7 +302,7 @@ class Action(models.Model):
 class DossierAction(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(default=timezone.now)
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
     id_action = models.ForeignKey(Action, models.RESTRICT, db_column='id_action')
     description = models.TextField(blank=True, null=True)

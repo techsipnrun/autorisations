@@ -34,6 +34,7 @@ def sync_dossiers(dossiers_list):
 
         id_dossier = sync_doss(doss['dossier'])
         ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
+        
         id_dossier_interlocuteur = sync_dossier_interlocuteur(doss['dossier_interlocuteur'], ids_beneficiaire_intermediaire, id_dossier)
         sync_dossier_beneficiaire(ids_beneficiaire_intermediaire, id_dossier_interlocuteur)
         sync_dossier_champs(doss['dossier_champs'], id_dossier)

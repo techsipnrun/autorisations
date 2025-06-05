@@ -464,16 +464,33 @@ admin.site.register(Groupe)
 #######################
 """
 
+class PersonneMoraleFilter(admin.SimpleListFilter):
+    title = 'Personne morale'
+    parameter_name = 'personne_morale'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('oui', 'Oui'),
+            ('non', 'Non')
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == 'oui':
+            return queryset.exclude(siret__isnull=True).exclude(siret__exact='')
+        if self.value() == 'non':
+            return queryset.filter(siret__isnull=True) | queryset.filter(siret__exact='')
+        return queryset
+
 
 @admin.register(ContactExterne)
 class ContactExterneAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'prenom', 'email', 'id_type')
-    list_filter = ('id_type',)
+    list_display = ('nom', 'prenom', 'email', 'id_type', 'raison_sociale')
+    list_filter = ('id_type', PersonneMoraleFilter)
     search_fields = ('nom', 'prenom', 'email', 'organisation', 'raison_sociale')
     list_per_page = 25
+
 admin.site.register(TypeContactExterne)
 admin.site.register(Instructeur)
-
 
 @admin.register(AgentAutorisations)
 class AgentAutorisationsAdmin(admin.ModelAdmin):

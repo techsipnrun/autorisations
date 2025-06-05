@@ -15,7 +15,10 @@ def sync_dossier_beneficiaire(ids_beneficiaire_intermediaire, id_dossierInterloc
     id_doss_interlocuteur = id_dossierInterlocuteur.get("dossier_interlocuteur")
 
     if not id_beneficiaire or not id_doss_interlocuteur:
+        print("id_beneficiaire : ", id_beneficiaire)
+        print("id_doss_interlocuteur : ", id_doss_interlocuteur)
         logger.error("[ERROR] DossierBeneficiaire ne peut pas être créé (ID du bénéficiaire ou ID du DossierInterlocuteur non trouvé)")
+        
     else:
         obj, created = DossierBeneficiaire.objects.get_or_create(
             id_dossier_interlocuteur_id=id_doss_interlocuteur,

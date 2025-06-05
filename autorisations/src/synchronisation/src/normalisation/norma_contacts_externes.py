@@ -13,7 +13,7 @@ def contact_externe_normalize(doss):
         'demandeur_intermediaire': {}
     }
 
-    # Si un mandataire est présent
+    # Démarche à destination d'une personne physique, avec un demandeur intermédiaire)
     if doss.get("prenomMandataire") and doss.get("nomMandataire"):
 
         contacts_externes['demandeur_intermediaire'] = {
@@ -35,26 +35,26 @@ def contact_externe_normalize(doss):
         }
 
     else:
-        # Si pas de mandataire, le demandeur est le bénéficiaire
+        # Le demandeur (Physique ou Morale) est le bénéficiaire
         if doss['demandeur']['__typename'] == 'PersonnePhysique' :
             contacts_externes['beneficiaire'] = {
                 "email": clean_email(doss['usager']['email']),
                 "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
                 "nom": clean_surname(doss['demandeur']['nom']),
                 "prenom": clean_name(doss['demandeur']['prenom']),
+
             }
 
         if doss['demandeur']['__typename'] == 'PersonneMorale' :
 
-            # contacts_externes['beneficiaire'] avec les champs du form
-
             raison_sociale = doss['demandeur']['entreprise']['raisonSociale'] if doss['demandeur'].get('entreprise') else None
             orga = doss['demandeur']['entreprise']['nom'] if doss['demandeur'].get('entreprise') else (doss['demandeur']['association']['titre'] if doss['demandeur'].get('association') else None)
 
-            contacts_externes['personne_morale'] = {
-                "nom": raison_sociale or orga or "",
+            contacts_externes['beneficiaire'] = {
                 "email": clean_email(doss['usager']['email']),
-                "id_type": get_first_id(TypeContactExterne, type="personne_morale"),
+                "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
+                "nom": raison_sociale or orga or "",
+                
                 "siret": doss['demandeur']['siret'],
                 "raison_sociale": raison_sociale,
                 "organisation": orga,

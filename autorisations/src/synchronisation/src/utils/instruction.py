@@ -205,6 +205,8 @@ def type_demande_from_nom_demarche(nom_demarche: str, champs: list):
         "hélicoptère": "Survol hélicoptère",
         "arêtes": "Arêtes",
         "Activités agricoles": "Activités agricoles",
+        "Documents de planification et d'urbanisme": "Documents de planification et d'urbanisme",
+        "Manifestations publiques": "Manifestations publiques"
     }
 
     for mot_clef, type_ in correspondances.items():

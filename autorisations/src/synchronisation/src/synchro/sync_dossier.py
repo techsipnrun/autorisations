@@ -1,4 +1,6 @@
 from autorisations.models.models_instruction import Dossier
+from autorisations.models.models_utilisateurs import Instructeur
+from instruction.utils import enregistrer_action
 from ..utils.model_helpers import update_fields, foreign_keys_add_suffixe_id
 from ..utils.fichiers import create_emplacement, write_geojson
 from django.db import models
@@ -32,6 +34,10 @@ def sync_doss(dossier):
 
         # Write geojson
         write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero}.geojson",obj.geometrie)
+
+        instructeur = Instructeur.objects.first()
+        # Dossier Action 'Dossier reçu'
+        enregistrer_action(obj, instructeur, "Dossier reçu", date=dossier['date_depot'])
 
     else:
         update_data = {}

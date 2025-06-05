@@ -31,10 +31,11 @@
 
                 <div class="timeline-item">
 
-                    <img src="{% static 'instruction/img/timeline/' %}{{ action.id_action.action|slugify }}.png"
+                    <img src="{% static 'instruction/img/timeline/' %}{{ action.logo }}"
                     class="action-logo"
-                    alt="{{ action.id_action.action }}"
-                    onerror='this.onerror=null; this.src="{% static "instruction/img/timeline/timeline.png" %}"'>
+                    alt="{{ action.id_action.action }}">
+
+
 
 
 
@@ -42,13 +43,13 @@
                         <div class="timeline-date">{{ action.date|date:"d/m/Y H:i" }}</div>
 
                         <div class="timeline-action">
-                            {{ action.id_action.action }}
+                            {{ action.id_action.action }} <br>
                             {% if action.description %}
                                 {{ action.description }}
                             {% endif %}
                         </div>
 
-                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" %}
+                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" and action.id_action.action != "Dossier reçu" %}
                             <div class="timeline-user">
                                 {{ action.id_instructeur.id_agent_autorisations.nom|upper }}
                                 {{ action.id_instructeur.id_agent_autorisations.prenom|capfirst }}

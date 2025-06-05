@@ -5,7 +5,7 @@
     position: fixed;
     top: 180px;
     left: 0;
-    width: 80px;
+    width: 100px;
     height: 100%;
     z-index: 9000;
     transition: width 0.3s ease;
@@ -52,7 +52,7 @@
     position: absolute;
     height: 50px;
     transition: right 0.3s ease;
-    right: 15px;
+    right: 1.6rem;
 }
 
 .sidebar-text {
@@ -111,7 +111,7 @@
     top: 0;
     bottom: 0;
     /* left: 38px; */
-    right: 38px;
+    right: 48px;
     width: 5px;
     background-color: rgba(255, 255, 255, 0.3);
     z-index: 1;
@@ -121,9 +121,9 @@
 
 .action-logo {
     position: absolute;
-    height: 50px;
+    height: 70px;
     transition: right 0.3s ease;
-    top: 2.9rem;
+    top: 2.4rem;
     right: 0;
 }
 
@@ -140,13 +140,13 @@
 
 .timeline-text {
     flex: 1;
-    margin-right: 4rem;
+    margin-right: 5.5rem;
     opacity: 0;
     transition: opacity 0.3s ease;
     color: white;
     font-size: 0.85rem;
     line-height: 1.4;
-    right: 90px;
+    /* right: 130px; */
     text-align: right;
 }
 

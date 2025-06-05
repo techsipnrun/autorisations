@@ -272,8 +272,36 @@ def instruction_dossier(request, num_dossier):
         "Refusé": ["Repasser en instruction"]
     }
 
+    # Mapping entre les actions et leurs logos
+    logo_mapping = {
+    "Dossier reçu": "recu.png",
+    "Instructeur.e retiré.e": "instructeur_retire.png",
+    "Instructeur.e ajouté.e": "instructeur_ajoute.png",
+    "Classé sans suite": "classe-sans-suite.png",
+    "Classé comme refusé": "refuse.png",
+    "Classé comme accepté": "accepte.png",
+    "Demande de compléments": "demande-de-complements.png",
+    "Avis reçu": "recu.png",
+    "Avis demandé": "acte-envoye.png",
+    "Acte signé": "acte-signe.png",
+    "Acte envoyé": "acte-envoye.png",
+    "Validé avant demande d'avis": "valide.png",
+    "Publié au RAA": "publie_au_raa.png",
+    "Envoyé pour signature": "envoye.png",
+    "Relecture qualité": "relecture-qualite.png",
+    "Validé avant signature": "valide.png",
+    "Relecture juridique": "relecture-juridique.png",
+    "Passage en instruction": "envoye.png",
+    "Repassage en instruction": "envoye.png",
+    "Affectation au groupe instructeur": "groupe_instructeur.png"
+}
+
+
     # Dossier Actions
     dossier_actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date')
+
+    for action in dossier_actions:
+        action.logo = logo_mapping.get(action.id_action.action, "timeline.png")
 
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -301,6 +329,7 @@ def instruction_dossier(request, num_dossier):
         "demandeur_intermediaire": demandeur_intermediaire,
         "etapes_custom": etapes_custom,
         "dossier_actions": dossier_actions,
+        # "logo_mapping": logo_mapping,
     })
 
 

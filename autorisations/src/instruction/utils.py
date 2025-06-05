@@ -73,12 +73,20 @@ def changer_etat_si_different(dossier, nom_etat, user):
     return False
 
 
-def enregistrer_action(dossier, instructeur, nom_action, description=None):
+def enregistrer_action(dossier, instructeur, nom_action, description=None, date=None):
     action_obj = Action.objects.filter(action=nom_action).first()
-    if action_obj and instructeur:
+    if action_obj and instructeur and not date:
         DossierAction.objects.create(
             id_dossier=dossier,
             id_instructeur=instructeur,
             id_action=action_obj,
             description=description
+        )
+    elif date :
+        DossierAction.objects.create(
+            id_dossier=dossier,
+            id_instructeur=instructeur,
+            id_action=action_obj,
+            description=description,
+            date=date
         )

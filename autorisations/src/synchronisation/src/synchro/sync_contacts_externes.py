@@ -8,9 +8,8 @@ logger = logging.getLogger("SYNCHRONISATION")
 def sync_contacts_externes(contacts_externes):
     """
     Synchronise les contacts externes (bénéficiaire et demandeur intermédiaire).
-    { 'beneficiaire': {"email", "id_type", "nom", "prenom"},
+    { 'beneficiaire': {"email", "id_type", "nom", "prenom", "siret", "raison_sociale", "organisation", "adresse"},
       'demandeur_intermediaire': {"email", "id_type", "nom", "prenom"},
-      'personne_morale': {"email", "id_type", "siret", "raison_sociale", "organisation", "adresse"}
     }
     """
 
@@ -24,74 +23,50 @@ def sync_contacts_externes(contacts_externes):
             continue
 
         try:
+            email = data["email"]
+            id_type = data["id_type"]
 
-            if role != 'personne_morale' :
-                nom = data["nom"]
-                prenom = data["prenom"]
-                email = data["email"]
+            defaults = {k: v for k, v in [("nom", data.get("nom")), ("prenom", data.get("prenom")), ("siret", data.get("siret")), 
+                                          ("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
+                                          ("adresse", data.get("adresse"))] if v is not None}
 
-                if email :
-                
-                    # Deux Contact Externes ne peuvent pas avoir le même email
+
+            obj = None
+            created = None
+
+            if id_type:
+                if email : #Le bénéficiaire peut ne pas avoir d'email
+
+                    # 2 Contact Externes ne peuvent pas avoir le même email ET le même type
                     obj, created = ContactExterne.objects.get_or_create(
                         email=email,
-                        id_type_id=data["id_type"],
-                        defaults={
-                            "nom": nom,
-                            "prenom": prenom
-                        }
+                        id_type_id=id_type,
+                        defaults=defaults
                     )
-
-
                 else :
                     obj, created = ContactExterne.objects.get_or_create(
-                        id_type_id=data["id_type"],
-                        nom=nom,
-                        prenom=prenom,
+                        id_type_id=id_type,
+                        nom=data.get("nom"),
+                        prenom=data.get("prenom"),
                     )
 
-                if created:
-                    logger.info(f"[CREATE] ContactExterne {role} - {obj.prenom} {obj.nom} (email: {obj.email}) créé.")
-                else:
-                    updated_fields = update_fields(obj, {
-                        "nom": nom,
-                        "prenom": prenom,
-                    })
-
-                    if updated_fields:
-                        obj.save()
-                        champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
-                        logger.info(f"[SAVE] Contact Externe {role} - {obj.prenom} {obj.nom} mis à jour. Champs modifiés : {champs}.")
             else :
+  
+                logger.error(f"ERROR ---> La normalisation de contact externe {role} n'est pas bonne (absence du type)")
 
-                # {"email", "id_type", "siret", "raison_sociale", "organisation", "adresse"}
+            if created:
+                logger.info(f"[CREATE] ContactExterne {role} - {obj.prenom} {obj.nom} (email: {obj.email}) créé.")
+
+            else:
                 
-                defaults = {
-                    k: v for k, v in {
-                        "siret": data.get("siret"),
-                        "raison_sociale": data.get("raison_sociale"),
-                        "organisation": data.get("organisation"),
-                        "adresse": data.get("adresse"),
-                    }.items() if v is not None
-                }
+                updated_fields = update_fields(obj, defaults)
 
-                obj, created = ContactExterne.objects.get_or_create(
-                    email=data["email"],
-                    id_type_id=data["id_type"],
-                    defaults=defaults
-                )
-
-                if created:
-                    logger.info(f"[CREATE] ContactExterne {obj.id} créé.")
-                else:
-                    updated_fields = update_fields(obj, defaults)
-
-                    if updated_fields:
-                        obj.save()
-                        champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
-                        logger.info(f"[SAVE] Contact Externe {obj.id} mis à jour. Champs modifiés : {champs}.")
-
-
+                if updated_fields:
+                    logger.warning(f"Le contact externe de type {role} et avec le mail {obj.email} existe déjà")
+                    obj.save()
+                    champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
+                    logger.info(f"[SAVE] {role} - {obj.prenom} {obj.nom} mis à jour. Champs modifiés : {champs}.")
+      
 
         except IntegrityError as e:
             obj = ContactExterne.objects.filter(email=data["email"]).first()

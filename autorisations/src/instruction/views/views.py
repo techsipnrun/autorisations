@@ -235,9 +235,7 @@ def mes_dossiers_a_traiter_count(request):
     dossiers = Dossier.objects.filter(
         id_groupeinstructeur_id__in=groupes
     ).exclude(
-        id_etape_dossier__etape="À affecter"
-    ).exclude(
-        id_etat_dossier__nom__in=["accepte", "refuse", "sans_suite"]
+        id_etape_dossier__etape__in=["À affecter", "Accepté", "Refusé", "Non soumis à autorisation"]
     )
 
     return {"nb_dossiers_instruction": dossiers.count()}
