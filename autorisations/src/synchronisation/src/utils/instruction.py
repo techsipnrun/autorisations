@@ -214,14 +214,6 @@ def type_demande_from_nom_demarche(nom_demarche: str, champs: list):
             return DemandeType.objects.filter(type=type_).values_list("id", flat=True).first()
 
     if "Prise de vue et de son" in nom_demarche:
-        # for c in champs :
-        #     if c['label'] == 'Votre demande concerne' :
-        #         if c['stringValue']=='Une prise de vue ou de son sans drone':
-        #             return DemandeType.objects.filter(type='Prise de vue et de son').values_list("id", flat=True).first()
-        #         if c['stringValue']=='Une prise de vue ou de son avec drone':
-        #             return DemandeType.objects.filter(type='Survol drone').values_list("id", flat=True).first() #ET PDV ?????
-        #         if c['stringValue']=='Un survol en drone sans prise de vue':
-        #             return DemandeType.objects.filter(type='Survol drone').values_list("id", flat=True).first()
         return 999
 
     loggerApp.error(f"[TYPE DEMANDE] Nom non reconnu : {nom_demarche}")

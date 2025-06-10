@@ -190,6 +190,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     "valeur": dossier_champ["valeur"],
                     "date_saisie": dossier_champ["date_saisie"],
                     "geometrie": dossier_champ.get("geometrie"),
+                    "geometrie_a_saisir": dossier_champ.get("geometrie_a_saisir") if dossier_champ.get("geometrie_a_saisir") else False,
                 }
             )
 

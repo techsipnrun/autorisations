@@ -1,4 +1,4 @@
-from autorisations.models.models_instruction import Dossier
+from autorisations.models.models_instruction import Demarche, Dossier, EtapeDossier
 from autorisations.models.models_utilisateurs import Instructeur
 from instruction.utils import enregistrer_action
 from ..utils.model_helpers import update_fields, foreign_keys_add_suffixe_id
@@ -17,6 +17,7 @@ def sync_doss(dossier):
     "date_depot", "date_fin_instruction", "id_dossier_type", 
     "note", "nom_dossier", "emplacement", "date_limite_traitement", "geometrie" }
 
+    "id_dossier_type" est à nouveau par défaut
     """
     defaults = foreign_keys_add_suffixe_id(Dossier, dossier)
 
@@ -36,8 +37,22 @@ def sync_doss(dossier):
         write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero}.geojson",obj.geometrie)
 
         instructeur = Instructeur.objects.first()
+
+        try:
+            demarche_obj = Demarche.objects.get(id=dossier['id_demarche'])
+        except Demarche.DoesNotExist:
+            logger.error(f"Dossier {obj.numero} : Aucune démarche trouvée avec l'id : {dossier['id_demarche']}")
+        
+        type_demarche = demarche_obj.type
         # Dossier Action 'Dossier reçu'
-        enregistrer_action(obj, instructeur, "Dossier reçu", date=dossier['date_depot'])
+        enregistrer_action(obj, instructeur, "Dossier reçu", date=dossier['date_depot'], description=type_demarche)
+
+        if obj.id_etat_dossier.nom == "en_instruction":
+            logger.warning(f"Dossier {obj.numero} : Le dossier est apparu en création alors qu'il est déjà 'en_instruction' sur DS. DossierEtape mis à 'En instruction' pour un soucis de cohérence.")
+            etape_en_instruction = EtapeDossier.objects.get(etape='En instruction')
+            obj.id_etape_dossier = etape_en_instruction
+            obj.save()
+            
 
     else:
         update_data = {}

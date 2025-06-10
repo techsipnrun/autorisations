@@ -383,6 +383,7 @@ h2 {
 }
 
 .groupe-instructeur-liste {
+    font-size: 1.1rem;
     list-style: none;
     padding-left: 0;
 }

@@ -13,6 +13,7 @@ from instruction.utils import enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Thread, Lock
 import logging
+from django.db.models import Q
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -100,8 +101,7 @@ def se_declarer_instructeur(request):
 
     instructeur_id = request.POST.get("instructeur_id")
 
-    # instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
-    instructeur = get_object_or_404(Instructeur, id=instructeur_id)
+    instructeur = Instructeur.objects.filter(id=instructeur_id).first()
 
     if instructeur and dossier.id_groupeinstructeur:
         instructeurs_du_groupe = dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.values_list("id_instructeur_id", flat=True)
@@ -113,6 +113,10 @@ def se_declarer_instructeur(request):
 
             # Dossier Action
             enregistrer_action(dossier, instructeur, "Instructeur.e ajouté.e", nom_prenom)
+        else :
+            logger.error(f"[DOSSIER {dossier.numero}] Incohérence lors de l'affectation du dossier à l'instructeur {instructeur.email}. L'utilisateur n'est pas dans le groupe instructeur : {instructeurs_du_groupe}")
+    else :
+        logger.error(f"[DOSSIER {dossier.numero}] Problème lors de l'affectation du dossier à l'instructeur : {instructeur}.")
 
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -150,7 +154,7 @@ def enregistrer_geom(request):
         nb_cartes = request.POST.get("nb_cartes")
 
         dossier = get_object_or_404(Dossier, numero=dossier_numero)
-        champ = get_object_or_404(DossierChamp, id=id_champ, id_dossier=dossier, id_champ__id_champ_type__type="carte")
+        champ = get_object_or_404(DossierChamp, id=id_champ, id_dossier=dossier, id_champ__id_champ_type__type__in=["carte", "drop_down_list"])
 
         if not geojson_str:
             msg = "Aucune géométrie reçue (champ geojson_geom vide)."
@@ -196,21 +200,30 @@ def edit_carto(request, numero_dossier, id_champ):
     dossier = get_object_or_404(Dossier, numero=numero_dossier)
     
     # Récupère tous les champs carte
-    nb_cartes = dossier.dossierchamp_set.filter(id_champ__id_champ_type__type="carte").count()
+    # nb_cartes = dossier.dossierchamp_set.filter(id_champ__id_champ_type__type="carte").count()
+    
+    nb_cartes = dossier.dossierchamp_set.filter(
+        Q(id_champ__id_champ_type__type="carte") |
+        Q(id_champ__id_champ_type__type="drop_down_list", geometrie_a_saisir=True)
+    ).count()
+
 
     champ = get_object_or_404(
             DossierChamp,
             id=id_champ,
             id_dossier=dossier,
-            id_champ__id_champ_type__type="carte"
+            id_champ__id_champ_type__type__in=["carte", "drop_down_list"]
         )
         
-    geojson_source = champ.geometrie_modif or champ.geometrie or {}
+    geojson_source = champ.geometrie_modif or champ.geometrie
+    if not geojson_source:
+        geojson_source = {
+            "type": "FeatureCollection",
+            "features": []
+        }
     
 
-    # geojson_source = dossier.geometrie_modif or dossier.geometrie
-    geojson = json.dumps(geojson_source) if geojson_source else "{}"
-
+    geojson = json.dumps(geojson_source)
 
     return render(request, 'edit_carto.html', {
                                                 "numero_dossier": numero_dossier, 

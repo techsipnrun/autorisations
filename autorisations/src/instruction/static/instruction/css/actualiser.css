@@ -1,7 +1,7 @@
 /* Bouton actualiser */
 .actualiser-wrapper {
     position: absolute;
-    top: 12rem;
+    top: 9.5rem;
     left: 10%;
     z-index: 10;
     display: flex;

@@ -22,6 +22,12 @@ def passer_en_pre_instruction(request):
 
         changer_etape_si_differente(dossier,"En pré-instruction", request.user)
 
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        
+        # Enregistrer Dossier Action
+        enregistrer_action(dossier, instructeur, "Passage en pré-instruction")
+
+
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
@@ -182,7 +188,7 @@ def envoyer_pour_validation_avant_demande_avis(request):
         changer_etape_si_differente(dossier, "À valider avant demande d'avis", request.user)
 
         # Dossier Action
-        enregistrer_action(dossier, instructeur, "Validé avant demande d'avis")
+        enregistrer_action(dossier, instructeur, "Envoyé pour validation")
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -202,8 +208,8 @@ def envoyer_pour_validation_avant_signature(request):
         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
 
         # Dossier Action
-        # instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        # enregistrer_action(dossier, instructeur, "Validé avant signature")
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Envoyé pour validation")
 
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -222,6 +228,11 @@ def avis_envoye(request):
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "En attente réponse d'avis", request.user)
 
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Avis demandé")
+
+
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     return HttpResponseBadRequest("Méthode non autorisée.")
@@ -235,8 +246,15 @@ def valider_le_modele_de_demande_d_avis_et_le_projet_d_acte(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+        # Changer Etape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "Avis à envoyer", request.user)
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+
+        enregistrer_action(dossier, instructeur, "Validé avant demande d'avis", nom_prenom)
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -291,8 +309,31 @@ def envoyer_pour_relecture_qualite(request):
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        enregistrer_action(dossier, instructeur, "Relecture qualité")
+        enregistrer_action(dossier, instructeur, "Envoyé pour relecture qualité")
 
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    return HttpResponseBadRequest("Méthode non autorisée.")
+
+
+
+@login_required
+def valider_et_envoyer_pour_relecture_qualite(request):
+    if request.method == "POST":
+        dossier_id_ds = request.POST.get("dossierId")
+        if not dossier_id_ds:
+            return HttpResponseBadRequest("ID dossier manquant.")
+
+        # Changer l'étape
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        changer_etape_si_differente(dossier, "En relecture qualité",request.user)
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+
+        enregistrer_action(dossier, instructeur, "Validé avant signature", nom_prenom)
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -310,6 +351,10 @@ def envoyer_les_modifications_pour_validation(request):
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Envoyé pour validation")
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 

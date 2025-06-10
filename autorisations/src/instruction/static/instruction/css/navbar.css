@@ -11,7 +11,7 @@
     position: fixed;
     background-color: whitesmoke;
     border-bottom: solid black 2px;
-    height: 180px;
+    height: 110px;
     top: 0;
     left: 0;
     right: 0;
@@ -104,12 +104,12 @@
     display: flex;
     align-self: flex-start;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     /* border: green solid; */
     /* color: white; */
     font-size: large;
     align-items: center;
-    padding: 1rem;
+    padding: 1.3rem 1.5rem 0 1rem;
 }
 
 .user_information .btn-logout {

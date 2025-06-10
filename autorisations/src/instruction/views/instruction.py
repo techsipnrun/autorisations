@@ -99,10 +99,16 @@ def instruction_demarche(request, num_demarche):
     if request.GET.get("mes_dossiers") == "1" :
         dossiers_query = dossiers_query.filter(id_groupeinstructeur_id__in=groupes_user)
 
-    dossiers = dossiers_query.select_related("id_dossier_type", "id_groupeinstructeur").order_by("date_depot")
+    dossiers = dossiers_query.select_related("id_groupeinstructeur").order_by("date_depot")
+    # PB : dossiers est null tout le temps
+
+    print('instructeur : ', instructeur)
+    print('dossiers_query : ', dossiers_query)
 
     dossier_infos = []
+
     for dossier in dossiers:
+        print(dossier)
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
 
         beneficiaire = None
@@ -113,7 +119,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_infos.append({
             "nom_dossier": dossier.nom_dossier,
-            "type": dossier.id_dossier_type.type if dossier.id_dossier_type else "N/A",
+            # "type": dossier.id_dossier_type.type if dossier.id_dossier_type else "N/A",
             "numero": dossier.numero,
             "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "date_depot": dossier.date_depot,
@@ -177,6 +183,22 @@ def instruction_dossier(request, num_dossier):
 
         elif ct == "piece_justificative":
             champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
+
+        elif ct == "drop_down_list":
+            
+            if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in champ.valeur :
+                geojson_source = champ.geometrie_modif or champ.geometrie
+
+                if not (geojson_source) :
+
+                    champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'oui', "geojson": json.dumps({}), "id":champ.id})
+                else :
+
+                    champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'non', "geojson": json.dumps(geojson_source), "id":champ.id})
+
+            else :
+                champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
+            
 
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
@@ -260,7 +282,7 @@ def instruction_dossier(request, num_dossier):
         "En attente de compléments": ["Passer en instruction"],
         "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Envoyer pour validation avant demande d'avis", "Envoyer pour validation avant signature"],
         "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
-        "À valider avant signature": ["Repasser en instruction", "Envoyer pour relecture qualité"],
+        "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
         "En relecture qualité": ["Repasser en instruction", "Envoyer pour signature"],
         "En attente réponse d'avis": ["Envoyer les modifications pour validation", "Envoyer pour relecture qualité"],
         "Avis à envoyer":["Avis envoyé"],
@@ -293,7 +315,11 @@ def instruction_dossier(request, num_dossier):
     "Relecture juridique": "relecture-juridique.png",
     "Passage en instruction": "envoye.png",
     "Repassage en instruction": "envoye.png",
-    "Affectation au groupe instructeur": "groupe_instructeur.png"
+    "Affectation au groupe": "groupe_instructeur.png",
+    "Passage en pré-instruction": "envoye.png",
+    "Envoyé pour validation": "envoye_pour_validation.png",
+    "Envoyé pour relecture qualité": "envoye.png",
+    "Avis demandé": "acte-envoye.png",
 }
 
 

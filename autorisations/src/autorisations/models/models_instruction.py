@@ -239,6 +239,7 @@ class DossierChamp(models.Model):
     id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
     id_champ = models.ForeignKey(Champ, models.CASCADE, db_column='id_champ')
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
+    geometrie_a_saisir = models.BooleanField(default=False)
 
     class Meta:
         managed = False

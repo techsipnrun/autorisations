@@ -24,17 +24,6 @@
 
     {% breadcrumb breadcrumb_items %}
 
-    <!-- <div class="actualiser-wrapper">
-        <button
-            id="btn-actualiser"
-            data-url="{% url 'actualiser_donnees' %}"
-            data-csrf="{{ csrf_token }}"
-            title="Actualiser les données">
-            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
-        </button>
-        <span id="message-actualisation" class="actualisation-texte"></span>
-    </div> -->
-
     <h1>{{ demarche.titre }}</h1>
     
     <div class="refresh-doss">
@@ -62,7 +51,7 @@
         <thead>
           <tr>
             <th>Dossier</th>
-            <th>Type</th>
+            <!-- <th>Type</th> -->
             <th>Numéro</th>
             <th>Bénéficiaire</th>
             <th>Reçu le</th>
@@ -74,7 +63,7 @@
           {% for d in dossiers %}
             <tr class="clickable-row" data-href="{% url 'instruction_dossier' d.numero %}">
                 <td>{{ d.nom_dossier }}</td>
-                <td>{{ d.type }}</td>
+                <!-- <td>{{ d.type }}</td> -->
                 <td>{{ d.numero }}</td>
                 <td>{{ d.beneficiaire }}</td>
                 <td>{{ d.date_depot|date:"d/m/Y" }}</td>

@@ -71,6 +71,12 @@ query dossier($number: Int!) {
                     filename
                 }
             }
+            ... on RepetitionChamp {
+                champs {
+                    label
+                    stringValue
+                }
+            }
         } 
         state
         messages {

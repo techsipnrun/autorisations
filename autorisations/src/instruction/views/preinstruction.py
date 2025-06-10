@@ -10,7 +10,7 @@ from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatD
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
-from instruction.utils import format_etat_dossier
+from instruction.utils import enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
 
@@ -96,6 +96,22 @@ def preinstruction_dossier(request, numero):
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
             else : 
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
+
+        elif ct == "drop_down_list":
+            
+            if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in champ.valeur :
+                geojson_source = champ.geometrie_modif or champ.geometrie
+
+                if not (geojson_source) :
+
+                    champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'oui', "geojson": json.dumps({}), "id":champ.id})
+                else :
+
+                    champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'non', "geojson": json.dumps(geojson_source), "id":champ.id})
+
+            else :
+                champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
+                
 
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
@@ -196,6 +212,10 @@ def changer_groupe_instructeur(request):
             dossier.id_groupeinstructeur_id = groupe_id
             dossier.save()
             logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur mis à jour dans Postgres par {request.user} --> Affecté au groupe {nom_groupe}.")
+
+            # Dossier Action
+            instructeur = Instructeur.objects.filter(email=request.user.email).first()
+            enregistrer_action(dossier, instructeur, "Affectation au groupe", nom_groupe)
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur en BDD par {request.user} (groupe mis à jour sur DS) : {e}")

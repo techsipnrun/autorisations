@@ -50,17 +50,31 @@ def dossiers_champs_normalize(doss, emplacement_dossier):
         else:
             # geometrie_du_champ1 = fetch_geojson(doss["geojson"]["url"]) if ch["__typename"] == "CarteChamp" else None
             geometrie_du_champ = geoareas_to_geojson_text(ch["geoAreas"]) if ch["__typename"] == "CarteChamp" else None
+            
+            # Si le module carto n'a pas été rempli --> on met l'attribut 'geometrie_a_saisir' à True
+            if ch["label"] == 'Choix de la méthode pour localiser le projet': 
+                if 'Remplir le module de cartographie' not in ch["stringValue"] :
+                    # Sont concernées : Missions scientifiques 5, Hélico  7, PDV son drone 8, Manifs publiques 11
 
-                
-            dico_champ = {
-                # "id_champ": id_champ,
-                "nom_champ": ch["label"],
-                "id_ds": ch["id"],
-                "valeur": ch["stringValue"],
-                "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
-                "geometrie": geometrie_du_champ,
-                "id_document": None,
-            }
+                    dico_champ = {
+                        "geometrie_a_saisir": True,
+                        "nom_champ": ch["label"],
+                        "id_ds": ch["id"],
+                        "valeur": ch["stringValue"],
+                        "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
+                        "geometrie": geometrie_du_champ,
+                        "id_document": None,
+                    }
+
+            else :    
+                dico_champ = {
+                    "nom_champ": ch["label"],
+                    "id_ds": ch["id"],
+                    "valeur": ch["stringValue"],
+                    "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
+                    "geometrie": geometrie_du_champ,
+                    "id_document": None,
+                }
 
             liste_dossiers_champs.append({
                 "champ": dico_champ

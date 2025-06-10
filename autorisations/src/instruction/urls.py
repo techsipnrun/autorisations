@@ -57,6 +57,7 @@ urlpatterns = [
     path("changer-etape/avis-envoye/", changement_etape.avis_envoye, name="avis_envoye_url"),
     path("changer-etape/repasser-en-instruction/", changement_etape.repasser_en_instruction, name="repasser_en_instruction_url"),
     path("changer-etape/relecture-qualite/", changement_etape.envoyer_pour_relecture_qualite, name="envoyer_pour_relecture_qualite_url"),
+    path("changer-etape/valider-relecture-qualite/", changement_etape.valider_et_envoyer_pour_relecture_qualite, name="valider_et_envoyer_pour_relecture_qualite_url"),
     path("changer-etape/modifs-pour-validation/", changement_etape.envoyer_les_modifications_pour_validation, name="envoyer_les_modifications_pour_validation_url"),
     path("changer-etape/signature/", changement_etape.envoyer_pour_signature, name="envoyer_pour_signature_url"),
     path("changer-etape/acte-envoye/", changement_etape.envoyer_l_acte, name="envoyer_l_acte_url"),

@@ -45,15 +45,25 @@
                         <div class="timeline-action">
                             {{ action.id_action.action }} <br>
                             {% if action.description %}
-                                {{ action.description }}
+
+                                <span class=" {% if action.description|length > 30 %} very-small-text-desc
+                                              {% elif action.description|length > 20 %} small-text-desc
+                                              {% endif %}">
+
+                                    {{ action.description }}
+
+                                </span>
                             {% endif %}
                         </div>
 
-                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" and action.id_action.action != "Dossier reçu" %}
-                            <div class="timeline-user">
-                                {{ action.id_instructeur.id_agent_autorisations.nom|upper }}
-                                {{ action.id_instructeur.id_agent_autorisations.prenom|capfirst }}
-                            </div>
+
+                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" and action.id_action.action != "Dossier reçu" and action.id_action.action != "Affectation au groupe" and action.id_action.action != "Validé avant signature" and action.id_action.action != "Validé avant demande d'avis" %}
+                            {% with full_name=action.id_instructeur.id_agent_autorisations.nom|add:action.id_instructeur.id_agent_autorisations.prenom %}
+                                <div class="timeline-user {% if full_name|length > 25 %}small-text-user{% endif %}">
+                                    {{ action.id_instructeur.id_agent_autorisations.nom|upper }}
+                                    {{ action.id_instructeur.id_agent_autorisations.prenom|capfirst }}
+                                </div>
+                            {% endwith %}
                         {% endif %}
                     </div>
 
