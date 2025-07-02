@@ -155,6 +155,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redirige vers la page d'accueil après connexion
 LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/login/'
+
 # Redirige vers la page de login après déconnexion
 LOGOUT_REDIRECT_URL = '/login/'
 

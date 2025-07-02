@@ -9,6 +9,7 @@
     <title>Page de pré-instruction</title>
 
     <!-- CSS -->
+     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
 
     <!-- Leaflet -->
@@ -23,249 +24,252 @@
 
 <body>
     {% include 'navbar.html' %}
-    
-    {% breadcrumb breadcrumb_items %}
+    {% include 'timeline.html' with numero_dossier=dossier.numero %}
 
-    <div class="refresh-doss">
-        <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
-            {% csrf_token %}
-            <button type="submit" class="refresh-button">
-                <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                Actualiser
-            </button>
-        </form>
-    </div>
+    <div class="page_preinstruction_dossier">
+        {% breadcrumb breadcrumb_items %}
 
-    <div class="page-container">
-        
-        <!-- Colonne gauche : formulaire -->
-        <div class="formulaire">
-
-            <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
-
-            <div class="etat-badge-container">
-                <div class="etat-badge-menu-dropdown">
-                    <div class="etat-badge-label" id="etatMenuToggle">
-                        {{ etape_dossier }}
-                        <span class="dropdown-arrow">&#9660;</span>
-                    </div>
-                    <div class="etat-badge-menu-content" id="etatMenuContent">
-                        {% if dossier.id_groupeinstructeur %}
-                            <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
-                            </form>
-                        {% else %}
-                            <div class="instruction-warning">
-                                Veuillez d’abord sélectionner un groupe instructeur.
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="champs">
-                {% for champ in champs %}
-                    {% if champ.type == 'header' %}
-                        <h2>{{ champ.titre }}</h2>
-
-                        <!-- Nom et prénom du bénéficiare -->
-                        {% if champ.titre|slice:":36" == "Identification du bénéficiaire de la" %}
-                            {% if beneficiaire %}
-                                {% if beneficiaire.nom %}
-                                    <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
-                                {% endif %}
-                                {% if beneficiaire.prenom %}
-                                    <p><strong>Prénom</strong> : {{ beneficiaire.prenom|capfirst }}</p>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-                        <!-- Nom et prénom du demandeur intermédiaire -->
-                        {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
-                        
-                            {% if demandeur_intermediaire %}
-                                {% if demandeur_intermediaire.nom %}
-                                    <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
-                                {% endif %}
-                                {% if demandeur_intermediaire.prenom %}
-                                    <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-
-
-                    {% elif champ.type == 'champ' %}
-                        <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
-
-                    {% elif champ.type == 'carte' %}
-                        <div class="titre-carte-avec-bouton">
-                            <h2>{{ champ.nom }}</h2>
-                            <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
-
-                        </div>
-                        
-                        <div class="carte-container">
-                            <div class="carte" data-geojson='{{ champ.geojson }}'></div>
-                        </div>
-                  
-                    {% elif champ.type == 'piece_justificative' %}
-                        <p><strong>{{ champ.nom }}</strong> : <a href="{{champ.url}}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
-                    {% elif champ.type == 'drop_down_list' %}
-
-                        <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
-
-                        {% if champ.geometrie_a_saisir == 'oui' %}
-                            
-                            <div class="titre-carte-avec-bouton">
-                                <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
-                            </div>
-                            
-                            <div class="carte-container">
-                                <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
-                            </div>
-
-                        {% elif champ.geometrie_a_saisir == 'non' %}
-                            
-                            <div class="titre-carte-avec-bouton">
-                                <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
-                            </div>
-                            
-                            <div class="carte-container">
-                                <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
-                            </div>
-                        {% endif %}
-
-                    {% endif %}
-
-                {% endfor %}
-            </div>
-            
+        <div class="refresh-doss">
+            <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+                {% csrf_token %}
+                <button type="submit" class="refresh-button">
+                    <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                    Actualiser
+                </button>
+            </form>
         </div>
 
-        <!-- Colonne droite : navigation -->
-        <div class="nav_preinstruction">
-            <div class="nav_top">
-
-                <!-- Form messagerie à gauche -->
-                <div class="form_messagerie">
-                    <a href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
-                        <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
-                            Formulaire
-                        </div>
-                    </a>
-                    <a href="{% url 'preinstruction_dossier_messagerie' numero=dossier.numero %}">
-                        <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
-                            Messagerie
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Lien dossier à droite -->
-                <div class="lien_dossier">
-                    <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
-                        <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
-                    </a>
-                </div>
-
-            </div>
+        <div class="page-container">
             
-            {% if dossier.id_groupeinstructeur %}
-                <div class="groupe-instructeur-info">
-                    <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
-                    <ul class="groupe-instructeur-liste">
-                        {% for instructeur in membres_groupe %}
-                            {% if instructeur.id in instructeurs_dossier_ids %}
-                                
-                                <li class="instructeur_du_dossier">
-                                    {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
-                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
-                                    
-                                    <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                        <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
-                                        <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
-                                            <span class="croix-retirer">✕</span>
-                                        </button>
-                                    </form>
-                                </li>
+            <!-- Colonne gauche : formulaire -->
+            <div class="formulaire">
 
+                <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+
+                <div class="etat-badge-container">
+                    <div class="etat-badge-menu-dropdown">
+                        <div class="etat-badge-label" id="etatMenuToggle">
+                            {{ etape_dossier }}
+                            <span class="dropdown-arrow">&#9660;</span>
+                        </div>
+                        <div class="etat-badge-menu-content" id="etatMenuContent">
+                            {% if dossier.id_groupeinstructeur %}
+                                <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                    <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
+                                </form>
                             {% else %}
-
-                                <li class="pas_instructeur_du_dossier">
-                                    {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
-
-                                    <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                        <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
-                                        <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
-                                            <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
-                                        </button>
-                                    </form>
-                                </li>
-
+                                <div class="instruction-warning">
+                                    Veuillez d’abord sélectionner un groupe instructeur.
+                                </div>
                             {% endif %}
-                        {% endfor %}
-                    </ul>
+                        </div>
+                    </div>
+                </div>
 
-                    {% if groupes_instructeurs|length > 1 %}
-                        <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                            <select name="groupeInstructeurId" id="select-changer-groupe">
-                                <option value="" selected disabled hidden>Changer le groupe instructeur</option>
-                                {% for groupe in groupes_instructeurs %}
-                                    {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
-                                        <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+
+                <div class="champs">
+                    {% for champ in champs %}
+                        {% if champ.type == 'header' %}
+                            <h2>{{ champ.titre }}</h2>
+
+                            <!-- Nom et prénom du bénéficiare -->
+                            {% if champ.titre|slice:":36" == "Identification du bénéficiaire de la" %}
+                                {% if beneficiaire %}
+                                    {% if beneficiaire.nom %}
+                                        <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
                                     {% endif %}
-                                {% endfor %}
-                            </select>
-                        </form>
-                    {% endif %}
+                                    {% if beneficiaire.prenom %}
+                                        <p><strong>Prénom</strong> : {{ beneficiaire.prenom|capfirst }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                            <!-- Nom et prénom du demandeur intermédiaire -->
+                            {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
+                            
+                                {% if demandeur_intermediaire %}
+                                    {% if demandeur_intermediaire.nom %}
+                                        <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
+                                    {% endif %}
+                                    {% if demandeur_intermediaire.prenom %}
+                                        <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+
+
+                        {% elif champ.type == 'champ' %}
+                            <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+
+                        {% elif champ.type == 'carte' %}
+                            <div class="titre-carte-avec-bouton">
+                                <h2>{{ champ.nom }}</h2>
+                                <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+
+                            </div>
+                            
+                            <div class="carte-container">
+                                <div class="carte" data-geojson='{{ champ.geojson }}'></div>
+                            </div>
+                    
+                        {% elif champ.type == 'piece_justificative' %}
+                            <p><strong>{{ champ.nom }}</strong> : <a href="{{champ.url}}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
+                        {% elif champ.type == 'drop_down_list' %}
+
+                            <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+
+                            {% if champ.geometrie_a_saisir == 'oui' %}
+                                
+                                <div class="titre-carte-avec-bouton">
+                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
+                                </div>
+                                
+                                <div class="carte-container">
+                                    <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                </div>
+
+                            {% elif champ.geometrie_a_saisir == 'non' %}
+                                
+                                <div class="titre-carte-avec-bouton">
+                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                </div>
+                                
+                                <div class="carte-container">
+                                    <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                </div>
+                            {% endif %}
+
+                        {% endif %}
+
+                    {% endfor %}
+                </div>
+                
+            </div>
+
+            <!-- Colonne droite : navigation -->
+            <div class="nav_preinstruction">
+                <div class="nav_top">
+
+                    <!-- Form messagerie à gauche -->
+                    <div class="form_messagerie">
+                        <a href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
+                            <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
+                                Formulaire
+                            </div>
+                        </a>
+                        <a href="{% url 'preinstruction_dossier_messagerie' numero=dossier.numero %}">
+                            <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
+                                Messagerie
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Lien dossier à droite -->
+                    <div class="lien_dossier">
+                        <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
+                            <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
+                        </a>
+                    </div>
 
                 </div>
-            {% endif %}
+                
+                {% if dossier.id_groupeinstructeur %}
+                    <div class="groupe-instructeur-info">
+                        <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
+                        <ul class="groupe-instructeur-liste">
+                            {% for instructeur in membres_groupe %}
+                                {% if instructeur.id in instructeurs_dossier_ids %}
+                                    
+                                    <li class="instructeur_du_dossier">
+                                        {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+                                        <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
+                                        
+                                        <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
+                                                <span class="croix-retirer">✕</span>
+                                            </button>
+                                        </form>
+                                    </li>
 
-            <div class="groupe-instructeur-info notes_instructeurs">
-                <h3 class="notes-titre">
-                    <span>Notes :</span>
+                                {% else %}
 
-                    <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
-                        {% csrf_token %}
-                        <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
-                            <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
-                        </label>
-                        <input type="file" id="file-upload" name="annexe"
-                                accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                class="annexe-input" onchange="this.form.submit()">
-                    </form>
-                </h3>
+                                    <li class="pas_instructeur_du_dossier">
+                                        {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
 
-                {% if annexes_instructeur %}
-                    <ul class="liste-annexes-instructeur">
-                        {% for annexe in annexes_instructeur %}
-                            <li class="annexe-item">
-                                   <span class="annexe-texte">📎 {{ annexe.titre }}</span>
-                                <button type="button" class="btn-copier-chemin" onclick="copierPath(this, '{{ ROOT_FOLDER }}{{ annexe.emplacement }}')" 
-                                                                                title="Copier le chemin">📋</button>
-                                <span class="copie-feedback">Copié !</span>
-                            </li>
+                                        <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                            <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                                <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                            </button>
+                                        </form>
+                                    </li>
 
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
 
-                        {% endfor %}
-                    </ul>
+                        {% if groupes_instructeurs|length > 1 %}
+                            <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                <select name="groupeInstructeurId" id="select-changer-groupe">
+                                    <option value="" selected disabled hidden>Changer le groupe instructeur</option>
+                                    {% for groupe in groupes_instructeurs %}
+                                        {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
+                                            <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        {% endif %}
+
+                    </div>
                 {% endif %}
 
+                <div class="groupe-instructeur-info notes_instructeurs">
+                    <h3 class="notes-titre">
+                        <span>Notes :</span>
 
-                <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select">
-                    {% csrf_token %}
-                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                    <textarea name="note" rows="6" style="resize: vertical;">{{ dossier.note }}</textarea>
-                    <button type="submit" class="valider-btn" style="margin-top: 1rem;">Enregistrer</button>
-                </form>
+                        <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
+                            {% csrf_token %}
+                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
+                                <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
+                            </label>
+                            <input type="file" id="file-upload" name="annexe"
+                                    accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
+                                    class="annexe-input" onchange="this.form.submit()">
+                        </form>
+                    </h3>
+
+                    {% if annexes_instructeur %}
+                        <ul class="liste-annexes-instructeur">
+                            {% for annexe in annexes_instructeur %}
+                                <li class="annexe-item">
+                                    <span class="annexe-texte">📎 {{ annexe.titre }}</span>
+                                    <button type="button" class="btn-copier-chemin" onclick="copierPath(this, '{{ ROOT_FOLDER }}{{ annexe.emplacement }}')" 
+                                                                                    title="Copier le chemin">📋</button>
+                                    <span class="copie-feedback">Copié !</span>
+                                </li>
+
+
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+
+                    <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <textarea name="note" rows="6" style="resize: vertical;">{{ dossier.note }}</textarea>
+                        <button type="submit" class="valider-btn" style="margin-top: 1rem;">Enregistrer</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -312,60 +316,81 @@
 
 <script>
 
-    function afficherFormulaireAction(action) {
-        // Cacher tous les formulaires
-        document.querySelectorAll('.etat-message').forEach(div => div.style.display = 'none');
+    // function afficherFormulaireAction(action) {
+    //     // Cacher tous les formulaires
+    //     document.querySelectorAll('.etat-message').forEach(div => div.style.display = 'none');
 
-        // Afficher le bon formulaire
-        const cible = document.getElementById(`form-${action}`);
-        if (cible) {
-            cible.style.display = 'block';
-        }
-    }
+    //     // Afficher le bon formulaire
+    //     const cible = document.getElementById(`form-${action}`);
+    //     if (cible) {
+    //         cible.style.display = 'block';
+    //     }
+    // }
 
     // Boutons
-    document.querySelectorAll(".action-btn").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const action = this.dataset.action;
-            afficherFormulaireAction(action);
+    // document.querySelectorAll(".action-btn").forEach(btn => {
+    //     btn.addEventListener("click", function () {
+    //         const action = this.dataset.action;
+    //         afficherFormulaireAction(action);
 
-            // Toggle active sur les boutons
-            document.querySelectorAll(".action-btn").forEach(b => b.classList.remove("active"));
-            this.classList.add("active");
-        });
+    //         // Toggle active sur les boutons
+    //         document.querySelectorAll(".action-btn").forEach(b => b.classList.remove("active"));
+    //         this.classList.add("active");
+    //     });
         
-    });
+    // });
 
     // Au chargement
-    if (currentAction) {
-        afficherFormulaireAction(currentAction);
-        const btnActif = document.querySelector(`.action-btn[data-action="${currentAction}"]`);
-        if (btnActif) {
-            btnActif.classList.add("active");
-        }
-    }
+    // if (currentAction) {
+    //     afficherFormulaireAction(currentAction);
+    //     const btnActif = document.querySelector(`.action-btn[data-action="${currentAction}"]`);
+    //     if (btnActif) {
+    //         btnActif.classList.add("active");
+    //     }
+    // }
 
 
 </script>
 
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const toggleBtn = document.getElementById("etatMenuToggle");
-        const menuContent = document.getElementById("etatMenuContent");
-        const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
-    
-        toggleBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            menuContent.classList.toggle("show");
-            dropdownWrapper.classList.toggle("open");
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleBtn = document.getElementById("etatMenuToggle");
+            const menuContent = document.getElementById("etatMenuContent");
+            const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
+        
+            toggleBtn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                menuContent.classList.toggle("show");
+                dropdownWrapper.classList.toggle("open");
+            });
+        
+            document.addEventListener("click", function () {
+                menuContent.classList.remove("show");
+                dropdownWrapper.classList.remove("open");
+            });
         });
-    
-        document.addEventListener("click", function () {
-            menuContent.classList.remove("show");
-            dropdownWrapper.classList.remove("open");
+    </script>
+
+
+    <!-- POP UP de validation du changement de groupe instructeur -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const select = document.getElementById("select-changer-groupe");
+            const form = document.getElementById("form-changer-groupe");
+
+            select.addEventListener("change", function() {
+                const selectedOption = select.options[select.selectedIndex].text;
+                const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
+
+                if (confirmed) {
+                    form.submit();
+                } else {
+                    // Réinitialise le select sur le placeholder
+                    select.selectedIndex = 0;
+                }
+            });
         });
-    });
     </script>
     
 

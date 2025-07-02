@@ -81,16 +81,19 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const sidebar = document.getElementById("left-sidebar");
-        const mainContent = document.querySelector(".page_instruction_dossier");
+        const page_instruction_dossier = document.querySelector(".page_instruction_dossier");
+        const page_preinstruction_dossier = document.querySelector(".page_preinstruction_dossier");
 
         sidebar.addEventListener("mouseenter", () => {
             sidebar.classList.add("expanded");
-            if (mainContent) mainContent.classList.add("faded");
+            if (page_instruction_dossier) page_instruction_dossier.classList.add("faded");
+            if (page_preinstruction_dossier) page_preinstruction_dossier.classList.add("faded");
         });
 
         sidebar.addEventListener("mouseleave", () => {
             sidebar.classList.remove("expanded");
-            if (mainContent) mainContent.classList.remove("faded");
+            if (page_instruction_dossier) page_instruction_dossier.classList.remove("faded");
+            if (page_preinstruction_dossier) page_preinstruction_dossier.classList.remove("faded");
         });
     });
 

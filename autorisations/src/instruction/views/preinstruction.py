@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Dossier, DossierAction, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
@@ -163,6 +163,42 @@ def preinstruction_dossier(request, numero):
             demandeur_intermediaire = interlocuteur.id_demandeur_intermediaire
 
 
+        # Mapping entre les actions et leurs logos
+    logo_mapping = {
+        "Dossier reçu": "recu.png",
+        "Instructeur.e retiré.e": "instructeur_retire.png",
+        "Instructeur.e ajouté.e": "instructeur_ajoute.png",
+        "Classé sans suite": "classe-sans-suite.png",
+        "Classé comme refusé": "refuse.png",
+        "Classé comme accepté": "accepte.png",
+        "Demande de compléments": "demande-de-complements.png",
+        "Avis reçu": "recu.png",
+        "Avis demandé": "acte-envoye.png",
+        "Acte signé": "acte-signe.png",
+        "Acte envoyé": "acte-envoye.png",
+        "Validé avant demande d'avis": "valide.png",
+        "Publié au RAA": "publie_au_raa.png",
+        "Envoyé pour signature": "envoye.png",
+        "Relecture qualité": "relecture-qualite.png",
+        "Validé avant signature": "valide.png",
+        "Relecture juridique": "relecture-juridique.png",
+        "Passage en instruction": "envoye.png",
+        "Repassage en instruction": "envoye.png",
+        "Affectation au groupe": "groupe_instructeur.png",
+        "Passage en pré-instruction": "envoye.png",
+        "Envoyé pour validation": "envoye_pour_validation.png",
+        "Envoyé pour relecture qualité": "envoye.png",
+        "Avis demandé": "acte-envoye.png",
+    }
+
+
+    # Dossier Actions
+    dossier_actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date')
+
+    for action in dossier_actions:
+        action.logo = logo_mapping.get(action.id_action.action, "timeline.png")
+
+
 
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
@@ -183,6 +219,7 @@ def preinstruction_dossier(request, numero):
         "annexes_instructeur": annexes_instructeur,
         "beneficiaire": beneficiaire,
         "demandeur_intermediaire": demandeur_intermediaire,
+        "dossier_actions": dossier_actions,
     })
 
 

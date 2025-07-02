@@ -11,7 +11,11 @@ from autorisations.models.models_utilisateurs import DossierInstructeur, Instruc
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
-from threading import Thread, Lock
+from threading import Lock
+import threading
+import subprocess
+import sys
+
 import logging
 from django.db.models import Q
 
@@ -35,21 +39,29 @@ sync_lock = Lock()
 
 
 def lancer_en_arriere_plan():
-    def job():
-        try:
-            lancer_normalisation_et_synchronisation()
-        finally:
-            with sync_lock:
-                etat_sync["en_cours"] = False
-
     with sync_lock:
         if etat_sync["en_cours"]:
             print("Synchro déjà en cours – nouvelle tentative ignorée.")
-            return False  # signaler qu’on ne lance pas
+            return False
 
         etat_sync["en_cours"] = True
-        Thread(target=job).start()
+
+        def lancement_et_suivi():
+            with open("logs/synchronisation.log", "a", buffering=1) as f:
+                process = subprocess.Popen(
+                    [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
+                    stdout=f,
+                    stderr=f,
+                )
+                process.wait()  # Attend la fin du script
+                with sync_lock:
+                    etat_sync["en_cours"] = False
+
+        # Lance le watcher dans un thread pour ne pas bloquer Django
+        threading.Thread(target=lancement_et_suivi, daemon=True).start()
+
         return True
+
 
 
 @login_required
