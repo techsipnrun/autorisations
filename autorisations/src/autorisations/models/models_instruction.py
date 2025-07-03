@@ -314,3 +314,18 @@ class DossierAction(models.Model):
 
     def __str__(self):
         return (f"{self.id_action.action} - Dossier {self.id_dossier.numero} par {self.id_instructeur}")
+    
+    
+class DossierNote(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
+    note = models.TextField()
+    date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."dossier_notes"'
+
+    def __str__(self):
+        return f"Note - Dossier {self.id_dossier.numero} par {self.id_instructeur}"

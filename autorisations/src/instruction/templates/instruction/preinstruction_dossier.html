@@ -233,42 +233,36 @@
                 {% endif %}
 
                 <div class="groupe-instructeur-info notes_instructeurs">
-                    <h3 class="notes-titre">
-                        <span>Notes :</span>
+                    <h3 class="notes-titre">📝 Notes :</h3>
 
-                        <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
+                    {% for n in notes %}
+                        <div class="note-item">
+                            <p class="note-meta">
+                                <strong>{{ n.instructeur }}</strong> – {{ n.date|date:"d/m/Y H:i" }}
+                            </p>
+                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                <input type="hidden" name="noteId" value="{{ n.id }}">
+                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
+                                {% if n.instructeur_id == instructeur_connecte.id %}
+                                    <button type="submit" class="valider-btn">Mettre à jour</button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    {% empty %}
+                        <p class="note-aucune">Aucune note pour ce dossier.</p>
+                    {% endfor %}
+
+                    <div class="ajouter-note">
+                        <h4>Ajouter une nouvelle note :</h4>
+                        <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
                             {% csrf_token %}
-                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
-                                <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
-                            </label>
-                            <input type="file" id="file-upload" name="annexe"
-                                    accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                    class="annexe-input" onchange="this.form.submit()">
+                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                            <textarea name="note" rows="4"></textarea>
+                            <button type="submit" class="valider-btn">Enregistrer</button>
                         </form>
-                    </h3>
-
-                    {% if annexes_instructeur %}
-                        <ul class="liste-annexes-instructeur">
-                            {% for annexe in annexes_instructeur %}
-                                <li class="annexe-item">
-                                    <span class="annexe-texte">📎 {{ annexe.titre }}</span>
-                                    <button type="button" class="btn-copier-chemin" onclick="copierPath(this, '{{ ROOT_FOLDER }}{{ annexe.emplacement }}')" 
-                                                                                    title="Copier le chemin">📋</button>
-                                    <span class="copie-feedback">Copié !</span>
-                                </li>
-
-
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-
-
-                    <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <textarea name="note" rows="6" style="resize: vertical;">{{ dossier.note }}</textarea>
-                        <button type="submit" class="valider-btn" style="margin-top: 1rem;">Enregistrer</button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

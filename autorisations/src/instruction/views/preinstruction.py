@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Dossier, DossierAction, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Dossier, DossierAction, DossierNote, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
@@ -198,6 +198,19 @@ def preinstruction_dossier(request, numero):
     for action in dossier_actions:
         action.logo = logo_mapping.get(action.id_action.action, "timeline.png")
 
+    notes_queryset = DossierNote.objects.filter(id_dossier=dossier).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
+
+    notes = [
+        {
+            "id": n.id,
+            "note": n.note,
+            "date": n.date,
+            "instructeur_id": n.id_instructeur.id,
+            "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" if n.id_instructeur.id_agent_autorisations else n.id_instructeur.email
+        }
+        for n in notes_queryset
+    ]
+
 
 
     return render(request, 'instruction/preinstruction_dossier.html', {
@@ -220,6 +233,7 @@ def preinstruction_dossier(request, numero):
         "beneficiaire": beneficiaire,
         "demandeur_intermediaire": demandeur_intermediaire,
         "dossier_actions": dossier_actions,
+        "notes": notes,
     })
 
 

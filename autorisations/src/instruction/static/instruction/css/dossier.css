@@ -435,12 +435,16 @@ h2 {
 /* ------------------------- */
 
 textarea[name="note"] {
-    width: 100%;
+    width: 95%;
     padding: 0.5rem;
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 0.95rem;
     background-color: #fff;
+}
+
+.form_groupe_select.form-note {
+    margin-top: 0.5rem; /* supprime l'espace au-dessus du formulaire */
 }
 
 .notes_instructeurs {
@@ -465,10 +469,41 @@ textarea[name="note"] {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    margin-top: 0.5rem;
 }
 
 .valider-btn:hover {
     background-color: #0e4c27;
+}
+
+
+.note-item {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f1f1f1;
+    border-left: 1px solid #006131;
+    border-radius: 4px;
+}
+
+
+.note-meta {
+    font-weight: bold;
+    color: #333;
+}
+
+.note-aucune {
+    font-style: italic;
+    color: #666;
+}
+
+.ajouter-note {
+    border-top: 1px solid #ccc;
+    padding-top: 1rem;
+    margin-top: 2rem;
+}
+
+.ajouter-note h4 {
+    color: #006131;
 }
 
 

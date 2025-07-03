@@ -22,6 +22,8 @@ from synchronisation.src.normalisation.norma_dossier import dossier_normalize
 from synchronisation.src.normalisation.norma_dossiers import dossiers_normalize_process
 from instruction.utils import format_etat_dossier
 from synchronisation.src.main import lancer_normalisation_et_synchronisation_pour_une_demarche
+from autorisations.models.models_instruction import DossierNote
+from django.utils import timezone
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -329,6 +331,22 @@ def instruction_dossier(request, num_dossier):
     for action in dossier_actions:
         action.logo = logo_mapping.get(action.id_action.action, "timeline.png")
 
+    notes_queryset = DossierNote.objects.filter(id_dossier=dossier).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
+
+    notes = [
+        {
+            "id": n.id,
+            "note": n.note,
+            "date": n.date,
+            "instructeur_id": n.id_instructeur.id,
+            "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" if n.id_instructeur.id_agent_autorisations else n.id_instructeur.email
+        }
+        for n in notes_queryset
+    ]
+
+
+
+
 
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
@@ -355,6 +373,7 @@ def instruction_dossier(request, num_dossier):
         "demandeur_intermediaire": demandeur_intermediaire,
         "etapes_custom": etapes_custom,
         "dossier_actions": dossier_actions,
+        "notes": notes,
         # "logo_mapping": logo_mapping,
     })
 
@@ -421,3 +440,33 @@ def instruction_dossier_consultation(request, num_dossier):
 
 
 
+@login_required
+def sauvegarder_note_dossier(request):
+    
+    dossier_id = request.POST.get("dossierId")
+    note_id = request.POST.get("noteId")
+    contenu = request.POST.get("note")
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
+
+    if not instructeur:
+        logger.error(f"[DOSSIER {dossier.numero}] Sauvegarde note échouée : instructeur non identifié ({request.user.email}).")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if note_id:  # Modification d'une note existante
+        note = get_object_or_404(DossierNote, id=note_id, id_instructeur=instructeur)
+        note.note = contenu
+        note.date = timezone.now()
+        note.save()
+        logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {instructeur}")
+    else:  # Création d'une nouvelle note
+        DossierNote.objects.create(
+            id_dossier=dossier,
+            id_instructeur=instructeur,
+            note=contenu,
+            date=timezone.now()
+        )
+        logger.info(f"[DOSSIER {dossier.numero}] Nouvelle note ajoutée par {instructeur}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
