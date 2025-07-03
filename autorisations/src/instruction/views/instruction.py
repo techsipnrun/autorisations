@@ -24,6 +24,9 @@ from instruction.utils import format_etat_dossier
 from synchronisation.src.main import lancer_normalisation_et_synchronisation_pour_une_demarche
 from autorisations.models.models_instruction import DossierNote
 from django.utils import timezone
+from datetime import datetime
+from django.db.models import Min
+
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -104,13 +107,13 @@ def instruction_demarche(request, num_demarche):
     dossiers = dossiers_query.select_related("id_groupeinstructeur").order_by("date_depot")
     # PB : dossiers est null tout le temps
 
-    print('instructeur : ', instructeur)
-    print('dossiers_query : ', dossiers_query)
+    # print('instructeur : ', instructeur)
+    # print('dossiers_query : ', dossiers_query)
 
     dossier_infos = []
 
     for dossier in dossiers:
-        print(dossier)
+        # print(dossier)
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
 
         beneficiaire = None
@@ -130,9 +133,50 @@ def instruction_demarche(request, num_demarche):
         })
 
 
+    #  Archives
+
+    annee_selectionnee = int(request.GET.get("annee", datetime.now().year))
+
+    min_depot = Dossier.objects.filter(id_demarche=demarche).aggregate(min_date=Min("date_depot"))["min_date"]
+    annee_min = min_depot.year if min_depot else annee_selectionnee
+    annees_disponibles = list(range(annee_min, datetime.now().year + 1))
+
+    dossiers_archives = Dossier.objects.filter(
+        id_etape_dossier__in=etats_termines,
+        id_demarche=demarche,
+        date_depot__year=annee_selectionnee
+    ).select_related("id_groupeinstructeur").order_by("date_depot")
+
+    dossier_archives_infos = []
+
+    for dossier in dossiers_archives:
+        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
+
+        beneficiaire = None
+        if interlocuteur:
+            dossier_beneficiaire = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+            if dossier_beneficiaire:
+                beneficiaire = dossier_beneficiaire.id_beneficiaire
+
+        dossier_archives_infos.append({
+            "nom_dossier": dossier.nom_dossier,
+            "numero": dossier.numero,
+            "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            "date_depot": dossier.date_depot,
+            "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
+            "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini"
+        })
+
+
+
+
+
     return render(request, "instruction/instruction_demarche.html", {
     "demarche": demarche,
     "dossiers": dossier_infos,
+    "annees_disponibles": annees_disponibles,
+    "annee_selectionnee": annee_selectionnee,
+    "dossiers_archives": dossier_archives_infos,
 })
 
 
@@ -374,6 +418,7 @@ def instruction_dossier(request, num_dossier):
         "etapes_custom": etapes_custom,
         "dossier_actions": dossier_actions,
         "notes": notes,
+        "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         # "logo_mapping": logo_mapping,
     })
 

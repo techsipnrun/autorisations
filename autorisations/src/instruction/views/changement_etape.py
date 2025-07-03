@@ -5,7 +5,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import Instructeur
+from autorisations.models.models_utilisateurs import GroupeinstructeurInstructeur, Instructeur, DossierInstructeur
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
@@ -14,21 +14,66 @@ from django.views.decorators.http import require_POST
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
 
+# @login_required
+# def passer_en_pre_instruction(request):
+#     if request.method == "POST":
+#         dossier_id_ds = request.POST.get("dossierId")
+#         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+
+#         changer_etape_si_differente(dossier,"En pré-instruction", request.user)
+
+#         instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        
+#         # Enregistrer Dossier Action
+#         enregistrer_action(dossier, instructeur, "Passage en pré-instruction")
+
+
+#     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+
+
 @login_required
 def passer_en_pre_instruction(request):
-    if request.method == "POST":
-        dossier_id_ds = request.POST.get("dossierId")
-        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+    if request.method != "POST":
+        return redirect("/")
 
-        changer_etape_si_differente(dossier,"En pré-instruction", request.user)
+    dossier_id_ds = request.POST.get("dossierId")
+    dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
 
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        
-        # Enregistrer Dossier Action
-        enregistrer_action(dossier, instructeur, "Passage en pré-instruction")
+    # IDs des instructeurs affectés à ce dossier
+    instructeurs_dossier_ids_qs = DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
 
+    if not instructeurs_dossier_ids_qs.exists():
+        request.session["preinstruction_message"] = "Vous devez assigner un instructeur au dossier pour pouvoir le passer en pré-instruction."
+        return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
 
+    instructeurs_dossier_ids = set(instructeurs_dossier_ids_qs)
+
+    groupe = dossier.id_groupeinstructeur
+    if not groupe:
+        request.session["preinstruction_message"] = "Aucun groupe instructeur n’est défini pour ce dossier."
+        return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
+
+    instructeurs_groupe_ids = set(
+        GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe)
+        .values_list("id_instructeur", flat=True)
+    )
+    intersection = instructeurs_dossier_ids & instructeurs_groupe_ids
+
+    if not intersection:
+        request.session["preinstruction_message"] = (
+            "Le dossier n’est associé à aucun instructeur appartenant au groupe instructeur."
+        )
+        return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
+
+    # ✅ Passage autorisé
+    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+    changer_etape_si_differente(dossier, "En pré-instruction", request.user)
+    enregistrer_action(dossier, instructeur_connecte, "Passage en pré-instruction")
+
+    request.session.pop("preinstruction_message", None)
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
 
 
 

@@ -76,6 +76,52 @@
         </tbody>
       </table>
 
+      <div class="zone-archives">
+
+        <h1>Les dossiers archivés</h1>
+        <form method="get" class="form-annee-archives">
+            <label for="annee-select">Année :</label>
+            <select name="annee" id="annee-select" onchange="this.form.submit()">
+                {% for annee in annees_disponibles %}
+                    <option value="{{ annee }}" {% if annee == annee_selectionnee %}selected{% endif %}>{{ annee }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <table class="table_archives">
+            <thead>
+                <tr>
+                    <th>Dossier</th>
+                    <th>Numéro</th>
+                    <th>Bénéficiaire</th>
+                    <th>Déposé le</th>
+                    <th>Groupe Instructeur</th>
+                    <th>Étape</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in dossiers_archives %}
+                    <tr class="clickable-row" data-href="{% url 'instruction_dossier' d.numero %}">
+                        <td>{{ d.nom_dossier }}</td>
+                        <td>{{ d.numero }}</td>
+                        <td>{{ d.beneficiaire }}</td>
+                        <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                        <td>{{ d.groupe }}</td>
+                        <td>{{ d.etape }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+          
+
+
+
+
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll(".clickable-row").forEach(function (row) {
@@ -99,7 +145,7 @@
               syncButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
           });
       });
-</script>
+  </script>
 
 
 </body>

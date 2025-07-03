@@ -85,6 +85,25 @@ h2 {
     margin-bottom: 1rem;
 }
 
+/* Si dossier pas présent sur DS */
+.info-message {
+    display: inline-block;
+    color: #a94442;
+    background-color: #f9d6d5;
+    border-left: 4px solid #a94442;
+    padding: 0.8rem 1rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+    white-space: nowrap; /* évite le retour à la ligne automatique */
+}
+
+.instruction-warning {
+    color: #a00;
+    font-style: italic;
+    font-size: 0.95rem;
+    padding: 0.5rem;
+}
 
 
 
@@ -389,6 +408,30 @@ h2 {
     display: inline-block;
     vertical-align: middle;
 }
+
+.btn-retirer-soi {
+    margin-top: 1rem;
+    background-color: #fbe3e3;
+    color: #a94442;
+    border: 1px solid #f5c6cb;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.form-retirer-soi {
+    display: block;
+    margin-top: 1rem;
+    opacity: 1 !important;
+}
+
+
+.btn-retirer-soi:hover {
+    background-color: #f7cfcf;
+}
+
 
 
 

@@ -304,7 +304,7 @@ class MessageDocumentAdmin(admin.ModelAdmin):
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
     list_display = ('numero', 'nom_dossier', 'etat','groupe_instructeur', 'date_depot')
-    list_filter = ('id_etat_dossier', 'id_demarche', 'id_groupeinstructeur')
+    list_filter = ('id_etat_dossier', 'id_demarche', 'id_groupeinstructeur', 'present_sur_ds')
     search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
     list_per_page = 20
 

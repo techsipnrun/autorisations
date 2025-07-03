@@ -156,6 +156,7 @@ class Dossier(models.Model):
     id_demarche = models.ForeignKey(Demarche, models.RESTRICT, db_column='id_demarche')
     geometrie = models.JSONField(blank=True, null=True)
     geometrie_modif = models.JSONField(blank=True, null=True)
+    present_sur_ds = models.BooleanField(default=False)
 
     class Meta:
         managed = False
@@ -315,7 +316,7 @@ class DossierAction(models.Model):
     def __str__(self):
         return (f"{self.id_action.action} - Dossier {self.id_dossier.numero} par {self.id_instructeur}")
     
-    
+
 class DossierNote(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')

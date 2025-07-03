@@ -46,6 +46,10 @@
 
                 <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
 
+                {% if not dossier.present_sur_ds %}
+                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
+                {% endif %}
+
                 <div class="etat-badge-container">
                     <div class="etat-badge-menu-dropdown">
                         <div class="etat-badge-label" id="etatMenuToggle">
@@ -67,6 +71,13 @@
                         </div>
                     </div>
                 </div>
+
+                {% if preinstruction_message %}
+                    <div class="instruction-warning">
+                        {{ preinstruction_message }}
+                    </div>
+                {% endif %}
+
 
 
                 <div class="champs">
@@ -194,6 +205,11 @@
                                             </button>
                                         </form>
                                     </li>
+                                    {% if retirer_instructeur_message %}
+                                        <div class="instruction-warning">
+                                            {{ retirer_instructeur_message }}
+                                        </div>
+                                    {% endif %}
 
                                 {% else %}
 
@@ -228,6 +244,18 @@
                                 </select>
                             </form>
                         {% endif %}
+
+                        {% if instructeur_connecte.id in instructeurs_dossier_ids %}
+                            <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-soi">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                <input type="hidden" name="instructeur_id" value="{{ instructeur_connecte.id }}">
+                                <button type="submit" class="btn-retirer-soi">
+                                    Je me retire du dossier
+                                </button>
+                            </form>
+                        {% endif %}
+
 
                     </div>
                 {% endif %}

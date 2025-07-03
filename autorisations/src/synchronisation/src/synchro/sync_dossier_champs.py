@@ -148,9 +148,10 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         "url_ds": doc["url_ds"],
                         "description": doc["description"],
                     })
-                    if updated_fields and updated_fields != ['url_ds']: # url_ds est recalculée à chaque fois, on evite de surcharger les logs
+                    if updated_fields : # url_ds est recalculée à chaque fois, on evite de surcharger les logs
                         document_obj.save()
-                        logger.info(f"[SAVE] Document mis à jour (doc: {document_obj.id}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
+                        if updated_fields != ['url_ds'] :
+                            logger.info(f"[SAVE] Document mis à jour (doc: {document_obj.id}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
 
                     champ_obj = DossierChamp.objects.filter(
                         id_dossier_id=id_dossier,

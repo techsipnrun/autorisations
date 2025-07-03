@@ -115,7 +115,6 @@ class AvisTestCase(TestCase):
                                              id_etat_dossier=self.etat,
                                              numero=200,
                                              date_depot="2025-01-01",
-                                             id_dossier_type=self.dossier_type,
                                              nom_dossier="Dossier Test",
                                              emplacement="/path/test",
                                              date_limite_traitement="2025-03-11",)

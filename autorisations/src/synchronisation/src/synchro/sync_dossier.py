@@ -15,8 +15,9 @@ def sync_doss(dossier):
 
     { "id_ds", "id_etat_dossier", "id_demarche", "numero", "id_groupeinstructeur", 
     "date_depot", "date_fin_instruction", "id_dossier_type", 
-    "note", "nom_dossier", "emplacement", "date_limite_traitement", "geometrie" }
+    "note", "nom_dossier", "emplacement", "date_limite_traitement", "geometrie", "present_sur_ds" }
 
+    
     "id_dossier_type" est à nouveau par défaut
     """
     defaults = foreign_keys_add_suffixe_id(Dossier, dossier)

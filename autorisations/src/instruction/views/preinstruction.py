@@ -212,7 +212,6 @@ def preinstruction_dossier(request, numero):
     ]
 
 
-
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -234,6 +233,8 @@ def preinstruction_dossier(request, numero):
         "demandeur_intermediaire": demandeur_intermediaire,
         "dossier_actions": dossier_actions,
         "notes": notes,
+        "preinstruction_message": request.session.pop("preinstruction_message", None),
+        "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
     })
 
 

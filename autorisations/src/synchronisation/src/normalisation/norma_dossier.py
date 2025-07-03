@@ -34,7 +34,7 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
         "date_depot": date_depot,
         "date_fin_instruction": parse_datetime_with_tz(doss["dateTraitement"]),
 
-        "id_dossier_type": get_first_id(DossierType, type="nouveau"), # nouveau par défaut mais chopper info dans les champs
+        # "id_dossier_type": get_first_id(DossierType, type="nouveau"), # nouveau par défaut mais chopper info dans les champs
         # "id_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
         
         "note": "",
@@ -43,6 +43,7 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
         "emplacement": emplacement_dossier,
         "date_limite_traitement": calcul_date_limite_instruction(doss["dateDepot"], id_demarche),  #On est sur que le délais d'instruction est lancé dès la reception du doss ?
         "geometrie": geojson,
+        "present_sur_ds": True,
     }
 
     #Check champ formulaire : dossierGroupe pour identifier les dossier liés (peut etre plus cohérent de lemettre dans le syncho file)

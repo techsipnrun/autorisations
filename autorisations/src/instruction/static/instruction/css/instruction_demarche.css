@@ -83,3 +83,38 @@ h2 {
 .refresh-button:hover .refresh-icon {
     transform: rotate(180deg);
 }
+
+
+/* Dossiers archivés */
+
+.zone-archives {
+    margin: 25vh 8vw;
+}
+
+.form-annee-archives {
+    margin-bottom: 1rem;
+    font-weight: bold;
+}
+
+.form-annee-archives select {
+    padding: 0.3rem 0.6rem;
+    margin-left: 0.5rem;
+    border-radius: 4px;
+}
+
+.table_archives {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table_archives th,
+.table_archives td {
+    border: 1px solid #ddd;
+    padding: 0.6rem;
+    text-align: left;
+}
+
+.table_archives th {
+    background-color: #f1f1f1;
+    font-weight: bold;
+}

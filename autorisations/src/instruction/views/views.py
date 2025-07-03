@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, EtapeDossier
-from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -134,23 +134,72 @@ def se_declarer_instructeur(request):
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+# @require_POST
+# @login_required
+# def retirer_instructeur(request):
+
+#     dossier_id = request.POST.get("dossier_id")
+#     instructeur_id = request.POST.get("instructeur_id")
+
+#     dossier = get_object_or_404(Dossier, id=dossier_id)
+#     instructeur = get_object_or_404(Instructeur, id=instructeur_id)
+
+#     DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
+#     logger.info(f"[DOSSIER {dossier.numero}] On retire l'instructeur {instructeur.email} du dossier.")
+
+#     # Dossier Action
+#     nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+#     enregistrer_action(dossier, instructeur, "Instructeur.e retiré.e", nom_prenom)
+
+#     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
 @require_POST
 @login_required
 def retirer_instructeur(request):
-    from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur
-    from autorisations.models.models_instruction import Dossier
-
     dossier_id = request.POST.get("dossier_id")
     instructeur_id = request.POST.get("instructeur_id")
 
     dossier = get_object_or_404(Dossier, id=dossier_id)
     instructeur = get_object_or_404(Instructeur, id=instructeur_id)
 
+    # Tous les instructeurs affectés
+    instructeurs_ids = list(
+        DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+    )
+
+    if instructeur.id not in instructeurs_ids:
+        request.session["retirer_instructeur_message"] = "Cet instructeur n'est pas affecté à ce dossier."
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Simuler le retrait
+    instructeurs_restants_ids = [i for i in instructeurs_ids if i != instructeur.id]
+
+    if not instructeurs_restants_ids:
+        request.session["retirer_instructeur_message"] = "Impossible de retirer l'instructeur : il faut au moins un autre instructeur affecté au dossier."
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    groupe = dossier.id_groupeinstructeur
+    if not groupe:
+        request.session["retirer_instructeur_message"] = "Aucun groupe instructeur n’est défini pour ce dossier."
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    instructeurs_groupe_ids = set(
+        GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe).values_list("id_instructeur", flat=True)
+    )
+
+    if not (set(instructeurs_restants_ids) & instructeurs_groupe_ids):
+        request.session["retirer_instructeur_message"] = (
+            "Impossible de retirer l'instructeur : aucun instructeur restant n'appartient au groupe instructeur."
+        )
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # ✅ Retrait autorisé
     DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
     logger.info(f"[DOSSIER {dossier.numero}] On retire l'instructeur {instructeur.email} du dossier.")
 
-    # Dossier Action
-    nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+    nom_prenom = f"({instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom})"
     enregistrer_action(dossier, instructeur, "Instructeur.e retiré.e", nom_prenom)
 
     return redirect(request.META.get("HTTP_REFERER", "/"))

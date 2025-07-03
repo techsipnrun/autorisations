@@ -23,4 +23,4 @@ def synchro_process(dico):
     sync_demarche(dico["demarche"])
     sync_groupeinstructeurs_demarches(dico["groupeinstructeurs_demarches"])
     sync_champs(dico["champs"])
-    sync_dossiers(dico["dossiers"])
+    sync_dossiers(dico["dossiers"], demarche_obj.numero)

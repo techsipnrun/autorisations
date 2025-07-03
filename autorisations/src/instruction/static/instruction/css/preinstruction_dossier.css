@@ -17,12 +17,6 @@
     border-radius: 8px;
 }
 
-.instruction-warning {
-    color: #a00;
-    font-style: italic;
-    font-size: 0.95rem;
-    padding: 0.5rem;
-}
 
 .btn_dropdown_instruction:hover {
     border-radius: 8px;
