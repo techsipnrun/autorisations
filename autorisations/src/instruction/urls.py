@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.urls import path
 from instruction.views import messagerie, preinstruction, views, instruction, changement_etape
 
@@ -39,6 +40,11 @@ urlpatterns = [
     # path('instruction/enregistrer_geom_champ/', views.enregistrer_geom_champ, name='enregistrer_geom_champ'),
     
     path('ajouter_annexe/<int:dossier_id>/', views.ajouter_annexe_dossier, name='ajouter_annexe_dossier'),
+
+
+    path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),
+    path("annexe/test/", lambda r: HttpResponse("TEST OK")),
+
     path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
 
 

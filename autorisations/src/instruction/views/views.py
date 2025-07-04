@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, EtapeDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, GroupeinstructeurInstructeur, Instructeur
@@ -15,6 +15,7 @@ from threading import Lock
 import threading
 import subprocess
 import sys
+from mimetypes import guess_type
 
 import logging
 from django.db.models import Q
@@ -225,8 +226,7 @@ def enregistrer_geom(request):
 
         geojson_data = json.loads(geojson_str)
 
-        # # MAJ champ
-        # champ = DossierChamp.objects.filter(id_dossier=dossier, id_champ__id_champ_type__type="carte").first()
+        # MAJ champ
         if not champ:
             msg = "Champ carte non trouvé."
             logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'nregistrement de la géométrie par {request.user} : {msg}")
@@ -239,6 +239,38 @@ def enregistrer_geom(request):
         if nb_cartes == 1:
             dossier.geometrie_modif = geojson_data
             dossier.save()
+
+        # Il y a au moins 2 champs cartes
+        else:
+            # Récupération de tous les champs carte du dossier
+            champs_cartes = DossierChamp.objects.filter(
+                id_dossier=dossier,
+                id_champ__id_champ_type__type="carte"
+            )
+
+            features = []
+
+            # On fusionne les geojson recupérés pour n'en faire qu'un
+            for c in champs_cartes:
+                geo = c.geometrie_modif or c.geometrie
+                if geo:
+                    # S'assurer que c'est bien un Feature ou FeatureCollection
+                    if geo.get("type") == "Feature":
+                        features.append(geo)
+                    elif geo.get("type") == "FeatureCollection":
+                        features.extend(geo.get("features", []))
+                    else:
+                        logger.warning(f"[DOSSIER {dossier.numero}] Géométrie ignorée : type inattendu ({geo.get('type')}) dans champ {c.id}")
+
+            if features:
+                geojson_fusionne = {
+                    "type": "FeatureCollection",
+                    "features": features
+                }
+                # Mise à jour de dossier.geometrie_modif si valeur différente
+                if dossier.geometrie_modif != geojson_fusionne:
+                    dossier.geometrie_modif = geojson_fusionne
+                    dossier.save()
 
         msg = "Géométrie mise à jour avec succès."
         logger.info(f"[DOSSIER {dossier.numero}] {msg} par {request.user}")
@@ -401,3 +433,37 @@ def synchroniser_demarche(request, num_demarche):
     return redirect("instruction_demarche", num_demarche=num_demarche)
 
 
+# def afficher_annexe(request, chemin):
+#     try:
+#         if not os.path.exists(chemin):
+#             raise Http404("Fichier introuvable")
+#         return FileResponse(open(chemin, 'rb'), content_type='image/png')
+#     except Exception as e:
+#         raise Http404("Erreur d'accès au fichier : " + str(e))
+    
+
+
+
+@login_required
+def afficher_annexe(request, chemin):
+    try:
+        chemin_entier = os.path.join(os.environ.get("ROOT_FOLDER"), chemin)
+
+        if not os.path.exists(chemin_entier):
+            raise Http404("Fichier introuvable")
+
+        content_type, _ = guess_type(chemin_entier)
+        if not content_type:
+            content_type = 'application/octet-stream'  # type par défaut
+        
+        response = FileResponse(open(chemin_entier, 'rb'), content_type=content_type)
+
+        # if content_type == 'application/pdf':
+        #     response['Content-Disposition'] = 'inline; filename="%s"' % os.path.basename(chemin_entier)
+
+        #     print(response)
+        return response
+
+
+    except Exception as e:
+        raise Http404("Erreur d'accès au fichier : " + str(e))

@@ -1,6 +1,6 @@
 from django.db import models
 
-from .models_instruction import Dossier, Message
+from .models_instruction import Dossier, DossierNote, Message
 
 
 class DocumentFormat(models.Model):
@@ -47,8 +47,8 @@ class Document(models.Model):
 
     def __str__(self):
         if self.numero :
-            return f"{self.id_nature} {self.numero} - {self.emplacement}"  #Extraire le nom du dossier du Path
-        return f"{self.id_nature} - {self.emplacement}" #Extraire le nom du dossier du Path
+            return f"{self.id_nature} {self.numero} - {self.emplacement}{self.titre}"  #Extraire le nom du dossier du Path
+        return f"{self.id_nature} - {self.emplacement}{self.titre}" #Extraire le nom du dossier du Path
 
 
 class DossierDocument(models.Model):

@@ -92,8 +92,11 @@ def preinstruction_dossier(request, numero):
             champs_prepares.append({"type": "header", "titre": nom})
 
         elif ct == "piece_justificative":
+
             if champ.id_document :
-                champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
+                emplacement_doc= os.path.join(champ.id_document.emplacement, champ.id_document.titre)
+                # emplacement_doc = os.path.join(os.environ.get("ROOT_FOLDER"), champ.id_document.emplacement, champ.id_document.titre)
+                champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
             else : 
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
 
@@ -319,23 +322,23 @@ def passer_en_instruction(request):
 
 
 
-@require_POST
-@login_required
-def sauvegarder_note_dossier(request):
-    dossier_id = request.POST.get("dossierId")
-    nouvelle_note = request.POST.get("note")
+# @require_POST
+# @login_required
+# def sauvegarder_note_dossier(request):
+#     dossier_id = request.POST.get("dossierId")
+#     nouvelle_note = request.POST.get("note")
 
-    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
-    dossier.note = nouvelle_note
-    dossier.save()
+#     dossier = get_object_or_404(Dossier, id_ds=dossier_id)
+#     dossier.note = nouvelle_note
+#     dossier.save()
 
-    instructeur = Instructeur.objects.filter(email=request.user.email).select_related("id_agent_autorisations").first()
+#     instructeur = Instructeur.objects.filter(email=request.user.email).select_related("id_agent_autorisations").first()
 
-    if instructeur and instructeur.id_agent_autorisations:
-        nom = instructeur.id_agent_autorisations.nom
-        prenom = instructeur.id_agent_autorisations.prenom
-        logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {prenom} {nom} ({instructeur.email})")
-    else:
-        logger.warning(f"[DOSSIER {dossier.numero}] Note modifiée par {request.user.email} (utilisateur non identifié comme instructeur)")
+#     if instructeur and instructeur.id_agent_autorisations:
+#         nom = instructeur.id_agent_autorisations.nom
+#         prenom = instructeur.id_agent_autorisations.prenom
+#         logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {prenom} {nom} ({instructeur.email})")
+#     else:
+#         logger.warning(f"[DOSSIER {dossier.numero}] Note modifiée par {request.user.email} (utilisateur non identifié comme instructeur)")
 
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+#     return redirect(request.META.get("HTTP_REFERER", "/"))

@@ -22,6 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("GeoJSON invalide :", data);
             return;
         }
+        if (!geojson || (!geojson.type && !geojson.features)) {
+            console.error("❌ Objet GeoJSON mal formé :", geojson);
+            return;
+        }
 
         const map = L.map(div).setView([-21.1, 55.5], 10);
 
@@ -134,6 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
             maxZoom: 12,
             padding: [20, 20]  //espace autour de la géométrie
         });
+
     });
 });
 

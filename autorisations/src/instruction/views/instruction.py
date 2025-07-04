@@ -9,7 +9,7 @@ from autorisations.models.models_instruction import Demarche, Dossier, DossierAc
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
-from autorisations.models.models_documents import DossierDocument
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from synchronisation.src.normalisation.norma_contacts_externes import contact_externe_normalize
 from synchronisation.src.normalisation.norma_demandes import demande_normalize
 from synchronisation.src.normalisation.norma_dossier_champs import dossiers_champs_normalize
@@ -228,7 +228,13 @@ def instruction_dossier(request, num_dossier):
             champs_prepares.append({"type": "header", "titre": nom})
 
         elif ct == "piece_justificative":
-            champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
+            if champ.id_document :
+                emplacement_doc= os.path.join(champ.id_document.emplacement, champ.id_document.titre)
+                # emplacement_doc = os.path.join(os.environ.get("ROOT_FOLDER"), champ.id_document.emplacement, champ.id_document.titre)
+                champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
+            else : 
+                champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
+            # champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
 
         elif ct == "drop_down_list":
             
@@ -383,7 +389,7 @@ def instruction_dossier(request, num_dossier):
             "note": n.note,
             "date": n.date,
             "instructeur_id": n.id_instructeur.id,
-            "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" if n.id_instructeur.id_agent_autorisations else n.id_instructeur.email
+            "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" if n.id_instructeur.id_agent_autorisations else n.id_instructeur.email,
         }
         for n in notes_queryset
     ]
@@ -460,7 +466,7 @@ def actualiser_dossier(request, num_dossier):
         }
 
         # 3. Synchronisation en base
-        sync_dossiers([dico_dossier])
+        sync_dossiers([dico_dossier], demarche.numero)
 
         # logger.info(f"[DOSSIER] Actualisation du dossier {num_dossier} réussie.")
         # return redirect('instruction_dossier', num_dossier=num_dossier)
@@ -515,3 +521,4 @@ def sauvegarder_note_dossier(request):
         logger.info(f"[DOSSIER {dossier.numero}] Nouvelle note ajoutée par {instructeur}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
