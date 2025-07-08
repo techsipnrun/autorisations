@@ -113,7 +113,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
     """
     Synchronise les DossierChamps avec ou sans pièce jointe.
     """
-
+    if id_dossier == 24628158 :
+        logger.info(dossier_champs)
     for ch in dossier_champs:
         dossier_champ = ch["champ"]
         documents = ch.get("documents", [])
@@ -124,6 +125,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
         if documents:
             for doc in documents:
+                # Si une pj existe sous le meme nom dans le form on pourrait rentrer en conflit : les deux doc pointraient vers le premier doc créé (meme si le second est différent dans le contenu..)
+
                 document_obj, doc_created = Document.objects.get_or_create(
                     emplacement=doc["emplacement"], titre=doc["titre"], id_nature_id=doc["id_nature"],
                     defaults={

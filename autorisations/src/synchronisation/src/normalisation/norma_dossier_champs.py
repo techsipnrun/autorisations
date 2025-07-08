@@ -2,13 +2,24 @@ from datetime import datetime
 import logging
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature
 from autorisations.models.models_instruction import Champ, ChampType
+from autorisations.models.models_utilisateurs import TypeContactExterne
 from synchronisation.src.utils.model_helpers import get_first_id, parse_datetime_with_tz
 from synchronisation.src.utils.fichiers import fetch_geojson, geoareas_to_geojson_text
 from synchronisation.src.utils.conversion import extraire_nom_et_extension
 
 logger = logging.getLogger('ORM_DJANGO')
-def dossiers_champs_normalize(doss, emplacement_dossier):
+def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
+
+    # contacts[demandeur_intermediaire] et contacts[beneficiaire]
+    # logger.info(contacts['beneficiaire'])
+    # logger.info(contacts['demandeur_intermediaire'])
+
     liste_dossiers_champs = []
+
+    contacts_externes = {
+        'beneficiaire': {},
+        'demandeur_intermediaire': {}
+    }
 
     for ch in doss["champs"]:
 
@@ -76,8 +87,45 @@ def dossiers_champs_normalize(doss, emplacement_dossier):
                     "id_document": None,
                 }
 
+                # On ajoute des infos aux contact externes (Bénéficiaire et le cas échéant DemandeurIntermédiaire)
+                #Benefiaire
+                if ch['label'] == "Email du bénéficiaire" and ch["stringValue"] != None:
+                    contacts_externes["beneficiaire"]["email"] = ch["stringValue"]
+                if ch['label'] == "Adresse du bénéficiaire" and ch["stringValue"] != None:
+                    contacts_externes["beneficiaire"]["adresse"] = ch["stringValue"]
+                if ch['label'] == "Numéro de téléphone du bénéficiaire" and ch["stringValue"] != None:
+                    contacts_externes["beneficiaire"]["telephone"] = ch["stringValue"]
+                if ch['label'] == "Nom de l'organisation" and ch["stringValue"] != None:
+                    contacts_externes["beneficiaire"]["organisation"] = ch["stringValue"]
+                if ch['label'] == "Numéro de SIRET" and ch["stringValue"] != None:
+                    contacts_externes["beneficiaire"]["siret"] = ch["stringValue"]
+
+                #Demandeur Intermédiaire
+                if ch['label'] == "Numéro de téléphone du demandeur intermédiaire" and ch["stringValue"] != None:
+                    contacts_externes["demandeur_intermediaire"]["telephone"] = ch["stringValue"]
+                if ch['label'] == "Nom de l'organisation du demandeur intermédiaire" and ch["stringValue"] != None:
+                    contacts_externes["demandeur_intermediaire"]["organisation"] = ch["stringValue"]
+                    contacts_externes["demandeur_intermediaire"]["raison_sociale"] = ch["stringValue"]
+                if ch['label'] == "Adresse du demandeur intermédiaire" and ch["stringValue"] != None:
+                    contacts_externes["demandeur_intermediaire"]["adresse"] = ch["stringValue"]
+                if ch['label'] == "Email du demandeur intermédiaire" and ch["stringValue"] != None:
+                    contacts_externes["demandeur_intermediaire"]["email"] = ch["stringValue"]
+                    contacts_externes['demandeur_intermediaire']['id_type'] = get_first_id(TypeContactExterne, type="demandeur_intermediaire")
+                # Attention si jamais le péti ne sélectionne pas 'Demandeur Intermédiaire' dans la page d'ouverture de Démarches Simplifiées, 
+                # mais qu'il coche Demandeur Intermédiaire dans le formulaire : On a une contradiction. Ici on fait le choix de le créer malgré tout (mais sans nom ni prénom)
+                    
+      
+
             liste_dossiers_champs.append({
                 "champ": dico_champ
             })
 
-    return liste_dossiers_champs
+
+    # ajout des infos demandeur et benef
+    # 'beneficiaire': {'email', 'id_type', 'nom', 'prenom'}
+    # 'demandeur_intermediaire': {'email', 'id_type', 'nom'', 'prenom', 'siret', 'raison_sociale', 'organisation', 'adresse'}
+    # logger.info(doss['number'])
+    # logger.info(contacts_externes)
+
+
+    return liste_dossiers_champs, contacts_externes

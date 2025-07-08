@@ -27,16 +27,19 @@ def dossiers_normalize_process(d):
 
         #Construction du chemin du dossier (sans le créer physiquement)
         emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
+        c_e_n = contact_externe_normalize(doss, None)
+        d_c_n, c_e_n_complete = dossiers_champs_normalize(doss, emplacement_dossier, c_e_n)
 
         dico_dossier = {
             "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
-            "contacts_externes": contact_externe_normalize(doss),
+            "contacts_externes": contact_externe_normalize(doss, c_e_n_complete),
             "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
-            "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier),
+            "dossier_champs": d_c_n,
             "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
             "messages": message_normalize(doss, emplacement_dossier),
             "demandes": demande_normalize(id_demarche, titre_demarche, doss)
         }
+
 
         dossiers.append(dico_dossier)
 

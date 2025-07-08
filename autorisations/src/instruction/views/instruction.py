@@ -82,10 +82,11 @@ def instruction_demarche(request, num_demarche):
 
     etapes = EtapeDossier.objects.exclude(etape="À affecter")
  
-    etats_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
+    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
+    ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
+
     # etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
-    
-    ids_etats_termines = list(etats_termines.values_list("id", flat=True))
+    # ids_etats_termines = list(etats_termines.values_list("id", flat=True))
 
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
     groupes_user = []
@@ -98,7 +99,8 @@ def instruction_demarche(request, num_demarche):
         id_etape_dossier__in=etapes,
         id_demarche=demarche.id
     ).exclude(
-        id_etat_dossier__in=ids_etats_termines
+        # id_etat_dossier__in=ids_etats_termines,
+        id_etape_dossier__in=ids_etapes_termines
     )
 
     if request.GET.get("mes_dossiers") == "1" :
@@ -142,7 +144,7 @@ def instruction_demarche(request, num_demarche):
     annees_disponibles = list(range(annee_min, datetime.now().year + 1))
 
     dossiers_archives = Dossier.objects.filter(
-        id_etape_dossier__in=etats_termines,
+        id_etape_dossier__in=etapes_termines,
         id_demarche=demarche,
         date_depot__year=annee_selectionnee
     ).select_related("id_groupeinstructeur").order_by("date_depot")
@@ -457,9 +459,9 @@ def actualiser_dossier(request, num_dossier):
 
         dico_dossier = {
             "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
-            "contacts_externes": contact_externe_normalize(doss),
+            "contacts_externes": contact_externe_normalize(doss, None),
             "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
-            "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier),
+            "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier, None)[0],
             "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
             "messages": message_normalize(doss, emplacement_dossier),
             "demandes": demande_normalize(id_demarche, titre_demarche, doss)

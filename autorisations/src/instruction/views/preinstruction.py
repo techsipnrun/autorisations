@@ -34,8 +34,9 @@ def preinstruction(request):
         # Chercher le demandeur via DossierInterlocuteur
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
         demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
-
-        if not demandeur:
+        
+        # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés 
+        if not demandeur or not(demandeur.prenom and demandeur.nom):
             benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
             demandeur = benef.id_beneficiaire if benef else None
 

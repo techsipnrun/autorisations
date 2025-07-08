@@ -8,15 +8,18 @@ logger = logging.getLogger("SYNCHRONISATION")
 def sync_contacts_externes(contacts_externes):
     """
     Synchronise les contacts externes (bénéficiaire et demandeur intermédiaire).
-    { 'beneficiaire': {"email", "id_type", "nom", "prenom", "siret", "raison_sociale", "organisation", "adresse"},
-      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom"},
+    { 'beneficiaire': {"email", "id_type", "nom", "prenom", "siret", "raison_sociale", "organisation", "adresse", "telephone"},
+      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom", "adresse", "organisation", "telephone"},
     }
     """
+
 
     result_ids = {
         "beneficiaire": None,
         "demandeur_intermediaire": None
     }
+
+    
 
     for role, data in contacts_externes.items():
         if not data:
@@ -28,9 +31,9 @@ def sync_contacts_externes(contacts_externes):
 
             defaults = {k: v for k, v in [("nom", data.get("nom")), ("prenom", data.get("prenom")), ("siret", data.get("siret")), 
                                           ("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
-                                          ("adresse", data.get("adresse"))] if v is not None}
+                                          ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
 
-
+            logger.info(defaults)
             obj = None
             created = None
 

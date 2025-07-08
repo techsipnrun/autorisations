@@ -45,7 +45,6 @@ def sync_dossiers(dossiers_list, demarche_number):
         logger.info(f"<<< {nb_desactives} dossiers marqués comme présents en BDD et non présents sur Démarches Simplifiées >>>")
 
 
-
     for doss in dossiers_list:
         logger.info(f"Dossier {doss['dossier']['nom_dossier']}")
 

@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 
 # from .models_instruction import Demande, Demarche, Dossier
 
@@ -48,8 +49,8 @@ class ContactExterne(models.Model):
     id = models.AutoField(primary_key=True)
     email = models.CharField(blank=True, null=True)
     id_type = models.ForeignKey(TypeContactExterne, models.RESTRICT, db_column='id_type')
-    nom = models.CharField()
-    prenom = models.CharField()
+    nom = models.CharField(blank=True, null=True)
+    prenom = models.CharField(blank=True, null=True)
     adresse = models.CharField(blank=True, null=True)
     telephone = models.CharField(blank=True, null=True)
     siret = models.CharField(blank=True, null=True)
@@ -60,7 +61,14 @@ class ContactExterne(models.Model):
         managed = False
         db_table = '"utilisateurs"."contact_externe"'
         constraints = [
-            models.UniqueConstraint(fields=['email', 'id_type'], name='contact_externe_email_type_unique')
+            models.UniqueConstraint(fields=['email', 'id_type'], name='contact_externe_email_type_unique'),
+            models.CheckConstraint(
+                check=(
+                    (Q(nom__isnull=False) & Q(prenom__isnull=False)) |
+                    Q(raison_sociale__isnull=False)
+                ),
+                name='contact_externe_identite_check'
+            )
         ]
 
     def __str__(self):
