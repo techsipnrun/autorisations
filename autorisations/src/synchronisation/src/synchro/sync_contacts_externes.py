@@ -26,14 +26,15 @@ def sync_contacts_externes(contacts_externes):
             continue
 
         try:
-            email = data["email"]
+            email = data.get("email") #Le bénéficiaire peut ne pas avoir d'email
             id_type = data["id_type"]
+
 
             defaults = {k: v for k, v in [("nom", data.get("nom")), ("prenom", data.get("prenom")), ("siret", data.get("siret")), 
                                           ("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
                                           ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
 
-            logger.info(defaults)
+            # logger.info(defaults)
             obj = None
             created = None
 

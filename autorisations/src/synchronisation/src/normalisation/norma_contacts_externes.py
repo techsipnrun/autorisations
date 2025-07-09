@@ -9,12 +9,12 @@ def contact_externe_normalize(doss, contacts_externes):
     Normalise les contacts externes : Bénéficiaire et Demandeur intermédiaire.
     """
 
-    if contacts_externes :
-        if contacts_externes.get('beneficiaire') :
-            if contacts_externes.get('beneficiaire').get('adresse') :
-                if contacts_externes.get('beneficiaire').get('adresse') == "11 Rue Réaumur 75003 Paris" :
-                    logger.info('SIMOOOONE MAIL ?')
-                    logger.info(contacts_externes)
+    # if contacts_externes :
+    #     if contacts_externes.get('beneficiaire') :
+    #         if contacts_externes.get('beneficiaire').get('adresse') :
+    #             if contacts_externes.get('beneficiaire').get('adresse') == "11 Rue Réaumur 75003 Paris" :
+    #                 logger.info('SIMOOOONE MAIL ?')
+    #                 logger.info(contacts_externes)
 
     if not contacts_externes :
         contacts_externes = {
@@ -89,7 +89,7 @@ def contact_externe_normalize(doss, contacts_externes):
             contacts_externes['beneficiaire']["id_type"] = get_first_id(TypeContactExterne, type="beneficiaire")
 
             if doss['demandeur']['siret'] :
-                logger.info(f"siret : {doss['demandeur']['siret']}")
+                # logger.info(f"siret : {doss['demandeur']['siret']}")
                 contacts_externes['beneficiaire']["siret"] = doss['demandeur']['siret']
 
             if doss['demandeur']['address']['cityName'] :

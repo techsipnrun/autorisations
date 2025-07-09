@@ -127,7 +127,7 @@
                     
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
-                                
+                                <!-- <p>{{ champ.emplacement_doc }}</p> -->
                                 <!-- <p><strong>{{ champ.nom }}</strong> : <a href="{{champ.url}}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p> -->
                                 <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
                                 <!-- <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" alt="Aperçu PJ"> -->

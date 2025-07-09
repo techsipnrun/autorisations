@@ -270,30 +270,76 @@ def create_message_bdd(
 
             try:
 
+                # # 2. Créer le Document
+                # # Récupérer ou créer le format et la nature
+                # doc_format, _ = DocumentFormat.objects.get_or_create(format=document_format_str)
+                # doc_nature, _ = DocumentNature.objects.get_or_create(nature=document_nature_str)
+
+                # # Définir le chemin de destination
+                # repertoire_annexes = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_obj.emplacement, "Annexes")
+                # emplacement = os.path.join(repertoire_annexes, document_title)
+
+                # # Créer le répertoire si besoin
+                # os.makedirs(repertoire_annexes, exist_ok=True)
+
+                # with open(emplacement, 'wb+') as dest:
+                #     for chunk in document_file.chunks():
+                #         dest.write(chunk)
+
+                # doc = Document.objects.create(
+                #     id_format=doc_format,
+                #     id_nature=doc_nature,
+                #     emplacement=emplacement,
+                #     titre=document_title,
+                #     description=document_description or "",
+                #     url_ds=url_ds,
+                # )
+
+
                 # 2. Créer le Document
                 # Récupérer ou créer le format et la nature
                 doc_format, _ = DocumentFormat.objects.get_or_create(format=document_format_str)
                 doc_nature, _ = DocumentNature.objects.get_or_create(nature=document_nature_str)
 
-                # Définir le chemin de destination
+                # Répertoire cible
                 repertoire_annexes = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_obj.emplacement, "Annexes")
-                emplacement = os.path.join(repertoire_annexes, document_title)
-
-                # Créer le répertoire si besoin
                 os.makedirs(repertoire_annexes, exist_ok=True)
 
+                # Séparation du nom et extension
+                nom_base, ext = os.path.splitext(document_title)
+                titre_final = nom_base
+                i = 1
+
+                # Boucle jusqu'à trouver un nom de fichier et d'enregistrement non existant
+                while True:
+                    emplacement = os.path.join(repertoire_annexes, f"{titre_final}{ext}")
+                    rel_emplacement = os.path.join(dossier_obj.emplacement, "Annexes", f"{titre_final}{ext}")  # Pour la BDD
+
+                    fichier_existe = os.path.exists(emplacement)
+                    enregistrement_existe = Document.objects.filter(emplacement=rel_emplacement).exists()
+
+                    if not fichier_existe and not enregistrement_existe:
+                        break  # nom libre
+
+                    i += 1
+                    titre_final = f"{nom_base}_{i}"
+
+                # Écriture du fichier sur disque
                 with open(emplacement, 'wb+') as dest:
                     for chunk in document_file.chunks():
                         dest.write(chunk)
 
+                # Création du document en base
                 doc = Document.objects.create(
                     id_format=doc_format,
                     id_nature=doc_nature,
-                    emplacement=emplacement,
-                    titre=document_title,
+                    emplacement=rel_emplacement,
+                    titre=f"{titre_final}{ext}",
                     description=document_description or "",
                     url_ds=url_ds,
                 )
+
+
 
                 logger.info(f"[DOSSIER {dossier_obj.numero}] Document {doc.id} ({document_nature_str}) créé")
 

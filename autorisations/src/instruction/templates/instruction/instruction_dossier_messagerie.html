@@ -47,7 +47,9 @@
                             {{ msg.body|safe }}
                             {% if msg.pj_url %}
                                 <div class="pj-download">
-                                    <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a>
+                                    <!-- <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a> -->
+                                    <a href="{% url 'afficher_annexe' chemin=msg.pj_emplacement %}" target="_blank" rel="noopener noreferrer">{{ msg.pj_title }}</a>
+                                
                                 </div>
                             {% endif %}
                         </div>

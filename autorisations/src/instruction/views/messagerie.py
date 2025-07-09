@@ -82,16 +82,16 @@ def instruction_dossier_messagerie(request, num_dossier):
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
 
         # Recherche de la pièce jointe liée au message
-        pj_url = pj_title = None
+        pj_url = pj_title = pj_emplacement = None
         if msg.piece_jointe:
 
             message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
 
             if message_doc and message_doc.id_document:
                 
-                pj_url, pj_title = message_doc.id_document.url_ds, message_doc.id_document.titre
+                pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre,message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement})
 
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
@@ -145,7 +145,7 @@ def envoyer_message_dossier(request, numero):
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     if not dossier.id_ds or not instructeur or not instructeur.id_ds:
-        logger.error(f"[DOSSIER {dossier.numero}] Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas")
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas")
         return HttpResponse("Session incomplète", status=401)
     
     tmp_file_path = None

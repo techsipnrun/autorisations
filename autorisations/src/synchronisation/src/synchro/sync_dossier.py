@@ -48,10 +48,32 @@ def sync_doss(dossier):
         # Dossier Action 'Dossier reçu'
         enregistrer_action(obj, instructeur, "Dossier reçu", date=dossier['date_depot'], description=type_demarche)
 
+        # Dossier en instruction
         if obj.id_etat_dossier.nom == "en_instruction":
             logger.warning(f"Dossier {obj.numero} : Le dossier est apparu en création alors qu'il est déjà 'en_instruction' sur DS. DossierEtape mis à 'En instruction' pour un soucis de cohérence.")
             etape_en_instruction = EtapeDossier.objects.get(etape='En instruction')
             obj.id_etape_dossier = etape_en_instruction
+            obj.save()
+        
+        # Dossier accepté
+        if obj.id_etat_dossier.nom == "accepte":
+            logger.warning(f"Dossier {obj.numero} : Le dossier est apparu en création alors qu'il est déjà 'accepte' sur DS. DossierEtape mis à 'Accepté' pour un soucis de cohérence.")
+            etape_accepte = EtapeDossier.objects.get(etape='Accepté')
+            obj.id_etape_dossier = etape_accepte
+            obj.save()
+
+        # Dossier refusé     
+        if obj.id_etat_dossier.nom == "refuse":
+            logger.warning(f"Dossier {obj.numero} : Le dossier est apparu en création alors qu'il est déjà 'refuse' sur DS. DossierEtape mis à 'Refusé' pour un soucis de cohérence.")
+            etape_refuse = EtapeDossier.objects.get(etape='Refusé')
+            obj.id_etape_dossier = etape_refuse
+            obj.save()
+
+        # Dossier classé sans suite   
+        if obj.id_etat_dossier.nom == "refuse":
+            logger.warning(f"Dossier {obj.numero} : Le dossier est apparu en création alors qu'il est déjà 'sans_suite' sur DS. DossierEtape mis à 'Non soumis à autorisation' pour un soucis de cohérence.")
+            etape_sans_suite = EtapeDossier.objects.get(etape='Non soumis à autorisation')
+            obj.id_etape_dossier = etape_sans_suite
             obj.save()
             
 

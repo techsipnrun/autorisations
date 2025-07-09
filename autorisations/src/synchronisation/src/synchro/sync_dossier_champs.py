@@ -1,7 +1,8 @@
+import os
 from autorisations.models.models_instruction import Dossier, DossierChamp, Champ, ChampType
 from autorisations.models.models_documents import Document
 from ..utils.model_helpers import get_first_id, update_fields
-from ..utils.fichiers import write_geojson, write_pj
+from ..utils.fichiers import get_nom_disponible, write_geojson, write_pj
 import logging
 
 logger = logging.getLogger("SYNCHRONISATION")
@@ -113,8 +114,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
     """
     Synchronise les DossierChamps avec ou sans pièce jointe.
     """
-    if id_dossier == 24628158 :
-        logger.info(dossier_champs)
+
     for ch in dossier_champs:
         dossier_champ = ch["champ"]
         documents = ch.get("documents", [])
@@ -125,27 +125,81 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
         if documents:
             for doc in documents:
-                # Si une pj existe sous le meme nom dans le form on pourrait rentrer en conflit : les deux doc pointraient vers le premier doc créé (meme si le second est différent dans le contenu..)
+                # Si une pj existe sous le meme nom dans le form on pourrait rentrer en conflit : 
+                # les 2 docs pointent vers le premier doc créé (meme si le second est différent dans le contenu..)
 
-                document_obj, doc_created = Document.objects.get_or_create(
-                    emplacement=doc["emplacement"], titre=doc["titre"], id_nature_id=doc["id_nature"],
-                    defaults={
-                        "id_format_id": doc["id_format"],
-                        "url_ds": doc["url_ds"],
-                        "description": doc["description"],
-                    }
-                )
+                # On regarde si le document existe deja en base
+                try:
+                
+                    document_obj = Document.objects.get(
+                                    emplacement=doc["emplacement"],
+                                    titre__startswith=doc["titre"].rsplit('.', 1)[0],  #On garde le titre sans l'extension
+                                    id_nature_id=doc["id_nature"],
+                                    description=doc["description"]
+                                )
+                    
+                    # logger.warning(document_obj)
 
-                if doc_created:
-                    logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {id_champ} du Dossier {id_dossier} créé.")
-                    write_pj(doc["emplacement"], doc["titre"], doc["url_ds"])
+                except Document.DoesNotExist:
+                    # logger.warning("LE DOC N'A PAS ETE TROUVÉ : ")
+                    # logger.warning(f"emplacement= {doc["emplacement"]}, titre__startswith= {doc["titre"]}, id_nature_id= {doc["id_nature"]}, description= {doc["description"]}")
+                    document_obj = None
+                except Exception as e:
+                    logger.error(f"Erreur inattendue lors de la récupération du document : {e}")
+                    document_obj = None
+            
+
+
+                # Si le doc n'existe pas en base
+                if document_obj == None :
+
+                    # Si un autre document existe avec le meme nom et le meme emplacement --> On renomme avec _2 ou _3 ect..
+                    titre_doc = get_nom_disponible(doc["emplacement"], doc["titre"])
+                    # logger.warning(titre_doc)
+
+                    # Création du doc avec le bon titre
+                    document_obj = Document.objects.create(
+                                    emplacement=doc["emplacement"],
+                                    titre=titre_doc,
+                                    id_nature_id=doc["id_nature"],
+                                    id_format_id=doc["id_format"],
+                                    url_ds=doc["url_ds"],
+                                    description=doc["description"]
+                                )
+
+                    logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {id_champ} du Dossier {id_dossier} créé.") 
+                    write_pj(doc['emplacement'], titre_doc, doc["url_ds"])
 
                     champ_obj = DossierChamp.objects.filter(
                         id_dossier_id=id_dossier,
                         id_champ_id=id_champ,
                         id_document__isnull=True
                     ).order_by("id").first()
+        
+                
+                # On a document_obj, on reprend à updated file
 
+                # document_obj, doc_created = Document.objects.get_or_create(
+                #     emplacement=doc["emplacement"], titre=doc["titre"], id_nature_id=doc["id_nature"], 
+                #     defaults={
+                #         "id_format_id": doc["id_format"],
+                #         "url_ds": doc["url_ds"],
+                #         "description": doc["description"],
+                #     }
+                # )
+
+                # if doc_created:
+                #     logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {id_champ} du Dossier {id_dossier} créé.")
+                #     write_pj(doc["emplacement"], doc["titre"], doc["url_ds"])
+
+                #     champ_obj = DossierChamp.objects.filter(
+                #         id_dossier_id=id_dossier,
+                #         id_champ_id=id_champ,
+                #         id_document__isnull=True
+                #     ).order_by("id").first()
+
+
+                # Si le doc existe bien en base
                 else:
                     updated_fields = update_fields(document_obj, {
                         "url_ds": doc["url_ds"],

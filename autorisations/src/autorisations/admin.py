@@ -208,7 +208,7 @@ class DemandeAvisAdmin(admin.ModelAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'titre', 'id_nature', 'id_format', 'numero', 'emplacement')
+    list_display = ('id', 'titre', 'id_nature', 'id_format', 'description', 'numero', 'emplacement')
     list_filter = ('id_nature', 'id_format')
     search_fields = ('titre', 'numero', 'emplacement')
     list_per_page = 30
@@ -343,22 +343,58 @@ admin.site.register(EtatDemarche)
 
 admin.site.register(Priorite)
 
+'''Cette version n'affichait pas toutes les demandes (seulement une partie --> bug d'affichage)'''
+# @admin.register(Demande)
+# class DemandeAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'id_demande_type', 'id_dossier', 'num_dossier', 'id_etat_demande')
+#     list_filter = (
+#         'id_dossier',
+#         'id_etat_demande',
+#         'id_demande_type',
+#         'soumis_controle',
+#     )
+#     search_fields = ('id_dossier__nom_dossier', 'id_dossier__numero')
+#     list_per_page = 20
+
+#     def num_dossier(self, obj):
+#         return obj.id_dossier.numero if obj.id_dossier else "-"
+#     num_dossier.short_description = "N° dossier"
 
 @admin.register(Demande)
 class DemandeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'id_demande_type', 'id_dossier', 'num_dossier', 'id_etat_demande')
+    list_display = ('id', 'type_demande_affichage', 'numero_dossier_affichage', 'etat_demande_affichage')
     list_filter = (
-        'id_dossier',
         'id_etat_demande',
         'id_demande_type',
         'soumis_controle',
+        'id_dossier',
     )
-    search_fields = ('id_dossier__nom_dossier', 'id_dossier__numero')
+
+    search_fields = ('id_dossier__nom_dossier', 'id_dossier__numero', 'id')
     list_per_page = 20
 
-    def num_dossier(self, obj):
-        return obj.id_dossier.numero if obj.id_dossier else "-"
-    num_dossier.short_description = "N° dossier"
+    @admin.display(description="N° dossier")
+    def numero_dossier_affichage(self, obj):
+        try:
+            return obj.id_dossier.numero
+        except:
+            return "(Dossier cassé)"
+        
+    @admin.display(description="Type de demande")
+    def type_demande_affichage(self, obj):
+        try:
+            return obj.id_demande_type.type
+        except:
+            return "(Type de demande cassé)"
+        
+    @admin.display(description="État de la demande")
+    def etat_demande_affichage(self, obj):
+        try:
+            return obj.id_etat_demande.nom
+        except:
+            return "(Type de demande cassé)"
+
+
 
 
 admin.site.register(Demarche)

@@ -117,8 +117,12 @@ def write_pj(emplacement, name, url_pj):
     safe_name = os.path.basename(name)
     chemin_fichier = os.path.join(chemin_dossier, safe_name)
 
+    # chemin_final = get_nom_disponible(chemin_dossier, safe_name)
+    loggerFile.info(f"chemin_fichier : {chemin_fichier}")
+
     try:
         if os.path.exists(chemin_fichier):
+            loggerFile.warning(f"safe_name : {safe_name}  --- chemin_fichier : {chemin_fichier}")
             loggerFile.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucun téléchargement effectué.")
             return
 
@@ -136,6 +140,20 @@ def write_pj(emplacement, name, url_pj):
     
     return chemin_fichier
 
+
+
+def get_nom_disponible(dossier_path, nom_fichier):
+    nom_base, ext = os.path.splitext(nom_fichier)
+    nom_final = nom_base
+    i = 2
+    racine = os.environ.get("ROOT_FOLDER")
+    chemin_complet = os.path.join(racine, dossier_path, nom_fichier)
+    while os.path.exists(chemin_complet):
+        nom_final = f"{nom_base}_{i}"
+        chemin_complet = os.path.join(racine, dossier_path, nom_final + ext)
+        i += 1
+
+    return nom_final + ext
 
 
 
