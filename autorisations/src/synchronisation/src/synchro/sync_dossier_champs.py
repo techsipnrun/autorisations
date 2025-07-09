@@ -115,6 +115,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
     Synchronise les DossierChamps avec ou sans pièce jointe.
     """
 
+    ordre_number = 0
     for ch in dossier_champs:
         dossier_champ = ch["champ"]
         documents = ch.get("documents", [])
@@ -125,10 +126,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
         if documents:
             for doc in documents:
-                # Si une pj existe sous le meme nom dans le form on pourrait rentrer en conflit : 
-                # les 2 docs pointent vers le premier doc créé (meme si le second est différent dans le contenu..)
 
-                # On regarde si le document existe deja en base
+                # On regarde si le document existe deja en base (pour éviter des doublons)
                 try:
                 
                     document_obj = Document.objects.get(
@@ -223,6 +222,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         "date_saisie": dossier_champ["date_saisie"],
                         "geometrie": dossier_champ.get("geometrie"),
                         "id_document_id": document_obj.id,
+                        "ordre": ordre_number,
                     }, date_fields=["date_saisie"])
                     if updated_fields:
                         champ_obj.save()
@@ -235,6 +235,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         valeur=dossier_champ["valeur"],
                         date_saisie=dossier_champ["date_saisie"],
                         geometrie=dossier_champ.get("geometrie"),
+                        ordre=ordre_number,
                     )
                     logger.info(f"[CREATE] Nouveau DossierChamp (champ: {id_champ}, dossier: {id_dossier}) avec PJ.")
 
@@ -249,6 +250,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     "date_saisie": dossier_champ["date_saisie"],
                     "geometrie": dossier_champ.get("geometrie"),
                     "geometrie_a_saisir": dossier_champ.get("geometrie_a_saisir") if dossier_champ.get("geometrie_a_saisir") else False,
+                    "ordre": ordre_number,
                 }
             )
 
@@ -259,7 +261,11 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     "valeur": dossier_champ["valeur"],
                     "date_saisie": dossier_champ["date_saisie"],
                     "geometrie": dossier_champ.get("geometrie"),
+                    "ordre": ordre_number,
                 }, date_fields=["date_saisie"])
                 if updated_fields:
                     champ_obj.save()
                     logger.info(f"[SAVE] DossierChamp (champ: {id_champ}, dossier: {id_dossier}) sans PJ mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+
+        ordre_number+=1
+        # print(f"{champ_obj.id} : {champ_obj.ordre}")

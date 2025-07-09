@@ -34,6 +34,9 @@ def sync_messages(messages, id_dossier):
 
         if created:
             logger.info(f"[CREATE] Message {msg_obj.id_ds} pour Dossier {id_dossier} créé.")
+            # Si étapes = Accepté ou Refusé ou Non soumis à autorisation
+                # Le péti renvoi un msg sur son dossier deja traité
+                
         else:
             updated_fields = update_fields(msg_obj, {
                 "body": message_data["body"],

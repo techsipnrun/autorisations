@@ -68,7 +68,7 @@ def preinstruction_dossier(request, numero):
 
     nb_cartes = 0
     champs_prepares = []
-    for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type", "id_document").order_by("id"):
+    for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type", "id_document").order_by("ordre"):
 
         ct = champ.id_champ.id_champ_type.type
         nom = champ.id_champ.nom
