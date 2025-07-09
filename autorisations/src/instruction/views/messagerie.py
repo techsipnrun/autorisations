@@ -232,7 +232,7 @@ def actualiser_messages(request, numero):
         sync_messages(messages_norm, dossier.id)
 
         logger.info(f"[DOSSIER {numero}] Actualisation des messages réussie par {request.user}.")
-        return redirect('preinstruction_dossier_messagerie', numero=numero)
+        return redirect(request.META.get("HTTP_REFERER", "/"))
     
     except Exception as e:
         logger.exception(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user}: {e}")

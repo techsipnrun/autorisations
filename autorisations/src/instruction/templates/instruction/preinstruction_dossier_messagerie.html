@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page de pré-instruction</title>
+    <title>Messagerie</title>
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier_messagerie.css' %}">
@@ -14,20 +14,16 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-
     {% breadcrumb breadcrumb_items %}
     
     <div class="page-container">
 
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
-
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
-
             <div class="etat-badge-menu">
                 {{ dossier.id_etape_dossier }}
             </div> 
-
 
             <div class="refresh-messages">
                 <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
@@ -38,7 +34,6 @@
                     </button>
                 </form>
             </div>
-            
             
             <div class="chat-container">
                 {% for msg in messages %}
@@ -61,15 +56,12 @@
                                     <button type="submit" class="delete-button"></button>
                                 </form>
                             {% endif %}
-
                         </span>
-
                     </div>
                 {% empty %}
                     <p>Aucun message pour ce dossier.</p>
                 {% endfor %}
             </div>
-
 
             <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
                 {% csrf_token %}
@@ -82,10 +74,7 @@
                     </div>
                     <button type="submit">Envoyer</button>
                 </div>
-                
             </form>
-            
-
         </div>
 
         <!-- Colonne droite : navigation -->
@@ -105,7 +94,6 @@
                     </a>
                 </div>
                 
-                
                 <!-- Lien dossier à droite -->
                 <div class="lien_dossier">
                     <a href="#"><img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier"></a>
@@ -124,10 +112,10 @@
                 {% endif %}
                
             </div>
-
         </div>
     </div>
 
+    <!-- Bouton pendant l'envoi du message -->
     <script>
         window.addEventListener('load', function() {
             const chatContainer = document.querySelector('.chat-container');
@@ -145,6 +133,7 @@
         });
     </script>
     
+    <!-- Bouton pour actualiser la messagerie -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const refreshForm = document.querySelector(".refresh-messages form");
@@ -161,8 +150,6 @@
             }
         });
     </script>
-
-    
 
 </body>
 </html>

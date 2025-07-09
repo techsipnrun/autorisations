@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page d'accueil de l'application</title>
+    <title>Page d'instruction d'un dossier</title>
 
     <!-- CSS -->
     <!-- <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}"> -->
@@ -22,7 +22,6 @@
 
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
 </head>
 
 
@@ -31,7 +30,6 @@
     {% include 'timeline.html' with numero_dossier=dossier.numero %}
 
     <div class="page_instruction_dossier">
-
         {% breadcrumb breadcrumb_items %}
 
         <div class="refresh-doss">
@@ -45,19 +43,18 @@
         </div>
         
         <div class="page-container">
-            
+
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
-
                 <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }} </h1>
 
                 {% if not dossier.present_sur_ds %}
                     <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
                 {% endif %}
 
-
                 <div class="etat-badge-container">
-                <div class="etat-badge-menu-dropdown">
+                    <div class="etat-badge-menu-dropdown">
+
                         <div class="etat-badge-label" id="etapeMenuToggle">
                             {{ etape_actuelle.etape|default:"Non défini" }}
                             <span class="dropdown-arrow">&#9660;</span>
@@ -75,19 +72,18 @@
                                         
                                         {% elif label == "Classer le dossier comme refusé" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
+
                                         {% elif label == "Envoyer l'acte" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte</button>
 
                                         {% elif label == "Repasser en instruction" %}
-
-                                                <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
-                                                </form>
+                                            <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                <button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
+                                            </form>
                                         
                                         {% elif label == "Classer le dossier comme accepté" %}
-
                                             <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
@@ -108,7 +104,6 @@
                                 {% endif %}
                             {% endwith %}
                         </div>
-
                     </div>
 
                     {% if peut_se_declarer %}
@@ -116,12 +111,12 @@
                             {% csrf_token %}
                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
                             <input type="hidden" name="instructeur_id" value="{{ instructeur_connecte.id }}">
+
                             <button type="submit" class="btn-declarer">
                                 Se déclarer comme instructeur.trice du dossier
                             </button>
                         </form>
                     {% endif %}
-
                 </div>
 
                 <!-- Zone masquée pour la demande de compléments -->
@@ -162,7 +157,7 @@
                     </form>
                 </div>
 
-                <!-- Zone masquée pour accepter l'acte -->
+                <!-- Zone masquée pour envoyer l'acte -->
                 <div id="formulaire-acceptation" class="zone-complement">
                     <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_url' %}">
                         {% csrf_token %}
@@ -175,7 +170,6 @@
                         </div>
                     </form>
                 </div>
-
 
                 <div class="champs">
                     {% for champ in champs %}
@@ -207,10 +201,11 @@
                                 {% endif %}
                             {% endif %}
 
-
+                        <!-- Champs classiques -->
                         {% elif champ.type == 'champ' %}
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
-
+                        
+                        <!-- Champs carto -->
                         {% elif champ.type == 'carte' %}
                             <div class="titre-carte-avec-bouton">
                                 <h2>{{ champ.nom }}</h2>
@@ -220,37 +215,32 @@
                             <div class="carte-container">
                                 <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
                             </div>
-
+                        
+                        <!-- Champs pièces justificatives -->
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
-
                                 <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
-                                <!-- <p><strong>{{ champ.nom }}</strong> : <a href="{{champ.url}}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p> -->
-
+                               
                                 {% with champ.emplacement_doc|lower as path %}
                                     {% if path|slice:"-4:" == ".png" or path|slice:"-4:" == ".jpg" or path|slice:"-5:" == ".jpeg" or path|slice:"-4:" == ".svg" %}
                                         <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" alt="Aperçu PJ">
                                     {% endif %}
                                 {% endwith %}
-
                             </div>
-                            
+                        
+                        <!-- Champs Liste à choix simple -->
                         {% elif champ.type == 'drop_down_list' %}
-
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
-
+                            
                             {% if champ.geometrie_a_saisir == 'oui' %}
-                                
                                 <div class="titre-carte-avec-bouton">
                                     <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
                                 </div>
-                                
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
                                 </div>
 
                             {% elif champ.geometrie_a_saisir == 'non' %}
-                               
                                 <div class="titre-carte-avec-bouton">
                                     <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
                                 </div>
@@ -263,13 +253,11 @@
                         {% endif %}
                     {% endfor %}
                 </div>
-                
             </div>
 
             <!-- Colonne droite : navigation -->
             <div class="nav_preinstruction">
                 <div class="nav_top">
-                
                     <div class="form_messagerie">
                         <a href="#">
                             <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
@@ -288,14 +276,12 @@
                         </a>
                     </div>
                     
-                    
                     <!-- Lien dossier à droite -->
                     <div class="lien_dossier">
                         <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>
                     </div>
-
                 </div>
 
                 {% if dossier.id_groupeinstructeur %}
@@ -313,10 +299,10 @@
                                             {% csrf_token %}
                                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
                                             <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+
                                             <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
                                                 <span class="croix-retirer">✕</span>
                                             </button>
-
                                         </form>
                                     </li>
                                     {% if retirer_instructeur_message %}
@@ -334,6 +320,7 @@
                                             {% csrf_token %}
                                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
                                             <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+
                                             <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
                                                 <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
                                             </button>
@@ -393,14 +380,16 @@
                         <ul class="liste-annexes-instructeur">
                             {% for annexe in annexes_instructeur %}
                                 <li class="annexe-item">
-                                
+                                    
+                                    <!-- Nom annexe instructeur -->
                                     <a class="annexe-texte"
                                         href="{% url 'afficher_annexe' chemin=annexe.emplacement %}"
                                         target="_blank"
                                         rel="noopener noreferrer">
                                         📎 {{ annexe.titre }}
                                     </a>
-                                    
+
+                                    <!-- Supprimer annexe instructeur -->
                                     <form method="post" action="{% url 'supprimer_annexe_instructeur' %}" class="form-supprimer-annexe">
                                         {% csrf_token %}
                                         <input type="hidden" name="document_id" value="{{ annexe.id }}">
@@ -408,7 +397,8 @@
                                         <button type="button" class="btn-supprimer-annexe" title="Supprimer l'annexe"
                                                 onclick="confirmerSuppressionAnnexe(this)">✕</button>
                                     </form>
-
+                                    
+                                    <!-- Copier path annexe instructeur -->
                                     <button type="button" class="btn-copier-chemin"
                                             onclick="copierPath(this, '{{ ROOT_FOLDER }}{{ annexe.emplacement }}')"
                                             title="Copier le chemin">📋</button>
@@ -420,7 +410,7 @@
                         </ul>
                     {% endif %}
 
-
+                    <!-- Notes -->
                     {% for n in notes %}
                         <div class="note-item">
                             <p class="note-meta">
@@ -574,6 +564,7 @@
         });
     </script>
 
+    <!-- Copier le path de l'annexe instructeur -->
     <script>
         function copierPath(button, path) {
             navigator.clipboard.writeText(path)
@@ -589,8 +580,6 @@
                     alert("Erreur lors de la copie du chemin : " + err);
                 });
         }
-
-        
     </script>
 
     <!-- Bouton actualiser -->

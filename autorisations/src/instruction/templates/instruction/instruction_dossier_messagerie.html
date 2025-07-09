@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page de pré-instruction</title>
+    <title>Messagerie</title>
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
@@ -14,31 +14,26 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-
     {% breadcrumb breadcrumb_items %}
     
     <div class="page-container">
-
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
-
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
-
+            
             <div class="etat-badge-menu">
                 {{ dossier.id_etape_dossier }}
             </div> 
-
-
+            
             <div class="refresh-messages">
                 <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
                     {% csrf_token %}
-                    <button type="submit" class="refresh-button">
+                    <button type="submit" class="refresh-button" id="btn-refresh-messages">
                         <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
                         Actualiser
                     </button>
                 </form>
             </div>
-            
             
             <div class="chat-container">
                 {% for msg in messages %}
@@ -63,7 +58,6 @@
                                     <button type="submit" class="delete-button"></button>
                                 </form>
                             {% endif %}
-
                         </span>
 
                     </div>
@@ -71,7 +65,6 @@
                     <p>Aucun message pour ce dossier.</p>
                 {% endfor %}
             </div>
-
 
             <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
                 {% csrf_token %}
@@ -84,10 +77,7 @@
                     </div>
                     <button type="submit">Envoyer</button>
                 </div>
-                
             </form>
-            
-
         </div>
 
         <!-- Colonne droite : navigation -->
@@ -131,10 +121,10 @@
                 {% endif %}
                
             </div>
-
         </div>
     </div>
 
+    <!-- Bouton pendant l'envoi du message -->
     <script>
         window.addEventListener('load', function() {
             const chatContainer = document.querySelector('.chat-container');
@@ -151,8 +141,24 @@
             });
         });
     </script>
-    
-    
+
+    <!-- Bouton pour actualiser la messagerie -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const refreshForm = document.querySelector(".refresh-messages form");
+            const refreshButton = document.getElementById("btn-refresh-messages");
+
+            if (refreshForm && refreshButton) {
+                refreshForm.addEventListener("submit", function () {
+                    refreshButton.disabled = true;
+                    refreshButton.innerHTML = `
+                        <img src="{% static 'instruction/img/actualiser.png' %}" class="refresh-icon" />
+                        Traitement en cours...
+                    `;
+                });
+            }
+        });
+    </script>
 
 </body>
 </html>

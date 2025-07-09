@@ -127,27 +127,20 @@
                     
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
-                                <!-- <p>{{ champ.emplacement_doc }}</p> -->
-                                <!-- <p><strong>{{ champ.nom }}</strong> : <a href="{{champ.url}}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p> -->
+
                                 <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
-                                <!-- <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" alt="Aperçu PJ"> -->
 
                                 {% with champ.emplacement_doc|lower as path %}
                                     {% if path|slice:"-4:" == ".png" or path|slice:"-4:" == ".jpg" or path|slice:"-5:" == ".jpeg" or path|slice:"-4:" == ".svg" %}
                                         <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" alt="Aperçu PJ" class="apercu_PJ">
                                     {% endif %}
                                 {% endwith %}
-
                             </div>
 
-                            
-                            
                         {% elif champ.type == 'drop_down_list' %}
-
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
 
                             {% if champ.geometrie_a_saisir == 'oui' %}
-                                
                                 <div class="titre-carte-avec-bouton">
                                     <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
                                 </div>
@@ -157,7 +150,6 @@
                                 </div>
 
                             {% elif champ.geometrie_a_saisir == 'non' %}
-                                
                                 <div class="titre-carte-avec-bouton">
                                     <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
                                 </div>
@@ -165,13 +157,11 @@
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
                                 </div>
+
                             {% endif %}
-
                         {% endif %}
-
                     {% endfor %}
                 </div>
-                
             </div>
 
             <!-- Colonne droite : navigation -->
@@ -198,7 +188,6 @@
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>
                     </div>
-
                 </div>
                 
                 {% if dossier.id_groupeinstructeur %}
@@ -357,12 +346,11 @@
 </body>
 
 
- 
 <!-- 1. Données JSON pour le fond de carte -->
 {{ coeurData|json_script:"fond-data" }}
 {{ adhesionData|json_script:"adhesion-data" }}
 
-<!-- 2. Variables globales accessibles à ton JS -->
+<!-- 2. Variables globales accessibles pour le fichier JS -->
 <script> 
     window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
     window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
@@ -392,152 +380,114 @@
 <script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
 
 
-<!-- Menu déroulant pour l'historisation et le passage en instruction -->
-
 <script>
-
-    // function afficherFormulaireAction(action) {
-    //     // Cacher tous les formulaires
-    //     document.querySelectorAll('.etat-message').forEach(div => div.style.display = 'none');
-
-    //     // Afficher le bon formulaire
-    //     const cible = document.getElementById(`form-${action}`);
-    //     if (cible) {
-    //         cible.style.display = 'block';
-    //     }
-    // }
-
-    // Boutons
-    // document.querySelectorAll(".action-btn").forEach(btn => {
-    //     btn.addEventListener("click", function () {
-    //         const action = this.dataset.action;
-    //         afficherFormulaireAction(action);
-
-    //         // Toggle active sur les boutons
-    //         document.querySelectorAll(".action-btn").forEach(b => b.classList.remove("active"));
-    //         this.classList.add("active");
-    //     });
-        
-    // });
-
-    // Au chargement
-    // if (currentAction) {
-    //     afficherFormulaireAction(currentAction);
-    //     const btnActif = document.querySelector(`.action-btn[data-action="${currentAction}"]`);
-    //     if (btnActif) {
-    //         btnActif.classList.add("active");
-    //     }
-    // }
-
-
+    // Ouverture et fermeture du menu déroulant des étapes du dossier
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleBtn = document.getElementById("etatMenuToggle");
+        const menuContent = document.getElementById("etatMenuContent");
+        const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
+    
+        toggleBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            menuContent.classList.toggle("show");
+            dropdownWrapper.classList.toggle("open");
+        });
+    
+        document.addEventListener("click", function () {
+            menuContent.classList.remove("show");
+            dropdownWrapper.classList.remove("open");
+        });
+    });
 </script>
 
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const toggleBtn = document.getElementById("etatMenuToggle");
-            const menuContent = document.getElementById("etatMenuContent");
-            const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
-        
-            toggleBtn.addEventListener("click", function (e) {
-                e.stopPropagation();
-                menuContent.classList.toggle("show");
-                dropdownWrapper.classList.toggle("open");
-            });
-        
-            document.addEventListener("click", function () {
-                menuContent.classList.remove("show");
-                dropdownWrapper.classList.remove("open");
-            });
-        });
-    </script>
+<!-- POP UP de validation du changement de groupe instructeur -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const select = document.getElementById("select-changer-groupe");
+        const form = document.getElementById("form-changer-groupe");
 
+        select.addEventListener("change", function() {
+            const selectedOption = select.options[select.selectedIndex].text;
+            const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
 
-    <!-- POP UP de validation du changement de groupe instructeur -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const select = document.getElementById("select-changer-groupe");
-            const form = document.getElementById("form-changer-groupe");
-
-            select.addEventListener("change", function() {
-                const selectedOption = select.options[select.selectedIndex].text;
-                const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
-
-                if (confirmed) {
-                    form.submit();
-                } else {
-                    // Réinitialise le select sur le placeholder
-                    select.selectedIndex = 0;
-                }
-            });
-        });
-    </script>
-    
-
-    <!-- Annulation ou écrasage du document en cas de doublon -->
-   {{ emplacements_documents|json_script:"emplacements-existants" }}
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const input = document.getElementById("file-upload");
-            const dossierEmplacement = "{{ dossier.emplacement }}";
-            const emplacements = JSON.parse(document.getElementById("emplacements-existants").textContent);
-
-            input.addEventListener("change", function () {
-                const fichier = input.files[0];
-                if (!fichier) return;
-
-                const emplacement = `${dossierEmplacement}/Annexes/${fichier.name}`;
-
-                if (emplacements.includes(emplacement)) {
-                    const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà. Voulez-vous le remplacer ?`);
-                    if (!confirmReplace) {
-                        input.value = "";  // On annule la sélection
-                    }
-                }
-            });
-        });
-    </script>
-
-    
-
-    <script>
-        function copierPath(button, path) {
-            navigator.clipboard.writeText(path)
-                .then(() => {
-                    const feedback = button.nextElementSibling;
-                    feedback.classList.add("show");
-
-                    setTimeout(() => {
-                        feedback.classList.remove("show");
-                    }, 2000); // disparaît après 2 secondes
-                })
-                .catch(err => {
-                    alert("Erreur lors de la copie du chemin : " + err);
-                });
-        }
-    </script>
-
-    <!-- Bouton actualiser -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const refreshForm = document.querySelector(".refresh-doss form");
-            const refreshButton = document.querySelector(".refresh-button");
-
-            refreshForm.addEventListener("submit", function () {
-                refreshButton.disabled = true;
-                refreshButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
-            });
-        });
-    </script>
-
-    <script>
-        // Pour confirmer la supression d'une Annexe instructeur (note)
-        function confirmerSuppressionAnnexe(bouton) {
-            const ok = confirm("Êtes-vous sûr de vouloir supprimer définitivement cette annexe du dossier ?");
-            if (ok) {
-                bouton.closest("form").submit();
+            if (confirmed) {
+                form.submit();
+            } else {
+                // Réinitialise le select sur le placeholder
+                select.selectedIndex = 0;
             }
+        });
+    });
+</script>
+    
+
+<!-- Annulation ou écrasage du document (annexe instructeur) en cas de doublon -->
+{{ emplacements_documents|json_script:"emplacements-existants" }}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("file-upload");
+        const dossierEmplacement = "{{ dossier.emplacement }}";
+        const emplacements = JSON.parse(document.getElementById("emplacements-existants").textContent);
+
+        input.addEventListener("change", function () {
+            const fichier = input.files[0];
+            if (!fichier) return;
+
+            const emplacement = `${dossierEmplacement}/Annexes/${fichier.name}`;
+
+            if (emplacements.includes(emplacement)) {
+                const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà. Voulez-vous le remplacer ?`);
+                if (!confirmReplace) {
+                    input.value = "";  // On annule la sélection
+                }
+            }
+        });
+    });
+</script>
+
+    
+<!-- Copier le path de l'annexe instructeur -->
+<script>
+    function copierPath(button, path) {
+        navigator.clipboard.writeText(path)
+            .then(() => {
+                const feedback = button.nextElementSibling;
+                feedback.classList.add("show");
+
+                setTimeout(() => {
+                    feedback.classList.remove("show");
+                }, 2000); // affichage du "Copié !" pedant 2sec
+            })
+            .catch(err => {
+                alert("Erreur lors de la copie du chemin : " + err);
+            });
+    }
+</script>
+
+
+<!-- Pour confirmer la supression d'une Annexe instructeur (note) -->
+<script>
+    function confirmerSuppressionAnnexe(bouton) {
+        const ok = confirm("Êtes-vous sûr de vouloir supprimer définitivement cette annexe du dossier ?");
+        if (ok) {
+            bouton.closest("form").submit();
         }
-    </script>
+    }
+</script>
+
+
+<!-- Bouton actualiser -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const refreshForm = document.querySelector(".refresh-doss form");
+        const refreshButton = document.querySelector(".refresh-button");
+
+        refreshForm.addEventListener("submit", function () {
+            refreshButton.disabled = true;
+            refreshButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
+        });
+    });
+</script>
 
 </html>

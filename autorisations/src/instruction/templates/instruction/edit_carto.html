@@ -27,7 +27,6 @@
 <body>
     
     {% include 'navbar.html' %}
-
     {% breadcrumb breadcrumb_items %}
 
     <div class="header-retour">
@@ -42,8 +41,6 @@
       {% endif %}
       <h1>Édition de la géométrie du dossier {{ numero_dossier }}</h1>
     </div>
-
-
 
     <!-- Enregistrement : Message de succès ou d'erreur -->
     {% if request.GET.msg %}
@@ -63,14 +60,15 @@
     <!-- La carte ne contient rien pour l’instant -->
     <div class="carte" data-geojson=""></div>
 
-      <form method="post" action="{% url 'enregistrer_geom' %}" id="form-geom">
-        {% csrf_token %}
-        <input type="hidden" name="dossier_numero" value="{{ numero_dossier }}">
-        <input type="hidden" name="id_champ" value="{{ id_champ }}">
-        <input type="hidden" name="geojson_geom" id="geom-result">
-        <input type="hidden" name="nb_cartes" value="{{ nb_cartes }}">
-        <button type="button" id="valider-geom" class="btn-sur-carte">✅ Valider la géométrie</button>
-      </form>
+    <!-- Bouton Valider la géométrie -->
+    <form method="post" action="{% url 'enregistrer_geom' %}" id="form-geom">
+      {% csrf_token %}
+      <input type="hidden" name="dossier_numero" value="{{ numero_dossier }}">
+      <input type="hidden" name="id_champ" value="{{ id_champ }}">
+      <input type="hidden" name="geojson_geom" id="geom-result">
+      <input type="hidden" name="nb_cartes" value="{{ nb_cartes }}">
+      <button type="button" id="valider-geom" class="btn-sur-carte">✅ Valider la géométrie</button>
+    </form>
 
   </div>
 
@@ -100,7 +98,8 @@
         const script = document.createElement("script");
         script.src = "{% static 'instruction/js/carto_test.js' %}";
         script.onload = () => {
-          // ✅ Appeler setupValidationButton ici, une fois le script chargé
+
+          // Appeler setupValidationButton ici, une fois le script chargé
           if (typeof setupValidationButton === "function") {
             setupValidationButton();
           } else {

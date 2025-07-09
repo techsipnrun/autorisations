@@ -22,9 +22,7 @@
             <img src="{% static 'instruction/img/timeline/timeline.png' %}" alt="Timeline Logo" class="timeline-logo">
         </div>
 
-
         <div class="sidebar-content">
-
             <div class="timeline-vertical-line"></div>
             
             {% for action in dossier_actions %}
@@ -34,10 +32,6 @@
                     <img src="{% static 'instruction/img/timeline/' %}{{ action.logo }}"
                     class="action-logo"
                     alt="{{ action.id_action.action }}">
-
-
-
-
 
                     <div class="timeline-text">
                         <div class="timeline-date">{{ action.date|date:"d/m/Y H:i" }}</div>
@@ -55,7 +49,6 @@
                                 </span>
                             {% endif %}
                         </div>
-
 
                         {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" and action.id_action.action != "Dossier reçu" and action.id_action.action != "Affectation au groupe" and action.id_action.action != "Validé avant signature" and action.id_action.action != "Validé avant demande d'avis" %}
                             {% with full_name=action.id_instructeur.id_agent_autorisations.nom|add:action.id_instructeur.id_agent_autorisations.prenom %}
@@ -76,27 +69,27 @@
 </body>
 
 
-
-
 <script>
+    // ----------- SIDEBAR : Effet de survol sur le menu latéral -----------
     document.addEventListener("DOMContentLoaded", function () {
         const sidebar = document.getElementById("left-sidebar");
-        const page_instruction_dossier = document.querySelector(".page_instruction_dossier");
-        const page_preinstruction_dossier = document.querySelector(".page_preinstruction_dossier");
+        const pageInstruction = document.querySelector(".page_instruction_dossier");
+        const pagePreinstruction = document.querySelector(".page_preinstruction_dossier");
 
         sidebar.addEventListener("mouseenter", () => {
             sidebar.classList.add("expanded");
-            if (page_instruction_dossier) page_instruction_dossier.classList.add("faded");
-            if (page_preinstruction_dossier) page_preinstruction_dossier.classList.add("faded");
+            if (pageInstruction) pageInstruction.classList.add("faded");
+            if (pagePreinstruction) pagePreinstruction.classList.add("faded");
         });
 
         sidebar.addEventListener("mouseleave", () => {
             sidebar.classList.remove("expanded");
-            if (page_instruction_dossier) page_instruction_dossier.classList.remove("faded");
-            if (page_preinstruction_dossier) page_preinstruction_dossier.classList.remove("faded");
+            if (pageInstruction) pageInstruction.classList.remove("faded");
+            if (pagePreinstruction) pagePreinstruction.classList.remove("faded");
         });
     });
 
+    // ----------- TIMELINE : Ajustement de la hauteur de la ligne verticale -----------
     function updateTimelineHeight() {
         const sidebarContent = document.querySelector(".sidebar-content");
         const timelineLine = document.querySelector(".timeline-vertical-line");
@@ -110,18 +103,16 @@
     document.addEventListener("DOMContentLoaded", () => {
         updateTimelineHeight();
 
+        // Recalcule la hauteur au survol de la sidebar
         const sidebar = document.getElementById("left-sidebar");
         sidebar.addEventListener("mouseenter", () => {
             updateTimelineHeight();
         });
 
-        // si tu as du contenu qui se charge dynamiquement :
+        // Recalcule la hauteur si redimensionnement de la fenêtre
         window.addEventListener("resize", updateTimelineHeight);
     });
-
 </script>
-
-
 
 
 </html>

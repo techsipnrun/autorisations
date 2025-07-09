@@ -59,3 +59,8 @@
 .lien_dossier img:hover {
     transform: scale(1.1);
 }
+
+.refresh-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}

@@ -11,17 +11,10 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}">
-
-    <!-- Bouton actualiser -->
-    <!-- <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}"> -->
-    <!-- JS pour l'actualisation -->
-    <!-- <script src="{% static 'instruction/js/preinstruction_actualiser.js' %}"></script> -->
-
 </head>
 
 <body>
     {% include 'navbar.html' %}
-
     {% breadcrumb breadcrumb_items %}
 
     <h1>{{ demarche.titre }}</h1>
@@ -46,7 +39,6 @@
       </form>
     </div>
     
-
     <table class="table_demarche_instru">
         <thead>
           <tr>
@@ -116,12 +108,7 @@
         </table>
     </div>
 
-          
-
-
-
-
-
+    <!-- Pour rendre les lignes cliquables -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll(".clickable-row").forEach(function (row) {
@@ -135,6 +122,7 @@
         });
     </script>
 
+    <!-- Bouton actualiser -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
           const syncForm = document.querySelector("form[action*='synchroniser']");
@@ -146,7 +134,6 @@
           });
       });
   </script>
-
 
 </body>
 </html>
