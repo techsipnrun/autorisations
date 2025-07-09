@@ -8,7 +8,7 @@ Application Django visant à simplifier le **suivi**, **l'instruction** et **l�
 
 Le processus d’instruction suit une séquence définie, du dépôt initial jusqu’à l’archivage :
 
-![Logigramme de l'instruction](medias/Logigramme_instruction.jpg)
+![Logigramme de l'instruction](medias/LogigrammeV2.png)
 
 ---
 
