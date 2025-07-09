@@ -302,10 +302,19 @@
                                         rel="noopener noreferrer">
                                         📎 {{ annexe.titre }}
                                     </a>
+                                    
+                                    <form method="post" action="{% url 'supprimer_annexe_instructeur' %}" class="form-supprimer-annexe">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="document_id" value="{{ annexe.id }}">
+                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                        <button type="button" class="btn-supprimer-annexe" title="Supprimer l'annexe"
+                                                onclick="confirmerSuppressionAnnexe(this)">✕</button>
+                                    </form>
 
                                     <button type="button" class="btn-copier-chemin"
                                             onclick="copierPath(this, '{{ ROOT_FOLDER }}{{ annexe.emplacement }}')"
                                             title="Copier le chemin">📋</button>
+                                    
                                     <span class="copie-feedback">Copié !</span>
                                 </li>
                             {% endfor %}
@@ -489,19 +498,7 @@
         });
     </script>
 
-    <!-- bouton copier path annexe instructeur -->
-    <!-- <script>
-        function copierPath(path) {
-            navigator.clipboard.writeText(path)
-                .then(() => {
-                    console.log("Chemin copié :", path);
-                })
-                .catch(err => {
-                    alert("Erreur lors de la copie : " + err);
-                });
-        }
-
-    </script> -->
+    
 
     <script>
         function copierPath(button, path) {
@@ -531,6 +528,16 @@
                 refreshButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
             });
         });
+    </script>
+
+    <script>
+        // Pour confirmer la supression d'une Annexe instructeur (note)
+        function confirmerSuppressionAnnexe(bouton) {
+            const ok = confirm("Êtes-vous sûr de vouloir supprimer définitivement cette annexe du dossier ?");
+            if (ok) {
+                bouton.closest("form").submit();
+            }
+        }
     </script>
 
 </html>

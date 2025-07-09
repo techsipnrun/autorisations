@@ -651,15 +651,59 @@ textarea[name="note"] {
     opacity: 1;
 }
 
-.copie-feedback {
+/* .copie-feedback {
     opacity: 0;
     margin-left: 0.5rem;
     color: green;
     font-weight: bold;
     transition: opacity 0.3s ease;
     font-size: 0.9rem;
-}
+} */
 
 .copie-feedback.show {
     opacity: 1;
+    transform: scale(1);
 }
+
+.copie-feedback {
+    display: inline-block;
+    opacity: 0;
+    margin: 0 0.3rem;
+    transform: scale(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    color: green;
+    font-weight: bold;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.btn-copier-chemin:hover {
+    transform: scale(1.2);
+}
+
+
+/* Bouton supprimer Annexe */
+.btn-supprimer-annexe {
+    background: none;
+    border: none;
+    color: red;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.annexe-item:hover .btn-supprimer-annexe {
+    opacity: 1;
+}
+
+.form-supprimer-annexe {
+    display: inline;
+    margin-left: 0.3rem;
+}
+
+
+.btn-supprimer-annexe:hover {
+    transform: scale(1.2);
+}
+

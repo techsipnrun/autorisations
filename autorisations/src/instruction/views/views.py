@@ -467,3 +467,32 @@ def afficher_annexe(request, chemin):
 
     except Exception as e:
         raise Http404("Erreur d'accès au fichier : " + str(e))
+
+
+@require_POST
+@login_required
+def supprimer_annexe_instructeur(request):
+    document_id = request.POST.get("document_id")
+    dossier_id = request.POST.get("dossier_id")
+
+    doc = get_object_or_404(Document, id=document_id, id_nature__nature__iexact="Annexe instructeur")
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+
+    try:
+        # Supprimer le lien
+        DossierDocument.objects.filter(id_dossier=dossier, id_document=doc).delete()
+
+        # Supprimer le fichier physique
+        chemin_fichier = os.path.join(os.getenv("ROOT_FOLDER"), doc.emplacement)
+        if os.path.exists(chemin_fichier):
+            os.remove(chemin_fichier)
+
+        # Supprimer le document
+        doc.delete()
+
+        logger.info(f"[DOSSIER {dossier.numero}] Annexe instructeur supprimée : {doc.titre} par {request.user}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur suppression annexe instructeur ({doc.titre}) par {request.user} : {e}")
+        raise
