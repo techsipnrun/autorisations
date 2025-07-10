@@ -11,5 +11,247 @@
 <body>
     {% include 'navbar.html' %}
     <h1>Page de requêtes</h1>
+
+    <div class="recherche_filtre">
+        <form method="get" class="recherche-form" id="recherche-form" id="recherche-form">
+
+            <div class="form-field">
+                <label for="numero">N° Dossier :</label>
+                <input type="text" name="numero" id="numero" list="suggestions-numero" autocomplete="off" value="{{ request.GET.numero }}">
+                <datalist id="suggestions-numero"></datalist>
+            </div>
+
+
+            <div class="form-field">
+                <label for="date_depot">Date de dépôt :</label>
+                <input type="date" name="date_depot" id="date_depot" value="{{ request.GET.date_depot }}">
+            </div>
+
+            <div class="form-field">
+                <label for="etape">Étape dossier :</label>
+                <select name="etape" id="etape">
+                    <option value="" disabled {% if not request.GET.etape %}selected{% endif %}>Choisir une étape</option>
+                    {% for etape in etapes_dossier %}
+                        <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
+                    {% endfor %}
+                </select>
+
+            </div>
+
+            <div class="form-field">
+                <label for="nom">Bénéficiaire :</label>
+                <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ request.GET.nom }}">
+                <datalist id="suggestions-nom"></datalist>
+            </div>
+
+            <div class="form-field">
+                <label for="groupe">Groupe Instructeur :</label>
+                <select name="groupe" id="groupe">
+                    <option value="" disabled {% if not request.GET.groupe %}selected{% endif %}>Choisir un groupe</option>
+                    {% for g in groupes %}
+                        <option value="{{ g.nom }}" {% if request.GET.groupe == g.nom %}selected{% endif %}>{{ g.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="type_demarche">Type de démarche :</label>
+               <select name="type_demarche" id="type_demarche">
+                    <option value="" disabled {% if not request.GET.type_demarche %}selected{% endif %}>Choisir une démarche</option>
+                    {% for d in demarches %}
+                        <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="annee">Année :</label>
+                <select name="annee" id="annee">
+                    <option value="" disabled {% if not request.GET.annee %}selected{% endif %}>Choisir une année</option>
+                    {% for an in annees %}
+                        <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="instructeur">Instructeur :</label>
+                <input type="text" name="instructeur" id="instructeur" list="suggestions-instructeur" autocomplete="off" value="{{ request.GET.instructeur }}">
+                <datalist id="suggestions-instructeur"></datalist>
+            </div>
+
+
+
+        </form>
+
+        <div class="form-button-bottom">
+            <button type="submit" form="recherche-form">Rechercher</button>
+        </div>
+
+    </div>
+
+    {% if recherche_effectuee %}
+        <div class="resultat">
+
+            {% if dossiers %}
+                <p class="result-count">{{ dossiers|length }} dossier{{ dossiers|length|pluralize:"s" }} trouvé{{ dossiers|length|pluralize:"s" }} :</p>
+            {% else %}
+                <p class="result-count">Aucun dossier trouvé.</p>
+            {% endif %}
+
+
+            <table class="table-resultats">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Nom dossier</th>
+                        <th>Démarche</th>
+                        <th>Étape</th>
+                        <th>Date dépôt</th>
+                        <th>Groupe Instructeur</th>
+                        <th>Bénéficiaire</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dossier in dossiers %}
+                    <tr onclick="window.location.href='/instruction/{{ dossier.numero}}'" class="clickable-row">
+                    <tr onclick="window.location.href='{% if dossier.id_etape_dossier.etape == 'À affecter' %}/preinstruction/{{ dossier.numero }}/{% else %}/instruction/{{ dossier.numero }}{% endif %}'" class="clickable-row">
+
+                        <td>{{ dossier.numero }}</td>
+                        <td>{{ dossier.nom_dossier }}</td>
+                        <td>{{ dossier.id_demarche.type }}</td>
+                        <td>{{ dossier.id_etape_dossier.etape }}</td>
+                        <td>{{ dossier.date_depot|date:"d/m/Y" }}</td>
+                        <td>{{ dossier.id_groupeinstructeur.nom }}</td>
+                        <td>
+                            {% with dossier.dossierinterlocuteur_set.first as interlocuteur %}
+                                {% if interlocuteur %}
+                                    {% with interlocuteur.dossierbeneficiaire_set.first.id_beneficiaire as b %}
+                                        {% if b %}
+                                            {% if b.raison_sociale %}
+                                                {{ b.raison_sociale }}
+                                            {% elif b.nom and b.prenom %}
+                                                {{ b.nom }} {{ b.prenom }}
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6">Aucun résultat</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    {% endif %}
+    
 </body>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("numero");
+    const datalist = document.getElementById("suggestions-numero");
+
+    input.addEventListener("input", function () {
+        const query = input.value;
+        if (!query) return;
+
+        fetch(`/autocomplete/numero/?term=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                datalist.innerHTML = "";
+                data
+                    .filter(item => item.value !== input.value)
+                    .forEach(item => {
+                        const option = document.createElement("option");
+                        option.value = item.value;
+                        datalist.appendChild(option);
+                    });
+            });
+        
+        input.addEventListener("change", function () {
+            setTimeout(() => {
+                datalist.innerHTML = "";
+                input.blur();  // 👈 enlève le focus
+            }, 100);
+        });
+
+    });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const nomInput = document.getElementById("nom");
+    const nomDatalist = document.getElementById("suggestions-nom");
+
+    nomInput.addEventListener("input", function () {
+        const query = nomInput.value;
+        if (!query) return;
+
+        fetch(`/autocomplete/nom/?term=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                nomDatalist.innerHTML = "";
+                data
+                    .filter(item => item.value !== nomInput.value)
+                    .forEach(item => {
+                        const option = document.createElement("option");
+                        option.value = item.value;
+                        nomDatalist.appendChild(option);
+                    });
+            });
+    });
+
+    nomInput.addEventListener("change", function () {
+        setTimeout(() => {
+            nomDatalist.innerHTML = "";
+            nomInput.blur(); // retire le focus pour fermer datalist
+        }, 100);
+    });
+});
+</script>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const instructeurInput = document.getElementById("instructeur");
+        const instructeurList = document.getElementById("suggestions-instructeur");
+
+        instructeurInput.addEventListener("input", function () {
+            const query = instructeurInput.value;
+            if (!query) return;
+
+            fetch(`/autocomplete/instructeur/?term=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    instructeurList.innerHTML = "";
+                    data
+                        .filter(item => item.value !== instructeurInput.value)
+                        .forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = item.value;
+                            instructeurList.appendChild(option);
+                        });
+                });
+        });
+
+        instructeurInput.addEventListener("change", function () {
+            setTimeout(() => {
+                instructeurList.innerHTML = "";
+                instructeurInput.blur();
+            }, 100);
+        });
+    });
+
+
+</script>
+
+
+
 </html>

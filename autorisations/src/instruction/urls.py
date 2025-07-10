@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from django.urls import path
-from instruction.views import messagerie, preinstruction, views, instruction, changement_etape
+from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete
 
 urlpatterns = [
     path('', instruction.accueil, name='accueil_view'),
@@ -51,7 +51,14 @@ urlpatterns = [
 
     # path('carto_test/', views.carto_test, name='carto_test'),  #url de Test
     path('avis/', views.avis, name='avis_view'),
-    path('requetes/', views.requetes, name='requetes_view'),
+    path('requetes/', requete.requete_dossiers, name='requetes_view'),
+    
+    # Auto Complétion filtres requetes
+    path('autocomplete/numero/', requete.autocomplete_numero_dossier, name='autocomplete_numero_dossier'),
+    path("autocomplete/nom/", requete.autocomplete_nom_beneficiaire, name="autocomplete_nom_beneficiaire"),
+    path("autocomplete/instructeur/", requete.autocomplete_instructeur, name="autocomplete_instructeur"),
+
+
 
 
     # Changement Etape
