@@ -1,15 +1,20 @@
 import logging
 import os
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
 from autorisations.models.models_utilisateurs import GroupeinstructeurInstructeur, Instructeur, DossierInstructeur
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
+from autorisations import settings
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
+from django.utils import timezone
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
+from django.contrib import messages
+
 
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
@@ -178,6 +183,10 @@ def refuse_le_dossier(request):
         # Mettre à jour étape + état si besoin
         changer_etape_si_differente(dossier, "Refusé", request.user)
         changer_etat_si_different(dossier, "refuse", request.user)
+
+        # Maj Dossier en BDD
+        # dossier.date_fin_instruction = timezone.now()
+        # dossier.save()
 
         # Dossier Action
         enregistrer_action(dossier, instructeur, "Classé comme refusé")
@@ -480,17 +489,39 @@ def envoyer_l_acte(request):
     dossier_numero = request.POST.get("dossier_numero")
     motivation = request.POST.get("motivation", "Votre demande a été acceptée.")
     fichier = request.FILES.get("piece_jointe")
+    nature_document = request.POST.get("nature_document")
+
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not dossier_id_ds or not instructeur or not instructeur.id_ds:
         return HttpResponse(f"Echec de l'acceptation du dossier {dossier_numero} (dossier_id_ds = {dossier_id_ds}, motivation = {motivation}, fichier = {fichier})", status=401)
 
     try:
+
+        dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+        # Construire l’emplacement de stockage
+        now = timezone.now()
+        dossier_path = f"{dossier.emplacement}/"
+        emplacement_doc = os.path.join(dossier_path, 'Actes/', f"{fichier.name}")
+        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), emplacement_doc)
+
+        # Chercher si un document existe déjà avec même emplacement + titre
+        doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=fichier.name).first()
+        
+        # Si document déjà existant ET pas de confirmation explicite
+        if doc_existant and request.POST.get("confirm_ecrasement") != "true":
+            messages.warning(request, f"Un document nommé « {fichier.name} » existe déjà dans le dossier Actes. Veuillez confirmer son écrasement.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
         result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
         if result["success"]:
+
             loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur.email}")
+
             # Mettre à jour l'étape et l'état en BDD
-            dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+           
             etape_raa = EtapeDossier.objects.filter(etape__iexact="À publier au RAA").first()
             etat_accepte = EtatDossier.objects.filter(nom__iexact="accepte").first()
 
@@ -505,6 +536,53 @@ def envoyer_l_acte(request):
             # Dossier Action
             enregistrer_action(dossier, instructeur, "Acte envoyé")
 
+            # Créer le Document en physique
+            if fichier and dossier:
+    
+                # Format : extraire l'extension
+                nom, extension = os.path.splitext(fichier.name)
+                ext = extension.lstrip('.').lower()
+                format_obj = DocumentFormat.objects.filter(format__iexact=ext).first()
+
+                # Nature : à partir du label sélectionné
+                nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
+
+                if not format_obj or not nature_obj:
+                    logger.error(f"[DOSSIER {dossier_numero}] Format ({ext}) ou nature ({nature_document}) introuvable.")
+                else:
+                    if doc_existant :
+                        # Supprimer le lien avec le dossier
+                        DossierDocument.objects.filter(id_document=doc_existant.id).delete()
+                        # Supprimer l’objet Document
+                        doc_existant.delete()
+                        logger.warning(f"[DOSSIER {dossier_numero}] Suppression de l'ancien Document et DossierDocument {emplacement_doc}")
+                    
+                    # Logger l'écrasement du fichier
+                    if os.path.exists(full_path):
+                        logger.warning(f"[DOSSIER {dossier_numero}] Écrasement de {full_path}")
+
+                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                    with open(full_path, 'wb+') as dest:
+                        for chunk in fichier.chunks():
+                            dest.write(chunk)
+                    logger.info(f"[DOSSIER {dossier_numero}] {nature_document} ({fichier.name}) écrit : {full_path}")
+
+                    # Créer le Document
+                    doc = Document.objects.create(
+                        id_format=format_obj,
+                        id_nature=nature_obj,
+                        url_ds=None,
+                        emplacement=os.path.join(dossier_path, 'Actes/'),
+                        description=f"{nature_document} pour le dossier {dossier.numero}",
+                        numero=None,
+                        titre=(fichier.name)
+                    )
+
+                    # Lier au dossier
+                    DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+
+                    logger.info(f"[DOSSIER {dossier_numero}] {nature_document} créé(e) et lié(e) au dossier (id : {doc.id})")
+
 
 
         else:
@@ -513,5 +591,6 @@ def envoyer_l_acte(request):
     except Exception as e:
         logger.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    return redirect(request.META.get("HTTP_REFERER", "/")
+)
 

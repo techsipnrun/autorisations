@@ -1,3 +1,4 @@
+from django.utils import timezone
 import logging
 from autorisations.models.models_instruction import Action, DossierAction, EtapeDossier, EtatDossier
 
@@ -34,6 +35,11 @@ def changer_etape_si_differente(dossier, nom_etape, user):
     if dossier.id_etape_dossier != nouvelle_etape:
 
         dossier.id_etape_dossier = nouvelle_etape
+        # Si on archive le dossier, on met à jour l'attribut 'date_fin_instruction'
+
+        if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
+            dossier.date_fin_instruction = timezone.now()
+            
         dossier.save()
 
         logger.info(f"[DOSSIER {dossier.numero}] Passe à l'étape --> '{nom_etape}' par {user}")

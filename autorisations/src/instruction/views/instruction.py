@@ -30,10 +30,13 @@ from django.db.models import Min
 
 logger = logging.getLogger('ORM_DJANGO')
 
-def get_dossier_counts(demarche, etape_a_affecter, etat_instruction, etats_termines, current_year, groupes_user=None):
-    ids_etats_termines = list(etats_termines.values_list("id", flat=True))
+def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user=None):
+    ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
+    ids_etapes_instruction = list(etapes_instruction.values_list("id", flat=True))
 
-    query_suivis = Dossier.objects.filter(id_demarche=demarche).exclude(id_etape_dossier=etape_a_affecter).exclude(id_etat_dossier__in=ids_etats_termines)
+    query_suivis = Dossier.objects.filter(id_demarche=demarche, id_etape_dossier__in=ids_etapes_instruction)
+    query_reception = Dossier.objects.filter(id_demarche=demarche, id_etape_dossier=etape_a_affecter)
+    query_traités = Dossier.objects.filter(id_demarche=demarche, id_etape_dossier__in=ids_etapes_termines, date_fin_instruction__year=current_year)
 
     nb_suivis_user = 0
     if groupes_user:
@@ -41,33 +44,30 @@ def get_dossier_counts(demarche, etape_a_affecter, etat_instruction, etats_termi
 
     return {
         "demarche": demarche,
-        "nb_reception": Dossier.objects.filter(id_demarche=demarche, id_etape_dossier=etape_a_affecter).count(),
+        "nb_reception": query_reception.count(),
         "nb_suivis": query_suivis.count(),
-        "nb_traites": Dossier.objects.filter(id_demarche=demarche, id_etat_dossier__in=ids_etats_termines, date_fin_instruction__year=current_year).count(),
+        "nb_traites": query_traités.count(),
         "nb_suivis_user": nb_suivis_user
     }
 
 
 @login_required
 def accueil(request):
-    # etat_construction = EtatDossier.objects.filter(nom__iexact="en_construction").first()
-    etat_instruction = EtapeDossier.objects.exclude(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"])
-    etats_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
-    etape_a_affecter = EtapeDossier.objects.filter(etape="À affecter").first()
+    etapes_instruction = EtapeDossier.objects.exclude(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"])
+    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
+    etape_a_affecter = EtapeDossier.objects.get(etape="À affecter")
 
     current_year = date.today().year
     demarches = Demarche.objects.all().order_by("titre")
 
     # ✅ Sécurisation
     groupes_user = []
-    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+    instructeur = Instructeur.objects.get(email=request.user.email)
     if instructeur:
-        groupes_user = list(
-            instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True)
-        )
+        groupes_user = list(instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True))
 
     dossier_infos = [
-        get_dossier_counts(d, etape_a_affecter, etat_instruction, etats_termines, current_year, groupes_user)
+        get_dossier_counts(d, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user)
         for d in demarches
     ]
 
@@ -396,8 +396,9 @@ def instruction_dossier(request, num_dossier):
         for n in notes_queryset
     ]
 
-
-
+    documents_actes = Document.objects.filter(
+        emplacement=f"{dossier.emplacement}/Actes/"
+    ).values_list("titre", flat=True)
 
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -428,6 +429,7 @@ def instruction_dossier(request, num_dossier):
         "notes": notes,
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         # "logo_mapping": logo_mapping,
+        "titres_documents_actes": list(documents_actes),
     })
 
 

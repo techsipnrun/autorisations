@@ -163,6 +163,17 @@
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+                        <input type="hidden" name="confirm_ecrasement" id="confirm-ecrasement" value="false">
+
+                        <label for="nature_document">Nature du document :</label>
+                        <select name="nature_document" id="nature_document" required>
+                            <option value="" disabled selected>Choisir une nature</option>
+                            <option value="Avis conforme">Avis conforme</option>
+                            <option value="Avis simple">Avis simple</option>
+                            <option value="Déliberation CA">Déliberation CA</option>
+                            <option value="Arrêté directeur">Arrêté directeur</option>
+                        </select>
+
                         <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Votre demande a été acceptée.</textarea>
                         <div class="zone-pj-complement">
                             <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
@@ -676,6 +687,37 @@
         }
 
     </script>
+
+    <!-- POP UP Validation écrasement d'un acte existant avec le meme nom et le meme emplacement -->
+    {{ titres_documents_actes|json_script:"titres-docs-actes" }}
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const inputActe = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
+        const confirmInput = document.getElementById("confirm-ecrasement");
+
+        if (!inputActe || !confirmInput) return;
+
+        const titresExistants = JSON.parse(document.getElementById("titres-docs-actes").textContent);
+
+        inputActe.addEventListener("change", function () {
+            const fichier = inputActe.files[0];
+            if (!fichier) return;
+
+            if (titresExistants.includes(fichier.name)) {
+                const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà dans le dossier Actes. Voulez-vous le remplacer ?`);
+                if (confirmReplace) {
+                    confirmInput.value = "true";
+                } else {
+                    inputActe.value = ""; // On annule la sélection
+                    confirmInput.value = "false";
+                }
+            } else {
+                confirmInput.value = "false";
+            }
+        });
+    });
+    </script>
+
 
 </body>
 </html>

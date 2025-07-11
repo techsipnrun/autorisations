@@ -67,6 +67,15 @@ def requete_dossiers(request):
 
     dossiers = dossiers.order_by('-date_depot')
 
+    dossiers = dossiers.order_by('-date_depot')
+
+    # Ajout du champ 'lien' pour chaque dossier
+    for d in dossiers:
+        if d.id_etape_dossier and d.id_etape_dossier.etape == "À affecter":
+            d.lien = f"/preinstruction/{d.numero}/"
+        else:
+            d.lien = f"/instruction/{d.numero}/"
+            
 
     # Menus déroulant
     etapes_dossier = EtapeDossier.objects.all().order_by('etape')

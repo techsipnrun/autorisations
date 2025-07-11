@@ -115,7 +115,7 @@
                 <tbody>
                     {% for dossier in dossiers %}
                     <tr onclick="window.location.href='/instruction/{{ dossier.numero}}'" class="clickable-row">
-                    <tr onclick="window.location.href='{% if dossier.id_etape_dossier.etape == 'À affecter' %}/preinstruction/{{ dossier.numero }}/{% else %}/instruction/{{ dossier.numero }}{% endif %}'" class="clickable-row">
+                    <tr onclick="window.location.href='{{ dossier.lien }}'" class="clickable-row">
 
                         <td>{{ dossier.numero }}</td>
                         <td>{{ dossier.nom_dossier }}</td>
