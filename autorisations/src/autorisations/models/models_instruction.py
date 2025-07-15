@@ -157,6 +157,7 @@ class Dossier(models.Model):
     geometrie = models.JSONField(blank=True, null=True)
     geometrie_modif = models.JSONField(blank=True, null=True)
     present_sur_ds = models.BooleanField(default=False)
+    relecture_juridique = models.BooleanField(default=False)
 
     class Meta:
         managed = False
@@ -316,7 +317,7 @@ class DossierAction(models.Model):
 
     def __str__(self):
         return (f"{self.id_action.action} - Dossier {self.id_dossier.numero} par {self.id_instructeur}")
-    
+
 
 class DossierNote(models.Model):
     id = models.AutoField(primary_key=True)

@@ -2,7 +2,7 @@ from datetime import date
 import json
 import logging
 import os
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier
@@ -26,6 +26,7 @@ from autorisations.models.models_instruction import DossierNote
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import Min
+from django.views.decorators.http import require_POST
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -526,3 +527,18 @@ def sauvegarder_note_dossier(request):
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
+
+
+
+@require_POST
+@login_required
+def mettre_a_jour_relecture_juridique(request):
+    dossier_id = request.POST.get("dossier_id")
+    relecture = request.POST.get("relecture_juridique") == "true"
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    dossier.relecture_juridique = relecture
+    dossier.save()
+
+    logger.info(f"[DOSSIER {dossier.numero}] Relecture juridique mise à jour : {relecture} par {request.user.email}")
+    return JsonResponse({"status": "ok", "relecture_juridique": relecture})

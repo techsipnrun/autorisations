@@ -372,6 +372,20 @@
                 {% endif %}
 
 
+                <div class="relecture_juridique">
+                    <form id="form-relecture-juridique" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                        <label>
+                            <input type="checkbox" id="checkbox-relecture" {% if dossier.relecture_juridique %}checked{% endif %}>
+                            Relecture juridique effectuée
+                        </label>
+                    </form>
+                </div>
+
+
+
+
                 <div class="groupe-instructeur-info notes_instructeurs">
                     <h3 class="notes-titre">
                         <span>📝 Notes :</span>
@@ -717,6 +731,39 @@
         });
     });
     </script>
+
+    <!-- Maj Relecture juridique -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const checkbox = document.getElementById("checkbox-relecture");
+
+            if (checkbox) {
+                checkbox.addEventListener("change", function () {
+                    const csrfToken = document.querySelector('input[name=csrfmiddlewaretoken]').value;
+                    const dossierId = document.querySelector('input[name=dossier_id]').value;
+
+                    fetch("{% url 'mettre_a_jour_relecture_juridique' %}", {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": csrfToken,
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: new URLSearchParams({
+                            "dossier_id": dossierId,
+                            "relecture_juridique": checkbox.checked
+                        })
+                    }).then(response => response.json()).then(data => {
+                        if (data.status !== "ok") {
+                            alert("Erreur lors de la mise à jour de la relecture juridique.");
+                        }
+                    }).catch(error => {
+                        console.error("Erreur réseau :", error);
+                    });
+                });
+            }
+        });
+    </script>
+
 
 
 </body>

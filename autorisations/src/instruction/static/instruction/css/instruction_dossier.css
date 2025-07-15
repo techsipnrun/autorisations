@@ -83,7 +83,8 @@
     background-color: #0e4c27;
 }
 
-/* Bloc envoyer acte */
+
+/* ====== Bloc envoyer acte ====== */
 #nature_document {
     padding: 0.5rem;
     margin: 1rem 0;
@@ -91,3 +92,17 @@
     border: 1px solid #ccc;
     border-radius: 6px;
 }
+
+
+/* ====== Relecture juridique ====== */
+.relecture_juridique label{
+    font-size: 1.2rem;
+}
+
+#form-relecture-juridique {
+    margin-top: 1.5rem;
+    margin-left: 2rem;
+    font-weight: bold;
+    color: #006131;
+}
+
