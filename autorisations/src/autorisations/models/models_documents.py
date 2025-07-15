@@ -25,12 +25,24 @@ class DocumentNature(models.Model):
 
     def __str__(self):
         return self.nature
+    
+class DocumentStatut(models.Model):
+    id = models.AutoField(primary_key=True)
+    statut = models.CharField(unique=True)
+
+    class Meta:
+        managed = False
+        db_table = '"documents"."document_statut"'
+
+    def __str__(self):
+        return self.statut
 
 
 class Document(models.Model):
     id = models.AutoField(primary_key=True)
     id_format = models.ForeignKey(DocumentFormat, models.RESTRICT, db_column='id_format')
     id_nature = models.ForeignKey(DocumentNature, models.RESTRICT, db_column='id_nature')
+    id_statut = models.ForeignKey(DocumentStatut, models.RESTRICT, db_column='id_statut', blank=True, null=True)
     url_ds = models.CharField(blank=True, null=True)
     emplacement = models.CharField(unique=True)
     description = models.CharField(blank=True, null=True)
@@ -88,3 +100,4 @@ class MessageDocument(models.Model):
 
     def __str__(self):
         return f"Document {self.id_document.id} attaché à Message {self.id_message.id}"
+

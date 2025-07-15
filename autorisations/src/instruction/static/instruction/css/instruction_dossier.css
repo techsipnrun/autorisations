@@ -99,6 +99,10 @@
     font-size: 1.2rem;
 }
 
+.checkbox-relecture {
+    cursor: pointer;
+}
+
 #form-relecture-juridique {
     margin-top: 1.5rem;
     margin-left: 2rem;

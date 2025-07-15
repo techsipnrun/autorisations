@@ -377,8 +377,8 @@
                         {% csrf_token %}
                         <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
                         <label>
-                            <input type="checkbox" id="checkbox-relecture" {% if dossier.relecture_juridique %}checked{% endif %}>
-                            Relecture juridique effectuée
+                            <input type="checkbox" id="checkbox-relecture" class="checkbox-relecture" {% if dossier.relecture_juridique %}checked{% endif %}>
+                            Relecture juridique
                         </label>
                     </form>
                 </div>
@@ -684,13 +684,28 @@
             }
         }
 
-        // Pour confirmer la présence de l'acte dans le message d'acceptation
+        // Pour confirmer l'envoi de l'acte
         function confirmerEnvoiActe() {
-            const ok = confirm("Êtes-vous certain d’avoir joint l’acte final au message d’acceptation ?");
+            const select = document.getElementById("nature_document");
+            const fichierInput = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
+            const fichier = fichierInput.files[0];
+
+            if (!select.value) {
+                alert("Veuillez sélectionner une nature de document avant d'envoyer l'acte.");
+                return;
+            }
+
+            if (!fichier) {
+                alert("Veuillez ajouter une pièce jointe avant d'envoyer l'acte.");
+                return;
+            }
+
+            const ok = confirm("Confirmez-vous l’envoi de l’acte ?");
             if (ok) {
                 document.querySelector('#formulaire-acceptation form').submit();
             }
         }
+
 
         // Pour confirmer la supression d'une Annexe instructeur (note)
         function confirmerSuppressionAnnexe(bouton) {
