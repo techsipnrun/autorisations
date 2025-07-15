@@ -3,60 +3,60 @@ from django.urls import path
 from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete
 
 urlpatterns = [
+
+    # INSTRUCTION
     path('', instruction.accueil, name='accueil_view'),
     path('instruction/', instruction.accueil, name='accueil_view'),
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
-    path('instruction/<int:num_dossier>/actualiser', instruction.actualiser_dossier, name='actualiser_dossier'),
     path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
     path("instruction/<int:num_dossier>/consultation", instruction.instruction_dossier_consultation, name="instruction_dossier_consultation"),
+    path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
+    path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
 
+
+    # PRÉ-INSTRUCTION
     path('preinstruction/', preinstruction.preinstruction, name='preinstruction_view'),
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
     path('preinstruction/<int:numero>/messagerie', messagerie.preinstruction_dossier_messagerie, name='preinstruction_dossier_messagerie'),
     path('preinstruction/<int:numero>/messagerie/envoyer/', messagerie.envoyer_message_dossier, name='envoyer_message_dossier'),
-    path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
 
-    path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
+
+    # ACTUALISATION
     path("actualiser/", views.actualiser_donnees, name="actualiser_donnees"),
     path("etat-actualisation/", views.etat_actualisation, name="etat_actualisation"),
+    path('instruction/<int:num_dossier>/actualiser', instruction.actualiser_dossier, name='actualiser_dossier'),
+    path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
+    path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
 
+
+    # GROUPE INSTRUCTEUR
     path('changer-groupe-instructeur/', preinstruction.changer_groupe_instructeur, name='changer_groupe_instructeur'),
-    path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
-
-    path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
-    path("instruction/relecture-juridique/", instruction.mettre_a_jour_relecture_juridique, name="mettre_a_jour_relecture_juridique"),
-
-
     path('instruction/se-declarer-instructeur/', views.se_declarer_instructeur, name='se_declarer_instructeur'),
     path('instruction/retirer-instructeur/', views.retirer_instructeur, name='retirer_instructeur'),
 
+
+    # CARTO
     path("instruction/<int:numero_dossier>/edit_carto/<int:id_champ>/",views.edit_carto,name="edit_carto"),
     path("instruction/enregistrer-geom/", views.enregistrer_geom, name="enregistrer_geom"),
 
-    
+
+    # ANNEXE, NOTE, RELECTURE JURIDIQUE
     path('ajouter_annexe/<int:dossier_id>/', views.ajouter_annexe_dossier, name='ajouter_annexe_dossier'),
     path('supprimer_annexe/', views.supprimer_annexe_instructeur, name='supprimer_annexe_instructeur'),
-
-
     path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),
-    path("annexe/test/", lambda r: HttpResponse("TEST OK")),
-
-    path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
-
-
-    path('avis/', views.avis, name='avis_view'),
-    path('requetes/', requete.requete_dossiers, name='requetes_view'),
+    path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
+    path("instruction/relecture-juridique/", instruction.mettre_a_jour_relecture_juridique, name="mettre_a_jour_relecture_juridique"),
+        
     
-    # Auto Complétion filtres requetes
+    # REQUÊTES
+    path('requetes/', requete.requete_dossiers, name='requetes_view'),
     path('autocomplete/numero/', requete.autocomplete_numero_dossier, name='autocomplete_numero_dossier'),
     path("autocomplete/nom/", requete.autocomplete_nom_beneficiaire, name="autocomplete_nom_beneficiaire"),
     path("autocomplete/instructeur/", requete.autocomplete_instructeur, name="autocomplete_instructeur"),
 
 
-
-
-    # Changement Etape
+    # CHANGEMENT ÉTAPE
     path("changer-etape/passer-en-pre-instruction/", changement_etape.passer_en_pre_instruction, name="passer_en_pre_instruction_url"),
     path("changer-etape/demander-des-complements/", changement_etape.demander_des_complements, name="demander_des_complements_url"),
     path("changer-etape/non-soumis/", changement_etape.dossier_non_soumis_a_autorisation, name="classer_le_dossier_comme_non_soumis_a_autorisation_url"),
@@ -74,4 +74,8 @@ urlpatterns = [
     path("changer-etape/acte-envoye/", changement_etape.envoyer_l_acte, name="envoyer_l_acte_url"),
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
+
+
+    # AVIS
+    path('avis/', views.avis, name='avis_view'),
 ]
