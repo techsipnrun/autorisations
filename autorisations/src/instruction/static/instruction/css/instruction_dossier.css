@@ -110,3 +110,85 @@
     color: #006131;
 }
 
+
+/* === Bloc envoyer pour validation avant signature === */
+.zone-envoyer-pour-validation {
+    display: none;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.zone-envoyer-pour-validation.show {
+    display: block;
+}
+
+.zone-envoyer-pour-validation label {
+    font-weight: bold;
+}
+
+.zone-envoyer-pour-validation select {
+    margin-left: 1rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #aaa;
+    background-color: white;
+    cursor: pointer;
+}
+
+.zone-envoyer-pour-validation .hint-text {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.projet_acte_pj {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+}
+
+.pj-validation-avant-signature {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    margin-top: 2rem;
+}
+
+.envoi-pour-validation-avant-signature {
+    width: 100%;
+    text-align: right;
+}
+
+
+/* Bloc À Valider avant signature : Les docs à valider */
+.validation-documents {
+    background-color: #f9f9f9;
+    border-left: 4px solid #006131;
+    padding: 1rem;
+}
+
+.validation-documents h2 {
+    margin: 0 0 1rem 0;
+}
+
+.doc-a-valider-liste {
+    list-style: none;
+}
+
+.doc-item {
+    display: flex;
+}
+
+.doc-titre {
+    color: #006131;
+    text-decoration: none;
+}
+
+.doc-titre:hover {
+    text-decoration: underline;
+    font-weight: bold;
+}

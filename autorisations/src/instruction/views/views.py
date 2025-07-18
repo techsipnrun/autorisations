@@ -400,7 +400,7 @@ def ajouter_annexe_dossier(request, dossier_id):
             id_format=format_obj,
             id_nature=nature_obj,
             titre=fichier.name,
-            emplacement=emplacement,
+            emplacement=f"{dossier.emplacement}Annexes/",
             description=f"Annexe ajouté par l'instructeur sur le dossier {dossier.numero}"
         )
 
@@ -445,9 +445,12 @@ def synchroniser_demarche(request, num_demarche):
 
 
 @login_required
-def afficher_annexe(request, chemin):
+def afficher_annexe(request, chemin, titre=None):
     try:
-        chemin_entier = os.path.join(os.environ.get("ROOT_FOLDER"), chemin)
+        if titre :
+            chemin_entier = os.path.join(os.environ.get("ROOT_FOLDER"), chemin, titre)
+        else :
+            chemin_entier = os.path.join(os.environ.get("ROOT_FOLDER"), chemin)
 
         if not os.path.exists(chemin_entier):
             raise Http404("Fichier introuvable")
@@ -483,7 +486,7 @@ def supprimer_annexe_instructeur(request):
         DossierDocument.objects.filter(id_dossier=dossier, id_document=doc).delete()
 
         # Supprimer le fichier physique
-        chemin_fichier = os.path.join(os.getenv("ROOT_FOLDER"), doc.emplacement)
+        chemin_fichier = os.path.join(os.getenv("ROOT_FOLDER"), doc.emplacement, doc.titre)
         if os.path.exists(chemin_fichier):
             os.remove(chemin_fichier)
 

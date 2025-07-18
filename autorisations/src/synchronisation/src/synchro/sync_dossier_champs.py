@@ -140,8 +140,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     # logger.warning(document_obj)
 
                 except Document.DoesNotExist:
-                    # logger.warning("LE DOC N'A PAS ETE TROUVÉ : ")
-                    # logger.warning(f"emplacement= {doc["emplacement"]}, titre__startswith= {doc["titre"]}, id_nature_id= {doc["id_nature"]}, description= {doc["description"]}")
+                    logger.warning("LE DOC N'A PAS ETE TROUVÉ : ")
+                    logger.warning(f"emplacement= {doc["emplacement"]}, titre__startswith= {doc["titre"]}, id_nature_id= {doc["id_nature"]}, description= {doc["description"]}")
                     document_obj = None
                 except Exception as e:
                     logger.error(f"Erreur inattendue lors de la récupération du document : {e}")

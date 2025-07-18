@@ -1,6 +1,6 @@
 import logging
 import os
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
@@ -12,8 +12,9 @@ from instruction.services.messagerie_service import envoyer_message_ds, prepare_
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
 from django.contrib import messages
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -140,6 +141,10 @@ def dossier_non_soumis_a_autorisation(request):
             logger.error(f"[DOSSIER {dossier.numero}] Echec classement 'Non soumis à autorisation' : Instructeur introuvable ou non présent sur DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
 
+         # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
+        if dossier.id_etat_dossier.nom == 'en_construction' and dossier.id_etape_dossier.etape == 'En pré-instruction' :
+            passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+
         # Appel API GraphQL
         result = classer_sans_suite_ds(dossier.id_ds, instructeur.id_ds, motivation)
         if not result.get("success"):
@@ -173,6 +178,10 @@ def refuse_le_dossier(request):
         if not instructeur or not instructeur.id_ds:
             logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier : Instructeur introuvable ou non connecté à DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
+
+        # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
+        if dossier.id_etat_dossier.nom == 'en_construction' and dossier.id_etape_dossier.etape == 'En pré-instruction' :
+            passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
 
         # Appel de l'API DS
         result = refuser_dossier_ds(dossier.id_ds, instructeur.id_ds, motivation)
@@ -250,25 +259,105 @@ def envoyer_pour_validation_avant_demande_avis(request):
 
 
 
+# @login_required
+# def envoyer_pour_validation_avant_signature(request):
+#     if request.method == "POST":
+#         dossier_id_ds = request.POST.get("dossierId")
+#         if not dossier_id_ds:
+#             return HttpResponseBadRequest("ID dossier manquant.")
+
+#         # Changer Etape
+#         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+#         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
+
+#         # Dossier Action
+#         instructeur = Instructeur.objects.filter(email=request.user.email).first()
+#         enregistrer_action(dossier, instructeur, "Envoyé pour validation")
+
+
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
+
+#     return HttpResponseBadRequest("Méthode non autorisée.")
+
 @login_required
 def envoyer_pour_validation_avant_signature(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
-        if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+        nature = request.POST.get("nature_document")
+        fichier = request.FILES.get("piece_jointe")
+
+        if not dossier_id_ds or not nature or not fichier:
+            raise Http404(f"Données manquantes ou invalides : id_dossier_ds = {dossier_id_ds}, nature_doc = {nature}, fichier = {fichier.name}")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+
+        # Définir le chemin de destination
+        dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
+
+        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
+        os.makedirs(full_path, exist_ok=True)
+        filepath = os.path.join(full_path, fichier.name)
+
+        # Vérification que le file sélectionné est bien dans le sous dossier Work
+        if not os.path.exists(filepath):
+            messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        try:
+            # Enregistrement physique
+            with open(filepath, 'wb+') as destination:
+                for chunk in fichier.chunks():
+                    destination.write(chunk)
+
+            # Récupérer la nature, le format et le statut
+            nature_obj = get_object_or_404(DocumentNature, nature=nature)
+            extension = os.path.splitext(fichier.name)[1].lower().lstrip('.')
+            format_obj = get_object_or_404(DocumentFormat, format=extension)
+            statut_obj = get_object_or_404(DocumentStatut, statut="À valider")
+
+            # Enregistrer en BDD
+            # Document.objects.create(
+            #     id_format=format_obj,
+            #     id_nature=nature_obj,
+            #     id_statut=statut_obj,
+            #     emplacement=dossier_path,
+            #     titre=fichier.name,
+            #     description=f"{nature_obj.nature} du dossier {dossier.numero}",
+            # )
+
+            doc, created = Document.objects.get_or_create(
+                                emplacement=dossier_path, titre=fichier.name,
+                                defaults={
+                                    "id_format": format_obj,
+                                    "id_nature": nature_obj,
+                                    "id_statut": statut_obj,
+                                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                                }
+                            )
+
+            if created:
+                DossierDocument.objects.create(
+                    id_dossier=dossier,
+                    id_document=doc
+                )
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} créé dans le dossier Work")
+            else:
+                logger.warning(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} déjà existant dans le dossier Work – aucune création")
+
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors de la création du Document ou de l'écriture physique dans le dossier Work ({str(e)})")
 
         # Changer Etape
-        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         enregistrer_action(dossier, instructeur, "Envoyé pour validation")
 
-
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    return HttpResponseBadRequest("Méthode non autorisée.")
+    return HttpResponseRedirect("/")
 
 
 
@@ -389,6 +478,27 @@ def valider_et_envoyer_pour_relecture_qualite(request):
 
         enregistrer_action(dossier, instructeur, "Validé avant signature", nom_prenom)
 
+       
+        # Récupérer l'objet statut "À relire"
+        statut_relire = DocumentStatut.objects.filter(statut__iexact="à relire").first()
+
+        # Par sécurité
+        if not statut_relire:
+            logger.error("Statut 'À relire' introuvable en base.")
+            messages.error("Statut 'À relire' introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # Récupération des documents du dossier
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+        # Mise à jour Doc "À valider" --> "À relire"
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            if doc.id_statut and doc.id_statut.statut.lower() == "à valider":
+                doc.id_statut = statut_relire
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À relire.")
+
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     return HttpResponseBadRequest("Méthode non autorisée.")
@@ -431,6 +541,25 @@ def envoyer_pour_signature(request):
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         enregistrer_action(dossier, instructeur, "Envoyé pour signature")
 
+        # Récupérer l'objet statut "À signer"
+        statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
+
+        # Par sécurité
+        if not statut_a_signer:
+            logger.error("Statut 'À signer' introuvable en base.")
+            messages.error("Statut 'À signer' introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # Récupération des documents du dossier
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+        # Mise à jour Doc "À relire" --> "À signer"
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            if doc.id_statut and doc.id_statut.statut.lower() == "à relire":
+                doc.id_statut = statut_a_signer
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À signer.")
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -452,6 +581,26 @@ def acte_pret_a_etre_envoye(request):
          # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         enregistrer_action(dossier, instructeur, "Acte signé")
+
+        # Récupérer l'objet statut "À envoyer"
+        statut_a_envoyer = DocumentStatut.objects.filter(statut__iexact="à envoyer").first()
+
+        # Par sécurité
+        if not statut_a_envoyer:
+            logger.error("Statut 'À envoyer' introuvable en base.")
+            messages.error("Statut 'À envoyer' introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # Récupération des documents du dossier
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+        # Mise à jour Doc "À signer" --> "À envoyer"
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            if doc.id_statut and doc.id_statut.statut.lower() == "à signer":
+                doc.id_statut = statut_a_envoyer
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À envoyer.")
         
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -477,7 +626,6 @@ def classer_le_dossier_comme_accepte(request):
 
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
-
     return HttpResponseBadRequest("Méthode non autorisée.")
 
 
@@ -488,7 +636,8 @@ def envoyer_l_acte(request):
     dossier_id_ds = request.POST.get("dossierId")
     dossier_numero = request.POST.get("dossier_numero")
     motivation = request.POST.get("motivation", "Votre demande a été acceptée.")
-    fichier = request.FILES.get("piece_jointe")
+    # fichier = request.FILES.get("piece_jointe")
+    document_id = request.POST.get("document_id_existant")
     nature_document = request.POST.get("nature_document")
 
 
@@ -502,18 +651,39 @@ def envoyer_l_acte(request):
         # Construire l’emplacement de stockage
         now = timezone.now()
         dossier_path = f"{dossier.emplacement}/"
-        emplacement_doc = os.path.join(dossier_path, 'Actes/', f"{fichier.name}")
+
+        document = Document.objects.get(id=document_id)
+
+        emplacement_doc = os.path.join(dossier_path, 'Actes/', f"{document.titre}")
         full_path = os.path.join(os.environ.get("ROOT_FOLDER"), emplacement_doc)
 
         # Chercher si un document existe déjà avec même emplacement + titre
-        doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=fichier.name).first()
+        doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=document.titre).first()
         
         # Si document déjà existant ET pas de confirmation explicite
         if doc_existant and request.POST.get("confirm_ecrasement") != "true":
-            messages.warning(request, f"Un document nommé « {fichier.name} » existe déjà dans le dossier Actes. Veuillez confirmer son écrasement.")
+            messages.warning(request, f"Un document nommé « {document.titre} » existe déjà dans le dossier Actes. Veuillez confirmer son écrasement.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
+        chemin = os.path.join(os.getenv("ROOT_FOLDER"), document.emplacement, document.titre)
+        print(chemin)
+        format_str = document.id_format.format.lower()
 
+        if format_str in ['jpg', 'jpeg']:
+            content_type = 'image/jpeg'
+        elif format_str == 'png':
+            content_type = 'image/png'
+        elif format_str == 'pdf':
+            content_type = 'application/pdf'
+        else:
+            content_type = 'application/octet-stream'
+        
+        with open(chemin, 'rb') as f:
+            fichier = SimpleUploadedFile(
+                name=f"{document.titre}",
+                content=f.read(),
+                content_type=content_type
+            )
 
         result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
         if result["success"]:

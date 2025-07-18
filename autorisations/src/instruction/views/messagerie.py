@@ -89,10 +89,10 @@ def instruction_dossier_messagerie(request, num_dossier):
 
             if message_doc and message_doc.id_document:
                 
-                pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre,message_doc.id_document.emplacement
+                pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
 
         messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement})
-
+        
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
     

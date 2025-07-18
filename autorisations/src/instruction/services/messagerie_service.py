@@ -127,6 +127,7 @@ def enregistrer_message_bdd(dossier, user_email, body, fichier=None, id_ds=None,
             document_file=fichier_bdd,
             document_title=fichier.name,
             document_format_str=fichier.name.split('.')[-1].lower(),
+            document_description=f"Pièce jointe instructeur dans la messagerie du dossier {dossier.numero}",
             id_ds=id_ds,
             url_ds=url_ds,
         )

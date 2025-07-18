@@ -95,10 +95,11 @@ def preinstruction_dossier(request, numero):
         elif ct == "piece_justificative":
 
             if champ.id_document :
-                emplacement_doc= os.path.join(champ.id_document.emplacement, champ.id_document.titre)
+                emplacement_doc= champ.id_document.emplacement
                 # emplacement_doc = os.path.join(os.environ.get("ROOT_FOLDER"), champ.id_document.emplacement, champ.id_document.titre)
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
-            else : 
+            else :
+
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
 
         elif ct == "drop_down_list":

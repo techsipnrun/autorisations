@@ -313,10 +313,10 @@ def create_message_bdd(
                 # Boucle jusqu'à trouver un nom de fichier et d'enregistrement non existant
                 while True:
                     emplacement = os.path.join(repertoire_annexes, f"{titre_final}{ext}")
-                    rel_emplacement = os.path.join(dossier_obj.emplacement, "Annexes", f"{titre_final}{ext}")  # Pour la BDD
+                    rel_emplacement = os.path.join(dossier_obj.emplacement, "Annexes/")  # Pour la BDD
 
                     fichier_existe = os.path.exists(emplacement)
-                    enregistrement_existe = Document.objects.filter(emplacement=rel_emplacement).exists()
+                    enregistrement_existe = Document.objects.filter(emplacement=rel_emplacement, titre=document_title).exists()
 
                     if not fichier_existe and not enregistrement_existe:
                         break  # nom libre
@@ -338,8 +338,6 @@ def create_message_bdd(
                     description=document_description or "",
                     url_ds=url_ds,
                 )
-
-
 
                 logger.info(f"[DOSSIER {dossier_obj.numero}] Document {doc.id} ({document_nature_str}) créé")
 

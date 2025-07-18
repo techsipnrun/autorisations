@@ -2,14 +2,14 @@ from datetime import date
 import json
 import logging
 import os
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
-from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
 from synchronisation.src.normalisation.norma_contacts_externes import contact_externe_normalize
 from synchronisation.src.normalisation.norma_demandes import demande_normalize
 from synchronisation.src.normalisation.norma_dossier_champs import dossiers_champs_normalize
@@ -19,14 +19,15 @@ from synchronisation.src.normalisation.norma_messages import message_normalize
 from synchronisation.src.synchro.sync_dossiers import sync_dossiers
 from synchronisation.src.utils.fichiers import construire_emplacement_dossier
 from synchronisation.src.normalisation.norma_dossier import dossier_normalize
-from synchronisation.src.normalisation.norma_dossiers import dossiers_normalize_process
 from instruction.utils import format_etat_dossier
-from synchronisation.src.main import lancer_normalisation_et_synchronisation_pour_une_demarche
 from autorisations.models.models_instruction import DossierNote
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import Min
 from django.views.decorators.http import require_POST
+from django.http import Http404
+from django.contrib import messages
+
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -232,7 +233,7 @@ def instruction_dossier(request, num_dossier):
 
         elif ct == "piece_justificative":
             if champ.id_document :
-                emplacement_doc= os.path.join(champ.id_document.emplacement, champ.id_document.titre)
+                emplacement_doc= champ.id_document.emplacement
                 # emplacement_doc = os.path.join(os.environ.get("ROOT_FOLDER"), champ.id_document.emplacement, champ.id_document.titre)
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
             else : 
@@ -402,6 +403,32 @@ def instruction_dossier(request, num_dossier):
     ).values_list("titre", flat=True)
 
 
+    # Récupération des documents liés au dossier
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+    # Filtrage : statut = "À valider"
+    doc_a_valider = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à valider"
+    ]
+
+    doc_a_relire = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à relire"
+    ]
+
+    doc_a_signer = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à signer"
+    ]
+
+    doc_a_envoyer = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à envoyer"
+    ]
+
+
+
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -429,8 +456,11 @@ def instruction_dossier(request, num_dossier):
         "dossier_actions": dossier_actions,
         "notes": notes,
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
-        # "logo_mapping": logo_mapping,
         "titres_documents_actes": list(documents_actes),
+        "doc_a_valider": doc_a_valider,
+        "doc_a_relire": doc_a_relire,
+        "doc_a_signer": doc_a_signer,
+        "doc_a_envoyer": doc_a_envoyer,
     })
 
 
@@ -446,7 +476,6 @@ def actualiser_dossier(request, num_dossier):
 
         if "errors" in result and result["errors"]:
             raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
-
         
         # 2. Normalisation des données
         doss = result["data"]["dossier"]
@@ -472,9 +501,7 @@ def actualiser_dossier(request, num_dossier):
 
         # 3. Synchronisation en base
         sync_dossiers([dico_dossier], demarche.numero)
-
-        # logger.info(f"[DOSSIER] Actualisation du dossier {num_dossier} réussie.")
-        # return redirect('instruction_dossier', num_dossier=num_dossier)
+        
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     except Exception as e:
@@ -542,3 +569,8 @@ def mettre_a_jour_relecture_juridique(request):
 
     logger.info(f"[DOSSIER {dossier.numero}] Relecture juridique mise à jour : {relecture} par {request.user.email}")
     return JsonResponse({"status": "ok", "relecture_juridique": relecture})
+
+
+
+
+

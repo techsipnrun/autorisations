@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
-from .models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument, MessageDocument
+from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, MessageDocument
 from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne
 
@@ -208,7 +208,7 @@ class DemandeAvisAdmin(admin.ModelAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'titre', 'id_nature', 'id_format', 'description', 'numero', 'emplacement')
+    list_display = ('id', 'titre', 'id_nature', 'id_format', 'description', 'numero', 'id_statut', 'emplacement')
     list_filter = ('id_nature', 'id_format')
     search_fields = ('titre', 'numero', 'emplacement')
     list_per_page = 30
@@ -216,6 +216,8 @@ class DocumentAdmin(admin.ModelAdmin):
 admin.site.register(DocumentFormat)
 
 admin.site.register(DocumentNature)
+
+admin.site.register(DocumentStatut)
 
 @admin.register(DossierDocument)
 class DossierDocumentAdmin(admin.ModelAdmin):

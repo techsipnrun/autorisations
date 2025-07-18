@@ -53,7 +53,19 @@
             </div>
            
             <div class="user_information">
-                <strong>{{ user.email }}</strong>
+                <div class="user_mail">
+                    {% if request.user.is_superuser %}
+                        <div class="logo-admin">
+                            <a href="/admin/">
+                                <img class="logo_admin" src="{% static 'instruction/img/admin.png' %}" alt="Admin" title="Page d'administration">
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <strong>{{ user.email }}</strong>
+                </div>
+                
+
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="btn-logout">Se Déconnecter</button>

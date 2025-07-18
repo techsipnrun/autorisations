@@ -316,15 +316,15 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
         nom = contact_beneficiaire.get("nom", "Inconnu").replace(" ", "_").upper()
         prenom = contact_beneficiaire.get("prenom", "Inconnu").replace(" ", "_").capitalize()
         date_suffix = date_depot.strftime("%d-%m") if date_depot else "XX-XX"
-        dossier_part = f"{numero}_{nom}_{prenom}_{date_suffix}"
+        dossier_part = f"{numero}_{nom}_{prenom}_{date_suffix}/"
 
     elif demandeur_type == "PersonneMorale":
         nom_morale = formater_nom_personne_morale(doss.get("demandeur", {}))
         date_suffix = date_depot.strftime("%d-%m") if date_depot else "XX-XX"
-        dossier_part = f"{numero}_{nom_morale}_{date_suffix}"
+        dossier_part = f"{numero}_{nom_morale}_{date_suffix}/"
 
     else:
-        dossier_part = f"{numero}_Inconnu"
+        dossier_part = f"{numero}_Inconnu/"
 
     # 5. Assemblage
     path_parts = [type_autorisation, annee]

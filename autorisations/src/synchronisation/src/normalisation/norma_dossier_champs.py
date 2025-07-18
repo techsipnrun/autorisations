@@ -38,7 +38,7 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                     "id_format": id_format,
                     "id_nature": get_first_id(DocumentNature, nature="Pièce jointe demandeur"),
                     "url_ds": f["url"],
-                    "emplacement": f"{emplacement_dossier}/Annexes/",
+                    "emplacement": f"{emplacement_dossier}Annexes/",
                     "description": ch["label"],
                     "titre": f"{nom_fichier}.{extension_fichier}",
                 })

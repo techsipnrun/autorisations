@@ -10,7 +10,7 @@ def redirect_to_admin(request):
     return redirect('/bancarisation/')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls, name='admin'),
     path('bancarisation/', custom_admin_site.urls),  # Ajoute l'admin personnalisé
     path('bancarisation/', redirect_to_admin, name='bancarisation_view'),
     path('bancarisation_guide/', views.guide_bancarisation, name='guide_bancarisation_view'), # Guide bancarisation

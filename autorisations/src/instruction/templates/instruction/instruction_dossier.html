@@ -47,6 +47,16 @@
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
                 <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }} </h1>
+                
+                {% if messages %}
+                    <div class="django-messages">
+                        {% for message in messages %}
+                            <div class="message {{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
                 {% if not dossier.present_sur_ds %}
                     <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
@@ -75,6 +85,9 @@
 
                                         {% elif label == "Envoyer l'acte" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte</button>
+                                        
+                                        {% elif label == "Envoyer pour validation avant signature" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Envoyer pour validation avant signature</button>
 
                                         {% elif label == "Repasser en instruction" %}
                                             <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
@@ -118,6 +131,90 @@
                         </form>
                     {% endif %}
                 </div>
+
+                
+                <!-- Documents à valider -->
+                {% if etape_actuelle.etape == "À valider avant signature" and doc_a_valider %}
+                    <div class="validation-documents">
+                        <h2>Document(s) à valider</h2>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <ul class="doc-a-valider-liste">
+                                {% for doc in doc_a_valider %}
+                                    <li class="doc-item">
+                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                            {{ doc.titre }}
+                                        </a>
+                                        <!-- <input type="checkbox" name="doc_valide_{{ doc.id }}" class="doc-checkbox"> -->
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </form>
+                    </div>
+                {% endif %}
+
+
+                <!-- Documents à relire -->
+                {% if etape_actuelle.etape == "En relecture qualité" and doc_a_relire %}
+                    <div class="validation-documents">
+                        <h2>Document(s) à relire</h2>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <ul class="doc-a-valider-liste">
+                                {% for doc in doc_a_relire %}
+                                    <li class="doc-item">
+                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                            {{ doc.titre }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <!-- Documents à signer -->
+                {% if etape_actuelle.etape == "En attente de signature" and doc_a_signer %}
+                    <div class="validation-documents">
+                        <h2>Document(s) à signer</h2>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <ul class="doc-a-valider-liste">
+                                {% for doc in doc_a_signer %}
+                                    <li class="doc-item">
+                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                            {{ doc.titre }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </form>
+<!-- 
+                        <label for="pj_validation">Joindre l'acte signé :</label>
+                        <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.doc,.docx" required> -->
+
+                    </div>
+                {% endif %}
+
+                <!-- Documents à envoyer -->
+                {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
+                    <div class="validation-documents">
+                        <h2>Document(s) à envoyer</h2>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <ul class="doc-a-valider-liste">
+                                {% for doc in doc_a_envoyer %}
+                                    <li class="doc-item">
+                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                            {{ doc.titre }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </form>
+                    </div>
+                {% endif %}
+
 
                 <!-- Zone masquée pour la demande de compléments -->
                 <div id="formulaire-complement" class="zone-complement">
@@ -167,20 +264,56 @@
 
                         <label for="nature_document">Nature du document :</label>
                         <select name="nature_document" id="nature_document" required>
-                            <option value="" disabled selected>Choisir une nature</option>
-                            <option value="Avis conforme">Avis conforme</option>
-                            <option value="Avis simple">Avis simple</option>
-                            <option value="Déliberation CA">Déliberation CA</option>
-                            <option value="Arrêté directeur">Arrêté directeur</option>
+                           <option value="Avis conforme" {% if doc_a_envoyer.0.id_nature.nature == "Avis conforme" %}selected{% endif %}>Avis conforme</option>
+                            <option value="Avis simple" {% if doc_a_envoyer.0.id_nature.nature == "Avis simple" %}selected{% endif %}>Avis simple</option>
+                            <option value="Déliberation CA" {% if doc_a_envoyer.0.id_nature.nature == "Déliberation CA" %}selected{% endif %}>Déliberation CA</option>
+                            <option value="Arrêté directeur" {% if doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}selected{% endif %}>Arrêté directeur</option>
+
                         </select>
 
                         <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Votre demande a été acceptée.</textarea>
                         <div class="zone-pj-complement">
-                            <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
+                            <!-- <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx"> -->
+                            {% if doc_a_envoyer.0 %}
+                                <!-- <p class="pj-par-defaut">Document sélectionné : {{ doc_a_envoyer.0.titre }}</p> -->
+                                <input type="hidden" name="document_id_existant" value="{{ doc_a_envoyer.0.id }}">
+                            {% endif %}
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerEnvoiActe()">Confirmer l'envoi de l'acte</button>
+                        </div>
+
+                    </form>
+                </div>
+
+                <!-- Zone masquée pour envoyer pour validation avant signature -->
+                <div id="formulaire-validation-signature" class="zone-envoyer-pour-validation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_pour_validation_avant_signature_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+
+                        <label for="nature_validation">Nature du document :</label>
+                        <select name="nature_document" id="nature_validation" required>
+                            <option value="" disabled selected>Choisir une nature</option>
+                            <option value="Arrêté directeur">Arrêté directeur</option>
+                            <option value="Déliberation CA">Déliberation CA</option>
+                            <option value="Avis simple">Avis simple</option>
+                            <option value="Avis conforme">Avis conforme</option>
+                        </select>
+
+                        <div class="zone-pj-complement pj-validation-avant-signature">
+                            <div class="projet_acte_pj">
+                                <label for="pj_validation">Joindre le projet d’acte :</label>
+                                <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.jpg,.png,.doc,.docx" required>
+                            </div>
+
+                            <p class="hint-text">📁 Merci de sélectionner un fichier situé dans le dossier <strong>Work</strong>.</p>
+                            <div class="envoi-pour-validation-avant-signature">
+                                <button type="button" class="btn-envoyer-complement" onclick="confirmerValidationAvantSignature()">Confirmer l’envoi pour validation</button>
+                            </div>
                         </div>
                     </form>
                 </div>
+
 
                 <div class="champs">
                     {% for champ in champs %}
@@ -230,11 +363,11 @@
                         <!-- Champs pièces justificatives -->
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
-                                <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
+                                <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc titre=champ.titre_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
                                
                                 {% with champ.emplacement_doc|lower as path %}
                                     {% if path|slice:"-4:" == ".png" or path|slice:"-4:" == ".jpg" or path|slice:"-5:" == ".jpeg" or path|slice:"-4:" == ".svg" %}
-                                        <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" alt="Aperçu PJ">
+                                        <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc titre=champ.titre_doc %}" alt="Aperçu PJ">
                                     {% endif %}
                                 {% endwith %}
                             </div>
@@ -408,7 +541,7 @@
                                     
                                     <!-- Nom annexe instructeur -->
                                     <a class="annexe-texte"
-                                        href="{% url 'afficher_annexe' chemin=annexe.emplacement %}"
+                                        href="{% url 'afficher_annexe' chemin=annexe.emplacement titre=annexe.titre %}"
                                         target="_blank"
                                         rel="noopener noreferrer">
                                         📎 {{ annexe.titre }}
@@ -654,6 +787,13 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireEnvoyerPourValidAvantSignature() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-validation-signature").classList.add("show");
+            fermerMenuEtape();
+        }
+
+
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
             const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
@@ -687,18 +827,18 @@
         // Pour confirmer l'envoi de l'acte
         function confirmerEnvoiActe() {
             const select = document.getElementById("nature_document");
-            const fichierInput = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
-            const fichier = fichierInput.files[0];
+            // const fichierInput = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
+            // const fichier = fichierInput.files[0];
 
             if (!select.value) {
                 alert("Veuillez sélectionner une nature de document avant d'envoyer l'acte.");
                 return;
             }
 
-            if (!fichier) {
-                alert("Veuillez ajouter une pièce jointe avant d'envoyer l'acte.");
-                return;
-            }
+            // if (!fichier) {
+            //     alert("Veuillez ajouter une pièce jointe avant d'envoyer l'acte.");
+            //     return;
+            // }
 
             const ok = confirm("Confirmez-vous l’envoi de l’acte ?");
             if (ok) {
@@ -714,6 +854,28 @@
                 bouton.closest("form").submit();
             }
         }
+
+        // Pour confirmer l'envoi pour Validation avant signature
+        function confirmerValidationAvantSignature() {
+            const select = document.getElementById("nature_validation");
+            const fichierInput = document.getElementById("pj_validation");
+            const fichier = fichierInput.files[0];
+
+            if (!select.value) {
+                alert("Veuillez sélectionner la nature du document.");
+                return;
+            }
+
+            if (!fichier) {
+                alert("Veuillez ajouter une pièce jointe.");
+                return;
+            }
+
+            if (confirm("Confirmez-vous l’envoi pour validation avant signature ?")) {
+                document.querySelector('#formulaire-validation-signature form').submit();
+            }
+        }
+
 
     </script>
 

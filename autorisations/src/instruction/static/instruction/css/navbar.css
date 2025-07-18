@@ -29,6 +29,23 @@
     height: 100%;
 }
 
+.logo-admin {
+    height: 25px;
+
+}
+
+.logo-admin img {
+    height: 100%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+  
+.logo-admin img:hover {
+    transform: scale(1.1);
+}
+
+
+
 
 /* Liens de navigation */
 .container-links {
@@ -153,3 +170,11 @@
     color: #333;
 }
 
+
+
+/* USER EMAIL */
+
+.user_mail {
+    display: flex;
+    gap: 1rem;
+}

@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.urls import path
 from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete
+from django.contrib import admin
 
 urlpatterns = [
 
@@ -44,7 +45,9 @@ urlpatterns = [
     # ANNEXE, NOTE, RELECTURE JURIDIQUE
     path('ajouter_annexe/<int:dossier_id>/', views.ajouter_annexe_dossier, name='ajouter_annexe_dossier'),
     path('supprimer_annexe/', views.supprimer_annexe_instructeur, name='supprimer_annexe_instructeur'),
-    path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),
+    # path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),
+    path('annexe/<path:chemin>/<str:titre>/', views.afficher_annexe, name='afficher_annexe'),
+
     path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
     path("instruction/relecture-juridique/", instruction.mettre_a_jour_relecture_juridique, name="mettre_a_jour_relecture_juridique"),
         

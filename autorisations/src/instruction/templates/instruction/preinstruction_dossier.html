@@ -128,11 +128,11 @@
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
 
-                                <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
+                                <p><strong>{{ champ.nom }} </strong> : <a href="{% url 'afficher_annexe' chemin=champ.emplacement_doc titre=champ.titre_doc %}" target="_blank" rel="noopener noreferrer">{{ champ.titre_doc }}</a></p>
 
                                 {% with champ.emplacement_doc|lower as path %}
                                     {% if path|slice:"-4:" == ".png" or path|slice:"-4:" == ".jpg" or path|slice:"-5:" == ".jpeg" or path|slice:"-4:" == ".svg" %}
-                                        <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc %}" alt="Aperçu PJ" class="apercu_PJ">
+                                        <img src="{% url 'afficher_annexe' chemin=champ.emplacement_doc titre=champ.titre_doc %}" alt="Aperçu PJ" class="apercu_PJ">
                                     {% endif %}
                                 {% endwith %}
                             </div>
@@ -286,7 +286,7 @@
                                 <li class="annexe-item">
                                 
                                     <a class="annexe-texte"
-                                        href="{% url 'afficher_annexe' chemin=annexe.emplacement %}"
+                                        href="{% url 'afficher_annexe' chemin=annexe.emplacement titre=annexe.titre %}"
                                         target="_blank"
                                         rel="noopener noreferrer">
                                         📎 {{ annexe.titre }}
