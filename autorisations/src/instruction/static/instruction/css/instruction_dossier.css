@@ -192,3 +192,14 @@
     text-decoration: underline;
     font-weight: bold;
 }
+
+/* Lien vers le RAA */
+.validation-documents img {
+    width: 20px;
+    margin-left: 1rem;
+    transition: transform 0.2s ease-in-out;
+}
+
+.validation-documents img:hover {
+    transform: scale(1.2);
+}

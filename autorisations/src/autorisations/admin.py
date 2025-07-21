@@ -303,10 +303,23 @@ class MessageDocumentAdmin(admin.ModelAdmin):
 #######################
 """
 
+class DemarcheTypeFilter(admin.SimpleListFilter):
+    title = "Type de démarche"
+    parameter_name = "id_demarche"
+
+    def lookups(self, request, model_admin):
+        return [(d.id, d.type) for d in Demarche.objects.all()]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(id_demarche__id=self.value())
+        return queryset
+    
+
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
     list_display = ('numero', 'nom_dossier', 'etat','groupe_instructeur', 'date_depot')
-    list_filter = ('id_etat_dossier', 'id_demarche', 'id_groupeinstructeur', 'present_sur_ds')
+    list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds')
     search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
     list_per_page = 20
 

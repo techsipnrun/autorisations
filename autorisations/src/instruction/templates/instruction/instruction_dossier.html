@@ -119,6 +119,8 @@
                         </div>
                     </div>
 
+
+
                     {% if peut_se_declarer %}
                         <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-declarer-instructeur">
                             {% csrf_token %}
@@ -130,6 +132,15 @@
                             </button>
                         </form>
                     {% endif %}
+
+                    <!-- Téléchargement PDF -->
+                    <a class="download-pdf"
+                        href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=resume_pdf_titre %}"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger le résumé du dossier" title="Télécharger le résumé du dossier">
+                    </a>
+
                 </div>
 
                 
@@ -215,6 +226,38 @@
                     </div>
                 {% endif %}
 
+                <!-- Documents envoyés -->
+                 {% if doc_envoye %}
+                    {% if etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Accepté" %}
+                        <div class="validation-documents">
+
+                            {% if etape_actuelle.etape == "À publier au RAA" %}
+                                <h2>
+                                    Document(s) à publier au RAA
+                                    <a href="https://www.reunion-parcnational.fr/fr/node/add/raa" target="_blank" rel="noopener noreferrer">
+                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="Lien vers le RAA" title="Ouvrir le site du RAA">
+                                    </a>
+                                </h2>
+                            {% elif etape_actuelle.etape == "Accepté" %}
+                                <h2>Document(s) publié(s) au RAA</h2>
+                            {% endif %}
+                            
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_envoye %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
 
                 <!-- Zone masquée pour la demande de compléments -->
                 <div id="formulaire-complement" class="zone-complement">
@@ -285,7 +328,7 @@
                 </div>
 
                 <!-- Zone masquée pour envoyer pour validation avant signature -->
-                <div id="formulaire-validation-signature" class="zone-envoyer-pour-validation">
+                <div id="formulaire-validation-signature" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_pour_validation_avant_signature_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
@@ -827,24 +870,28 @@
         // Pour confirmer l'envoi de l'acte
         function confirmerEnvoiActe() {
             const select = document.getElementById("nature_document");
-            // const fichierInput = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
-            // const fichier = fichierInput.files[0];
+            const confirmInput = document.getElementById("confirm-ecrasement");
+            const documentTitre = "{{ doc_a_envoyer.0.titre }}";  // fourni côté template
 
             if (!select.value) {
-                alert("Veuillez sélectionner une nature de document avant d'envoyer l'acte.");
+                alert("Veuillez sélectionner une nature de document.");
                 return;
             }
 
-            // if (!fichier) {
-            //     alert("Veuillez ajouter une pièce jointe avant d'envoyer l'acte.");
-            //     return;
-            // }
+            // Vérifie si le titre existe dans la liste injectée depuis Django
+            const titresExistants = JSON.parse(document.getElementById("titres-docs-actes").textContent);
+            if (titresExistants.includes(documentTitre)) {
+                const ok = confirm(`Un document nommé « ${documentTitre} » existe déjà. Voulez-vous vraiment l’écraser ?`);
+                if (!ok) return;
 
-            const ok = confirm("Confirmez-vous l’envoi de l’acte ?");
-            if (ok) {
-                document.querySelector('#formulaire-acceptation form').submit();
+                confirmInput.value = "true";  // autorise l'écrasement
+            } else {
+                confirmInput.value = "false";
             }
+
+            document.querySelector('#formulaire-acceptation form').submit();
         }
+
 
 
         // Pour confirmer la supression d'une Annexe instructeur (note)

@@ -70,7 +70,16 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    <!-- Téléchargement PDF -->
+                    <a class="download-pdf"
+                        href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=resume_pdf_titre %}"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger le résumé du dossier" title="Télécharger le résumé du dossier">
+                    </a>
                 </div>
+                
 
                 {% if preinstruction_message %}
                     <div class="instruction-warning">

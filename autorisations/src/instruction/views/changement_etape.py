@@ -342,6 +342,8 @@ def envoyer_pour_validation_avant_signature(request):
                 )
                 logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} créé dans le dossier Work")
             else:
+                doc.id_statut = statut_obj
+                doc.save()
                 logger.warning(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} déjà existant dans le dossier Work – aucune création")
 
 
@@ -640,6 +642,9 @@ def envoyer_l_acte(request):
     document_id = request.POST.get("document_id_existant")
     nature_document = request.POST.get("nature_document")
 
+    confirm_ecrasement = request.POST.get("confirm_ecrasement") == "true"
+
+
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not dossier_id_ds or not instructeur or not instructeur.id_ds:
@@ -650,7 +655,7 @@ def envoyer_l_acte(request):
         dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
         # Construire l’emplacement de stockage
         now = timezone.now()
-        dossier_path = f"{dossier.emplacement}/"
+        dossier_path = f"{dossier.emplacement}"
 
         document = Document.objects.get(id=document_id)
 
@@ -661,12 +666,12 @@ def envoyer_l_acte(request):
         doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=document.titre).first()
         
         # Si document déjà existant ET pas de confirmation explicite
-        if doc_existant and request.POST.get("confirm_ecrasement") != "true":
-            messages.warning(request, f"Un document nommé « {document.titre} » existe déjà dans le dossier Actes. Veuillez confirmer son écrasement.")
+        if doc_existant and not confirm_ecrasement:
+            messages.warning(request, f"Un document nommé « {document.titre} » existe déjà dans le dossier Actes. Vous devez confirmer son écrasement dans le POP UP le cas échéant.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         chemin = os.path.join(os.getenv("ROOT_FOLDER"), document.emplacement, document.titre)
-        print(chemin)
+        # print(chemin)
         format_str = document.id_format.format.lower()
 
         if format_str in ['jpg', 'jpeg']:
@@ -738,28 +743,55 @@ def envoyer_l_acte(request):
                     logger.info(f"[DOSSIER {dossier_numero}] {nature_document} ({fichier.name}) écrit : {full_path}")
 
                     # Créer le Document
-                    doc = Document.objects.create(
-                        id_format=format_obj,
-                        id_nature=nature_obj,
-                        url_ds=None,
-                        emplacement=os.path.join(dossier_path, 'Actes/'),
-                        description=f"{nature_document} pour le dossier {dossier.numero}",
-                        numero=None,
-                        titre=(fichier.name)
-                    )
+                    # doc = Document.objects.create(
+                    #     id_format=format_obj,
+                    #     id_nature=nature_obj,
+                    #     url_ds=None,
+                    #     emplacement=os.path.join(dossier_path, 'Actes/'),
+                    #     description=f"{nature_document} pour le dossier {dossier.numero}",
+                    #     numero=None,
+                    #     titre=(fichier.name)
+                    # )
+
+                    # Mise à jour des champs existants
+                    document.id_format = format_obj
+                    document.id_nature = nature_obj
+                    document.emplacement = os.path.join(dossier_path, 'Actes/')
+                    document.description = f"{nature_document} pour le dossier {dossier.numero}"
+                    document.save()
 
                     # Lier au dossier
-                    DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                    # DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
 
-                    logger.info(f"[DOSSIER {dossier_numero}] {nature_document} créé(e) et lié(e) au dossier (id : {doc.id})")
+                    # logger.info(f"[DOSSIER {dossier_numero}] {nature_document} créé(e) et lié(e) au dossier (id : {doc.id})")
+            
 
+            # Récupérer l'objet statut "Envoyé"
+            statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
 
+            # Par sécurité
+            if not statut_envoye:
+                logger.error("Statut 'Envoyé' introuvable en base.")
+                messages.error("Statut 'Envoyé' introuvable en base.")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+
+            # Récupération des documents du dossier
+            documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+            # Mise à jour Doc "À envoyer" --> "Envoyé"
+            for lien in documents_du_dossier:
+                doc = lien.id_document
+                if doc.id_statut and doc.id_statut.statut.lower() == "à envoyer":
+                    doc.id_statut = statut_envoye
+                    doc.save()
+                    logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → Envoyé.")
+        
 
         else:
             loggerDS.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
 
     except Exception as e:
-        logger.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
+        logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
     return redirect(request.META.get("HTTP_REFERER", "/")
 )

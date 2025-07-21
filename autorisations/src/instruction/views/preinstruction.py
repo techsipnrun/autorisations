@@ -216,6 +216,8 @@ def preinstruction_dossier(request, numero):
         for n in notes_queryset
     ]
 
+    resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
+
 
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
@@ -240,6 +242,7 @@ def preinstruction_dossier(request, numero):
         "notes": notes,
         "preinstruction_message": request.session.pop("preinstruction_message", None),
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
+        "resume_pdf_titre": resume_pdf_titre,
     })
 
 

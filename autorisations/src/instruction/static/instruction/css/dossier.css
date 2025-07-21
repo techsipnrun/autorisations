@@ -212,6 +212,22 @@ h2 {
     color: white;
 }
 
+/* Téléchargement PDF */
+.download-pdf {
+    width: 40px;
+    margin-left: 1rem;
+    align-self: flex-start;
+}
+
+
+.download-pdf img{
+    width: 100%;
+    transition: transform 0.2s ease-in-out;
+}
+
+.download-pdf:hover img {
+    transform: scale(1.2);
+}
 
 
 

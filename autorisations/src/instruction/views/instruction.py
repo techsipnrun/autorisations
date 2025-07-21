@@ -87,8 +87,7 @@ def instruction_demarche(request, num_demarche):
     etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
 
-    # etats_termines = EtatDossier.objects.filter(nom__in=["accepte", "refuse", "sans_suite"])
-    # ids_etats_termines = list(etats_termines.values_list("id", flat=True))
+    mes_dossiers = request.GET.get("mes_dossiers", "1")
 
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
     groupes_user = []
@@ -104,8 +103,9 @@ def instruction_demarche(request, num_demarche):
         # id_etat_dossier__in=ids_etats_termines,
         id_etape_dossier__in=ids_etapes_termines
     )
+ 
 
-    if request.GET.get("mes_dossiers") == "1" :
+    if mes_dossiers == "1":
         dossiers_query = dossiers_query.filter(id_groupeinstructeur_id__in=groupes_user)
 
     dossiers = dossiers_query.select_related("id_groupeinstructeur").order_by("date_depot")
@@ -133,7 +133,7 @@ def instruction_demarche(request, num_demarche):
             "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
-            "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier.etape else "Non défini"
+            "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier.etape else "Non défini",
         })
 
 
@@ -427,7 +427,18 @@ def instruction_dossier(request, num_dossier):
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à envoyer"
     ]
 
+    doc_envoye = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé"
+    ]
 
+    resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
+
+    titres_documents_actes = list(
+    Document.objects.filter(
+        emplacement=os.path.join(dossier.emplacement, "Actes/")
+    ).values_list("titre", flat=True)
+)
 
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
@@ -461,6 +472,9 @@ def instruction_dossier(request, num_dossier):
         "doc_a_relire": doc_a_relire,
         "doc_a_signer": doc_a_signer,
         "doc_a_envoyer": doc_a_envoyer,
+        "resume_pdf_titre": resume_pdf_titre,
+        "doc_envoye": doc_envoye,
+        "titres_documents_actes": titres_documents_actes,
     })
 
 

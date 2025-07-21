@@ -145,7 +145,7 @@ class Dossier(models.Model):
     date_depot = models.DateTimeField()
     date_debut_instruction = models.DateTimeField(blank=True, null=True)
     date_fin_instruction = models.DateTimeField(blank=True, null=True)
-    id_dossier_type = models.ForeignKey(DossierType, models.DO_NOTHING, db_column='id_dossier_type')
+    id_dossier_type = models.ForeignKey(DossierType, models.DO_NOTHING, db_column='id_dossier_type',blank=True)
     # id_ds_dossier_parent = models.CharField(blank=True, null=True)
     id_dossier_parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, db_column='id_dossier_parent', related_name='dossiers_enfants')
     note = models.CharField(blank=True, null=True)
