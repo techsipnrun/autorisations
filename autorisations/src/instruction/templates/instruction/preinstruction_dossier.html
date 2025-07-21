@@ -131,8 +131,21 @@
                             </div>
                             
                             <div class="carte-container">
-                                <div class="carte" data-geojson='{{ champ.geojson }}'></div>
+                                <div class="carte" data-geojson='{{ champ.geojson|safe }}'></div>
+
+
+                                    <!-- Menu de sélection du fond de carte -->
+                                    {% if champ.geojson %}
+                                        <div class="fond-selector-wrapper">
+                                            <select class="fond-select">
+                                                <option value="satellite">Satellite (ESRI)</option>
+                                                <option value="osm">OpenStreetMap</option>
+                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
+                                            </select>
+                                        </div>
+                                    {% endif %}
                             </div>
+
                     
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
@@ -155,17 +168,31 @@
                                 </div>
                                 
                                 <div class="carte-container">
-                                    <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                    <div class="carte" data-geojson='{{ champ.geojson }}'></div>
                                 </div>
 
+                               
                             {% elif champ.geometrie_a_saisir == 'non' %}
                                 <div class="titre-carte-avec-bouton">
                                     <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
                                 </div>
                                 
                                 <div class="carte-container">
-                                    <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                    <div class="carte" data-geojson='{{ champ.geojson }}'></div>
+
+                                    <!-- Menu de sélection du fond de carte -->
+                                    {% if champ.geojson %}
+                                        <div class="fond-selector-wrapper">
+                                            <select class="fond-select">
+                                                <option value="satellite">Satellite (ESRI)</option>
+                                                <option value="osm">OpenStreetMap</option>
+                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
+                                            </select>
+                                        </div>
+                                    {% endif %}
                                 </div>
+
+                                
 
                             {% endif %}
                         {% endif %}
@@ -386,7 +413,7 @@
 </script>
 
 <!-- 3. Script Leaflet personnalisé -->
-<script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
+<script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
 
 
 <script>

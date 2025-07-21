@@ -1,32 +1,54 @@
+// ****
+// Script JS pour l'affichage carto dans le formulaire
+// ***
+
 document.addEventListener("DOMContentLoaded", () => {
     const fond_coeur_de_Parc = window._coeurData;
     const cartes = document.querySelectorAll(".carte");
 
     if (cartes.length === 0) {
-        console.warn("Aucune carte à afficher.");
+        console.info("Aucune carte à afficher.");
         return;
     }
 
     cartes.forEach((div) => {
+        console.info(`Nombre de cartes : ${cartes.length}`);
         const data = div.dataset.geojson;
 
+        // ---------------------------------
+        // Vérification de la présence et qualité du GeoJSON
+        // ---------------------------------
+
+        // Si GeoJSON non trouvé
         if (!data || data.trim() === "") {
             console.warn("Pas de GeoJSON pour :", div);
-            return; // on ignore cette carte
+            return;
         }
 
         let geojson = null;
         try {
             geojson = JSON.parse(data);
         } catch (e) {
-            console.error("GeoJSON invalide :", data);
+            console.error("GeoJSON invalide (erreur lors du parsing) :", data);
             return;
         }
-        if (!geojson || (!geojson.type && !geojson.features)) {
+
+        // Si GeoJSON vide
+        if (geojson && typeof geojson === 'object' && Object.keys(geojson).length === 0) {
+            console.warn("Le GeoJSON est vide");
+            return;
+        }
+
+        // Si GeoJSON mal formé
+        else if (!geojson || (!geojson.type && !geojson.features)) {
             console.error("❌ Objet GeoJSON mal formé :", geojson);
             return;
         }
 
+
+        // ---------------------------------
+        // Initialisation de la carte Leaflet
+        // ---------------------------------
         const map = L.map(div).setView([-21.1, 55.5], 10);
 
         // Fond satellite ESRI
@@ -36,7 +58,64 @@ document.addEventListener("DOMContentLoaded", () => {
         }).addTo(map);
 
 
+
+        // ---------------------------------
+        // Menu de sélection du fond de carte
+        // ---------------------------------
+
+
+
+        // Liste des fonds disponibles
+        const fonds = {
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Esri & NASA',
+                maxZoom: 19
+            }),
+            osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }),
+            opentopomap: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap',
+                maxZoom: 18,
+                tileSize: 256
+            })
+
+        };
+
+        // Fond par défaut
+        fonds.satellite.addTo(map);
+        let fondActif = fonds.satellite;
+
+        // Attacher le gestionnaire au <select> défini dans le HTML
+        const fondSelect = div.closest(".carte-container")?.querySelector(".fond-select");
+
+
+        if (fondSelect) {
+            fondSelect.addEventListener("change", (e) => {
+                const valeur = e.target.value;
+                if (fonds[valeur]) {
+                map.removeLayer(fondActif);
+                fondActif = fonds[valeur];
+                fondActif.addTo(map);
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        // ---------------------------------
         // Couches de fond : cœur + adhésion
+        // ---------------------------------
         const overlayMaps = {};
 
         if (fond_coeur_de_Parc) {
@@ -63,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
             overlayMaps["Aire d’adhésion"] = adhesionLayer;
-            // adhesionLayer.addTo(map); // visible par défaut
         }
 
         L.control.layers(null, overlayMaps, {
@@ -71,8 +149,9 @@ document.addEventListener("DOMContentLoaded", () => {
             position: "topright"
         }).addTo(map);
 
-
-        // 4. Ajouter la géométrie du pétitionnaire
+        // -----------------------------------
+        // Ajouter le geojson du pétitionnaire 
+        // -----------------------------------
         const layer = L.geoJSON(geojson, {
             style: {
                 color: "red",
@@ -91,7 +170,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }).addTo(map);
 
-        // 6. Calcul d'intersection entre fond et géométrie pétitionnaire
+        // ------------------------------------------------------------------
+        // Calcul d'intersection entre le coeur de Parc et la géométrie pétitionnaire
+        // ------------------------------------------------------------------
         if (fond_coeur_de_Parc && geojson) {
             try {
                 const featuresFond = fond_coeur_de_Parc.features;
@@ -116,10 +197,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 });
 
-
-
                 console.log("Intersection avec le cœur de parc :", intersecte);
 
+                // POP UP Intersection
                 if (intersecte) {
                     L.popup()
                         .setLatLng(layer.getBounds().getCenter())
@@ -132,15 +212,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-
-        // 5. Centrer sur la géométrie pétitionnaire
+        // --------------------------------------
+        // Centrer sur la géométrie pétitionnaire
+        // --------------------------------------
         map.fitBounds(layer.getBounds(), {
             maxZoom: 12,
-            padding: [20, 20]  //espace autour de la géométrie
+            padding: [20, 20]
         });
 
     });
 });
+
+
+
+
 
 
 // Copier l'emplacement du Dossier

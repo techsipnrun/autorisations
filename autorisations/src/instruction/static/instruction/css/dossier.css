@@ -235,7 +235,12 @@ h2 {
 /*           Carto Leaflet             */
 /* ----------------------------------- */
 
+.carte-container {
+    position: relative;
+}
+
 .leaflet-container {
+    /* position: relative; */
     height: 60vh;
     width: 100%;
     border: 1px solid #ccc;
@@ -289,6 +294,26 @@ h2 {
   background-color: #ddd;
 }
 
+
+/*   Menu sélection du fond de carte  */
+.fond-selector-wrapper {
+  position: absolute;
+  top: 90px;
+  right: 10px;
+  z-index: 1000;
+  background: white;
+  /* padding: 6px 10px; */
+  border-radius: 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+.fond-selector-wrapper select {
+  font-size: 14px;
+  padding: 6px 9px;
+  border-radius: 12px;
+
+}
 
 
 

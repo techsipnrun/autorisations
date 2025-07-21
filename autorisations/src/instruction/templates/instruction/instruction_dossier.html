@@ -401,6 +401,17 @@
                             
                             <div class="carte-container">
                                 <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+
+                                <!-- Menu de sélection du fond de carte -->
+                                    {% if champ.geojson %}
+                                        <div class="fond-selector-wrapper">
+                                            <select class="fond-select">
+                                                <option value="satellite">Satellite (ESRI)</option>
+                                                <option value="osm">OpenStreetMap</option>
+                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
+                                            </select>
+                                        </div>
+                                    {% endif %}
                             </div>
                         
                         <!-- Champs pièces justificatives -->
@@ -434,6 +445,17 @@
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+
+                                    <!-- Menu de sélection du fond de carte -->
+                                    {% if champ.geojson %}
+                                        <div class="fond-selector-wrapper">
+                                            <select class="fond-select">
+                                                <option value="satellite">Satellite (ESRI)</option>
+                                                <option value="osm">OpenStreetMap</option>
+                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
+                                            </select>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             {% endif %}
 
@@ -681,7 +703,7 @@
 
 
     <!-- 3. Script Leaflet personnalisé -->
-    <script src="{% static 'instruction/js/preinstruction_map.js' %}"></script>
+    <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
 
 
     <!-- Menu déroulant état dossier  + margin bottom auto -->

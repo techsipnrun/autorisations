@@ -1,6 +1,6 @@
-/**
- * carto_test.js - Refactorisé pour plus de lisibilité, modularité et clarté.
- */
+// ****
+// Script JS pour l'affichage et l'édition de la carto (edit_carto.html)
+// ***
 
 (function main() {
   const fondData = window._fondDeCarteData;
@@ -115,56 +115,56 @@
 
 
    function addBackgroundLayers(map, fond, adhesion) {
-    const overlays = {};
+      const overlays = {};
 
-    if (fond) {
-      const fondLayer = L.geoJSON(fond, {
-        style: { color: "#2E7D32", fillColor: "#4CAF50", weight: 2, fillOpacity: 0.5, opacity: 0.1 },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup("<strong>Cœur du Parc national</strong>");
-          layer.pmIgnore = true;
-        }
-      }).addTo(map);
-      fondLayer.eachLayer(l => {
+      if (fond) {
+        const fondLayer = L.geoJSON(fond, {
+          style: { color: "#2E7D32", fillColor: "#4CAF50", weight: 2, fillOpacity: 0.5, opacity: 0.1 },
+          onEachFeature: (feature, layer) => {
+            layer.bindPopup("<strong>Cœur du Parc national</strong>");
+            layer.pmIgnore = true;
+          }
+        }).addTo(map);
+        fondLayer.eachLayer(l => {
+          l.options._isBackgroundLayer = true;
+          l.pmIgnore = true;
+        });
+
+        overlays["Cœur du Parc National"] = fondLayer;
+        fondLayer.bringToBack();
+      }
+
+    if (adhesion) {
+        const adhesionLayer = L.geoJSON(adhesion, {
+          style: {
+            color: "#388E3C",
+            fillColor: "#A5D6A7",
+            weight: 1,
+            fillOpacity: 0.5,
+            opacity: 0.1
+          },
+          onEachFeature: (feature, layer) => {
+            const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
+            layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
+            layer.pmIgnore = true;
+          }
+          
+      });
+
+      adhesionLayer.eachLayer(l => {
         l.options._isBackgroundLayer = true;
         l.pmIgnore = true;
       });
 
-      overlays["Cœur du Parc National"] = fondLayer;
-      fondLayer.bringToBack();
+      adhesionLayer.options._isBackgroundLayer = true;
+
+
+      // ✅ Ajoute uniquement dans le panneau de calques, pas sur la carte
+      overlays["Aire d’adhésion"] = adhesionLayer;
     }
 
-   if (adhesion) {
-      const adhesionLayer = L.geoJSON(adhesion, {
-        style: {
-          color: "#388E3C",
-          fillColor: "#A5D6A7",
-          weight: 1,
-          fillOpacity: 0.5,
-          opacity: 0.1
-        },
-        onEachFeature: (feature, layer) => {
-          const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
-          layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
-          layer.pmIgnore = true;
-        }
-        
-    });
 
-  adhesionLayer.eachLayer(l => {
-    l.options._isBackgroundLayer = true;
-    l.pmIgnore = true;
-  });
-
-  adhesionLayer.options._isBackgroundLayer = true;
-
-
-  // ✅ Ajoute uniquement dans le panneau de calques, pas sur la carte
-  overlays["Aire d’adhésion"] = adhesionLayer;
-}
-
-
-    return overlays;
+      return overlays;
   }
 
 

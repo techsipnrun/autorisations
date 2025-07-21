@@ -208,7 +208,7 @@ class Champ(models.Model):
         db_table = '"instruction"."champ"'
 
     def __str__(self):
-        return self.nom
+        return f"{self.nom} ({self.id_champ_type.type})"
     
 
 class DemandeChamp(models.Model):
