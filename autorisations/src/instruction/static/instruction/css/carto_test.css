@@ -31,6 +31,7 @@ h1 {
 
 
 
+
 /* -------------------------------- */
 /*           Carte Leaflet          */
 /* -------------------------------- */
@@ -98,7 +99,10 @@ box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     border: 1px solid #ccc;
   }
   
-/* ===== Panneau de couches Leaflet ===== */
+
+/* -------------------------------------------- */
+/*     Panneau de couches Coeur et Adhésion     */
+/* -------------------------------------------- */
 .leaflet-control-layers {
   font-family: "Segoe UI", sans-serif;
   font-size: 14px;
@@ -130,6 +134,7 @@ box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
   
 
+
 /* -------------------------------- */
 /*     Message Succès ou Erreur     */
 /* -------------------------------- */
@@ -154,6 +159,33 @@ box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 .leaflet-top,
 .leaflet-bottom {
   z-index: 500 !important;
+}
+
+
+
+/* ---------------------------------------------- */
+/*     Menu déroulant : Choix du fond de carte    */
+/* ---------------------------------------------- */
+.fond-control {
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: white;
+}
+
+.fond-control label.fond-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #2E7D32;
+  font-size: 14px;
+}
+
+.fond-control select.fond-select {
+  width: 100%;
+  padding: 4px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 
