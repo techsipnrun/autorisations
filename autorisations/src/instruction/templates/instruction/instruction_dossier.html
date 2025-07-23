@@ -147,7 +147,7 @@
                 <!-- Documents à valider -->
                 {% if etape_actuelle.etape == "À valider avant signature" and doc_a_valider %}
                     <div class="validation-documents">
-                        <h2>Document(s) à valider</h2>
+                        <h2>Document à valider</h2>
                         <form method="post" action="#">
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
@@ -168,7 +168,7 @@
                 <!-- Documents à relire -->
                 {% if etape_actuelle.etape == "En relecture qualité" and doc_a_relire %}
                     <div class="validation-documents">
-                        <h2>Document(s) à relire</h2>
+                        <h2>Document à relire</h2>
                         <form method="post" action="#">
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
@@ -177,6 +177,7 @@
                                         <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
                                             {{ doc.titre }}
                                         </a>
+                                        
                                     </li>
                                 {% endfor %}
                             </ul>
@@ -187,7 +188,7 @@
                 <!-- Documents à signer -->
                 {% if etape_actuelle.etape == "En attente de signature" and doc_a_signer %}
                     <div class="validation-documents">
-                        <h2>Document(s) à signer</h2>
+                        <h2>Document à signer</h2>
                         <form method="post" action="#">
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
@@ -228,20 +229,37 @@
 
                 <!-- Documents envoyés -->
                  {% if doc_envoye %}
-                    {% if etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Accepté" %}
-                        <div class="validation-documents">
-
-                            {% if etape_actuelle.etape == "À publier au RAA" %}
+                    {% if etape_actuelle.etape == "À publier au RAA" %}
+                        <div class="validation-documents">            
                                 <h2>
-                                    Document(s) à publier au RAA
+                                    Document à publier au RAA
                                     <a href="https://www.reunion-parcnational.fr/fr/node/add/raa" target="_blank" rel="noopener noreferrer">
                                         <img src="{% static 'instruction/img/lien-externe.png' %}" alt="Lien vers le RAA" title="Ouvrir le site du RAA">
                                     </a>
                                 </h2>
-                            {% elif etape_actuelle.etape == "Accepté" %}
-                                <h2>Document(s) publié(s) au RAA</h2>
-                            {% endif %}
-                            
+
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_envoye %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                 <!-- Documents envoyés et publiés -->
+                 {% if doc_envoye_et_publie %}
+                    {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé"%}
+                        <div class="validation-documents">
+                            <h2>Document(s) publié(s) au RAA</h2>
+                       
                             <form method="post" action="#">
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
@@ -303,7 +321,6 @@
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
-                        <input type="hidden" name="confirm_ecrasement" id="confirm-ecrasement" value="false">
 
                         <label for="nature_document">Nature du document :</label>
                         <select name="nature_document" id="nature_document" required>
@@ -346,7 +363,7 @@
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
                                 <label for="pj_validation">Joindre le projet d’acte :</label>
-                                <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.jpg,.png,.doc,.docx" required>
+                                <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.odt,.doc,.docx" required>
                             </div>
 
                             <p class="hint-text">📁 Merci de sélectionner un fichier situé dans le dossier <strong>Work</strong>.</p>
@@ -377,7 +394,9 @@
 
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
-                                <p style="color: red;">IL DOIT Y AVOIR LE NOM ET PRENOM DU DEMANDEUR INTERMEDIAIRE NORMALEMENT !!!</p>
+                                <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
+                                    car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
+                                </p>
                                 {% if demandeur_intermediaire %}
                                     {% if demandeur_intermediaire.nom %}
                                         <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
@@ -659,7 +678,7 @@
                         <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
                             {% csrf_token %}
                             <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                            <textarea name="note" rows="4"></textarea>
+                            <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
                             <button type="submit" class="valider-btn">Enregistrer</button>
                         </form>
                     </div>
@@ -905,13 +924,11 @@
             if (titresExistants.includes(documentTitre)) {
                 const ok = confirm(`Un document nommé « ${documentTitre} » existe déjà. Voulez-vous vraiment l’écraser ?`);
                 if (!ok) return;
-
-                confirmInput.value = "true";  // autorise l'écrasement
-            } else {
-                confirmInput.value = "false";
             }
 
-            document.querySelector('#formulaire-acceptation form').submit();
+            //document.querySelector('#formulaire-acceptation form').submit();
+            document.querySelector('#formulaire-acceptation form').requestSubmit();
+
         }
 
 
@@ -1009,6 +1026,45 @@
             }
         });
     </script>
+
+    <!-- Enregistrer les notes en cours de redaction -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const textarea = document.getElementById("nouvelle-note-textarea");
+            const userEmail = "{{ request.user.email|escapejs }}";
+            const dossierId = "{{ dossier.id_ds }}";
+            const storageKey = `note_temp_${userEmail}_${dossierId}`;
+
+            // Restaurer la note enregistrée
+            const saved = localStorage.getItem(storageKey);
+            if (saved !== null) {
+                textarea.value = saved;
+            }
+
+            // Mettre à jour localStorage à chaque frappe
+            textarea.addEventListener("input", () => {
+                localStorage.setItem(storageKey, textarea.value);
+            });
+
+            // Nettoyer après soumission de la note
+            const noteForm = textarea.closest("form");
+            noteForm?.addEventListener("submit", () => {
+                localStorage.removeItem(storageKey);
+            });
+
+            // Capture avant ajout d'annexe
+            const annexeInput = document.getElementById("file-upload");
+            if (annexeInput) {
+                annexeInput.addEventListener("change", () => {
+                    if (textarea.value.trim() !== "") {
+                        localStorage.setItem(storageKey, textarea.value);
+                    }
+                });
+            }
+        });
+    </script>
+
+
 
 
 

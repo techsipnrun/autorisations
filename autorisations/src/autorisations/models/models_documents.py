@@ -44,10 +44,11 @@ class Document(models.Model):
     id_nature = models.ForeignKey(DocumentNature, models.RESTRICT, db_column='id_nature')
     id_statut = models.ForeignKey(DocumentStatut, models.RESTRICT, db_column='id_statut', blank=True, null=True)
     url_ds = models.CharField(blank=True, null=True)
-    emplacement = models.CharField(unique=True)
+    emplacement = models.CharField()
     description = models.CharField(blank=True, null=True)
     numero = models.CharField(blank=True, null=True)
     titre = models.CharField()
+    publie_au_raa = models.BooleanField(default=False)
 
     class Meta:
         managed = False

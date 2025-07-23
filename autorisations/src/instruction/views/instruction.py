@@ -406,30 +406,36 @@ def instruction_dossier(request, num_dossier):
     # Récupération des documents liés au dossier
     documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
 
-    # Filtrage : statut = "À valider"
-    doc_a_valider = [
+    natures_valides = ['Déliberation CA', 'Arrêté directeur', 'Avis simple', 'Avis conforme']
+
+    acte_a_valider = [
         doc.id_document for doc in documents_du_dossier
-        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à valider"
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à valider" and doc.id_document.id_nature.nature in natures_valides
     ]
 
-    doc_a_relire = [
+    acte_a_relire = [
         doc.id_document for doc in documents_du_dossier
-        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à relire"
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à relire" and doc.id_document.id_nature.nature in natures_valides
     ]
 
-    doc_a_signer = [
+    acte_a_signer = [
         doc.id_document for doc in documents_du_dossier
-        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à signer"
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à signer" and doc.id_document.id_nature.nature in natures_valides
     ]
 
-    doc_a_envoyer = [
+    acte_a_envoyer = [
         doc.id_document for doc in documents_du_dossier
-        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à envoyer"
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à envoyer" and doc.id_document.id_nature.nature in natures_valides
     ]
 
-    doc_envoye = [
+    acte_envoye = [
         doc.id_document for doc in documents_du_dossier
-        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé"
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides
+    ]
+
+    acte_envoye_et_publie = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides and doc.id_document.publie_au_raa
     ]
 
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
@@ -468,12 +474,13 @@ def instruction_dossier(request, num_dossier):
         "notes": notes,
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         "titres_documents_actes": list(documents_actes),
-        "doc_a_valider": doc_a_valider,
-        "doc_a_relire": doc_a_relire,
-        "doc_a_signer": doc_a_signer,
-        "doc_a_envoyer": doc_a_envoyer,
+        "doc_a_valider": acte_a_valider,
+        "doc_a_relire": acte_a_relire,
+        "doc_a_signer": acte_a_signer,
+        "doc_a_envoyer": acte_a_envoyer,
         "resume_pdf_titre": resume_pdf_titre,
-        "doc_envoye": doc_envoye,
+        "doc_envoye": acte_envoye,
+        "doc_envoye_et_publie": acte_envoye_et_publie,
         "titres_documents_actes": titres_documents_actes,
     })
 

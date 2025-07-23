@@ -1,6 +1,14 @@
+from pathlib import Path
 from django.utils import timezone
 import logging
 from autorisations.models.models_instruction import Action, DossierAction, EtapeDossier, EtatDossier
+import pythoncom
+import win32com.client
+import os
+import subprocess
+import tempfile
+import shutil
+
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -96,3 +104,102 @@ def enregistrer_action(dossier, instructeur, nom_action, description=None, date=
             description=description,
             date=date
         )
+
+
+# def convertir_docx_en_pdf_win32(path_docx, path_pdf, dossier_numero=None, logger=None):
+#     import pythoncom
+#     import win32com.client
+#     import time
+
+#     try:
+#         pythoncom.CoInitialize()
+
+#         if os.path.exists(path_pdf):
+#             os.remove(path_pdf)
+
+#         word = win32com.client.Dispatch("Word.Application")
+#         word.Visible = False
+#         word.DisplayAlerts = 0  # Empêche les popups
+#         word.AutomationSecurity = 3  # Désactive macros et alertes
+
+#         doc = word.Documents.Open(
+#             path_docx,
+#             ConfirmConversions=False,
+#             ReadOnly=True,
+#             AddToRecentFiles=False,
+#             Visible=False,
+#             PasswordDocument='',
+#         )
+
+#         time.sleep(0.2)  # Pause avant SaveAs
+
+#         doc.SaveAs(path_pdf, FileFormat=17)  # PDF (code 17)
+#         doc.Close(False)
+#         word.Quit()
+
+#         if logger:
+#             logger.info(f"[DOSSIER {dossier_numero}] Conversion réussie DOCX → PDF : {path_pdf}")
+
+#     except Exception as e:
+#         if logger:
+#             logger.error(f"[DOSSIER {dossier_numero}] Erreur de conversion Word → PDF (win32) : {e}")
+#             # logger.error(f"Fichier .docx accessible ? {os.path.exists(path_docx)}")
+#             # logger.error(f"Fichier .pdf déjà présent ? {os.path.exists(path_pdf)}")
+#         raise
+
+#     finally:
+#         pythoncom.CoUninitialize()
+
+
+
+
+def convertir_docx_en_pdf_libreoffice(path_docx, output_dir, dossier_numero=None, logger=None):
+    try:
+        if not os.path.exists(path_docx):
+            raise FileNotFoundError(f"Le fichier source {path_docx} est introuvable.")
+
+        if not os.path.exists(output_dir):
+            raise FileNotFoundError(f"Le dossier de sortie {output_dir} est introuvable.")
+
+        # soffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
+        soffice_path = os.getenv('SOFFICE_PATH')
+
+        if not soffice_path:
+            raise EnvironmentError(f"[DOSSIER {dossier_numero}] Conversion PDF : Variable d'environnement 'SOFFICE_PATH' non définie.")
+
+        # logger.info(f"soffice path : {soffice_path}")
+        # logger.info(f"output_dir : {output_dir}")
+        # logger.info(f"path_docx : {path_docx}")
+
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_docx = os.path.join(temp_dir, os.path.basename(path_docx))
+
+            shutil.copy(path_docx, temp_docx)
+
+            cmd = [
+                soffice_path, "--headless", "--convert-to", "pdf",
+                "--outdir", output_dir, path_docx
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            # logger.warning(f"stdout LibreOffice : {result.stdout}")
+            # logger.warning(f"stderr LibreOffice : {result.stderr}")
+
+
+            # Cherche le PDF
+            nom_pdf_genere = Path(path_docx).with_suffix(".pdf").name
+            pdf_genere_path = os.path.join(output_dir, nom_pdf_genere)
+
+            if not os.path.exists(pdf_genere_path):
+                raise FileNotFoundError(f"[DOSSIER {dossier_numero}] PDF attendu introuvable : {pdf_genere_path}")
+
+
+            if logger:
+                logger.info(f"[DOSSIER {dossier_numero}] Conversion LibreOffice -> PDF OK.")
+
+    except Exception as e:
+        if logger:
+            logger.error(f"[DOSSIER {dossier_numero}] Échec Conversion LibreOffice - PDF ({path_docx}) : {e}")
+            # logger.error(f"[DOSSIER {dossier_numero}] Erreur : {e}")
+        raise

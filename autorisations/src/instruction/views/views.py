@@ -380,42 +380,55 @@ def ajouter_annexe_dossier(request, dossier_id):
 
         # Création du Document
         dossier = get_object_or_404(Dossier, pk=dossier_id)
-        emplacement = f"{dossier.emplacement}/Annexes/{fichier.name}"
+        emplacement = f"{dossier.emplacement}Annexes/{fichier.name}"
         chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
 
         # Vérification si un Document avec le même emplacement existe déjà en base, si on est ici c'est qu'on a confirmé l'écrasement dans le pop up JS
-        if Document.objects.filter(emplacement=emplacement).exists():
+        if Document.objects.filter(emplacement=f"{dossier.emplacement}Annexes/", titre=fichier.name).exists():
             
-            #ancien document
-            ancien_doc = Document.objects.filter(emplacement=emplacement).first()
-            # Supprimer le lien avec le dossier
-            DossierDocument.objects.filter(id_document=ancien_doc).delete()
-            # Supprimer le document lui-même
-            ancien_doc.delete()
+            try:
+                ancien_doc = Document.objects.get(emplacement=f"{dossier.emplacement}Annexes/", titre=fichier.name)
+                # Supprimer le lien avec le dossier
+                DossierDocument.objects.filter(id_document=ancien_doc).delete()
+                # Supprimer le document lui-même
+                ancien_doc.delete()
+            except Document.DoesNotExist:
+                pass  # Aucun doc à supprimer, donc on ignore
 
             logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} (.{extension}) écrasée par {request.user} — ancien document supprimé.")
-
 
         doc = Document.objects.create(
             id_format=format_obj,
             id_nature=nature_obj,
             titre=fichier.name,
             emplacement=f"{dossier.emplacement}Annexes/",
-            description=f"Annexe ajouté par l'instructeur sur le dossier {dossier.numero}"
+            description=f"Annexe ajouté par l'instructeur {request.user} sur le dossier {dossier.numero}"
         )
 
 
         # Lien avec le Dossier
         DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
 
-      # Enregistrement physique
+        # Enregistrement physique
         os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
-        with open(chemin_complet, 'wb+') as destination:
-            for chunk in fichier.chunks():
-                destination.write(chunk)
 
-        logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} ajoutée avec succès par {request.user}")
-        return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+        # Si un fichier du même nom existe déjà, on le supprime
+        if os.path.exists(chemin_complet):
+            os.remove(chemin_complet)
+
+        try:
+            with open(chemin_complet, 'wb+') as destination:
+                for chunk in fichier.chunks():
+                    destination.write(chunk)
+
+            logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} ajoutée avec succès par {request.user}")
+            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'écriture de l'annexe instructeur (Note) : {e}")
+            messages.error(request, "Une erreur est survenue lors de l’enregistrement du fichier. Veuillez réessayer.")
+            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
 
     logger.warning(f"[DOSSIER {dossier.numero}] Annexe non ajoutée par {request.user} : Aucune pièce jointe reçue.")

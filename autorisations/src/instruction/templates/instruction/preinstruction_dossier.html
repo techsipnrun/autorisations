@@ -108,6 +108,9 @@
                             
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
+                                <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
+                                    car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
+                                </p>
                             
                                 {% if demandeur_intermediaire %}
                                     {% if demandeur_intermediaire.nom %}
@@ -370,7 +373,7 @@
                         <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
                             {% csrf_token %}
                             <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                            <textarea name="note" rows="4"></textarea>
+                            <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
                             <button type="submit" class="valider-btn">Enregistrer</button>
                         </form>
                     </div>
@@ -525,5 +528,43 @@
         });
     });
 </script>
+
+<!-- Enregistrer les notes en cours de redaction -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const textarea = document.getElementById("nouvelle-note-textarea");
+        const userEmail = "{{ request.user.email|escapejs }}";
+        const dossierId = "{{ dossier.id_ds }}";
+        const storageKey = `note_temp_${userEmail}_${dossierId}`;
+
+        // Restaurer la note enregistrée
+        const saved = localStorage.getItem(storageKey);
+        if (saved !== null) {
+            textarea.value = saved;
+        }
+
+        // Mettre à jour localStorage à chaque frappe
+        textarea.addEventListener("input", () => {
+            localStorage.setItem(storageKey, textarea.value);
+        });
+
+        // Nettoyer après soumission de la note
+        const noteForm = textarea.closest("form");
+        noteForm?.addEventListener("submit", () => {
+            localStorage.removeItem(storageKey);
+        });
+
+        // Capture avant ajout d'annexe
+        const annexeInput = document.getElementById("file-upload");
+        if (annexeInput) {
+            annexeInput.addEventListener("change", () => {
+                if (textarea.value.trim() !== "") {
+                    localStorage.setItem(storageKey, textarea.value);
+                }
+            });
+        }
+    });
+</script>
+
 
 </html>

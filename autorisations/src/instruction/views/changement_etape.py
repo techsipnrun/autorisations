@@ -15,6 +15,14 @@ from django.utils import timezone
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
 from django.contrib import messages
 from django.core.files.uploadedfile import SimpleUploadedFile
+from docx2pdf import convert
+from pathlib import Path
+import shutil
+from django.utils.text import slugify
+import uuid
+import win32com.client
+import pythoncom
+from instruction.utils import convertir_docx_en_pdf_libreoffice
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -286,6 +294,12 @@ def envoyer_pour_validation_avant_signature(request):
         nature = request.POST.get("nature_document")
         fichier = request.FILES.get("piece_jointe")
 
+        # Vérification que l'extension du fil est .doc, .docx, .pdf, .odt
+        extension = Path(fichier.name).suffix.lower()
+        if extension not in {".pdf", ".doc", ".docx", ".odt"} :
+            messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
         if not dossier_id_ds or not nature or not fichier:
             raise Http404(f"Données manquantes ou invalides : id_dossier_ds = {dossier_id_ds}, nature_doc = {nature}, fichier = {fichier.name}")
 
@@ -435,6 +449,24 @@ def repasser_en_instruction(request):
         # Enregistrer dossier action
         enregistrer_action(dossier, instructeur, "Repassage en instruction")
 
+        # Maj Statut Documents
+        # 1. Récupérer les statuts concernés (en minuscule pour robustesse)
+        statuts_cibles = {"à envoyer", "à signer", "à relire", "à valider"}
+
+        # 2. Récupérer tous les DossierDocument liés au dossier
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+        # 3. Parcourir et mettre à jour
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            statut_actuel = doc.id_statut.statut.lower() if doc.id_statut else ""
+
+            if statut_actuel in statuts_cibles:
+                doc.id_statut = None
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' remis à NULL.")
+
+
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     return HttpResponseBadRequest("Méthode non autorisée.")
@@ -497,9 +529,90 @@ def valider_et_envoyer_pour_relecture_qualite(request):
         for lien in documents_du_dossier:
             doc = lien.id_document
             if doc.id_statut and doc.id_statut.statut.lower() == "à valider":
+                
                 doc.id_statut = statut_relire
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À relire.")
+
+
+                '''
+                # Vérifie que le document est en .docx
+                if doc.id_format.format.lower() == "docx" or doc.id_format.format.lower() == "odt":
+                    try:
+
+                        # Chemin du fichier source
+                        root_folder = os.getenv("ROOT_FOLDER")
+                        emplacement_doc = os.path.join(root_folder, doc.emplacement)
+                        word_full_path = os.path.join(emplacement_doc, doc.titre)
+
+                        # Détermine les noms de fichiers
+                        nom_sans_ext = Path(doc.titre).stem
+                        ext = Path(doc.titre).suffix
+                        nom_slug = slugify(nom_sans_ext)
+
+                        if nom_sans_ext != nom_slug:
+                            # Renommer le fichier dans le dossier
+                            nouveau_nom = f"{nom_slug}{ext}"
+                            nouveau_chemin = os.path.join(emplacement_doc, nouveau_nom)
+
+                            os.rename(word_full_path, nouveau_chemin)
+                            # logger.info(f"[DOSSIER {dossier.numero}] Fichier renommé → {nouveau_nom}")
+
+                            # Mettre à jour le champ en base
+                            doc.titre = nouveau_nom
+                            doc.save()
+
+                            # Met à jour le chemin de travail
+                            word_full_path = nouveau_chemin
+
+
+                        titre_pdf = f"{nom_slug}.pdf"
+                        emplacement_pdf = os.path.join(emplacement_doc, titre_pdf)
+
+                        # unique_suffix = uuid.uuid4().hex[:6]
+                        # temp_docx_path = os.path.join(emplacement_doc, f"{slugify(nom_sans_ext)}_{unique_suffix}.docx")
+
+                       # Supprimer s'il existe déjà
+                        # if os.path.exists(temp_docx_path):
+                        #     os.remove(temp_docx_path)
+
+                        # shutil.copy(word_full_path, temp_docx_path)
+
+                        logger.info(f"Conversion DOCX vers PDF : {doc.titre}")
+                        
+                        # Suppression du PDF s'il existe déjà
+                        if os.path.exists(emplacement_pdf):
+                            os.remove(emplacement_pdf)
+
+
+                        # Conversion Libre Office -> PDF
+                        convertir_docx_en_pdf_libreoffice(word_full_path, emplacement_doc, dossier.numero, logger)
+
+
+
+                        # Supprimer le .docx temporaire une fois le PDF généré
+                        # os.remove(temp_docx_path)
+
+                        # Enregistrer le nouveau document PDF en base
+                        format_pdf = DocumentFormat.objects.filter(format__iexact="pdf").first()
+                        if not format_pdf:
+                            logger.warning(f"[DOSSIER {dossier.numero}] Erreur lors de la conversion Word → PDF : Format PDF introuvable en base.")
+                        else:
+                            doc_pdf = Document.objects.create(
+                                id_format=format_pdf,
+                                id_nature=doc.id_nature,
+                                id_statut=doc.id_statut,
+                                titre=titre_pdf,
+                                emplacement=doc.emplacement,
+                                description=f"PDF généré automatiquement à partir de {doc.titre}"
+                            )
+                            DossierDocument.objects.create(id_dossier=dossier, id_document=doc_pdf)
+                            logger.info(f"[DOSSIER {dossier.numero}] PDF '{titre_pdf}' généré et ajouté au dossier.")
+
+                    except Exception as e:
+                        return redirect(request.META.get("HTTP_REFERER", "/"))
+                        # logger.error(f"[DOSSIER {dossier.numero}] Erreur de conversion Word → PDF pour '{doc.titre}' : {e}")
+                '''
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -626,6 +739,18 @@ def classer_le_dossier_comme_accepte(request):
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         enregistrer_action(dossier, instructeur, "Classé comme accepté")
 
+        #Document publié au RAA --> True
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+        # Mise à jour Doc "publie_au_raa"
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            if doc.id_statut and doc.id_statut.statut.lower() == "envoyé" and not doc.publie_au_raa:
+                doc.publie_au_raa = True
+                doc.save()
+
+
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
     return HttpResponseBadRequest("Méthode non autorisée.")
@@ -642,7 +767,7 @@ def envoyer_l_acte(request):
     document_id = request.POST.get("document_id_existant")
     nature_document = request.POST.get("nature_document")
 
-    confirm_ecrasement = request.POST.get("confirm_ecrasement") == "true"
+    # confirm_ecrasement = request.POST.get("confirm_ecrasement") == "true"
 
 
 
@@ -666,9 +791,9 @@ def envoyer_l_acte(request):
         doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=document.titre).first()
         
         # Si document déjà existant ET pas de confirmation explicite
-        if doc_existant and not confirm_ecrasement:
-            messages.warning(request, f"Un document nommé « {document.titre} » existe déjà dans le dossier Actes. Vous devez confirmer son écrasement dans le POP UP le cas échéant.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+        # if doc_existant and not confirm_ecrasement:
+        #     messages.warning(request, f"Un document nommé « {document.titre} » existe déjà dans le dossier Actes. Vous devez confirmer son écrasement dans le POP UP le cas échéant.")
+        #     return redirect(request.META.get("HTTP_REFERER", "/"))
 
         chemin = os.path.join(os.getenv("ROOT_FOLDER"), document.emplacement, document.titre)
         # print(chemin)
@@ -753,9 +878,19 @@ def envoyer_l_acte(request):
                     #     titre=(fichier.name)
                     # )
 
+                    # Récupérer l'objet statut "Envoyé"
+                    statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
+
+                    # Par sécurité
+                    if not statut_envoye:
+                        logger.error("Statut 'Envoyé' introuvable en base.")
+                        messages.error("Statut 'Envoyé' introuvable en base.")
+                        return redirect(request.META.get("HTTP_REFERER", "/"))
+
                     # Mise à jour des champs existants
                     document.id_format = format_obj
                     document.id_nature = nature_obj
+                    document.id_statut = statut_envoye
                     document.emplacement = os.path.join(dossier_path, 'Actes/')
                     document.description = f"{nature_document} pour le dossier {dossier.numero}"
                     document.save()
@@ -766,25 +901,18 @@ def envoyer_l_acte(request):
                     # logger.info(f"[DOSSIER {dossier_numero}] {nature_document} créé(e) et lié(e) au dossier (id : {doc.id})")
             
 
-            # Récupérer l'objet statut "Envoyé"
-            statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
-
-            # Par sécurité
-            if not statut_envoye:
-                logger.error("Statut 'Envoyé' introuvable en base.")
-                messages.error("Statut 'Envoyé' introuvable en base.")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
 
             # Récupération des documents du dossier
-            documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+            # documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
 
             # Mise à jour Doc "À envoyer" --> "Envoyé"
-            for lien in documents_du_dossier:
-                doc = lien.id_document
-                if doc.id_statut and doc.id_statut.statut.lower() == "à envoyer":
-                    doc.id_statut = statut_envoye
-                    doc.save()
-                    logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → Envoyé.")
+            # for lien in documents_du_dossier:
+            #     doc = lien.id_document
+            #     if doc.id_statut and doc.id_statut.statut.lower() == "à envoyer":
+            #         doc.id_statut = statut_envoye
+            #         doc.save()
+            #         logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → Envoyé.")
         
 
         else:

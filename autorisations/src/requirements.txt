@@ -22,3 +22,4 @@ tzdata==2025.1
 uritemplate==4.1.1
 urllib3==2.3.0
 leaflet==0.0.3
+docx2pdf==0.1.8
