@@ -230,8 +230,8 @@
             fondMenu.innerHTML = `
             <label class="fond-label">Fond de carte :</label>
             <select class="fond-select">
-                <option value="satellite">Satellite</option>
                 <option value="osm">OSM</option>
+                <option value="satellite">Satellite</option>
                 <option value="topo">Topo</option>
             </select>
             `;
@@ -250,7 +250,7 @@
             })
             };
 
-            let fondActif = fonds.satellite.addTo(map);  // fond par défaut
+            let fondActif = fonds.osm.addTo(map);  // fond par défaut
 
             fondMenu.querySelector(".fond-select").addEventListener("change", (e) => {
                 const nouveauFond = fonds[e.target.value];

@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         // Fond par défaut
-        let fondActif = fonds.satellite.addTo(map);
+        let fondActif = fonds.osm.addTo(map);
 
 
         // ---------------------------------
@@ -165,8 +165,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fondMenu.innerHTML = `
                     <label class="fond-label">Fond de carte :</label>
                     <select class="fond-select">
-                        <option value="satellite">Satellite</option>
                         <option value="osm">OpenStreetMap</option>
+                        <option value="satellite">Satellite</option>
                         <option value="opentopomap">OpenTopoMap</option>
                     </select>
                 `;
