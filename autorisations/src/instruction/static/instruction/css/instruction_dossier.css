@@ -94,6 +94,7 @@
 }
 
 
+
 /* ====== Relecture juridique ====== */
 .relecture_juridique label{
     font-size: 1.2rem;
@@ -120,6 +121,7 @@
     padding: 1.5rem;
     margin-top: 1.5rem;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
 }
 
 .zone-envoyer-pour-validation.show {
@@ -143,6 +145,10 @@
 .zone-envoyer-pour-validation .hint-text {
     font-size: 0.95rem;
     color: #555;
+}
+
+.validant {
+    margin-top: 2rem;
 }
 
 .projet_acte_pj {
@@ -191,6 +197,18 @@
 .doc-titre:hover {
     text-decoration: underline;
     font-weight: bold;
+}
+
+/* Liste des validants */
+.btn-changer-valideur {
+    width: 20px;
+    cursor: pointer;
+}
+
+.btn-changer-valideur img{
+    width: 100%;
+    margin: auto;
+    vertical-align: text-bottom; 
 }
 
 /* Lien vers le RAA */

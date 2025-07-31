@@ -202,6 +202,7 @@ class Champ(models.Model):
     description = models.CharField()
     id_demarche = models.ForeignKey(Demarche, models.SET_NULL, db_column='id_demarche', blank=True, null=True)
     requis = models.BooleanField()
+    id_champ_parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, db_column='id_champ_parent')
 
     class Meta:
         managed = False

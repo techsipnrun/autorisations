@@ -1,7 +1,7 @@
 from datetime import datetime
 import logging
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature
-from autorisations.models.models_instruction import Champ, ChampType
+from autorisations.models.models_instruction import Champ, ChampType, Demarche
 from autorisations.models.models_utilisateurs import TypeContactExterne
 from synchronisation.src.utils.model_helpers import get_first_id, parse_datetime_with_tz
 from synchronisation.src.utils.fichiers import fetch_geojson, geoareas_to_geojson_text
@@ -57,7 +57,33 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                     "documents": liste_documents,
                     "champ": dico_champ
                 })
+        elif ch["__typename"] == "RepetitionChamp" :
 
+            dico_repet_champ = {}
+            for row in ch["rows"]:
+                # row["id"] = id de l'instance 1
+                dico_repet_champ[row["id"]] = []
+                for c in row["champs"] :
+                    if not (c["__typename"] == "TextChamp" and c["stringValue"] == ""):
+                        dico_repet_champ[row["id"]].append({
+                            "id_ds": c["id"],
+                            "nom": c["label"],
+                            "valeur": c["stringValue"],
+                        })
+
+            dico_champ = {
+                    "nom_champ": ch["label"],
+                    "id_ds": ch["id"],
+                    "valeur": dico_repet_champ,
+                    "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
+                    "geometrie": geometrie_du_champ,
+                    "id_document": None,
+                }
+            
+            liste_dossiers_champs.append({
+                "champ": dico_champ
+            })
+            
         else:
             # geometrie_du_champ1 = fetch_geojson(doss["geojson"]["url"]) if ch["__typename"] == "CarteChamp" else None
             geometrie_du_champ = geoareas_to_geojson_text(ch["geoAreas"]) if ch["__typename"] == "CarteChamp" else None

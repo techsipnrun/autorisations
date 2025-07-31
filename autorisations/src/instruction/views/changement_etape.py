@@ -5,7 +5,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import GroupeinstructeurInstructeur, Instructeur, DossierInstructeur
+from autorisations.models.models_utilisateurs import GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
@@ -292,6 +292,7 @@ def envoyer_pour_validation_avant_signature(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
         nature = request.POST.get("nature_document")
+        validant = request.POST.get("choix-validant") #Objet Instructeur
         fichier = request.FILES.get("piece_jointe")
 
         # Vérification que l'extension du fil est .doc, .docx, .pdf, .odt
@@ -370,6 +371,16 @@ def envoyer_pour_validation_avant_signature(request):
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         enregistrer_action(dossier, instructeur, "Envoyé pour validation")
+
+        # Ajout du validant au dossier
+        try:
+            validant_obj = get_object_or_404(Instructeur, id=validant)
+            DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=validant_obj)
+            logger.info(f"[DOSSIER {dossier.numero}] Validant·e {validant_obj} affecté·e au dossier.")
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'affectation du validant·e {validant} : {e}")
+
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 

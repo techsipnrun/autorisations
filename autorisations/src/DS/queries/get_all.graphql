@@ -81,6 +81,18 @@ query demarche($number: Int!) {
                 }
               }
             }
+            ... on RepetitionChamp {
+                rows {
+                    id
+                    champs {
+                        id
+                        label
+                        stringValue
+                        updatedAt
+                        __typename
+                    }
+                }
+            }
             ... on PieceJustificativeChamp {
                 files {
                     url

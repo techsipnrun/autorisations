@@ -135,18 +135,6 @@
                             
                             <div class="carte-container">
                                 <div class="carte" data-geojson='{{ champ.geojson|safe }}'></div>
-
-
-                                    <!-- Menu de sélection du fond de carte -->
-                                    {% if champ.geojson %}
-                                        <div class="fond-selector-wrapper">
-                                            <select class="fond-select">
-                                                <option value="satellite">Satellite (ESRI)</option>
-                                                <option value="osm">OpenStreetMap</option>
-                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
-                                            </select>
-                                        </div>
-                                    {% endif %}
                             </div>
 
                     
@@ -161,6 +149,23 @@
                                     {% endif %}
                                 {% endwith %}
                             </div>
+
+                        {% elif champ.type == 'repetition' %}
+                        <div class="bloc_repetition">
+                            <h4>{{ champ.nom }}</h4>
+                            {% if champ.valeur != "Non renseigné" %}
+                                    {% for bloc in champ.valeur %}
+                                    <div class="un_bloc">
+                                        {% for ligne in bloc %}
+                                            <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p>
+                                        {% endfor %}
+                                    </div>
+                                    {% endfor %}
+                            {% else %}
+                                <p><em>Non renseigné</em></p>
+                            {% endif %}
+                        </div>
+
 
                         {% elif champ.type == 'drop_down_list' %}
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
@@ -182,17 +187,6 @@
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ champ.geojson }}'></div>
-
-                                    <!-- Menu de sélection du fond de carte -->
-                                    {% if champ.geojson %}
-                                        <div class="fond-selector-wrapper">
-                                            <select class="fond-select">
-                                                <option value="satellite">Satellite (ESRI)</option>
-                                                <option value="osm">OpenStreetMap</option>
-                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
-                                            </select>
-                                        </div>
-                                    {% endif %}
                                 </div>
 
                                 
@@ -388,11 +382,13 @@
 <!-- 1. Données JSON pour le fond de carte -->
 {{ coeurData|json_script:"fond-data" }}
 {{ adhesionData|json_script:"adhesion-data" }}
+{{ mafateData|json_script:"mafate-data" }}
 
 <!-- 2. Variables globales accessibles pour le fichier JS -->
 <script> 
     window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
     window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
+    window._mafateData = JSON.parse(document.getElementById("mafate-data").textContent);
 </script>
 
 

@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, EtapeDossier
-from autorisations.models.models_utilisateurs import DossierInstructeur, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierValideur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -16,7 +16,7 @@ import threading
 import subprocess
 import sys
 from mimetypes import guess_type
-
+from django.contrib import messages
 import logging
 from django.db.models import Q
 
@@ -112,6 +112,8 @@ def se_declarer_instructeur(request):
     dossier_id = request.POST.get("dossier_id")
     dossier = get_object_or_404(Dossier, id=dossier_id)
 
+    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
+
     instructeur_id = request.POST.get("instructeur_id")
 
     instructeur = Instructeur.objects.filter(id=instructeur_id).first()
@@ -125,7 +127,7 @@ def se_declarer_instructeur(request):
             nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
 
             # Dossier Action
-            enregistrer_action(dossier, instructeur, "Instructeur.e ajouté.e", nom_prenom)
+            enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
         else :
             logger.error(f"[DOSSIER {dossier.numero}] Incohérence lors de l'affectation du dossier à l'instructeur {instructeur.email}. L'utilisateur n'est pas dans le groupe instructeur : {instructeurs_du_groupe}")
     else :
@@ -202,6 +204,56 @@ def retirer_instructeur(request):
 
     nom_prenom = f"({instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom})"
     enregistrer_action(dossier, instructeur, "Instructeur.e retiré.e", nom_prenom)
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+@login_required
+def changer_valideur(request):
+    dossier_id = request.POST.get("dossier_id")
+    new_valideur_id = request.POST.get("new_valideur_id")
+
+    if not dossier_id or not new_valideur_id:
+        request.session["changer_valideur_message"] = ("Données manquantes pour le changement de validant·e.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    new_valideur = get_object_or_404(Instructeur, id=new_valideur_id)
+
+    if not dossier:
+        request.session["changer_valideur_message"] = ("Dossier introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not new_valideur:
+        request.session["changer_valideur_message"] = ("Validant·e sélectionné·e invalide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    id_old_valideur = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
+    old_valideur = Instructeur.objects.filter(id=id_old_valideur).first()
+
+
+    # Tous les valideurs affectés
+    # valideurs_ids = list(
+    #     DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+    # )
+
+    # S'assurer que le nouveau valideur est différent
+    if old_valideur and old_valideur.id == new_valideur.id:
+        request.session["changer_valideur_message"] = ("Le/la validant·e sélectionné·e est déjà affecté·e à ce dossier.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Suppression de l'ancien valideur (s'il existe)
+    if old_valideur:
+        DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=old_valideur).delete()
+    # Ajout du nouveau valideur
+    DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=new_valideur)
+    
+    # On enregistre l'action
+    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
+    enregistrer_action(dossier, instructeur_request, "Validant.e changé.e", f"({new_valideur})")
+
+    logger.info(f"[DOSSIER {dossier.numero}] Changement de validant.e : {old_valideur} --> {new_valideur}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 

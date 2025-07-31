@@ -121,6 +121,30 @@ h2 {
 }
 
 
+/* Bloc répétable */
+
+.bloc_repetition {
+    background-color: #ccc;
+    gap: 1rem;
+    display: flex;
+    margin: 1rem 0;
+    padding: 1rem;
+    /* position: relative; */
+    flex-direction: column;
+}
+
+.bloc_repetition h4 {
+    font-size: large;
+}
+
+.un_bloc{
+    display: block;
+    margin-left: 2rem;
+    padding-left: 1rem;
+    border-left: #000000 solid 1px;
+}
+
+
 
 /* ------------------------------------- */
 /*           Etat du dossier             */
@@ -295,24 +319,63 @@ h2 {
 }
 
 
-/*   Menu sélection du fond de carte  */
-.fond-selector-wrapper {
-  position: absolute;
-  top: 90px;
-  right: 10px;
-  z-index: 1000;
+/* -------------------------------------------- */
+/*     Panneau de couches Coeur et Adhésion     */
+/* -------------------------------------------- */
+.leaflet-control-layers {
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
   background: white;
-  /* padding: 6px 10px; */
-  border-radius: 30px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  padding-top: 10px;
+  border: 1px solid #ccc;
 }
 
-.fond-selector-wrapper select {
-  font-size: 14px;
-  padding: 6px 9px;
-  border-radius: 12px;
+.leaflet-control-layers .layer-title {
+  font-weight: bold;
+  font-size: 15px;
+  text-align: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid #ddd;
+  color: #2E7D32;
+}
 
+.leaflet-control-layers label {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+}
+
+.leaflet-control-layers-selector {
+  margin-right: 8px;
+  accent-color: #4CAF50;
+}
+
+
+/* ---------------------------------------------- */
+/*     Menu déroulant : Choix du fond de carte    */
+/* ---------------------------------------------- */
+.fond-control {
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: white;
+}
+
+.fond-control label.fond-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #2E7D32;
+  font-size: 14px;
+}
+
+.fond-control select.fond-select {
+  width: 100%;
+  padding: 4px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 
@@ -444,7 +507,7 @@ h2 {
 
 
 /* ----- Retirer instructeur ----- */
-.form-retirer-instructeur {
+.form-retirer-instructeur, .form-changer-valideur {
     display: inline-block;
     margin-left: 0.3rem;
     opacity: 0;
@@ -455,7 +518,12 @@ h2 {
     opacity: 0.6;
 }
 
-.form-retirer-instructeur:hover {
+.pas_instructeur_du_dossier:hover .form-changer-valideur {
+    opacity: 0.6;
+}
+
+
+.form-retirer-instructeur:hover, .form-changer-valideur:hover {
     opacity: 1 !important;
 }
 

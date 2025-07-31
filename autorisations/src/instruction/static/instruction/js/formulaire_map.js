@@ -52,10 +52,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const map = L.map(div).setView([-21.1, 55.5], 10);
 
         // Fond satellite ESRI
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri & NASA',
-            maxZoom: 19
-        }).addTo(map);
+        // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        //     attribution: 'Tiles &copy; Esri & NASA',
+        //     maxZoom: 19
+        // }).addTo(map);
 
 
 
@@ -84,37 +84,11 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         // Fond par défaut
-        fonds.satellite.addTo(map);
-        let fondActif = fonds.satellite;
-
-        // Attacher le gestionnaire au <select> défini dans le HTML
-        const fondSelect = div.closest(".carte-container")?.querySelector(".fond-select");
-
-
-        if (fondSelect) {
-            fondSelect.addEventListener("change", (e) => {
-                const valeur = e.target.value;
-                if (fonds[valeur]) {
-                map.removeLayer(fondActif);
-                fondActif = fonds[valeur];
-                fondActif.addTo(map);
-                }
-            });
-        }
-
-
-
-
-
-
-
-
-
-
+        let fondActif = fonds.satellite.addTo(map);
 
 
         // ---------------------------------
-        // Couches de fond : cœur + adhésion
+        // Couches de fond : cœur + adhésion + COT Mafate
         // ---------------------------------
         const overlayMaps = {};
 
@@ -144,10 +118,78 @@ document.addEventListener("DOMContentLoaded", () => {
             overlayMaps["Aire d’adhésion"] = adhesionLayer;
         }
 
+        if (window._mafateData) {
+            const mafateLayer = L.geoJSON(window._mafateData, {
+                style: {
+                    color: "#1900ffff",
+                    weight: 1.5,
+                    fillColor: "#1848ceff",
+                    fillOpacity: 0.7
+                }
+            });
+            overlayMaps["COT Mafate"] = mafateLayer;
+            // mafateLayer.addTo(map); 
+        }
+
         L.control.layers(null, overlayMaps, {
             collapsed: false,
             position: "topright"
         }).addTo(map);
+
+
+
+
+        // Insérer fond de carte DANS le bon panneau Leaflet
+        setTimeout(() => {
+            const allPanels = div.closest(".carte-container")?.querySelectorAll(".leaflet-control-layers");
+            let leafletContainer = null;
+
+            allPanels?.forEach(p => {
+                if (map.getContainer().contains(p)) {
+                    leafletContainer = p;
+                }
+            });
+
+            if (!leafletContainer) return;
+
+            if (!leafletContainer.querySelector('.layer-title')) {
+                const title = document.createElement('div');
+                title.className = 'layer-title';
+                title.innerText = "Couches disponibles";
+                leafletContainer.insertBefore(title, leafletContainer.firstChild);
+            }
+
+            if (!leafletContainer.querySelector('.fond-control')) {
+                const fondMenu = document.createElement("div");
+                fondMenu.className = "fond-control";
+                fondMenu.innerHTML = `
+                    <label class="fond-label">Fond de carte :</label>
+                    <select class="fond-select">
+                        <option value="satellite">Satellite</option>
+                        <option value="osm">OpenStreetMap</option>
+                        <option value="opentopomap">OpenTopoMap</option>
+                    </select>
+                `;
+
+                const overlaySection = leafletContainer.querySelector(".leaflet-control-layers-overlays");
+                if (overlaySection) {
+                    overlaySection.insertAdjacentElement("afterend", fondMenu);
+                } else {
+                    leafletContainer.appendChild(fondMenu);
+                }
+
+                fondMenu.querySelector(".fond-select").addEventListener("change", (e) => {
+                    const valeur = e.target.value;
+                    if (fonds[valeur]) {
+                        map.removeLayer(fondActif);
+                        fondActif = fonds[valeur];
+                        fondActif.addTo(map);
+                    }
+                });
+            }
+        }, 100);
+
+
 
         // -----------------------------------
         // Ajouter le geojson du pétitionnaire 

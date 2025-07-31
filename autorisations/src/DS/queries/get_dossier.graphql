@@ -57,14 +57,26 @@ query dossier($number: Int!) {
             __typename
             id
             updatedAt
-                ... on CarteChamp {
-                    geoAreas {
-                        geometry {
-                            coordinates
-                            type
-                        }
+            ... on CarteChamp {
+                geoAreas {
+                    geometry {
+                        coordinates
+                        type
                     }
                 }
+            }
+            ... on RepetitionChamp {
+                rows {
+                    id
+                    champs {
+                        id
+                        label
+                        stringValue
+                        updatedAt
+                        __typename
+                    }
+                }
+            }
             ... on PieceJustificativeChamp {
                 files {
                     url

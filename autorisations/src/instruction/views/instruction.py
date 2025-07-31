@@ -1,3 +1,4 @@
+import ast
 from datetime import date
 import json
 import logging
@@ -6,7 +7,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier
-from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierValideur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
@@ -27,6 +28,8 @@ from django.db.models import Min
 from django.views.decorators.http import require_POST
 from django.http import Http404
 from django.contrib import messages
+from django.contrib.auth.models import Group
+from django.contrib.auth import get_user_model
 
 
 
@@ -202,6 +205,10 @@ def instruction_dossier(request, num_dossier):
     with open(fond_aire_adhesion, encoding="utf-8") as f:
         fond_aire_adhesion = json.load(f)
 
+    fond_mafate = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/COT_MAFATE.geojson")
+    with open(fond_mafate, encoding="utf-8") as f:
+        fond_mafate = json.load(f)
+
     nb_cartes = 0
     champs_prepares = []
     for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("ordre"):
@@ -240,6 +247,28 @@ def instruction_dossier(request, num_dossier):
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
             # champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre})
 
+        elif ct == "repetition":
+            repetitions = []
+
+            try:
+                valeur = ast.literal_eval(champ.valeur) if isinstance(champ.valeur, str) else champ.valeur or {}
+            except Exception as e:
+                # print("Erreur lors de l’évaluation de la chaîne :", e)
+                valeur = {}
+
+            for liste in (valeur or {}).values():
+                bloc = []
+                for item in liste:
+                    bloc.append({"nom": item.get("nom"), "valeur": item.get("valeur")})
+                repetitions.append(bloc)
+            # print(repetitions)
+            # [[ {"nom": "Nom du ravitaillement", "valeur": "ravito1"}, {"nom": "...", "valeur": "..."} ],...]
+            champs_prepares.append({
+                "type": "repetition",
+                "nom": nom,
+                "valeur": repetitions or "Non renseigné"
+            })
+            
         elif ct == "drop_down_list":
             
             if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in champ.valeur :
@@ -254,7 +283,10 @@ def instruction_dossier(request, num_dossier):
 
             else :
                 champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
-            
+        
+        # elif nom == "Description du/des ravitaillement(s)":
+        #     print(champ)
+
 
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
@@ -376,6 +408,7 @@ def instruction_dossier(request, num_dossier):
     "Envoyé pour validation": "envoye_pour_validation.png",
     "Envoyé pour relecture qualité": "envoye.png",
     "Avis demandé": "acte-envoye.png",
+    "Validant.e changé.e": "changer_validant.png",
 }
 
 
@@ -441,10 +474,27 @@ def instruction_dossier(request, num_dossier):
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
     titres_documents_actes = list(
-    Document.objects.filter(
-        emplacement=os.path.join(dossier.emplacement, "Actes/")
-    ).values_list("titre", flat=True)
-)
+        Document.objects.filter(
+            emplacement=os.path.join(dossier.emplacement, "Actes/")
+        ).values_list("titre", flat=True)
+    )
+    
+    # Validant.e.s SAADD
+    groupe = Group.objects.filter(name="Validant-e SAADD").first()
+    user_validants_SAADD = groupe.user_set.all() if groupe else []
+    emails_validants_SAADD = [user.email for user in user_validants_SAADD if user.email]
+    validants_SAADD = Instructeur.objects.filter(email__in=emails_validants_SAADD).select_related("id_agent_autorisations")
+
+    # Validant.e.s SPPN
+    groupe = Group.objects.filter(name="Validant-e SPPN").first()
+    user_validants_SPPN = groupe.user_set.all() if groupe else []
+    emails_validants_SPPN = [user.email for user in user_validants_SPPN if user.email]
+    validants_SPPN = Instructeur.objects.filter(email__in=emails_validants_SPPN).select_related("id_agent_autorisations")
+
+    # Validant.e du dossier
+    validant_ids = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+    validants = Instructeur.objects.filter(id__in=validant_ids).select_related("id_agent_autorisations")
+ 
 
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
@@ -452,6 +502,7 @@ def instruction_dossier(request, num_dossier):
         "champs": champs_prepares,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
+        "mafateData": fond_mafate,
         "nb_cartes": nb_cartes,
         "is_formulaire_active": True,
         "is_messagerie_active": False,
@@ -473,6 +524,7 @@ def instruction_dossier(request, num_dossier):
         "dossier_actions": dossier_actions,
         "notes": notes,
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
+        "changer_valideur_message": request.session.pop("changer_valideur_message", None),
         "titres_documents_actes": list(documents_actes),
         "doc_a_valider": acte_a_valider,
         "doc_a_relire": acte_a_relire,
@@ -482,6 +534,9 @@ def instruction_dossier(request, num_dossier):
         "doc_envoye": acte_envoye,
         "doc_envoye_et_publie": acte_envoye_et_publie,
         "titres_documents_actes": titres_documents_actes,
+        "validants_SAADD": validants_SAADD,
+        "validants_SPPN": validants_SPPN,
+        "validants": validants,
     })
 
 

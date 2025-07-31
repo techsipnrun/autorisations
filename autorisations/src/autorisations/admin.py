@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, MessageDocument
 from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite
-from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne
+from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire
 
 
 # Personnalisation globale de l'admin
@@ -586,3 +586,24 @@ class DossierBeneficiaireAdmin(admin.ModelAdmin):
 
 
 admin.site.register(DossierNote)
+
+@admin.register(DossierValideur)
+class DossierValideurAdmin(admin.ModelAdmin):
+    list_filter = ('id_instructeur',)
+
+# admin.site.register(DossierValideur)
+
+
+@admin.register(DossierRelecteurJuridique)
+class DossierRelecteurJuridiqueAdmin(admin.ModelAdmin):
+    list_filter = ('id_instructeur',)
+
+
+@admin.register(DossierRelecteurQualite)
+class DossierRelecteurQualiteAdmin(admin.ModelAdmin):
+    list_filter = ('id_instructeur',)
+
+
+@admin.register(DossierSignataire)
+class DossierSignataireAdmin(admin.ModelAdmin):
+    list_filter = ('id_instructeur',)

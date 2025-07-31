@@ -9,6 +9,7 @@
     // Fond coeur de Parc et Aire d'adhésion
     const fondData = window._fondDeCarteData;
     const adhesionData = window._adhesionData;
+    const mafateData = window._mafateData;
     const cartes = document.querySelectorAll(".carte");
 
     if (!cartes.length) {
@@ -25,7 +26,7 @@
         const map = initializeMap(div);
 
         // Menu dynamique Fond coeur de Parc et Aire d'adhésion
-        const overlayMaps = addBackgroundLayers(map, fondData, adhesionData);
+        const overlayMaps = addBackgroundLayers(map, fondData, adhesionData, mafateData);
         addLayerControl(map, overlayMaps);
 
         const layer = geojson ? renderExistingGeometry(map, geojson) : null;
@@ -123,7 +124,7 @@
     }
 
     // Fond Coeur de Parc et Aire d'adhésion
-    function addBackgroundLayers(map, fond, adhesion) {
+    function addBackgroundLayers(map, fond, adhesion, mafate_cot) {
         const overlays = {};
 
         // Coeur de Parc
@@ -157,8 +158,8 @@
                     opacity: 0.1
                 },
                 onEachFeature: (feature, layer) => {
-                    const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
-                    layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
+                    // const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
+                    // layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
                     layer.pmIgnore = true;
                 } 
             });
@@ -171,6 +172,34 @@
             adhesionLayer.options._isBackgroundLayer = true;
             // Ajoute uniquement dans le panneau de calques, pas sur la carte
             overlays["Aire d’adhésion"] = adhesionLayer;
+        }
+
+        // COT Mafate
+        if (mafate_cot) {
+            const mafateLayer = L.geoJSON(mafate_cot, {
+                style: {
+                    color: "#001ea5ff",
+                    fillColor: "#3260f8ff",
+                    weight: 1,
+                    fillOpacity: 0.6,
+                    opacity: 0.1
+                },
+                onEachFeature: (feature, layer) => {
+                    // const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
+                    // layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
+                    layer.pmIgnore = true;
+                } 
+            });
+
+            mafateLayer.eachLayer(l => {
+                l.options._isBackgroundLayer = true;
+                l.pmIgnore = true;
+            });
+
+            mafateLayer.options._isBackgroundLayer = true;
+            // Ajoute uniquement dans le panneau de calques, pas sur la carte
+            overlays["COT Mafate"] = mafateLayer;
+            // mafateLayer.addTo(map);
         }
 
         return overlays;
@@ -190,7 +219,7 @@
             if (container && !container.querySelector('.layer-title')) {
                 const title = document.createElement('div');
                 title.className = 'layer-title';
-                title.innerText = "Les aires du Parc national";
+                title.innerText = "Couches disponibles";
                 container.insertBefore(title, container.firstChild);
             }
 

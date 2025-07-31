@@ -93,10 +93,12 @@
         Promise.all([
             fetch("{% static 'instruction/carto/fond_coeur_de_parc.geojson' %}").then(res => res.json()),
             fetch("{% static 'instruction/carto/aire_adhesion.geojson' %}").then(res => res.json()),
+            fetch("{% static 'instruction/carto/COT_MAFATE.geojson' %}").then(res => res.json()),
         ])
-        .then(([fondData, adhesionData]) => {
+        .then(([fondData, adhesionData, mafateData]) => {
             window._fondDeCarteData = fondData;
             window._adhesionData = adhesionData;
+            window._mafateData = mafateData;
 
             const script = document.createElement("script");
             script.src = "{% static 'instruction/js/carto_test.js' %}";

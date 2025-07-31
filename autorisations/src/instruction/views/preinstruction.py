@@ -13,6 +13,8 @@ from autorisations.models.models_documents import DossierDocument
 from instruction.utils import enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
+import ast
+
 
 logger = logging.getLogger("ORM_DJANGO")
 
@@ -61,10 +63,14 @@ def preinstruction_dossier(request, numero):
     with open(fond_coeur_de_parc, encoding="utf-8") as f:
         fond_coeur_de_parc = json.load(f)
 
-
     fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
     with open(fond_aire_adhesion, encoding="utf-8") as f:
         fond_aire_adhesion = json.load(f)
+
+    fond_mafate = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/COT_MAFATE.geojson")
+    with open(fond_mafate, encoding="utf-8") as f:
+        fond_mafate = json.load(f)
+
 
     nb_cartes = 0
     champs_prepares = []
@@ -117,7 +123,28 @@ def preinstruction_dossier(request, numero):
             else :
                 champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
                 
+        elif ct == "repetition":
+            repetitions = []
 
+            try:
+                valeur = ast.literal_eval(champ.valeur) if isinstance(champ.valeur, str) else champ.valeur or {}
+            except Exception as e:
+                # print("Erreur lors de l’évaluation de la chaîne :", e)
+                valeur = {}
+
+            for liste in (valeur or {}).values():
+                bloc = []
+                for item in liste:
+                    bloc.append({"nom": item.get("nom"), "valeur": item.get("valeur")})
+                repetitions.append(bloc)
+            # print(repetitions)
+            # [[ {"nom": "Nom du ravitaillement", "valeur": "ravito1"}, {"nom": "...", "valeur": "..."} ],...]
+            champs_prepares.append({
+                "type": "repetition",
+                "nom": nom,
+                "valeur": repetitions or "Non renseigné"
+            })
+           
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
 
@@ -226,6 +253,7 @@ def preinstruction_dossier(request, numero):
         "champs": champs_prepares,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
+        "mafateData": fond_mafate,
         "nb_cartes": nb_cartes,
         "is_formulaire_active": True,
         "is_messagerie_active": False,

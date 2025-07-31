@@ -198,4 +198,65 @@ class DossierInstructeur(models.Model):
         return f"{self.id_instructeur} : Dossier {self.id_dossier.numero} ({self.id_dossier.nom_dossier})"
     
 
+class DossierValideur(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
 
+    class Meta:
+        managed = False
+        db_table = '"utilisateurs"."dossier_valideur"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_instructeur'], name='dossier_valideur_unique_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.id_instructeur} validant·e du dossier {self.id_dossier.numero}"
+
+
+class DossierRelecteurJuridique(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
+
+    class Meta:
+        managed = False
+        db_table = '"utilisateurs"."dossier_relecteur_juridique"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_instructeur'], name='dossier_relecteur_juri_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.id_instructeur} relecteur·rice juridique du dossier {self.id_dossier.numero}"
+
+
+class DossierRelecteurQualite(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
+
+    class Meta:
+        managed = False
+        db_table = '"utilisateurs"."dossier_relecteur_qualite"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_instructeur'], name='dossier_relecteur_qualite_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.id_instructeur} relecteur·rice qualité du dossier {self.id_dossier.numero}"
+
+
+class DossierSignataire(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
+
+    class Meta:
+        managed = False
+        db_table = '"utilisateurs"."dossier_signataire"'
+        indexes = [
+            models.Index(fields=['id_dossier', 'id_instructeur'], name='dossier_signataire_unique_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.id_instructeur} signataire du dossier {self.id_dossier.numero}"
