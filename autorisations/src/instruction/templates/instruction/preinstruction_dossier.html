@@ -210,7 +210,12 @@
                         </a>
                         <a href="{% url 'preinstruction_dossier_messagerie' numero=dossier.numero %}">
                             <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
-                                Messagerie
+                                 <span class="msg-label-wrapper">
+                                    Messagerie
+                                    {% if nb_messages_non_lus > 0 %}
+                                        <span class="pastille_nouv_mess">{{ nb_messages_non_lus }}</span>
+                                    {% endif %}
+                                </span>
                             </div>
                         </a>
                     </div>
@@ -292,7 +297,7 @@
                                     Je me retire du dossier
                                 </button>
                             </form>
-                            
+
                         {% elif instructeur_connecte in membres_groupe %}
                             <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajouter-soi">
                                 {% csrf_token %}

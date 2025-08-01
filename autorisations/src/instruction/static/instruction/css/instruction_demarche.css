@@ -118,3 +118,39 @@ h2 {
     background-color: #f1f1f1;
     font-weight: bold;
 }
+
+/* Icon nouveau message */
+.nouv_mess_wrapper {
+    position: relative;
+    display: inline-block;
+    margin-right: 1rem;
+    padding: 0;
+}
+
+.pastille_nouv_mess {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background-color: #003366;
+    text-align: center;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+}
+
+
+.nouv_mess_icon {
+    width: 32px;
+    height: auto;
+    vertical-align: middle;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+

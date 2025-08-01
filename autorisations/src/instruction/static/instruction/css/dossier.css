@@ -415,6 +415,7 @@ h2 {
 }
 
 .form_msg_box {
+    position: relative;
     background-color: #f1f1f1;
     border: 1px solid #585858;
     padding: 1rem;
@@ -430,6 +431,46 @@ h2 {
     transition: transform 0.2s ease;
     transform-origin: center;
 }
+
+/* Nouveaux messages pastilles*/
+.msg-label-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.pastille_nouv_mess {
+    position: absolute;
+    top: -25px;
+    right: -25px;
+    background-color: #003366;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+    animation: pulse-icon 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-icon {
+    from {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+    to {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+
+
+
+
 
 /* ====== Path du dossier ====== */
 .lien_dossier img {

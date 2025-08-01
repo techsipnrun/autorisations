@@ -6,7 +6,7 @@ import os
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier, Message
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierValideur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
@@ -123,6 +123,8 @@ def instruction_demarche(request, num_demarche):
         # print(dossier)
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
 
+        nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
+
         beneficiaire = None
         if interlocuteur:
             dossier_beneficiaire = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
@@ -137,6 +139,7 @@ def instruction_demarche(request, num_demarche):
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier.etape else "Non défini",
+            "nb_messages_non_lus": nb_messages_non_lus,
         })
 
 
@@ -494,6 +497,9 @@ def instruction_dossier(request, num_dossier):
     # Validant.e du dossier
     validant_ids = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
     validants = Instructeur.objects.filter(id__in=validant_ids).select_related("id_agent_autorisations")
+
+    # Messages non lus
+    nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
  
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -537,6 +543,7 @@ def instruction_dossier(request, num_dossier):
         "validants_SAADD": validants_SAADD,
         "validants_SPPN": validants_SPPN,
         "validants": validants,
+        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 

@@ -39,7 +39,7 @@
                 {% for msg in messages %}
                     <div class="message message-{{ msg.align }}">
                         <div class="msg-body">
-                            {{ msg.body|safe }}
+                            <p> {{ msg.body|safe }}</p>
                             {% if msg.pj_url %}
                                 <div class="pj-download">
                                     <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a>

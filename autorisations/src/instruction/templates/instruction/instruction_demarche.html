@@ -55,7 +55,15 @@
         <tbody>
           {% for d in dossiers %}
             <tr class="clickable-row" data-href="{% url 'instruction_dossier' d.numero %}">
-                <td>{{ d.nom_dossier }}</td>
+                <td>
+                    {% if d.nb_messages_non_lus > 0 %}
+                        <div class="nouv_mess_wrapper">
+                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                            <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
+                        </div>
+                    {% endif %}
+                    {{ d.nom_dossier }}
+                </td>
                 <!-- <td>{{ d.type }}</td> -->
                 <td>{{ d.numero }}</td>
                 <td>{{ d.beneficiaire }}</td>
@@ -95,7 +103,15 @@
             <tbody>
                 {% for d in dossiers_archives %}
                     <tr class="clickable-row" data-href="{% url 'instruction_dossier' d.numero %}">
-                        <td>{{ d.nom_dossier }}</td>
+                        <td>
+                            {% if d.nb_messages_non_lus > 0 %}
+                                <div class="nouv_mess_wrapper">
+                                    <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                    <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
+                                </div>
+                            {% endif %}
+                            {{ d.nom_dossier }}
+                        </td>
                         <td>{{ d.numero }}</td>
                         <td>{{ d.beneficiaire }}</td>
                         <td>{{ d.date_depot|date:"d/m/Y" }}</td>
