@@ -89,12 +89,38 @@ h1 {
 
 .message-left {
     align-self: flex-start;
-    background-color: #e0e0e0;
+    /* background-color: #e0e0e0; */
+    background-color: #e8f8ff; /* fond bleu clair */
+    border-left: 3px solid #1e90ff;
 }
+
+/* Animation nouveau message */
+@keyframes slideInFromLeft {
+    from {
+        transform: translateX(-200%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.nouv-mess {
+    border-left: 5px solid #1e90ff;
+    background-color: #e8f8ff;
+    animation: slideInFromLeft 2s ease-out;
+    padding: 0.8rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(30, 144, 255, 0.2);
+    transition: background-color 0.3s ease;
+}
+
 
 .message-right {
     align-self: flex-end;
     background-color: #d3f9d8;
+    border-right: 3px solid #1a9e00;
 }
 
 .timestamp {

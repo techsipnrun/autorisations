@@ -15,6 +15,7 @@
 <body>
     {% include 'navbar.html' %}
     {% breadcrumb breadcrumb_items %}
+
     
     <div class="page-container">
         <!-- Colonne gauche : Messagerie -->
@@ -37,9 +38,9 @@
             
             <div class="chat-container">
                 {% for msg in messages %}
-                    <div class="message message-{{ msg.align }}">
+                    <div class="message message-{{ msg.align }} {% if msg.nouv_mess == 'oui' %}nouv-mess{% endif %}">
                         <div class="msg-body">
-                            {{ msg.body|safe }}
+                            <p> {{ msg.body|safe }}</p>
                             {% if msg.pj_url %}
                                 <div class="pj-download">
                                     <!-- <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a> -->

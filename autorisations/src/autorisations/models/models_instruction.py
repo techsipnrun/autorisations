@@ -333,3 +333,88 @@ class DossierNote(models.Model):
 
     def __str__(self):
         return f"Note - Dossier {self.id_dossier.numero} par {self.id_instructeur}"
+    
+
+
+class DossierManifSportive(models.Model):
+    id = models.AutoField(primary_key=True)
+    geometrie = models.JSONField(blank=True, null=True)
+
+    nom_organisateur = models.TextField()
+    prenom_organisateur = models.TextField()
+    qualite_declarant = models.TextField()
+    structure = models.TextField()
+    adresse = models.TextField()
+    numero_telephone = models.TextField()
+    email_structure = models.TextField()
+    nom_dossier = models.TextField()
+    numero_dossier_declaration_manifestations = models.IntegerField(unique=True)
+    etat_dossier = models.TextField()
+    date_depot = models.DateTimeField()
+    date_debut_evenement = models.DateTimeField()
+    date_fin_evenement = models.DateTimeField()
+    emprise_voie_publique = models.TextField()
+    evenement_competition = models.BooleanField()
+    description = models.TextField()
+    observation = models.TextField()
+    activite = models.TextField()
+    affilie_federation_delegataire = models.BooleanField()
+    nombre_participants = models.IntegerField()
+    nombre_max_spectateurs = models.IntegerField()
+    nombre_organisateurs = models.IntegerField()
+    nombre_vehicules_accompagnement = models.IntegerField()
+    depart_groupe_participants = models.BooleanField()
+    circulation_groupee_participants = models.BooleanField()
+    respect_code_route = models.BooleanField()
+    priorite_passage = models.BooleanField()
+    usage_exclusif_temporaire_chaussee = models.BooleanField()
+    usage_privatif_chaussee = models.BooleanField()
+    precisions_voies_et_horaires = models.TextField()
+    vehicule_ouverture = models.BooleanField()
+    vehicule_tete_course = models.BooleanField()
+    vehicule_fin_course = models.BooleanField()
+    autres_vehicules_organisation = models.BooleanField()
+    nombre_signaleurs = models.IntegerField()
+    signaleurs_postes_fixes = models.IntegerField()
+    signaleurs_mobiles_voitures = models.IntegerField()
+    signaleurs_mobiles_motos = models.IntegerField()
+    encadrement_police_municipale = models.BooleanField()
+    details_encadrement_police_municipale = models.TextField()
+    convention_police_nationale = models.BooleanField()
+    details_convention_police_nationale = models.TextField()
+    nom_coordinateur_securite = models.TextField()
+    prenom_coordinateur_securite = models.TextField()
+    telephone_coordinateur_securite = models.TextField()
+    email_coordinateur_securite = models.TextField()
+    nom_contact = models.TextField()
+    prenom_contact = models.TextField()
+    telephone_contact = models.TextField()
+    autres_contacts_utiles = models.TextField()
+    budget_depasse_100k = models.BooleanField()
+    manifestation_lucrative_plus_1500 = models.BooleanField()
+    manifestation_titre_national_international = models.BooleanField()
+    manifestation_vehicules_hors_voies_ouvertes = models.BooleanField()
+    charte_dispense_natura_2000 = models.BooleanField()
+    lieux_pdesi = models.JSONField()  # list of strings
+    signataire_charte_balisage = models.BooleanField()
+    description_balisage = models.TextField()
+
+    class Meta:
+        db_table = '"instruction"."dossier_manif_sportive"'
+        managed = False
+
+    def __str__(self):
+        return f"{self.nom_dossier}"
+
+
+class DossierManifestationLiaison(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.OneToOneField(Dossier, on_delete=models.CASCADE, db_column='id_dossier', unique=True)
+    id_dossier_manif = models.OneToOneField(DossierManifSportive, on_delete=models.CASCADE, db_column='id_dossier_manif', unique=True)
+
+    class Meta:
+        db_table = '"instruction"."dossier_manifestation_liaison"'
+        managed = False
+
+    def __str__(self):
+        return f"Lien Dossier {self.id_dossier_id} ↔ Manif {self.id_dossier_manif_id}"

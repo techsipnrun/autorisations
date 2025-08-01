@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dossier manifestations sportives</title>
+</head>
+<body>
+    <p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"Non renseigné" }}</p>
+    <p><strong>Prénom de l'organisateur</strong> : {{ doss_manif_sportive.prenom_organisateur|default:"Non renseigné" }}</p>
+    <p><strong>Qualité du déclarant</strong> : {{ doss_manif_sportive.qualite_declarant|default:"Non renseigné" }}</p>
+    <p><strong>Structure</strong> : {{ doss_manif_sportive.structure|default:"Non renseigné" }}</p>
+    <p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"Non renseigné" }}</p>
+    <p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"Non renseigné" }}</p>
+    <p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p>
+    <p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</p>
+    <p><strong>Numéro du dossier</strong> : {{ doss_manif_sportive.numero_dossier_declaration_manifestations|default:"Non renseigné" }}</p>
+    <p><strong>État du dossier</strong> : {{ doss_manif_sportive.etat_dossier|default:"Non renseigné" }}</p>
+    <p><strong>Date de dépôt</strong> : {{ doss_manif_sportive.date_depot|default:"Non renseigné" }}</p>
+    <p><strong>Date de début</strong> : {{ doss_manif_sportive.date_debut_evenement|default:"Non renseigné" }}</p>
+    <p><strong>Date de fin</strong> : {{ doss_manif_sportive.date_fin_evenement|default:"Non renseigné" }}</p>
+    <p><strong>Emprise sur voie publique</strong> : {{ doss_manif_sportive.emprise_voie_publique|default:"Non renseigné" }}</p>
+    <p><strong>Évènement est une compétition</strong> : {{ doss_manif_sportive.evenement_competition|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Description</strong> : {{ doss_manif_sportive.description|default:"Non renseigné" }}</p>
+    <p><strong>Observation</strong> : {{ doss_manif_sportive.observation|default:"Non renseigné" }}</p>
+    <p><strong>Activité</strong> : {{ doss_manif_sportive.activite|default:"Non renseigné" }}</p>
+    <p><strong>Affilié fédération délégataire</strong> : {{ doss_manif_sportive.affilie_federation_delegataire|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Nombre de participants</strong> : {{ doss_manif_sportive.nombre_participants|default:"Non renseigné" }}</p>
+    <p><strong>Nombre max. de spectateurs</strong> : {{ doss_manif_sportive.nombre_max_spectateurs|default:"Non renseigné" }}</p>
+    <p><strong>Nombre d'organisateurs</strong> : {{ doss_manif_sportive.nombre_organisateurs|default:"Non renseigné" }}</p>
+    <p><strong>Nombre de véhicules d'accompagnement</strong> : {{ doss_manif_sportive.nombre_vehicules_accompagnement|default:"Non renseigné" }}</p>
+    <p><strong>Départ groupé des participants</strong> : {{ doss_manif_sportive.depart_groupe_participants|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Circulation groupée des participants</strong> : {{ doss_manif_sportive.circulation_groupee_participants|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"Non renseigné" }}</p>
+    <p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"Non renseigné" }}</p>
+    <p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"Non renseigné" }}</p>
+    <p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"Non renseigné" }}</p>
+    <p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"Non renseigné" }}</p>
+    <p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"Non renseigné" }}</p>
+    <p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"Non renseigné" }}</p>
+    <p><strong>Nom coordinateur sécurité</strong> : {{ doss_manif_sportive.nom_coordinateur_securite|default:"Non renseigné" }}</p>
+    <p><strong>Prénom coordinateur sécurité</strong> : {{ doss_manif_sportive.prenom_coordinateur_securite|default:"Non renseigné" }}</p>
+    <p><strong>Téléphone coordinateur sécurité</strong> : {{ doss_manif_sportive.telephone_coordinateur_securite|default:"Non renseigné" }}</p>
+    <p><strong>Email coordinateur sécurité</strong> : {{ doss_manif_sportive.email_coordinateur_securite|default:"Non renseigné" }}</p>
+    <p><strong>Nom du contact</strong> : {{ doss_manif_sportive.nom_contact|default:"Non renseigné" }}</p>
+    <p><strong>Prénom du contact</strong> : {{ doss_manif_sportive.prenom_contact|default:"Non renseigné" }}</p>
+    <p><strong>Téléphone du contact</strong> : {{ doss_manif_sportive.telephone_contact|default:"Non renseigné" }}</p>
+    <p><strong>Autres contacts utiles</strong> : {{ doss_manif_sportive.autres_contacts_utiles|default:"Non renseigné" }}</p>
+    <p><strong>Budget > 100 000 €</strong> : {{ doss_manif_sportive.budget_depasse_100k|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Manifestation lucrative +1500 personnes</strong> : {{ doss_manif_sportive.manifestation_lucrative_plus_1500|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Titre national/international</strong> : {{ doss_manif_sportive.manifestation_titre_national_international|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Engagement véhicules hors voies ouvertes</strong> : {{ doss_manif_sportive.manifestation_vehicules_hors_voies_ouvertes|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Charte Natura 2000 signée</strong> : {{ doss_manif_sportive.charte_dispense_natura_2000|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Lieux PDESI</strong> : {{ doss_manif_sportive.lieux_pdesi|default:"Non renseigné" }}</p>
+    <p><strong>Signataire charte balisage</strong> : {{ doss_manif_sportive.signataire_charte_balisage|yesno:"Oui,Non,Non renseigné" }}</p>
+    <p><strong>Description du balisage</strong> : {{ doss_manif_sportive.description_balisage|default:"Non renseigné" }}</p>
+</body>
+</html>

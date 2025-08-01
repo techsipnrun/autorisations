@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import os
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, JsonResponse
@@ -163,6 +164,10 @@ def dossier_non_soumis_a_autorisation(request):
         changer_etape_si_differente(dossier, "Non soumis à autorisation", request.user)
         changer_etat_si_different(dossier, "sans_suite", request.user)
 
+        # Maj Date Fin Instruction
+        dossier.date_fin_instruction = timezone.now()
+        dossier.save()
+
         # Dossiers Actions
         enregistrer_action(dossier, instructeur, "Classé sans suite")
 
@@ -201,9 +206,9 @@ def refuse_le_dossier(request):
         changer_etape_si_differente(dossier, "Refusé", request.user)
         changer_etat_si_different(dossier, "refuse", request.user)
 
-        # Maj Dossier en BDD
-        # dossier.date_fin_instruction = timezone.now()
-        # dossier.save()
+        # Maj Date Fin Instruction
+        dossier.date_fin_instruction = timezone.now()
+        dossier.save()
 
         # Dossier Action
         enregistrer_action(dossier, instructeur, "Classé comme refusé")
@@ -745,6 +750,10 @@ def classer_le_dossier_comme_accepte(request):
         # Changer Etape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "Accepté", request.user)
+
+        # Maj Date Fin Instruction
+        dossier.date_fin_instruction = timezone.now()
+        dossier.save()
 
         #Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()

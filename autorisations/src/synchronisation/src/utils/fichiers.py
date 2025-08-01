@@ -275,6 +275,8 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
         type_autorisation = "Aretes"
     elif "manifestations publiques" in titre:
         type_autorisation = "Manifestations_publiques"
+    elif "manifestations sportives" in titre:
+        type_autorisation = "Manifestations_sportives"
     elif "planification et d'urbanisme" in titre:
         type_autorisation = "Documents_planification_urbanisme"
     else:

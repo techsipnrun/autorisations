@@ -292,6 +292,16 @@
                                     Je me retire du dossier
                                 </button>
                             </form>
+                            
+                        {% elif instructeur_connecte in membres_groupe %}
+                            <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajouter-soi">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                <input type="hidden" name="instructeur_id" value="{{ instructeur_connecte.id }}">
+                                <button type="submit" class="btn-ajouter-soi">
+                                    Je me déclare comme instructeur
+                                </button>
+                            </form>
                         {% endif %}
 
 

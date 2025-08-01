@@ -70,7 +70,7 @@ def sync_doss(dossier):
             obj.save()
 
         # Dossier classé sans suite   
-        if obj.id_etat_dossier.nom == "refuse":
+        if obj.id_etat_dossier.nom == "sans_suite":
             logger.warning(f"Dossier {obj.numero} : Le dossier est apparu en création alors qu'il est déjà 'sans_suite' sur DS. DossierEtape mis à 'Non soumis à autorisation' pour un soucis de cohérence.")
             etape_sans_suite = EtapeDossier.objects.get(etape='Non soumis à autorisation')
             obj.id_etape_dossier = etape_sans_suite

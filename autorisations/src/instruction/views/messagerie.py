@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_documents import MessageDocument
-from autorisations.models.models_utilisateurs import Instructeur, DossierInterlocuteur, DossierBeneficiaire
+from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils import format_etat_dossier
 from DS.call_DS import suppr_msg_DS, get_msg_DS
@@ -22,10 +22,33 @@ loggerDS = logging.getLogger("API_DS")
 @login_required
 def preinstruction_dossier_messagerie(request, numero):
     dossier = get_object_or_404(Dossier, numero=numero)
+
+    # Mise à jour des mesages non lus --> lus
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    ids_non_lus = []
+
+    est_instructeur_du_dossier = DossierInstructeur.objects.filter(
+        id_dossier=dossier,
+        id_instructeur=instructeur
+    ).exists()
+
+    messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False)
+    ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
+
+    if est_instructeur_du_dossier:
+        nb = messages_non_lus.update(lu=True)
+        if nb > 0:
+            logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
+
     raw_messages = Message.objects.filter(id_dossier=dossier).order_by("date_envoi")
     messages_fmt = []
 
     for msg in raw_messages:
+
+        nouv_mess = 'non'
+        if ids_non_lus != []:
+            if msg.id in ids_non_lus :
+                nouv_mess = 'oui'
 
         emetteur = msg.email_emetteur.lower().strip()
 
@@ -43,7 +66,7 @@ def preinstruction_dossier_messagerie(request, numero):
                 
                 pj_url, pj_title = message_doc.id_document.url_ds, message_doc.id_document.titre
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "nouv_mess": nouv_mess})
 
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
@@ -70,10 +93,34 @@ def preinstruction_dossier_messagerie(request, numero):
 @login_required
 def instruction_dossier_messagerie(request, num_dossier):
     dossier = get_object_or_404(Dossier, numero=num_dossier)
+
+    # Mise à jour des mesages non lus --> lus
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    ids_non_lus = []
+
+    est_instructeur_du_dossier = DossierInstructeur.objects.filter(
+        id_dossier=dossier,
+        id_instructeur=instructeur
+    ).exists()
+
+    messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False)
+    ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
+
+    if est_instructeur_du_dossier:
+        nb = messages_non_lus.update(lu=True)
+        if nb > 0:
+            logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
+
+    # Affichage messages
     raw_messages = Message.objects.filter(id_dossier=dossier).order_by("date_envoi")
     messages_fmt = []
-
+    
     for msg in raw_messages:
+        
+        nouv_mess = 'non'
+        if ids_non_lus != []:
+            if msg.id in ids_non_lus :
+                nouv_mess = 'oui'
 
         emetteur = msg.email_emetteur.lower().strip()
 
@@ -91,7 +138,7 @@ def instruction_dossier_messagerie(request, num_dossier):
                 
                 pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
         
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
@@ -237,4 +284,5 @@ def actualiser_messages(request, numero):
     except Exception as e:
         logger.exception(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user}: {e}")
         return HttpResponse(f"Erreur lors de l'actualisation des messages du dossier {numero} par {request.user} : {e}", status=500)
+    
     

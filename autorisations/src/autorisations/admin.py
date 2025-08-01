@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, MessageDocument
-from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite
+from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire
 
 
@@ -466,7 +466,7 @@ class MessageAdmin(admin.ModelAdmin):
         'numero_avis',
         'piece_jointe_bool',
     )
-    list_filter = ('piece_jointe', 'email_emetteur', 'date_envoi')
+    list_filter = ('piece_jointe', 'email_emetteur', 'date_envoi', 'lu')
     search_fields = (
         'email_emetteur',
         'body',
@@ -607,3 +607,55 @@ class DossierRelecteurQualiteAdmin(admin.ModelAdmin):
 @admin.register(DossierSignataire)
 class DossierSignataireAdmin(admin.ModelAdmin):
     list_filter = ('id_instructeur',)
+
+
+# class DossierDSRecuListFilter(admin.SimpleListFilter):
+#     title = 'Dossier DS reçu'
+#     parameter_name = 'ds_recu'
+
+#     def lookups(self, request, model_admin):
+#         return [
+#             ('oui', 'Oui'),
+#             ('non', 'Non'),
+#         ]
+
+#     def queryset(self, request, queryset):
+#         if self.value() == 'oui':
+#             return queryset.filter(id_dossier__isnull=False)
+#         if self.value() == 'non':
+#             return queryset.filter(id_dossier__isnull=True)
+#         return queryset
+    
+
+class LiaisonDossierFilter(admin.SimpleListFilter):
+    title = 'Dossier DS reçu'
+    parameter_name = 'ds_recu'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('oui', 'Oui'),
+            ('non', 'Non'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == 'oui':
+            # On garde uniquement les DossierManifSportive liés à un dossier
+            ids = DossierManifestationLiaison.objects.values_list('id_dossier_manif_id', flat=True)
+            return queryset.filter(id__in=ids)
+        if self.value() == 'non':
+            ids = DossierManifestationLiaison.objects.values_list('id_dossier_manif_id', flat=True)
+            return queryset.exclude(id__in=ids)
+        return queryset
+
+
+
+@admin.register(DossierManifSportive)
+class DossierManifSportiveAdmin(admin.ModelAdmin):
+    list_display = ('nom_dossier', 'etat_dossier')
+    list_filter = ('etat_dossier', LiaisonDossierFilter)
+
+
+admin.site.register(DossierManifestationLiaison)
+
+
+

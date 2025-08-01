@@ -15,6 +15,7 @@ urlpatterns = [
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
+
     
 
     # PRÉ-INSTRUCTION
