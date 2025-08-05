@@ -1,0 +1,25 @@
+/* .formulaire_dm {
+    width: 90%;
+} */
+
+.titre-manif{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+/* .formulaire_dm .first-h2 {
+    margin: 0 0 1rem 0;
+} */
+
+.formulaire_dm h2 {
+    margin: 2rem 0 1rem 0;
+    padding: 0;
+}
+
+.formulaire_dm .en_attente_DS p{
+    font-style: italic;
+    font-size: 1.5rem;
+    margin-bottom: 3rem;
+}

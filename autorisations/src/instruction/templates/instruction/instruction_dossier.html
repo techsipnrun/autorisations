@@ -47,7 +47,12 @@
 
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
-                <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }} </h1>
+
+                {% if dossier.id_demarche.type != "Manifestations sportives" %}
+                    <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+                {% else %}
+                    <h1>Dossier Démarches Simplifiées n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
+                {% endif %}
                 
                 {% if messages %}
                     <div class="django-messages">
@@ -787,6 +792,11 @@
                 </div>
             </div>
         </div>
+
+        {% if doss_manif_sportive %}
+            {% include "dossier_manif_sportive.html" with doss_manif_sportive=doss_manif_sportive %}
+        {% endif %}
+        
     </div>
 
     

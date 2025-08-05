@@ -6,7 +6,7 @@ import os
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, EtapeDossier, EtatDossier, Message
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierValideur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
@@ -500,6 +500,13 @@ def instruction_dossier(request, num_dossier):
 
     # Messages non lus
     nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
+
+    # Dossier Déclaration Manifestations
+    if dossier.id_demarche.type == "Manifestations sportives":
+        doss_manif_sportive = None
+        liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
+        if liaison:
+            doss_manif_sportive = liaison.id_dossier_manif
  
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -544,6 +551,7 @@ def instruction_dossier(request, num_dossier):
         "validants_SPPN": validants_SPPN,
         "validants": validants,
         "nb_messages_non_lus": nb_messages_non_lus,
+        "doss_manif_sportive": doss_manif_sportive,
     })
 
 

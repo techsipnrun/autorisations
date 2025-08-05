@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
@@ -33,27 +33,30 @@ def preinstruction(request):
     dossier_infos = []
 
     for dossier in dossiers:
+        if dossier.id_demarche.type != "Manifestations sportives" :
 
-        # Chercher le demandeur via DossierInterlocuteur
-        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
-        demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
-        
-        # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés 
-        if not demandeur or not(demandeur.prenom and demandeur.nom):
-            benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-            demandeur = benef.id_beneficiaire if benef else None
+            # Chercher le demandeur via DossierInterlocuteur
+            interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
+            demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
+            
+            # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés 
+            if not demandeur or not(demandeur.prenom and demandeur.nom):
+                benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+                demandeur = benef.id_beneficiaire if benef else None
 
-        dossier_infos.append({
-            "demarche": dossier.id_demarche.type,
-            "date_depot": dossier.date_depot,
-            "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
-            "nom_projet": dossier.nom_dossier,
-            "numero": dossier.numero,
-        })
+            dossier_infos.append({
+                "demarche": dossier.id_demarche.type,
+                "date_depot": dossier.date_depot,
+                "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
+                "nom_projet": dossier.nom_dossier,
+                "numero": dossier.numero,
+            })
 
     num_demarche_manif_sportive = Demarche.objects.get(type="Manifestations sportives").numero
 
+    # -----------------------------------------
     # DossierManifSportive non liés à un Dossier
+    # -----------------------------------------
     dossiers_manif_sportive_DM = DossierManifSportive.objects.exclude(
         id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True)
     )
@@ -61,7 +64,9 @@ def preinstruction(request):
     dossiers_manif_sportive_DM = dossiers_manif_sportive_DM.order_by("-date_debut_evenement")
 
 
+    # -----------------------------------------
     # Dossiers (de type "Manifestations sportives") non liés à un DossierManifSportive
+    # -----------------------------------------
     dossiers_manif_sportive_DS = Dossier.objects.filter(
         id_demarche__type="Manifestations sportives"
     ).exclude(
@@ -70,9 +75,44 @@ def preinstruction(request):
     # Trier par date décroissante
     dossiers_manif_sportive_DS = dossiers_manif_sportive_DS.order_by("-date_depot")
 
+    dossiers_manif_sportive_DS_infos = []
+    for dossier in dossiers_manif_sportive_DS:
+        # --- 1. Demandeur (bénéficiaire) ---
+        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
+        beneficiaire = None
+        if interlocuteur:
+            dossier_benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+            if dossier_benef:
+                beneficiaire = dossier_benef.id_beneficiaire
 
-    
+        nom_demandeur = f"{beneficiaire.nom} {beneficiaire.prenom}" if beneficiaire else "N/A"
+
+        # --- 2. Numéro de dossier sur déclaration-manifestations ---
+        champ_numero_dm = DossierChamp.objects.filter(
+            id_dossier=dossier,
+            id_champ__nom="Numéro du dossier sur la plateforme déclaration-manifestations"
+        ).first()
+        numero_dm = champ_numero_dm.valeur if champ_numero_dm and champ_numero_dm.valeur else "N/A"
+
+        # --- 3. Nom de la manifestation ---
+        champ_nom_manifestation = DossierChamp.objects.filter(
+            id_dossier=dossier,
+            id_champ__nom="Nom de la manifestation"
+        ).first()
+        nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+
+        dossiers_manif_sportive_DS_infos.append({
+            "dossier": dossier,
+            "nom_demandeur": nom_demandeur,
+            "numero_dm": numero_dm,
+            "nom_manifestation": nom_manifestation,
+        })
+
+
+
+    # -----------------------------------------
     # Dossiers (de type "Manifestations sportives") liés à au moins un DossierManifSportive
+    # -----------------------------------------
     dossiers_manif_sportive_complet = Dossier.objects.filter(
         id_demarche__type="Manifestations sportives",
         id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True)
@@ -98,16 +138,12 @@ def preinstruction(request):
     reverse=True
 )
 
-
-
-
-
         
     return render(request, 'instruction/preinstruction.html', {
         "dossier_infos": dossier_infos,
         "num_demarche_manif_sportive": num_demarche_manif_sportive,
         "dossiers_manif_sportive_DM": dossiers_manif_sportive_DM,
-        "dossiers_manif_sportive_DS": dossiers_manif_sportive_DS,
+        "dossiers_manif_sportive_DS_infos": dossiers_manif_sportive_DS_infos,
         "dossiers_manif_sportive_complet": dossiers_manif_sportive_complet_list,
         })
 
@@ -306,6 +342,14 @@ def preinstruction_dossier(request, numero):
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
 
+    if dossier.id_demarche.type == "Manifestations sportives":
+        doss_manif_sportive = None
+        liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
+        if liaison:
+            doss_manif_sportive = liaison.id_dossier_manif
+
+
+
     return render(request, 'instruction/preinstruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -331,6 +375,7 @@ def preinstruction_dossier(request, numero):
         "preinstruction_message": request.session.pop("preinstruction_message", None),
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         "resume_pdf_titre": resume_pdf_titre,
+        "doss_manif_sportive": doss_manif_sportive,
     })
 
 

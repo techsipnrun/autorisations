@@ -579,12 +579,12 @@ def supprimer_annexe_instructeur(request):
 
 
 @login_required
-def dossier_manif_sportive(request, numero):
+def dossier_manif_sportive_sans_ds(request, numero):
 
 
     doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
 
 
-    return render(request, 'instruction/dossier_manif_sportive.html', {
+    return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
     })

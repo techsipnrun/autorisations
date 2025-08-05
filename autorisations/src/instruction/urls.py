@@ -23,7 +23,7 @@ urlpatterns = [
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
     path('preinstruction/<int:numero>/messagerie', messagerie.preinstruction_dossier_messagerie, name='preinstruction_dossier_messagerie'),
     path('preinstruction/<int:numero>/messagerie/envoyer/', messagerie.envoyer_message_dossier, name='envoyer_message_dossier'),
-    path('preinstruction/declaration_manifestations/<int:numero>/', views.dossier_manif_sportive, name='dossier_manif_sportive'),
+    path('preinstruction/declaration_manifestations/<int:numero>/', views.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
     
 
 

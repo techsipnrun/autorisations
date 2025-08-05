@@ -124,7 +124,7 @@
                 </thead>
                 <tbody>
                     {% for d in dossiers_manif_sportive_DM %}
-                        <tr class="clickable-row" data-href="{% url 'dossier_manif_sportive' numero=d.numero_dossier_declaration_manifestations %}">
+                        <tr class="clickable-row" data-href="{% url 'dossier_manif_sportive_sans_ds' numero=d.numero_dossier_declaration_manifestations %}">
                             <td>{{ d.nom_dossier }}</td>
                             <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
                             <td>{{ d.numero_dossier_declaration_manifestations }}</td>
@@ -154,13 +154,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for d in dossiers_manif_sportive_DS %}
-                        <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.numero %}">
-                            <td>à recup</td>
-                            <td>à recup</td>
-                            <td>{{ d.numero }}</td>
-                            <td>{{ d.date_depot }}</td>
-                            <td>à recup</td>
+                    {% for d in dossiers_manif_sportive_DS_infos %}
+                        <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.dossier.numero %}">
+                            <td>{{ d.nom_manifestation }}</td>
+                            <td>{{ d.nom_demandeur }}</td>
+                            <td>{{ d.dossier.numero }}</td>
+                            <td>{{ d.dossier.date_depot|date:"d F Y"}}</td>
+                            <td>{{ d.numero_dm }}</td>
                         </tr>
                     {% empty %}
                         <tr>
