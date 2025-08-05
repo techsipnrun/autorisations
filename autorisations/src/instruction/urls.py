@@ -23,6 +23,8 @@ urlpatterns = [
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
     path('preinstruction/<int:numero>/messagerie', messagerie.preinstruction_dossier_messagerie, name='preinstruction_dossier_messagerie'),
     path('preinstruction/<int:numero>/messagerie/envoyer/', messagerie.envoyer_message_dossier, name='envoyer_message_dossier'),
+    path('preinstruction/declaration_manifestations/<int:numero>/', views.dossier_manif_sportive, name='dossier_manif_sportive'),
+    
 
 
     # ACTUALISATION
@@ -30,6 +32,7 @@ urlpatterns = [
     path("etat-actualisation/", views.etat_actualisation, name="etat_actualisation"),
     path('instruction/<int:num_dossier>/actualiser', instruction.actualiser_dossier, name='actualiser_dossier'),
     path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
+    path('preinstruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),
     path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
 
 

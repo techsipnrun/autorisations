@@ -31,6 +31,7 @@
         <span id="message-actualisation" class="actualisation-texte"></span>
     </div>
 
+
     <h1>Réception des demandes d'autorisation</h1>
 
     <table>
@@ -40,7 +41,7 @@
                 <th>Déposé le</th>
                 <th>Demandeur</th>
                 <th>Nom du projet</th>
-                <th>Numéro dossier</th>
+                <th>N° dossier</th>
             </tr>
         </thead>
         <tbody>
@@ -57,9 +58,122 @@
                     <td colspan="5">Aucun dossier en attente d'affectation.</td>
                 </tr>
             {% endfor %}
-        </tbody>
-        
+        </tbody>  
     </table>
+
+    <div class="manif-sportive">
+
+        <h1>Les demandes de Manifestations Sportives</h1>
+
+        <div class="refresh-doss">
+            <form method="post" action="{% url 'synchroniser_demarche_depuis_reception' num_demarche=num_demarche_manif_sportive %}">
+                {% csrf_token %}
+                <button type="submit" class="refresh-button" id="btn-sync">
+                    <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
+                    Actualiser les dossiers 'Manifestations sportives'
+                </button>
+            </form>
+        </div>
+
+        <div class="manif_sportive_tableau">
+            <h2 class="h2_first">Dossiers complets</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom de la manifestation</th>
+                        <th>Organisateur</th>
+                        <th>Date de début de l'événement</th>
+                        <th>N° dossier D-S</th>
+                        <th>N° dossier D-M</th>
+                        <th>Dossier D-S reçu le</th>
+                        <th>Dossier D-M reçu le</th>    
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dossier, dm in dossiers_manif_sportive_complet %}
+                        <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
+                            <td>{{ dm.nom_dossier }}</td>
+                            <td>{{ dm.nom_organisateur }} {{ dm.prenom_organisateur }}</td>
+                            <td>{{ dm.date_debut_evenement|date:"d F Y" }}</td>
+                            <td>{{ dossier.numero }}</td>
+                            <td>{{ dm.numero_dossier_declaration_manifestations }}</td>
+                            <td>{{ dossier.date_depot|date:"d F Y" }}</td>
+                            <td>{{ dm.date_depot|date:"d F Y" }}</td>
+                        </tr>
+                    {% empty %}
+                                            <tr>
+                            <td colspan="7">Aucun dossier en attente d'affectation.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>  
+            </table>
+        </div>
+
+        <div class="manif_sportive_tableau">
+            <h2>En attente du dossier Démarches Simplifiées</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom de la manifestation</th>
+                        <th>Organisateur</th>
+                        <th>N° dossier D-M</th>
+                        <th>Date de début de l'événement</th>
+                        <th>Dossier D-M reçu le</th> 
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dossiers_manif_sportive_DM %}
+                        <tr class="clickable-row" data-href="{% url 'dossier_manif_sportive' numero=d.numero_dossier_declaration_manifestations %}">
+                            <td>{{ d.nom_dossier }}</td>
+                            <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
+                            <td>{{ d.numero_dossier_declaration_manifestations }}</td>
+                            <td>{{ d.date_debut_evenement|date:"d F Y" }}</td>
+                            <td>{{ d.date_depot|date:"d F Y" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>  
+            </table>
+        </div>
+
+        <div class="manif_sportive_tableau">
+            <h2>En attente du dossier Déclaration Manifestations</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom de la manifestation</th>
+                        <th>Organisateur</th>
+                        <th>N° dossier D-S</th>
+                        <th>Dossier D-S reçu le</th>
+                        <th>N° dossier D-M renseigné</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dossiers_manif_sportive_DS %}
+                        <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.numero %}">
+                            <td>à recup</td>
+                            <td>à recup</td>
+                            <td>{{ d.numero }}</td>
+                            <td>{{ d.date_depot }}</td>
+                            <td>à recup</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>  
+            </table>
+        </div>
+        
+
+    </div>
+
 
 </body> 
 
@@ -73,4 +187,18 @@
         });
     });
 </script>
+
+<!-- Bouton actualiser -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const syncForm = document.querySelector("form[action*='synchroniser']");
+        const syncButton = document.getElementById("btn-sync");
+
+        syncForm.addEventListener("submit", function () {
+            syncButton.disabled = true;
+            syncButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
+        });
+    });
+</script>
+
 </html>

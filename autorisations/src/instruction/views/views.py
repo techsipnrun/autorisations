@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
-from autorisations.models.models_instruction import Dossier, DossierChamp, EtapeDossier
+from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierValideur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import enregistrer_action
@@ -498,6 +498,16 @@ def synchroniser_demarche(request, num_demarche):
     return redirect("instruction_demarche", num_demarche=num_demarche)
 
 
+@login_required
+def synchroniser_demarche_depuis_reception(request, num_demarche):
+    if request.method == "POST":
+        try:
+            lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+        except Exception as e:
+            logger.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+    return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+
 # def afficher_annexe(request, chemin):
 #     try:
 #         if not os.path.exists(chemin):
@@ -564,3 +574,17 @@ def supprimer_annexe_instructeur(request):
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] Erreur suppression annexe instructeur ({doc.titre}) par {request.user} : {e}")
         raise
+
+
+
+
+@login_required
+def dossier_manif_sportive(request, numero):
+
+
+    doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
+
+
+    return render(request, 'instruction/dossier_manif_sportive.html', {
+        "doss_manif_sportive": doss_manif_sportive,
+    })

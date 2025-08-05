@@ -28,6 +28,12 @@ def breadcrumb_context(request):
         numero = kwargs.get("numero")
         if numero:
             items.append({"label": f"Dossier n°{numero}", "url": ""})
+    
+    elif view_name == "dossier_manif_sportive":
+        items.append({"label": "Pré-instruction", "url": "/preinstruction/"})
+        numero = kwargs.get("numero")
+        if numero:
+            items.append({"label": f"Dossier déclaration-manifestations n°{numero}", "url": ""})
 
     elif view_name == "preinstruction_dossier_messagerie":
         items.append({"label": "Pré-instruction", "url": "/preinstruction/"})

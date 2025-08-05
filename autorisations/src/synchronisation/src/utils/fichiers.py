@@ -335,3 +335,17 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
     path_parts.append(dossier_part)
 
     return "/".join(path_parts)
+
+
+def create_emplacement_sport(obj, logger):
+
+    racine = os.environ.get("ROOT_FOLDER")
+    chemin_complet = os.path.join(racine, obj.emplacement)
+
+    if not os.path.exists(chemin_complet):
+        os.makedirs(chemin_complet)
+        logger.info(f"[CREATE] Dossier créé : {obj.emplacement}")
+    else:
+        logger.info(f"[CREATE] Dossier temporaire déjà existant : {obj.emplacement}")
+
+    return chemin_complet

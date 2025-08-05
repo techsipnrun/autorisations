@@ -2,6 +2,7 @@ from django.db import models
 
 from django.apps import apps
 from django.utils import timezone
+from django.contrib.postgres.fields import ArrayField
 
 from .models_avis import Avis
 
@@ -339,6 +340,7 @@ class DossierNote(models.Model):
 class DossierManifSportive(models.Model):
     id = models.AutoField(primary_key=True)
     geometrie = models.JSONField(blank=True, null=True)
+    emplacement = models.TextField()
 
     nom_organisateur = models.TextField()
     prenom_organisateur = models.TextField()
@@ -395,7 +397,7 @@ class DossierManifSportive(models.Model):
     manifestation_titre_national_international = models.BooleanField()
     manifestation_vehicules_hors_voies_ouvertes = models.BooleanField()
     charte_dispense_natura_2000 = models.BooleanField()
-    lieux_pdesi = models.JSONField()  # list of strings
+    lieux_pdesi = ArrayField(models.TextField(), blank=True, null=True)
     signataire_charte_balisage = models.BooleanField()
     description_balisage = models.TextField()
 
@@ -417,4 +419,4 @@ class DossierManifestationLiaison(models.Model):
         managed = False
 
     def __str__(self):
-        return f"Lien Dossier {self.id_dossier_id} ↔ Manif {self.id_dossier_manif_id}"
+        return f"Lien {self.id_dossier} ↔ {self.id_dossier_manif}"

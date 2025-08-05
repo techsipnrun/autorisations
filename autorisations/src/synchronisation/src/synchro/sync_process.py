@@ -1,4 +1,5 @@
 from autorisations.models.models_instruction import Demarche
+from .sync_declaration_manifestations import sync_declaration_manifestations
 from .sync_demarche import sync_demarche
 from .sync_groupeinstr import sync_groupeinstructeurs_demarches
 from .sync_champ import sync_champs
@@ -13,7 +14,10 @@ def synchro_process(dico):
      # Récupération du type de la démarche à partir du titre
     try:
         demarche_obj = Demarche.objects.get(titre=dico['demarche']['titre'])
-        logger.info(f"------ Démarche {demarche_obj.type} ------")
+        if demarche_obj.type.lower() == 'manifestations sportives':
+            logger.info(f"------ Démarche {demarche_obj.type} (Démarches Simplifiées) ------")
+        else:
+            logger.info(f"------ Démarche {demarche_obj.type} ------")
     except Demarche.DoesNotExist:
         logger.warning(f"Aucune démarche trouvée avec le titre : {dico['demarche']['titre']}")
     except Demarche.MultipleObjectsReturned:
@@ -24,3 +28,12 @@ def synchro_process(dico):
     sync_groupeinstructeurs_demarches(dico["groupeinstructeurs_demarches"])
     sync_champs(dico["champs"])
     sync_dossiers(dico["dossiers"], demarche_obj.numero)
+
+    if demarche_obj.type.lower() == 'manifestations sportives':
+        logger.info(f"------ Démarche {demarche_obj.type} (Déclaration Manifestations) ------")
+        for doss in dico["manif_sportives"] :
+            sync_declaration_manifestations(doss, logger)
+        logger.info("------------------------------------------------\n")
+    
+
+

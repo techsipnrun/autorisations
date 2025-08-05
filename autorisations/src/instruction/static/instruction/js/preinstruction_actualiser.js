@@ -15,8 +15,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const delta = nowTimestamp - parseInt(savedTimestamp);
         const minutes = Math.floor(delta / 60000);
 
-        if (minutes >= 60) {
-            // message.textContent = `⏳ Aucune actualisation depuis plus de 60 minutes… actualisation automatique.`;
+        if (minutes >= 240) {
+            // message.textContent = `⏳ Aucune actualisation depuis plus de 240 minutes… actualisation automatique.`;
             lancerActualisation();
         } else {
             message.textContent = `✅ Dernière actualisation à ${saved}`;

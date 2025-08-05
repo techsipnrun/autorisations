@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Dossier, DossierAction, DossierNote, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
@@ -14,6 +14,7 @@ from instruction.utils import enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
 import ast
+from collections import defaultdict
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -49,7 +50,66 @@ def preinstruction(request):
             "nom_projet": dossier.nom_dossier,
             "numero": dossier.numero,
         })
-    return render(request, 'instruction/preinstruction.html', {"dossier_infos": dossier_infos})
+
+    num_demarche_manif_sportive = Demarche.objects.get(type="Manifestations sportives").numero
+
+    # DossierManifSportive non liés à un Dossier
+    dossiers_manif_sportive_DM = DossierManifSportive.objects.exclude(
+        id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True)
+    )
+    # Trier par date décroissante
+    dossiers_manif_sportive_DM = dossiers_manif_sportive_DM.order_by("-date_debut_evenement")
+
+
+    # Dossiers (de type "Manifestations sportives") non liés à un DossierManifSportive
+    dossiers_manif_sportive_DS = Dossier.objects.filter(
+        id_demarche__type="Manifestations sportives"
+    ).exclude(
+        id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True)
+    )
+    # Trier par date décroissante
+    dossiers_manif_sportive_DS = dossiers_manif_sportive_DS.order_by("-date_depot")
+
+
+    
+    # Dossiers (de type "Manifestations sportives") liés à au moins un DossierManifSportive
+    dossiers_manif_sportive_complet = Dossier.objects.filter(
+        id_demarche__type="Manifestations sportives",
+        id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True)
+    )
+
+    # Récupération des liaisons
+    liaisons = DossierManifestationLiaison.objects.filter(
+        id_dossier__in=dossiers_manif_sportive_complet
+    ).select_related("id_dossier_manif")
+
+    # Création d’un dictionnaire : dossier → dossier_manif
+    dossiers_manif_sportive_complet_map = {
+        liaison.id_dossier: liaison.id_dossier_manif
+        for liaison in liaisons
+    }
+
+    # Conversion en liste de tuples pour itération dans le template
+    dossiers_manif_sportive_complet_list = list(dossiers_manif_sportive_complet_map.items())
+    # Trier par date de début de la course décroissante
+    dossiers_manif_sportive_complet_list = sorted(
+    dossiers_manif_sportive_complet_list,
+    key=lambda pair: pair[1].date_debut_evenement or timezone.datetime.min,
+    reverse=True
+)
+
+
+
+
+
+        
+    return render(request, 'instruction/preinstruction.html', {
+        "dossier_infos": dossier_infos,
+        "num_demarche_manif_sportive": num_demarche_manif_sportive,
+        "dossiers_manif_sportive_DM": dossiers_manif_sportive_DM,
+        "dossiers_manif_sportive_DS": dossiers_manif_sportive_DS,
+        "dossiers_manif_sportive_complet": dossiers_manif_sportive_complet_list,
+        })
 
 
 

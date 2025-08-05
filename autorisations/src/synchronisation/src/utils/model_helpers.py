@@ -1,5 +1,7 @@
+import logging
 from django.db import models
 
+from autorisations.models.models_instruction import DossierChamp
 from synchronisation.src.utils.conversion import parse_datetime_with_tz
 
 
@@ -17,6 +19,7 @@ def get_first_id(model, **filters):
 
 
 def update_fields(obj, data: dict, date_fields: list = []):
+    logger = logging.getLogger("SYNCHRONISATION")
     updated = []
     for field, new_val in data.items():
         old_val = getattr(obj, field)
@@ -24,15 +27,38 @@ def update_fields(obj, data: dict, date_fields: list = []):
             old_val = parse_datetime_with_tz(old_val)
             new_val = parse_datetime_with_tz(new_val)
 
-        if old_val != new_val:
+        if old_val != new_val and str(old_val) != str(new_val):
             setattr(obj, field, new_val)
             updated.append(field)
     return updated
 
 
+def update_fields_dossier_champs(obj, data: dict, date_fields: list = []):
+    logger = logging.getLogger("SYNCHRONISATION")
+    updated = []
+    num_doss_dm = {}
+    for field, new_val in data.items():
+        old_val = getattr(obj, field)
+        if field in date_fields:
+            old_val = parse_datetime_with_tz(old_val)
+            new_val = parse_datetime_with_tz(new_val)
+
+        if old_val != new_val and str(old_val) != str(new_val):
+            setattr(obj, field, new_val)
+            updated.append(field)
+
+            # Recupérer l'ancien numéro de dossier DM (Manif Sportives)
+            if isinstance(obj, DossierChamp):
+                if obj.id_champ.nom == "Numéro du dossier sur la plateforme déclaration-manifestations" and field == 'valeur':
+                    num_doss_dm = {'old_num_dossDM': old_val, 'new_num_dossDM': new_val}
+                    
+    return updated, num_doss_dm
+
+
 
 
 def foreign_keys_add_suffixe_id(model_class, data):
+    logger = logging.getLogger('SYNCHRONISATION')
     corrected = {}
     for field, value in data.items():
         if hasattr(model_class, field):

@@ -201,6 +201,13 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
+        'apiDM_file': { # fichier pour les logs de l'API Déclaration-manifestations
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/apiDM.log', 
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
         'instruction_file': { # fichier pour les logs de l'ORM Django dans le cadre de l'instruction
             'level': 'INFO',
             'class': 'logging.FileHandler',
@@ -235,6 +242,11 @@ LOGGING = {
         },
         'API_PG': {
             'handlers': ['apiPG_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'API_DM': {
+            'handlers': ['apiDM_file'],
             'level': 'INFO',
             'propagate': False,
         },

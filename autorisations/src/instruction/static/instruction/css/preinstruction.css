@@ -77,3 +77,61 @@ h1 {
     color: #006131;
 }
 
+
+/* Manifestations sportives */
+h2 {
+    margin-left: 7.5%;
+    margin-top: 3rem;
+}
+
+.h2_first {
+    margin-top: 2rem;
+}
+
+.manif-sportive {
+    margin-top: 7rem;
+}
+
+/* Actualisation manifs sportives */
+.refresh-doss {
+    text-align: left;
+    margin-top: 1rem;
+    margin-left: 7.5%;
+}
+
+.refresh-doss form {
+    display: inline-block;
+}
+
+.refresh-button {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+    background-color: #e0e0e0;
+}
+
+.refresh-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.refresh-icon {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.4s ease-in-out;
+}
+
+.refresh-button:hover .refresh-icon {
+    transform: rotate(180deg);
+}
