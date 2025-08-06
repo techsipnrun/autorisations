@@ -213,7 +213,7 @@
                         </a>
                         <a href="{% url 'preinstruction_dossier_messagerie' numero=dossier.numero %}">
                             <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
-                                 <span class="msg-label-wrapper">
+                                <span class="msg-label-wrapper">
                                     Messagerie
                                     {% if nb_messages_non_lus > 0 %}
                                         <span class="pastille_nouv_mess">{{ nb_messages_non_lus }}</span>

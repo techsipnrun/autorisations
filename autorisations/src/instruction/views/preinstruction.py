@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
@@ -348,6 +348,16 @@ def preinstruction_dossier(request, numero):
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
 
+    # Messages non lus
+    nb_messages_non_lus = Message.objects.filter(
+        id_dossier=dossier,
+        lu=False
+    ).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    ).count()
+
 
 
     return render(request, 'instruction/preinstruction_dossier.html', {
@@ -376,6 +386,7 @@ def preinstruction_dossier(request, numero):
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         "resume_pdf_titre": resume_pdf_titre,
         "doss_manif_sportive": doss_manif_sportive,
+        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 

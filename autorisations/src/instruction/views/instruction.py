@@ -112,15 +112,11 @@ def instruction_demarche(request, num_demarche):
         dossiers_query = dossiers_query.filter(id_groupeinstructeur_id__in=groupes_user)
 
     dossiers = dossiers_query.select_related("id_groupeinstructeur").order_by("date_depot")
-    # PB : dossiers est null tout le temps
-
-    # print('instructeur : ', instructeur)
-    # print('dossiers_query : ', dossiers_query)
 
     dossier_infos = []
 
     for dossier in dossiers:
-        # print(dossier)
+
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
 
         nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
@@ -155,7 +151,7 @@ def instruction_demarche(request, num_demarche):
         id_etape_dossier__in=etapes_termines,
         id_demarche=demarche,
         date_depot__year=annee_selectionnee
-    ).select_related("id_groupeinstructeur").order_by("date_depot")
+    ).select_related("id_groupeinstructeur").order_by("-date_depot")
 
     dossier_archives_infos = []
 
@@ -168,14 +164,19 @@ def instruction_demarche(request, num_demarche):
             if dossier_beneficiaire:
                 beneficiaire = dossier_beneficiaire.id_beneficiaire
 
+        nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
+
         dossier_archives_infos.append({
             "nom_dossier": dossier.nom_dossier,
             "numero": dossier.numero,
             "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
-            "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini"
+            "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
+            "nb_messages_non_lus": nb_messages_non_lus
         })
+
+        dossier_archives_infos.sort(key=lambda d: d["nb_messages_non_lus"], reverse=True)
 
 
 
@@ -499,7 +500,14 @@ def instruction_dossier(request, num_dossier):
     validants = Instructeur.objects.filter(id__in=validant_ids).select_related("id_agent_autorisations")
 
     # Messages non lus
-    nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
+    nb_messages_non_lus = Message.objects.filter(
+        id_dossier=dossier,
+        lu=False
+    ).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    ).count()
 
     # Dossier Déclaration Manifestations
     doss_manif_sportive = None
