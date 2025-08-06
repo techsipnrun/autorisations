@@ -49,16 +49,7 @@ def main():
 
                 else :
                     loggerDM.warning(f"Le dossier {dossier["nom"]} ({dossier["pk"]}) est en double sur Déclaration Manifestations")
-
-
-           
-            
-
-            geojson_str = json.dumps(geojson)
-            # Afficher au plus 200 caractères (tronqués proprement)
-            print(geojson_str[:200] + ("..." if len(geojson_str) > 200 else ""))
-
-            
+ 
 
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
 
