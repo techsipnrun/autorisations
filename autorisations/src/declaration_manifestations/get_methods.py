@@ -89,3 +89,16 @@ def get_dossier_by_id(token, manif_id):
 
     return response.json()
 
+
+def get_geojson(token, dossier_id):
+    headers = {"Authorization": f"Bearer {token}"}
+    url = GEOJSON_URL.format(dossier_id)
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        loggerDM.error(f"GET GEOJSON {dossier_id} : {response.text}")
+        response.raise_for_status()
+
+    return response.json()
+
+

@@ -502,8 +502,8 @@ def instruction_dossier(request, num_dossier):
     nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
 
     # Dossier Déclaration Manifestations
+    doss_manif_sportive = None
     if dossier.id_demarche.type == "Manifestations sportives":
-        doss_manif_sportive = None
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif

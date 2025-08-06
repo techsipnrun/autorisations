@@ -109,67 +109,71 @@
             </table>
         </div>
 
-        <div class="manif_sportive_tableau">
-            <h2>En attente du dossier Démarches Simplifiées</h2>
+        {% if dossiers_manif_sportive_DM %}
+            <div class="manif_sportive_tableau">
+                <h2>En attente du dossier Démarches Simplifiées</h2>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nom de la manifestation</th>
-                        <th>Organisateur</th>
-                        <th>N° dossier D-M</th>
-                        <th>Date de début de l'événement</th>
-                        <th>Dossier D-M reçu le</th> 
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d in dossiers_manif_sportive_DM %}
-                        <tr class="clickable-row" data-href="{% url 'dossier_manif_sportive_sans_ds' numero=d.numero_dossier_declaration_manifestations %}">
-                            <td>{{ d.nom_dossier }}</td>
-                            <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
-                            <td>{{ d.numero_dossier_declaration_manifestations }}</td>
-                            <td>{{ d.date_debut_evenement|date:"d F Y" }}</td>
-                            <td>{{ d.date_depot|date:"d F Y" }}</td>
-                        </tr>
-                    {% empty %}
+                <table>
+                    <thead>
                         <tr>
-                            <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                            <th>Nom de la manifestation</th>
+                            <th>Organisateur</th>
+                            <th>N° dossier D-M</th>
+                            <th>Date de début de l'événement</th>
+                            <th>Dossier D-M reçu le</th> 
                         </tr>
-                    {% endfor %}
-                </tbody>  
-            </table>
-        </div>
-
-        <div class="manif_sportive_tableau">
-            <h2>En attente du dossier Déclaration Manifestations</h2>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nom de la manifestation</th>
-                        <th>Organisateur</th>
-                        <th>N° dossier D-S</th>
-                        <th>Dossier D-S reçu le</th>
-                        <th>N° dossier D-M renseigné</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d in dossiers_manif_sportive_DS_infos %}
-                        <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.dossier.numero %}">
-                            <td>{{ d.nom_manifestation }}</td>
-                            <td>{{ d.nom_demandeur }}</td>
-                            <td>{{ d.dossier.numero }}</td>
-                            <td>{{ d.dossier.date_depot|date:"d F Y"}}</td>
-                            <td>{{ d.numero_dm }}</td>
-                        </tr>
-                    {% empty %}
+                    </thead>
+                    <tbody>
+                        {% for d in dossiers_manif_sportive_DM %}
+                            <tr class="clickable-row" data-href="{% url 'dossier_manif_sportive_sans_ds' numero=d.numero_dossier_declaration_manifestations %}">
+                                <td>{{ d.nom_dossier }}</td>
+                                <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
+                                <td>{{ d.numero_dossier_declaration_manifestations }}</td>
+                                <td>{{ d.date_debut_evenement|date:"d F Y" }}</td>
+                                <td>{{ d.date_depot|date:"d F Y" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>  
+                </table>
+            </div>
+        {% endif %}
+        
+        {% if dossiers_manif_sportive_DS_infos %}
+            <div class="manif_sportive_tableau">
+                <h2>En attente du dossier Déclaration Manifestations</h2>
+                
+                <table>
+                    <thead>
                         <tr>
-                            <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                            <th>Nom de la manifestation</th>
+                            <th>Organisateur</th>
+                            <th>N° dossier D-S</th>
+                            <th>Dossier D-S reçu le</th>
+                            <th>N° dossier D-M renseigné</th>
                         </tr>
-                    {% endfor %}
-                </tbody>  
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        {% for d in dossiers_manif_sportive_DS_infos %}
+                            <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.dossier.numero %}">
+                                <td>{{ d.nom_manifestation }}</td>
+                                <td>{{ d.nom_demandeur }}</td>
+                                <td>{{ d.dossier.numero }}</td>
+                                <td>{{ d.dossier.date_depot|date:"d F Y"}}</td>
+                                <td>{{ d.numero_dm }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>  
+                </table>
+            </div>
+        {% endif %}
         
 
     </div>

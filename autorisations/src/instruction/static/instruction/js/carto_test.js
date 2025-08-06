@@ -4,8 +4,11 @@
 
 
 // Fonction principale
+
 (function main() {
 
+    console.log("✅ Début Script carto_test.js");
+    
     // Fond coeur de Parc et Aire d'adhésion
     const fondData = window._fondDeCarteData;
     const adhesionData = window._adhesionData;
@@ -63,11 +66,12 @@
 
     function initializeMap(container) {
         const map = L.map(container);
-    
-        // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        //     attribution: 'Tiles &copy; Esri & NASA',
-        //     maxZoom: 19
-        // }).addTo(map);
+
+        if (!map.pm) {
+            console.error("❌ Leaflet-Geoman non initialisé");
+        } else {
+            console.log("✅ Leaflet-Geoman initialisé");
+        }
 
         // Menu d'édition
         map.pm.addControls({
@@ -79,31 +83,95 @@
             drawRectangle: true,
             drawPolygon: true,
             editMode: true,
+            rotateMode: false,
             removalMode: true
         });
 
-        // Empêche l'édition pour les couches avec le filtre pmIgnore
-        map.on('pm:globaleditmodetoggled', (e) => {
-            map.eachLayer((layer) => {
-                if (layer.pm && layer.pmIgnore) {
-                    layer.pm.disable(); 
-                }
+        [
+            'pm:globaleditmodetoggled',
+            'pm:edit',
+            'pm:remove',
+            'pm:drawstart',
+            'pm:drawend',
+            'pm:create',
+            'pm:globalremovalmodetoggled'
+        ].forEach(evt => {
+            map.on(evt, (e) => {
+                console.log(`📣 Evénement: ${evt}`, e);
             });
         });
 
-    
 
+        setTimeout(() => {
+            const editBtn = document.querySelector(".leaflet-pm-icon-edit");
+
+            if (editBtn) {
+                editBtn.addEventListener("click", () => {
+                    map.eachLayer((layer) => {
+                        if (
+                            layer instanceof L.GeoJSON &&
+                            layer.options?.name === "COT Mafate" &&
+                            map.hasLayer(layer)
+                        ) {
+                            map.removeLayer(layer);
+                            console.info("COT Mafate retirée AVANT activation du mode édition");
+                            alert("La couche COT Mafate a été retirée temporairement pour éviter les ralentissements pendant l'édition.");
+                        }
+                    });
+                }, { capture: true }); // 👈 capture true = intercepter AVANT Leaflet-Geoman
+            }
+        }, 0);
+
+
+        // Empêche l'édition pour les couches avec le filtre pmIgnore
+        map.on('pm:globaleditmodetoggled', (e) => {
+            
+            map.eachLayer((layer) => {
+
+                // Empêcher les couches protégées d'être éditables
+                if (layer.pm && layer.pmIgnore) {
+                    layer.pm.disable();
+                }
+            });
+
+
+        });
+
+        // Ajout couche
         map.on('layeradd', (e) => {
             const layer = e.layer;
+            
+            if (
+                layer instanceof L.GeoJSON &&
+                layer.options?.name === "COT Mafate" &&
+                map.pm.globalEditEnabled()
+            ) {
+                map.removeLayer(layer);
+                alert("Impossible d'ajouter la couche COT Mafate pendant l'édition.\nVeuillez désactiver le mode édition pour l'afficher.");
+                console.warn("⛔ COT Mafate bloquée pendant édition");
+
+                // Forcer le décochage visuel de la case COT Mafate
+                const checkboxLabels = document.querySelectorAll('.leaflet-control-layers-overlays label');
+                checkboxLabels.forEach(label => {
+                    if (label.textContent.includes("COT Mafate")) {
+                        const input = label.querySelector('input[type="checkbox"]');
+                        if (input && input.checked) {
+                            input.checked = false;
+                        }
+                    }
+                });
+                return; // on ne continue pas
+            }
 
             // Si c'est un GeoJSON avec plusieurs couches
             if (layer.eachLayer) {
                 layer.eachLayer(subLayer => {
                     if (subLayer?.options?._isBackgroundLayer) {
                         subLayer.pmIgnore = true;
-                        if (map.pm.globalEditEnabled() && subLayer.pm) {
+                        if (subLayer.pm) {
                             subLayer.pm.disable();
                         }
+
                         subLayer.bringToBack();
                     }
                 });
@@ -121,6 +189,9 @@
 
         container._leaflet_map = map;
         return map;
+
+        
+
     }
 
     // Fond Coeur de Parc et Aire d'adhésion
@@ -152,16 +223,15 @@
             const adhesionLayer = L.geoJSON(adhesion, {
                 style: {
                     color: "#388E3C",
+                    weight: 1.5,
                     fillColor: "#A5D6A7",
-                    weight: 1,
-                    fillOpacity: 0.5,
-                    opacity: 0.1
+                    fillOpacity: 0.6
                 },
-                onEachFeature: (feature, layer) => {
-                    // const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
-                    // layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
-                    layer.pmIgnore = true;
-                } 
+                // onEachFeature: (feature, layer) => {
+                //     // const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
+                //     // layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
+                //     layer.pmIgnore = true;
+                // } 
             });
 
             adhesionLayer.eachLayer(l => {
@@ -178,18 +248,14 @@
         if (mafate_cot) {
             const mafateLayer = L.geoJSON(mafate_cot, {
                 style: {
-                    color: "#001ea5ff",
-                    fillColor: "#3260f8ff",
-                    weight: 1,
-                    fillOpacity: 0.6,
-                    opacity: 0.1
-                },
-                onEachFeature: (feature, layer) => {
-                    // const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
-                    // layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
-                    layer.pmIgnore = true;
-                } 
+                    color: "#1900ffff",
+                    weight: 1.5,
+                    fillColor: "#1848ceff",
+                    fillOpacity: 0.7
+                }
             });
+
+            mafateLayer.options.name = "COT Mafate";
 
             mafateLayer.eachLayer(l => {
                 l.options._isBackgroundLayer = true;
@@ -286,6 +352,8 @@
 
 
     function enableDrawing(map) {
+
+
         map.on('pm:create', e => {
 
             // Récupère la géométrie nouvellement dessinée.
@@ -322,6 +390,8 @@ function setupValidationButton() {
             
             // On récupère la géométrie saisie/modifiée (pas de filtre pmIgnore)
             const layers = map.pm.getGeomanLayers().filter(l => !l.pmIgnore);
+            // console.log('Les couches avec pm ignore = False :')
+            // console.log(layers)
             layers.forEach(layer => {
                 const geo = layer.toGeoJSON();
                 if (geo.type === 'FeatureCollection') {
@@ -345,7 +415,7 @@ function setupValidationButton() {
         const geojsonStr = JSON.stringify(featureCollection, null, 2);
         geojsonInput.value = geojsonStr;
 
-        console.log("Geojson injecté :", geojsonStr);
+        console.log("Geojson injecté :", geojsonStr.length > 200 ? geojsonStr.slice(0, 200) + "..." : geojsonStr);
 
         // Enregistrement du GeoJSON en base (view enregistrer_geom)
         document.getElementById("form-geom").submit();

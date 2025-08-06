@@ -27,9 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let geojson = null;
         try {
-            geojson = JSON.parse(data);
+            const cleanedData = data.replace(/^\uFEFF/, '');
+            geojson = JSON.parse(cleanedData);
         } catch (e) {
-            console.error("GeoJSON invalide (erreur lors du parsing) :", data);
+            console.error(data)
+            console.error("GeoJSON invalide (erreur lors du parsing) : ", e);
             return;
         }
 
@@ -192,25 +194,74 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         // -----------------------------------
-        // Ajouter le geojson du pétitionnaire 
+        // Ajouter le geojson du pétitionnaire + pop up métadonnées 
         // -----------------------------------
-        const layer = L.geoJSON(geojson, {
-            style: {
+        // --- Couches lignes / polygones (pas les points)
+        const coucheTraces = L.geoJSON(geojson, {
+            filter: (feature) => feature.geometry.type !== "Point",  // 👈 filtrer
+            style: () => ({
                 color: "red",
                 weight: 3,
                 fillColor: "#f03",
                 fillOpacity: 0.5
-            },
+            })
+        }).addTo(map);
+
+        // --- Couches points seulement
+        const couchePoints = L.geoJSON(geojson, {
+            filter: (feature) => feature.geometry.type === "Point",  // 👈 filtrer
             pointToLayer: (feature, latlng) => {
+                const props = feature.properties;
+
+                // Si c'est un point "Ravitaillement"
+                if (props?.title?.toLowerCase().includes("ravitaillement")) {
+                    const iconRavito = L.icon({
+                        iconUrl: window._iconRavito ,
+                        iconSize: [32, 32],
+                        popupAnchor: [0, -16]
+                    });
+                    return L.marker(latlng, { icon: iconRavito });
+                }
+                // Si c'est un point "Ravitaillement"
+                if (props?.title?.toLowerCase().includes("signaleur")) {
+                    const iconSignaleur = L.icon({
+                        iconUrl: window._iconSignaleur ,
+                        iconSize: [32, 32], 
+                        popupAnchor: [0, -16]
+                    });
+                    return L.marker(latlng, { icon: iconSignaleur });
+                }
+
                 return L.circleMarker(latlng, {
-                    radius: 3,
-                    color: "#800",
-                    fillColor: "#d00",
+                    radius: 8,
+                    fillColor: "#c27579ff",
+                    color: "#ff000dff",
                     fillOpacity: 1,
                     weight: 2
                 });
+            },
+            onEachFeature: (feature, layer) => {
+                const props = feature.properties;
+                if (props) {
+                    let content = "";
+                    if (props.title) content += `<strong>${props.title}</strong><br>`;
+                    if (props.icon?.i18n) content += `Type : ${props.icon.i18n}<br>`;
+
+                    if (props.tooltip?.show) {
+                        layer.bindTooltip(content, { permanent: false });
+                    } else {
+                        layer.bindPopup(content);
+                    }
+                }
+
+                if (typeof layer.bringToFront === "function") {
+                    layer.bringToFront();
+                }
+
             }
         }).addTo(map);
+
+
 
         // ------------------------------------------------------------------
         // Calcul d'intersection entre le coeur de Parc et la géométrie pétitionnaire
@@ -244,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // POP UP Intersection
                 if (intersecte) {
                     L.popup()
-                        .setLatLng(layer.getBounds().getCenter())
+                        .setLatLng(coucheTraces.getBounds().getCenter())
                         .setContent("Cette géométrie intersecte le cœur de parc.")
                         .openOn(map);
                 }
@@ -257,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // --------------------------------------
         // Centrer sur la géométrie pétitionnaire
         // --------------------------------------
-        map.fitBounds(layer.getBounds(), {
+        map.fitBounds(coucheTraces.getBounds(), {
             maxZoom: 12,
             padding: [20, 20]
         });

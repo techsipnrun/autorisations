@@ -64,7 +64,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                                     description=doc["description"]
                                 )
 
-                    logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ {id_champ} du Dossier {id_dossier} créé.") 
+                    logger.info(f"[CREATE] Document ({type_du_champ}) pour Champ ({champ_obj}) créé.") 
                     write_pj(doc['emplacement'], titre_doc, doc["url_ds"])
 
                     champ_obj = DossierChamp.objects.filter(
@@ -83,7 +83,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     if updated_fields :
                         document_obj.save()
                         if updated_fields != ['url_ds'] : # url_ds est recalculée à chaque fois, on evite de surcharger les logs
-                            logger.info(f"[SAVE] Document mis à jour (doc: {document_obj.id}, dossier: {id_dossier}). Champs modifiés : {', '.join(updated_fields)}.")
+                            logger.info(f"[SAVE] Document mis à jour ({document_obj}, dossier: {dossier.numero}). Champs modifiés : {', '.join(updated_fields)}.")
 
                     champ_obj = DossierChamp.objects.filter(
                         id_dossier_id=id_dossier,
@@ -100,9 +100,9 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         "id_document_id": document_obj.id,
                         "ordre": ordre_number,
                     }, date_fields=["date_saisie"])
-                    if updated_fields:
+                    if updated_fields and updated_fields != ['ordre']:
                         champ_obj.save()
-                        logger.info(f"[SAVE] DossierChamp (champ: {id_champ}, dossier: {id_dossier}) mis à jour avec PJ. Champs modifiés : {', '.join(updated_fields)}.")
+                        logger.info(f"[SAVE] DossierChamp (champ: {champ_obj}) mis à jour avec PJ. Champs modifiés : {', '.join(updated_fields)}.")
                 else:
                     champ_obj = DossierChamp.objects.create(
                         id_dossier_id=id_dossier,
@@ -113,7 +113,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         geometrie=dossier_champ.get("geometrie"),
                         ordre=ordre_number,
                     )
-                    logger.info(f"[CREATE] Nouveau DossierChamp (champ: {id_champ}, dossier: {id_dossier}) avec PJ.")
+                    logger.info(f"[CREATE] Nouveau DossierChamp (champ: {champ_obj}) avec PJ.")
 
         else:
             # Pour les champs sans document
@@ -131,7 +131,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
             )
 
             if created:
-                logger.info(f"[CREATE] DossierChamp (champ: {id_champ}, dossier: {id_dossier}) sans PJ créé.")
+                logger.info(f"[CREATE] DossierChamp (champ: {champ_obj}) sans PJ créé.")
 
                 # Manifestations Sportives
                 
@@ -170,10 +170,10 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     "geometrie": dossier_champ.get("geometrie"),
                     "ordre": ordre_number,
                 }, date_fields=["date_saisie"])
-                if updated_fields:
+                if updated_fields and updated_fields != ['ordre']:
                     champ_obj.save()
                     logger.info(f"updated_fields : {updated_fields}")
-                    logger.info(f"[SAVE] DossierChamp (champ: {id_champ}, dossier: {id_dossier}) sans PJ mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+                    logger.info(f"[SAVE] DossierChamp (champ: {id_champ}, dossier: {dossier.numero}) sans PJ mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
                     # si 'Numéro du dossier sur la plateforme déclaration-manifestations' in updated_fields
                     if change_num_doss_dm != {} and 'valeur' in updated_fields:

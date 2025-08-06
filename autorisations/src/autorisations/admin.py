@@ -651,9 +651,13 @@ class LiaisonDossierFilter(admin.SimpleListFilter):
 
 @admin.register(DossierManifSportive)
 class DossierManifSportiveAdmin(admin.ModelAdmin):
-    list_display = ('nom_dossier', 'etat_dossier')
+    list_display = ('nom_dossier', 'etat_dossier', 'numero_affiche',)
     list_filter = ('etat_dossier', LiaisonDossierFilter)
+    search_fields = ('nom_dossier', 'numero_dossier_declaration_manifestations')
 
+    def numero_affiche(self, obj):
+        return obj.numero_dossier_declaration_manifestations
+    numero_affiche.short_description = "Numéro"
 
 admin.site.register(DossierManifestationLiaison)
 

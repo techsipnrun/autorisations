@@ -19,6 +19,8 @@ from mimetypes import guess_type
 from django.contrib import messages
 import logging
 from django.db.models import Q
+from django.utils.timezone import now
+from autorisations import settings
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -370,12 +372,14 @@ def edit_carto(request, numero_dossier, id_champ):
 
     geojson = json.dumps(geojson_source)
 
+
     return render(request, 'edit_carto.html', {
                                                 "numero_dossier": numero_dossier, 
                                                 "geojson": geojson, 
                                                 "etape_dossier": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else None,
                                                 "nb_cartes": nb_cartes,
                                                 'id_champ': id_champ,
+                                                'now': now(),
                                                })
 
 
@@ -584,7 +588,17 @@ def dossier_manif_sportive_sans_ds(request, numero):
 
     doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
 
+     # Charger le fond de carte GeoJSON (une seule fois)
+    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+    with open(fond_coeur_de_parc, encoding="utf-8") as f:
+        fond_coeur_de_parc = json.load(f)
+
+    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
+    with open(fond_aire_adhesion, encoding="utf-8") as f:
+        fond_aire_adhesion = json.load(f)
 
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
+        "coeurData": fond_coeur_de_parc,
+        "adhesionData": fond_aire_adhesion,
     })

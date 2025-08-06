@@ -115,7 +115,8 @@ def preinstruction(request):
     # -----------------------------------------
     dossiers_manif_sportive_complet = Dossier.objects.filter(
         id_demarche__type="Manifestations sportives",
-        id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True)
+        id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True),
+        id_etape_dossier__etape="À affecter"
     )
 
     # Récupération des liaisons
@@ -154,7 +155,7 @@ def preinstruction_dossier(request, numero):
 
     dossier = get_object_or_404(Dossier, numero=numero)
 
-     # Charger le fond de carte GeoJSON (une seule fois)
+    # Charger le fond de carte GeoJSON (une seule fois)
     fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
     with open(fond_coeur_de_parc, encoding="utf-8") as f:
         fond_coeur_de_parc = json.load(f)
@@ -341,9 +342,8 @@ def preinstruction_dossier(request, numero):
 
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
-
+    doss_manif_sportive = None
     if dossier.id_demarche.type == "Manifestations sportives":
-        doss_manif_sportive = None
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif

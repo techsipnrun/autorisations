@@ -7,6 +7,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dossier manifestations sportives</title>
+    
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Turf.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
@@ -26,6 +33,11 @@
             <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
+
+            <h2>Tracé de la manifestation</h2>
+            <div class="carte-container">
+                <div class="carte" data-geojson='{{ doss_manif_sportive.geometrie }}'></div>
+            </div>
 
             <h2>Caractéristiques</h2>
             <div class="champs"><p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</p></div>
@@ -92,6 +104,21 @@
 
         </div>
     </div>
+
+
+    <!-- 1. Données JSON pour le fond de carte -->
+    {{ coeurData|json_script:"fond-data" }}
+    {{ adhesionData|json_script:"adhesion-data" }}
+
+    <!-- 2. Variables globales accessibles à ton JS -->
+    <script> 
+        window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
+        window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
+    </script>
+
+    <!-- 3. Script Leaflet personnalisé -->
+    <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
+
 
 </body>
 </html>

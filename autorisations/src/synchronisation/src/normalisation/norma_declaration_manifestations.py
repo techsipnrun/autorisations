@@ -80,7 +80,7 @@ def dossiers_declaration_manifestations_normalize(d):
                     "signataire_charte_balisage": doss.get("convention_balisage"),
                     "description_balisage": doss.get("balisage"),
 
-                    "geometrie": None,    # à remplir si géométrie disponible
+                    "geometrie": doss.get("geometrie"), 
                     "emplacement": f"Declaration_manifestations/{doss.get("date_debut")[:4]}/{doss.get("pk")}" # Declaration_manifestations/{année}/{numero_dossier_declaration_manifestations}
                 }
             )

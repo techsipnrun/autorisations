@@ -39,6 +39,7 @@ def sync_dossiers(dossiers_list, demarche_number):
         id_demarche__numero=demarche_number
     ).exclude(id_ds__in=ids_ds_recus)
 
+
     nb_desactives = dossiers_a_desactiver.update(present_sur_ds=False)
 
     if nb_desactives > 0:

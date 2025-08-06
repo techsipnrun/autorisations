@@ -22,6 +22,10 @@
 
   <!-- Turf.js -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+  <!-- JS PERSO -->
+  <!-- <script src="{% static 'instruction/js/carto_test.js' %}?v={{ now|date:"U" }}"></script> -->
+
 </head>
 
 <body>
@@ -88,6 +92,10 @@
     </script>
 
 
+    <script>
+        const cartoScriptUrl = "{% static 'instruction/js/carto_test.js' %}?v={{ now|date:"U" }}"
+    </script>
+
     <!-- Chargement des couches de fond + chargement du script JS -->
     <script>
         Promise.all([
@@ -101,7 +109,7 @@
             window._mafateData = mafateData;
 
             const script = document.createElement("script");
-            script.src = "{% static 'instruction/js/carto_test.js' %}";
+            script.src = cartoScriptUrl;
             script.onload = () => {
 
                 // Appeler setupValidationButton ici, une fois le script chargé
