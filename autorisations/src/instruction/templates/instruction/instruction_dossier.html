@@ -94,6 +94,9 @@
                                         
                                         {% elif label == "Envoyer pour validation avant signature" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Envoyer pour validation avant signature</button>
+                                        
+                                        {% elif label == "Valider et envoyer pour relecture qualité" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
 
                                         {% elif label == "Repasser en instruction" %}
                                             <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
@@ -147,6 +150,34 @@
                         <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger le résumé du dossier" title="Télécharger le résumé du dossier">
                     </a>
 
+                </div>
+
+
+                <!-- Zone masquée pour envoyer pour relecture qualité -->
+                <div id="formulaire-relecture-qualite" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'valider_et_envoyer_pour_relecture_qualite_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+
+                        <div class="nature-acte">
+                            <label>Relecteur-rice qualité :</label>
+                            <select name="choix-relecteur" id="choix-relecteur" required>
+                                <option value="" disabled selected>Choisir un.e relecteur-rice</option>
+                                <!-- Relecteurs-rices qualité -->
+                                {% for relecteur in relecteurs_qualite_et_instructeurs %}
+                                    <option value="{{ relecteur.id }}">
+                                        {{ relecteur.id_agent_autorisations.nom|upper }} {{ relecteur.id_agent_autorisations.prenom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                      
+                        <div class="envoi-pour-validation-avant-signature">
+                            <button type="button" class="btn-envoyer-complement" onclick="confirmerRelectureQualite()">Confirmer l’envoi pour relecture qualité</button>
+                        </div>
+
+                    </form>
                 </div>
 
                 
@@ -207,7 +238,7 @@
                                 {% endfor %}
                             </ul>
                         </form>
-<!-- 
+                            <!-- 
                         <label for="pj_validation">Joindre l'acte signé :</label>
                         <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.doc,.docx" required> -->
 
@@ -330,7 +361,7 @@
 
                         <label for="nature_document">Nature du document :</label>
                         <select name="nature_document" id="nature_document" required>
-                           <option value="Avis conforme" {% if doc_a_envoyer.0.id_nature.nature == "Avis conforme" %}selected{% endif %}>Avis conforme</option>
+                            <option value="Avis conforme" {% if doc_a_envoyer.0.id_nature.nature == "Avis conforme" %}selected{% endif %}>Avis conforme</option>
                             <option value="Avis simple" {% if doc_a_envoyer.0.id_nature.nature == "Avis simple" %}selected{% endif %}>Avis simple</option>
                             <option value="Déliberation CA" {% if doc_a_envoyer.0.id_nature.nature == "Déliberation CA" %}selected{% endif %}>Déliberation CA</option>
                             <option value="Arrêté directeur" {% if doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}selected{% endif %}>Arrêté directeur</option>
@@ -501,17 +532,6 @@
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
-
-                                    <!-- Menu de sélection du fond de carte -->
-                                    <!-- {% if champ.geojson %}
-                                        <div class="fond-selector-wrapper">
-                                            <select class="fond-select">
-                                                <option value="satellite">Satellite (ESRI)</option>
-                                                <option value="osm">OpenStreetMap</option>
-                                                <option value="opentopomap">OpenTopoMap (IGN)</option>
-                                            </select>
-                                        </div>
-                                    {% endif %} -->
                                 </div>
                             {% endif %}
 
@@ -565,16 +585,6 @@
                                     
                                         {{ valideur.id_agent_autorisations.nom|upper }} {{ valideur.id_agent_autorisations.prenom|capfirst }}
                                         <img src="{% static 'instruction/img/couronne.png' %}" alt="Validant.e" title="Validant.e du dossier" class="logo_instructeur">
-                                            
-                                        <!-- <form method="post" action="{% url 'changer_valideur' %}" class="form-retirer-instructeur">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <input type="hidden" name="new_valideur_id" value="{{ valideur.id }}">
-
-                                            <button type="submit" class="btn-changer-valideur" title="Changer de validant.e">
-                                                <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer de valideur" class="logo_actualiser">
-                                            </button>
-                                        </form> -->
                                     </li>
 
                                     {% if changer_valideur_message %}
@@ -603,6 +613,51 @@
                             {% empty %}
                                 <li>Aucun·e validant·e défini·e.</li>
                             {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+
+                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' %}
+                    <div class="groupe-instructeur-info">
+                        <h3>Relecteurs.rices</h3>
+                        <ul class="groupe-instructeur-liste">
+
+                            {% for relecteur in relecteurs_qualite_et_instructeurs %}
+                                {% if relecteur in relecteurs_qualite_du_dossier %}
+                                    <li class="instructeur_du_dossier">
+                                        {{ relecteur.id_agent_autorisations.nom|upper }} {{ relecteur.id_agent_autorisations.prenom|capfirst }}
+                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Relecteur.rice" title="Relecteur.rice du dossier" class="logo_instructeur logo_relecteur_qualite">
+                                            
+                                    </li>
+
+                                    {% if changer_relecteur_qualite_message %}
+                                        <div class="instruction-warning">
+                                            {{ changer_relecteur_qualite_message }}
+                                        </div>
+                                    {% endif %}
+
+                                {% else %}
+                                    <li class="pas_instructeur_du_dossier">
+
+                                        {{ relecteur.id_agent_autorisations.nom|upper }} {{ relecteur.id_agent_autorisations.prenom|capfirst }}
+                                            
+                                        <form method="post" action="{% url 'changer_relecteur' %}" class="form-changer-valideur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <input type="hidden" name="new_relecteur_id" value="{{ relecteur.id }}">
+
+                                            <button type="submit" class="btn-changer-valideur" title="Changer de relecteur.rice">
+                                                <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer de relecteur.rice" class="logo_actualiser">
+                                            </button>
+                                        </form>
+                                    </li>
+                                {% endif %}
+                            
+                            {% empty %}
+                                <li>Aucun·e relecteur.rice défini·e.</li>
+                            {% endfor %}
+
                         </ul>
                     </div>
                 {% endif %}
@@ -695,8 +750,7 @@
                     </div>
                 {% endif %}
 
-
-                <div class="relecture_juridique">
+                <!-- <div class="relecture_juridique">
                     <form id="form-relecture-juridique" method="post">
                         {% csrf_token %}
                         <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
@@ -705,7 +759,85 @@
                             Relecture juridique
                         </label>
                     </form>
+                </div> -->
+
+                
+                <div class="groupe-instructeur-info demander-relecture_juridique">
+                    <h3>Relecture juridique</h3>
+
+                    {% if relecteur_juridique_message %}
+                        <div class="instruction-warning">
+                            {{ relecteur_juridique_message }}
+                        </div>
+                    {% endif %}
+
+                    {% if not relecteurs_juridique_du_dossier %}
+                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture juridique</button>
+                    {% else %}
+                        <ul class="groupe-instructeur-liste">
+                            {% for rj in relecteurs_juridique_du_dossier %}
+                                <li class="instructeur_du_dossier">
+                                    {% if rj.relu %}
+                                        <img src="{% static 'instruction/img/fait.png' %}" alt="Fait" title="Relecture terminée" class="logo_instructeur">
+                                    {% else %}
+                                        <img src="{% static 'instruction/img/en_cours.png' %}" alt="En cours" title="Relecture en cours" class="logo_instructeur">
+                                    {% endif %}
+
+                                    {{ rj.id_instructeur.id_agent_autorisations.nom|upper }} {{ rj.id_instructeur.id_agent_autorisations.prenom|capfirst }}
+
+                                    {% if request.user.email == rj.id_instructeur.email and not rj.relu %}
+                                        <form method="post" action="{% url 'relecture_juridique_faite' %}" class="form-relecture-faite" onsubmit="return confirmerRelectureFaite();">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="relecteur_id" value="{{ rj.id }}">
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <button type="submit" class="btn-relecture-faite" title="Marquer comme relu">
+                                                Faite
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{% url 'retirer_relecteur_juridique' %}" class="form-retirer-instructeur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice juridique ?')">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_relecture_juridique_id" value="{{ rj.id }}">
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer le.la relecteur.rice du dossier">
+                                                <span class="croix-retirer">✕</span>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture juridique</button>
+                    {% endif %}
+
+                    <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
+                        <form method="post" action="{% url 'ajouter_relecteur_juridique_dossier' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+
+                            <label for="select-relecteur-juridique">Choisir le.la relecteur.trice juridique :</label>
+                            <select name="relecteur_id" id="select-relecteur-juridique" required>
+                                <option value="" disabled selected>-- Choisir --</option>
+                                {% for user in relecteurs_juridique %}
+                                    <option value="{{ user.id }}">{{ user.id_agent_autorisations.nom|upper }} {{ user.id_agent_autorisations.prenom|capfirst }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <div class="formulaire-relecture-actions">
+                                <button type="submit" class="btn-envoyer-complement">Valider</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+
+                
+                
+
+
+
+
 
 
 
@@ -989,6 +1121,12 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireEnvoyerPourRelectureQualite() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-relecture-qualite").classList.add("show");
+            fermerMenuEtape();
+        }
+
 
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
@@ -1079,6 +1217,24 @@
                 document.querySelector('#formulaire-validation-signature form').submit();
             }
         }
+
+
+        // Pour confirmer relecture qualité
+        function confirmerRelectureQualite() {
+
+            const relecteur = document.getElementById("choix-relecteur");
+
+            if (!relecteur.value) {
+                alert("Veuillez sélectionner un.e relecteur.rice");
+                return;
+            }
+
+            if (confirm("Confirmez-vous l’envoi pour relecture qualité ?")) {
+                document.querySelector('#formulaire-relecture-qualite form').submit();
+            }
+        }
+
+        
 
 
     </script>
@@ -1182,6 +1338,19 @@
         });
     </script>
 
+
+    <!-- Form Relecture juridique -->
+    <script>
+        function toggleRelecteurForm() {
+            const form = document.getElementById("formulaire-relecture-juridique");
+            form.classList.toggle("show");
+        }
+ 
+        function confirmerRelectureFaite() {
+            return confirm("Confirmez-vous que la relecture juridique est faite ?");
+        }
+
+    </script>
 
 
 

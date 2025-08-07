@@ -596,7 +596,7 @@ class DossierValideurAdmin(admin.ModelAdmin):
 
 @admin.register(DossierRelecteurJuridique)
 class DossierRelecteurJuridiqueAdmin(admin.ModelAdmin):
-    list_filter = ('id_instructeur',)
+    list_filter = ('id_instructeur', 'relu',)
 
 
 @admin.register(DossierRelecteurQualite)

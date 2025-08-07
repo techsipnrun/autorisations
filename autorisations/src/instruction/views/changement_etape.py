@@ -6,7 +6,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur
+from autorisations.models.models_utilisateurs import DossierRelecteurQualite, DossierSignataire, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
@@ -482,6 +482,10 @@ def repasser_en_instruction(request):
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' remis à NULL.")
 
+        # Supprimer les DossierSignataire, DossierRelecteurQualite, DossierValideur du dossier
+        DossierSignataire.objects.filter(id_dossier=dossier).delete()
+        DossierRelecteurQualite.objects.filter(id_dossier=dossier).delete()
+        DossierValideur.objects.filter(id_dossier=dossier).delete()
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -493,8 +497,12 @@ def repasser_en_instruction(request):
 def envoyer_pour_relecture_qualite(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
-        if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+        # relecteur = request.POST.get("choix-relecteur") #Objet Instructeur
+
+        if not dossier_id_ds :
+            messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
@@ -515,8 +523,12 @@ def envoyer_pour_relecture_qualite(request):
 def valider_et_envoyer_pour_relecture_qualite(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
-        if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+        relecteur = request.POST.get("choix-relecteur") #Objet Instructeur
+
+        if not dossier_id_ds or not relecteur:
+            messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Relecteur.rice = {relecteur}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
@@ -550,85 +562,15 @@ def valider_et_envoyer_pour_relecture_qualite(request):
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À relire.")
 
+    
+        # Ajout du relecteur au dossier
+        try:
+            relecteur_obj = get_object_or_404(Instructeur, id=relecteur)
+            DossierRelecteurQualite.objects.get_or_create(id_dossier=dossier, id_instructeur=relecteur_obj)
+            logger.info(f"[DOSSIER {dossier.numero}] Relecteur.rice {relecteur_obj} affecté·e au dossier.")
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'affectation du relecteur.rice {relecteur} : {e}")
 
-                '''
-                # Vérifie que le document est en .docx
-                if doc.id_format.format.lower() == "docx" or doc.id_format.format.lower() == "odt":
-                    try:
-
-                        # Chemin du fichier source
-                        root_folder = os.getenv("ROOT_FOLDER")
-                        emplacement_doc = os.path.join(root_folder, doc.emplacement)
-                        word_full_path = os.path.join(emplacement_doc, doc.titre)
-
-                        # Détermine les noms de fichiers
-                        nom_sans_ext = Path(doc.titre).stem
-                        ext = Path(doc.titre).suffix
-                        nom_slug = slugify(nom_sans_ext)
-
-                        if nom_sans_ext != nom_slug:
-                            # Renommer le fichier dans le dossier
-                            nouveau_nom = f"{nom_slug}{ext}"
-                            nouveau_chemin = os.path.join(emplacement_doc, nouveau_nom)
-
-                            os.rename(word_full_path, nouveau_chemin)
-                            # logger.info(f"[DOSSIER {dossier.numero}] Fichier renommé → {nouveau_nom}")
-
-                            # Mettre à jour le champ en base
-                            doc.titre = nouveau_nom
-                            doc.save()
-
-                            # Met à jour le chemin de travail
-                            word_full_path = nouveau_chemin
-
-
-                        titre_pdf = f"{nom_slug}.pdf"
-                        emplacement_pdf = os.path.join(emplacement_doc, titre_pdf)
-
-                        # unique_suffix = uuid.uuid4().hex[:6]
-                        # temp_docx_path = os.path.join(emplacement_doc, f"{slugify(nom_sans_ext)}_{unique_suffix}.docx")
-
-                       # Supprimer s'il existe déjà
-                        # if os.path.exists(temp_docx_path):
-                        #     os.remove(temp_docx_path)
-
-                        # shutil.copy(word_full_path, temp_docx_path)
-
-                        logger.info(f"Conversion DOCX vers PDF : {doc.titre}")
-                        
-                        # Suppression du PDF s'il existe déjà
-                        if os.path.exists(emplacement_pdf):
-                            os.remove(emplacement_pdf)
-
-
-                        # Conversion Libre Office -> PDF
-                        convertir_docx_en_pdf_libreoffice(word_full_path, emplacement_doc, dossier.numero, logger)
-
-
-
-                        # Supprimer le .docx temporaire une fois le PDF généré
-                        # os.remove(temp_docx_path)
-
-                        # Enregistrer le nouveau document PDF en base
-                        format_pdf = DocumentFormat.objects.filter(format__iexact="pdf").first()
-                        if not format_pdf:
-                            logger.warning(f"[DOSSIER {dossier.numero}] Erreur lors de la conversion Word → PDF : Format PDF introuvable en base.")
-                        else:
-                            doc_pdf = Document.objects.create(
-                                id_format=format_pdf,
-                                id_nature=doc.id_nature,
-                                id_statut=doc.id_statut,
-                                titre=titre_pdf,
-                                emplacement=doc.emplacement,
-                                description=f"PDF généré automatiquement à partir de {doc.titre}"
-                            )
-                            DossierDocument.objects.create(id_dossier=dossier, id_document=doc_pdf)
-                            logger.info(f"[DOSSIER {dossier.numero}] PDF '{titre_pdf}' généré et ajouté au dossier.")
-
-                    except Exception as e:
-                        return redirect(request.META.get("HTTP_REFERER", "/"))
-                        # logger.error(f"[DOSSIER {dossier.numero}] Erreur de conversion Word → PDF pour '{doc.titre}' : {e}")
-                '''
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 

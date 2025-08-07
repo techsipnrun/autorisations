@@ -221,3 +221,102 @@
 .validation-documents img:hover {
     transform: scale(1.2);
 }
+
+
+/* Bloc sélection du relecteur qualité */
+#formulaire-relecture-qualite {
+    margin-bottom: 1rem;
+}
+
+
+/* Bloc relecture juridique */
+.demander-relecture_juridique {
+    margin: 1rem 2rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-left: 4px solid #003366;
+    font-size: 0.95rem;
+}
+
+.formulaire-relecture-juridique.show {
+    display: block;
+}
+
+.demander-relecture_juridique h3 {
+    font-size: 1.4rem;
+    color: #003366;
+    margin-bottom: 1rem;
+}
+
+.btn-relecture-toggle {
+    background-color: #e0e0e0;
+    color: #222;
+    padding: 0.5rem 1rem;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 1rem 0;
+}
+
+.btn-relecture-toggle:hover {
+    background-color: #ccc;
+}
+
+.formulaire-relecture-juridique {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f4f4f4;
+}
+
+.formulaire-relecture-juridique.show {
+    display: block;
+}
+
+.formulaire-relecture-juridique label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+#select-relecteur-juridique {
+    padding: 0.4rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    width: 100%;
+}
+
+.formulaire-relecture-actions {
+    text-align: right;
+    margin-top: 1rem;
+}
+
+/* Bouton "Faite" pour valider la relecture juridique */
+.btn-relecture-faite {
+    background-color: #e0f7e9;
+    border: 1px solid #2e7d32;
+    color: #2e7d32;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.btn-relecture-faite:hover {
+    background-color: #c5e8d1;
+}
+
+.form-relecture-faite {
+    display: inline-block;
+}
+
+
+

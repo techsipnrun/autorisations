@@ -218,6 +218,7 @@ class DossierRelecteurJuridique(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
     id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
+    relu = models.BooleanField(default=False)
 
     class Meta:
         managed = False

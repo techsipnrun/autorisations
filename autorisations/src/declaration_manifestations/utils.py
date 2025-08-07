@@ -45,5 +45,3 @@ def formattage_geojson(geojson):
     
     return (json.dumps(result))
 
-def ecriture_geojson():
-    return None

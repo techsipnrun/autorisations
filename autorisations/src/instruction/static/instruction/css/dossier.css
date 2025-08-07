@@ -103,6 +103,7 @@ h2 {
     font-style: italic;
     font-size: 0.95rem;
     padding: 0.5rem;
+    padding-bottom: 1rem;
 }
 
 /* Visualisation des pièces jointes */
@@ -541,6 +542,12 @@ h2 {
     margin-right: 5px;
 }
 
+.logo_relecteur_qualite {
+    margin-left: 5px;
+}
+
+
+
 .instructeur_du_dossier {
     font-weight: bold;
     position: relative;
@@ -883,3 +890,9 @@ textarea[name="note"] {
     transform: scale(1.2);
 }
 
+
+/* Messages d'erreurs */
+.django-messages{
+    color: rgb(172, 2, 2);
+    font-weight: bold;
+}

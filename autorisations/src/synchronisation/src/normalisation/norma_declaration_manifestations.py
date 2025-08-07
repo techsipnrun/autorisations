@@ -1,4 +1,5 @@
 from synchronisation.src.utils.conversion import parse_datetime_with_tz
+from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
 
 
 def dossiers_declaration_manifestations_normalize(d):
@@ -10,7 +11,9 @@ def dossiers_declaration_manifestations_normalize(d):
     dossiers_manifs_sportives = []
     for doss in d :
 
-            # geometrie = appel api pour recup geojson
+            emplacement_geojson = f"Declaration_manifestations/{doss.get("date_debut")[:4]}/{nettoyer_nom_fichier(doss.get("nom"))}"
+            
+            
 
             dossiers_manifs_sportives.append(
                 {
@@ -81,8 +84,12 @@ def dossiers_declaration_manifestations_normalize(d):
                     "description_balisage": doss.get("balisage"),
 
                     "geometrie": doss.get("geometrie"), 
-                    "emplacement": f"Declaration_manifestations/{doss.get("date_debut")[:4]}/{doss.get("pk")}" # Declaration_manifestations/{année}/{numero_dossier_declaration_manifestations}
+                    "emplacement": emplacement_geojson # Declaration_manifestations/{année}/{numero_dossier_declaration_manifestations}
                 }
             )
     return dossiers_manifs_sportives
+
+
+
+
 

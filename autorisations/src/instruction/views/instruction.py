@@ -6,8 +6,9 @@ import os
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierValideur, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierValideur, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
@@ -30,7 +31,6 @@ from django.http import Http404
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
-
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -140,7 +140,6 @@ def instruction_demarche(request, num_demarche):
 
 
     #  Archives
-
     annee_selectionnee = int(request.GET.get("annee", datetime.now().year))
 
     min_depot = Dossier.objects.filter(id_demarche=demarche).aggregate(min_date=Min("date_depot"))["min_date"]
@@ -179,9 +178,6 @@ def instruction_demarche(request, num_demarche):
         dossier_archives_infos.sort(key=lambda d: d["nb_messages_non_lus"], reverse=True)
 
 
-
-
-
     return render(request, "instruction/instruction_demarche.html", {
     "demarche": demarche,
     "dossiers": dossier_infos,
@@ -196,7 +192,6 @@ def instruction_demarche(request, num_demarche):
 def instruction_dossier(request, num_dossier):
 
     dossier = get_object_or_404(Dossier, numero=num_dossier)
-
     demarche = dossier.id_demarche
 
     # Charger le fond de carte GeoJSON (une seule fois)
@@ -257,7 +252,6 @@ def instruction_dossier(request, num_dossier):
             try:
                 valeur = ast.literal_eval(champ.valeur) if isinstance(champ.valeur, str) else champ.valeur or {}
             except Exception as e:
-                # print("Erreur lors de l’évaluation de la chaîne :", e)
                 valeur = {}
 
             for liste in (valeur or {}).values():
@@ -265,8 +259,7 @@ def instruction_dossier(request, num_dossier):
                 for item in liste:
                     bloc.append({"nom": item.get("nom"), "valeur": item.get("valeur")})
                 repetitions.append(bloc)
-            # print(repetitions)
-            # [[ {"nom": "Nom du ravitaillement", "valeur": "ravito1"}, {"nom": "...", "valeur": "..."} ],...]
+
             champs_prepares.append({
                 "type": "repetition",
                 "nom": nom,
@@ -288,9 +281,6 @@ def instruction_dossier(request, num_dossier):
             else :
                 champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
         
-        # elif nom == "Description du/des ravitaillement(s)":
-        #     print(champ)
-
 
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
@@ -338,8 +328,7 @@ def instruction_dossier(request, num_dossier):
             .values_list("id_instructeur_id", flat=True)
         )
 
-        # Si aucun instructeur du groupe n'est affecté au dossier,
-        # et que l'utilisateur connecté fait partie du groupe : il peut se déclarer
+        # Si aucun instructeur du groupe n'est affecté au dossier, et que l'utilisateur connecté fait partie du groupe : il peut se déclarer
         if not instructeurs_dossier & instructeurs_du_groupe and instructeur_connecte.id in instructeurs_du_groupe:
             peut_se_declarer = True
 
@@ -386,6 +375,12 @@ def instruction_dossier(request, num_dossier):
         "Refusé": ["Repasser en instruction"]
     }
 
+    # Suppression de l'action si conditions spécifiques
+    if etape_actuelle and etape_actuelle.etape == "En instruction" and demarche.type == "Manifestations sportives":
+        actions = etapes_custom.get("En instruction", [])
+        etapes_custom["En instruction"] = [a for a in actions if a != "Envoyer pour validation avant demande d'avis"]
+
+
     # Mapping entre les actions et leurs logos
     logo_mapping = {
     "Dossier reçu": "recu.png",
@@ -413,6 +408,7 @@ def instruction_dossier(request, num_dossier):
     "Envoyé pour relecture qualité": "envoye.png",
     "Avis demandé": "acte-envoye.png",
     "Validant.e changé.e": "changer_validant.png",
+    "Relecteur.rice changé.e": "changer_validant.png",
 }
 
 
@@ -499,6 +495,43 @@ def instruction_dossier(request, num_dossier):
     validant_ids = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
     validants = Instructeur.objects.filter(id__in=validant_ids).select_related("id_agent_autorisations")
 
+    # Relecteur qualité du dossier
+    relecteur_ids = DossierRelecteurQualite.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+    relecteurs_qualite_du_dossier = Instructeur.objects.filter(id__in=relecteur_ids).select_related("id_agent_autorisations")
+
+    # Relecteur-rice qualité
+    groupe = Group.objects.filter(name="Relecteur-rice qualité").first()
+    user_relecteur_qualite = groupe.user_set.all() if groupe else []
+    emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
+    relecteurs_qualite = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
+
+    # Relecteur juridique du dossier
+    relecteurs_juridique_du_dossier = DossierRelecteurJuridique.objects.filter(id_dossier=dossier)
+    
+
+    # Relecteur-rice juridique
+    groupe = Group.objects.filter(name="Relecteur-rice juridique").first()
+    user_relecteur_qualite = groupe.user_set.all() if groupe else []
+    emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
+    relecteurs_juridique = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
+
+
+    # Fusionner les relecteurs qualité et les instructeurs du groupe instructeur (sans doublon)
+    relecteurs_ids = {r.id for r in relecteurs_qualite}
+    instructeurs_groupe = []
+
+    if dossier.id_groupeinstructeur:
+        instructeurs_groupe = [
+            i.id_instructeur for i in 
+            dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")
+            if i.id_instructeur.id not in relecteurs_ids
+        ]
+
+    relecteurs_qualite_et_instructeurs = list(relecteurs_qualite) + instructeurs_groupe
+
+
+
+
     # Messages non lus
     nb_messages_non_lus = Message.objects.filter(
         id_dossier=dossier,
@@ -534,7 +567,6 @@ def instruction_dossier(request, num_dossier):
         "instructeurs_dossier_ids": instructeurs_dossier,
         "peut_se_declarer": peut_se_declarer,
         "instructeur_connecte": instructeur_connecte,
-        # "geometrie_modif": json.dumps(dossier.geometrie_modif) if dossier.geometrie_modif else None,
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "emplacements_documents": emplacements_documents,
         "annexes_instructeur": annexes_instructeur,
@@ -546,6 +578,8 @@ def instruction_dossier(request, num_dossier):
         "notes": notes,
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         "changer_valideur_message": request.session.pop("changer_valideur_message", None),
+        "changer_relecteur_qualite_message": request.session.pop("changer_relecteur_qualite_message", None),
+        "relecteur_juridique_message": request.session.pop("relecteur_juridique_message", None),
         "titres_documents_actes": list(documents_actes),
         "doc_a_valider": acte_a_valider,
         "doc_a_relire": acte_a_relire,
@@ -560,6 +594,11 @@ def instruction_dossier(request, num_dossier):
         "validants": validants,
         "nb_messages_non_lus": nb_messages_non_lus,
         "doss_manif_sportive": doss_manif_sportive,
+        "relecteurs_qualite": relecteurs_qualite,
+        "relecteurs_qualite_du_dossier": relecteurs_qualite_du_dossier,
+        "relecteurs_qualite_et_instructeurs": relecteurs_qualite_et_instructeurs,
+        "relecteurs_juridique": relecteurs_juridique,
+        "relecteurs_juridique_du_dossier": relecteurs_juridique_du_dossier,
     })
 
 
@@ -670,6 +709,64 @@ def mettre_a_jour_relecture_juridique(request):
     return JsonResponse({"status": "ok", "relecture_juridique": relecture})
 
 
+@require_POST
+@login_required
+def ajouter_relecteur_juridique_dossier(request):
+    dossier_id = request.POST.get("dossier_id")
+    relecteur_id = request.POST.get("relecteur_id")
 
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    relecteur = get_object_or_404(Instructeur, id=relecteur_id)
+
+    # Évite les doublons
+    existant = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=relecteur).exists()
+    if not existant:
+        DossierRelecteurJuridique.objects.create(id_dossier=dossier, id_instructeur=relecteur)
+    else:
+        dossRJ = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=relecteur).first()
+        if dossRJ.relu :
+             request.session["relecteur_juridique_message"] = (
+                "Cet.te relecteur.rice a déjà réalisé.e une relecture juridique sur le dossier."
+            )
+        else:
+            request.session["relecteur_juridique_message"] = (
+                "Cet.te relecteur.rice a déjà une relecture juridique en cours sur le dossier."
+            )
+    return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+
+
+@require_POST
+@login_required
+def relecture_juridique_faite(request):
+    dossier_id = request.POST.get("dossier_id")
+    relecteur_entry_id = request.POST.get("relecteur_id")
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    entry = get_object_or_404(DossierRelecteurJuridique, id=relecteur_entry_id)
+
+    if request.user.email == entry.id_instructeur.email:
+        entry.relu = True
+        entry.save()
+    else:
+        request.session["relecteur_juridique_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")
+
+    return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+
+@require_POST
+@login_required
+def retirer_relecteur_juridique(request):
+
+    drj_id = request.POST.get("dossier_relecture_juridique_id")
+    drj = get_object_or_404(DossierRelecteurJuridique, id=drj_id)
+    dossier = drj.id_dossier
+
+    try :
+        drj.delete()
+    except :
+        request.session["relecteur_juridique_message"] = ("Relecteur.rice juridique n'as pas pu être retiré.e du dossier.")
+    
+    return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 

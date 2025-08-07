@@ -69,11 +69,11 @@ def sync_declaration_manifestations(dossier, logger):
                 logger.error(f"DossierManifSportive numéro {obj.numero_dossier_declaration_manifestations} apparait en création alors qu'il est déjà lié à un dossier DS")
         else:
             #  -->  Dossier DS en attente
-            doss_path = create_emplacement_sport(obj, logger)
+            create_emplacement_sport(obj, logger)
 
         # Write geojson
         if obj.geometrie :
-            write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero_dossier_declaration_manifestations}.geojson", obj.geometrie)
+            write_geojson(f"{obj.emplacement}", f"{obj.numero_dossier_declaration_manifestations}.geojson", obj.geometrie)
         else :
             logger.warning(f"[CREATE] DossierManifSportive numéro {obj.numero_dossier_declaration_manifestations} : Aucune géométrie récupérée")
 
@@ -104,7 +104,7 @@ def sync_declaration_manifestations(dossier, logger):
             logger.info("")
             if "geometrie" in updated_fields :
                 # Write geojson
-                write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero_dossier_declaration_manifestations}.geojson",obj.geometrie)
+                write_geojson(f"{obj.emplacement}", f"{obj.numero_dossier_declaration_manifestations}.geojson",obj.geometrie)
         else:
             logger.info(f"[NO CHANGE] DossierManifSportive {obj.numero_dossier_declaration_manifestations} inchangé.")
 

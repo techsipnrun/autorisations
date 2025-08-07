@@ -1,7 +1,9 @@
 import json
 import logging
 import os
+import re
 from typing import Optional
+import unicodedata
 
 import requests
 
@@ -349,3 +351,17 @@ def create_emplacement_sport(obj, logger):
         logger.info(f"[CREATE] Dossier temporaire déjà existant : {obj.emplacement}")
 
     return chemin_complet
+
+
+def nettoyer_nom_fichier(nom_dossier):
+    # Supprimer les accents
+    nom = unicodedata.normalize('NFKD', nom_dossier).encode('ASCII', 'ignore').decode('utf-8')
+    
+    # Remplacer les espaces et tirets multiples par un underscore
+    nom = re.sub(r'[\s\-]+', '_', nom)
+
+    # Supprimer tout caractère non alphanumérique ou underscore
+    nom = re.sub(r'[^\w_]', '', nom)
+
+    # Mettre en minuscule
+    return nom.lower()

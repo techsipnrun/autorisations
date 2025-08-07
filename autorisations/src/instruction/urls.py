@@ -15,6 +15,11 @@ urlpatterns = [
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
+    path('changer-relecteur/', views.changer_relecteur, name='changer_relecteur'),
+    path("instruction/ajouter-relecteur-juridique/", instruction.ajouter_relecteur_juridique_dossier, name="ajouter_relecteur_juridique_dossier"),
+    path("instruction/relecture-juridique-faite/", instruction.relecture_juridique_faite, name="relecture_juridique_faite"),
+    path("instruction/retirer-relecteur-juridique/", instruction.retirer_relecteur_juridique, name="retirer_relecteur_juridique"),
+
 
     
 

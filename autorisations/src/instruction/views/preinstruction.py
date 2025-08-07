@@ -59,6 +59,8 @@ def preinstruction(request):
     # -----------------------------------------
     dossiers_manif_sportive_DM = DossierManifSportive.objects.exclude(
         id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True)
+    ).exclude(
+        archive=True
     )
     # Trier par date décroissante
     dossiers_manif_sportive_DM = dossiers_manif_sportive_DM.order_by("-date_debut_evenement")
@@ -72,6 +74,7 @@ def preinstruction(request):
     ).exclude(
         id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True)
     )
+
     # Trier par date décroissante
     dossiers_manif_sportive_DS = dossiers_manif_sportive_DS.order_by("-date_depot")
 

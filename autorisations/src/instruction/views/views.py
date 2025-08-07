@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierValideur, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -235,11 +235,6 @@ def changer_valideur(request):
     old_valideur = Instructeur.objects.filter(id=id_old_valideur).first()
 
 
-    # Tous les valideurs affectés
-    # valideurs_ids = list(
-    #     DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
-    # )
-
     # S'assurer que le nouveau valideur est différent
     if old_valideur and old_valideur.id == new_valideur.id:
         request.session["changer_valideur_message"] = ("Le/la validant·e sélectionné·e est déjà affecté·e à ce dossier.")
@@ -256,6 +251,51 @@ def changer_valideur(request):
     enregistrer_action(dossier, instructeur_request, "Validant.e changé.e", f"({new_valideur})")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement de validant.e : {old_valideur} --> {new_valideur}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+@login_required
+def changer_relecteur(request):
+    dossier_id = request.POST.get("dossier_id")
+    new_relecteur_id = request.POST.get("new_relecteur_id")
+
+    if not dossier_id or not new_relecteur_id:
+        request.session["changer_relecteur_qualite_message"] = ("Données manquantes pour le changement de relecteur.rice")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    new_relecteur = get_object_or_404(Instructeur, id=new_relecteur_id)
+
+    if not dossier:
+        request.session["changer_relecteur_qualite_message"] = ("Dossier introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not new_relecteur:
+        request.session["changer_relecteur_qualite_message"] = ("Relecteur.rice sélectionné·e invalide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    id_old_relecteur = DossierRelecteurQualite.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
+    old_relecteur = Instructeur.objects.filter(id=id_old_relecteur).first()
+
+
+    # S'assurer que le nouveau valideur est différent
+    if old_relecteur and old_relecteur.id == new_relecteur.id:
+        request.session["changer_relecteur_qualite_message"] = ("Le/la relecteur.rice sélectionné·e est déjà affecté·e à ce dossier.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Suppression de l'ancien valideur (s'il existe)
+    if old_relecteur:
+        DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=old_relecteur).delete()
+    # Ajout du nouveau valideur
+    DossierRelecteurQualite.objects.get_or_create(id_dossier=dossier, id_instructeur=new_relecteur)
+    
+    # On enregistre l'action
+    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
+    enregistrer_action(dossier, instructeur_request, "Relecteur.rice changé.e", f"({new_relecteur})")
+
+    logger.info(f"[DOSSIER {dossier.numero}] Changement de relecteur.rice : {old_relecteur} --> {new_relecteur}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
