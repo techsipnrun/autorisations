@@ -421,3 +421,17 @@ class DossierManifestationLiaison(models.Model):
 
     def __str__(self):
         return f"Lien {self.id_dossier} ↔ {self.id_dossier_manif}"
+
+
+
+class SynchronisationEtat(models.Model):
+    id = models.IntegerField(primary_key=True)
+    en_cours = models.BooleanField(default=False)
+    date_maj = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = '"instruction"."synchronisation_etat"'
+        managed = False
+
+    def __str__(self):
+        return "En cours" if self.en_cours else "Libre"

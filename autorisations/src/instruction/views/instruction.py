@@ -12,6 +12,9 @@ from autorisations.models.models_utilisateurs import DossierBeneficiaire, Dossie
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
+from declaration_manifestations.call_api_dm import recup_un_seul_dossier
+from synchronisation.src.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
+from synchronisation.src.synchro.sync_declaration_manifestations import sync_declaration_manifestations
 from synchronisation.src.normalisation.norma_contacts_externes import contact_externe_normalize
 from synchronisation.src.normalisation.norma_demandes import demande_normalize
 from synchronisation.src.normalisation.norma_dossier_champs import dossiers_champs_normalize
@@ -34,6 +37,8 @@ from django.contrib.auth import get_user_model
 
 
 logger = logging.getLogger('ORM_DJANGO')
+loggerSynchro = logging.getLogger('SYNCHRONISATION')
+loggerDM = logging.getLogger("API_DM")
 
 def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user=None):
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
@@ -618,14 +623,27 @@ def actualiser_dossier(request, num_dossier):
         # 2. Normalisation des données
         doss = result["data"]["dossier"]
 
-        contact_beneficiaire = doss["demandeur"]  # ou selon ta structure réelle
+        contact_beneficiaire = doss["demandeur"]
 
         demarche = dossier.id_demarche  # objet Django déjà lié au dossier
         id_demarche = demarche.id
         titre_demarche = demarche.titre
 
-        #Mettre à un autre endroit car si le nom du doss change on créer une deuxieme dossier ici (au lieu de le renommer)
+        # Mettre à un autre endroit car si le nom du doss change on créer une deuxieme dossier ici (au lieu de le renommer)
         emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
+
+        # Manif sportives - Déclaration manifestations
+        liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier.id).first()
+        if liaison:
+            doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
+            doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
+            loggerSynchro.info("")
+            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]["nom_dossier"]} (Déclaration Manifestations) ------")
+
+            for ddm in doss_dm_norma :
+                sync_declaration_manifestations(ddm, loggerSynchro)
+            loggerSynchro.info("------------------------------------------------")
+
 
         dico_dossier = {
             "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
@@ -638,7 +656,8 @@ def actualiser_dossier(request, num_dossier):
         }
 
         # 3. Synchronisation en base
-        sync_dossiers([dico_dossier], demarche.numero)
+        loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]["nom_dossier"]} (Démarches Simplifiées) ------")
+        sync_dossiers([dico_dossier], demarche.numero, True)
         
         return redirect(request.META.get("HTTP_REFERER", "/"))
 

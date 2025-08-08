@@ -4,10 +4,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!bouton) return;
 
-    // Lire l'heure de la dernière actualisation
+
+    // -----------------------
+    //  Actualisation auto
+    // -----------------------
+
+    // Heure de la dernière actualisation
     const saved = localStorage.getItem("derniere_actualisation");
     const savedTimestamp = localStorage.getItem("derniere_actualisation_timestamp");
 
+    // Heure actuelle
     const now = new Date();
     const nowTimestamp = now.getTime();
 
@@ -16,23 +22,25 @@ document.addEventListener("DOMContentLoaded", function () {
         const minutes = Math.floor(delta / 60000);
 
         if (minutes >= 240) {
-            // message.textContent = `⏳ Aucune actualisation depuis plus de 240 minutes… actualisation automatique.`;
             lancerActualisation();
         } else {
             message.textContent = `✅ Dernière actualisation à ${saved}`;
         }
     } else {
-        const jj = now.getDate().toString().padStart(2, '0');
-        const mm = (now.getMonth() + 1).toString().padStart(2, '0');
-        const yyyy = now.getFullYear();
-        message.textContent = `ℹ️ Aucune actualisation encore réalisée (en ce jour : ${jj}/${mm}/${yyyy})`;
+        message.textContent = `ℹ️ Aucune actualisation encore réalisée`;
     }
 
+
+    // -----------------------
+    //  Actualisation manuelle
+    // -----------------------
     bouton.addEventListener("click", function (e) {
         e.preventDefault();
         lancerActualisation();
     });
 
+
+    // Fonction Actualisation
     function lancerActualisation() {
         const url = bouton.dataset.url;
         const csrf = bouton.dataset.csrf;
@@ -70,14 +78,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             // Rechargement automatique de la page
                             setTimeout(() => {
                                 location.reload();
-                            }, 100);  // laisse le temps au navigateur d'afficher le message
-                            
+                            }, 100);  // laisse le temps au navigateur d'afficher le message 
                         }
                     });
             }, 5000);
         })
         .catch(error => {
-            console.error("Erreur AJAX :", error);
+            console.error("Erreur lors de l'actualisation :", error);
             message.textContent = "❌ Échec de l'actualisation.";
             bouton.disabled = false;
         });

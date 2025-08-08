@@ -1,3 +1,4 @@
+from django.utils import timezone
 import json
 import os
 from django.shortcuts import get_object_or_404, redirect, render
@@ -6,7 +7,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
-from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier
+from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import enregistrer_action
@@ -21,6 +22,7 @@ import logging
 from django.db.models import Q
 from django.utils.timezone import now
 from autorisations import settings
+from django.db import close_old_connections
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -36,41 +38,81 @@ def avis(request):
 def requetes(request):
     return render(request, 'instruction/requetes.html')
 
+
 # Synchronisation et Normalisation en arrière plan 
-etat_sync = {"en_cours": False}
-sync_lock = Lock()
+# etat_sync = {"en_cours": False}
+# sync_lock = Lock()
 
 
-def lancer_en_arriere_plan():
-    with sync_lock:
-        if etat_sync["en_cours"]:
-            print("Synchro déjà en cours – nouvelle tentative ignorée.")
-            return False
+# def lancer_en_arriere_plan():
+#     with sync_lock:
+#         if etat_sync["en_cours"]:
+#             logger.warning("Synchro déjà en cours – nouvelle tentative ignorée.")
+#             return False
 
-        etat_sync["en_cours"] = True
+#         etat_sync["en_cours"] = True
 
-        def lancement_et_suivi():
+#         def lancement_et_suivi():
+#             with open("logs/synchronisation.log", "a", buffering=1) as f:
+#                 process = subprocess.Popen(
+#                     [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
+#                     stdout=f,
+#                     stderr=f,
+#                 )
+#                 process.wait()  # Attend la fin du script
+#                 with sync_lock:
+#                     etat_sync["en_cours"] = False
+
+#         # Lance le watcher dans un thread pour ne pas bloquer Django
+#         threading.Thread(target=lancement_et_suivi, daemon=True).start()
+
+#         return True
+    
+
+def lancer_en_arriere_plan2():
+    """
+    Démarre la synchro si et seulement si le flag en BDD est à False.
+    Retourne True si démarré, False si déjà en cours.
+    """
+    # S'assurer que la ligne existe
+    SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
+
+    # Tentative atomique: on passe en True seulement si c'est actuellement False
+    rows = (SynchronisationEtat.objects
+            .filter(id=1, en_cours=False)
+            .update(en_cours=True, date_maj=timezone.now()))
+    if rows == 0:
+        logger.warning("Synchro déjà en cours – nouvelle tentative ignorée (BDD).")
+        return False
+
+    def lancement_et_suivi():
+        close_old_connections()
+        try:
+
             with open("logs/synchronisation.log", "a", buffering=1) as f:
                 process = subprocess.Popen(
                     [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
                     stdout=f,
                     stderr=f,
                 )
-                process.wait()  # Attend la fin du script
-                with sync_lock:
-                    etat_sync["en_cours"] = False
+                process.wait()
+        except Exception:
+            logger.exception("Erreur lors du sous-processus de synchronisation.")
+        finally:
+            # Toujours remettre à False, même en cas d'erreur ou kill
+            try:
+                SynchronisationEtat.objects.filter(id=1).update(en_cours=False, date_maj=timezone.now())
+            finally:
+                close_old_connections()
 
-        # Lance le watcher dans un thread pour ne pas bloquer Django
-        threading.Thread(target=lancement_et_suivi, daemon=True).start()
-
-        return True
-
+    threading.Thread(target=lancement_et_suivi).start()
+    return True
 
 
 @login_required
 def actualiser_donnees(request):
     if request.method == "POST":
-        lancé = lancer_en_arriere_plan()
+        lancé = lancer_en_arriere_plan2()
         if not lancé:
             return JsonResponse({
                 "status": "already_running",
@@ -82,7 +124,9 @@ def actualiser_donnees(request):
 
 @login_required
 def etat_actualisation(request):
-    return JsonResponse({"en_cours": etat_sync["en_cours"]})
+    etat, _ = SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
+    return JsonResponse({"en_cours": etat.en_cours})
+
 
 
 # @require_POST

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, MessageDocument
-from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite
+from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire
 
 
@@ -660,6 +660,8 @@ class DossierManifSportiveAdmin(admin.ModelAdmin):
     numero_affiche.short_description = "Numéro"
 
 admin.site.register(DossierManifestationLiaison)
+
+admin.site.register(SynchronisationEtat)
 
 
 

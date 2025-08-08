@@ -11,7 +11,7 @@ from .sync_messages import sync_messages
 from .sync_demandes import sync_demandes
 
 
-def sync_dossiers(dossiers_list, demarche_number):
+def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False):
     """
     Synchronise les objets suivants à partir des données récupérées sur D-S.
     [
@@ -39,11 +39,21 @@ def sync_dossiers(dossiers_list, demarche_number):
         id_demarche__numero=demarche_number
     ).exclude(id_ds__in=ids_ds_recus)
 
+    numeros_a_desactiver = list(
+        dossiers_a_desactiver.values_list('numero', flat=True)
+    )
+    
+    # Lors de la synchro générale, on vérifie d'éventuels décalages entre la BDD et DS
+    if not un_seul_doss :
+        nb_desactives = dossiers_a_desactiver.update(present_sur_ds=False)
 
-    nb_desactives = dossiers_a_desactiver.update(present_sur_ds=False)
-
-    if nb_desactives > 0:
-        logger.info(f"<<< {nb_desactives} dossiers marqués comme présents en BDD et non présents sur Démarches Simplifiées >>>")
+        if nb_desactives > 0:
+            apercu = ", ".join(map(str, numeros_a_desactiver[:50]))
+            suffixe = " (liste tronquée)" if len(numeros_a_desactiver) > 50 else ""
+            logger.info(
+                f"<<< {nb_desactives} dossier(s) marqué(s) présent(s) en BDD mais absent(s) de Démarches Simplifiées : "
+                f"{apercu}{suffixe} >>>"
+            )
 
 
     for doss in dossiers_list:

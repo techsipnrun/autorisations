@@ -54,3 +54,32 @@ def main():
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
 
     return dossiers
+
+
+def recup_un_seul_dossier(manif_id):
+
+    # Récupère le token
+    token = get_access_token()
+
+
+    dossier = get_dossier_by_id(token, manif_id)
+    if dossier:
+            
+        loggerDM.info(f"Dossier {dossier.get('nom')} récupéré")
+
+        if "description" in dossier and dossier["description"]:
+            dossier["description"] = dossier["description"].replace("\n", " ").replace("\r", "") 
+    
+        # On récupère le geojson
+        geojson = get_geojson(token, manif_id)
+
+        # Formattage du geojson
+        if geojson :
+            geojson = formattage_geojson(geojson)
+            dossier["geometrie"] = geojson
+        else :
+            loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier["nom"]} ({dossier["pk"]}) : Geojson vide")
+            dossier["geometrie"] = None
+        
+
+    return [dossier]

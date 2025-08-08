@@ -32,7 +32,13 @@ def preinstruction_dossier_messagerie(request, numero):
         id_instructeur=instructeur
     ).exists()
 
-    messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False)
+    messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    )
+
+
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
     if est_instructeur_du_dossier:
@@ -103,7 +109,12 @@ def instruction_dossier_messagerie(request, num_dossier):
         id_instructeur=instructeur
     ).exists()
 
-    messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False)
+    messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    )
+
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
     if est_instructeur_du_dossier:
