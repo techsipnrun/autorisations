@@ -98,6 +98,9 @@
                                         {% elif label == "Valider et envoyer pour relecture qualité" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
 
+                                        {% elif label == "Acte prêt à être envoyé" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
+
                                         {% elif label == "Repasser en instruction" %}
                                             <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
                                                 {% csrf_token %}
@@ -177,6 +180,66 @@
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerRelectureQualite()">Confirmer l’envoi pour relecture qualité</button>
                         </div>
 
+                    </form>
+                </div>
+
+
+
+                <!-- Zone masquée pour transmettre doc signé -->
+                <div id="formulaire-acte-pret" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'acte_pret_a_etre_envoye_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+
+                        <div class="nature-acte">
+                            <label>Nature du document :</label>
+                            <select name="nature_document" id="nature_doc_signe" required>
+                                <option value="{{ doc_a_signer.0.id_nature.nature }}" selected>{{ doc_a_signer.0.id_nature.nature }}</option>
+                                {% if doc_a_signer.0.id_nature.nature !=  "Arrêté directeur" %}
+                                    <option value="Arrêté directeur">Arrêté directeur</option>
+                                {% endif %}
+                                {% if doc_a_signer.0.id_nature.nature !=  "Déliberation CA" %}
+                                    <option value="Déliberation CA">Déliberation CA</option>
+                                {% endif %}
+                                {% if doc_a_signer.0.id_nature.nature !=  "Avis simple" %}
+                                    <option value="Avis simple">Avis simple</option>
+                                {% endif %}
+                                {% if doc_a_signer.0.id_nature.nature !=  "Avis conforme" %}
+                                    <option value="Avis conforme">Avis conforme</option>
+                                {% endif %}
+                                
+                            </select>
+                        </div>
+
+                        <div class="validant">
+                            <label>Signataire :</label>
+                            <select name="choix-signataire" id="choix-signataire" required>
+                                <option value="" disabled selected>Choisir un.e signataire</option>
+                                <!-- Liste signataires -->
+                                {% for s in signataires %}
+                                    <option value="{{ s.id }}">
+                                        {{ s.id_agent_autorisations.nom|upper }} {{ s.id_agent_autorisations.prenom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="validant numero-acte">
+                            <label for="numero_acte">Numéro de l'acte :</label>
+                            <input type="text" name="numero_acte" id="numero_acte" placeholder="Saisir le numéro de l'acte" required>
+                        </div>
+
+                        <div class="zone-pj-complement pj-validation-avant-signature">
+                            <div class="projet_acte_pj">
+                                <label for="pj_validation">Joindre l’acte signé :</label>
+                                <input type="file" name="piece_jointe" id="pj_signe" accept=".pdf" required>
+                            </div>
+
+                            <p class="hint-text">📁 Merci de sélectionner un fichier <strong>PDF</strong> situé dans le dossier <strong>Work</strong>.</p>
+                            <div class="envoi-pour-validation-avant-signature">
+                                <button type="button" class="btn-envoyer-complement" onclick="confirmerSignature()">Confirmer que l'acte signé est prêt à l'envoi</button>
+                            </div>
+                        </div>
                     </form>
                 </div>
 
@@ -271,7 +334,7 @@
                                 <h2>
                                     Document à publier au RAA
                                     <a href="https://www.reunion-parcnational.fr/fr/node/add/raa" target="_blank" rel="noopener noreferrer">
-                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="Lien vers le RAA" title="Ouvrir le site du RAA">
+                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="Lien vers le RAA" title="Lien vers le recueil des actes administratifs">
                                     </a>
                                 </h2>
 
@@ -1127,6 +1190,15 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireActePretAEtreEnvoye() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-acte-pret").classList.add("show");
+            fermerMenuEtape();
+        }
+
+
+        
+
 
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
@@ -1199,6 +1271,7 @@
             const fichier = fichierInput.files[0];
 
             if (!select.value) {
+                console.log("eh oh!")
                 alert("Veuillez sélectionner la nature du document.");
                 return;
             }
@@ -1215,6 +1288,47 @@
 
             if (confirm("Confirmez-vous l’envoi pour validation avant signature ?")) {
                 document.querySelector('#formulaire-validation-signature form').submit();
+            }
+        }
+
+        // Pour confirmer la transmission de l'acte signé
+        function confirmerSignature() {
+
+            // TO DO
+            const select = document.getElementById("nature_doc_signe");
+            const signataire = document.getElementById("choix-signataire");
+            const fichierInput = document.getElementById("pj_signe");
+            const fichier = fichierInput.files[0];
+            const numero_acte = document.getElementById("numero_acte");
+
+            if (!select.value) {
+                alert("Veuillez sélectionner la nature du document.");
+                return;
+            }
+
+            if (!numero_acte.value) {
+                alert("Veuillez renseigner un numéro d'acte.");
+                return;
+            }
+
+            if (!signataire.value) {
+                alert("Veuillez sélectionner un.e signataire");
+                return;
+            }
+            
+            if (!fichier) {
+                alert("Veuillez joindre l'acte signé au format PDF.");
+                return;
+            }
+            
+
+            if (!fichier.type == "application/pdf") {
+                alert("L'acte signé doit être au format PDF.");
+                return;
+            }
+
+            if (confirm("Confirmez-vous que l'acte est bien signé ?")) {
+                document.querySelector('#formulaire-acte-pret form').submit();
             }
         }
 

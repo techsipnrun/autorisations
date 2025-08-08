@@ -336,15 +336,6 @@ def envoyer_pour_validation_avant_signature(request):
             statut_obj = get_object_or_404(DocumentStatut, statut="À valider")
 
             # Enregistrer en BDD
-            # Document.objects.create(
-            #     id_format=format_obj,
-            #     id_nature=nature_obj,
-            #     id_statut=statut_obj,
-            #     emplacement=dossier_path,
-            #     titre=fichier.name,
-            #     description=f"{nature_obj.nature} du dossier {dossier.numero}",
-            # )
-
             doc, created = Document.objects.get_or_create(
                                 emplacement=dossier_path, titre=fichier.name,
                                 defaults={
@@ -644,37 +635,142 @@ def envoyer_pour_signature(request):
 def acte_pret_a_etre_envoye(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
+        fichier = request.FILES.get("piece_jointe")
+        signataire_id = request.POST.get("choix-signataire") # id Instructeur
+        nature_document = request.POST.get("nature_document")
+        numero_acte = request.POST.get("numero_acte")
+
         if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+            raise Http404(f"[Transmission acte signé] ID dossier DS manquant.")
+
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+
+
+        # ----------------------------------------------------------------------
+        # Vérification que le file sélectionné est bien dans le sous dossier Work et au format PDF
+        # ----------------------------------------------------------------------
+        extension = Path(fichier.name).suffix.lower()
+        if extension not in {".pdf", ".doc", ".docx", ".odt"} :
+            messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
+        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
+        os.makedirs(full_path, exist_ok=True)
+        filepath = os.path.join(full_path, fichier.name)
+
+        if not os.path.exists(filepath):
+            messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # --------------------------------------------
+        # Vérification existence Statut, Nature, Format, Signataire
+        # ---------------------------------------------
+        statut_a_envoyer = DocumentStatut.objects.filter(statut__iexact = "à envoyer").first()
+        if not statut_a_envoyer:
+            logger.error("Statut 'À envoyer' introuvable en base.")
+            messages.error(request, "❌ Statut 'À envoyer' introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        doc_nature = DocumentNature.objects.filter(nature__iexact = nature_document).first()
+        if not doc_nature:
+            logger.error(f"Nature {doc_nature} introuvable en base.")
+            messages.error(request, f"❌ Nature {doc_nature} introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        format_pdf = DocumentFormat.objects.filter(format__iexact = "pdf").first()
+        if not format_pdf:
+            logger.error("Format PDF introuvable en base.")
+            messages.error(request, "❌ Format PDF introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        
+        signataire = get_object_or_404(Instructeur, id=signataire_id)
+        if not signataire:
+            logger.error(f"Instructeur (ID {signataire_id}) introuvable en base.")
+            messages.error(request, f"❌ Instructeur (ID {signataire_id}) introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+        # -------------------------------
+        # Mise à jour des Docs  --> None     
+        # -------------------------------
+        
+        statuts_cibles = {"à envoyer", "à signer", "à relire", "à valider"}
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            statut_actuel = doc.id_statut.statut.lower() if doc.id_statut else ""
+
+            if statut_actuel in statuts_cibles:
+                doc.id_statut = None
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Transmission de l'acte signé, statut du document '{doc.titre}' remis à NULL.")
+
+
+        # messages.error(request, "GOOD POUR LE MOMENT")
+        # return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+        # ---------------------------
+        # Création du doc "À envoyer" 
+        # ---------------------------
+        doc_path = os.path.join(dossier_path)
+
+        doc, created = Document.objects.get_or_create(
+                                emplacement=doc_path, titre=fichier.name,
+                                defaults={
+                                    "id_format": format_pdf,
+                                    "id_nature": doc_nature,
+                                    "id_statut": statut_a_envoyer,
+                                    "description": f"{doc_nature.nature} du dossier {dossier.numero}",
+                                    "numero": numero_acte,
+                                }
+                            )
+        
+        if created:
+            DossierDocument.objects.create(
+                id_dossier=dossier,
+                id_document=doc
+            )
+            logger.info(f"[DOSSIER {dossier.numero}] Transmission du doc signé : {fichier.name} ({doc_nature.nature} 'À envoyer') créé et lié au dossier")
+        else:
+            doc.id_statut = statut_a_envoyer
+            doc.save()
+            logger.warning(f"[DOSSIER {dossier.numero}] Transmission du doc signé : {fichier.name} ({doc_nature.nature}, {doc.id_statut.statut}) déjà existant – statut changé À envoyer ")
+        
+
+
+        # -----------------------------
+        # Ajout du signataire au dossier
+        # -----------------------------
+        existe_deja = DossierSignataire.objects.filter(
+            id_dossier=dossier,
+            id_instructeur=signataire
+        ).exists()
+
+        if existe_deja:
+            logger.info(f"[DOSSIER {dossier.numero}] Signataire {signataire} déjà enregistré pour ce dossier.")
+        else:
+            DossierSignataire.objects.create(
+                id_dossier=dossier,
+                id_instructeur=signataire
+            )
+            logger.info(f"[DOSSIER {dossier.numero}] Signataire {signataire} ajouté au dossier.")
+
+
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "Acte à envoyer", request.user)
 
-         # Dossier Action
+        # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        enregistrer_action(dossier, instructeur, "Acte signé")
+        signataire_nom_prenom = f"({signataire.id_agent_autorisations.nom} {signataire.id_agent_autorisations.prenom})"
 
-        # Récupérer l'objet statut "À envoyer"
-        statut_a_envoyer = DocumentStatut.objects.filter(statut__iexact="à envoyer").first()
+        enregistrer_action(dossier, instructeur, "Acte signé", signataire_nom_prenom)
 
-        # Par sécurité
-        if not statut_a_envoyer:
-            logger.error("Statut 'À envoyer' introuvable en base.")
-            messages.error("Statut 'À envoyer' introuvable en base.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        # Récupération des documents du dossier
-        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
-
-        # Mise à jour Doc "À signer" --> "À envoyer"
-        for lien in documents_du_dossier:
-            doc = lien.id_document
-            if doc.id_statut and doc.id_statut.statut.lower() == "à signer":
-                doc.id_statut = statut_a_envoyer
-                doc.save()
-                logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À envoyer.")
-        
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -882,6 +978,7 @@ def envoyer_l_acte(request):
 
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
+        messages.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
     return redirect(request.META.get("HTTP_REFERER", "/")
 )

@@ -520,6 +520,13 @@ def instruction_dossier(request, num_dossier):
     emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
     relecteurs_juridique = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
 
+    # Signataires
+    groupe = Group.objects.filter(name="Signataire").first()
+    user_signataire = groupe.user_set.all() if groupe else []
+    emails_signataire = [user.email for user in user_signataire if user.email]
+    signataires = Instructeur.objects.filter(email__in=emails_signataire).select_related("id_agent_autorisations")
+
+
 
     # Fusionner les relecteurs qualité et les instructeurs du groupe instructeur (sans doublon)
     relecteurs_ids = {r.id for r in relecteurs_qualite}
@@ -604,6 +611,7 @@ def instruction_dossier(request, num_dossier):
         "relecteurs_qualite_et_instructeurs": relecteurs_qualite_et_instructeurs,
         "relecteurs_juridique": relecteurs_juridique,
         "relecteurs_juridique_du_dossier": relecteurs_juridique_du_dossier,
+        "signataires": signataires,
     })
 
 

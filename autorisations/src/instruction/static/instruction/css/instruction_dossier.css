@@ -224,7 +224,7 @@
 
 
 /* Bloc sélection du relecteur qualité */
-#formulaire-relecture-qualite {
+#formulaire-relecture-qualite, #formulaire-acte-pret {
     margin-bottom: 1rem;
 }
 
@@ -316,6 +316,24 @@
 
 .form-relecture-faite {
     display: inline-block;
+}
+
+
+/* Bloc transmettre document signé */
+.numero-acte input[type="text"] {
+    padding: 0.5rem 0.8rem;
+    margin-left: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.numero-acte input[type="text"]:focus {
+    border-color: #006131;
+    box-shadow: 0 0 4px rgba(0, 97, 49, 0.4);
+    outline: none;
 }
 
 
