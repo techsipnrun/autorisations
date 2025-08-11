@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
-# from .models_instruction import Demande, Demarche, Dossier
 
 
 class AgentAutorisations(models.Model):
@@ -261,3 +261,40 @@ class DossierSignataire(models.Model):
 
     def __str__(self):
         return f"{self.id_instructeur} signataire du dossier {self.id_dossier.numero}"
+    
+
+
+class EmailOutbox(models.Model):
+    to = models.EmailField()
+    subject = models.CharField(max_length=255)
+    template = models.CharField(max_length=100)
+    context = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, default="PENDING")  # PENDING/SENT/FAILED
+    try_count = models.IntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now)
+    dedupe_key = models.CharField(max_length=64, blank=True, db_index=True)  # optionnel
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True)
+
+    class Meta:
+        db_table = '"utilisateurs"."email_outbox"'
+        managed = False
+        indexes = [
+            models.Index(fields=["status", "next_attempt_at"], name="ix_outbox_status_next"),
+            models.Index(fields=["created_at"], name="ix_outbox_created"),
+            models.Index(fields=["dedupe_key"], name="ix_outbox_dedupe"),
+        ]
+        # Déduplication au niveau DB : une seule ligne PENDING par dedupe_key non vide
+        constraints = [
+            models.UniqueConstraint(
+                fields=["dedupe_key"],
+                condition=Q(dedupe_key__gt="") & Q(status="PENDING"),
+                name="ux_outbox_dedupe_pending",
+            ),
+        ]
+
+    def __str__(self):
+        subj = (self.subject[:60] + "…") if self.subject and len(self.subject) > 60 else (self.subject or "")
+        return f"[{self.status}] #{self.pk} -> {self.to} | {subj}"
+

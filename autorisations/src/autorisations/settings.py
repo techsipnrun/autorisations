@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django_filters',
     'rest_framework.authtoken',
     'leaflet',
+    'notifications.apps.NotificationsConfig',
 ]
 
 MIDDLEWARE = [
@@ -208,6 +209,13 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
+        'mails_file': { # fichier pour les logs de l'envoie des mails depuis l'appli
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/mails.log', 
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
         'instruction_file': { # fichier pour les logs de l'ORM Django dans le cadre de l'instruction
             'level': 'INFO',
             'class': 'logging.FileHandler',
@@ -264,6 +272,11 @@ LOGGING = {
             'handlers': ['app_file'],
             'level': 'INFO',
             'propagate': False,
+        },
+        'MAIL': {
+            'handlers': ['mails_file'],
+            'level': 'INFO',
+            'propagate': False,
         }
     }
 }
@@ -311,3 +324,13 @@ REST_FRAMEWORK = {
 }
 
 
+# EMAIL CONFIG
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 25))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() == "true"
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "webmaster@localhost")
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 10))

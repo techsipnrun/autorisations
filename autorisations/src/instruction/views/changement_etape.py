@@ -245,6 +245,9 @@ def passer_en_instruction(request):
         # Enregistrer dossier action
         enregistrer_action(dossier, instructeur, "Passage en instruction")
 
+        # Mettre à jour la date de début d'instruction
+        dossier.date_debut_instruction = timezone.now()
+        dossier.save()
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
