@@ -40,7 +40,7 @@ autorisations/
 
 ## 🛢️ Diagramme de classe
 
-![Logigramme de l'instruction](medias/diag_15_07.svg)
+![Logigramme de l'instruction](medias/diag_de_classe_11aout.svg)
 
 ## 📬 Contact
 En cours de développement par le Parc national de La Réunion\
