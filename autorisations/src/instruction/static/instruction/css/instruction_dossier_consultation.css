@@ -8,3 +8,63 @@
 .avis {
     width: 70%;
 }
+
+
+/* ------------------------------------ */
+/*           Tables des avis            */
+/* ------------------------------------ */
+
+.table_consultations {
+    margin: 5rem 0;
+    width: 100%;
+}
+
+table {
+    width: 100%;
+    margin: 2rem auto;
+    border-collapse: collapse;
+    font-family: sans-serif;
+    font-size: 1rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #ccc;
+    table-layout: auto;
+}
+
+thead {
+    background-color: rgb(219, 219, 219);
+    border-bottom: 2px solid black;
+}
+
+thead th {
+    text-align: left;
+    color: #006131;
+}
+
+tbody td { 
+    border-bottom: 1px solid #ddd;
+}
+
+thead th,
+tbody td {
+    padding: 12px;
+    border-right: 1px solid #ccc;
+    max-width: 400px;
+    word-wrap: break-word;
+}
+
+
+/* Alternating row colors */
+tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+tbody td[colspan="6"] {
+    text-align: center;
+    font-style: italic;
+    color: #555;
+}
+
+.clickable-row:hover {
+    background-color: #eef8ee;
+    cursor: pointer;
+}

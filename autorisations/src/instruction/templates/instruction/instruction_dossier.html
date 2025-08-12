@@ -430,8 +430,23 @@
                             <option value="Arrêté directeur" {% if doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}selected{% endif %}>Arrêté directeur</option>
 
                         </select>
+                        <div class="msg_pour_peti">
+                            <label>Message pour le pétitionnaire :</label>
+                            <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">
+                        
+Madame, monsieur,
 
-                        <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Votre demande a été acceptée.</textarea>
+L’établissement du Parc national de La Réunion vous notifie sa décision concernant votre demande d'autorisation [******].
+
+Cordialement,
+Le Parc national de La Réunion
+                            </textarea>
+                        </div>
+
+                        <div class="copie_par_mail">
+                            <p>Mettre en copie des acteurs  Oui/Non</p>
+                        </div>
+
                         <div class="zone-pj-complement">
                             <!-- <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx"> -->
                             {% if doc_a_envoyer.0 %}

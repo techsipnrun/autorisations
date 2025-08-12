@@ -266,23 +266,25 @@ class DossierSignataire(models.Model):
 
 class EmailOutbox(models.Model):
     to = models.EmailField()
-    subject = models.CharField(max_length=255)
+    email_from = models.EmailField()
+    sujet = models.CharField(max_length=255)
     template = models.CharField(max_length=100)
     context = models.JSONField(default=dict)
-    status = models.CharField(max_length=20, default="PENDING")  # PENDING/SENT/FAILED
+    statut = models.CharField(max_length=20, default="À envoyer")  # À envoyer/Envoyé/Échec
     try_count = models.IntegerField(default=0)
-    next_attempt_at = models.DateTimeField(default=timezone.now)
+    derniere_tentative_envoi = models.DateTimeField(default=timezone.now)
     dedupe_key = models.CharField(max_length=64, blank=True, db_index=True)  # optionnel
-    last_error = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    derniere_erreur = models.TextField(blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True)
+    id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:
         db_table = '"utilisateurs"."email_outbox"'
         managed = False
         indexes = [
-            models.Index(fields=["status", "next_attempt_at"], name="ix_outbox_status_next"),
-            models.Index(fields=["created_at"], name="ix_outbox_created"),
+            models.Index(fields=["statut", "derniere_tentative_envoi"], name="ix_outbox_status_next"),
+            models.Index(fields=["date_creation"], name="ix_outbox_created"),
             models.Index(fields=["dedupe_key"], name="ix_outbox_dedupe"),
         ]
         # Déduplication au niveau DB : une seule ligne PENDING par dedupe_key non vide
@@ -295,6 +297,6 @@ class EmailOutbox(models.Model):
         ]
 
     def __str__(self):
-        subj = (self.subject[:60] + "…") if self.subject and len(self.subject) > 60 else (self.subject or "")
-        return f"[{self.status}] #{self.pk} -> {self.to} | {subj}"
+        subj = (self.sujet[:60] + "…") if self.sujet and len(self.sujet) > 60 else (self.sujet or "")
+        return f"[{self.statut}] #{self.pk} -> {self.to} | {subj}"
 

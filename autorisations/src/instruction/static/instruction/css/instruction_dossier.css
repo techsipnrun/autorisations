@@ -93,6 +93,28 @@
     border-radius: 6px;
 }
 
+.msg_pour_peti {
+    margin: 0.5rem 0 1.5rem 0;
+}
+
+.msg_pour_peti label{
+    display: block;
+    margin-bottom: 1rem;
+}
+
+#formulaire-acceptation {
+    margin-bottom: 8rem;
+}
+
+#formulaire-acceptation label {
+    font-weight: bold;
+}
+
+.copie_par_mail {
+    margin-bottom: 2rem;
+}
+
+
 
 
 /* ====== Relecture juridique ====== */

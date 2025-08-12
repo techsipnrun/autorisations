@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import ssl
 from dotenv import load_dotenv
 
 #BASE_DIR = autorisations\autorisations\src
@@ -325,12 +326,15 @@ REST_FRAMEWORK = {
 
 
 # EMAIL CONFIG
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_BACKEND = "autorisations.backends.UnsafeEmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 25))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "webmaster@localhost")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 10))
+# EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+# EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_SSL_CONTEXT = os.environ.get("EMAIL_SSL_CONTEXT", "")

@@ -10,6 +10,7 @@ Points clés :
 
 import logging
 from smtplib import SMTPAuthenticationError, SMTPException
+import ssl
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.exceptions import ImproperlyConfigured
@@ -65,14 +66,22 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         # 1) Ouvrir la connexion SMTP (utilise settings EMAIL_*)
         try:
-            with get_connection() as conn:
+            with get_connection(
+                host="smtp-reunion.pnrun.local",
+                port=587,
+                username="",
+                password="",
+                use_tls=True,              # STARTTLS
+                ssl_context=ssl._create_unverified_context(),
+                timeout=20,
+            ) as conn:
                 # 2) Réserver le lot APRÈS la connexion
                 items = _reserve_batch()
                 if not items:
                     logger.info("Aucun email à envoyer pour le moment.")
                     self.stdout.write("Aucun email à envoyer pour le moment.")
                     return
-
+                logger.info("")
                 logger.info("%s emails à envoyer", len(items))
                 self.stdout.write(self.style.SUCCESS(f"{len(items)} emails à envoyer"))
 

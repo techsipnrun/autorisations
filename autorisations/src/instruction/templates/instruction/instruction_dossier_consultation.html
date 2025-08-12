@@ -19,7 +19,47 @@
     {% breadcrumb breadcrumb_items %}
 
     <div class="avis-page-container">
-        <div class="avis"></div>
+        <div class="avis">
+
+            <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+            <div class="etat-badge-menu">
+                {{ dossier.id_etape_dossier }}
+            </div> 
+
+            <div class="table_consultations">
+                 <table>
+                    <thead>
+                        <tr>
+                            <th>Statut</th>
+                            <th>N° Avis</th>
+                            <th>Expert</th>
+                            <th>Demandeur</th>
+                            <th>Date de demande</th>
+                            <th>Date de réponse</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                            <tr class="clickable-row">
+                                <td>xxxx</td>
+                                <td>xxxx</td>
+                                <td>xxxx</td>
+                                <td>xxxx</td>
+                                <td>xxxx</td>
+                                <td>xxxx</td>
+                            </tr>
+                      
+                            <!-- <tr>
+                                <td colspan="6">Aucun avis demandé</td>
+                            </tr> -->
+                    
+                    </tbody>
+                </table>
+            </div>
+
+
+
+        </div>
     
         <!-- Colonne droite : navigation -->
         <div class="nav_preinstruction">
