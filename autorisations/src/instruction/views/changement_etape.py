@@ -1,14 +1,16 @@
 from datetime import datetime
 import logging
 import os
+from django.db import IntegrityError
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import DossierRelecteurQualite, DossierSignataire, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur
+from autorisations.models.models_utilisateurs import DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
+from notifications.service import compute_dedupe_key, send_outbox_now
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
@@ -16,14 +18,10 @@ from django.utils import timezone
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
 from django.contrib import messages
 from django.core.files.uploadedfile import SimpleUploadedFile
-from docx2pdf import convert
 from pathlib import Path
-import shutil
-from django.utils.text import slugify
-import uuid
-import win32com.client
-import pythoncom
-from instruction.utils import convertir_docx_en_pdf_libreoffice
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from psycopg2.errors import UniqueViolation
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -810,9 +808,6 @@ def classer_le_dossier_comme_accepte(request):
                 doc.publie_au_raa = True
                 doc.save()
 
-
-
-
         return redirect(request.META.get("HTTP_REFERER", "/"))
     return HttpResponseBadRequest("Méthode non autorisée.")
 
@@ -824,12 +819,8 @@ def envoyer_l_acte(request):
     dossier_id_ds = request.POST.get("dossierId")
     dossier_numero = request.POST.get("dossier_numero")
     motivation = request.POST.get("motivation", "Votre demande a été acceptée.")
-    # fichier = request.FILES.get("piece_jointe")
     document_id = request.POST.get("document_id_existant")
     nature_document = request.POST.get("nature_document")
-
-    # confirm_ecrasement = request.POST.get("confirm_ecrasement") == "true"
-
 
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -837,27 +828,21 @@ def envoyer_l_acte(request):
         return HttpResponse(f"Echec de l'acceptation du dossier {dossier_numero} (dossier_id_ds = {dossier_id_ds}, motivation = {motivation}, fichier = {fichier})", status=401)
 
     try:
-
         dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+
         # Construire l’emplacement de stockage
-        now = timezone.now()
         dossier_path = f"{dossier.emplacement}"
-
         document = Document.objects.get(id=document_id)
-
         emplacement_doc = os.path.join(dossier_path, 'Actes/', f"{document.titre}")
         full_path = os.path.join(os.environ.get("ROOT_FOLDER"), emplacement_doc)
 
         # Chercher si un document existe déjà avec même emplacement + titre
         doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=document.titre).first()
         
-        # Si document déjà existant ET pas de confirmation explicite
-        # if doc_existant and not confirm_ecrasement:
-        #     messages.warning(request, f"Un document nommé « {document.titre} » existe déjà dans le dossier Actes. Vous devez confirmer son écrasement dans le POP UP le cas échéant.")
-        #     return redirect(request.META.get("HTTP_REFERER", "/"))
+        # Sécu --> Verif si DossierDocument existe pour document et dossier sinon on le créé
+        DossierDocument.objects.get_or_create(id_dossier=dossier, id_document=document)
 
         chemin = os.path.join(os.getenv("ROOT_FOLDER"), document.emplacement, document.titre)
-        # print(chemin)
         format_str = document.id_format.format.lower()
 
         if format_str in ['jpg', 'jpeg']:
@@ -882,12 +867,10 @@ def envoyer_l_acte(request):
             loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur.email}")
 
             # Mettre à jour l'étape et l'état en BDD
-           
             etape_raa = EtapeDossier.objects.filter(etape__iexact="À publier au RAA").first()
             etat_accepte = EtatDossier.objects.filter(nom__iexact="accepte").first()
 
             if dossier:
-
                 if etape_raa and dossier.id_etape_dossier != etape_raa:
                     changer_etape_si_differente(dossier, "À publier au RAA", request.user)
 
@@ -928,17 +911,6 @@ def envoyer_l_acte(request):
                             dest.write(chunk)
                     logger.info(f"[DOSSIER {dossier_numero}] {nature_document} ({fichier.name}) écrit : {full_path}")
 
-                    # Créer le Document
-                    # doc = Document.objects.create(
-                    #     id_format=format_obj,
-                    #     id_nature=nature_obj,
-                    #     url_ds=None,
-                    #     emplacement=os.path.join(dossier_path, 'Actes/'),
-                    #     description=f"{nature_document} pour le dossier {dossier.numero}",
-                    #     numero=None,
-                    #     titre=(fichier.name)
-                    # )
-
                     # Récupérer l'objet statut "Envoyé"
                     statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
 
@@ -956,31 +928,87 @@ def envoyer_l_acte(request):
                     document.description = f"{nature_document} pour le dossier {dossier.numero}"
                     document.save()
 
-                    # Lier au dossier
-                    # DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+            # -------------------------------------#
+            # Envoyer une copie de l'acte par Mail
+            # -------------------------------------#
+            partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
+            emails = request.POST.getlist("emails_copie[]")
 
-                    # logger.info(f"[DOSSIER {dossier_numero}] {nature_document} créé(e) et lié(e) au dossier (id : {doc.id})")
-            
+            # Normalise + dédoublonne
+            if partager_par_mail == "oui":
+                
+                emails_norm = []
+                seen = set()
+                for e in emails:
+                    e_norm = (e or "").strip()
+                    if not e_norm:
+                        continue
+                    e_key = e_norm.lower()
+                    if e_key in seen:
+                        continue
+                    # Valide l'email
+                    try:
+                        validate_email(e_norm)
+                    except ValidationError:
+                        logger.warning(f"[DOSSIER {dossier_numero}] Email invalide ignoré: {e_norm}")
+                        continue
+                    seen.add(e_key)
+                    emails_norm.append(e_norm)
 
-            
+                if not emails_norm:
+                    logger.warning(request, "Aucun email valide sélectionné pour l’envoi en copie.")
+                else:
 
-            # Récupération des documents du dossier
-            # documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+                    sujet = f"{nature_document} – Dossier {dossier.numero}"
+                    dedupe = compute_dedupe_key(emails_norm, sujet, "libre", {"body": motivation})
+                    print(dedupe)
+                   
+                    try:
+                        outbox = EmailOutbox.objects.create(
+                            to=emails_norm,
+                            email_from=os.getenv("DEFAULT_FROM_EMAIL"),
+                            sujet=sujet,
+                            template="libre",
+                            dedupe_key=dedupe,
+                            context={"body": motivation},
+                            id_dossier=dossier,
+                            id_document=document,
+                        )
+                        logger.info(f"[DOSSIER {dossier_numero}] EmailOutbox créé pour {emails_norm}")
 
-            # Mise à jour Doc "À envoyer" --> "Envoyé"
-            # for lien in documents_du_dossier:
-            #     doc = lien.id_document
-            #     if doc.id_statut and doc.id_statut.statut.lower() == "à envoyer":
-            #         doc.id_statut = statut_envoye
-            #         doc.save()
-            #         logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → Envoyé.")
-        
+                    except IntegrityError as e:
+                        # Si c’est bien un conflit sur l’unicité partielle (ux_outbox_dedupe_pending)
+                        is_unique_violation = (
+                            (UniqueViolation and isinstance(getattr(e, "__cause__", None), UniqueViolation))
+                            or "ux_outbox_dedupe_pending" in str(e)
+                            or "unique" in str(e).lower()
+                        )
+                        if is_unique_violation:
+                            # On récupère l'élément déjà en attente (cas « doublon »)
+                            outbox = (
+                                EmailOutbox.objects
+                                .filter(dedupe_key=dedupe, statut__in=["À envoyer", "Échec"])
+                                .order_by("-date_creation")
+                                .first()
+                            )
+                            logger.warning(f"[DOSSIER {dossier_numero}] Email à envoyé ({outbox.sujet} -> {", ".join(outbox.to)}) ")
+
+
+                    # return (True, "") ou (False, "msg erreur")
+                    ok, err = send_outbox_now(outbox.id)
+
+                    if ok:
+                        logger.info(f"[DOSSIER {dossier_numero}] Email ({outbox.sujet}) envoyé à {", ".join(outbox.to)} ")
+                    else:
+                        logger.error(f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
+                        messages.error(request, f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
 
         else:
+            logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
             loggerDS.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
+        logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email}: {str(e)}")
         messages.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
     return redirect(request.META.get("HTTP_REFERER", "/")

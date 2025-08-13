@@ -14,16 +14,16 @@ from autorisations.models.models_utilisateurs import EmailOutbox
 logger = logging.getLogger("MAIL")
 
 
-# def _compute_dedupe_key(to, sujet, template, context) -> str:
-#     """
-#     Construit une clé de déduplication stable.
-#     """
-#     payload = json.dumps(
-#         {"to": to, "sujet": sujet, "template": template, "context": context},
-#         sort_keys=True,
-#         cls=DjangoJSONEncoder,
-#     )
-#     return salted_hmac("email-outbox", payload).hexdigest()
+def compute_dedupe_key(to, sujet, template, context) -> str:
+    """
+    Construit une clé de déduplication stable.
+    """
+    payload = json.dumps(
+        {"to": to, "sujet": sujet, "template": template, "context": context},
+        sort_keys=True,
+        cls=DjangoJSONEncoder,
+    )
+    return salted_hmac("email-outbox", payload).hexdigest()
 
 
 
@@ -35,12 +35,14 @@ def _render_message(item):
         text = strip_tags(html)
     return text, html
 
-def send_outbox_now(item_id: int) -> tuple[bool, str]:
+def send_outbox_now(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
     """
     Envoie IMMÉDIATEMENT l'email outbox donné.
     - Pas de backoff ni de réessais : Envoyé si succès, Échec sinon.
     - Retourne (ok, error_message).
     """
+
+    print("---- envoi ----")
     with transaction.atomic():
         # Verrouille pour éviter une concurrence avec le batch, au cas où
         item = (
@@ -59,9 +61,9 @@ def send_outbox_now(item_id: int) -> tuple[bool, str]:
             # Utilise la conf Django (EMAIL_*)
             with get_connection() as conn:
                 msg = EmailMultiAlternatives(
-                    sujet=item.subject,
+                    subject=item.sujet,
                     body=text,
-                    to=[item.to],
+                    to=item.to,
                     connection=conn,
                 )
                 msg.attach_alternative(html, "text/html")

@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierValideur, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
@@ -471,6 +471,8 @@ def instruction_dossier(request, num_dossier):
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides
     ]
 
+    print(acte_envoye)
+
     acte_envoye_et_publie = [
         doc.id_document for doc in documents_du_dossier
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides and doc.id_document.publie_au_raa
@@ -562,6 +564,18 @@ def instruction_dossier(request, num_dossier):
             doss_manif_sportive = liaison.id_dossier_manif
  
 
+    # Contacts externes
+    contacts_externes = list((
+        ContactExterne.objects
+        .filter(email__isnull=False)
+        .exclude(email__exact='')
+        .order_by('nom', 'email')
+    ))
+
+    # Liste tous les emails de la table outbox liés à ce dossier
+    emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id).order_by("-date_creation")
+
+
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -612,6 +626,8 @@ def instruction_dossier(request, num_dossier):
         "relecteurs_juridique": relecteurs_juridique,
         "relecteurs_juridique_du_dossier": relecteurs_juridique_du_dossier,
         "signataires": signataires,
+        "contacts_externes": contacts_externes,
+        "emails_dossiers": emails_dossiers,
     })
 
 

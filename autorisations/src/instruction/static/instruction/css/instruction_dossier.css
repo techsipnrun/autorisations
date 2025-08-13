@@ -41,8 +41,9 @@
 }
 
 
-
-/* ====== Bloc demande de compléments ====== */
+/* ------------------------------------------------ */
+/*           Bloc demande de compléments            */
+/* ------------------------------------------------ */
 .zone-complement {
     display: none;
     margin-top: 1rem;
@@ -54,7 +55,7 @@
 
 .textarea-complement {
     width: 100%;
-    min-height: 100px;
+    min-height: 120px;
     padding: 0.5rem;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -84,13 +85,16 @@
 }
 
 
-/* ====== Bloc envoyer acte ====== */
+/* -------------------------------------- */
+/*           Bloc envoyer acte            */
+/* -------------------------------------- */
 #nature_document {
     padding: 0.5rem;
     margin: 1rem 0;
     font-size: 1rem;
     border: 1px solid #ccc;
     border-radius: 6px;
+    cursor: pointer;
 }
 
 .msg_pour_peti {
@@ -111,8 +115,126 @@
 }
 
 .copie_par_mail {
+    display: flex;
     margin-bottom: 2rem;
 }
+
+.copie_par_mail .toggle-group input {
+    cursor: pointer;
+    accent-color: #006131;
+}
+
+.copie_par_mail .toggle-group label {
+    margin-left: 0.8rem;
+}
+
+
+
+/* ------------------------------------------------ */
+/*           Envoi acte en copie par mail           */
+/* ------------------------------------------------ */
+
+/* Recherche contact */
+.zone-partage-mails .search-contacts {
+    width: 80%;
+    margin: .4rem 0 .6rem 0;
+    padding: .5rem .6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: .95rem;
+}
+
+.zone-partage-mails .emails-multiselect {
+    width: 100%;
+    min-height: 10rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: .2rem;
+    background: #fff;
+}
+
+.emails-multiselect option {
+    padding: 0.2rem;
+    cursor: pointer;
+}
+
+/* Couleur de fond des options sélectionnées */
+.emails-multiselect option:checked {
+  background-color: #e9f5ef;
+}
+/* Pour forcer la couleur dans Chrome/Safari */
+.emails-multiselect:focus option:checked {
+  background-color: #e9f5ef;
+}
+
+.selected-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .6rem;
+}
+
+.selected-chips .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .2rem .5rem;
+    background: #e9f5ef;
+    border: 1px solid #b9e2cf;
+    border-radius: 999px;
+    font-size: .9rem;
+}
+
+.selected-chips .chip button{
+    border:none;
+    background:transparent;
+    cursor:pointer;
+    font-size:1.5rem;
+    line-height:1;
+    margin-left: 0.5rem;
+    padding:0;
+}
+
+.selected-chips .chip:hover button{
+    font-weight: bold;
+}
+
+
+/* .zone-partage-mails .actions-row {
+    margin-top: .6rem;
+} */
+
+.zone-partage-mails .btn-outline {
+    background: transparent;
+    border: 1px solid #006131;
+    color: #006131;
+    padding: .35rem .7rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.zone-partage-mails .btn-outline:hover {
+    background: #006131;
+    color: #fff;
+}
+
+
+/* .zone-partage-mails .actions-row{margin-top:.6rem} */
+
+.zone-partage-mails .btn-outline{
+    background:transparent;
+    border:1px solid #006131;
+    color:#006131;
+    padding:.35rem .7rem;
+    border-radius:6px;
+    cursor:pointer
+}
+
+.zone-partage-mails .btn-outline:hover{
+    background:#006131;
+    color:#fff
+}
+
+
 
 
 
@@ -360,3 +482,56 @@
 
 
 
+/* Bloc Messages envoyés */
+.mails_dossier {
+    margin: 1rem 2rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-left: 4px solid #003366;
+    font-size: 0.95rem;
+}
+
+
+.mails_dossier h3 {
+    font-size: 1.4rem;
+    color: #003366;
+    margin-bottom: 1rem;
+}
+
+.titre_mail_dossier {
+    display: flex;
+    align-items: center;
+    margin-top: 2rem;
+    margin-bottom: 0.4rem;
+}
+
+.mails_dossier p {
+    font-style: italic;
+    margin: 0.2rem 0;
+}
+
+.btn_envoi_mail {
+    background-color: #e0e0e0;
+    color: #222;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 0.3rem 0;
+}
+
+.btn_envoi_mail:hover {
+    background-color: #ccc;
+}
+
+.logo_oeil{
+    height: 20px; 
+    margin-left: 0.6rem;
+    transition: transform 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.logo_oeil:hover {
+  transform: scale(1.2); 
+}

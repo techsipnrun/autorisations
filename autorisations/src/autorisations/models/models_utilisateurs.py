@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
-
+from django.contrib.postgres.fields import ArrayField
 
 
 class AgentAutorisations(models.Model):
@@ -265,14 +265,14 @@ class DossierSignataire(models.Model):
 
 
 class EmailOutbox(models.Model):
-    to = models.EmailField()
+    to = ArrayField(models.TextField())
     email_from = models.EmailField()
     sujet = models.CharField(max_length=255)
     template = models.CharField(max_length=100)
     context = models.JSONField(default=dict)
     statut = models.CharField(max_length=20, default="À envoyer")  # À envoyer/Envoyé/Échec
     try_count = models.IntegerField(default=0)
-    derniere_tentative_envoi = models.DateTimeField(default=timezone.now)
+    derniere_tentative_envoi = models.DateTimeField(blank=True, default=timezone.now)
     dedupe_key = models.CharField(max_length=64, blank=True, db_index=True)  # optionnel
     derniere_erreur = models.TextField(blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -291,7 +291,7 @@ class EmailOutbox(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["dedupe_key"],
-                condition=Q(dedupe_key__gt="") & Q(status="PENDING"),
+                condition=Q(dedupe_key__isnull=False) & ~Q(dedupe_key="") & Q(statut__in=["À envoyer", "Échec"]),
                 name="ux_outbox_dedupe_pending",
             ),
         ]

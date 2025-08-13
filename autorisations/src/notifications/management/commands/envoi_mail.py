@@ -122,7 +122,7 @@ class Command(BaseCommand):
             msg = EmailMultiAlternatives(
                 subject=item.subject,
                 body=text,
-                to=[item.to],
+                to=item.to,  #Liste de mails destinataires
                 connection=conn,
             )
             msg.attach_alternative(html, "text/html")

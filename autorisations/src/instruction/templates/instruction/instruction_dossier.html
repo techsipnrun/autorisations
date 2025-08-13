@@ -432,25 +432,71 @@
                         </select>
                         <div class="msg_pour_peti">
                             <label>Message pour le pétitionnaire :</label>
-                            <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">
-                        
-Madame, monsieur,
+                            <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Madame, monsieur,
 
-L’établissement du Parc national de La Réunion vous notifie sa décision concernant votre demande d'autorisation [******].
+L’établissement du Parc national de La Réunion vous notifie sa décision concernant la demande d'autorisation [******].
 
 Cordialement,
-Le Parc national de La Réunion
-                            </textarea>
+Le Parc national de La Réunion</textarea>
                         </div>
 
                         <div class="copie_par_mail">
-                            <p>Mettre en copie des acteurs  Oui/Non</p>
+                            <div class="copie_par_mail_label">
+                                <label class="toggle-label">Partager l’acte par mail :</label>
+                            </div>
+                            <div class="toggle-group">
+                                <label>
+                                    <input type="radio" name="partager_par_mail_choice" value="non" checked>
+                                    Non
+                                </label>
+                                <label>
+                                    <input type="radio" name="partager_par_mail_choice" value="oui">
+                                    Oui
+                                </label>
+                            </div>
+                            <!-- Valeur envoyée au backend -->
+                            <input type="hidden" name="partager_par_mail" id="partager_par_mail" value="non">
+                        </div>
+
+                        
+
+
+
+                        <!-- Formulaire affiché uniquement si "Oui" -->
+                        <div id="formulaire-partage-mails" class="zone-complement zone-partage-mails">
+                            <label for="emails_copie">Contacts externes à mettre en copie :</label>
+
+                            <input
+                                type="text"
+                                id="search-contacts"
+                                class="search-contacts"
+                                placeholder="Rechercher (nom, email)…"
+                                autocomplete="off"
+                                aria-label="Rechercher un contact"
+                            />
+
+                            <!-- multiple conservé MAIS on gère le clic en JS pour éviter Ctrl -->
+                            <select name="emails_copie[]" id="emails_copie" multiple size="8" class="emails-multiselect">
+                                {% for c in contacts_externes %}
+                                <option class="ligne-contact" value="{{ c.email }}" data-nom="{{ c.nom|default:''|lower }}" data-email="{{ c.email|lower }}">
+                                     {% if c.nom and c.prenom %}
+                                        {{ c.nom }} {{ c.prenom }} — {{ c.email }}
+                                    {% elif c.raison_sociale %}
+                                        {{ c.raison_sociale }} — {{ c.email }}
+                                    {% else %}
+                                        {{ c.email }}
+                                    {% endif %}
+                                </option>
+                                {% empty %}
+                                    <option disabled>Aucun contact externe disponible.</option>
+                                {% endfor %}
+                            </select>
+                            <div id="selected-chips" class="selected-chips" aria-live="polite"></div>
                         </div>
 
                         <div class="zone-pj-complement">
                             <!-- <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx"> -->
                             {% if doc_a_envoyer.0 %}
-                                <!-- <p class="pj-par-defaut">Document sélectionné : {{ doc_a_envoyer.0.titre }}</p> -->
                                 <input type="hidden" name="document_id_existant" value="{{ doc_a_envoyer.0.id }}">
                             {% endif %}
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerEnvoiActe()">Confirmer l'envoi de l'acte</button>
@@ -739,7 +785,58 @@ Le Parc national de La Réunion
                         </ul>
                     </div>
                 {% endif %}
-                    
+                
+                <!-- ICI -->
+                <!-- Bloc Mails envoyés -->
+                {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' %}
+                    {% if emails_dossiers %}
+                        <div class="groupe-instructeur-info mails_dossier">
+                            <h3>Les envois de mails</h3>
+                            {% for email in emails_dossiers %}
+                                {% if email.statut == 'Envoyé' %}
+                                    <div class="titre_mail_dossier">
+                                        <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Mail envoyé avec succès" title="Mail envoyé avec succès" class="logo_instructeur">      
+                                        <h4>{{ email.sujet }}</h4>
+                                        <!-- A FINIR -->
+                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                    </div>
+                                    <h4>Mail envoyé le {{ email.derniere_tentative_envoi }}</h4>
+                                {% elif email.statut == 'À envoyer' %}
+                                    <div class="titre_mail_dossier">
+                                        <img src="{% static 'instruction/img/en_attente.png' %}" alt="Mail en attente d'envoi" title="Mail en attente d'envoi" class="logo_instructeur">      
+                                        <h4>{{ email.sujet }}</h4>
+                                    </div>
+                                {% else  %}
+                                    <div class="titre_mail_dossier">
+                                        <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Échec de l'envoi du mail" title="Échec de l'envoi du mail" class="logo_instructeur">      
+                                        <h4>{{ email.sujet }}</h4>
+                                    </div>
+                                    <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
+                                {% endif %}
+                                
+                                {% for mail in email.to %}
+                                    <p>{{ mail }}</p>
+                                {% endfor %}
+
+                                {% if email.statut != 'Envoyé' %}
+                                    <form action="">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
+                                            {% if email.statut == 'À envoyer' %}
+                                                Lancer l'envoi
+                                            {% else %}
+                                                Retenter l'envoi
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                            {% empty %}
+                                <p>Aucun email envoyé pour ce dossier.</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endif %}
 
 
                 {% if dossier.id_groupeinstructeur %}
@@ -1480,6 +1577,185 @@ Le Parc national de La Réunion
         }
 
     </script>
+
+
+    <!-- Form Envoi de l'acte final par mail -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const radios = document.querySelectorAll('input[name="partager_par_mail_choice"]');
+            const hidden = document.getElementById("partager_par_mail");
+            const bloc = document.getElementById("formulaire-partage-mails");
+            const selectEmails = document.getElementById("emails_copie");
+
+            function majPartage() {
+                const val = document.querySelector('input[name="partager_par_mail_choice"]:checked')?.value || "non";
+                hidden.value = val;
+
+                if (val === "oui") {
+                    bloc.classList.add("show");
+                } else {
+                    bloc.classList.remove("show");
+                    // on efface la sélection si on repasse à "Non"
+                    if (selectEmails) Array.from(selectEmails.options).forEach(o => o.selected = false);
+                }
+            }
+
+            radios.forEach(r => r.addEventListener("change", majPartage));
+            majPartage(); // état initial = Non
+        });
+    </script>
+
+
+
+    <!-- Envoie Acte finale : Envoi de Mail -->
+   <script>
+        document.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('emails_copie');        // <select multiple>
+        const search = document.getElementById('search-contacts');     // <input type="text">
+        const chips  = document.getElementById('selected-chips');      // conteneur des chips
+        if (!select || !search || !chips) return;
+
+        // === Source de vérité des options (pour filtrer sans perdre) ===
+        const originalOptions = [...select.options].map(opt => ({
+            value: opt.value,
+            text:  opt.text,
+            nom:   (opt.dataset.nom   || '').toLowerCase(),
+            email: (opt.dataset.email || '').toLowerCase(), // canon pour comparaisons
+            emailRaw: opt.dataset.email || opt.value        // pour affichage
+        }));
+
+        // Accès rapide
+        const valueToEmail = new Map(originalOptions.map(o => [o.value, o.email]));
+        const valueToEmailRaw = new Map(originalOptions.map(o => [o.value, o.emailRaw]));
+
+        // === Sélection (source de vérité) ===
+        let selectedValues = new Set([...select.selectedOptions].map(o => o.value));
+        let prevSelectedValues = new Set(selectedValues); // pour détecter les suppressions
+
+        // Reconstruit les <option> visibles (selon filtre), en gardant la sélection
+        const rebuildOptions = (list) => {
+            const scrollTop = select.scrollTop;
+            select.innerHTML = '';
+            list.forEach(item => {
+            const o = document.createElement('option');
+            o.value = item.value;
+            o.text  = item.text;
+            o.dataset.nom   = item.nom;
+            o.dataset.email = item.emailRaw;
+            o.selected = selectedValues.has(item.value);
+            select.appendChild(o);
+            });
+            select.scrollTop = scrollTop;
+        };
+
+        // Filtrage par texte affiché, nom, email
+        const filterOptions = () => {
+            const q = search.value.trim().toLowerCase();
+            if (!q) return rebuildOptions(originalOptions);
+            const filtered = originalOptions.filter(o =>
+            o.text.toLowerCase().includes(q) || o.nom.includes(q) || o.email.includes(q)
+            );
+            rebuildOptions(filtered);
+        };
+
+        // Désélectionne TOUTES les options ayant le même email canon (lowercased)
+        const deselectByEmail = (emailCanon) => {
+            // Retire de la Set
+            for (const val of [...selectedValues]) {
+            if (valueToEmail.get(val) === emailCanon) selectedValues.delete(val);
+            }
+            // Met à jour le <select> courant (filtré ou non)
+            [...select.options].forEach(o => {
+            const oEmail = (o.dataset.email || o.value).toLowerCase();
+            if (oEmail === emailCanon) o.selected = false;
+            });
+        };
+
+        // Affiche des chips **dédupliquées par email** (un chip par email)
+        const renderChips = () => {
+            chips.innerHTML = '';
+            // Regroupe les valeurs sélectionnées par email
+            const emailToValues = new Map();
+            selectedValues.forEach(val => {
+            const email = valueToEmail.get(val);
+            if (!email) return;
+            if (!emailToValues.has(email)) emailToValues.set(email, []);
+            emailToValues.get(email).push(val);
+            });
+
+            // Un chip par email (affichage avec email “raw” pour la casse d’origine)
+            emailToValues.forEach((vals, emailCanon) => {
+            const anyVal = vals[0];
+            const emailRaw = valueToEmailRaw.get(anyVal) || anyVal;
+
+            const chip = document.createElement('span');
+            chip.className = 'chip';
+            chip.textContent = emailRaw;
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('aria-label', 'Retirer ' + emailRaw);
+            btn.textContent = '×';
+            btn.addEventListener('click', () => {
+                deselectByEmail(emailCanon);
+                renderChips();
+            });
+
+            chip.appendChild(btn);
+            chips.appendChild(chip);
+            });
+        };
+
+        // Toggle au clic souris SANS Ctrl (et gestion “deselect all by same email”)
+        select.addEventListener('mousedown', (e) => {
+            const opt = e.target;
+            if (opt.tagName !== 'OPTION') return;
+            e.preventDefault();
+
+            const emailCanon = (opt.dataset.email || opt.value).toLowerCase();
+            const willSelect = !opt.selected;
+
+            if (willSelect) {
+            selectedValues.add(opt.value);
+            opt.selected = true;
+            } else {
+            // On retire TOUT ce qui a le même email
+            deselectByEmail(emailCanon);
+            }
+            renderChips();
+        });
+
+        // Changement via clavier : on harmonise
+        select.addEventListener('change', () => {
+            // État courant
+            const nowSelected = new Set([...select.options].filter(o => o.selected).map(o => o.value));
+
+            // Valeurs retirées depuis la dernière étape
+            const removed = [...prevSelectedValues].filter(v => !nowSelected.has(v));
+
+            // Pour chaque valeur retirée, on désélectionne **tout** le groupe ayant le même email
+            removed.forEach(val => {
+            const emailCanon = valueToEmail.get(val);
+            if (emailCanon) deselectByEmail(emailCanon);
+            });
+
+            // Recalcule nowSelected après nettoyage
+            selectedValues = new Set([...select.options].filter(o => o.selected).map(o => o.value));
+            prevSelectedValues = new Set(selectedValues);
+            renderChips();
+        });
+
+        // Recherche
+        search.addEventListener('input', filterOptions);
+
+        // Init
+        rebuildOptions(originalOptions);
+        renderChips();
+        });
+    </script>
+
+
+
 
 
 
