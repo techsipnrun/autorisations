@@ -426,7 +426,7 @@ class DossierManifestationLiaison(models.Model):
 class SynchronisationEtat(models.Model):
     id = models.IntegerField(primary_key=True)
     en_cours = models.BooleanField(default=False)
-    date_maj = models.DateTimeField(auto_now=True)
+    date_maj = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = '"instruction"."synchronisation_etat"'

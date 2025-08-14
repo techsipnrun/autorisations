@@ -265,12 +265,19 @@ class DossierSignataire(models.Model):
 
 
 class EmailOutbox(models.Model):
+
+    STATUT_CHOICES = [
+    ("À envoyer", "À envoyer"),
+    ("Envoyé", "Envoyé"),
+    ("Échec", "Échec"),
+    ]
+
     to = ArrayField(models.TextField())
     email_from = models.EmailField()
     sujet = models.CharField(max_length=255)
     template = models.CharField(max_length=100)
     context = models.JSONField(default=dict)
-    statut = models.CharField(max_length=20, default="À envoyer")  # À envoyer/Envoyé/Échec
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default="À envoyer")  # À envoyer/Envoyé/Échec
     try_count = models.IntegerField(default=0)
     derniere_tentative_envoi = models.DateTimeField(blank=True, default=timezone.now)
     dedupe_key = models.CharField(max_length=64, blank=True, db_index=True)  # optionnel

@@ -816,6 +816,7 @@ def classer_le_dossier_comme_accepte(request):
 @login_required
 @require_POST
 def envoyer_l_acte(request):
+
     dossier_id_ds = request.POST.get("dossierId")
     dossier_numero = request.POST.get("dossier_numero")
     motivation = request.POST.get("motivation", "Votre demande a été acceptée.")
@@ -829,9 +830,14 @@ def envoyer_l_acte(request):
 
     try:
         dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
-
         # Construire l’emplacement de stockage
         dossier_path = f"{dossier.emplacement}"
+
+        if not document_id :
+            messages.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email} : L'acte signé (Statut : À envoyer) est introuvable depuis l'application. Contactez l'administrateur.rice")
+            logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email} : L'acte signé (Statut : À envoyer) est introuvable depuis l'application.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+                            
         document = Document.objects.get(id=document_id)
         emplacement_doc = os.path.join(dossier_path, 'Actes/', f"{document.titre}")
         full_path = os.path.join(os.environ.get("ROOT_FOLDER"), emplacement_doc)
@@ -839,8 +845,6 @@ def envoyer_l_acte(request):
         # Chercher si un document existe déjà avec même emplacement + titre
         doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=document.titre).first()
         
-        # Sécu --> Verif si DossierDocument existe pour document et dossier sinon on le créé
-        DossierDocument.objects.get_or_create(id_dossier=dossier, id_document=document)
 
         chemin = os.path.join(os.getenv("ROOT_FOLDER"), document.emplacement, document.titre)
         format_str = document.id_format.format.lower()
@@ -860,6 +864,7 @@ def envoyer_l_acte(request):
                 content=f.read(),
                 content_type=content_type
             )
+        
 
         result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
         if result["success"]:
@@ -961,7 +966,6 @@ def envoyer_l_acte(request):
 
                     sujet = f"{nature_document} – Dossier {dossier.numero}"
                     dedupe = compute_dedupe_key(emails_norm, sujet, "libre", {"body": motivation})
-                    print(dedupe)
                    
                     try:
                         outbox = EmailOutbox.objects.create(

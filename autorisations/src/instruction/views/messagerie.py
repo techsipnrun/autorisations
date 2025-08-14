@@ -8,6 +8,7 @@ from django.utils.timezone import localtime
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_documents import MessageDocument
 from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
+from notifications.service import _render_message, send_outbox_now
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils import format_etat_dossier
 from DS.call_DS import suppr_msg_DS, get_msg_DS
@@ -15,6 +16,9 @@ from DS.graphql_client import GraphQLClient
 from synchronisation.src.normalisation.norma_messages import message_normalize
 from synchronisation.src.synchro.sync_messages import sync_messages
 import logging, os
+
+from django.template.loader import render_to_string
+from autorisations.models.models_utilisateurs import EmailOutbox
 
 logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")
@@ -297,3 +301,52 @@ def actualiser_messages(request, numero):
         return HttpResponse(f"Erreur lors de l'actualisation des messages du dossier {numero} par {request.user} : {e}", status=500)
     
     
+
+@login_required
+def previsualiser_email(request, email_id):
+    email = get_object_or_404(EmailOutbox, pk=email_id)
+
+    try:
+        text, html = _render_message(email)
+
+    except Exception as e:
+        html = f"<p style='color:red;'>Erreur lors du rendu du template : {e}</p>"
+
+    return render(request, "instruction/email_preview.html", {
+        "email": email,
+        "corps_html": html,
+    })
+
+
+
+@login_required
+@require_POST
+def envoyer_mail(request, email_id):
+    email = get_object_or_404(EmailOutbox, pk=email_id)
+    dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
+
+    print(email.sujet)
+    print(email.to)
+    print(email.statut)
+
+
+    ok, err = send_outbox_now(email_id)
+
+    if ok:
+        logger.info(f"[DOSSIER {dossier.numero}] Email ({email.sujet}) envoyé à {", ".join(email.to)} ")
+    else:
+        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {", ".join(email.to)} : {err}")
+        messages.error(request, f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {", ".join(email.to)} : {err}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@login_required
+@require_POST
+def supprimer_mail(request, email_id):
+    email = get_object_or_404(EmailOutbox, pk=email_id)
+    dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
+    email.delete()
+    
+    logger.info(f"[DOSSIER {dossier.numero}] Email ({email.statut}) supprimé avec succès : ({email.sujet}) à destination de {", ".join(email.to)} ")
+    return redirect(request.META.get("HTTP_REFERER", "/"))

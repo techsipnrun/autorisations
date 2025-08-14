@@ -19,9 +19,12 @@ urlpatterns = [
     path("instruction/ajouter-relecteur-juridique/", instruction.ajouter_relecteur_juridique_dossier, name="ajouter_relecteur_juridique_dossier"),
     path("instruction/relecture-juridique-faite/", instruction.relecture_juridique_faite, name="relecture_juridique_faite"),
     path("instruction/retirer-relecteur-juridique/", instruction.retirer_relecteur_juridique, name="retirer_relecteur_juridique"),
+    path("email/<int:email_id>/preview/", messagerie.previsualiser_email, name="preview_email"),
+    path("email/<int:email_id>/envoyer/", messagerie.envoyer_mail, name="envoyer_mail"),
+    path("email/<int:email_id>/supprimer/", messagerie.supprimer_mail, name="supprimer_mail"),
 
 
-    
+
 
     # PRÉ-INSTRUCTION
     path('preinstruction/', preinstruction.preinstruction, name='preinstruction_view'),

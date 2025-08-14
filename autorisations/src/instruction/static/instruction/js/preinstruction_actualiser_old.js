@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             }, 100);  // laisse le temps au navigateur d'afficher le message 
                         }
                     });
-            }, 5000);
+            }, 10000);
         })
         .catch(error => {
             console.error("Erreur lors de l'actualisation :", error);

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.utils import timezone
 import json
 import os
@@ -125,7 +126,19 @@ def actualiser_donnees(request):
 @login_required
 def etat_actualisation(request):
     etat, _ = SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
-    return JsonResponse({"en_cours": etat.en_cours})
+
+    # Timeout de sécurité : si ça dépasse 2 heures, on force en_cours=False
+    if etat.en_cours and etat.date_maj and etat.date_maj < timezone.now() - timedelta(hours=2):
+        logger.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout dépassé) – dernière MAJ : {etat.date_maj}")
+        etat.en_cours = False
+        # etat.date_maj = timezone.now()
+        etat.save(update_fields=["en_cours", "date_maj"])
+
+    return JsonResponse({
+    "en_cours": etat.en_cours,
+    "date_maj": etat.date_maj.isoformat() if etat.date_maj else None
+})
+
 
 
 

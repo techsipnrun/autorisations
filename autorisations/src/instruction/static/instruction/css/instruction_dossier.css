@@ -489,19 +489,31 @@
     background-color: #f9f9f9;
     border-left: 4px solid #003366;
     font-size: 0.95rem;
+    flex-direction: column;
 }
 
 
 .mails_dossier h3 {
     font-size: 1.4rem;
     color: #003366;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
 }
+
+.un_mail {
+    position: relative;
+    padding-bottom: 1rem;
+    border-bottom: #003366 solid 1px;
+}
+
+.un_mail:hover {
+    background-color: #f8f8f8;
+}
+
 
 .titre_mail_dossier {
     display: flex;
     align-items: center;
-    margin-top: 2rem;
+    margin-top: 1.3rem;
     margin-bottom: 0.4rem;
 }
 
@@ -534,4 +546,25 @@
 
 .logo_oeil:hover {
   transform: scale(1.2); 
+}
+
+.un_mail .croix-retirer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: red;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.un_mail:hover .croix-retirer {
+    opacity: 1;
+}
+
+.un_mail .croix-retirer:hover {
+    cursor: pointer;
+    transform: scale(1.3);
 }

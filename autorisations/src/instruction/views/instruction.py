@@ -471,7 +471,6 @@ def instruction_dossier(request, num_dossier):
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides
     ]
 
-    print(acte_envoye)
 
     acte_envoye_et_publie = [
         doc.id_document for doc in documents_du_dossier

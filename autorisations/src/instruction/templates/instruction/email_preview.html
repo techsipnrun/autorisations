@@ -1,0 +1,38 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Prévisualisation email</title>
+    <link rel="stylesheet" href="{% static 'instruction/css/email_preview.css' %}">
+</head>
+<body>
+    <div class="preview-container">
+        <h1>{{ email.sujet }}</h1>
+
+        <p><strong>De :</strong> {{ email.email_from }}</p>
+        <p><strong>À :</strong> {{ email.to|join:", " }}</p>
+        <p><strong>Statut :</strong> {{ email.statut }}</p>
+        {% if email.statut == "Envoyé" %}
+            <p><strong>Envoyé le :</strong> {{ email.derniere_tentative_envoi }}</p>
+        {% elif email.statut == "Échec" %}
+            <p><strong>Dernière tentative :</strong> {{ email.derniere_tentative_envoi }}</p>
+        {% endif %}
+
+        {% if email.id_document %}
+            <p><strong>Pièce jointe :</strong>
+                <a href="{% url 'afficher_annexe' chemin=email.id_document.emplacement titre=email.id_document.titre %}" target="_blank">
+                    {{ email.id_document.titre }}
+                </a>
+            </p>
+        {% endif %}
+
+        <hr>
+
+        <div class="email-body">
+            {{ corps_html|safe }}
+        </div>
+    </div>
+</body>
+</html>

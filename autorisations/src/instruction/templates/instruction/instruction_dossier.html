@@ -432,12 +432,7 @@
                         </select>
                         <div class="msg_pour_peti">
                             <label>Message pour le pétitionnaire :</label>
-                            <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Madame, monsieur,
-
-L’établissement du Parc national de La Réunion vous notifie sa décision concernant la demande d'autorisation [******].
-
-Cordialement,
-Le Parc national de La Réunion</textarea>
+                            <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie sa décision concernant la demande d'autorisation ...</textarea>
                         </div>
 
                         <div class="copie_par_mail">
@@ -790,47 +785,67 @@ Le Parc national de La Réunion</textarea>
                 <!-- Bloc Mails envoyés -->
                 {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' %}
                     {% if emails_dossiers %}
-                        <div class="groupe-instructeur-info mails_dossier">
+                        <div class="mails_dossier">
                             <h3>Les envois de mails</h3>
                             {% for email in emails_dossiers %}
-                                {% if email.statut == 'Envoyé' %}
-                                    <div class="titre_mail_dossier">
-                                        <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Mail envoyé avec succès" title="Mail envoyé avec succès" class="logo_instructeur">      
-                                        <h4>{{ email.sujet }}</h4>
-                                        <!-- A FINIR -->
-                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
-                                    </div>
-                                    <h4>Mail envoyé le {{ email.derniere_tentative_envoi }}</h4>
-                                {% elif email.statut == 'À envoyer' %}
-                                    <div class="titre_mail_dossier">
-                                        <img src="{% static 'instruction/img/en_attente.png' %}" alt="Mail en attente d'envoi" title="Mail en attente d'envoi" class="logo_instructeur">      
-                                        <h4>{{ email.sujet }}</h4>
-                                    </div>
-                                {% else  %}
-                                    <div class="titre_mail_dossier">
-                                        <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Échec de l'envoi du mail" title="Échec de l'envoi du mail" class="logo_instructeur">      
-                                        <h4>{{ email.sujet }}</h4>
-                                    </div>
-                                    <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
-                                {% endif %}
-                                
-                                {% for mail in email.to %}
-                                    <p>{{ mail }}</p>
-                                {% endfor %}
+                                <div class="un_mail">
+                                    {% if email.statut != 'Envoyé' %}
+                                        <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
+                                            {% csrf_token %}
+                                            <button type="submit" class="croix-retirer" title="Supprimer ce mail">✕</button>
+                                        </form>
+                                    {% endif %}
 
-                                {% if email.statut != 'Envoyé' %}
-                                    <form action="">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
-                                            {% if email.statut == 'À envoyer' %}
-                                                Lancer l'envoi
-                                            {% else %}
-                                                Retenter l'envoi
-                                            {% endif %}
-                                        </button>
-                                    </form>
-                                {% endif %}
+                                    {% if email.statut == 'Envoyé' %}
+                                        <div class="titre_mail_dossier">
+                                            <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Mail envoyé avec succès" title="Mail envoyé avec succès" class="logo_instructeur">      
+                                            <h4>{{ email.sujet }}</h4>
+                                            
+                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                            </a>
+                                        </div>
 
+                                        <h4>Mail envoyé le {{ email.derniere_tentative_envoi }}</h4>
+                                    {% elif email.statut == 'À envoyer' %}
+                                        <div class="titre_mail_dossier">
+                                            <img src="{% static 'instruction/img/en_attente.png' %}" alt="Mail en attente d'envoi" title="Mail en attente d'envoi" class="logo_instructeur">      
+                                            <h4>{{ email.sujet }}</h4>
+
+                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                            </a>
+                                        </div>
+                                        <h4>Mail en attente d'envoi</h4>
+                                    {% else  %}
+                                        <div class="titre_mail_dossier">
+                                            <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Échec de l'envoi du mail" title="Échec de l'envoi du mail" class="logo_instructeur">      
+                                            <h4>{{ email.sujet }}</h4>
+
+                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                            </a>
+                                        </div>
+                                        <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
+                                    {% endif %}
+                                    
+                                    {% for mail in email.to %}
+                                        <p>{{ mail }}</p>
+                                    {% endfor %}
+
+                                    {% if email.statut != 'Envoyé' %}
+                                        <form action="{% url 'envoyer_mail' email.id %}" method="post">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
+                                                {% if email.statut == 'À envoyer' %}
+                                                    Lancer l'envoi
+                                                {% else %}
+                                                    Retenter l'envoi
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
                             {% empty %}
                                 <p>Aucun email envoyé pour ce dossier.</p>
                             {% endfor %}

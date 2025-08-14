@@ -42,7 +42,6 @@ def send_outbox_now(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_i
     - Retourne (ok, error_message).
     """
 
-    print("---- envoi ----")
     with transaction.atomic():
         # Verrouille pour éviter une concurrence avec le batch, au cas où
         item = (
