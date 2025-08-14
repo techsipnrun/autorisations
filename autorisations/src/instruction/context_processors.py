@@ -89,4 +89,18 @@ def breadcrumb_context(request):
             items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
             items.append({"label": "Consultation", "url": ""})
 
+    elif view_name == "instruction_dossier_ajouter_avis":
+        items.append({"label": "Instruction", "url": "/instruction/"})
+        numero = kwargs.get("num_dossier")
+        demarche = get_demarche_from_num_dossier(numero)
+
+        if demarche:
+            items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
+            
+        if numero:
+            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
+            items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
+            items.append({"label": "Nouvelle demande", "url": ""})
+
+
     return {"breadcrumb_items": items}

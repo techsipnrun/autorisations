@@ -9,13 +9,31 @@
     width: 70%;
 }
 
+/* Bouton Ajouter Avis */
+.nouvelle_demande_avis{
+    margin-top: 4rem;
+}
+
+.btn-nouvel-avis {
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid #006131;
+  border-radius: 4px;
+  color: #006131;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-nouvel-avis:hover {
+  background-color: #e6ffed;
+}
 
 /* ------------------------------------ */
 /*           Tables des avis            */
 /* ------------------------------------ */
 
 .table_consultations {
-    margin: 5rem 0;
+    margin: 2rem 0 5rem 0;
     width: 100%;
 }
 

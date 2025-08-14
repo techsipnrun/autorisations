@@ -26,6 +26,13 @@
                 {{ dossier.id_etape_dossier }}
             </div> 
 
+            <div class="nouvelle_demande_avis">
+                <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
+                    + Nouvelle demande d'avis
+                </a>
+            </div>
+
+
             <div class="table_consultations">
                  <table>
                     <thead>

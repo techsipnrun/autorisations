@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from django.urls import path
-from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete
+from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis
 from django.contrib import admin
 
 urlpatterns = [
@@ -94,5 +94,8 @@ urlpatterns = [
 
 
     # AVIS
+    path("instruction/<int:num_dossier>/ajouter_avis", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
+    path("instruction/<int:num_dossier>/confirmer_ajout_avis", avis.instruction_dossier_confirmer_ajout_avis, name="instruction_dossier_confirmer_ajout_avis"),
     path('avis/', views.avis, name='avis_view'),
+    
 ]
