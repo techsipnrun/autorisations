@@ -896,3 +896,22 @@ textarea[name="note"] {
     color: rgb(172, 2, 2);
     font-weight: bold;
 }
+
+
+/* ICON DS */
+
+.icon_DS {
+    width: 40px;
+    margin-left: 1rem;
+    align-self: flex-start;
+    transition: transform 0.2s ease-in-out;
+}
+
+.icon_DS:hover {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.icon_DS img {
+    width: 100%;
+}

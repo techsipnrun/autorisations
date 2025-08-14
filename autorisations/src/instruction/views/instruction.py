@@ -124,7 +124,15 @@ def instruction_demarche(request, num_demarche):
 
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
 
-        nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
+        # Messages non lus
+        nb_messages_non_lus = Message.objects.filter(
+            id_dossier=dossier,
+            lu=False
+        ).exclude(
+            email_emetteur='contact@demarches-simplifiees.fr'
+        ).exclude(
+            email_emetteur__endswith='reunion-parcnational.fr'
+        ).count()
 
         beneficiaire = None
         if interlocuteur:
@@ -168,7 +176,15 @@ def instruction_demarche(request, num_demarche):
             if dossier_beneficiaire:
                 beneficiaire = dossier_beneficiaire.id_beneficiaire
 
-        nb_messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).count()
+
+        nb_messages_non_lus = Message.objects.filter(
+            id_dossier=dossier,
+            lu=False
+        ).exclude(
+            email_emetteur='contact@demarches-simplifiees.fr'
+        ).exclude(
+            email_emetteur__endswith='reunion-parcnational.fr'
+        ).count()
 
         dossier_archives_infos.append({
             "nom_dossier": dossier.nom_dossier,
