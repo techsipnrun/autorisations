@@ -89,7 +89,9 @@ h2 {
 }
 
 .manif-sportive {
-    margin-top: 7rem;
+    border-top: 1px solid #006131;
+    margin-top: 12rem;
+    padding-top: 4rem;
 }
 
 /* Actualisation manifs sportives */

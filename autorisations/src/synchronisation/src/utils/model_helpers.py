@@ -51,6 +51,14 @@ def update_fields_dossier_champs(obj, data: dict, date_fields: list = []):
             if isinstance(obj, DossierChamp):
                 if obj.id_champ.nom == "Numéro du dossier sur la plateforme déclaration-manifestations" and field == 'valeur':
                     num_doss_dm = {'old_num_dossDM': old_val, 'new_num_dossDM': new_val}
+
+                if obj.id_champ.nom == "Choix de la méthode pour localiser le projet" and field == 'valeur':
+                    if "Fournir une pièce justificative" in obj.valeur :
+                        # Changement du Choix de la méthode pour localiser le projet (module carto --> PJ)
+                        logger.info("switch carto --> pj")
+                        setattr(obj, 'geometrie_a_saisir', False)
+                        updated.append('geometrie_a_saisir')
+                        
                     
     return updated, num_doss_dm
 

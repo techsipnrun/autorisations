@@ -178,7 +178,7 @@
 
                         {% elif champ.type == 'drop_down_list' %}
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
-
+                            
                             {% if champ.geometrie_a_saisir == 'oui' %}
                                 <div class="titre-carte-avec-bouton">
                                     <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>

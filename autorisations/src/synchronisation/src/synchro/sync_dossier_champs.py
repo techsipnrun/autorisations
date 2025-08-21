@@ -1,3 +1,4 @@
+import json
 import os
 from autorisations.models.models_instruction import Dossier, DossierChamp, Champ, ChampType, DossierManifSportive, DossierManifestationLiaison
 from autorisations.models.models_documents import Document
@@ -172,8 +173,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 }, date_fields=["date_saisie"])
                 if updated_fields and updated_fields != ['ordre']:
                     champ_obj.save()
-                    logger.info(f"updated_fields : {updated_fields}")
-                    logger.info(f"[SAVE] DossierChamp (champ: {id_champ}, dossier: {dossier.numero}) sans PJ mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+                    # logger.info(f"updated_fields : {updated_fields}")
+                    logger.info(f"[SAVE] DossierChamp (champ: {champ_obj.id_champ.nom}, dossier: {dossier.numero}) sans PJ mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
                     # si 'Numéro du dossier sur la plateforme déclaration-manifestations' in updated_fields
                     if change_num_doss_dm != {} and 'valeur' in updated_fields:
@@ -252,3 +253,43 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         
 
         ordre_number+=1
+
+    # --------------------------------------------------------------------------------------------
+    # Suppression éventuelle de champs suite à une modification du dossier DS par le pétitionnaire.
+    # --------------------------------------------------------------------------------------------
+    
+    # recup tous les dossiers champs du dossier en BDD
+    dossier_champs_doss = DossierChamp.objects.filter(id_dossier=dossier)
+
+    dossier_champs_norma_ds = dossier_champs
+    
+    liste_id_ds = []
+    liste_docs = [None]
+    for c in dossier_champs_norma_ds :
+        liste_id_ds.append(c["champ"]["id_ds"])
+        documents = c.get("documents", [])
+        for doc in documents:
+            if doc :
+                document_obj = Document.objects.get(
+                                        emplacement=doc["emplacement"],
+                                        titre__startswith=doc["titre"].rsplit('.', 1)[0],  #On garde le titre sans l'extension
+                                        id_nature_id=doc["id_nature"],
+                                        description=doc["description"]
+                                    )
+                if document_obj.id not in liste_docs :
+                    liste_docs.append(document_obj.id)
+
+    for d in dossier_champs_doss :
+        if (d.id_champ.id_ds not in liste_id_ds) or (d.id_document and d.id_document.id not in liste_docs) :
+            d.delete()
+            logger.info(f"[DELETE] DossierChamp (titre: {d.id_champ.nom}, valeur: {d.valeur}, dossier: {dossier.numero}) suite à modifications du pétitionnaire.")
+            # logger.info(f"BDD : {d.id_champ.id_ds}")
+            # print(f"{d.id_champ.nom} : LE CHAMPS EXISTE EN BDD MAIS N'EST PLUS SUR DS")
+            # print(f"{d.id_document.titre}")
+
+    logger.info(' ----- ')
+
+
+
+        
+

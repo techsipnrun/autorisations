@@ -24,7 +24,7 @@ from synchronisation.src.normalisation.norma_messages import message_normalize
 from synchronisation.src.synchro.sync_dossiers import sync_dossiers
 from synchronisation.src.utils.fichiers import construire_emplacement_dossier
 from synchronisation.src.normalisation.norma_dossier import dossier_normalize
-from instruction.utils import format_etat_dossier
+from instruction.utils import enregistrer_action, format_etat_dossier
 from autorisations.models.models_instruction import DossierNote
 from django.utils import timezone
 from datetime import datetime
@@ -695,7 +695,11 @@ def actualiser_dossier(request, num_dossier):
         }
 
         # 3. Synchronisation en base
-        loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]["nom_dossier"]} (Démarches Simplifiées) ------")
+        if liaison:
+            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]["nom_dossier"]} (Démarches Simplifiées) ------")
+        else:
+            loggerSynchro.info(f"------ DOSSIER {dico_dossier["dossier"]["nom_dossier"]} (Démarches Simplifiées) ------")
+
         sync_dossiers([dico_dossier], demarche.numero, True)
         
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -806,6 +810,12 @@ def relecture_juridique_faite(request):
     if request.user.email == entry.id_instructeur.email:
         entry.relu = True
         entry.save()
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+        enregistrer_action(dossier, instructeur, "Relecture juridique", nom_prenom)
+
     else:
         request.session["relecteur_juridique_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")
 
