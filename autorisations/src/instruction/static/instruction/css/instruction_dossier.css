@@ -12,6 +12,11 @@
 /*                        FORMULAIRE                                */
 /* ---------------------------------------------------------------- */
 
+.formulaire h1
+{
+    margin-top: 0;
+    margin-bottom: 4rem;
+}
 
 /* ====== Se déclarer comme instructeur ====== */
 .form-declarer-instructeur {

@@ -2,7 +2,7 @@
 h1 {
     text-align: center;
     margin-top: 5rem;
-    font-size: 1.8rem;
+    /* font-size: 1.8rem; */
     color: #006131;
 }
 
@@ -153,4 +153,33 @@ h2 {
     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
 }
 
+
+/* Notif Dossier 'action à faire' */
+
+.ligne_en_gras td{
+    font-weight: bold;
+}
+
+.dot-action {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    /* background-color: #e67e22; */
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.dot-action-archive {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    background-color: #0056b3; /* bleu foncé */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    border-radius: 50%;
+    vertical-align: middle;
+}
 

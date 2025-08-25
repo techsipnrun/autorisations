@@ -3,11 +3,12 @@ table {
     width: 85%;
     margin: 2rem auto;
     border-collapse: collapse;
-    font-family: sans-serif;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 1rem;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     border: 1px solid #ccc;
     table-layout: auto;
+    line-height: 1.5;
 }
 
 /* Table header */
@@ -24,6 +25,10 @@ thead th {
 /* Table rows */
 tbody td { 
     border-bottom: 1px solid #ddd;
+}
+
+tbody .td_demarche{
+    font-weight: bold;
 }
 
 /* Styles pour les colonnes */
@@ -72,9 +77,12 @@ tbody td[colspan="5"] {
 /* Page title */
 h1 {
     text-align: center;
-    margin-top: 3rem;
-    font-size: 1.8rem;
-    color: #006131;
+    /* margin-top: 3rem; */
+    font-size: 2.5rem;
+    /* color: #006131;*/
+    color: #333;
+    margin: 30px 0;
+    font-weight: 600;
 }
 
 

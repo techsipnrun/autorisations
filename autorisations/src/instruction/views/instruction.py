@@ -3,12 +3,13 @@ from datetime import date
 import json
 import logging
 import os
+from django.db.models import Q, Count
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
@@ -24,7 +25,7 @@ from synchronisation.src.normalisation.norma_messages import message_normalize
 from synchronisation.src.synchro.sync_dossiers import sync_dossiers
 from synchronisation.src.utils.fichiers import construire_emplacement_dossier
 from synchronisation.src.normalisation.norma_dossier import dossier_normalize
-from instruction.utils import enregistrer_action, format_etat_dossier
+from instruction.utils import dossiers_action_a_faire, enregistrer_action, format_etat_dossier
 from autorisations.models.models_instruction import DossierNote
 from django.utils import timezone
 from datetime import datetime
@@ -40,7 +41,7 @@ logger = logging.getLogger('ORM_DJANGO')
 loggerSynchro = logging.getLogger('SYNCHRONISATION')
 loggerDM = logging.getLogger("API_DM")
 
-def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user=None):
+def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user=None, instructeur=None):
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
     ids_etapes_instruction = list(etapes_instruction.values_list("id", flat=True))
 
@@ -48,16 +49,33 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
     query_reception = Dossier.objects.filter(id_demarche=demarche, id_etape_dossier=etape_a_affecter)
     query_traités = Dossier.objects.filter(id_demarche=demarche, id_etape_dossier__in=ids_etapes_termines, date_fin_instruction__year=current_year)
 
-    nb_suivis_user = 0
-    if groupes_user:
-        nb_suivis_user = query_suivis.filter(id_groupeinstructeur_id__in=groupes_user).count()
+    
+    dossiers_query_tous = (
+        Dossier.objects.filter(
+            id_demarche=demarche,
+            id_etape_dossier__in=etapes_instruction,
+        )
+        .filter(
+            Q(dossierinstructeur__id_instructeur=instructeur) |
+            Q(dossierrelecteurqualite__id_instructeur=instructeur) |
+            Q(dossiervalideur__id_instructeur=instructeur) |
+            Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+            Q(dossiersignataire__id_instructeur=instructeur)
+        )
+        .distinct()
+    )
+
+
+    dossiers_actions = dossiers_action_a_faire(dossiers_query_tous, instructeur).count()
+
+
 
     return {
         "demarche": demarche,
         "nb_reception": query_reception.count(),
         "nb_suivis": query_suivis.count(),
         "nb_traites": query_traités.count(),
-        "nb_suivis_user": nb_suivis_user
+        "nb_suivis_user": dossiers_actions
     }
 
 
@@ -77,7 +95,7 @@ def accueil(request):
         groupes_user = list(instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True))
 
     dossier_infos = [
-        get_dossier_counts(d, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user)
+        get_dossier_counts(d, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user, instructeur)
         for d in demarches
     ]
 
@@ -86,11 +104,101 @@ def accueil(request):
 
 
 @login_required
+def mesdossiers(request):
+
+    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+
+    if not instructeur:
+        messages.error(request, f"❌ L'instructeur.rice {request.user} est introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # Étapes terminées
+    etapes_termines = EtapeDossier.objects.filter(
+        etape__in=["Non soumis à autorisation", "Refusé", "Accepté"]
+    )
+
+    # Dossiers où l’utilisateur intervient
+    base_query = (
+        Dossier.objects.filter(
+            Q(dossierinstructeur__id_instructeur=instructeur) |
+            Q(dossierrelecteurqualite__id_instructeur=instructeur) |
+            Q(dossiervalideur__id_instructeur=instructeur) |
+            Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+            Q(dossiersignataire__id_instructeur=instructeur)
+        )
+        .distinct()
+    )
+
+    # Liste avec exclusion des étapes terminées
+    dossiers = base_query.exclude(id_etape_dossier__in=etapes_termines)
+    # Liste complète (y compris dossiers terminés)
+    dossiers_tous = base_query
+    dossier_action_a_faire = dossiers_action_a_faire(dossiers_tous, instructeur)
+
+    dossiers = dossiers.union(dossier_action_a_faire)
+
+
+    dossiers_par_demarche = {}
+
+    for dossier in dossiers:
+        # Récupérer le bénéficiaire
+        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
+        beneficiaire = None
+        if interlocuteur:
+            db = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+            if db:
+                beneficiaire = db.id_beneficiaire
+
+        # Messages non lus
+        nb_messages_non_lus = Message.objects.filter(
+            id_dossier=dossier,
+            lu=False
+        ).exclude(
+            email_emetteur='contact@demarches-simplifiees.fr'
+        ).exclude(
+            email_emetteur__endswith='reunion-parcnational.fr'
+        ).count()
+
+        # Déterminer mon rôle
+        if DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Instructeur.rice"
+        elif DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Relecteur.rice qualité"
+        elif DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Valideur.se"
+        elif DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Relecteur.rice juridique"
+        elif DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Signataire"
+        else:
+            role = "Inconnu"
+
+        # Structurer les infos
+        dossiers_par_demarche.setdefault(dossier.id_demarche.titre, []).append({
+            "nom_dossier": dossier.nom_dossier,
+            "numero": dossier.numero,
+            "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            "date_depot": dossier.date_depot,
+            "mon_role": role,
+            "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
+            "nb_messages_non_lus": nb_messages_non_lus,
+            "action_a_faire": True if dossier in dossier_action_a_faire else False
+        })
+
+    return render(request, "instruction/mesdossiers.html", {
+        "dossiers_par_demarche": dossiers_par_demarche,
+    })
+
+
+
+
+
+@login_required
 def instruction_demarche(request, num_demarche):
 
     demarche = get_object_or_404(Demarche, numero=num_demarche)
 
-    etapes = EtapeDossier.objects.exclude(etape="À affecter")
+    etapes_sans_a_affecter = EtapeDossier.objects.exclude(etape="À affecter")
  
     etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
@@ -98,24 +206,36 @@ def instruction_demarche(request, num_demarche):
     mes_dossiers = request.GET.get("mes_dossiers", "1")
 
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
-    groupes_user = []
-    if instructeur:
-        groupes_user = instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True)
 
 
-    # Filtrage conditionnel si la case est cochée
-    dossiers_query = Dossier.objects.filter(
-        id_etape_dossier__in=etapes,
-        id_demarche=demarche.id
-    ).exclude(
-        # id_etat_dossier__in=ids_etats_termines,
-        id_etape_dossier__in=ids_etapes_termines
-    )
- 
+    dossiers_query_tous = (
+            Dossier.objects.filter(
+                Q(dossierinstructeur__id_instructeur=instructeur) |
+                Q(dossierrelecteurqualite__id_instructeur=instructeur) |
+                Q(dossiervalideur__id_instructeur=instructeur) |
+                Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+                Q(dossiersignataire__id_instructeur=instructeur)
+            )
+            .exclude(id_etape_dossier__etape = 'À affecter')
+            .distinct()
+        )
 
+    dossiers_actions = dossiers_action_a_faire(dossiers_query_tous, instructeur)
+
+    # Filtre 'Mes dossiers' si case cochée
     if mes_dossiers == "1":
-        dossiers_query = dossiers_query.filter(id_groupeinstructeur_id__in=groupes_user)
+        dossiers_query = dossiers_query_tous.filter(id_demarche=demarche.id).exclude(id_etape_dossier__etape__in=["Accepté", "Refusé", "Non soumis à autorisation"])
 
+    # Si case pas cochée
+    else :
+        dossiers_query = Dossier.objects.filter(
+                id_etape_dossier__in=etapes_sans_a_affecter,
+                id_demarche=demarche.id
+        ).exclude(
+            id_etape_dossier__in=ids_etapes_termines
+        )
+
+   
     dossiers = dossiers_query.select_related("id_groupeinstructeur").order_by("date_depot")
 
     dossier_infos = []
@@ -149,6 +269,7 @@ def instruction_demarche(request, num_demarche):
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier.etape else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
+            "action_a_faire": True if dossier in dossiers_actions else False
         })
 
 
@@ -193,10 +314,11 @@ def instruction_demarche(request, num_demarche):
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
-            "nb_messages_non_lus": nb_messages_non_lus
+            "nb_messages_non_lus": nb_messages_non_lus,
+            "action_a_faire": True if dossier in dossiers_actions else False,
         })
 
-        dossier_archives_infos.sort(key=lambda d: d["nb_messages_non_lus"], reverse=True)
+        dossier_archives_infos.sort(key=lambda d: (not d["action_a_faire"], -d["nb_messages_non_lus"]))
 
 
     return render(request, "instruction/instruction_demarche.html", {

@@ -1,0 +1,144 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes dossiers</title>
+
+    <!-- CSS -->
+    <!-- <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}"> -->
+    <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
+    <!-- <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}"> -->
+    <link rel="stylesheet" href="{% static 'instruction/css/mesdossiers.css' %}">
+
+    <!-- JS pour l'actualisation -->
+    <script src="{% static 'instruction/js/actualiser.js' %}?v=2"></script>
+</head>
+
+
+<body>
+    {% include 'navbar.html' %}
+    {% include 'breadcrumb.html' %}
+
+    <div class="actualiser-wrapper">
+        <button id="btn-actualiser"
+                data-url="{% url 'actualiser_donnees' %}"
+                data-csrf="{{ csrf_token }}"
+                title="Actualiser les données">
+            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
+        </button>
+
+        <span id="message-actualisation" class="actualisation-texte"></span>
+    </div>
+
+    <div class="page_mes_dossiers">
+
+        <h1 id="titre_mes_dossiers">Mes dossiers en cours</h1>
+
+        {% if messages %}
+            <div class="django-messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        {% for demarche, dossiers in dossiers_par_demarche.items %}
+            <div class="mademarche">
+
+                <h2>{{ demarche }}</h2>
+
+                <table class="table_demarche_instru">
+                    <thead>
+                        <tr>
+                            <th>Dossier</th>
+                            <th>Numéro</th>
+                            <th>Bénéficiaire</th>
+                            <th>Reçu le</th>
+                            <th>Mon rôle</th>
+                            <th>Étape</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in dossiers %}
+                            <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}">
+                                <td>
+                                    {% if d.nb_messages_non_lus > 0 %}
+                                        <div class="nouv_mess_wrapper">
+                                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" 
+                                                alt="Nouveaux messages"
+                                                title="Nouveaux messages"
+                                                class="nouv_mess_icon">
+                                            <div class="pastille_nouv_mess">{{ d.nb_messages_non_lus }}</div>
+                                        </div>
+                                    {% endif %}
+                                    {{ d.nom_dossier }}
+                                </td>
+                                <td>{{ d.numero }}</td>
+                                <td>{{ d.beneficiaire }}</td>
+                                <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                                <td>{{ d.mon_role }}</td>
+                                <td 
+                                    {% if d.action_a_faire %}
+                                        {% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}
+                                            title="Nouveau message sur le dossier archivé"
+                                        {% else %}
+                                            title="Vous avez une action à faire"
+                                        {% endif %}
+                                    {% endif %}
+                                >
+                                    {% if d.action_a_faire %}
+                                        <span class="{% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}dot-action-archive{% else %}dot-action{% endif %}"></span>
+                                    {% endif %}
+                                    {{ d.etape }}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="aucun_doss">Aucun dossier trouvé pour cette démarche.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% empty %}
+            <p>Aucun dossier où vous intervenez.</p>
+        {% endfor %}
+
+        
+    </div>
+
+</body>
+
+<!-- Rendre les lignes cliquables -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".clickable-row").forEach(function (row) {
+            row.addEventListener("click", function () {
+                const href = this.getAttribute("data-href");
+                if (href) {
+                    window.location.href = href;
+                }
+            });
+        });
+    });
+</script>
+
+<!-- Bouton actualiser -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const syncForm = document.querySelector("form[action*='synchroniser']");
+        const syncButton = document.getElementById("btn-sync");
+
+        syncForm.addEventListener("submit", function () {
+            syncButton.disabled = true;
+            syncButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
+        });
+    });
+</script>
+
+</html>

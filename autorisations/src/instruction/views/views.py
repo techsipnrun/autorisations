@@ -11,7 +11,7 @@ import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
-from instruction.utils import enregistrer_action
+from instruction.utils import dossiers_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Lock
 import threading
@@ -489,15 +489,22 @@ def mes_dossiers_a_traiter_count(request):
     if not instructeur:
         return {}
 
-    groupes = instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True)
-
-    dossiers = Dossier.objects.filter(
-        id_groupeinstructeur_id__in=groupes
-    ).exclude(
-        id_etape_dossier__etape__in=["À affecter", "Accepté", "Refusé", "Non soumis à autorisation"]
+    # Dossiers (en cours d'instruction) où l’utilisateur intervient
+    dossiers = (
+        Dossier.objects.filter(
+            Q(dossierinstructeur__id_instructeur=instructeur) |
+            Q(dossierrelecteurqualite__id_instructeur=instructeur) |
+            Q(dossiervalideur__id_instructeur=instructeur) |
+            Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+            Q(dossiersignataire__id_instructeur=instructeur)
+        )
+        .exclude(id_etape_dossier__etape__in=["À affecter", "Accepté", "Refusé", "Non soumis à autorisation"])
+        .distinct()
     )
 
-    return {"nb_dossiers_instruction": dossiers.count()}
+    dossiers_actions = dossiers_action_a_faire(dossiers, instructeur)
+
+    return {"nb_dossiers_instruction": len(dossiers_actions)}
 
 
 @login_required(login_url='/login/')

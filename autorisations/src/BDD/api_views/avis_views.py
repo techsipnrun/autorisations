@@ -131,20 +131,21 @@ class AvisViewSet(viewsets.ModelViewSet):
                 type=openapi.TYPE_BOOLEAN
             ),
             openapi.Parameter(
-                "date minimale de réponse à l'avis", openapi.IN_QUERY, 
-                description="Filtrer les avis dont la date de réponse est postérieure à cette date (format `YYYY-MM-DD`).", 
+                "date_min_reponse", openapi.IN_QUERY,
+                description="Filtrer les avis dont la date de réponse est postérieure ou égale à cette date (YYYY-MM-DD).",
                 type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE
             ),
             openapi.Parameter(
-                "date limite de réponse à l'avis", openapi.IN_QUERY, 
-                description="Filtrer les avis dont la date de réponse est antérieure à cette date (format `YYYY-MM-DD`).", 
+                "date_max_reponse", openapi.IN_QUERY,
+                description="Filtrer les avis dont la date de réponse est antérieure ou égale à cette date (YYYY-MM-DD).",
                 type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE
             ),
             openapi.Parameter(
-                "id de l'expert", openapi.IN_QUERY, 
-                description="Filtrer les avis par l'expert ayant donné l'avis (`ID`).", 
+                "id_expert", openapi.IN_QUERY,
+                description="Filtrer les avis par identifiant d'expert (ID).",
                 type=openapi.TYPE_INTEGER
             ),
+
         ],
         
     )

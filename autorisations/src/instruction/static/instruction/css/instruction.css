@@ -4,10 +4,11 @@ table {
     max-width: 900px;
     margin: 2rem auto;
     border-collapse: collapse;
-    font-family: sans-serif;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 1rem;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     border: 1px solid #ccc;
+    line-height: 1.5;
 }
 
 /* Table header */
@@ -72,9 +73,11 @@ tbody td:nth-child(1) {
 /* Page title */
 h1 {
     text-align: center;
-    margin-top: 3rem;
-    font-size: 1.8rem;
-    color: #006131;
+    margin-top: 2rem;
+    font-size: 2.5rem;
+    /* color: #006131; */
+    color: #333;
+    font-weight: 600;
 }
 
 .suivis_instruction {
@@ -83,7 +86,7 @@ h1 {
 
 
 /* Pastilles Démarche */
-.pastille-user {
+/* .pastille-user {
     margin-left: 0.5rem;
     border-radius: 50%;
     background-color: rgb(255, 216, 216);
@@ -92,7 +95,34 @@ h1 {
     padding: 3px 6px;
     font-size: 0.85rem;
     font-weight: bold;
+} */
+
+.pastille-user {
+    margin-left: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 22px;              /* taille mini pour garder un rond même si 1 chiffre */
+    height: 22px;
+    padding: 0 6px;
+
+    border-radius: 999px;         /* toujours bien rond */
+    background: linear-gradient(135deg, #ff6b6b, #ff4757); /* dégradé rouge */
+    color: #fff;
+
+    font-size: 0.8rem;
+    font-weight: 600;
+
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);  /* petit effet flottant */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+.pastille-user:hover {
+    transform: scale(1.1);        /* grossit légèrement au survol */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
 
 
 

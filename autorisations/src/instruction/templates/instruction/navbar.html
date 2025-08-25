@@ -29,12 +29,19 @@
 
                     <a href="{% url 'accueil_view' %}">
                         <li class="{% if '/instruction' in request.path or request.path == '/' %}active{% endif %}">
-                            Instruction
+                            Instruction 
+                        </li>
+                    </a>
+
+                    <a href="{% url 'mesdossiers_view' %}">
+                        <li class="{% if '/mesdossiers' in request.path %}active{% endif %}">
+                            Mes dossiers
                             {% if nb_dossiers_instruction > 0 %}
-                                <span class="notif_pastille">{{ nb_dossiers_instruction }}</span>
+                                <span class="notif_pastille" title="Actions à faire">{{ nb_dossiers_instruction }}</span>
                             {% endif %}
                         </li>
                     </a>
+
 
                     <a href="{% url 'avis_view' %}">
                         <li class="{% if '/avis' in request.path %}active{% endif %}">
@@ -54,6 +61,12 @@
             <div class="user_information">
                 <div class="user_mail">
                     {% if request.user.is_superuser %}
+                        <div class="logo-api">
+                            <a href="/swagger/">
+                                <img class="logo_admin" src="{% static 'instruction/img/swagger-logo.png' %}" alt="Swagger" title="API Swagger">
+                            </a>
+                        </div>
+
                         <div class="logo-admin">
                             <a href="/admin/">
                                 <img class="logo_admin" src="{% static 'instruction/img/admin.png' %}" alt="Admin" title="Page d'administration">

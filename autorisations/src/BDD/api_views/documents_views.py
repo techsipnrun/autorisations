@@ -1,9 +1,9 @@
 from rest_framework import viewsets
 from autorisations.models.models_documents import (
-    DocumentFormat, DocumentNature, Document, DossierDocument, MessageDocument
+    DocumentFormat, DocumentNature, Document, DocumentStatut, DossierDocument, MessageDocument
 )
 from ..api_serializers.documents_serializers import (
-    DocumentFormatSerializer, DocumentNatureSerializer, DocumentSerializer,
+    DocumentFormatSerializer, DocumentNatureSerializer, DocumentSerializer, DocumentStatutSerializer,
     DossierDocumentSerializer, MessageDocumentSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
@@ -24,10 +24,10 @@ class DocumentFormatViewSet(viewsets.ModelViewSet):
     Crée un nouveau format de document.
 
     update:
-    Met à jour un format de document existant (remplacement total).
+    Met à jour un format existant.
 
     partial_update:
-    Met à jour partiellement un format de document.
+    Met à jour partiellement un format.
 
     delete:
     Supprime un format de document.
@@ -41,23 +41,7 @@ class DocumentFormatViewSet(viewsets.ModelViewSet):
 @swagger_auto_schema(tags=["Documents"])
 class DocumentNatureViewSet(viewsets.ModelViewSet):
     """
-    retrieve:
-    Retourne une nature de document via son ID.
-
-    list:
-    Retourne la liste de toutes les natures de documents.
-
-    create:
-    Crée une nouvelle nature de document.
-
-    update:
-    Met à jour une nature de document existante (remplacement total).
-
-    partial_update:
-    Met à jour partiellement une nature de document.
-
-    delete:
-    Supprime une nature de document.
+    CRUD pour gérer les natures de documents.
     """
     queryset = DocumentNature.objects.all()
     serializer_class = DocumentNatureSerializer
@@ -68,23 +52,7 @@ class DocumentNatureViewSet(viewsets.ModelViewSet):
 @swagger_auto_schema(tags=["Documents"])
 class DocumentViewSet(viewsets.ModelViewSet):
     """
-    retrieve:
-    Retourne un document via son ID.
-
-    list:
-    Retourne la liste de tous les documents.
-
-    create:
-    Crée un nouveau document.
-
-    update:
-    Met à jour un document existant (remplacement total).
-
-    partial_update:
-    Met à jour partiellement un document.
-
-    delete:
-    Supprime un document.
+    CRUD pour gérer les documents.
     """
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
@@ -95,23 +63,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 @swagger_auto_schema(tags=["Documents"])
 class DossierDocumentViewSet(viewsets.ModelViewSet):
     """
-    retrieve:
-    Retourne l'association entre un dossier et un document via son ID.
-
-    list:
-    Retourne la liste de toutes les associations entre dossiers et documents.
-
-    create:
-    Associe un document à un dossier.
-
-    update:
-    Met à jour l'association entre un dossier et un document.
-
-    partial_update:
-    Met à jour partiellement l'association entre un dossier et un document.
-
-    delete:
-    Dissocie un document d'un dossier.
+    CRUD pour gérer l’association entre dossiers et documents.
     """
     queryset = DossierDocument.objects.all()
     serializer_class = DossierDocumentSerializer
@@ -122,25 +74,36 @@ class DossierDocumentViewSet(viewsets.ModelViewSet):
 @swagger_auto_schema(tags=["Documents"])
 class MessageDocumentViewSet(viewsets.ModelViewSet):
     """
-    retrieve:
-    Retourne l'association entre un message et un document via son ID.
-
-    list:
-    Retourne la liste de toutes les associations entre messages et documents.
-
-    create:
-    Associe un document à un message.
-
-    update:
-    Met à jour l'association entre un message et un document.
-
-    partial_update:
-    Met à jour partiellement l'association entre un message et un document.
-
-    delete:
-    Dissocie un document d'un message.
+    CRUD pour gérer les messages liés aux documents.
     """
     queryset = MessageDocument.objects.all()
     serializer_class = MessageDocumentSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+@swagger_auto_schema(tags=["Documents"])
+class DocumentStatutViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne un statut de document via son ID.
+
+    list:
+    Retourne la liste de tous les statuts de document.
+
+    create:
+    Crée un nouveau statut de document.
+
+    update:
+    Met à jour un statut de document existant (remplacement total).
+
+    partial_update:
+    Met à jour partiellement un statut de document.
+
+    delete:
+    Supprime un statut de document.
+    """
+    queryset = DocumentStatut.objects.all()
+    serializer_class = DocumentStatutSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]

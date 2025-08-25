@@ -1,13 +1,15 @@
 from pathlib import Path
 from django.utils import timezone
 import logging
-from autorisations.models.models_instruction import Action, DossierAction, EtapeDossier, EtatDossier
+from autorisations.models.models_instruction import Action, Dossier, DossierAction, EtapeDossier, EtatDossier, Message
 import pythoncom
 import win32com.client
 import os
 import subprocess
 import tempfile
 import shutil
+
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire, DossierValideur
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -203,3 +205,74 @@ def convertir_docx_en_pdf_libreoffice(path_docx, output_dir, dossier_numero=None
             logger.error(f"[DOSSIER {dossier_numero}] Échec Conversion LibreOffice - PDF ({path_docx}) : {e}")
             # logger.error(f"[DOSSIER {dossier_numero}] Erreur : {e}")
         raise
+
+
+
+def dossiers_action_a_faire(dossiers, obj_instructeur):
+    """
+    Retourne les dossiers où l'utilisateur doit réaliser une action,
+    en fonction de son rôle implicite selon l'étape du dossier.
+    """
+    dossiers_a_traiter_ids = set()
+
+    for dossier in dossiers:
+        etape = dossier.id_etape_dossier.etape if dossier.id_etape_dossier else None
+
+        # Vérifications par rôle
+        est_instructeur = DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_valideur = DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_relecteur_qualite = DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_relecteur_juridique = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_signataire = DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+
+
+        # === Mapping Étape -> Rôle attendu ===
+        if est_relecteur_juridique :
+            drj = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).first()
+            # Si relecture pas encore faite --> action à faire
+            if not drj.relu :
+                dossiers_a_traiter_ids.add(dossier.id)
+
+        if etape == "À valider avant signature":
+            # Rôle : Valideur
+            if est_instructeur:  
+                dossiers_a_traiter_ids.add(dossier.id)
+
+        elif etape in ["Non soumis à autorisation", "Refusé", "Accepté"]:
+
+            # Nb messages non lus côté pétitionnaire
+            nb_messages_non_lus = Message.objects.filter(
+                id_dossier=dossier,
+                lu=False
+            ).exclude(
+                email_emetteur='contact@demarches-simplifiees.fr'
+            ).exclude(
+                email_emetteur__endswith='reunion-parcnational.fr'
+            ).count()
+
+            # Rôle : Instructeur et messages non lus
+            if est_instructeur and nb_messages_non_lus > 0:
+                dossiers_a_traiter_ids.add(dossier.id)
+
+        elif etape in ["En instruction", "En Pré-instruction", "En attente réponse d'avis", "En attente de compléments"]:
+            # Rôle : Instructeur
+            if est_instructeur:
+                dossiers_a_traiter_ids.add(dossier.id)
+
+        elif etape in ["À affecter", "En relecture qualité", "À publier au RAA", "Acte à envoyer"]:
+            # Rôle : Relecteur Qualité
+            if est_relecteur_qualite:
+                dossiers_a_traiter_ids.add(dossier.id)
+
+        elif etape == "En attente de signature":
+            # Rôle : Signataire
+            if est_signataire: 
+                dossiers_a_traiter_ids.add(dossier.id)
+
+        elif etape == "À valider avant demande d'avis":
+            # Rôle : Valideur
+            if est_valideur:
+                dossiers_a_traiter_ids.add(dossier.id)
+
+    return Dossier.objects.filter(id__in=dossiers_a_traiter_ids)
+    # return list(dossiers_a_traiter)

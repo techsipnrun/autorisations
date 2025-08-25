@@ -1,11 +1,11 @@
 from rest_framework import viewsets
 from autorisations.models.models_utilisateurs import (
-    AgentAutorisations, AgentAutorisationsUpdateLog, TypeContactExterne, ContactExterne,
+    AgentAutorisations, AgentAutorisationsUpdateLog, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, TypeContactExterne, ContactExterne,
     DossierInterlocuteur, DossierBeneficiaire, Instructeur, Groupeinstructeur,
     GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur
 )
 from ..api_serializers.utilisateurs_serializers import (
-    AgentAutorisationsSerializer, TypeContactExterneSerializer,
+    AgentAutorisationsSerializer, DossierRelecteurJuridiqueSerializer, DossierRelecteurQualiteSerializer, DossierSignataireSerializer, DossierValideurSerializer, EmailOutboxSerializer, TypeContactExterneSerializer,
     ContactExterneSerializer, DossierInterlocuteurSerializer, DossierBeneficiaireSerializer,
     InstructeurSerializer, GroupeinstructeurSerializer, GroupeinstructeurDemarcheSerializer,
     GroupeinstructeurInstructeurSerializer, DossierInstructeurSerializer
@@ -282,5 +282,141 @@ class DossierInstructeurViewSet(viewsets.ModelViewSet):
     """
     queryset = DossierInstructeur.objects.all()
     serializer_class = DossierInstructeurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+
+@swagger_auto_schema(tags=["Utilisateurs"])
+class DossierValideurViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne l'association entre un dossier et un valideur via son ID.
+
+    list:
+    Retourne la liste de toutes les associations entre dossiers et valideurs.
+
+    create:
+    Associe un valideur à un dossier.
+
+    update:
+    Met à jour une association existante (remplacement total).
+
+    partial_update:
+    Met à jour partiellement une association.
+
+    delete:
+    Supprime une association entre un dossier et un valideur.
+    """
+    queryset = DossierValideur.objects.all()
+    serializer_class = DossierValideurSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+@swagger_auto_schema(tags=["Utilisateurs"])
+class DossierRelecteurJuridiqueViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne l'association entre un dossier et un relecteur juridique via son ID.
+
+    list:
+    Retourne la liste de toutes les associations entre dossiers et relecteurs juridiques.
+
+    create:
+    Associe un relecteur juridique à un dossier.
+
+    update:
+    Met à jour une association existante (remplacement total).
+
+    partial_update:
+    Met à jour partiellement une association.
+
+    delete:
+    Supprime une association entre un dossier et un relecteur juridique.
+    """
+    queryset = DossierRelecteurJuridique.objects.all()
+    serializer_class = DossierRelecteurJuridiqueSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+@swagger_auto_schema(tags=["Utilisateurs"])
+class DossierRelecteurQualiteViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne l'association entre un dossier et un relecteur qualité via son ID.
+
+    list:
+    Retourne la liste de toutes les associations entre dossiers et relecteurs qualité.
+
+    create:
+    Associe un relecteur qualité à un dossier.
+
+    update:
+    Met à jour une association existante (remplacement total).
+
+    partial_update:
+    Met à jour partiellement une association.
+
+    delete:
+    Supprime une association entre un dossier et un relecteur qualité.
+    """
+    queryset = DossierRelecteurQualite.objects.all()
+    serializer_class = DossierRelecteurQualiteSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+@swagger_auto_schema(tags=["Utilisateurs"])
+class DossierSignataireViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne l'association entre un dossier et un signataire via son ID.
+
+    list:
+    Retourne la liste de toutes les associations entre dossiers et signataires.
+
+    create:
+    Associe un signataire à un dossier.
+
+    update:
+    Met à jour une association existante (remplacement total).
+
+    partial_update:
+    Met à jour partiellement une association.
+
+    delete:
+    Supprime une association entre un dossier et un signataire.
+    """
+    queryset = DossierSignataire.objects.all()
+    serializer_class = DossierSignataireSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+@swagger_auto_schema(tags=["Utilisateurs"])
+class EmailOutboxViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne un email spécifique via son ID.
+
+    list:
+    Retourne la liste des emails sortants enregistrés.
+
+    create:
+    Crée un nouvel email sortant.
+
+    update:
+    Remplace complètement un email existant.
+
+    partial_update:
+    Met à jour partiellement un email existant.
+
+    delete:
+    Supprime un email sortant.
+    """
+    queryset = EmailOutbox.objects.all()
+    serializer_class = EmailOutboxSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]

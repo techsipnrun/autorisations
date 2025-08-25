@@ -1,13 +1,14 @@
 from rest_framework import serializers
 from autorisations.models.models_utilisateurs import (
-    AgentAutorisations, TypeContactExterne, ContactExterne,
+    AgentAutorisations, AgentAutorisationsUpdateLog, TypeContactExterne, ContactExterne,
     DossierInterlocuteur, DossierBeneficiaire, Instructeur, Groupeinstructeur,
-    GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur
+    GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur,
+    DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire,
+    EmailOutbox
 )
-from autorisations.models.models_instruction import Demande
 
 
-class AgentAutorisationsSerializer(serializers.ModelSerializer):  # rendre seulement le GET accesible, Interdit de modifier
+class AgentAutorisationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AgentAutorisations
         fields = '__all__'
@@ -26,33 +27,18 @@ class ContactExterneSerializer(serializers.ModelSerializer):
 
 
 class DossierInterlocuteurSerializer(serializers.ModelSerializer):
-    id_demande = serializers.PrimaryKeyRelatedField(
-        queryset=Demande.objects.all(),
-        help_text="ID de la demande."
-    )
-
     class Meta:
         model = DossierInterlocuteur
         fields = '__all__'
 
 
 class DossierBeneficiaireSerializer(serializers.ModelSerializer):
-    id_beneficiaire = serializers.PrimaryKeyRelatedField(
-        queryset=DossierBeneficiaire.objects.all(),
-        help_text="ID du bénéficiaire (table contact externe)."
-    )
-
     class Meta:
         model = DossierBeneficiaire
-        fields = ['id','id_demande_interlocuteur','id_beneficiaire']
+        fields = '__all__'
 
 
 class InstructeurSerializer(serializers.ModelSerializer):
-    id_agent_autorisations = serializers.PrimaryKeyRelatedField(
-            queryset=AgentAutorisations.objects.all(),
-            help_text="ID de l'agent (table agent_autorisations)."
-        )
-
     class Meta:
         model = Instructeur
         fields = '__all__'
@@ -79,4 +65,34 @@ class GroupeinstructeurInstructeurSerializer(serializers.ModelSerializer):
 class DossierInstructeurSerializer(serializers.ModelSerializer):
     class Meta:
         model = DossierInstructeur
+        fields = '__all__'
+
+
+class DossierValideurSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DossierValideur
+        fields = '__all__'
+
+
+class DossierRelecteurJuridiqueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DossierRelecteurJuridique
+        fields = '__all__'
+
+
+class DossierRelecteurQualiteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DossierRelecteurQualite
+        fields = '__all__'
+
+
+class DossierSignataireSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DossierSignataire
+        fields = '__all__'
+
+
+class EmailOutboxSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailOutbox
         fields = '__all__'

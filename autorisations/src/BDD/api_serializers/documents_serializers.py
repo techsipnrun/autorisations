@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from autorisations.models.models_documents import (
-    DocumentFormat, DocumentNature, Document, DossierDocument, MessageDocument
+    DocumentFormat, DocumentNature, Document, DocumentStatut, DossierDocument, MessageDocument
 )
 from autorisations.models.models_instruction import Dossier, Message
 
@@ -60,3 +60,9 @@ class MessageDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessageDocument
         fields = '__all__'
+
+
+class DocumentStatutSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentStatut
+        fields = "__all__"

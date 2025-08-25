@@ -1,0 +1,172 @@
+/* ================================
+   Style global
+================================ */
+
+/* Page principale */
+.page_mes_dossiers{
+    margin-bottom: 8rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+/* Titre principal */
+#titre_mes_dossiers {
+    text-align: center;
+    font-size: 2.5rem;
+    margin: 30px 0;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Messages d'erreurs */
+.django-messages{
+    display: flex;
+    color: rgb(172, 2, 2);
+    font-weight: bold;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ================================
+   Section d'une démarche
+================================ */
+.mademarche {
+    margin: 40px auto;
+    padding: 20px;
+    width: 95%;
+    max-width: 1500px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    font-weight: bold;
+}
+
+.mademarche h2 {
+    font-size: 1.4rem;
+    color: #006131;
+    border-left: 5px solid #006131;
+    padding-left: 10px;
+    margin-bottom: 15px;
+}
+
+/* ================================
+   Tableaux de dossiers
+================================ */
+.table_demarche_instru {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.table_demarche_instru thead {
+    background: #00994d;;
+    color: #fff;
+}
+
+.table_demarche_instru th, 
+.table_demarche_instru td {
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.table_demarche_instru tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    border-left: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
+    transition: background 0.2s;
+    cursor: pointer;
+    background-color: #ffffff;
+}
+
+/* .table_demarche_instru tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+.table_demarche_instru tbody tr:nth-child(odd) {
+    background-color: #ffffff; 
+} */
+
+
+.table_demarche_instru tbody tr:hover {
+    background: #e7ffe7;
+}
+
+/* Cas aucun dossier */
+.aucun_doss {
+    text-align: center;
+    font-style: italic;
+    color: black;
+    padding: 20px;
+}
+
+
+/* Dossier en cours : action à faire */
+.row-action {
+    background-color: #fff3cd !important; /* jaune */
+}
+.row-action:hover {
+    background-color: #ffe69c !important;
+}
+.dot-action {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+/* Dossier archivé : action à faire */
+.row-action-archive {
+    background-color: #cce5ff !important; /* bleu clair */
+}
+.row-action-archive:hover {
+    background-color: #99ccff !important; /* bleu un peu plus soutenu */
+}
+.dot-action-archive {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    background-color: #0056b3; /* bleu foncé */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+
+
+/* ================================
+   Nouveaux messages
+================================ */
+.nouv_mess_wrapper {
+    position: relative;
+    display: inline-block;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.nouv_mess_icon {
+    width: 32px;
+    height: auto;
+    /* vertical-align: middle; */
+}
+
+.pastille_nouv_mess {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #003366;
+    text-align: center;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+

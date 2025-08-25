@@ -47,7 +47,7 @@
         <tbody>
             {% for d in dossier_infos %}
                 <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.numero %}">
-                    <td>{{ d.demarche }}</td>
+                    <td class="td_demarche">{{ d.demarche }}</td>
                     <td>{{ d.date_depot }}</td>
                     <td>{{ d.demandeur }}</td>
                     <td>{{ d.nom_projet }}</td>

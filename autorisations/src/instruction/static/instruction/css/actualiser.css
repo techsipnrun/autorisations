@@ -1,39 +1,46 @@
-/* Bouton actualiser */
+/* ================================
+   Bouton d'actualisation
+================================ */
 .actualiser-wrapper {
-    position: absolute;
-    top: 9.5rem;
-    left: 10%;
-    z-index: 10;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    margin: 20px 40px;
+    font-weight: bold;
 }
 
-.actualiser-wrapper button {
-    background: none;
+#btn-actualiser {
+    background: #00bb5d;
     border: none;
-    padding: 0;
-    margin: 0;
+    border-radius: 50%;
+    padding: 12px;
     cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
 }
 
-.actualiser-wrapper img {
-    height: 40px;
-    transition: transform 0.2s ease;
-}
-
-.actualiser-wrapper img:hover {
+#btn-actualiser:hover {
+    background: rgb(60, 212, 111);
     transform: rotate(90deg);
+}
+
+#btn-actualiser img {
+    width: 22px;
+    height: 22px;
+}
+
+#message-actualisation {
+    margin-left: 15px;
+    font-size: 0.95rem;
+    color: #00994d;
 }
 
 .actualisation-texte {
     font-style: italic;
     font-size: 0.9rem;
-    color: #444;
-    margin-left: 10px;
 }
 
-.actualiser-wrapper button:disabled {
+#btn-actualiser:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-

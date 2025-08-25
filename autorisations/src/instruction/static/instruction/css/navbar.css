@@ -1,6 +1,7 @@
 * {
     margin: 0;
     padding: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 
@@ -31,16 +32,19 @@
 
 .logo-admin {
     height: 25px;
-
 }
 
-.logo-admin img {
+.logo-api {
+    height: 30px;
+}
+
+.logo-api img, .logo-admin img {
     height: 100%;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
   
-.logo-admin img:hover {
+.logo-api img:hover, .logo-admin img:hover {
     transform: scale(1.1);
 }
 
@@ -50,7 +54,8 @@
 /* Liens de navigation */
 .container-links {
     display: flex;
-    align-self: flex-end; /* Permet d’aligner en bas dans un flex parent */
+    align-self: flex-end;
+    font-weight: bold;
 }
 
 
@@ -104,7 +109,7 @@
     background-color: white;
 }
 
-.navigation_links .notif_pastille{
+/* .navigation_links .notif_pastille{
     margin-left: 5px;
     border-radius: 50%;
     background-color: rgb(255, 216, 216);
@@ -113,7 +118,38 @@
     padding: 5px 10px;
     font-size: large;
     font-weight: bold;
+} */
+
+
+/* Pastilles */
+.navigation_links .notif_pastille {
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 20px;
+    height: 20px;
+    padding: 1px 8px;
+
+    border-radius: 999px; /* pastille parfaitement ronde */
+    background: linear-gradient(135deg, #ff4b2b, #ff416c); /* dégradé rouge/orangé moderne */
+    color: #fff;
+
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    vertical-align: middle;
 }
+
+.navigation_links .notif_pastille:hover {
+    transform: scale(1.1); /* petit effet zoom au survol */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+
 
 /* Informations utilisateur */
 .user_information {
@@ -177,4 +213,6 @@
 .user_mail {
     display: flex;
     gap: 1rem;
+    align-items: center;
+    justify-content: center;
 }

@@ -1,10 +1,10 @@
 from rest_framework import viewsets
 from autorisations.models.models_instruction import (
-    ChampType, EtatDemande, EtatDemarche, EtatDossier, Priorite, DemandeType, Groupe,
+    ChampType, DossierChamp, EtatDemande, EtatDemarche, EtatDossier, Priorite, DemandeType, Groupe,
     Demarche, DossierType, Dossier, Demande, Champ, DemandeChamp, Message, DossierGroupe
 )
 from ..api_serializers.instruction_serializers import (
-    ChampTypeSerializer, EtatDemandeSerializer, EtatDemarcheSerializer, EtatDossierSerializer,
+    ChampTypeSerializer, DossierChampSerializer, EtatDemandeSerializer, EtatDemarcheSerializer, EtatDossierSerializer,
     PrioriteSerializer, DemandeTypeSerializer, GroupeSerializer, DemarcheSerializer,
     DossierTypeSerializer, DossierSerializer, DemandeSerializer, ChampSerializer,
     DemandeChampSerializer, MessageSerializer, DossierGroupeSerializer
@@ -388,6 +388,33 @@ class DemandeChampViewSet(viewsets.ModelViewSet):
     """
     queryset = DemandeChamp.objects.all()
     serializer_class = DemandeChampSerializer
+    permission_classes = [DjangoModelPermissions]
+    authentication_classes = [TokenAuthentication]
+
+
+@swagger_auto_schema(tags=["Instruction"])
+class DossierChampViewSet(viewsets.ModelViewSet):
+    """
+    retrieve:
+    Retourne une association entre un dossier et un champ via son ID.
+
+    list:
+    Retourne la liste de toutes les associations entre dossiers et champs.
+
+    create:
+    Associe un champ à un dossier.
+
+    update:
+    Met à jour une association existante entre dossier et champ.
+
+    partial_update:
+    Met à jour partiellement une association.
+
+    delete:
+    Supprime une association entre un dossier et un champ.
+    """
+    queryset = DossierChamp.objects.all()
+    serializer_class = DossierChampSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]
 

@@ -23,6 +23,8 @@ urlpatterns = [
     path("email/<int:email_id>/envoyer/", messagerie.envoyer_mail, name="envoyer_mail"),
     path("email/<int:email_id>/supprimer/", messagerie.supprimer_mail, name="supprimer_mail"),
 
+    # MES DOSSIERS
+    path('mesdossiers/', instruction.mesdossiers, name='mesdossiers_view'),
 
 
 

@@ -34,6 +34,7 @@ router.register(r'document_nature', documents_views.DocumentNatureViewSet)
 router.register(r'document', documents_views.DocumentViewSet)
 router.register(r'dossier_document', documents_views.DossierDocumentViewSet)
 router.register(r'message_document', documents_views.MessageDocumentViewSet)
+router.register(r'document_statut', documents_views.DocumentStatutViewSet)
 
 # Utilisateurs
 router.register(r'agent_autorisations', utilisateurs_views.AgentAutorisationsViewSet)
@@ -46,6 +47,12 @@ router.register(r'groupeinstructeur', utilisateurs_views.GroupeinstructeurViewSe
 router.register(r'groupeinstructeur_demarche', utilisateurs_views.GroupeinstructeurDemarcheViewSet)
 router.register(r'groupeinstructeur_instructeur', utilisateurs_views.GroupeinstructeurInstructeurViewSet)
 router.register(r'dossier_instructeur', utilisateurs_views.DossierInstructeurViewSet)
+router.register(r'dossier_valideur', utilisateurs_views.DossierValideurViewSet)
+router.register(r'dossier_relecteur_juridique', utilisateurs_views.DossierRelecteurJuridiqueViewSet)
+router.register(r'dossier_relecteur_qualite', utilisateurs_views.DossierRelecteurQualiteViewSet)
+router.register(r'dossier_signataire', utilisateurs_views.DossierSignataireViewSet)
+router.register(r'email_outbox', utilisateurs_views.EmailOutboxViewSet)
+
 
 # Instruction
 router.register(r'champ_type', instruction_views.ChampTypeViewSet)
@@ -63,6 +70,7 @@ router.register(r'champ', instruction_views.ChampViewSet)
 router.register(r'demande_champ', instruction_views.DemandeChampViewSet)
 router.register(r'message', instruction_views.MessageViewSet)
 router.register(r'dossier_groupe', instruction_views.DossierGroupeViewSet)
+router.register(r'dossier_champ', instruction_views.DossierChampViewSet)
 
 schema_view = get_schema_view(
    openapi.Info(

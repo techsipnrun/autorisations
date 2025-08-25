@@ -45,7 +45,7 @@
         <tbody>
             {% for d in dossier_infos %}
                 <tr class="clickable-row" data-href="{% url 'instruction_demarche' d.demarche.numero %}">
-                    <td>
+                    <td {% if d.nb_suivis_user > 0 %} title ="Nécessite des actions de votre part" {% endif %}>
                         {{ d.demarche.type }}
                         {% if d.nb_suivis_user > 0 %}
                             <span class="pastille-user">{{ d.nb_suivis_user }}</span>

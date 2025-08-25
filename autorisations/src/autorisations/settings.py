@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'DS',
     'drf_yasg', #Swagger
     'django_filters',
+    'rest_framework',
     'rest_framework.authtoken',
     'leaflet',
     'notifications.apps.NotificationsConfig',
