@@ -11,7 +11,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
 def instruction_dossier_ajouter_avis(request, num_dossier):
     dossier = get_object_or_404(Dossier, numero=num_dossier)
 
-    print(f'La vue instruction_dossier_ajouter_avis est appelée (Dossier {num_dossier})')
+    # print(f'La vue instruction_dossier_ajouter_avis est appelée (Dossier {num_dossier})')
 
 
     # Récupérer toutes les natures et thématiques
@@ -35,7 +35,6 @@ def instruction_dossier_ajouter_avis(request, num_dossier):
     )
 
 
-
     return render(request, "instruction/instruction_dossier_ajouter_avis.html", {
         "dossier": dossier,
         "natures": natures,
@@ -53,7 +52,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier):
 def instruction_dossier_confirmer_ajout_avis(request, num_dossier):
     dossier = get_object_or_404(Dossier, numero=num_dossier)
 
-    print(f'La vue instruction_dossier_confirmer_ajout_avis est appelée (Dossier {num_dossier})')
+    # print(f'La vue instruction_dossier_confirmer_ajout_avis est appelée (Dossier {num_dossier})')
 
     return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
 

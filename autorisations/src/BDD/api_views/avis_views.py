@@ -1,13 +1,13 @@
 from rest_framework import viewsets, permissions
 from rest_framework.authentication import TokenAuthentication
 from autorisations.models.models_avis import (
-    AvisNature, AvisThematique, Expert, Avis, AvisDocument, DemandeAvis
+    AvisNature, AvisThematique, Expert, Avis, AvisDocument, DossierAvis
 )
 
 from ..filters import AvisFilter
 from ..api_serializers.avis_serializers import (
     AvisNatureSerializer, AvisThematiqueSerializer, ExpertSerializer,
-    AvisSerializer, AvisDocumentSerializer, DemandeAvisSerializer
+    AvisSerializer, AvisDocumentSerializer, DossierAvisSerializer
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import DjangoModelPermissions
@@ -186,7 +186,7 @@ class AvisDocumentViewSet(viewsets.ModelViewSet):
 
 
 @swagger_auto_schema(tags=["Avis"])
-class DemandeAvisViewSet(viewsets.ModelViewSet):
+class DossierAvisViewSet(viewsets.ModelViewSet):
     """
     retrieve:
     Retourne une association entre une demande et un avis via son ID.
@@ -206,8 +206,8 @@ class DemandeAvisViewSet(viewsets.ModelViewSet):
     delete:
     Dissocie une demande d'un avis.
     """
-    queryset = DemandeAvis.objects.all()
-    serializer_class = DemandeAvisSerializer
+    queryset = DossierAvis.objects.all()
+    serializer_class = DossierAvisSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]
 

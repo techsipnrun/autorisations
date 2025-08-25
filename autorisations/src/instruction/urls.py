@@ -6,7 +6,6 @@ from django.contrib import admin
 urlpatterns = [
 
     # INSTRUCTION
-    path('', instruction.accueil, name='accueil_view'),
     path('instruction/', instruction.accueil, name='accueil_view'),
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
@@ -24,6 +23,7 @@ urlpatterns = [
     path("email/<int:email_id>/supprimer/", messagerie.supprimer_mail, name="supprimer_mail"),
 
     # MES DOSSIERS
+    path('', instruction.mesdossiers, name='mesdossiers_view'),
     path('mesdossiers/', instruction.mesdossiers, name='mesdossiers_view'),
 
 
@@ -58,7 +58,7 @@ urlpatterns = [
     path("instruction/enregistrer-geom/", views.enregistrer_geom, name="enregistrer_geom"),
 
 
-    # ANNEXE, NOTE, RELECTURE JURIDIQUE
+    # ANNEXE, NOTE, RELECTURE
     path('ajouter_annexe/<int:dossier_id>/', views.ajouter_annexe_dossier, name='ajouter_annexe_dossier'),
     path('supprimer_annexe/', views.supprimer_annexe_instructeur, name='supprimer_annexe_instructeur'),
     # path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),

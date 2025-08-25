@@ -28,13 +28,13 @@
                     </a>
 
                     <a href="{% url 'accueil_view' %}">
-                        <li class="{% if '/instruction' in request.path or request.path == '/' %}active{% endif %}">
+                        <li class="{% if '/instruction' in request.path %}active{% endif %}">
                             Instruction 
                         </li>
                     </a>
 
                     <a href="{% url 'mesdossiers_view' %}">
-                        <li class="{% if '/mesdossiers' in request.path %}active{% endif %}">
+                        <li class="{% if '/mesdossiers' in request.path or request.path == '/' %}active{% endif %}">
                             Mes dossiers
                             {% if nb_dossiers_instruction > 0 %}
                                 <span class="notif_pastille" title="Actions à faire">{{ nb_dossiers_instruction }}</span>

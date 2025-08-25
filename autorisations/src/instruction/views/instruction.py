@@ -542,7 +542,7 @@ def instruction_dossier(request, num_dossier):
     "Envoyé pour signature": "envoye.png",
     "Relecture qualité": "relecture-qualite.png",
     "Validé avant signature": "valide.png",
-    "Relecture juridique": "relecture-juridique.png",
+    "Relecture": "relecture-qualite.png",
     "Passage en instruction": "envoye.png",
     "Repassage en instruction": "envoye.png",
     "Affectation au groupe": "groupe_instructeur.png",
@@ -889,7 +889,7 @@ def mettre_a_jour_relecture_juridique(request):
     dossier.relecture_juridique = relecture
     dossier.save()
 
-    logger.info(f"[DOSSIER {dossier.numero}] Relecture juridique mise à jour : {relecture} par {request.user.email}")
+    logger.info(f"[DOSSIER {dossier.numero}] Relecture mise à jour : {relecture} par {request.user.email}")
     return JsonResponse({"status": "ok", "relecture_juridique": relecture})
 
 
@@ -910,11 +910,11 @@ def ajouter_relecteur_juridique_dossier(request):
         dossRJ = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=relecteur).first()
         if dossRJ.relu :
              request.session["relecteur_juridique_message"] = (
-                "Cet.te relecteur.rice a déjà réalisé.e une relecture juridique sur le dossier."
+                "Cet.te relecteur.rice a déjà réalisé.e une relecture sur le dossier."
             )
         else:
             request.session["relecteur_juridique_message"] = (
-                "Cet.te relecteur.rice a déjà une relecture juridique en cours sur le dossier."
+                "Cet.te relecteur.rice a déjà une relecture en cours sur le dossier."
             )
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
@@ -936,7 +936,7 @@ def relecture_juridique_faite(request):
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
-        enregistrer_action(dossier, instructeur, "Relecture juridique", nom_prenom)
+        enregistrer_action(dossier, instructeur, "Relecture", nom_prenom)
 
     else:
         request.session["relecteur_juridique_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")

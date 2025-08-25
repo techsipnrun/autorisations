@@ -71,3 +71,43 @@
     font-size: 1rem;
 }
 
+/* Affichage conditionnel pour le choix de l'expert interne/externe */
+#bloc_expert_externe, #bloc_expert_interne {
+    display: none;
+}
+
+
+/* Champs de texte libre */
+.attribut_avis textarea {
+    vertical-align: top;
+    width: 80%;
+    min-height: 80px;
+    resize: vertical; /* permet d'agrandir seulement en hauteur */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit; /* garde la même police que le reste */
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.texte_libre {
+    align-items: flex-start;
+}
+
+
+/* Effet focus */
+.attribut_avis textarea:focus {
+    border-color: #006131;       /* vert du parc */
+    box-shadow: 0 0 5px rgba(0, 97, 49, 0.4);
+    outline: none;
+}
+
+/* Pièce jointe */
+.bloc_pj {
+    display: none;
+}
+
+

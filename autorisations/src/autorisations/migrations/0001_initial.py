@@ -151,7 +151,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='DemandeAvis',
+            name='DossierAvis',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
             ],

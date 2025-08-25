@@ -50,7 +50,7 @@
                             {% endif %}
                         </div>
 
-                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" and action.id_action.action != "Dossier reçu" and action.id_action.action != "Affectation au groupe" and action.id_action.action != "Validé avant signature" and action.id_action.action != "Validé avant demande d'avis" and action.id_action.action != "Validant.e changé.e" and action.id_action.action != "Validé avant demande d'avis" and action.id_action.action != "Relecteur.rice changé.e" and action.id_action.action != "Acte signé" and action.id_action.action != "Relecture juridique" %}
+                        {% if action.id_action.action != "Instructeur.e ajouté.e" and action.id_action.action != "Instructeur.e retiré.e" and action.id_action.action != "Dossier reçu" and action.id_action.action != "Affectation au groupe" and action.id_action.action != "Validé avant signature" and action.id_action.action != "Validé avant demande d'avis" and action.id_action.action != "Validant.e changé.e" and action.id_action.action != "Validé avant demande d'avis" and action.id_action.action != "Relecteur.rice changé.e" and action.id_action.action != "Acte signé" and action.id_action.action != "Relecture" %}
                             {% with full_name=action.id_instructeur.id_agent_autorisations.nom|add:action.id_instructeur.id_agent_autorisations.prenom %}
                                 <div class="timeline-user {% if full_name|length > 25 %}small-text-user{% endif %}">
                                     {{ action.id_instructeur.id_agent_autorisations.nom|upper }}

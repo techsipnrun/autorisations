@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             options={'managed': False, 'verbose_name_plural': 'Avis'},
         ),
         migrations.AlterModelOptions(
-            name='demandeavis',
-            options={'managed': False, 'verbose_name_plural': 'Demandes avis'},
+            name='dossieravis',
+            options={'managed': False, 'verbose_name_plural': 'Dossier avis'},
         ),
     ]

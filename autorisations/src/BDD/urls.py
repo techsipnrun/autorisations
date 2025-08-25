@@ -26,7 +26,7 @@ router.register(r'avis_thematique', avis_views.AvisThematiqueViewSet)
 router.register(r'expert', avis_views.ExpertViewSet)
 router.register(r'avis', avis_views.AvisViewSet)
 router.register(r'avis_document', avis_views.AvisDocumentViewSet)
-router.register(r'demande_avis', avis_views.DemandeAvisViewSet)
+router.register(r'dossier_avis', avis_views.DossierAvisViewSet)
 
 # Documents
 router.register(r'document_format', documents_views.DocumentFormatViewSet)

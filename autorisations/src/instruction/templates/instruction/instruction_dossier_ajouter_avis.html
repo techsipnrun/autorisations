@@ -30,7 +30,7 @@
                 <h2>Nouvelle demande d'avis</h2>
 
                 <div class="attribut_avis">
-                    <label>Nature de l'avis :</label>
+                    <label>Nature de l'avis* :</label>
                     <select id="nature" name="nature" required>
                         <option value="">-- Sélectionner --</option>
                         {% for nature in natures %}
@@ -40,7 +40,7 @@
                 </div>
 
                 <div class="attribut_avis">
-                    <label>Thématique de l'avis :</label>
+                    <label>Thématique de l'avis* :</label>
                     <select id="thematique" name="thematique" required>
                         <option value="">-- Sélectionner --</option>
                         {% for t in thematiques %}
@@ -49,24 +49,30 @@
                     </select>
                 </div>
 
-                <div class="attribut_avis">
-                    <label>Note :</label>
-                    ********(Note libre pour le demandeur)********
+                <div class="attribut_avis texte_libre">
+                    <label for="note_demandeur">Note :</label>
+                    <textarea id="note_demandeur" name="note_demandeur" rows="2" placeholder="Note libre pour le demandeur..."></textarea>
                 </div>
 
                 <div class="attribut_avis">
-                    <label>Mode de contact :</label>
+                    <label>Mode de contact* :</label>
                     <select id="mode_contact" name="mode_contact" required>
-                        <option value="">-- Sélectionner --</option>
-                        <option value="Courrier papier">Via l'application</option>
+                        <option value="Application" selected>Via l'application</option>
                         <option value="Courrier papier">Courrier papier</option>
                         <option value="Téléphone">Téléphone</option>
                         <option value="Mail">Mail</option>
                     </select>
                 </div>
+
+                <div class="attribut_avis" id="bloc_pj">
+                    <label for="pj_avis">Joindre la demande d'avis* :</label>
+                    <input type="file" id="pj_avis" name="pj_avis"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                </div>
+
                 
-                <div class="attribut_avis">
-                    <label>Choix de l'expert interne :</label>
+                <div class="attribut_avis" id="bloc_expert_interne">
+                    <label>Choix de l'expert interne* :</label>
                     <select id="expert_interne" name="expert_interne" required>
                         <option value="">-- Sélectionner --</option>
                         {% for i in instructeurs %}
@@ -82,8 +88,8 @@
                     </select>
                 </div>
 
-                <div class="attribut_avis">
-                    <label>Choix de l'expert externe :</label>
+                <div class="attribut_avis" id="bloc_expert_externe">
+                    <label>Choix de l'expert externe* :</label>
                     <select id="expert_externe" name="expert_interne" required>
                         <option value="">-- Sélectionner --</option>
                         {% for c in contacts_externes %}
@@ -105,9 +111,9 @@
                     </select>
                 </div>
 
-                <div class="attribut_avis">
-                    <label>Formulation de l'avis :</label>
-                    *******(MessageAvis)*********
+                <div class="attribut_avis texte_libre">
+                    <label for="formulation_avis">Formulation de l'avis* :</label>
+                    <textarea id="formulation_avis" name="formulation_avis" rows="5" placeholder="Bonjour, vous trouverez ci-joint la demande d'avis..."></textarea>
                 </div>
 
 
@@ -153,6 +159,38 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const natureSelect = document.getElementById("nature");
+            const blocInterne = document.getElementById("bloc_expert_interne");
+            const blocExterne = document.getElementById("bloc_expert_externe");
+            const blocPJ = document.getElementById("bloc_pj");
+
+            function toggleExperts() {
+                const selectedText = natureSelect.options[natureSelect.selectedIndex]?.text.trim();
+
+                // Cache par défaut
+                blocInterne.style.display = "none";
+                blocExterne.style.display = "none";
+                blocPJ.style.display = "none";
+
+                if (selectedText === "Consultation en interne") {
+                    blocInterne.style.display = "flex";
+                } else if (selectedText === "Demande à une instance") {
+                    blocExterne.style.display = "flex";
+                    blocPJ.style.display = "flex";
+                }
+            }
+
+            natureSelect.addEventListener("change", toggleExperts);
+
+            // Exécuter au chargement (utile si le champ est prérempli)
+            toggleExperts();
+        });
+    </script>
+
+
 
 </body>
 </html>

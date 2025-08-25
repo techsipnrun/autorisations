@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.db import IntegrityError, connection
-from autorisations.src.autorisations.models.models_avis import Avis, AvisDocument, AvisNature, AvisThematique, DemandeAvis, Expert
+from autorisations.src.autorisations.models.models_avis import Avis, AvisDocument, AvisNature, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_instruction import Demande, DemandeType, Dossier, DossierType, EtatDemande, EtatDossier, Priorite
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur, TypeContactExterne
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature
@@ -231,7 +231,7 @@ class AvisDocumentTestCase(TestCase):
 
 
 
-class DemandeAvisTestCase(TestCase):
+class DossierAvisTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -292,24 +292,24 @@ class DemandeAvisTestCase(TestCase):
             id_instructeur=cls.instructeur
         )
 
-        cls.demande_avis = DemandeAvis.objects.create(id=1, id_avis=cls.avis, id_demande=cls.demande)
+        cls.demande_avis = DossierAvis.objects.create(id=1, id_avis=cls.avis, id_demande=cls.demande)
 
     def test_is_correct_instance(self):
-        """Vérifie que l'objet créé est bien une instance de DemandeAvis"""
-        self.assertIsInstance(self.demande_avis, DemandeAvis)
+        """Vérifie que l'objet créé est bien une instance de DossierAvis"""
+        self.assertIsInstance(self.demande_avis, DossierAvis)
 
     def test_exists(self):
         """Vérifie que l'objet existe bien en base"""
-        demande_avis_test = DemandeAvis.objects.get(id=1)
+        demande_avis_test = DossierAvis.objects.get(id=1)
         self.assertTrue(demande_avis_test)
 
     def test_unique_constraint(self):
         """Vérifie qu'on ne peut pas associer deux fois le même avis à la même demande"""
         with self.assertRaises(IntegrityError):
-            DemandeAvis.objects.create(id=2, id_avis=self.avis, id_demande=self.demande)
+            DossierAvis.objects.create(id=2, id_avis=self.avis, id_demande=self.demande)
 
     def test_delete_demande_avis(self):
-        """Vérifie qu'on peut supprimer un DemandeAvis"""
+        """Vérifie qu'on peut supprimer un DossierAvis"""
         self.demande_avis.delete()
-        with self.assertRaises(DemandeAvis.DoesNotExist):
-            DemandeAvis.objects.get(id=1)
+        with self.assertRaises(DossierAvis.DoesNotExist):
+            DossierAvis.objects.get(id=1)

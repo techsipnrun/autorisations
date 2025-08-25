@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DemandeAvis
+from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, MessageDocument
 from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire
@@ -151,51 +151,78 @@ class AvisDocumentAdmin(admin.ModelAdmin):
     instructeur_nom_prenom.short_description = "Instructeur"
 
 
-@admin.register(DemandeAvis)
-class DemandeAvisAdmin(admin.ModelAdmin):
+
+class ExpertTypeFilter(admin.SimpleListFilter):
+    title = "Type d'expert"
+    parameter_name = "expert_type"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("interne", "Interne"),
+            ("externe", "Externe"),
+            ("none", "Aucun"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "interne":
+            return queryset.filter(id_avis__id_expert__id_instructeur__isnull=False)
+        if self.value() == "externe":
+            return queryset.filter(id_avis__id_expert__id_contact_externe__isnull=False)
+        if self.value() == "none":
+            return queryset.filter(
+                id_avis__id_expert__id_instructeur__isnull=True,
+                id_avis__id_expert__id_contact_externe__isnull=True,
+            )
+        return queryset
+
+
+@admin.register(DossierAvis)
+class DossierAvisAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
-        'type_demande',
-        'numero_dossier',
-        'expert_nom_prenom',
-        'instructeur_nom_prenom',
+        "id_dossier_numero",
+        "id_avis_numero",
+        "expert_interne",
+        "expert_externe",
     )
-    list_filter = (
-        'id_demande__id_dossier',
-        'id_avis__favorable',
-        'id_avis__id_expert',
-        'id_avis__id_instructeur',
-    )
+
     search_fields = (
-        'id_demande__id_dossier__numero',
-        'id_avis__id_expert__id_contact_externe__nom',
-        'id_avis__id_expert__id_instructeur__id_agent_autorisations__nom',
-        'id_avis__id_instructeur__id_agent_autorisations__nom',
+        "id_dossier__numero",
+        "id_avis__id",
+        "id_avis__id_expert__id_contact_externe__nom",
+        "id_avis__id_expert__id_contact_externe__prenom",
+        "id_avis__id_expert__id_contact_externe__raison_sociale",
+        "id_avis__id_expert__id_instructeur__id_agent_autorisations__nom",
+        "id_avis__id_expert__id_instructeur__id_agent_autorisations__prenom",
     )
-    list_per_page = 25
 
-    def type_demande(self, obj):
-        return obj.id_demande.id_demande_type.type
-    type_demande.short_description = "Type de demande"
+    list_filter = (ExpertTypeFilter,)  # ✅ Un seul filtre
 
-    def numero_dossier(self, obj):
-        return obj.id_demande.id_dossier.numero
-    numero_dossier.short_description = "N° dossier"
+    # --------- Colonnes personnalisées ---------
+    def id_dossier_numero(self, obj):
+        return obj.id_dossier.numero
+    id_dossier_numero.short_description = "Numéro dossier"
 
-    def expert_nom_prenom(self, obj):
+    def id_avis_numero(self, obj):
+        return obj.id_avis.id
+    id_avis_numero.short_description = "Numéro avis"
+
+    def expert_interne(self, obj):
         expert = obj.id_avis.id_expert
-        if expert.est_interne and expert.id_instructeur and expert.id_instructeur.id_agent_autorisations:
-            agent = expert.id_instructeur.id_agent_autorisations
-            return f"{agent.nom} {agent.prenom}"
-        elif expert.id_contact_externe:
-            return f"{expert.id_contact_externe.nom} {expert.id_contact_externe.prenom}"
+        if expert and expert.id_instructeur:
+            instr = expert.id_instructeur
+            return f"{instr.id_agent_autorisations.nom} {instr.id_agent_autorisations.prenom}"
         return "-"
-    expert_nom_prenom.short_description = "Expert"
+    expert_interne.short_description = "Expert interne"
 
-    def instructeur_nom_prenom(self, obj):
-        agent = obj.id_avis.id_instructeur.id_agent_autorisations if obj.id_avis.id_instructeur else None
-        return f"{agent.nom} {agent.prenom}" if agent else "-"
-    instructeur_nom_prenom.short_description = "Instructeur"
+    def expert_externe(self, obj):
+        expert = obj.id_avis.id_expert
+        if expert and expert.id_contact_externe:
+            contact = expert.id_contact_externe
+            if contact.nom and contact.prenom:
+                return f"{contact.nom} {contact.prenom}"
+            return contact.raison_sociale or "-"
+        return "-"
+    expert_externe.short_description = "Expert externe"
 
 
 

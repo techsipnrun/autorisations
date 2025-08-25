@@ -946,20 +946,9 @@
                     </div>
                 {% endif %}
 
-                <!-- <div class="relecture_juridique">
-                    <form id="form-relecture-juridique" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                        <label>
-                            <input type="checkbox" id="checkbox-relecture" class="checkbox-relecture" {% if dossier.relecture_juridique %}checked{% endif %}>
-                            Relecture juridique
-                        </label>
-                    </form>
-                </div> -->
-
                 
                 <div class="groupe-instructeur-info demander-relecture_juridique">
-                    <h3>Relecture juridique</h3>
+                    <h3>Relecture</h3>
 
                     {% if relecteur_juridique_message %}
                         <div class="instruction-warning">
@@ -968,7 +957,7 @@
                     {% endif %}
 
                     {% if not relecteurs_juridique_du_dossier %}
-                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture juridique</button>
+                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
                     {% else %}
                         <ul class="groupe-instructeur-liste">
                             {% for rj in relecteurs_juridique_du_dossier %}
@@ -1005,7 +994,7 @@
                             {% endfor %}
                         </ul>
 
-                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture juridique</button>
+                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
                     {% endif %}
 
                     <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
@@ -1594,7 +1583,7 @@
         }
  
         function confirmerRelectureFaite() {
-            return confirm("Confirmez-vous que la relecture juridique est faite ?");
+            return confirm("Confirmez-vous que la relecture est faite ?");
         }
 
     </script>

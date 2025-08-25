@@ -75,6 +75,7 @@ class Expert(models.Model):
 class Avis(models.Model):
 
     MODE_CONTACT_CHOICES = [
+        ("Application", "Application"),
         ("Mail", "Mail"),
         ("Téléphone", "Téléphone"),
         ("Courrier papier", "Courrier papier"),
@@ -99,7 +100,7 @@ class Avis(models.Model):
         blank=True, null=True,
         max_length=20,
         choices=MODE_CONTACT_CHOICES,  # Ajout des choix
-        default="Mail",  # Optionnel : valeur par défaut
+        default="Application",  # Optionnel : valeur par défaut
     )
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
@@ -148,19 +149,27 @@ class AvisDocument(models.Model):
                         f"(Expert {self.id_avis.id_expert.id_contact_externe.prenom} {self.id_avis.id_expert.id_contact_externe.nom} - {self.id_avis.id_expert.id_contact_externe.id_type.type})")
 
 
-class DemandeAvis(models.Model):
+class DossierAvis(models.Model):
     id = models.AutoField(primary_key=True)
-    id_avis = models.ForeignKey(Avis, models.CASCADE, db_column='id_avis')
-    id_demande = models.ForeignKey('autorisations.Demande', models.CASCADE, db_column='id_demande')
+    id_avis = models.ForeignKey(Avis, models.CASCADE, db_column="id_avis")
+    id_dossier = models.ForeignKey(
+        "autorisations.Dossier", models.CASCADE, db_column="id_dossier"
+    )
 
     class Meta:
         managed = False
-        db_table = '"avis"."demande_avis"'
-        # unique_together = (('id_avis', 'id_demande'),)
-        indexes = [
-            models.Index(fields=['id_avis', 'id_demande'], name='idx_demande_avis_unique')
+        db_table = '"avis"."dossier_avis"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["id_avis", "id_dossier"], name="dossier_avis_unique"
+            )
         ]
-        verbose_name_plural = "Demandes avis"
+        indexes = [
+            models.Index(fields=["id_avis"], name="idx_dossier_avis_id_avis"),
+            models.Index(fields=["id_dossier"], name="idx_dossier_avis_id_dossier"),
+        ]
+        verbose_name_plural = "Dossiers avis"
 
     def __str__(self):
-        return f"Demande {self.id_demande.id} associée à Avis {self.id_avis.id}"
+        return f"Dossier {self.id_dossier.numero} associée à l'avis {self.id_avis.id}"
+

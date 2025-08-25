@@ -313,7 +313,7 @@ def preinstruction_dossier(request, numero):
         "Envoyé pour signature": "envoye.png",
         "Relecture qualité": "relecture-qualite.png",
         "Validé avant signature": "valide.png",
-        "Relecture juridique": "relecture-juridique.png",
+        "Relecture": "relecture-qualite.png",
         "Passage en instruction": "envoye.png",
         "Repassage en instruction": "envoye.png",
         "Affectation au groupe": "groupe_instructeur.png",

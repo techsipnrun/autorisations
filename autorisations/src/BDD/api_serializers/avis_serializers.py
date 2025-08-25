@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from autorisations.models.models_avis import (
-    AvisNature, AvisThematique, Expert, Avis, AvisDocument, DemandeAvis
+    AvisNature, AvisThematique, Expert, Avis, AvisDocument, DossierAvis
 )
 from autorisations.models.models_instruction import Dossier
 from autorisations.models.models_utilisateurs import Instructeur
@@ -79,7 +79,7 @@ class AvisDocumentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class DemandeAvisSerializer(serializers.ModelSerializer):
+class DossierAvisSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DemandeAvis
+        model = DossierAvis
         fields = '__all__'
