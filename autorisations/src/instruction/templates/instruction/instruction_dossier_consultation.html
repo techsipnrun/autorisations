@@ -32,34 +32,70 @@
                 </a>
             </div>
 
+            {% if messages %}
+                <div class="django-messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
 
             <div class="table_consultations">
                  <table>
                     <thead>
                         <tr>
                             <th>Statut</th>
-                            <th>N° Avis</th>
                             <th>Expert</th>
+                            <th>N° Avis</th>
                             <th>Demandeur</th>
                             <th>Date de demande</th>
+                            <th>Réponse</th>
                             <th>Date de réponse</th>
                         </tr>
                     </thead>
                     <tbody>
-                        
-                            <tr class="clickable-row">
-                                <td>xxxx</td>
-                                <td>xxxx</td>
-                                <td>xxxx</td>
-                                <td>xxxx</td>
-                                <td>xxxx</td>
-                                <td>xxxx</td>
+
+                        {% for a in avis %}
+                            <tr class="clickable-row {% if a.statut != 'Brouillon' %} ligne_en_gras {% endif %}" 
+                            data-href="{% if a.statut == 'Brouillon' %}
+                                            {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
+                                        {% else %}
+                                            #
+                                        {% endif %}">
+                                <td class="statut_avis">
+                                    {{ a.statut }}
+                                    {% if a.statut == "Envoyé" %}
+                                        <img src="{% static 'instruction/img/envoye.png' %}" alt="Demande envoyée" title="Voir la demande envoyée" class="avis_envoye_icon">
+                                    {% elif a.statut == "Brouillon" %}
+                                        <img src="{% static 'instruction/img/brouillon.png' %}" alt="Brouillon de la demande d'avis" title="Voir le brouillon" class="avis_brouillon_icon">
+                                    {% endif %}
+                                </td>
+                                <td>{{ a.expert }}</td>
+                                <td>{{ a.numero }}</td>
+                                <td>{{ a.demandeur }}</td>
+                                <td>{{ a.date_demande|date:"d/m/Y" }}</td>
+                                <td>{{ a.favorable }}</td>
+                                <td class="cell-suppr">
+                                    {{ a.date_reponse|date:"d/m/Y" }}
+                                    <!-- Bouton supprimer directement dans la cellule -->
+                                    <form method="post" action="{% url 'supprimer_avis' %}" class="form-supprimer-avis">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="avis_id" value="{{ a.numero }}">
+                                        <button type="submit" class="btn-supprimer-avis" title="Supprimer l'avis">
+                                            <!-- <span class="croix-retirer">✕</span> -->
+                                             <img src="{% static 'instruction/img/supprimer.png' %}" alt="Supprimer l'avis" title="Supprimer l'avis" class="supprimer_avis_icon">
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
-                      
-                            <!-- <tr>
-                                <td colspan="6">Aucun avis demandé</td>
-                            </tr> -->
-                    
+                
+                        {% empty %}
+                            <tr><td colspan="7" class="aucun_doss">Aucune demande d'avis faite pour ce dossier.</td></tr>
+                        {% endfor %}
+
                     </tbody>
                 </table>
             </div>
@@ -92,13 +128,37 @@
                 
                 <!-- Lien dossier à droite -->
                 <div class="lien_dossier">
-                    <a href="#" onclick="copierChemin('{{ dossier.emplacement }}')">
+                    <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll(".clickable-row").forEach(function(row) {
+                row.addEventListener("click", function() {
+                    const href = this.getAttribute("data-href");
+                    if (href && href !== "#") {
+                        window.location.href = href;
+                    }
+                });
+            });
+        });
+
+        // Copier l'emplacement du Dossier
+        function copierChemin(chemin) {
+            navigator.clipboard.writeText(chemin).then(() => {
+                alert("Chemin copié dans le presse-papiers :\n" + chemin);
+            }).catch(err => {
+                console.error("Erreur copie chemin :", err);
+                alert("Impossible de copier le chemin");
+            });
+        }
+    </script>
+
 
 </body>
 </html>

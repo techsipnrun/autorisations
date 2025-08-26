@@ -5,12 +5,25 @@ from django.contrib import admin
 
 urlpatterns = [
 
+    # AVIS
+    path("instruction/<int:num_dossier>/ajouter_avis", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
+    path("instruction/<int:num_dossier>/avis/<int:avis_id>/edit", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
+    path("instruction/<int:num_dossier>/confirmer_ajout_avis", avis.instruction_dossier_confirmer_ajout_avis, name="instruction_dossier_confirmer_ajout_avis"),
+    path("instruction/<int:num_dossier>/confirmer-avis/<int:avis_id>/",avis.instruction_dossier_confirmer_ajout_avis,name="instruction_dossier_confirmer_ajout_avis"),
+    path("instruction/<int:num_dossier>/enregistrer_brouillon_avis", avis.instruction_dossier_enregistrer_brouillon_avis, name="instruction_dossier_enregistrer_brouillon_avis"),
+    path("instruction/<int:num_dossier>/enregistrer_brouillon_avis/<int:avis_id>/", avis.instruction_dossier_enregistrer_brouillon_avis, name="instruction_dossier_enregistrer_brouillon_avis"),
+    path("instruction/<int:num_dossier>/consultation", avis.instruction_dossier_consultation, name="instruction_dossier_consultation"),
+    path("instruction/supprimer_avis", avis.supprimer_avis, name="supprimer_avis"),
+    
+    
+    path('avis/', views.avis, name='avis_view'),
+    
+
     # INSTRUCTION
     path('instruction/', instruction.accueil, name='accueil_view'),
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
     path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
-    path("instruction/<int:num_dossier>/consultation", instruction.instruction_dossier_consultation, name="instruction_dossier_consultation"),
     path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
@@ -95,9 +108,5 @@ urlpatterns = [
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
 
 
-    # AVIS
-    path("instruction/<int:num_dossier>/ajouter_avis", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
-    path("instruction/<int:num_dossier>/confirmer_ajout_avis", avis.instruction_dossier_confirmer_ajout_avis, name="instruction_dossier_confirmer_ajout_avis"),
-    path('avis/', views.avis, name='avis_view'),
     
 ]

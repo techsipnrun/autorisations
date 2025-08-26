@@ -70,13 +70,17 @@ tbody td {
     word-wrap: break-word;
 }
 
-
-/* Alternating row colors */
-tbody tr:nth-child(even) {
-    background-color: #f0f0f0;
+.ligne_en_gras {
+    font-weight: bold;
 }
 
-tbody td[colspan="6"] {
+
+/* Alternating row colors */
+/* tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+} */
+
+tbody td[colspan="7"] {
     text-align: center;
     font-style: italic;
     color: #555;
@@ -85,4 +89,67 @@ tbody td[colspan="6"] {
 .clickable-row:hover {
     background-color: #eef8ee;
     cursor: pointer;
+}
+
+
+/* Icon Brouillon et Envoyé */
+.statut_avis{
+    gap: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.avis_icon {
+    width: 18px;
+    height: 18px;
+}
+
+
+/* supprimer dossier */
+.cell-suppr {
+    position: relative; /* pour que absolute se base sur la cellule */
+}
+
+/* Positionnement absolu du bouton à droite */
+.form-supprimer-avis {
+    position: absolute;
+    top: 50%;
+    right: -38px; /* décale à droite en dehors de la cellule */
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.clickable-row:hover .form-supprimer-avis {
+    opacity: 0.6;
+}
+
+
+.form-supprimer-avis:hover {
+    opacity: 1 !important;
+}
+
+.btn-supprimer-avis {
+    all: unset;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 3.5rem;
+    color: #a00;
+}
+
+/* Icône supprimer */
+.supprimer_avis_icon {
+    width: 25px; 
+    height: 25px;
+    display: block;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+
+
+/* Messages d'erreurs */
+.django-messages{
+    color: rgb(172, 2, 2);
+    font-weight: bold;
 }

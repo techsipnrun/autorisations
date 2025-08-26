@@ -20,6 +20,7 @@ admin.site.index_title = "Portail d'administration"
 class AvisAdmin(admin.ModelAdmin):
     list_display = (
         'id',
+        'statut',
         'nature',
         'thematique',
         'nom_dossier',
@@ -27,7 +28,7 @@ class AvisAdmin(admin.ModelAdmin):
         'expert_nom_prenom',
         'instructeur_nom_prenom',
     )
-    list_filter = ('id_avis_nature', 'id_avis_thematique', 'favorable')
+    list_filter = ('id_avis_nature', 'id_avis_thematique', 'favorable', 'statut')
     search_fields = (
         'id_dossier__nom_dossier',
         'id_expert__id_instructeur__id_agent_autorisations__nom',

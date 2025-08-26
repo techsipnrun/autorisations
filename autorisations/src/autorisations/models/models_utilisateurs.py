@@ -70,6 +70,20 @@ class ContactExterne(models.Model):
                 name='contact_externe_identite_check'
             )
         ]
+    
+    def get_display_name(self):
+        """
+        Retourne un affichage lisible selon les infos disponibles.
+        """
+        if self.nom and self.prenom:
+            if self.raison_sociale:
+                return f"{self.nom} {self.prenom} ({self.raison_sociale})"
+            return f"{self.nom} {self.prenom}"
+        if self.raison_sociale:
+            return f"({self.raison_sociale})"
+        if self.organisation:
+            return f"({self.organisation})"
+        return self.email or f"Contact {self.id}"
 
     def __str__(self):
         if self.id_type.type != 'personne_morale' :

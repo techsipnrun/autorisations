@@ -19,7 +19,6 @@ def get_first_id(model, **filters):
 
 
 def update_fields(obj, data: dict, date_fields: list = []):
-    logger = logging.getLogger("SYNCHRONISATION")
     updated = []
     for field, new_val in data.items():
         old_val = getattr(obj, field)

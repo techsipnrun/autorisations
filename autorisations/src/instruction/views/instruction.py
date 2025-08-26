@@ -832,19 +832,6 @@ def actualiser_dossier(request, num_dossier):
 
 
 
-
-@login_required
-def instruction_dossier_consultation(request, num_dossier):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
-    return render(request, "instruction/instruction_dossier_consultation.html", {
-        "dossier": dossier,
-        "is_formulaire_active": False,
-        "is_messagerie_active": False,
-        "is_consultation_active": True,
-    })
-
-
-
 @login_required
 def sauvegarder_note_dossier(request):
     

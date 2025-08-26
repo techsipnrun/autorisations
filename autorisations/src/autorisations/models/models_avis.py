@@ -55,6 +55,13 @@ class Expert(models.Model):
         if not self.id_instructeur and not self.id_contact_externe:
             raise ValidationError("Un expert doit être soit interne (id_instructeur renseigné), soit externe (id_contact_externe renseigné).")
 
+        # cohérence avec est_interne
+        if self.est_interne is True and not self.id_instructeur:
+            raise ValidationError("Si l'expert est interne, alors 'id_instructeur' doit être renseigné.")
+
+        if self.est_interne is False and not self.id_contact_externe:
+            raise ValidationError("Si l'expert est externe, alors 'id_contact_externe' doit être renseigné.")
+    
         # Définir automatiquement 'est_interne'
         if self.id_instructeur:
             self.est_interne = True
@@ -67,8 +74,8 @@ class Expert(models.Model):
 
     def __str__(self):
         if self.est_interne :
-            return f"{self.id_instructeur} (Interne au Parc)"
-        return f"{self.id_contact_externe}"
+            return f"Expert.e : {self.id_instructeur} (Interne au Parc)"
+        return f"Expert.e : {self.id_contact_externe}"
 
 
 
@@ -79,6 +86,11 @@ class Avis(models.Model):
         ("Mail", "Mail"),
         ("Téléphone", "Téléphone"),
         ("Courrier papier", "Courrier papier"),
+    ]
+
+    STATUT_CHOICES = [
+        ("Brouillon", "Brouillon"),
+        ("Envoyé", "Envoyé"),
     ]
 
     id = models.AutoField(primary_key=True)
@@ -92,9 +104,9 @@ class Avis(models.Model):
     id_expert_ds = models.CharField(unique=True, blank=True, null=True)
     note = models.CharField(blank=True, null=True)
     favorable = models.BooleanField(blank=True, null=True)
-    date_limite = models.DateTimeField()
+    date_limite = models.DateTimeField(blank=True, null=True)
     date_presentation = models.DateTimeField(blank=True, null=True)
-    date_demande_avis = models.DateTimeField()
+    date_demande_avis = models.DateTimeField(blank=True, null=True)
     date_reponse_avis = models.DateTimeField(blank=True, null=True)
     mode_contact = models.CharField(
         blank=True, null=True,
@@ -102,6 +114,12 @@ class Avis(models.Model):
         choices=MODE_CONTACT_CHOICES,  # Ajout des choix
         default="Application",  # Optionnel : valeur par défaut
     )
+    statut = models.CharField(
+        max_length=10,
+        choices=STATUT_CHOICES,
+        default="Brouillon",
+    )
+    formulation = models.TextField()
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
@@ -116,14 +134,48 @@ class Avis(models.Model):
         ]
         verbose_name_plural = "Avis"
 
+    def clean(self):
+
+        if self.statut == "Brouillon":
+            # Obligatoires
+            champs_obligatoires = {
+                "id_avis_nature": self.id_avis_nature,
+                "id_avis_thematique": self.id_avis_thematique,
+                "mode_contact": self.mode_contact,
+                "id_dossier": self.id_dossier,
+                "id_instructeur": self.id_instructeur,
+            }
+        elif self.statut == "Envoyé":
+            champs_obligatoires = {
+                "id_avis_nature": self.id_avis_nature,
+                "id_avis_thematique": self.id_avis_thematique,
+                "mode_contact": self.mode_contact,
+                "id_dossier": self.id_dossier,
+                "date_demande_avis": self.date_demande_avis,
+                "id_expert": self.id_expert,
+                "id_instructeur": self.id_instructeur,
+            }
+        else:
+            champs_obligatoires = {}
+
+        erreurs = {}
+        for champ, valeur in champs_obligatoires.items():
+            if not valeur:
+                erreurs[champ] = f"{champ} est obligatoire quand le statut est {self.statut}"
+
+        if erreurs:
+            raise ValidationError(erreurs)
+        
+
     def __str__(self):
+        avis_id = f" {self.pk}" if self.pk else ""
         if self.id_expert.est_interne :
             return (
-                f"{self.id_avis_nature.nature} {self.id} - Expert {self.id_expert.id_instructeur.id_agent_autorisations.prenom} "
+                f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_instructeur.id_agent_autorisations.prenom} "
                 f"{self.id_expert.id_instructeur.id_agent_autorisations.nom} (Interne au Parc) {' : Favorable' if self.favorable else ''}"
             )
         return (
-                f"{self.id_avis_nature.nature} {self.id} - Expert {self.id_expert.id_contact_externe.prenom} "
+                f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_contact_externe.prenom} "
                 f"{self.id_expert.id_contact_externe.nom} ({self.id_expert.id_contact_externe.id_type.type}) {' : Favorable' if self.favorable else ''}"
             )
 

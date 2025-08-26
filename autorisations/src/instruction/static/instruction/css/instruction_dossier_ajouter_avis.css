@@ -2,7 +2,7 @@
     display: flex;
     gap: 2rem;
     padding: 4rem;
-    margin-bottom: 3rem;
+    margin-bottom: 8rem;
 }
 
 .avis {
@@ -28,7 +28,7 @@
 
 
 /* Bouton confirmer */
-.confirmer-nouvel-avis {
+/* .confirmer-nouvel-avis {
     position: absolute;
     right: 1rem;
     bottom: 1rem;
@@ -43,7 +43,7 @@
 
 .confirmer-nouvel-avis:hover {
     background-color: #e6ffed;
-}
+} */
 
 /* Formulaire */
 .attribut_avis {
@@ -69,7 +69,10 @@
     border: 2px solid #006131;
     border-radius: 4px;
     font-size: 1rem;
+    cursor: pointer;
 }
+
+
 
 /* Affichage conditionnel pour le choix de l'expert interne/externe */
 #bloc_expert_externe, #bloc_expert_interne {
@@ -80,7 +83,7 @@
 /* Champs de texte libre */
 .attribut_avis textarea {
     vertical-align: top;
-    width: 80%;
+    width: 70%;
     min-height: 80px;
     resize: vertical; /* permet d'agrandir seulement en hauteur */
     padding: 10px;
@@ -92,6 +95,10 @@
     box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
+
+/* #formulation_avis {
+    width: 70%;
+} */
 
 .texte_libre {
     align-items: flex-start;
@@ -111,3 +118,90 @@
 }
 
 
+
+
+
+/* Bouton confirmer */
+
+.btn-dropdown {
+    position: absolute;
+    display: inline-flex;
+    right: 1rem;
+    bottom: 1rem;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+
+.btn-dropdown .main-btn {
+    background-color: #006131;
+    border-right: 1px solid #fff;
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+    border-bottom-left-radius: 8px;
+    border-top-left-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.btn-dropdown .main-btn:hover {
+    background-color: #004e27;
+}
+
+.btn-dropdown .toggle-btn {
+
+    background-color: #006131;
+    color: #fff;
+    font-size: large;
+    border-bottom-right-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 0 0.5rem;
+    cursor: pointer;
+
+}
+
+.btn-dropdown .toggle-btn:hover {
+    background-color: #004e27;
+}
+
+.btn-dropdown .dropdown-content {
+    display: none;
+    position: absolute;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    z-index: 1000;
+}
+
+.btn-dropdown .dropdown-content button {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.btn-dropdown .dropdown-content button:hover {
+    background-color: #f3f3f3;
+}
+
+.btn-dropdown.show .dropdown-content {
+    display: block;
+}
+
+
+/* Messages d'erreurs */
+.django-messages{
+    color: rgb(172, 2, 2);
+    font-weight: bold;
+}

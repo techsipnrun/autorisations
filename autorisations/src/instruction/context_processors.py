@@ -100,7 +100,7 @@ def breadcrumb_context(request):
         if numero:
             items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
             items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
-            items.append({"label": "Nouvelle demande", "url": ""})
+            items.append({"label": "Nouvelle demande d'avis", "url": ""})
 
 
     return {"breadcrumb_items": items}

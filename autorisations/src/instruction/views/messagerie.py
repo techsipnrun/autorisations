@@ -166,6 +166,7 @@ def instruction_dossier_messagerie(request, num_dossier):
         logger.warning(f"[DOSSIER {dossier.numero}] Affichage messagerie : Le dossier n'a pas de bénéficaire de renseigné")
 
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
         "messages": messages_fmt,
         "is_formulaire_active": False,
