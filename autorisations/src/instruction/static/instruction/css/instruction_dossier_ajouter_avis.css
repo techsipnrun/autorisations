@@ -26,25 +26,6 @@
 
 
 
-
-/* Bouton confirmer */
-/* .confirmer-nouvel-avis {
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
-    text-decoration: none;
-    padding: 0.5rem 1rem;
-    border: 1px solid #006131;
-    border-radius: 4px;
-    color: #006131;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-}
-
-.confirmer-nouvel-avis:hover {
-    background-color: #e6ffed;
-} */
-
 /* Formulaire */
 .attribut_avis {
     display: flex;
@@ -96,9 +77,6 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-/* #formulation_avis {
-    width: 70%;
-} */
 
 .texte_libre {
     align-items: flex-start;
@@ -113,11 +91,9 @@
 }
 
 /* Pièce jointe */
-.bloc_pj {
+.bloc_pj_demande_avis, .bloc_pj_projet_acte, .bloc_pj_rapport_cs{
     display: none;
 }
-
-
 
 
 

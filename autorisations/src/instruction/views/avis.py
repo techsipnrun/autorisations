@@ -1,16 +1,22 @@
 import logging
 import os
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
-from autorisations.models.models_instruction import Dossier
+from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_avis import Avis, AvisNature, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
+from autorisations.models.models_documents import MessageDocument
+from instruction.utils import create_message_avis_bdd
 from synchronisation.src.utils.model_helpers import update_fields
-
+from pathlib import Path
+from django.utils.timezone import localtime
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 logger = logging.getLogger('ORM_DJANGO')
 
@@ -185,6 +191,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         except Exception as e:
             messages.error(request, f"Erreur lors de la récupération de l'expert externe : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
     if brouillon_avis :
 
@@ -209,9 +216,30 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     f"Changements: {', '.join(updated_fields)}"
                 )
         except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Avis {brouillon_avis.id} : Message supprimé car il y a eu une erreur lors de l'envoi de l'avis")
             messages.error(request, f"[ENVOI AVIS DOSSIER {dossier.numero}] Erreur lors de la mise à jour de l'avis {brouillon_avis} : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        # Create message (formulation)
+        try:
+            msg = Message.objects.create(
+                body=brouillon_avis.formulation,
+                date_envoi=timezone.now(),
+                piece_jointe=False,  #A changer par la suite?
+                email_emetteur=request.user.email,
+                id_avis=brouillon_avis,
+                lu=False,
+            )
+
+            logger.info(f"[DOSSIER {dossier.numero}] Avis {brouillon_avis.id} : message envoyé à {brouillon_avis.id_expert}")
+
+        except Exception as e:
+            brouillon_avis.statut = "Brouillon"
+            brouillon_avis.save()
+            messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
         # NOTIF MAIL à l'expert
             
     else :
@@ -281,6 +309,12 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
     formulation_avis = request.POST.get("formulation_avis")
     expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
     expert_externe_id = request.POST.get("expert_externe") # contact externe ici
+    fichier = request.FILES.get("pj_avis")
+
+    extension = Path(fichier.name).suffix.lower()
+    if extension not in {".pdf", ".doc", ".docx", ".odt"} :
+        messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     try:
         nature = AvisNature.objects.get(id=nature_id)
@@ -396,4 +430,140 @@ def supprimer_avis(request):
     except Exception as e:
         messages.error(request, f"Erreur lors de la suppressino de l'avis {avis} : {e}")
 
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+@login_required
+def instruction_dossier_avis(request, num_dossier, avis_id):
+
+    # Récupérer le dossier et l'avis
+    dossier = get_object_or_404(Dossier, numero=num_dossier)
+    avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+
+    # Liste des emails des instructeurs du dossier
+    liste_email_instructeurs = [
+        i.email for i in Instructeur.objects.filter(dossierinstructeur__id_dossier=dossier)
+    ]
+
+    # Messages non lus envoyés par d’autres que les instructeurs
+    messages_non_lus = (
+        Message.objects.filter(id_avis=avis, lu=False)
+        .exclude(email_emetteur__in=liste_email_instructeurs)
+    )
+
+    ids_non_lus = list(messages_non_lus.values_list("id", flat=True))
+
+
+    # Affichage messages
+    raw_messages = Message.objects.filter(id_avis=avis).order_by("date_envoi")
+    messages_fmt = []
+    
+    for msg in raw_messages:
+        
+        nouv_mess = 'non'
+        if ids_non_lus != []:
+            if msg.id in ids_non_lus :
+                nouv_mess = 'oui'
+
+        emetteur = msg.email_emetteur.lower().strip()
+
+        # left = Message reçu du demandeur, right = Message émis par instructeur
+        align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
+        date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
+
+        # Recherche de la pièce jointe liée au message
+        pj_title = pj_emplacement = None
+        if msg.piece_jointe:
+
+            message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
+            if message_doc and message_doc.id_document:
+                
+                pj_title, pj_emplacement = message_doc.id_document.titre, message_doc.id_document.emplacement
+
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
+        
+
+
+    return render(request, 'instruction/instruction_dossier_avis.html', {
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "dossier": dossier,
+        "avis": avis,
+        "messages_avis": messages_fmt,
+        "is_formulaire_active": False,
+        "is_messagerie_active": False,
+        "is_consultation_active": True,
+    })
+
+
+
+
+@require_POST
+@csrf_exempt
+def envoyer_message_avis(request):
+
+
+    # Récupération message et PJ de l'instructeur
+    avis_id = request.POST.get("avis_id")
+    dossier_numero = request.POST.get("dossier_numero")
+    body = request.POST.get("body")
+    fichier = request.FILES.get("piece_jointe")
+
+    if not body:
+        messages.error(request, "Message vide")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # Vérification taille fichier (20 Mo max)
+    if fichier and fichier.size > 20 * 1024 * 1024:
+        messages.error(request, "Fichier trop volumineux. Taille maximale : 20 Mo.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # Récupérer le dossier
+    avis = get_object_or_404(Avis, id=avis_id)
+    dossier = get_object_or_404(Dossier, numero=dossier_numero)
+
+    # Récupérer l'instructeur
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+
+    if not instructeur :
+        logger.error(f"[DOSSIER {dossier_numero} ] {avis} - Erreur lors de l'envoi du message : L'instructeur ({request.user}) n'existe pas")
+        messages.error(request, f"Echec de l'envoi du message : Votre profil 'Instructeur' n'existe pas")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+ 
+    try: 
+        if fichier:
+
+            fichier.seek(0)
+            fichier_bdd = SimpleUploadedFile(
+                name=fichier.name,
+                content=fichier.read(),
+                content_type=fichier.content_type
+            )
+            create_message_avis_bdd(
+                body=body,
+                email_emetteur=request.user.email,
+                dossier_obj=dossier,
+                avis_obj=avis,
+                document_file=fichier_bdd,
+                document_title=fichier.name,
+                document_format_str=fichier.name.split('.')[-1].lower(),
+                document_description=f"Pièce jointe instructeur dans la messagerie de l'avis {avis.id} du dossier {dossier_numero}",
+            )
+
+        else:
+            create_message_avis_bdd(
+                body=body,
+                email_emetteur=request.user.email,
+                dossier_obj=dossier,
+                avis_obj=avis
+            )
+
+        
+    except Exception as e:
+
+        logger.error(f"[DOSSIER {dossier_numero} ] {avis} - Erreur lors de l'envoi du message : {e}")
+        messages.error(request, f"Erreur lors de l'envoi du message : {e}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
     return redirect(request.META.get("HTTP_REFERER", "/"))

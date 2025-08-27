@@ -72,7 +72,7 @@ h1 {
     padding: 1rem;
     background-color: #f9f9f9;
     border-radius: 10px;
-    max-height: 600px;
+    height: 40vh;
     overflow-y: auto;
     border: 1px solid #ccc;
 }
@@ -184,7 +184,7 @@ h1 {
 }
 
 .pj-actions button {
-    background-color: #00455c;
+    background-color: #006131;
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -200,7 +200,7 @@ h1 {
 }
 
 .pj-actions button:hover {
-    background-color: #0072a3;
+    background-color: #004e27;
 }
 
 .pj-input-wrapper {
@@ -231,4 +231,11 @@ h1 {
     margin: 1rem 0;
     color: black;
     font-size: large;
+}
+
+
+/* Messages d'erreurs */
+.django-messages{
+    color: rgb(172, 2, 2);
+    font-weight: bold;
 }

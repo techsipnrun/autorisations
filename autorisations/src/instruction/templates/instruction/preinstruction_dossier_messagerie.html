@@ -36,7 +36,7 @@
             </div>
             
             <div class="chat-container">
-                {% for msg in messages %}
+                {% for msg in messages_doss %}
                     <div class="message message-{{ msg.align }}">
                         <div class="msg-body">
                             <p> {{ msg.body|safe }}</p>
@@ -53,7 +53,7 @@
                                 <!-- Formulaire pour supprimer le message -->
                                 <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form" style="display:inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="delete-button"></button>
+                                    <button type="submit" class="delete-button" title="Supprimer le message"></button>
                                 </form>
                             {% endif %}
                         </span>
@@ -62,6 +62,16 @@
                     <p>Aucun message pour ce dossier.</p>
                 {% endfor %}
             </div>
+
+            {% if messages %}
+                <div class="django-messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
             <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
                 {% csrf_token %}
@@ -72,7 +82,7 @@
                         <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
                         <span class="pj-max">(20 Mo max)</span>
                     </div>
-                    <button type="submit">Envoyer</button>
+                    <button type="submit" title="Envoyer le message">Envoyer</button>
                 </div>
             </form>
         </div>

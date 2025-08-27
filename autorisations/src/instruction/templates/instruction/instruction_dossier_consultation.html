@@ -63,7 +63,7 @@
                             data-href="{% if a.statut == 'Brouillon' %}
                                             {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
                                         {% else %}
-                                            #
+                                            {% url 'instruction_dossier_avis' dossier.numero a.numero %}
                                         {% endif %}">
                                 <td class="statut_avis">
                                     {{ a.statut }}

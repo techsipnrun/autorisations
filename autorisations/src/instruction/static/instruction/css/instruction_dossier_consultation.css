@@ -9,6 +9,14 @@
     width: 70%;
 }
 
+.avis h1 {
+    color: #006131;
+    text-align: start;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0 0 1rem 0;
+}
+
 /* Bouton Ajouter Avis */
 .nouvelle_demande_avis{
     margin-top: 4rem;

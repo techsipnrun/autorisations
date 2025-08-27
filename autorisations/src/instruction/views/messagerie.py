@@ -90,7 +90,7 @@ def preinstruction_dossier_messagerie(request, numero):
 
     return render(request, 'instruction/preinstruction_dossier_messagerie.html', {
         "dossier": dossier,
-        "messages": messages_fmt,
+        "messages_doss": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": True,
         "beneficiaire": beneficiaire,
@@ -168,7 +168,7 @@ def instruction_dossier_messagerie(request, num_dossier):
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
-        "messages": messages_fmt,
+        "messages_doss": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": True,
         "beneficiaire": beneficiaire,
@@ -192,14 +192,14 @@ def envoyer_message_dossier(request, numero):
     fichier = request.FILES.get("piece_jointe")
 
     if not body:
-        logger.warning(f"[DOSSIER {dossier.numero}] Message vide envoyé par {request.user}")
-        return HttpResponseBadRequest("Message vide")
+        messages.error(request, "Message vide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
     
     # Vérification taille fichier (20 Mo max)
     if fichier and fichier.size > 20 * 1024 * 1024:
         messages.error(request, "Fichier trop volumineux. Taille maximale : 20 Mo.")
         logger.warning(f"[DOSSIER {dossier.numero}] {request.user} a voulu joindre un document > 20Mo à son message.")
-        return redirect('preinstruction_dossier_messagerie', numero=numero)
+        return redirect(request.META.get("HTTP_REFERER", "/"))
     
     # Récupérer le dossier
     dossier = get_object_or_404(Dossier, numero=numero)
@@ -209,7 +209,7 @@ def envoyer_message_dossier(request, numero):
 
     if not dossier.id_ds or not instructeur or not instructeur.id_ds:
         logger.error(f"[DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas")
-        return HttpResponse("Session incomplète", status=401)
+        return HttpResponse(f"Session incomplète [DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas", status=401)
     
     tmp_file_path = None
     # PUT Message sur D-S
@@ -268,7 +268,11 @@ def supprimer_message(request, id):
         suppr_msg_DS(message)
         message.delete()
         logger.info(f"[DOSSIER {message.id_dossier.numero}] Message {id} supprimé de la BDD")
-        return redirect('preinstruction_dossier_messagerie', numero=message.id_dossier.numero)
+        referer = request.META.get("HTTP_REFERER", "")
+        if "preinstruction" in referer:
+            return redirect("preinstruction_dossier_messagerie", numero=message.id_dossier.numero)
+        else:
+            return redirect("instruction_dossier_messagerie", num_dossier=message.id_dossier.numero)
     
     except Exception as e:
         logger.error(f"[DOSSIER {message.id_dossier.numero}] Erreur lors de la suppression du message {id} par {request.user}: {e}")

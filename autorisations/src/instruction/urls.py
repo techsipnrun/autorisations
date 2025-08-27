@@ -13,7 +13,9 @@ urlpatterns = [
     path("instruction/<int:num_dossier>/enregistrer_brouillon_avis", avis.instruction_dossier_enregistrer_brouillon_avis, name="instruction_dossier_enregistrer_brouillon_avis"),
     path("instruction/<int:num_dossier>/enregistrer_brouillon_avis/<int:avis_id>/", avis.instruction_dossier_enregistrer_brouillon_avis, name="instruction_dossier_enregistrer_brouillon_avis"),
     path("instruction/<int:num_dossier>/consultation", avis.instruction_dossier_consultation, name="instruction_dossier_consultation"),
+    path("instruction/<int:num_dossier>/consultation/<int:avis_id>/", avis.instruction_dossier_avis, name="instruction_dossier_avis"),
     path("instruction/supprimer_avis", avis.supprimer_avis, name="supprimer_avis"),
+    path("instruction/envoyer_message_avis/", avis.envoyer_message_avis, name="envoyer_message_avis"),
     
     
     path('avis/', views.avis, name='avis_view'),

@@ -88,32 +88,6 @@ def create_message_bdd(
 
             try:
 
-                # # 2. Créer le Document
-                # # Récupérer ou créer le format et la nature
-                # doc_format, _ = DocumentFormat.objects.get_or_create(format=document_format_str)
-                # doc_nature, _ = DocumentNature.objects.get_or_create(nature=document_nature_str)
-
-                # # Définir le chemin de destination
-                # repertoire_annexes = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_obj.emplacement, "Annexes")
-                # emplacement = os.path.join(repertoire_annexes, document_title)
-
-                # # Créer le répertoire si besoin
-                # os.makedirs(repertoire_annexes, exist_ok=True)
-
-                # with open(emplacement, 'wb+') as dest:
-                #     for chunk in document_file.chunks():
-                #         dest.write(chunk)
-
-                # doc = Document.objects.create(
-                #     id_format=doc_format,
-                #     id_nature=doc_nature,
-                #     emplacement=emplacement,
-                #     titre=document_title,
-                #     description=document_description or "",
-                #     url_ds=url_ds,
-                # )
-
-
                 # 2. Créer le Document
                 # Récupérer ou créer le format et la nature
                 doc_format, _ = DocumentFormat.objects.get_or_create(format=document_format_str)
@@ -177,3 +151,5 @@ def create_message_bdd(
     except Exception as e:
         logger.exception(f"[DOSSIER {dossier_obj.numero}] Échec de création du message")
         raise  # pour remonter l'erreur plus haut si besoin
+
+

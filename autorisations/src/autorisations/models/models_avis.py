@@ -74,8 +74,8 @@ class Expert(models.Model):
 
     def __str__(self):
         if self.est_interne :
-            return f"Expert.e : {self.id_instructeur} (Interne au Parc)"
-        return f"Expert.e : {self.id_contact_externe}"
+            return f"{self.id_instructeur} (Interne au Parc)"
+        return f"{self.id_contact_externe}"
 
 
 

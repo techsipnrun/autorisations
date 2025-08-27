@@ -484,6 +484,23 @@ class DossierChampAdmin(admin.ModelAdmin):
     nom_champ_limite.short_description = "Nom du champ"
 
 
+class SourceListFilter(admin.SimpleListFilter):
+    title = "Source"
+    parameter_name = "source"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("avis", "Avis"),
+            ("petitionnaire", "Demande pétitionnaire"),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == "avis":
+            return queryset.filter(id_avis__isnull=False)
+        if self.value() == "petitionnaire":
+            return queryset.filter(id_dossier__isnull=False)
+        return queryset
+
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = (
@@ -493,8 +510,9 @@ class MessageAdmin(admin.ModelAdmin):
         'numero_dossier',
         'numero_avis',
         'piece_jointe_bool',
+        "source",
     )
-    list_filter = ('piece_jointe', 'email_emetteur', 'date_envoi', 'lu')
+    list_filter = ('piece_jointe', 'email_emetteur', 'date_envoi', 'lu', SourceListFilter)
     search_fields = (
         'email_emetteur',
         'body',
@@ -515,6 +533,14 @@ class MessageAdmin(admin.ModelAdmin):
         return obj.piece_jointe
     piece_jointe_bool.boolean = True
     piece_jointe_bool.short_description = "Contient pièce jointe"
+
+    def source(self, obj):
+        if obj.id_avis:
+            return "Avis"
+        elif obj.id_dossier:
+            return "Demande pétitionnaire"
+        return "-"
+    source.short_description = "Source"
 
 
 @admin.register(DossierGroupe)

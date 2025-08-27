@@ -1,0 +1,17 @@
+/* ---------------------------------------------------------------- */
+/*            Informations Avis - Partie de droite               */
+/* ---------------------------------------------------------------- */
+
+.infos-avis {
+    padding: 1rem;
+    margin-top: 5.3rem;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+}
+
+.infos-avis p {
+    margin: 1rem 0;
+    color: black;
+    font-size: large;
+}

@@ -74,10 +74,19 @@
 
                     </div>
 
-                    <div class="attribut_avis" id="bloc_pj">
-                        <label for="pj_avis">Joindre la demande d'avis* :</label>
-                        <input type="file" id="pj_avis" name="pj_avis"
-                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <div class="attribut_avis" id="bloc_pj_demande_avis">
+                        <label for="pj_avis">Joindre la demande d'avis (Word)* :</label>
+                        <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx">
+                    </div>
+
+                    <div class="attribut_avis" id="bloc_pj_projet_acte">
+                        <label for="pj_avis">Joindre le projet d'acte (PDF)* :</label>
+                        <input type="file" id="pj_projet_acte" name="pj_projet_acte" accept=".pdf">
+                    </div>
+
+                    <div class="attribut_avis" id="bloc_pj_rapport_cs">
+                        <label for="pj_avis">Joindre le rapport d'avis du CS (PDF) :</label>
+                        <input type="file" id="pj_rapport_cs" name="pj_rapport_cs" accept=".pdf">
                     </div>
 
                     
@@ -126,7 +135,6 @@
                     <div class="attribut_avis texte_libre">
                         <label for="formulation_avis">Formulation de l'avis* :</label>
                         <textarea id="formulation_avis" name="formulation_avis" rows="5" placeholder="Bonjour, vous trouverez ci-joint la demande d'avis...">{{ avis.formulation|default_if_none:"" }}</textarea>
-
                     </div>
 
                     {% if messages %}
@@ -229,10 +237,14 @@
             const natureSelect = document.getElementById("nature");
             const blocInterne = document.getElementById("bloc_expert_interne");
             const blocExterne = document.getElementById("bloc_expert_externe");
-            const blocPJ = document.getElementById("bloc_pj");
+            const blocPJ_demandeAvis = document.getElementById("bloc_pj_demande_avis");
+            const blocPJ_rapportCS = document.getElementById("bloc_pj_rapport_cs");
+            const blocPJ_projetActe = document.getElementById("bloc_pj_projet_acte");
             const expertInterne = document.getElementById("expert_interne");
             const expertExterne = document.getElementById("expert_externe");
-            const pjAvis = document.getElementById("pj_avis");
+            const pjDemandeAvis = document.getElementById("pj_demande_avis");
+            const pjRapportCS = document.getElementById("pj_rapport_cs");
+            // const pjProjetActe = document.getElementById("pj_projet_acte");
 
             function toggleExperts() {
                 const selectedText = natureSelect.options[natureSelect.selectedIndex]?.text.trim();
@@ -240,17 +252,23 @@
                 // Cache par défaut
                 blocInterne.style.display = "none";
                 blocExterne.style.display = "none";
-                blocPJ.style.display = "none";
+                blocPJ_demandeAvis.style.display = "none";
+                blocPJ_rapportCS.style.display = "none";
+                blocPJ_projetActe.style.display = "none";
 
                 if (selectedText === "Consultation en interne") {
                     blocInterne.style.display = "flex";
-                    blocPJ.style.display = "flex";
+                    blocPJ_demandeAvis.style.display = "flex";
                     expertInterne.required = true;
                 } else if (selectedText === "Demande à une instance") {
                     blocExterne.style.display = "flex";
-                    blocPJ.style.display = "flex";
                     expertExterne.required = true;
-                    pjAvis.required = true;
+                    blocPJ_demandeAvis.style.display = "flex";
+                    pjDemandeAvis.required = true;
+                    blocPJ_rapportCS.style.display = "flex";
+                    pjRapportCS.required = true;
+                    blocPJ_projetActe.style.display = "flex";
+                   
                 }
             }
 

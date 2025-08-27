@@ -9,8 +9,10 @@
     <title>Messagerie</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_avis.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
+    
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -20,28 +22,23 @@
     <div class="page-container">
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
-            <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+            <h1>AVIS n° {{ avis.id }} - {{ dossier.id_demarche.type }}</h1>
             
             <div class="etat-badge-menu">
-                {{ dossier.id_etape_dossier }}
+                {% if avis.date_reponse_avis %}
+                    Avis rendu
+                {% else %}
+                    En attente de réponse
+                {% endif %}
             </div> 
-            
-            <div class="refresh-messages">
-                <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
-                    {% csrf_token %}
-                    <button type="submit" class="refresh-button" id="btn-refresh-messages">
-                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                        Actualiser
-                    </button>
-                </form>
-            </div>
+        
             
             <div class="chat-container">
-                {% for msg in messages_doss %}
+                {% for msg in messages_avis %}
                     <div class="message message-{{ msg.align }} {% if msg.nouv_mess == 'oui' %}nouv-mess{% endif %}">
                         <div class="msg-body">
                             <p> {{ msg.body|safe }}</p>
-                            {% if msg.pj_url %}
+                            {% if msg.pj_emplacement and msg.pj_title %}
                                 <div class="pj-download">
                                     <!-- <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a> -->
                                     <a href="{% url 'afficher_annexe' chemin=msg.pj_emplacement titre=msg.pj_title %}" target="_blank" rel="noopener noreferrer">{{ msg.pj_title }}</a>
@@ -76,10 +73,12 @@
                     {% endfor %}
                 </div>
             {% endif %}
+        
 
-            <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
+            <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis' %}">
                 {% csrf_token %}
-                <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
+                <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+                <input type="hidden" name="avis_id" value="{{ avis.id }}">
                 <textarea name="body" placeholder="Écrire un message..." required></textarea>
                 <div class="pj-actions">
                     <div class="pj-input-wrapper">
@@ -89,7 +88,12 @@
                     <button type="submit" title="Envoyer le message">Envoyer</button>
                 </div>
             </form>
+            
         </div>
+
+
+
+    
 
         <!-- Colonne droite : navigation -->
         <div class="nav_preinstruction">
@@ -122,57 +126,31 @@
                 </div>
             </div>
 
-            <div class="infos-dossier">
-                {% if beneficiaire %}
-                    <p><strong>Bénéficiaire :</strong> {{ beneficiaire.prenom }} {{ beneficiaire.nom }}</p>
+            <div class="infos-avis">
+                <p> <strong>Expert.e :</strong> {{ avis.id_expert }} </p>
+
+                <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis }} </p>
+
+                {% if avis.date_reponse_avis %}
+                    <p> <strong>Date de réponse :</strong> avis.date_reponse_avis </p>
                 {% endif %}
-                {% if demandeur %}
-                    <p><strong>Demandeur :</strong> {{ demandeur.prenom }} {{ demandeur.nom }}</p>
+
+                {% if avis.favorable and avis.favorable == True %}
+                    <p> <strong>Réponse :</strong> Favorable </p>
+                {% elif avis.favorable and avis.favorable == False %}
+                    <p> <strong>Réponse :</strong> Défavorable </p>
                 {% endif %}
-                {% if dossier %}
-                    <p><strong>Dossier déposé le :</strong> {{ dossier.date_depot }}</p>
-                {% endif %}
-               
+
+                <p>Rajouter thematique si non null et si != autre</p>
+
             </div>
         </div>
     </div>
-
-    <!-- Bouton pendant l'envoi du message -->
+        
+            
+            
+            
     <script>
-        window.addEventListener('load', function() {
-            const chatContainer = document.querySelector('.chat-container');
-            if (chatContainer) {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-    
-            const messageForm = document.querySelector('.message-form');
-            const sendButton = messageForm.querySelector('button[type="submit"]');
-    
-            messageForm.addEventListener('submit', function() {
-                sendButton.disabled = true;
-                sendButton.innerText = 'Envoi...';
-            });
-        });
-    </script>
-
-    <!-- Bouton pour actualiser la messagerie -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const refreshForm = document.querySelector(".refresh-messages form");
-            const refreshButton = document.getElementById("btn-refresh-messages");
-
-            if (refreshForm && refreshButton) {
-                refreshForm.addEventListener("submit", function () {
-                    refreshButton.disabled = true;
-                    refreshButton.innerHTML = `
-                        <img src="{% static 'instruction/img/actualiser.png' %}" class="refresh-icon" />
-                        Traitement en cours...
-                    `;
-                });
-            }
-        });
-
-
         // Copier l'emplacement du Dossier
         function copierChemin(chemin) {
             navigator.clipboard.writeText(chemin).then(() => {
@@ -181,7 +159,7 @@
                 console.error("Erreur copie chemin :", err);
                 alert("Impossible de copier le chemin");
             });
-}
+        }
     </script>
 
 </body>
