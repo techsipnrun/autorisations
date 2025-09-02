@@ -1,0 +1,49 @@
+{% load static %}
+{% load dict_extras %}
+
+<div class="card">
+    <h3>{{ groupe.nom }}</h3>
+
+    <ul>
+        {% for lien in groupe.groupeinstructeurinstructeur_set.all %}
+            <li>
+                {{ lien.id_instructeur.id_agent_autorisations.prenom }}
+                {{ lien.id_instructeur.id_agent_autorisations.nom }}
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="groupe_instructeur">
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
+                    <input type="hidden" name="user_id" value="{{ lien.id_instructeur.id }}">
+                    <button type="submit" class="btn-remove" title="Retirer l'instructeur">✕</button>
+                </form>
+            </li>
+        {% empty %}
+            <li class="empty">Aucun instructeur dans ce groupe</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Bouton + -->
+    <button type="button" class="btn-add" title="Ajouter un.e instructeur.rice au groupe"
+            onclick="toggleForm(this)">+</button>
+   
+    <!-- Formulaire masqué -->
+    <form method="post" class="add-user-form hidden">
+        {% csrf_token %}
+        <input type="hidden" name="type" value="groupe_instructeur">
+        <input type="hidden" name="action" value="add">
+        <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
+        <select name="user_id" required>
+            <option value="" disabled selected>Ajouter un instructeur...</option>
+            {% for instru in instructeurs %}
+                {% if instru.id not in instructeurs_groupes_map|get_item:groupe.id %}
+                    <option value="{{ instru.id }}">
+                        {{ instru.id_agent_autorisations.prenom }} {{ instru.id_agent_autorisations.nom }}
+                        ({{ instru.email }})
+                    </option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn-confirm" title="Confirmer l'ajout">✔</button>
+    </form>
+</div>

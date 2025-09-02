@@ -5,6 +5,9 @@ from django.contrib import admin
 
 urlpatterns = [
 
+    # HABILITATIONS
+    path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),
+
     # AVIS
     path("instruction/<int:num_dossier>/ajouter_avis", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
     path("instruction/<int:num_dossier>/avis/<int:avis_id>/edit", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
@@ -30,9 +33,9 @@ urlpatterns = [
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
     path('changer-relecteur/', views.changer_relecteur, name='changer_relecteur'),
-    path("instruction/ajouter-relecteur-juridique/", instruction.ajouter_relecteur_juridique_dossier, name="ajouter_relecteur_juridique_dossier"),
-    path("instruction/relecture-juridique-faite/", instruction.relecture_juridique_faite, name="relecture_juridique_faite"),
-    path("instruction/retirer-relecteur-juridique/", instruction.retirer_relecteur_juridique, name="retirer_relecteur_juridique"),
+    path("instruction/ajouter-relecteur/", instruction.ajouter_relecteur_dossier, name="ajouter_relecteur_dossier"),
+    path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),
+    path("instruction/retirer-relecteur/", instruction.retirer_relecteur, name="retirer_relecteur"),
     path("email/<int:email_id>/preview/", messagerie.previsualiser_email, name="preview_email"),
     path("email/<int:email_id>/envoyer/", messagerie.envoyer_mail, name="envoyer_mail"),
     path("email/<int:email_id>/supprimer/", messagerie.supprimer_mail, name="supprimer_mail"),
@@ -80,7 +83,7 @@ urlpatterns = [
     path('annexe/<path:chemin>/<str:titre>/', views.afficher_annexe, name='afficher_annexe'),
 
     path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
-    path("instruction/relecture-juridique/", instruction.mettre_a_jour_relecture_juridique, name="mettre_a_jour_relecture_juridique"),
+    # path("instruction/relecture/", instruction.mettre_a_jour_relecture, name="mettre_a_jour_relecture"),
         
     
     # REQUÊTES
@@ -96,7 +99,7 @@ urlpatterns = [
     path("changer-etape/non-soumis/", changement_etape.dossier_non_soumis_a_autorisation, name="classer_le_dossier_comme_non_soumis_a_autorisation_url"),
     path("changer-etape/refuse/", changement_etape.refuse_le_dossier, name="classer_le_dossier_comme_refuse_url"),
     path("changer-etape/passer-en-instruction/", changement_etape.passer_en_instruction, name="passer_en_instruction_url"),
-    path("changer-etape/validation-avis/", changement_etape.envoyer_pour_validation_avant_demande_avis, name="envoyer_pour_validation_avant_demande_d_avis_url"),
+    path("changer-etape/validation-avis/", changement_etape.envoyer_pour_validation_avant_demande_avis, name="envoyer_pour_validation_avant_demande_avis_url"),
     path("changer-etape/validation-signature/", changement_etape.envoyer_pour_validation_avant_signature, name="envoyer_pour_validation_avant_signature_url"),
     path("changer-etape/valider-modele-et-acte/", changement_etape.valider_le_modele_de_demande_d_avis_et_le_projet_d_acte, name="valider_le_modele_de_demande_d_avis_et_le_projet_d_acte_url"),
     path("changer-etape/avis-envoye/", changement_etape.avis_envoye, name="avis_envoye_url"),

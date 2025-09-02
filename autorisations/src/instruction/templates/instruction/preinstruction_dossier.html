@@ -66,6 +66,9 @@
                                     <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                     <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
                                 </form>
+                                <!-- Classer comme non soumis à autorisation -->
+                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
+                                        
                             {% else %}
                                 <div class="instruction-warning">
                                     Veuillez d’abord sélectionner un groupe instructeur.
@@ -96,7 +99,17 @@
                     </div>
                 {% endif %}
 
-
+                <!-- Zone masquée : justification classement sans suite -->
+                <div id="formulaire-classement" class="zone-complement">
+                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required></textarea>
+                        <div class="zone-pj-complement">
+                            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
+                        </div>
+                    </form>
+                </div>
 
                 <div class="champs">
                     {% for champ in champs %}
@@ -236,6 +249,16 @@
                         </a>
                     </div>
                 </div>
+
+                {% if messages %}
+                    <div class="django-messages">
+                        {% for message in messages %}
+                            <div class="message {{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
@@ -328,7 +351,7 @@
 
                         <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
                             {% csrf_token %}
-                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
+                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
                                 <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
                             </label>
                             <input type="file" id="file-upload" name="annexe"
@@ -589,6 +612,32 @@
             });
         }
     });
+</script>
+
+<!-- Gère l'ouverture et la fermeture des Zones textuelles -->
+<script>
+
+    function masquerToutesZonesComplementaires() {
+        const zones = document.querySelectorAll(".zone-complement");
+        zones.forEach(zone => zone.classList.remove("show"));
+    }
+
+    function afficherFormulaireClassement() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-classement").classList.add("show");
+        fermerMenuEtape();
+    }
+
+    function fermerMenuEtape() {
+        const menuContent = document.getElementById("etapeMenuContent");
+        const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
+
+        if (menuContent && menuWrapper) {
+            menuContent.classList.remove("show");
+            menuWrapper.classList.remove("open");
+            menuWrapper.style.marginBottom = "";
+        }
+    }
 </script>
 
 

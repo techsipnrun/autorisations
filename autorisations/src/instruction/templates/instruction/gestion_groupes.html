@@ -1,0 +1,111 @@
+{% load static %}
+{% load breadcrumb_tags %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des groupes et des utilisateurs</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/gestion_groupes.css' %}">
+
+    
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% breadcrumb breadcrumb_items %}
+
+    <div class="container">
+        <h1>Gestion des Groupes et des utilisateurs</h1>
+
+        <div class="filtre-mes-groupes">
+            <form method="get">
+                <label>
+                    <!-- valeur envoyée quand décoché -->
+                    <input type="hidden" name="mes_groupes" value="0">
+
+                    <!-- valeur envoyée quand coché -->
+                    <input type="checkbox" name="mes_groupes" value="1"
+                        onchange="this.form.submit()"
+                        {% if show_only_mine %}checked{% endif %}>
+                    Afficher mes groupes
+                </label>
+            </form>
+        </div>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Section SAADD -->
+        <h2 class="section-title active" onclick="toggleSection(this)">
+            <span class="triangle">&#9654;</span> 📂 SAADD
+        </h2>
+        <div class="groupes-grid">
+            {% for groupe in groupes_saadd %}
+                {% include "instruction/groupe_card.html" %}
+            {% empty %}
+                <p class="empty">Aucun groupe SAADD.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Section SPPN -->
+        <h2 class="section-title active" onclick="toggleSection(this)">
+            <span class="triangle">&#9654;</span> 📂 SPPN
+        </h2>
+        <div class="groupes-grid">
+            {% for groupe in groupes_sppn %}
+                {% include "instruction/groupe_card.html" %}
+            {% empty %}
+                <p class="empty">Aucun groupe SPPN.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Section Général -->
+        <h2 class="section-title active" onclick="toggleSection(this)">
+            <span class="triangle">&#9654;</span> 📂 Autre
+        </h2>
+        <div class="groupes-grid">
+            {% for groupe in groupes_general %}
+                {% include "instruction/groupe_card.html" %}
+            {% empty %}
+                <p class="empty">Aucun groupe général.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Section Groupe Instructeurs -->
+         <h2 class="section-title active" onclick="toggleSection(this)">
+            <span class="triangle">&#9654;</span> 📂 Groupes instructeurs
+        </h2>
+        <div class="groupes-grid">
+            {% for groupe in groupes_instructeurs %}
+                {% include "instruction/groupe_instructeur_card.html" %}
+            {% empty %}
+                <p class="empty">Aucun groupe instructeur.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Afficher/Masquer section -->
+    <script>
+        function toggleSection(title) {
+            const grid = title.nextElementSibling; // la div .groupes-grid juste après le h2
+            title.classList.toggle("active");
+            if (grid.style.display === "none") {
+                grid.style.display = "grid"; // réaffiche
+            } else {
+                grid.style.display = "none"; // masque
+            }
+        }
+    </script>
+
+
+
+</body>
+</html>

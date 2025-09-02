@@ -1,0 +1,201 @@
+/* Container principal */
+.container {
+    max-width: 1200px;
+    margin: 5rem auto; /* espace pour navbar */
+    padding: 0 2rem;
+}
+
+h1 {
+    color: #006131;
+    margin-bottom: 4rem;
+    text-align: center;
+}
+
+/* Grid des groupes */
+.groupes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+}
+
+/* Carte d’un groupe */
+.card {
+    position: relative;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+    /* cursor: pointer; */
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+
+.card h2 {
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.card ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.card li {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.card li:last-child {
+    border-bottom: none;
+    margin-bottom: 1.5rem;
+}
+
+.card li.empty {
+    color: #999;
+    font-style: italic;
+}
+
+
+/* Messages */
+.messages {
+    margin-bottom: 1rem;
+}
+.message {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+.message.success { background: #e3fbe3; color: #006131; }
+.message.error { background: #fbe3e3; color: #a94442; }
+
+/* Suppression users */
+
+.btn-remove {
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-left: 0.5rem;
+}
+.btn-remove:hover {
+    transform: scale(1.2);
+    font-weight: bold;
+}
+
+
+/* Formulaire masqué par défaut */
+.hidden {
+    display: none !important;
+}
+
+
+.add-user-form {
+    margin-top: 0.8rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.add-user-form select {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.4rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+}
+
+.btn-confirm {
+    background: #006131;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+    background: #0b4025;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    vertical-align: center;
+    padding: 0;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    color: #006131;
+    font-size: 1.5rem;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 0.3rem;
+    user-select: none;
+    cursor: pointer;
+}
+
+/* Afficher/masquer section */
+.triangle {
+    display: flex;
+    transition: transform 0.2s ease;
+    color: #006131;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-right: 1rem;
+}
+
+/* Quand ouvert (classe active appliquée en JS) */
+.section-title.active .triangle {
+    transform: rotate(90deg);
+}
+
+
+/* Bouton + rond */
+.btn-add {
+    position: absolute;
+    bottom: 10px; 
+    right: 10px; 
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    margin-left: auto; 
+    background: #006131;
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1.5;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.btn-add:hover {
+    background: #0b4025;
+    transform: scale(1.1);
+}
+
+/* Filter : Mes groupes */
+.filtre-mes-groupes {
+    margin-bottom: 2rem;
+    text-align: left;
+    font-size: 1.2rem;
+}
+
+.filtre-mes-groupes input[type="checkbox"] {
+    margin-right: 0.5rem;
+    accent-color: #006131;
+    cursor: pointer;
+}

@@ -95,6 +95,9 @@
                                         {% elif label == "Envoyer pour validation avant signature" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Envoyer pour validation avant signature</button>
                                         
+                                        {% elif label == "Envoyer pour validation avant demande d'avis" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Envoyer pour validation avant demande d'avis</button>
+                                        
                                         {% elif label == "Valider et envoyer pour relecture qualité" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
 
@@ -251,23 +254,56 @@
 
                 
                 <!-- Documents à valider -->
-                {% if etape_actuelle.etape == "À valider avant signature" and doc_a_valider %}
-                    <div class="validation-documents">
-                        <h2>Document à valider</h2>
-                        <form method="post" action="#">
-                            {% csrf_token %}
-                            <ul class="doc-a-valider-liste">
-                                {% for doc in doc_a_valider %}
-                                    <li class="doc-item">
-                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{ doc.titre }}
-                                        </a>
-                                        <!-- <input type="checkbox" name="doc_valide_{{ doc.id }}" class="doc-checkbox"> -->
-                                    </li>
+                {% if etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" %}
+                    {% if doc_a_valider %}
+                        <div class="validation-documents">
+                            <h2>Projet d'acte à valider</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_a_valider %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    {% if etape_actuelle.etape == "À valider avant demande d'avis" %}
+                        <div class="validation-documents">
+                            <h2>Demande d'avis à valider</h2>
+                            <ul class="avis-a-valider-liste">
+                                {% for da in avis_du_dossier %}
+                                    {% if da.id_avis.statut == "À valider" %}
+                                        <li>
+                                            <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                                Avis n°{{ da.id_avis.id }} –
+                                                {% if da.id_avis.id_avis_nature %}
+                                                    {{ da.id_avis.id_avis_nature }}:
+                                                {% endif %}
+                                                {% if da.id_avis.id_expert %}
+                                                    {% if da.id_avis.id_expert.est_interne %}
+                                                        {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                        {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                                    {% else %}
+                                                        {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                        {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                                    {% endif %}
+                                                {% endif %}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                {% empty %}
+                                    <li>Aucun avis disponible</li>
                                 {% endfor %}
                             </ul>
-                        </form>
-                    </div>
+                        </div>
+                    {% endif %}
+
                 {% endif %}
 
 
@@ -478,18 +514,14 @@
 
                             <!-- multiple conservé MAIS on gère le clic en JS pour éviter Ctrl -->
                             <select name="emails_copie[]" id="emails_copie" multiple size="8" class="emails-multiselect">
-                                {% for c in contacts_externes %}
-                                <option class="ligne-contact" value="{{ c.email }}" data-nom="{{ c.nom|default:''|lower }}" data-email="{{ c.email|lower }}">
-                                     {% if c.nom and c.prenom %}
-                                        {{ c.nom }} {{ c.prenom }} — {{ c.email }}
-                                    {% elif c.raison_sociale %}
-                                        {{ c.raison_sociale }} — {{ c.email }}
-                                    {% else %}
-                                        {{ c.email }}
+                                {% for e in emails_uniques %}
+                                <option class="ligne-contact" value="{{ e }}" data-nom="{{ e }}" data-email="{{ e|lower }}">
+                                    {% if e %}
+                                        {{ e }}
                                     {% endif %}
                                 </option>
                                 {% empty %}
-                                    <option disabled>Aucun contact externe disponible.</option>
+                                    <option disabled>Aucun email disponible.</option>
                                 {% endfor %}
                             </select>
                             <div id="selected-chips" class="selected-chips" aria-live="polite"></div>
@@ -514,7 +546,7 @@
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
 
                         <div class="nature-acte">
-                            <label>Nature du document :</label>
+                            <label>Nature de l'acte :</label>
                             <select name="nature_document" id="nature_validation" required>
                                 <option value="" disabled selected>Choisir une nature</option>
                                 <option value="Arrêté directeur">Arrêté directeur</option>
@@ -561,6 +593,92 @@
                     </form>
                 </div>
 
+
+                <!-- Zone masquée pour envoyer pour validation avant demande d'avis -->
+                <div id="formulaire-validation-demande-avis" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_pour_validation_avant_demande_avis_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+
+                        <div class="nature-acte">
+                            <label>Nature de l'acte :</label>
+                            <select name="nature_document" id="nature_acte_avant_dmd_avis" required>
+                                <option value="" disabled selected>Choisir une nature</option>
+                                <option value="Arrêté directeur">Arrêté directeur</option>
+                                <option value="Déliberation CA">Déliberation CA</option>
+                                <option value="Avis simple">Avis simple</option>
+                                <option value="Avis conforme">Avis conforme</option>
+                            </select>
+                        </div>
+
+                        <div class="validant">
+                            <label>Validant-e :</label>
+                            <select name="choix-validant" id="choix-validant-avant-dmd-avis" required>
+                                <option value="" disabled selected>Choisir un.e validant.e</option>
+                                <!-- Validants SPPN -->
+                                {% if "mission scientifique" in demarche.type|lower %}
+                                    {% for validant in validants_SPPN %}
+                                        <option value="{{ validant.id }}">
+                                            {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
+                                        </option>
+                                    {% endfor %}
+                                <!-- Validants SAADD -->
+                                {% else %}
+                                    {% for validant in validants_SAADD %}
+                                        <option value="{{ validant.id }}">
+                                            {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <div class="zone-pj-complement pj-validation-avant-signature">
+                            <div class="projet_acte_pj">
+                                <label for="pj_validation">Joindre le projet d’acte :</label>
+                                <input type="file" name="piece_jointe" id="pj_validation_avant_dmd_avis" accept=".odt,.doc,.docx" required>
+                            </div>
+                            <p class="hint-text">📁 Merci de sélectionner un fichier situé dans le dossier <strong>Work</strong>.</p>
+                        </div>
+
+                        <!-- Sélection multiple des avis du dossier -->
+                        <div class="avis-dossier">
+                            <label>Demandes d'avis à faire valider :</label>
+                            <select name="avis_selectionnes" id="avis-selectionnes" multiple size="{{ avis_du_dossier|length|default:1 }}" required>
+                                {% for da in avis_du_dossier %}
+                                    {% if da.id_avis.statut == "Brouillon" %}
+                                        <option value="{{ da.id_avis.id }}">
+                                            Avis n°{{ da.id_avis.id }} –
+                                            {% if da.id_avis.id_avis_nature %} {{ da.id_avis.id_avis_nature }}: {% endif %}
+                                            {% if da.id_avis.id_expert %}
+                                            {% if da.id_avis.id_expert.est_interne %}
+                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                            {% else %}
+                                                {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                            {% endif %}
+
+                                            
+                                            {% endif %}
+                                        </option>
+                                    {% endif %}
+                                {% empty %}
+                                    <option disabled>Aucun avis disponible</option>
+                                {% endfor %}
+
+
+                            </select>
+                            <p class="hint-text">Maintenez <strong>Ctrl</strong> pour sélectionner plusieurs avis.</p>
+                        </div>
+
+                        <div class="envoi-pour-validation-avant-signature">
+                            <button type="button" class="btn-envoyer-complement" onclick="confirmerValidationAvantDemandeAvis()">Confirmer l’envoi pour validation</button>
+                        </div>
+
+                    </form>
+                </div>
 
                 <div class="champs">
                     {% for champ in champs %}
@@ -692,7 +810,7 @@
                     </div>
                     
                     <!-- Lien dossier à droite -->
-                    <div class="lien_dossier">
+                    <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                         <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>
@@ -707,7 +825,6 @@
                             {% for valideur in validants_SAADD %}
                                 {% if valideur in validants %}
                                     <li class="instructeur_du_dossier">
-                                    
                                         {{ valideur.id_agent_autorisations.nom|upper }} {{ valideur.id_agent_autorisations.prenom|capfirst }}
                                         <img src="{% static 'instruction/img/couronne.png' %}" alt="Validant.e" title="Validant.e du dossier" class="logo_instructeur">
                                     </li>
@@ -745,7 +862,7 @@
 
                 {% if dossier.id_etape_dossier.etape == 'En relecture qualité' %}
                     <div class="groupe-instructeur-info">
-                        <h3>Relecteurs.rices</h3>
+                        <h3>Relecteurs.rices qualité</h3>
                         <ul class="groupe-instructeur-liste">
 
                             {% for relecteur in relecteurs_qualite_et_instructeurs %}
@@ -869,7 +986,7 @@
                                     
                                     <li class="instructeur_du_dossier">
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
-                                        <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
+                                        <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur.rice du dossier" title="Instructeur.rice du dossier" class="logo_instructeur logo_groupe_instru">
                                         
                                         <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
                                             {% csrf_token %}
@@ -950,45 +1067,91 @@
                 <div class="groupe-instructeur-info demander-relecture_juridique">
                     <h3>Relecture</h3>
 
-                    {% if relecteur_juridique_message %}
+                    {% if relecteur_message %}
                         <div class="instruction-warning">
-                            {{ relecteur_juridique_message }}
+                            {{ relecteur_message }}
                         </div>
                     {% endif %}
 
-                    {% if not relecteurs_juridique_du_dossier %}
+                    {% if not relecteurs_du_dossier %}
                         <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
                     {% else %}
                         <ul class="groupe-instructeur-liste">
-                            {% for rj in relecteurs_juridique_du_dossier %}
-                                <li class="instructeur_du_dossier">
-                                    {% if rj.relu %}
-                                        <img src="{% static 'instruction/img/fait.png' %}" alt="Fait" title="Relecture terminée" class="logo_instructeur">
-                                    {% else %}
-                                        <img src="{% static 'instruction/img/en_cours.png' %}" alt="En cours" title="Relecture en cours" class="logo_instructeur">
-                                    {% endif %}
+                            {% for rj in relecteurs_du_dossier %}
+                                <li class="instructeur_du_dossier_relecture" onclick="toggleRelecture(this)">
+                                    <div class="relecture-header">
+                                        <!-- {% if rj.relu %}
+                                            <img src="{% static 'instruction/img/fait.png' %}" alt="Fait" title="Relecture terminée" class="logo_instructeur">
+                                        {% else %}
+                                            <img src="{% static 'instruction/img/en_cours.png' %}" alt="En cours" title="Relecture en cours" class="logo_instructeur">
+                                        {% endif %} -->
 
-                                    {{ rj.id_instructeur.id_agent_autorisations.nom|upper }} {{ rj.id_instructeur.id_agent_autorisations.prenom|capfirst }}
-
-                                    {% if request.user.email == rj.id_instructeur.email and not rj.relu %}
-                                        <form method="post" action="{% url 'relecture_juridique_faite' %}" class="form-relecture-faite" onsubmit="return confirmerRelectureFaite();">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="relecteur_id" value="{{ rj.id }}">
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <button type="submit" class="btn-relecture-faite" title="Marquer comme relu">
+                                        <div class="bloc-gauche">
+                                            <span class="triangle">&#9654;</span>
+                                            <div class="nom_prenom_relecteur {% if request.user.email == rj.id_instructeur.email %}txt_en_gras{% endif %}">
+                                                {{ rj.id_instructeur.id_agent_autorisations.nom|upper }} {{ rj.id_instructeur.id_agent_autorisations.prenom|capfirst }}
+                                            </div>
+                                            
+                                            
+                                            {% if rj.relu %}
+                                            <div class="relecture_faite">
                                                 Faite
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <form method="post" action="{% url 'retirer_relecteur_juridique' %}" class="form-retirer-instructeur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice juridique ?')">
+                                            </div>
+                                            
+                                            {% else %}
+                                                <div class="relecture_en_attente">
+                                                    En attente
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    
+                                        <form method="post" action="{% url 'retirer_relecteur' %}" class="form-retirer-relecteur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice ?')">
                                             {% csrf_token %}
-                                            <input type="hidden" name="dossier_relecture_juridique_id" value="{{ rj.id }}">
+                                            <input type="hidden" name="dossier_relecture_id" value="{{ rj.id }}">
                                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer le.la relecteur.rice du dossier">
+                                            <button type="submit" class="btn-retirer-instructeur" title="Supprimer la demande de relecture">
                                                 <span class="croix-retirer">✕</span>
                                             </button>
                                         </form>
-                                    {% endif %}
+                                    </div>
+                             
+                                    <div class="relecture-details hidden">
+                                        <p><strong>Demande :</strong> {{ rj.demande_relecture }}</p>
+
+                                        {% with docs=rj.dossierrelecteurdocument_set.all %}
+                                            {% if docs %}
+                                                <ul>
+                                                    {% for doc in docs %}
+                                                        <li> 
+                                                            <a href="{% url 'afficher_annexe' chemin=doc.id_document.emplacement titre=doc.id_document.titre %}" 
+                                                            target="_blank" rel="noopener noreferrer">
+                                                                📎 {{ doc.id_document.titre }}
+                                                            </a>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% endif %}
+                                        {% endwith %}
+
+                                        {% if request.user.email == rj.id_instructeur.email and not rj.relu %}
+
+                                            <form method="post" action="{% url 'relecture_faite' %}" class="form-relecture-faite" onsubmit="return confirmerRelectureFaite();">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="relecteur_id" value="{{ rj.id }}">
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <label>Votre réponse :</label>
+                                                <textarea name="reponse_demande" rows="4" id="dmd_relecture" required>Relecture faite.</textarea>
+                                                <button type="submit" class="btn-relecture-faite" title="Valider la relecture">
+                                                    Valider
+                                                </button>
+                                            </form>
+                                        {% elif request.user.email == rj.id_instructeur.email and rj.relu %}
+                                            <p><strong>Réponse :</strong> {{ rj.reponse_relecture }}</p>
+
+                                        {% endif %}
+                                    </div>
+
+
 
                                 </li>
                             {% endfor %}
@@ -998,17 +1161,23 @@
                     {% endif %}
 
                     <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
-                        <form method="post" action="{% url 'ajouter_relecteur_juridique_dossier' %}">
+                        <form method="post" action="{% url 'ajouter_relecteur_dossier' %}" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
 
-                            <label for="select-relecteur-juridique">Choisir le.la relecteur.trice juridique :</label>
+                            <label id="first_label_form">Choisir le.la relecteur.trice :</label>
                             <select name="relecteur_id" id="select-relecteur-juridique" required>
                                 <option value="" disabled selected>-- Choisir --</option>
-                                {% for user in relecteurs_juridique %}
+                                {% for user in instructeurs %}
                                     <option value="{{ user.id }}">{{ user.id_agent_autorisations.nom|upper }} {{ user.id_agent_autorisations.prenom|capfirst }}</option>
                                 {% endfor %}
                             </select>
+                            
+                            <label>Détaillez la demande de relecture :</label>
+                            <textarea name="objet_demande" rows="4" id="dmd_relecture" placeholder="Je souhaite une relecture de ..." required></textarea>
+
+                            <label for="pj_relecture">Joindre un ou plusieurs documents (max 20Mo) :</label>
+                            <input type="file" name="pj_relecture" id="pj_relecture" multiple>
 
                             <div class="formulaire-relecture-actions">
                                 <button type="submit" class="btn-envoyer-complement">Valider</button>
@@ -1017,23 +1186,13 @@
                     </div>
                 </div>
 
-                
-                
-
-
-
-
-
-
-
-
                 <div class="groupe-instructeur-info notes_instructeurs">
                     <h3 class="notes-titre">
                         <span>📝 Notes :</span>
 
                         <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
                             {% csrf_token %}
-                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
+                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
                                 <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
                             </label>
                             <input type="file" id="file-upload" name="annexe"
@@ -1306,6 +1465,12 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireEnvoyerPourValidAvantDemandeAvis() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-validation-demande-avis").classList.add("show");
+            fermerMenuEtape();
+        }
+
         function afficherFormulaireEnvoyerPourRelectureQualite() {
             masquerToutesZonesComplementaires();
             document.getElementById("formulaire-relecture-qualite").classList.add("show");
@@ -1366,7 +1531,7 @@
             // Vérifie si le titre existe dans la liste injectée depuis Django
             const titresExistants = JSON.parse(document.getElementById("titres-docs-actes").textContent);
             if (titresExistants.includes(documentTitre)) {
-                const ok = confirm(`Un document nommé « ${documentTitre} » existe déjà. Voulez-vous vraiment l’écraser ?`);
+                const ok = confirm(`Un document nommé « ${documentTitre} » existe déjà dans le dossier Actes. Voulez-vous vraiment l’écraser ?`);
                 if (!ok) return;
             }
 
@@ -1393,7 +1558,6 @@
             const fichier = fichierInput.files[0];
 
             if (!select.value) {
-                console.log("eh oh!")
                 alert("Veuillez sélectionner la nature du document.");
                 return;
             }
@@ -1412,6 +1576,42 @@
                 document.querySelector('#formulaire-validation-signature form').submit();
             }
         }
+
+         // Pour confirmer l'envoi pour Validation avant signature
+        function confirmerValidationAvantDemandeAvis() {
+            const select = document.getElementById("nature_acte_avant_dmd_avis");
+            const validant = document.getElementById("choix-validant-avant-dmd-avis");
+            const fichierInput = document.getElementById("pj_validation_avant_dmd_avis");
+            const avis = document.getElementById("avis-selectionnes");
+            
+            const fichier = fichierInput.files[0];
+
+            if (!select.value) {
+                alert("Veuillez sélectionner la nature du document.");
+                return;
+            }
+
+            if (!avis.value) {
+                alert("Veuillez sélectionner le.s demande.s d'avis à faire valider.");
+                return;
+            }
+
+
+            if (!validant.value) {
+                alert("Veuillez sélectionner un.e validant.e");
+                return;
+            }
+
+            if (!fichier) {
+                alert("Veuillez ajouter une pièce jointe.");
+                return;
+            }
+
+            if (confirm("Confirmez-vous l’envoi pour validation avant demande d'avis ?")) {
+                document.querySelector('#formulaire-validation-demande-avis form').submit();
+            }
+        }
+        
 
         // Pour confirmer la transmission de l'acte signé
         function confirmerSignature() {
@@ -1505,38 +1705,6 @@
     });
     </script>
 
-    <!-- Maj Relecture juridique -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const checkbox = document.getElementById("checkbox-relecture");
-
-            if (checkbox) {
-                checkbox.addEventListener("change", function () {
-                    const csrfToken = document.querySelector('input[name=csrfmiddlewaretoken]').value;
-                    const dossierId = document.querySelector('input[name=dossier_id]').value;
-
-                    fetch("{% url 'mettre_a_jour_relecture_juridique' %}", {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": csrfToken,
-                            "Content-Type": "application/x-www-form-urlencoded"
-                        },
-                        body: new URLSearchParams({
-                            "dossier_id": dossierId,
-                            "relecture_juridique": checkbox.checked
-                        })
-                    }).then(response => response.json()).then(data => {
-                        if (data.status !== "ok") {
-                            alert("Erreur lors de la mise à jour de la relecture juridique.");
-                        }
-                    }).catch(error => {
-                        console.error("Erreur réseau :", error);
-                    });
-                });
-            }
-        });
-    </script>
-
     <!-- Enregistrer les notes en cours de redaction -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -1616,157 +1784,185 @@
     </script>
 
 
-
-    <!-- Envoie Acte finale : Envoi de Mail -->
-   <script>
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
-        const select = document.getElementById('emails_copie');        // <select multiple>
-        const search = document.getElementById('search-contacts');     // <input type="text">
-        const chips  = document.getElementById('selected-chips');      // conteneur des chips
-        if (!select || !search || !chips) return;
+            const select = document.getElementById('emails_copie');        // <select multiple>
+            const search = document.getElementById('search-contacts');     // <input type="text">
+            const chips  = document.getElementById('selected-chips');      // conteneur des chips
+            if (!select || !search || !chips) return;
 
-        // === Source de vérité des options (pour filtrer sans perdre) ===
-        const originalOptions = [...select.options].map(opt => ({
-            value: opt.value,
-            text:  opt.text,
-            nom:   (opt.dataset.nom   || '').toLowerCase(),
-            email: (opt.dataset.email || '').toLowerCase(), // canon pour comparaisons
-            emailRaw: opt.dataset.email || opt.value        // pour affichage
-        }));
+            // === Source de vérité des options (liste des contacts connus) ===
+            const originalOptions = [...select.options].map(opt => ({
+                value: opt.value,
+                text:  opt.text,
+                nom:   (opt.dataset.nom   || '').toLowerCase(),
+                email: (opt.dataset.email || '').toLowerCase(),
+                emailRaw: opt.dataset.email || opt.value
+            }));
 
-        // Accès rapide
-        const valueToEmail = new Map(originalOptions.map(o => [o.value, o.email]));
-        const valueToEmailRaw = new Map(originalOptions.map(o => [o.value, o.emailRaw]));
+            // === États ===
+            let selectedValues = new Set();   // emails choisis depuis la liste
+            let manualEmails   = new Set();   // emails ajoutés à la main (via entrée)
 
-        // === Sélection (source de vérité) ===
-        let selectedValues = new Set([...select.selectedOptions].map(o => o.value));
-        let prevSelectedValues = new Set(selectedValues); // pour détecter les suppressions
+            // Reconstruit les <option> visibles (selon filtre)
+            const rebuildOptions = (list) => {
+                const scrollTop = select.scrollTop;
+                select.innerHTML = '';
+                list.forEach(item => {
+                    const o = document.createElement('option');
+                    o.value = item.value;
+                    o.text  = item.text;
+                    o.dataset.nom   = item.nom;
+                    o.dataset.email = item.emailRaw;
+                    o.selected = selectedValues.has(item.value);
+                    select.appendChild(o);
+                });
+                select.scrollTop = scrollTop;
+            };
 
-        // Reconstruit les <option> visibles (selon filtre), en gardant la sélection
-        const rebuildOptions = (list) => {
-            const scrollTop = select.scrollTop;
-            select.innerHTML = '';
-            list.forEach(item => {
-            const o = document.createElement('option');
-            o.value = item.value;
-            o.text  = item.text;
-            o.dataset.nom   = item.nom;
-            o.dataset.email = item.emailRaw;
-            o.selected = selectedValues.has(item.value);
-            select.appendChild(o);
-            });
-            select.scrollTop = scrollTop;
-        };
+            // Filtrage par texte
+            const filterOptions = () => {
+                const q = search.value.trim().toLowerCase();
+                if (!q) return rebuildOptions(originalOptions);
+                const filtered = originalOptions.filter(o =>
+                    o.text.toLowerCase().includes(q) || o.nom.includes(q) || o.email.includes(q)
+                );
+                rebuildOptions(filtered);
+            };
 
-        // Filtrage par texte affiché, nom, email
-        const filterOptions = () => {
-            const q = search.value.trim().toLowerCase();
-            if (!q) return rebuildOptions(originalOptions);
-            const filtered = originalOptions.filter(o =>
-            o.text.toLowerCase().includes(q) || o.nom.includes(q) || o.email.includes(q)
-            );
-            rebuildOptions(filtered);
-        };
+            // Affiche tous les chips (emails de la liste + emails manuels)
+            const renderChips = () => {
+                chips.innerHTML = '';
 
-        // Désélectionne TOUTES les options ayant le même email canon (lowercased)
-        const deselectByEmail = (emailCanon) => {
-            // Retire de la Set
-            for (const val of [...selectedValues]) {
-            if (valueToEmail.get(val) === emailCanon) selectedValues.delete(val);
+                // 1. emails choisis depuis la liste
+                selectedValues.forEach(val => {
+                    const opt = originalOptions.find(o => o.value === val);
+                    if (!opt) return;
+                    const emailRaw = opt.emailRaw;
+
+                    const chip = document.createElement("span");
+                    chip.className = "chip";
+                    chip.dataset.email = emailRaw.toLowerCase();
+                    chip.textContent = emailRaw;
+
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.textContent = "×";
+                    btn.onclick = () => {
+                        selectedValues.delete(val);
+                        renderChips();
+                    };
+
+                    chip.appendChild(btn);
+
+                    const hidden = document.createElement("input");
+                    hidden.type = "hidden";
+                    hidden.name = "emails_copie[]";
+                    hidden.value = emailRaw;
+                    chip.appendChild(hidden);
+
+                    chips.appendChild(chip);
+                });
+
+                // 2. emails manuels
+                manualEmails.forEach(emailCanon => {
+                    const chip = document.createElement("span");
+                    chip.className = "chip";
+                    chip.dataset.email = emailCanon;
+                    chip.textContent = emailCanon;
+
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.textContent = "×";
+                    btn.onclick = () => {
+                        manualEmails.delete(emailCanon);
+                        renderChips();
+                    };
+
+                    chip.appendChild(btn);
+
+                    const hidden = document.createElement("input");
+                    hidden.type = "hidden";
+                    hidden.name = "emails_copie[]";
+                    hidden.value = emailCanon;
+                    chip.appendChild(hidden);
+
+                    chips.appendChild(chip);
+                });
+            };
+
+            // Ajout d’un email manuel
+            function addManualEmail(email) {
+                if (!email) return;
+                email = email.trim();
+                if (!email) return;
+
+                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!regex.test(email)) {
+                    alert("Adresse email invalide : " + email);
+                    return;
+                }
+
+                manualEmails.add(email.toLowerCase());
+                renderChips();
             }
-            // Met à jour le <select> courant (filtré ou non)
-            [...select.options].forEach(o => {
-            const oEmail = (o.dataset.email || o.value).toLowerCase();
-            if (oEmail === emailCanon) o.selected = false;
-            });
-        };
 
-        // Affiche des chips **dédupliquées par email** (un chip par email)
-        const renderChips = () => {
-            chips.innerHTML = '';
-            // Regroupe les valeurs sélectionnées par email
-            const emailToValues = new Map();
-            selectedValues.forEach(val => {
-            const email = valueToEmail.get(val);
-            if (!email) return;
-            if (!emailToValues.has(email)) emailToValues.set(email, []);
-            emailToValues.get(email).push(val);
+            // Ajout via Entrée ou virgule
+            search.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    addManualEmail(search.value);
+                    search.value = "";
+                }
             });
 
-            // Un chip par email (affichage avec email “raw” pour la casse d’origine)
-            emailToValues.forEach((vals, emailCanon) => {
-            const anyVal = vals[0];
-            const emailRaw = valueToEmailRaw.get(anyVal) || anyVal;
-
-            const chip = document.createElement('span');
-            chip.className = 'chip';
-            chip.textContent = emailRaw;
-
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.setAttribute('aria-label', 'Retirer ' + emailRaw);
-            btn.textContent = '×';
-            btn.addEventListener('click', () => {
-                deselectByEmail(emailCanon);
+            // Ajout via sélection existante
+            select.addEventListener("change", function () {
+                [...select.selectedOptions].forEach(opt => {
+                    selectedValues.add(opt.value);
+                });
                 renderChips();
             });
 
-            chip.appendChild(btn);
-            chips.appendChild(chip);
-            });
-        };
+            // Recherche
+            search.addEventListener('input', filterOptions);
 
-        // Toggle au clic souris SANS Ctrl (et gestion “deselect all by same email”)
-        select.addEventListener('mousedown', (e) => {
-            const opt = e.target;
-            if (opt.tagName !== 'OPTION') return;
-            e.preventDefault();
-
-            const emailCanon = (opt.dataset.email || opt.value).toLowerCase();
-            const willSelect = !opt.selected;
-
-            if (willSelect) {
-            selectedValues.add(opt.value);
-            opt.selected = true;
-            } else {
-            // On retire TOUT ce qui a le même email
-            deselectByEmail(emailCanon);
-            }
+            // Init
+            rebuildOptions(originalOptions);
             renderChips();
-        });
-
-        // Changement via clavier : on harmonise
-        select.addEventListener('change', () => {
-            // État courant
-            const nowSelected = new Set([...select.options].filter(o => o.selected).map(o => o.value));
-
-            // Valeurs retirées depuis la dernière étape
-            const removed = [...prevSelectedValues].filter(v => !nowSelected.has(v));
-
-            // Pour chaque valeur retirée, on désélectionne **tout** le groupe ayant le même email
-            removed.forEach(val => {
-            const emailCanon = valueToEmail.get(val);
-            if (emailCanon) deselectByEmail(emailCanon);
-            });
-
-            // Recalcule nowSelected après nettoyage
-            selectedValues = new Set([...select.options].filter(o => o.selected).map(o => o.value));
-            prevSelectedValues = new Set(selectedValues);
-            renderChips();
-        });
-
-        // Recherche
-        search.addEventListener('input', filterOptions);
-
-        // Init
-        rebuildOptions(originalOptions);
-        renderChips();
         });
     </script>
 
+    <!-- Rotation du triangle -->
+    <script>
+        function toggleRelecture(item) {
+            const details = item.querySelector(".relecture-details");
+            const isHidden = details.classList.contains("hidden");
+
+            // Ferme toutes les autres
+            document.querySelectorAll(".instructeur_du_dossier_relecture").forEach(li => {
+                li.classList.remove("open");
+                li.querySelector(".relecture-details").classList.add("hidden");
+            });
+
+            // Ouvre celle cliquée si elle était fermée
+            if (isHidden) {
+                details.classList.remove("hidden");
+                item.classList.add("open"); // déclenche la rotation via CSS
+            }
+        }
+
+        // empêcher la propagation dans la zone details
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".relecture-details").forEach(detail => {
+                detail.addEventListener("click", function (e) {
+                    e.stopPropagation();
+                });
+            });
+        });
 
 
-
+    </script>
 
 
 

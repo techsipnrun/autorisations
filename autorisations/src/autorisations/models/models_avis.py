@@ -91,6 +91,7 @@ class Avis(models.Model):
     STATUT_CHOICES = [
         ("Brouillon", "Brouillon"),
         ("Envoyé", "Envoyé"),
+        ("À valider", "À valider"),
     ]
 
     id = models.AutoField(primary_key=True)

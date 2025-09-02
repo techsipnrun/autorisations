@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, SynchronisationEtat
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from instruction.utils import dossiers_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -24,7 +24,7 @@ from django.db.models import Q
 from django.utils.timezone import now
 from autorisations import settings
 from django.db import close_old_connections
-
+from django.contrib.auth.models import Group, User
 
 logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")  
@@ -495,7 +495,7 @@ def mes_dossiers_a_traiter_count(request):
             Q(dossierinstructeur__id_instructeur=instructeur) |
             Q(dossierrelecteurqualite__id_instructeur=instructeur) |
             Q(dossiervalideur__id_instructeur=instructeur) |
-            Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+            Q(dossierrelecteur__id_instructeur=instructeur) |
             Q(dossiersignataire__id_instructeur=instructeur)
         )
         .exclude(id_etape_dossier__etape__in=["À affecter", "Accepté", "Refusé", "Non soumis à autorisation"])
@@ -518,6 +518,7 @@ def ajouter_annexe_dossier(request, dossier_id):
         # Vérification de la taille (max 50 Mo)
         if fichier.size > 50 * 1024 * 1024:
             logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
+            messages.error(request, f"Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
             return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
         # Extension du fichier
@@ -536,8 +537,8 @@ def ajouter_annexe_dossier(request, dossier_id):
         if not nature_obj:
             logger.error(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) La nature 'Annexe instructeur' est introuvable en BDD.")
             return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
-        
 
+        
         # Création du Document
         dossier = get_object_or_404(Dossier, pk=dossier_id)
         emplacement = f"{dossier.emplacement}Annexes/{fichier.name}"
@@ -555,7 +556,7 @@ def ajouter_annexe_dossier(request, dossier_id):
             except Document.DoesNotExist:
                 pass  # Aucun doc à supprimer, donc on ignore
 
-            logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} (.{extension}) écrasée par {request.user} — ancien document supprimé.")
+            logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} écrasée par {request.user} — ancien document supprimé.")
 
         doc = Document.objects.create(
             id_format=format_obj,
@@ -705,4 +706,95 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "doss_manif_sportive": doss_manif_sportive,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
+    })
+
+
+
+@login_required
+def gestion_groupes(request):
+    if request.method == "POST":
+        action = request.POST.get("action")
+        type_objet = request.POST.get("type")  # "groupe" ou "groupe_instructeur"
+        groupe_id = request.POST.get("groupe_id")
+        user_id = request.POST.get("user_id")
+
+        if type_objet == "groupe":  # Groupes Django classiques
+            groupe = get_object_or_404(Group, id=groupe_id)
+            if action == "add":
+                user = get_object_or_404(User, id=user_id)
+                groupe.user_set.add(user)
+                messages.success(request, f"Utilisateur {user.username} ajouté au groupe {groupe.name}.")
+            elif action == "remove":
+                user = get_object_or_404(User, id=user_id)
+                groupe.user_set.remove(user)
+                messages.success(request, f"Utilisateur {user.username} retiré du groupe {groupe.name}.")
+
+        elif type_objet == "groupe_instructeur":  # Groupes instructeurs
+            groupe = get_object_or_404(Groupeinstructeur, id=groupe_id)
+            instructeur = get_object_or_404(Instructeur, id=user_id)
+
+            if action == "add":
+                GroupeinstructeurInstructeur.objects.get_or_create(
+                    id_groupeinstructeur=groupe, id_instructeur=instructeur
+                )
+                messages.success(request, f"Instructeur {instructeur} ajouté au groupe instructeur {groupe.nom}.")
+            elif action == "remove":
+                GroupeinstructeurInstructeur.objects.filter(
+                    id_groupeinstructeur=groupe, id_instructeur=instructeur
+                ).delete()
+                messages.success(request, f"Instructeur {instructeur} retiré du groupe instructeur {groupe.nom}.")
+
+        return redirect("gestion_groupes")
+    
+    user = request.user
+    param = request.GET.get("mes_groupes")
+    if param is None:
+        # Aucun paramètre → on coche par défaut
+        show_only_mine = True
+    else:
+        # Si présent → on suit la valeur ("1" = coché, tout le reste = décoché)
+        show_only_mine = (param == "1")
+
+    # Groupes Django
+    groupes = Group.objects.all().prefetch_related("user_set")
+    if show_only_mine:
+        groupes = [g for g in groupes if user in g.user_set.all()]
+
+
+    users = User.objects.all()
+
+    # Séparation des groupes
+    groupes_saadd = [g for g in groupes if "SAADD" in g.name.upper()]
+    groupes_sppn = [g for g in groupes if "SPPN" in g.name.upper()]
+    groupes_general = [g for g in groupes if "SAADD" not in g.name.upper() and "SPPN" not in g.name.upper()]
+
+    # Groupes instructeurs
+    groupes_instructeurs = Groupeinstructeur.objects.all().order_by("nom").prefetch_related(
+        "groupeinstructeurinstructeur_set__id_instructeur__id_agent_autorisations"
+    )
+
+    if show_only_mine:
+        groupes_instructeurs = [
+            g for g in groupes_instructeurs
+            if g.groupeinstructeurinstructeur_set.filter(id_instructeur__email=user.email).exists()
+        ]
+
+    # on construit un dict {groupe_id: [ids instructeurs déjà dedans]}
+    instructeurs_groupes_map = {
+        g.id: [lien.id_instructeur.id for lien in g.groupeinstructeurinstructeur_set.all()]
+        for g in groupes_instructeurs
+    }
+
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
+
+
+    return render(request, "instruction/gestion_groupes.html", {
+        "groupes_saadd": groupes_saadd,
+        "groupes_sppn": groupes_sppn,
+        "groupes_general": groupes_general,
+        "groupes_instructeurs": groupes_instructeurs,
+        "instructeurs_groupes_map": instructeurs_groupes_map,
+        "instructeurs": instructeurs,
+        "users": users,  # pour liste déroulante d’ajout
+        "show_only_mine": show_only_mine,
     })

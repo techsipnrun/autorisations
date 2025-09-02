@@ -48,7 +48,7 @@ router.register(r'groupeinstructeur_demarche', utilisateurs_views.Groupeinstruct
 router.register(r'groupeinstructeur_instructeur', utilisateurs_views.GroupeinstructeurInstructeurViewSet)
 router.register(r'dossier_instructeur', utilisateurs_views.DossierInstructeurViewSet)
 router.register(r'dossier_valideur', utilisateurs_views.DossierValideurViewSet)
-router.register(r'dossier_relecteur_juridique', utilisateurs_views.DossierRelecteurJuridiqueViewSet)
+router.register(r'dossier_relecteur', utilisateurs_views.DossierRelecteurViewSet)
 router.register(r'dossier_relecteur_qualite', utilisateurs_views.DossierRelecteurQualiteViewSet)
 router.register(r'dossier_signataire', utilisateurs_views.DossierSignataireViewSet)
 router.register(r'email_outbox', utilisateurs_views.EmailOutboxViewSet)

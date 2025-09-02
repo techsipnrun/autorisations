@@ -22,7 +22,7 @@
 .form_messagerie {
     display: flex;
     flex-direction: row;
-    gap: 4px;
+    gap: 8px;
 }
 
 .form_msg_box.active {

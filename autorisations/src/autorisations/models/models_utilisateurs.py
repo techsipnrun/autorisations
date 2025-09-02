@@ -228,21 +228,24 @@ class DossierValideur(models.Model):
         return f"{self.id_instructeur} validant·e du dossier {self.id_dossier.numero}"
 
 
-class DossierRelecteurJuridique(models.Model):
+class DossierRelecteur(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
     id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
+    demande_relecture = models.TextField()
+    reponse_relecture = models.TextField()
     relu = models.BooleanField(default=False)
 
     class Meta:
         managed = False
-        db_table = '"utilisateurs"."dossier_relecteur_juridique"'
+        db_table = '"utilisateurs"."dossier_relecteur"'
         indexes = [
             models.Index(fields=['id_dossier', 'id_instructeur'], name='dossier_relecteur_juri_idx'),
         ]
 
     def __str__(self):
-        return f"{self.id_instructeur} relecteur·rice juridique du dossier {self.id_dossier.numero}"
+        return f"{self.id_instructeur} relecteur·rice du dossier {self.id_dossier.numero}"
+    
 
 
 class DossierRelecteurQualite(models.Model):

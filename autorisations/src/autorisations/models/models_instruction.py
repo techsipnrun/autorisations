@@ -158,7 +158,7 @@ class Dossier(models.Model):
     geometrie = models.JSONField(blank=True, null=True)
     geometrie_modif = models.JSONField(blank=True, null=True)
     present_sur_ds = models.BooleanField(default=False)
-    relecture_juridique = models.BooleanField(default=False)
+    # relecture_juridique = models.BooleanField(default=False)
 
     class Meta:
         managed = False

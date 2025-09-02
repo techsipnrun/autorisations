@@ -30,7 +30,9 @@
     height: 100%;
 }
 
-.logo-admin {
+
+
+.logo-admin, .logo-profil {
     height: 25px;
 }
 
@@ -38,13 +40,13 @@
     height: 30px;
 }
 
-.logo-api img, .logo-admin img {
+.logo-api img, .logo-admin img, .logo-profil img {
     height: 100%;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
   
-.logo-api img:hover, .logo-admin img:hover {
+.logo-api img:hover, .logo-admin img:hover, .logo-profil img:hover{
     transform: scale(1.1);
 }
 
@@ -130,7 +132,7 @@
 
     min-width: 20px;
     height: 20px;
-    padding: 1px 8px;
+    padding: 2px 8px;
 
     border-radius: 999px; /* pastille parfaitement ronde */
     background: linear-gradient(135deg, #ff4b2b, #ff416c); /* dégradé rouge/orangé moderne */

@@ -1,11 +1,11 @@
 from rest_framework import viewsets
 from autorisations.models.models_utilisateurs import (
-    AgentAutorisations, AgentAutorisationsUpdateLog, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, TypeContactExterne, ContactExterne,
+    AgentAutorisations, AgentAutorisationsUpdateLog, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, TypeContactExterne, ContactExterne,
     DossierInterlocuteur, DossierBeneficiaire, Instructeur, Groupeinstructeur,
     GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur
 )
 from ..api_serializers.utilisateurs_serializers import (
-    AgentAutorisationsSerializer, DossierRelecteurJuridiqueSerializer, DossierRelecteurQualiteSerializer, DossierSignataireSerializer, DossierValideurSerializer, EmailOutboxSerializer, TypeContactExterneSerializer,
+    AgentAutorisationsSerializer, DossierRelecteurSerializer, DossierRelecteurQualiteSerializer, DossierSignataireSerializer, DossierValideurSerializer, EmailOutboxSerializer, TypeContactExterneSerializer,
     ContactExterneSerializer, DossierInterlocuteurSerializer, DossierBeneficiaireSerializer,
     InstructeurSerializer, GroupeinstructeurSerializer, GroupeinstructeurDemarcheSerializer,
     GroupeinstructeurInstructeurSerializer, DossierInstructeurSerializer
@@ -315,16 +315,16 @@ class DossierValideurViewSet(viewsets.ModelViewSet):
 
 
 @swagger_auto_schema(tags=["Utilisateurs"])
-class DossierRelecteurJuridiqueViewSet(viewsets.ModelViewSet):
+class DossierRelecteurViewSet(viewsets.ModelViewSet):
     """
     retrieve:
-    Retourne l'association entre un dossier et un relecteur juridique via son ID.
+    Retourne l'association entre un dossier et un relecteur via son ID.
 
     list:
-    Retourne la liste de toutes les associations entre dossiers et relecteurs juridiques.
+    Retourne la liste de toutes les associations entre dossiers et relecteurs.
 
     create:
-    Associe un relecteur juridique à un dossier.
+    Associe un relecteur à un dossier.
 
     update:
     Met à jour une association existante (remplacement total).
@@ -333,10 +333,10 @@ class DossierRelecteurJuridiqueViewSet(viewsets.ModelViewSet):
     Met à jour partiellement une association.
 
     delete:
-    Supprime une association entre un dossier et un relecteur juridique.
+    Supprime une association entre un dossier et un relecteur .
     """
-    queryset = DossierRelecteurJuridique.objects.all()
-    serializer_class = DossierRelecteurJuridiqueSerializer
+    queryset = DossierRelecteur.objects.all()
+    serializer_class = DossierRelecteurSerializer
     permission_classes = [DjangoModelPermissions]
     authentication_classes = [TokenAuthentication]
 

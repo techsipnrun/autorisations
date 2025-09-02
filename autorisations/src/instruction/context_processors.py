@@ -116,6 +116,10 @@ def breadcrumb_context(request):
             items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
             items.append({"label": f"Avis n°{numero_avis}", "url": ""})
 
+    elif view_name == "gestion_groupes":
+        items.append({"label": f"Mes dossiers", "url": "/mesdossiers"})
+        items.append({"label": f"Gestion des groupes", "url": ""})
+
 
 
     return {"breadcrumb_items": items}

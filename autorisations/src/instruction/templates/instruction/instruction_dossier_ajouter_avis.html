@@ -27,7 +27,15 @@
             </div> 
 
             <div class="form_ajout_demande_avis">
-                <h2>Nouvelle demande d'avis</h2>
+                <div class="header_nouvelle_demande_avis">
+                    <h2>Nouvelle demande d'avis</h2>
+                    <div class="etat-badge-menu">
+                        {{ avis.statut }}
+                    </div>
+                </div>
+
+                 
+
                 
                 <form id="form-avis" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -178,10 +186,7 @@
                                 Confirmer l’envoi
                             </button>
 
-                            <!-- <button type="submit"
-                                formaction="{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero %}">
-                                Enregistrer le brouillon
-                            </button> -->
+
                             <button type="submit"
                                 formaction="{% if avis %}
                                                 {% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}
@@ -264,9 +269,9 @@
                     blocExterne.style.display = "flex";
                     expertExterne.required = true;
                     blocPJ_demandeAvis.style.display = "flex";
-                    pjDemandeAvis.required = true;
+                    // pjDemandeAvis.required = true;
                     blocPJ_rapportCS.style.display = "flex";
-                    pjRapportCS.required = true;
+                    // pjRapportCS.required = true;
                     blocPJ_projetActe.style.display = "flex";
                    
                 }

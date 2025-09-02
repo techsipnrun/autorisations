@@ -7,9 +7,10 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
+from autorisations.models.models_avis import Avis
 from notifications.service import compute_dedupe_key, send_outbox_now
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
@@ -148,8 +149,8 @@ def dossier_non_soumis_a_autorisation(request):
             logger.error(f"[DOSSIER {dossier.numero}] Echec classement 'Non soumis à autorisation' : Instructeur introuvable ou non présent sur DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
 
-         # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
-        if dossier.id_etat_dossier.nom == 'en_construction' and dossier.id_etape_dossier.etape == 'En pré-instruction' :
+         # Si l'étape est 'En pré-instruction' ou 'À affecter' et l'état 'en_construction' --> passer l'état à en_instruction
+        if dossier.id_etat_dossier.nom == 'en_construction' and (dossier.id_etape_dossier.etape == 'En pré-instruction' or dossier.id_etape_dossier.etape == 'À affecter') :
             passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
 
         # Appel API GraphQL
@@ -253,13 +254,125 @@ def passer_en_instruction(request):
 
 @login_required
 def envoyer_pour_validation_avant_demande_avis(request):
+
     if request.method == "POST":
+
         dossier_id_ds = request.POST.get("dossierId")
-        if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+        nature = request.POST.get("nature_document")
+        validant = request.POST.get("choix-validant") #Objet Instructeur
+        fichier = request.FILES.get("piece_jointe")
+        ids_selectionnes = request.POST.getlist("avis_selectionnes")
+        
+        extension = Path(fichier.name).suffix.lower()
+        if extension not in {".doc", ".docx", ".odt"} :
+            messages.error(request, f"❌ Le fichier joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not dossier_id_ds :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : L'id du dossier est manquant.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not nature :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : La nature du projet d'acte est manquante.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not fichier :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : Le projet d'acte n'a pas été joint.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not validant :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : Aucun validant sélectionné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not ids_selectionnes :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : Aucun avis sélectionné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+        avis_selectionnes = Avis.objects.filter(id__in=ids_selectionnes)
+        if not avis_selectionnes:
+            messages.error(request, f"❌ Aucun avis trouvé avec les id : {ids_selectionnes}.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        if not dossier:
+            messages.error(request, f"❌ Aucun dossier trouvé avec l'id DS : {dossier_id_ds}.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        if not instructeur:
+            messages.error(request, f"❌ Aucun instructeur trouvé avec l'adresse mail : {request.user.email}.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        # Définir le chemin de destination
+        dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
+        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
+        os.makedirs(full_path, exist_ok=True)
+        filepath = os.path.join(full_path, fichier.name)
+
+        # Vérification que le file sélectionné est bien dans le sous dossier Work
+        if not os.path.exists(filepath):
+            messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # Avis Maj du statut : À valider
+        for avis in avis_selectionnes:
+            avis.statut = "À valider"
+            avis.save()
+
+        # Ajout du validant au dossier
+        try:
+            # Suppression des valideurs du dossier (si existants)
+            deleted_count, _ = DossierValideur.objects.filter(id_dossier=dossier).delete()
+            if deleted_count > 0:
+                logger.info(f"[DOSSIER {dossier.numero}] {deleted_count} validant(s) existant(s) supprimé(s) du dossier.")
+            validant_obj = get_object_or_404(Instructeur, id=validant)
+            DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=validant_obj)
+            logger.info(f"[DOSSIER {dossier.numero}] Validant·e {validant_obj} affecté·e au dossier.")
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'affectation du validant·e {validant} : {e}")
+
+
+
+        try:
+            # # Enregistrement physique ??
+            # with open(filepath, 'wb+') as destination:
+            #     for chunk in fichier.chunks():
+            #         destination.write(chunk)
+
+            # Récupérer la nature, le format et le statut
+            nature_obj = get_object_or_404(DocumentNature, nature=nature)
+            extension = os.path.splitext(fichier.name)[1].lower().lstrip('.')
+            format_obj = get_object_or_404(DocumentFormat, format=extension)
+            statut_obj = get_object_or_404(DocumentStatut, statut="À valider")
+
+            # Enregistrer en BDD
+            doc, created = Document.objects.get_or_create(
+                                emplacement=dossier_path, titre=fichier.name,
+                                defaults={
+                                    "id_format": format_obj,
+                                    "id_nature": nature_obj,
+                                    "id_statut": statut_obj,
+                                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                                }
+                            )
+
+            if created:
+                DossierDocument.objects.create(
+                    id_dossier=dossier,
+                    id_document=doc
+                )
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} créé dans le dossier Work")
+            else:
+                doc.id_statut = statut_obj
+                doc.save()
+                logger.warning(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} déjà existant dans le dossier Work – aucune création")
+
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors de la création du Document ou de l'écriture physique dans le dossier Work ({str(e)})")
+
+        
 
         # Changer Etape
         changer_etape_si_differente(dossier, "À valider avant demande d'avis", request.user)
@@ -272,26 +385,6 @@ def envoyer_pour_validation_avant_demande_avis(request):
     return HttpResponseBadRequest("Méthode non autorisée.")
 
 
-
-# @login_required
-# def envoyer_pour_validation_avant_signature(request):
-#     if request.method == "POST":
-#         dossier_id_ds = request.POST.get("dossierId")
-#         if not dossier_id_ds:
-#             return HttpResponseBadRequest("ID dossier manquant.")
-
-#         # Changer Etape
-#         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-#         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
-
-#         # Dossier Action
-#         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-#         enregistrer_action(dossier, instructeur, "Envoyé pour validation")
-
-
-#         return redirect(request.META.get("HTTP_REFERER", "/"))
-
-#     return HttpResponseBadRequest("Méthode non autorisée.")
 
 @login_required
 def envoyer_pour_validation_avant_signature(request):
@@ -307,8 +400,21 @@ def envoyer_pour_validation_avant_signature(request):
             messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        if not dossier_id_ds or not nature or not fichier:
-            raise Http404(f"Données manquantes ou invalides : id_dossier_ds = {dossier_id_ds}, nature_doc = {nature}, fichier = {fichier.name}")
+        if not dossier_id_ds :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : L'id du dossier est manquant.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not nature :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : La nature du projet d'acte est manquante.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not fichier :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : Le projet d'acte n'a pas été joint.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        if not validant :
+            messages.error(request, f"❌ Envoi pour validation avant demande d'avis : Aucun validant sélectionné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
 
@@ -325,7 +431,7 @@ def envoyer_pour_validation_avant_signature(request):
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         try:
-            # Enregistrement physique
+            # Enregistrement physique ??
             with open(filepath, 'wb+') as destination:
                 for chunk in fichier.chunks():
                     destination.write(chunk)
@@ -371,7 +477,12 @@ def envoyer_pour_validation_avant_signature(request):
 
         # Ajout du validant au dossier
         try:
+            # Suppression des valideurs du dossier (si existants)
+            deleted_count, _ = DossierValideur.objects.filter(id_dossier=dossier).delete()
+            if deleted_count > 0:
+                logger.info(f"[DOSSIER {dossier.numero}] {deleted_count} validant(s) existant(s) supprimé(s) du dossier.")
             validant_obj = get_object_or_404(Instructeur, id=validant)
+
             DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=validant_obj)
             logger.info(f"[DOSSIER {dossier.numero}] Validant·e {validant_obj} affecté·e au dossier.")
         except Exception as e:
@@ -478,6 +589,18 @@ def repasser_en_instruction(request):
         DossierSignataire.objects.filter(id_dossier=dossier).delete()
         DossierRelecteurQualite.objects.filter(id_dossier=dossier).delete()
         DossierValideur.objects.filter(id_dossier=dossier).delete()
+
+        # Maj statut Avis
+        avis_a_reinitialiser = Avis.objects.filter(id_dossier=dossier, statut="À valider")
+
+        for avis in avis_a_reinitialiser:
+            avis.statut = "Brouillon"
+            try:
+                avis.save()  # déclenche clean() + validation
+                logger.info(f"[DOSSIER {dossier.numero}] Avis {avis.id} remis en statut 'Brouillon'")
+            except ValidationError as e:
+                logger.error(f"[DOSSIER {dossier.numero}] Impossible de remettre l'avis {avis.id} en 'Brouillon' : {e}")
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -963,6 +1086,19 @@ def envoyer_l_acte(request):
                 if not emails_norm:
                     logger.warning(request, "Aucun email valide sélectionné pour l’envoi en copie.")
                 else:
+                     # Création auto des ContactExterne manquants
+                    type_autre, _ = TypeContactExterne.objects.get_or_create(type="autre")
+                    for email in emails_norm:
+                        contact = ContactExterne.objects.filter(email=email).first()
+                        if not contact:
+                            contact = ContactExterne.objects.create(
+                                email=email,
+                                id_type=type_autre,
+                                nom="",
+                                prenom="",
+                            )
+                            logger.info(f"[DOSSIER {dossier_numero}] Nouveau ContactExterne créé automatiquement: {email}")
+
 
                     sujet = f"{nature_document} – Dossier {dossier.numero}"
                     dedupe = compute_dedupe_key(emails_norm, sujet, "libre", {"body": motivation})

@@ -15,7 +15,7 @@
 
 /* ====== Passer en Pré-Instruction ====== */
 .etat-badge-menu-dropdown.open {
-    margin-bottom: 3.5rem;
+    margin-bottom: 6rem;
 }
 
 .btn_dropdown_instruction {
@@ -28,113 +28,48 @@
 }
 
 
-
-/* ====== Groupe Instructeur ====== */
-
-/* .form_groupe_select {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.95rem;
-    margin-top: 2rem;
-
+/* --------------------------------------------- */
+/*           Bloc Non soumis à autorisation      */
+/* --------------------------------------------- */
+.zone-complement {
+    display: none;
+    margin-top: 1rem;
 }
 
-
-
-.form_groupe_select select {
-    padding: 0.4rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    cursor: pointer;
-} */
-
-
-
-
-
-/* ---------------------------------------*/
-/*            Groupe Instructeur          */
-/* -------------------------------------- */
-
-
-
-
-/* ====== HISTORISER ====== */
-
-/* .etat-actions {
-    background-color: #f9f9f9;
-    border: 1px solid #ccc;
-    padding: 2rem;
-    margin: 3rem 1rem;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.actions-liste {
-    display: flex;
-    gap: 2rem;
-} */
-
-/* .action-btn {
-    background-color: white;
-    border: 1px solid black;
-    color: black;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: center;
-    font-size: large;
-}
-
-.action-btn.active {
-    background-color: #e3fbe3;
-    font-weight: bold;
-}
-
-.action-btn:hover {
-    transform: scale(1.05);
-    transition: transform 0.2s ease;
-    transform-origin: center;
-} */
-
-/* .etat-result {
-    margin: 0 auto;
-    font-size: 0.95rem;
-    color: black;
-    width: 100%;
-}
-
-.etat-message {
-    background-color: #f1f1f1;
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 8px;
-    transition: opacity 0.3s ease; 
-    margin-top: 2rem;
-}
-
-.etat-message form label {
-    font-weight: bold;
+.zone-complement.show {
     display: block;
-    margin: 0.5rem 0 0.2rem 0;
 }
 
-
-.etat-message form input[type="text"],
-.etat-message form select,
-.etat-message form textarea {
+.textarea-complement {
     width: 100%;
+    min-height: 120px;
     padding: 0.5rem;
     border: 1px solid #ccc;
     border-radius: 6px;
-    margin-bottom: 1rem;
-    box-sizing: border-box;
+    font-size: 0.95rem;
 }
 
-.etat-message form textarea {
-    resize: vertical;
-    min-height: 80px;
-} */
+.zone-pj-complement {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    gap: 1rem;
+}
+
+.btn-envoyer-complement {
+    background-color: #155a32;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-envoyer-complement:hover {
+    background-color: #0e4c27;
+}
+
+
+

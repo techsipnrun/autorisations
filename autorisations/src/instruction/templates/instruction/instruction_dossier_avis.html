@@ -141,7 +141,9 @@
                     <p> <strong>Réponse :</strong> Défavorable </p>
                 {% endif %}
 
-                <p>Rajouter thematique si non null et si != autre</p>
+                {% if avis.id_avis_thematique and avis.id_avis_thematique.thematique != 'Autre' %}
+                    <p> <strong>Thématique :</strong> {{ avis.id_avis_thematique.thematique }} </p>
+                {% endif %}
 
             </div>
         </div>

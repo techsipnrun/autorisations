@@ -244,7 +244,7 @@
 
 
 
-/* ====== Relecture juridique ====== */
+/* ====== Relecture ====== */
 .relecture_juridique label{
     font-size: 1.2rem;
 }
@@ -324,6 +324,7 @@
     background-color: #f9f9f9;
     border-left: 4px solid #006131;
     padding: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .validation-documents h2 {
@@ -359,6 +360,92 @@
     margin: auto;
     vertical-align: text-bottom; 
 }
+
+
+
+
+/* === Bloc envoyer pour validation avant demande d'avis === */
+/* ====== Bloc sélection des avis ====== */
+.avis-dossier {
+    margin: 2rem 0 1.5rem 0;
+}
+
+.avis-dossier label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+#avis-selectionnes {
+    width: 60%;
+    padding: 0.4rem;
+    margin-left: 0;
+    border-radius: 6px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+#avis-selectionnes option {
+    padding: 0.3rem;
+    margin: 0.1rem 0;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+/* Couleur quand l'option est survolée */
+#avis-selectionnes option:hover {
+    background-color: #f1f1f1;
+}
+
+/* Couleur quand l'option est sélectionnée */
+#avis-selectionnes option:checked {
+    background-color: #e9f5ef;
+    color: #006131;
+    font-weight: bold;
+}
+
+/* Texte d'aide */
+.avis-dossier .hint-text {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.4rem;
+    font-style: italic;
+}
+
+/* Lien avis à valider */
+.avis-a-valider-liste {
+    list-style: none;   /* supprime les puces */
+    padding: 0;
+    margin: 0;
+}
+
+.avis-a-valider-liste li {
+    margin: 0.3rem 0;
+}
+
+.avis-a-valider-liste a {
+    display: inline;
+    padding: 0.4rem 0.6rem;
+    text-decoration: none;
+    color: #333;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.avis-a-valider-liste a:hover {
+    background-color: #f1f1f1;
+    color: #006131;
+    text-decoration: underline;
+}
+
+
+
+
+
+
 
 /* Lien vers le RAA */
 .validation-documents img {
@@ -430,15 +517,21 @@
     font-weight: bold;
     display: block;
     margin-bottom: 0.5rem;
+    margin-top: 1rem;
 }
 
-#select-relecteur-juridique {
+.formulaire-relecture-juridique #first_label_form {
+    margin-top: 0;
+}
+
+#select-relecteur-juridique, #dmd_relecture {
     padding: 0.4rem;
     border-radius: 6px;
     font-size: 1rem;
     border: 1px solid #ccc;
     width: 100%;
 }
+
 
 .formulaire-relecture-actions {
     text-align: right;
@@ -447,6 +540,7 @@
 
 /* Bouton "Faite" pour valider la relecture juridique */
 .btn-relecture-faite {
+    display: flex;
     background-color: #e0f7e9;
     border: 1px solid #2e7d32;
     color: #2e7d32;
@@ -456,7 +550,6 @@
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s ease;
-    margin-left: 0.5rem;
 }
 
 .btn-relecture-faite:hover {
@@ -466,6 +559,158 @@
 .form-relecture-faite {
     display: inline-block;
 }
+
+
+/* Afficher/masquer section */
+.triangle {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    color: #003366;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 0.5rem;
+    cursor: pointer;
+}
+
+.nom_prenom_relecteur {
+    display: inline-block;
+    cursor: pointer;
+}
+
+.instructeur_du_dossier_relecture.open .triangle {
+    transform: rotate(90deg);
+}
+
+
+/* Relecture en attente - Faite */
+.relecture_faite {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    background-color: #28a745; /* vert */
+    color: #fff;
+    font-weight: bold;
+    border-radius: 10px; /* arrondi complet */
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.relecture_en_attente {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    background-color: #ff8a2ae1; /* orange */
+    color: #fff;
+    font-weight: bold;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+
+
+
+.instructeur_du_dossier_relecture {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #ddd;
+    align-items: center;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    background: #f9f9f9;
+    transition: background 0.2s;
+}
+
+.instructeur_du_dossier_relecture:hover {
+    background: #f1f1f1;
+}
+
+.bloc-gauche {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.relecture-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.relecture-details {
+    margin-top: 1rem;
+    width: 90%;
+    padding: 0.8rem 1rem;
+    background: #f9f9f9;        /* léger fond gris clair */
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.5;           /* espace entre lignes */
+}
+
+.relecture-details p {
+    margin: 0.5rem 0;           /* espace vertical entre paragraphes */
+}
+
+.relecture-details ul {
+    list-style: none;
+    margin-bottom: 1rem;
+    padding: 0;
+}
+
+.relecture-details li {
+    margin: 0.3rem 0;
+}
+
+.relecture-details a {
+    display: inline-block;   
+    text-decoration: none;
+    color: #006131;
+    font-weight: 500;
+    transition: transform 0.2s ease-in-out;
+}
+
+.relecture-details a:hover {
+    color: #0b4025;  
+    transform: scale(1.1);
+}
+
+
+.hidden {
+    display: none;
+}
+
+/* Triangle rotation quand ouvert */
+.instructeur_du_dossier_relecture.open .triangle {
+    transform: rotate(90deg);
+}
+
+
+.instructeur_du_dossier_relecture:hover .form-retirer-relecteur {
+    opacity: 0.6;
+}
+
+/* ----- Retirer relecteur ----- */
+.form-retirer-relecteur {
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.form-retirer-relecteur:hover {
+    opacity: 1 !important;
+}
+
+.relecture-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* bloc-gauche à gauche, croix à droite */
+    width: 100%;
+}
+
+
 
 
 /* Bloc transmettre document signé */

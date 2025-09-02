@@ -310,11 +310,11 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
     expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
     expert_externe_id = request.POST.get("expert_externe") # contact externe ici
     fichier = request.FILES.get("pj_avis")
-
-    extension = Path(fichier.name).suffix.lower()
-    if extension not in {".pdf", ".doc", ".docx", ".odt"} :
-        messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+    if fichier :
+        extension = Path(fichier.name).suffix.lower()
+        if extension not in {".pdf", ".doc", ".docx", ".odt"} :
+            messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
     try:
         nature = AvisNature.objects.get(id=nature_id)

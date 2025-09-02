@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import shutil
 
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire, DossierValideur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 
 
@@ -223,13 +223,13 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
         est_instructeur = DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_valideur = DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_relecteur_qualite = DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
-        est_relecteur_juridique = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_relecteur = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_signataire = DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
 
 
         # === Mapping Étape -> Rôle attendu ===
-        if est_relecteur_juridique :
-            drj = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).first()
+        if est_relecteur :
+            drj = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).first()
             # Si relecture pas encore faite --> action à faire
             if not drj.relu :
                 dossiers_a_traiter_ids.add(dossier.id)

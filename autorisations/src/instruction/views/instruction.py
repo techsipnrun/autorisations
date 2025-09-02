@@ -9,10 +9,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
-from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
+from autorisations.models.models_avis import DossierAvis
 from declaration_manifestations.call_api_dm import recup_un_seul_dossier
 from synchronisation.src.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.src.synchro.sync_declaration_manifestations import sync_declaration_manifestations
@@ -59,7 +60,7 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
             Q(dossierinstructeur__id_instructeur=instructeur) |
             Q(dossierrelecteurqualite__id_instructeur=instructeur) |
             Q(dossiervalideur__id_instructeur=instructeur) |
-            Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+            Q(dossierrelecteur__id_instructeur=instructeur) |
             Q(dossiersignataire__id_instructeur=instructeur)
         )
         .distinct()
@@ -123,7 +124,7 @@ def mesdossiers(request):
             Q(dossierinstructeur__id_instructeur=instructeur) |
             Q(dossierrelecteurqualite__id_instructeur=instructeur) |
             Q(dossiervalideur__id_instructeur=instructeur) |
-            Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+            Q(dossierrelecteur__id_instructeur=instructeur) |
             Q(dossiersignataire__id_instructeur=instructeur)
         )
         .distinct()
@@ -162,14 +163,14 @@ def mesdossiers(request):
         # Déterminer mon rôle
         if DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
             role = "Instructeur.rice"
-        elif DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Relecteur.rice qualité"
         elif DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
             role = "Valideur.se"
-        elif DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Relecteur.rice juridique"
         elif DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
             role = "Signataire"
+        elif DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Relecteur.rice qualité"
+        elif DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+            role = "Relecteur.rice"
         else:
             role = "Inconnu"
 
@@ -213,7 +214,7 @@ def instruction_demarche(request, num_demarche):
                 Q(dossierinstructeur__id_instructeur=instructeur) |
                 Q(dossierrelecteurqualite__id_instructeur=instructeur) |
                 Q(dossiervalideur__id_instructeur=instructeur) |
-                Q(dossierrelecteurjuridique__id_instructeur=instructeur) |
+                Q(dossierrelecteur__id_instructeur=instructeur) |
                 Q(dossiersignataire__id_instructeur=instructeur)
             )
             .exclude(id_etape_dossier__etape = 'À affecter')
@@ -501,7 +502,7 @@ def instruction_dossier(request, num_dossier):
 
     #Menu déroulant adpaté enfocntion de l'étape en cours du dossier
     etapes_custom = {
-        "À affecter": ["Passer en pré-instruction"],
+        "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
         "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Passer en instruction"],
         "En attente de compléments": ["Passer en instruction"],
         "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Envoyer pour validation avant demande d'avis", "Envoyer pour validation avant signature"],
@@ -649,15 +650,15 @@ def instruction_dossier(request, num_dossier):
     emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
     relecteurs_qualite = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
 
-    # Relecteur juridique du dossier
-    relecteurs_juridique_du_dossier = DossierRelecteurJuridique.objects.filter(id_dossier=dossier)
+    # Relecteur du dossier
+    relecteurs_du_dossier = DossierRelecteur.objects.filter(id_dossier=dossier)
     
 
     # Relecteur-rice juridique
-    groupe = Group.objects.filter(name="Relecteur-rice juridique").first()
-    user_relecteur_qualite = groupe.user_set.all() if groupe else []
-    emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
-    relecteurs_juridique = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
+    # groupe = Group.objects.filter(name="Relecteur-rice juridique").first()
+    # user_relecteur_qualite = groupe.user_set.all() if groupe else []
+    # emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
+    # relecteurs_juridique = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
 
     # Signataires
     groupe = Group.objects.filter(name="Signataire").first()
@@ -680,6 +681,7 @@ def instruction_dossier(request, num_dossier):
 
     relecteurs_qualite_et_instructeurs = list(relecteurs_qualite) + instructeurs_groupe
 
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
 
 
 
@@ -701,16 +703,24 @@ def instruction_dossier(request, num_dossier):
             doss_manif_sportive = liaison.id_dossier_manif
  
 
-    # Contacts externes
-    contacts_externes = list((
-        ContactExterne.objects
-        .filter(email__isnull=False)
-        .exclude(email__exact='')
-        .order_by('nom', 'email')
-    ))
+    # Emails
+    emails_contacts = ContactExterne.objects.filter(
+        email__isnull=False
+    ).exclude(email__exact="").values_list("email", flat=True).distinct()
+
+    emails_instructeurs = Instructeur.objects.filter(
+        email__isnull=False
+    ).exclude(email__exact="").values_list("email", flat=True).distinct()
+
+    # Fusionner et dédoublonner
+    emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
+
 
     # Liste tous les emails de la table outbox liés à ce dossier
     emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id).order_by("-date_creation")
+
+    # Avis du dossier
+    avis_du_dossier = DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_avis_nature", "id_avis__id_expert")
 
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -724,6 +734,7 @@ def instruction_dossier(request, num_dossier):
         "is_formulaire_active": True,
         "is_messagerie_active": False,
         "groupes_instructeurs": groupes_instructeurs,
+        "instructeurs": instructeurs,
         "membres_groupe": membres_groupe,
         "etapes_possibles": etapes_possibles,
         "etape_actuelle": etape_actuelle,
@@ -742,7 +753,7 @@ def instruction_dossier(request, num_dossier):
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         "changer_valideur_message": request.session.pop("changer_valideur_message", None),
         "changer_relecteur_qualite_message": request.session.pop("changer_relecteur_qualite_message", None),
-        "relecteur_juridique_message": request.session.pop("relecteur_juridique_message", None),
+        "relecteur_message": request.session.pop("relecteur_message", None),
         "titres_documents_actes": list(documents_actes),
         "doc_a_valider": acte_a_valider,
         "doc_a_relire": acte_a_relire,
@@ -760,11 +771,12 @@ def instruction_dossier(request, num_dossier):
         "relecteurs_qualite": relecteurs_qualite,
         "relecteurs_qualite_du_dossier": relecteurs_qualite_du_dossier,
         "relecteurs_qualite_et_instructeurs": relecteurs_qualite_et_instructeurs,
-        "relecteurs_juridique": relecteurs_juridique,
-        "relecteurs_juridique_du_dossier": relecteurs_juridique_du_dossier,
+        # "relecteurs_juridique": relecteurs_juridique,
+        "relecteurs_du_dossier": relecteurs_du_dossier,
         "signataires": signataires,
-        "contacts_externes": contacts_externes,
+        "emails_uniques": emails_uniques,
         "emails_dossiers": emails_dossiers,
+        "avis_du_dossier": avis_du_dossier,
     })
 
 
@@ -864,43 +876,106 @@ def sauvegarder_note_dossier(request):
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+# @require_POST
+# @login_required
+# def mettre_a_jour_relecture(request):
+#     dossier_id = request.POST.get("dossier_id")
+#     relecture = request.POST.get("relecture_juridique") == "true"
+
+#     dossier = get_object_or_404(Dossier, id=dossier_id)
+#     dossier.relecture_juridique = relecture
+#     dossier.save()
+
+#     logger.info(f"[DOSSIER {dossier.numero}] Relecture mise à jour : {relecture} par {request.user.email}")
+#     return JsonResponse({"status": "ok", "relecture_juridique": relecture})
 
 
 @require_POST
 @login_required
-def mettre_a_jour_relecture_juridique(request):
-    dossier_id = request.POST.get("dossier_id")
-    relecture = request.POST.get("relecture_juridique") == "true"
-
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    dossier.relecture_juridique = relecture
-    dossier.save()
-
-    logger.info(f"[DOSSIER {dossier.numero}] Relecture mise à jour : {relecture} par {request.user.email}")
-    return JsonResponse({"status": "ok", "relecture_juridique": relecture})
-
-
-@require_POST
-@login_required
-def ajouter_relecteur_juridique_dossier(request):
+def ajouter_relecteur_dossier(request):
     dossier_id = request.POST.get("dossier_id")
     relecteur_id = request.POST.get("relecteur_id")
+    objet_demande = request.POST.get("objet_demande")
+    files = request.FILES.getlist("pj_relecture")
 
     dossier = get_object_or_404(Dossier, id=dossier_id)
     relecteur = get_object_or_404(Instructeur, id=relecteur_id)
 
+    for f in files:
+
+        if f.size > 20 * 1024 * 1024:  # 20 Mo
+            request.session["relecteur_message"] = (f"Le fichier {f.name} dépasse la limite de 20 Mo.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
     # Évite les doublons
-    existant = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=relecteur).exists()
+    existant = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=relecteur).exists()
     if not existant:
-        DossierRelecteurJuridique.objects.create(id_dossier=dossier, id_instructeur=relecteur)
+        dossier_relecteur = DossierRelecteur.objects.create(id_dossier=dossier, id_instructeur=relecteur, demande_relecture=objet_demande)
+        if files :
+            for f in files :
+
+                # Extension du fichier
+                nom, extension = os.path.splitext(f.name)
+                extension = extension.lstrip('.').lower()
+
+                # Récupérer le format
+                format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
+                if not format_obj:
+                    request.session["relecteur_message"] = (f"PJ refusée car le format n'est pas reconnu : {f.name}.{extension}.")
+                    logger.warning(f"[DOSSIER {dossier.numero}] Demande de relecture : PJ refusée car le format n'est pas reconnu : {f.name}.{extension}")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
+                
+                # Ecriture du fichier
+                emplacement = f"{dossier.emplacement}Annexes/Relecture/{f.name}"
+                chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
+                os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+
+                # Évite les doublons → incrémente _2, _3...
+                base_nom, ext = os.path.splitext(f.name)
+                compteur = 1
+                while os.path.exists(chemin_complet):
+                    compteur += 1
+                    nouveau_nom = f"{base_nom}_{compteur}{ext}"
+                    emplacement = emplacement = f"{dossier.emplacement}Annexes/Relecture/{nouveau_nom}"
+                    f.name = nouveau_nom
+                    chemin_complet = os.path.join(os.getenv("ROOT_FOLDER"), emplacement)
+
+                try:
+                    with open(chemin_complet, 'wb+') as destination:
+                        for chunk in f.chunks():
+                            destination.write(chunk)
+
+                    logger.info(f"[DOSSIER {dossier.numero}] Demande de relecture : PJ {f.name} ajoutée avec succès par {request.user}")
+
+                except Exception as e:
+                    logger.error(f"[DOSSIER {dossier.numero}] Demande de relecture : Erreur lors de l'écriture de la PJ {f.name} : {e}")
+                    request.session["relecteur_message"] = (f"Une erreur est survenue lors de l’enregistrement du fichier : {f.name}.{extension}.")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+                # Création du Document
+                document = Document.objects.create(
+                    id_format=format_obj,  
+                    id_nature=DocumentNature.objects.get(nature="Pièce jointe à relire"),
+                    id_statut=None,
+                    emplacement=f"{dossier.emplacement}Annexes/Relecture/",
+                    titre=f.name,
+                    description="Document joint à une demande de relecture"
+                )
+
+                # Liaison avec la demande de relecture
+                DossierRelecteurDocument.objects.create(
+                    id_dossier_relecteur=dossier_relecteur,
+                    id_document=document
+                )
     else:
-        dossRJ = DossierRelecteurJuridique.objects.filter(id_dossier=dossier, id_instructeur=relecteur).first()
+        dossRJ = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=relecteur).first()
         if dossRJ.relu :
-             request.session["relecteur_juridique_message"] = (
+             request.session["relecteur_message"] = (
                 "Cet.te relecteur.rice a déjà réalisé.e une relecture sur le dossier."
             )
         else:
-            request.session["relecteur_juridique_message"] = (
+            request.session["relecteur_message"] = (
                 "Cet.te relecteur.rice a déjà une relecture en cours sur le dossier."
             )
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
@@ -909,15 +984,17 @@ def ajouter_relecteur_juridique_dossier(request):
 
 @require_POST
 @login_required
-def relecture_juridique_faite(request):
+def relecture_faite(request):
     dossier_id = request.POST.get("dossier_id")
     relecteur_entry_id = request.POST.get("relecteur_id")
+    reponse_demande = request.POST.get("reponse_demande")
 
     dossier = get_object_or_404(Dossier, id=dossier_id)
-    entry = get_object_or_404(DossierRelecteurJuridique, id=relecteur_entry_id)
+    entry = get_object_or_404(DossierRelecteur, id=relecteur_entry_id)
 
     if request.user.email == entry.id_instructeur.email:
         entry.relu = True
+        entry.reponse_relecture = reponse_demande
         entry.save()
 
         # Dossier Action
@@ -926,23 +1003,23 @@ def relecture_juridique_faite(request):
         enregistrer_action(dossier, instructeur, "Relecture", nom_prenom)
 
     else:
-        request.session["relecteur_juridique_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")
+        request.session["relecteur_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")
 
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
 @require_POST
 @login_required
-def retirer_relecteur_juridique(request):
+def retirer_relecteur(request):
 
-    drj_id = request.POST.get("dossier_relecture_juridique_id")
-    drj = get_object_or_404(DossierRelecteurJuridique, id=drj_id)
+    drj_id = request.POST.get("dossier_relecture_id")
+    drj = get_object_or_404(DossierRelecteur, id=drj_id)
     dossier = drj.id_dossier
 
     try :
         drj.delete()
     except :
-        request.session["relecteur_juridique_message"] = ("Relecteur.rice juridique n'as pas pu être retiré.e du dossier.")
+        request.session["relecteur_message"] = ("Relecteur.rice n'as pas pu être retiré.e du dossier.")
     
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 

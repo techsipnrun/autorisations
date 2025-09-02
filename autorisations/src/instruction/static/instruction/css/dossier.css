@@ -544,14 +544,22 @@ h2 {
 .logo_instructeur {
     height: 18px; 
     vertical-align: text-bottom; 
-    margin-right: 5px;
+    margin: 0 5px;
+    transition: transform 0.2s ease;
 }
+
+.logo_groupe_instru {
+    margin-bottom: 2px;
+}
+
+.logo_instructeur:hover {
+    transform: scale(1.1);
+}
+
 
 .logo_relecteur_qualite {
     margin-left: 5px;
 }
-
-
 
 .instructeur_du_dossier {
     font-weight: bold;
@@ -594,9 +602,11 @@ h2 {
 .croix-retirer {
     font-weight: bold;
     font-size: 1.1rem;
-    line-height: 1;
-    display: inline-block;
+    /* line-height: 1; */
+    margin-bottom: auto;
+    display: flex;
     vertical-align: middle;
+
 }
 
 
@@ -919,4 +929,8 @@ textarea[name="note"] {
 
 .icon_DS img {
     width: 100%;
+}
+
+.txt_en_gras {
+    font-weight: bold;
 }

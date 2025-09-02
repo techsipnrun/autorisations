@@ -3,7 +3,7 @@ from autorisations.models.models_utilisateurs import (
     AgentAutorisations, AgentAutorisationsUpdateLog, TypeContactExterne, ContactExterne,
     DossierInterlocuteur, DossierBeneficiaire, Instructeur, Groupeinstructeur,
     GroupeinstructeurDemarche, GroupeinstructeurInstructeur, DossierInstructeur,
-    DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire,
+    DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire,
     EmailOutbox
 )
 
@@ -74,9 +74,9 @@ class DossierValideurSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class DossierRelecteurJuridiqueSerializer(serializers.ModelSerializer):
+class DossierRelecteurSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DossierRelecteurJuridique
+        model = DossierRelecteur
         fields = '__all__'
 
 

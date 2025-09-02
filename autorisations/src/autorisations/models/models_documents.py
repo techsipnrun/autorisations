@@ -1,5 +1,7 @@
 from django.db import models
 
+from .models_utilisateurs import DossierRelecteur
+
 from .models_instruction import Dossier, DossierNote, Message
 
 
@@ -102,3 +104,20 @@ class MessageDocument(models.Model):
     def __str__(self):
         return f"Document {self.id_document.id} attaché à Message {self.id_message.id}"
 
+
+class DossierRelecteurDocument(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier_relecteur = models.ForeignKey(
+        DossierRelecteur, models.CASCADE, db_column="id_dossier_relecteur"
+    )
+    id_document = models.ForeignKey(
+        Document, models.CASCADE, db_column="id_document"
+    )
+
+    class Meta:
+        managed = False
+        db_table = '"documents"."dossier_relecteur_document"'
+        
+
+    def __str__(self):
+        return f"Document {self.id_document.titre} lié à la relecture du dossier {self.id_dossier_relecteur.id_dossier} par {self.id_dossier_relecteur.id_instructeur}"

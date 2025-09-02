@@ -1,0 +1,56 @@
+{% load static %}
+
+<div class="card">
+    <h3>{{ groupe.name }}</h3>
+
+    <ul>
+        {% for user in groupe.user_set.all %}
+            <li>
+                {{ user.username }} – {{ user.email }}
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <button type="submit" class="btn-remove" title="Supprimer l'utilisateur">✕</button>
+                </form>
+            </li>
+        {% empty %}
+            <li class="empty">Aucun utilisateur dans ce groupe</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Bouton + -->
+    <button type="button" class="btn-add" title="Ajouter un.e utilisateur.rice au groupe"
+            onclick="toggleForm(this)">+</button>
+   
+    <!-- Formulaire masqué -->
+    <form method="post" class="add-user-form hidden">
+        {% csrf_token %}
+        <input type="hidden" name="type" value="groupe">
+        <input type="hidden" name="action" value="add">
+        <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
+        <select name="user_id" required>
+            <option value="" disabled selected>Ajouter un utilisateur...</option>
+            {% for user in users %}
+                {% if user not in groupe.user_set.all %}
+                    <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn-confirm" title="Confirmer l'ajout">✔</button>
+    </form>
+</div>
+
+<script>
+    function toggleForm(button) {
+        const card = button.closest(".card");
+        const form = card.querySelector(".add-user-form");
+
+        // afficher le formulaire
+        form.classList.remove("hidden");
+
+        // masquer le bouton +
+        button.style.display = "none";
+    }
+</script>

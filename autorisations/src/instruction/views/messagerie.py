@@ -96,6 +96,7 @@ def preinstruction_dossier_messagerie(request, numero):
         "beneficiaire": beneficiaire,
         "demandeur": demandeur,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
     })
 
 

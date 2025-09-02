@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
-from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, MessageDocument
+from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
-from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteurJuridique, DossierRelecteurQualite, DossierSignataire
+from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 
 
 # Personnalisation globale de l'admin
@@ -648,9 +648,14 @@ class DossierValideurAdmin(admin.ModelAdmin):
 # admin.site.register(DossierValideur)
 
 
-@admin.register(DossierRelecteurJuridique)
-class DossierRelecteurJuridiqueAdmin(admin.ModelAdmin):
+@admin.register(DossierRelecteur)
+class DossierRelecteurAdmin(admin.ModelAdmin):
     list_filter = ('id_instructeur', 'relu',)
+
+@admin.register(DossierRelecteurDocument)
+class DossierRelecteurDocumentAdmin(admin.ModelAdmin):
+    list_filter = ('id_dossier_relecteur', 'id_document',)
+
 
 
 @admin.register(DossierRelecteurQualite)

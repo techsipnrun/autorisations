@@ -181,3 +181,22 @@
     color: rgb(172, 2, 2);
     font-weight: bold;
 }
+
+
+/* header statut avis */
+
+.header_nouvelle_demande_avis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.header_nouvelle_demande_avis .etat-badge-menu {
+    background-color: #dddddd;
+    color: #006131; ;
+}
+
+.header_nouvelle_demande_avis h2 {
+    margin: 0;
+}
