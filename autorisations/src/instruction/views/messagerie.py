@@ -278,6 +278,29 @@ def supprimer_message(request, id):
     except Exception as e:
         logger.error(f"[DOSSIER {message.id_dossier.numero}] Erreur lors de la suppression du message {id} par {request.user}: {e}")
         return HttpResponse(f"Erreur : {e}", status=500)
+    
+    
+@login_required
+def supprimer_message_avis(request, id):
+
+    dossier_numero = request.POST.get("dossier_numero")
+    avis_id = request.POST.get("avis_id")
+    message = get_object_or_404(Message, id=id)
+
+    # Vérifie si l'utilisateur est bien l'émetteur
+    if message.email_emetteur.lower() != request.user.email.lower():
+        messages.error(request, "Vous n'êtes pas autorisé à supprimer ce message car vous n'en n'êtes pas l'auteur.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+    try:
+        message.delete()
+        logger.info(f"[DOSSIER {dossier_numero}] Avis {avis_id} : Message {id} supprimé.")
+        return redirect("instruction_dossier_avis", num_dossier=dossier_numero, avis_id=avis_id)
+    
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier_numero}] Avis {avis_id} : Erreur lors de la suppression du message {id} par {request.user}: {e}")
+        messages.error(request, f"Erreur lors de la suppression du message {id} par {request.user}: {e}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 

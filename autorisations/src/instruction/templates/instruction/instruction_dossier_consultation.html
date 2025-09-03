@@ -26,11 +26,13 @@
                 {{ dossier.id_etape_dossier }}
             </div> 
 
-            <div class="nouvelle_demande_avis">
-                <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
-                    + Nouvelle demande d'avis
-                </a>
-            </div>
+            {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                <div class="nouvelle_demande_avis">
+                    <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
+                        + Nouvelle demande d'avis
+                    </a>
+                </div>
+            {% endif %}
 
             {% if messages %}
                 <div class="django-messages">
@@ -59,8 +61,8 @@
                     <tbody>
 
                         {% for a in avis %}
-                            <tr class="clickable-row {% if a.statut != 'Brouillon' %} ligne_en_gras {% endif %}" 
-                            data-href="{% if a.statut == 'Brouillon' %}
+                            <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %}" 
+                            data-href="{% if a.statut == 'Brouillon' or a.statut == 'À valider' %}
                                             {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
                                         {% else %}
                                             {% url 'instruction_dossier_avis' dossier.numero a.numero %}
@@ -73,6 +75,8 @@
                                         <img src="{% static 'instruction/img/brouillon.png' %}" alt="Brouillon de la demande d'avis" title="Voir le brouillon" class="avis_brouillon_icon">
                                     {% elif a.statut == "À valider" %}
                                         <img src="{% static 'instruction/img/badge-check.png' %}" alt="Demande d'avis à valider" title="Voir le brouillon" class="avis_a_valider_icon">
+                                    {% elif a.statut == "À envoyer" %}
+                                        <img src="{% static 'instruction/img/a_envoyer.png' %}" alt="Demande d'avis à valider" title="Voir le brouillon" class="avis_a_valider_icon">
                                     {% endif %}
                                 </td>
                                 <td>{{ a.expert }}</td>

@@ -19,6 +19,7 @@ urlpatterns = [
     path("instruction/<int:num_dossier>/consultation/<int:avis_id>/", avis.instruction_dossier_avis, name="instruction_dossier_avis"),
     path("instruction/supprimer_avis", avis.supprimer_avis, name="supprimer_avis"),
     path("instruction/envoyer_message_avis/", avis.envoyer_message_avis, name="envoyer_message_avis"),
+    path('message/<int:id>/supprimer_message_avis/', messagerie.supprimer_message_avis, name='supprimer_message_avis'),
     
     
     path('avis/', views.avis, name='avis_view'),
@@ -106,7 +107,7 @@ urlpatterns = [
     path("changer-etape/repasser-en-instruction/", changement_etape.repasser_en_instruction, name="repasser_en_instruction_url"),
     path("changer-etape/relecture-qualite/", changement_etape.envoyer_pour_relecture_qualite, name="envoyer_pour_relecture_qualite_url"),
     path("changer-etape/valider-relecture-qualite/", changement_etape.valider_et_envoyer_pour_relecture_qualite, name="valider_et_envoyer_pour_relecture_qualite_url"),
-    path("changer-etape/modifs-pour-validation/", changement_etape.envoyer_les_modifications_pour_validation, name="envoyer_les_modifications_pour_validation_url"),
+    path("changer-etape/modifs-pour-validation/", changement_etape.envoyer_les_modifications_de_l_acte_pour_validation, name="envoyer_les_modifications_de_l_acte_pour_validation_url"),
     path("changer-etape/signature/", changement_etape.envoyer_pour_signature, name="envoyer_pour_signature_url"),
     path("changer-etape/acte-envoye/", changement_etape.envoyer_l_acte, name="envoyer_l_acte_url"),
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),

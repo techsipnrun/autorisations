@@ -92,6 +92,7 @@ class Avis(models.Model):
         ("Brouillon", "Brouillon"),
         ("Envoyé", "Envoyé"),
         ("À valider", "À valider"),
+        ("À envoyer", "À envoyer"),
     ]
 
     id = models.AutoField(primary_key=True)

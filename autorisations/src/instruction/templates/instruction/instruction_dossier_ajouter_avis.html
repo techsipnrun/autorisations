@@ -29,14 +29,13 @@
             <div class="form_ajout_demande_avis">
                 <div class="header_nouvelle_demande_avis">
                     <h2>Nouvelle demande d'avis</h2>
-                    <div class="etat-badge-menu">
-                        {{ avis.statut }}
-                    </div>
+                    {% if avis.statut %}
+                        <div class="etat-badge-menu">
+                            {{ avis.statut }}
+                        </div>
+                    {% endif %}
                 </div>
 
-                 
-
-                
                 <form id="form-avis" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
 
@@ -83,7 +82,7 @@
                     </div>
 
                     <div class="attribut_avis" id="bloc_pj_demande_avis">
-                        <label for="pj_avis">Joindre la demande d'avis (Word)* :</label>
+                        <label for="pj_avis">Joindre la demande d'avis (Word) :</label>
                         <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx">
                     </div>
 
@@ -155,12 +154,6 @@
                         </div>
                     {% endif %}
 
-
-
-                    <!-- <a href="{% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}" class="confirmer-nouvel-avis" title="Confirmer l'envoi de la demande d'avis">
-                        Confirmer
-                    </a> -->
-
                     <div class="btn-dropdown">
                         <!-- Bouton principal -->
                         <button type="submit" class="main-btn"
@@ -197,12 +190,8 @@
                             </button>
                         </div>
                     </div>
-
                 </form>
-
             </div>
-
-
         </div>
     
         <!-- Colonne droite : navigation -->
@@ -264,10 +253,10 @@
                 if (selectedText === "Consultation en interne") {
                     blocInterne.style.display = "flex";
                     blocPJ_demandeAvis.style.display = "flex";
-                    expertInterne.required = true;
+                    // expertInterne.required = true;
                 } else if (selectedText === "Demande à une instance") {
                     blocExterne.style.display = "flex";
-                    expertExterne.required = true;
+                    // expertExterne.required = true;
                     blocPJ_demandeAvis.style.display = "flex";
                     // pjDemandeAvis.required = true;
                     blocPJ_rapportCS.style.display = "flex";
@@ -281,6 +270,84 @@
 
             // Exécuter au chargement (utile si le champ est prérempli)
             toggleExperts();
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("form-avis");
+
+            const nature = document.getElementById("nature");
+            const thematique = document.getElementById("thematique");
+            const modeContact = document.getElementById("mode_contact");
+            const formulation = document.getElementById("formulation_avis");
+
+            const expertInterne = document.getElementById("expert_interne");
+            const expertExterne = document.getElementById("expert_externe");
+
+            const pjDemandeAvis = document.getElementById("pj_demande_avis");
+            const pjProjetActe = document.getElementById("pj_projet_acte");
+
+            function resetRequired() {
+                [nature, thematique, modeContact, formulation,
+                expertInterne, expertExterne,
+                pjDemandeAvis, pjProjetActe].forEach(el => {
+                    if (el) el.required = false;
+                });
+            }
+
+            function setRequired(buttonType) {
+                resetRequired();
+
+                // Toujours obligatoires
+                nature.required = true;
+                thematique.required = true;
+                modeContact.required = true;
+                formulation.required = true;
+
+                const selectedNature = nature.options[nature.selectedIndex]?.text.trim();
+
+                if (selectedNature === "Consultation en interne") {
+                    expertInterne.required = true;
+                }
+                if (selectedNature === "Demande à une instance") {
+                    expertExterne.required = true;
+
+                    if (buttonType === "confirmer") {
+                        pjDemandeAvis.required = true;
+                        pjProjetActe.required = true;
+                    }
+                }
+            }
+
+            function handleSubmit(e, buttonType) {
+                e.preventDefault(); // empêche le submit natif trop tôt
+                setRequired(buttonType);
+
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                // soumettre manuellement en respectant formaction
+                const action = e.target.getAttribute("formaction") || form.getAttribute("action");
+                form.setAttribute("action", action);
+                form.submit();
+            }
+
+            // Boutons confirmer
+            document.querySelector(".main-btn").addEventListener("click", function (e) {
+                handleSubmit(e, "confirmer");
+            });
+
+            document.querySelector(".btn-confirmer-envoi").addEventListener("click", function (e) {
+                handleSubmit(e, "confirmer");
+            });
+
+            // Bouton brouillon
+            document.getElementById("btn-brouillon").addEventListener("click", function (e) {
+                handleSubmit(e, "brouillon");
+            });
         });
     </script>
 

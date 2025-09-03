@@ -100,6 +100,9 @@
                                         
                                         {% elif label == "Valider et envoyer pour relecture qualité" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
+                                        
+                                        {% elif label == "Envoyer pour relecture qualité" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Envoyer pour relecture qualité</button>
 
                                         {% elif label == "Acte prêt à être envoyé" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
@@ -275,35 +278,138 @@
 
                     {% if etape_actuelle.etape == "À valider avant demande d'avis" %}
                         <div class="validation-documents">
-                            <h2>Demande d'avis à valider</h2>
+                            <h2>Demandes d'avis à valider</h2>
                             <ul class="avis-a-valider-liste">
-                                {% for da in avis_du_dossier %}
-                                    {% if da.id_avis.statut == "À valider" %}
-                                        <li>
-                                            <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
-                                                Avis n°{{ da.id_avis.id }} –
-                                                {% if da.id_avis.id_avis_nature %}
-                                                    {{ da.id_avis.id_avis_nature }}:
+                                {% for da in avis_a_valider %}
+                                    <li>
+                                        <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                            Avis n°{{ da.id_avis.id }} –
+                                            {% if da.id_avis.id_avis_nature %}
+                                                {{ da.id_avis.id_avis_nature }}:
+                                            {% endif %}
+                                            {% if da.id_avis.id_expert %}
+                                                {% if da.id_avis.id_expert.est_interne %}
+                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                                {% else %}
+                                                    {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                    {{ da.id_avis.id_expert.id_contact_externe.prenom }}
                                                 {% endif %}
-                                                {% if da.id_avis.id_expert %}
-                                                    {% if da.id_avis.id_expert.est_interne %}
-                                                        {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                        {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                                    {% else %}
-                                                        {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                        {{ da.id_avis.id_expert.id_contact_externe.prenom }}
-                                                    {% endif %}
-                                                {% endif %}
-                                            </a>
-                                        </li>
-                                    {% endif %}
+                                            {% endif %}
+                                        </a>
+                                    </li>
                                 {% empty %}
                                     <li>Aucun avis disponible</li>
                                 {% endfor %}
                             </ul>
                         </div>
                     {% endif %}
+                {% endif %}
+   
+                    
+                <!-- Document validé avant demande avis et Avis à envoyer -->
+                {% if etape_actuelle.etape == "Avis à envoyer" %}
 
+                    {% if doc_valide_avant_demande_avis %}
+                        <div class="validation-documents">
+                            <h2>Projet d'acte validé avant demande d'avis</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_valide_avant_demande_avis %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+
+
+
+                    <div class="validation-documents">
+                        <h2>Demandes d'avis à envoyer</h2>
+                        <ul class="avis-a-valider-liste">
+                            {% for da in avis_a_envoyer %}
+                                <li>
+                                    <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                        Avis n°{{ da.id_avis.id }} –
+                                        {% if da.id_avis.id_avis_nature %}
+                                            {{ da.id_avis.id_avis_nature }}:
+                                        {% endif %}
+                                        {% if da.id_avis.id_expert %}
+                                            {% if da.id_avis.id_expert.est_interne %}
+                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                            {% else %}
+                                                {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </a>
+                                </li>
+
+                            {% empty %}
+                                <li>Aucun avis à envoyer</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                
+
+                <!-- Document validé avant demande avis et Avis envoyés -->
+                {% if etape_actuelle.etape == "En attente réponse d'avis" %}
+
+                    {% if doc_valide_avant_demande_avis %}
+                        <div class="validation-documents">
+                            <h2>Projet d'acte validé avant demande d'avis</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_valide_avant_demande_avis %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+
+
+
+                    <div class="validation-documents">
+                        <h2>Demandes d'avis envoyés</h2>
+                        <ul class="avis-a-valider-liste">
+                            {% for da in avis_envoye %}
+                                <li>
+                                    <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                        Avis n°{{ da.id_avis.id }} –
+                                        {% if da.id_avis.id_avis_nature %}
+                                            {{ da.id_avis.id_avis_nature }}:
+                                        {% endif %}
+                                        {% if da.id_avis.id_expert %}
+                                            {% if da.id_avis.id_expert.est_interne %}
+                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                            {% else %}
+                                                {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </a>
+                                </li>
+
+                            {% empty %}
+                                <li>Aucun avis à envoyer</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 {% endif %}
 
 
@@ -582,7 +688,7 @@
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
                                 <label for="pj_validation">Joindre le projet d’acte :</label>
-                                <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.odt,.doc,.docx" required>
+                                <input type="file" name="piece_jointe" id="pj_validation" accept=".odt,.doc,.docx" required>
                             </div>
 
                             <p class="hint-text">📁 Merci de sélectionner un fichier situé dans le dossier <strong>Work</strong>.</p>
@@ -645,27 +751,27 @@
                         <!-- Sélection multiple des avis du dossier -->
                         <div class="avis-dossier">
                             <label>Demandes d'avis à faire valider :</label>
-                            <select name="avis_selectionnes" id="avis-selectionnes" multiple size="{{ avis_du_dossier|length|default:1 }}" required>
-                                {% for da in avis_du_dossier %}
-                                    {% if da.id_avis.statut == "Brouillon" %}
+                            <select name="avis_selectionnes" id="avis-selectionnes" multiple size="{{ avis_statut_brouillon|length|default:1 }}" required>
+                                {% for da in avis_statut_brouillon %}
+                                   
                                         <option value="{{ da.id_avis.id }}">
                                             Avis n°{{ da.id_avis.id }} –
-                                            {% if da.id_avis.id_avis_nature %} {{ da.id_avis.id_avis_nature }}: {% endif %}
-                                            {% if da.id_avis.id_expert %}
-                                            {% if da.id_avis.id_expert.est_interne %}
-                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                            {% else %}
-                                                {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                            {% if da.id_avis.id_avis_nature %} 
+                                                {{ da.id_avis.id_avis_nature }}: 
                                             {% endif %}
-
-                                            
+                                            {% if da.id_avis.id_expert %}
+                                                {% if da.id_avis.id_expert.est_interne %}
+                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                                {% else %}
+                                                    {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                    {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                                {% endif %}
                                             {% endif %}
                                         </option>
-                                    {% endif %}
+                                 
                                 {% empty %}
-                                    <option disabled>Aucun avis disponible</option>
+                                    <option disabled>Aucun avis "Brouillon" à faire valider</option>
                                 {% endfor %}
 
 
@@ -805,6 +911,9 @@
                         <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                             <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                                 Consultation
+                                {% if nb_messages_non_lus > 0 %}
+                                    <span class="pastille_avis_envoye">{{ nb_avis_envoyes }}</span>
+                                {% endif %}
                             </div>
                         </a>
                     </div>
@@ -817,7 +926,7 @@
                     </div>
                 </div>
                 
-                {% if dossier.id_etape_dossier.etape == 'À valider avant signature' %}
+                {% if dossier.id_etape_dossier.etape == 'À valider avant signature' or dossier.id_etape_dossier.etape == "À valider avant demande d'avis" %}
                     <div class="groupe-instructeur-info">
                         <h3>Validant.e.s</h3>
                         <ul class="groupe-instructeur-liste">

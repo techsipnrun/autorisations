@@ -509,7 +509,7 @@ def instruction_dossier(request, num_dossier):
         "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
         "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
         "En relecture qualité": ["Repasser en instruction", "Envoyer pour signature"],
-        "En attente réponse d'avis": ["Envoyer les modifications pour validation", "Envoyer pour relecture qualité"],
+        "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Envoyer pour relecture qualité"],
         "Avis à envoyer":["Avis envoyé"],
         "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé"],
         "Acte à envoyer": ["Envoyer l'acte"],
@@ -605,6 +605,13 @@ def instruction_dossier(request, num_dossier):
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à envoyer" and doc.id_document.id_nature.nature in natures_valides
     ]
 
+    acte_valide_avant_demande_avis = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "validé avant demande d'avis" and doc.id_document.id_nature.nature in natures_valides
+    ]
+    print(acte_valide_avant_demande_avis)
+
+
     acte_envoye = [
         doc.id_document for doc in documents_du_dossier
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides
@@ -695,6 +702,11 @@ def instruction_dossier(request, num_dossier):
         email_emetteur__endswith='reunion-parcnational.fr'
     ).count()
 
+
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+
+
     # Dossier Déclaration Manifestations
     doss_manif_sportive = None
     if dossier.id_demarche.type == "Manifestations sportives":
@@ -721,6 +733,10 @@ def instruction_dossier(request, num_dossier):
 
     # Avis du dossier
     avis_du_dossier = DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_avis_nature", "id_avis__id_expert")
+    avis_a_valider = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='À valider').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
+    avis_a_envoyer = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='À envoyer').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
+    avis_envoye = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Envoyé').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
+    avis_statut_brouillon = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Brouillon').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
 
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -761,6 +777,7 @@ def instruction_dossier(request, num_dossier):
         "doc_a_envoyer": acte_a_envoyer,
         "resume_pdf_titre": resume_pdf_titre,
         "doc_envoye": acte_envoye,
+        "doc_valide_avant_demande_avis":acte_valide_avant_demande_avis,
         "doc_envoye_et_publie": acte_envoye_et_publie,
         "titres_documents_actes": titres_documents_actes,
         "validants_SAADD": validants_SAADD,
@@ -777,6 +794,11 @@ def instruction_dossier(request, num_dossier):
         "emails_uniques": emails_uniques,
         "emails_dossiers": emails_dossiers,
         "avis_du_dossier": avis_du_dossier,
+        "avis_a_valider": avis_a_valider,
+        "avis_a_envoyer": avis_a_envoyer,
+        "avis_statut_brouillon": avis_statut_brouillon,
+        "avis_envoye": avis_envoye,
+        "nb_avis_envoyes": nb_avis_envoyes,
     })
 
 

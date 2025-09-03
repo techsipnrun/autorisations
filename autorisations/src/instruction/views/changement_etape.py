@@ -10,7 +10,7 @@ from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatD
 from autorisations.models.models_utilisateurs import ContactExterne, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
-from autorisations.models.models_avis import Avis
+from autorisations.models.models_avis import Avis, DossierAvis
 from notifications.service import compute_dedupe_key, send_outbox_now
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
@@ -396,7 +396,7 @@ def envoyer_pour_validation_avant_signature(request):
 
         # Vérification que l'extension du fil est .doc, .docx, .pdf, .odt
         extension = Path(fichier.name).suffix.lower()
-        if extension not in {".pdf", ".doc", ".docx", ".odt"} :
+        if extension not in {".doc", ".docx", ".odt"} :
             messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -500,10 +500,26 @@ def envoyer_pour_validation_avant_signature(request):
 def avis_envoye(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
-        if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+
+        if not dossier_id_ds :
+            messages.error(request, f"❌ Envoi de l'avis impossible : Données manquantes ou invalides (ID du dossier DS = {dossier_id_ds})")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+
+        # Check qu'il ne reste pas d'avis non envoyés
+        avis_a_envoyer = Avis.objects.filter(
+            id__in=DossierAvis.objects.filter(
+                id_dossier=dossier,  # en supposant que Demande → Dossier
+                id_avis__statut="À envoyer"
+            ).values_list("id_avis", flat=True)
+        ).count()
+
+        if avis_a_envoyer > 0 :
+            messages.error(request, "Il reste un/des avis à envoyer.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
         changer_etape_si_differente(dossier, "En attente réponse d'avis", request.user)
 
         # Dossier Action
@@ -521,11 +537,35 @@ def avis_envoye(request):
 def valider_le_modele_de_demande_d_avis_et_le_projet_d_acte(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
-        if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+
+        if not dossier_id_ds :
+            messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+
+        # Statut Doc A valider --> Validé avant demande d'avis
+        statut_a_valider = DocumentStatut.objects.filter(statut="À valider").first()
+        statut_valide_avant_demande_avis = DocumentStatut.objects.filter(statut="Validé avant demande d'avis").first()
+        docs_a_valider = DossierDocument.objects.filter(id_dossier=dossier, id_document__id_statut=statut_a_valider)
+        for doc in docs_a_valider :
+            d = doc.id_document
+            d.id_statut = statut_valide_avant_demande_avis
+            d.save()
+
+        # Statut Avis A valider --> A envoyer
+        avis_a_valider = Avis.objects.filter(
+            id__in=DossierAvis.objects.filter(
+                id_dossier=dossier,  # en supposant que Demande → Dossier
+                id_avis__statut="À valider"
+            ).values_list("id_avis", flat=True)
+        )
+
+        for avis in avis_a_valider:
+            avis.statut = "À envoyer"
+            avis.save()
 
         # Changer Etape
-        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "Avis à envoyer", request.user)
 
         # Dossier Action
@@ -671,7 +711,7 @@ def valider_et_envoyer_pour_relecture_qualite(request):
         # Mise à jour Doc "À valider" --> "À relire"
         for lien in documents_du_dossier:
             doc = lien.id_document
-            if doc.id_statut and doc.id_statut.statut.lower() == "à valider":
+            if doc.id_statut and (doc.id_statut.statut.lower() == "à valider" or doc.id_statut.statut.lower() == "validé avant demande d'avis"):
                 
                 doc.id_statut = statut_relire
                 doc.save()
@@ -694,14 +734,27 @@ def valider_et_envoyer_pour_relecture_qualite(request):
 
 
 @login_required
-def envoyer_les_modifications_pour_validation(request):
+def envoyer_les_modifications_de_l_acte_pour_validation(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
+
         if not dossier_id_ds:
-            return HttpResponseBadRequest("ID dossier manquant.")
+            messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+        
+        # Doc Statut Validé avant demande d'avis --> À valider
+        statut_a_valider = DocumentStatut.objects.filter(statut="À valider").first()
+        statut_valide_avant_demande_avis = DocumentStatut.objects.filter(statut="Validé avant demande d'avis").first()
+        docs_valide_avant_demande_avis = DossierDocument.objects.filter(id_dossier=dossier, id_document__id_statut=statut_valide_avant_demande_avis)
+        for doc in docs_valide_avant_demande_avis :
+            d = doc.id_document
+            d.id_statut = statut_a_valider
+            d.save()
+        
 
         # Changer l'étape
-        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "À valider avant signature", request.user)
 
         # Dossier Action
@@ -950,6 +1003,11 @@ def envoyer_l_acte(request):
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not dossier_id_ds or not instructeur or not instructeur.id_ds:
         return HttpResponse(f"Echec de l'acceptation du dossier {dossier_numero} (dossier_id_ds = {dossier_id_ds}, motivation = {motivation}, fichier = {fichier})", status=401)
+    
+    if not dossier_id_ds or not instructeur or not instructeur.id_ds:
+            messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Instructeur.rice = {instructeur}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
     try:
         dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()

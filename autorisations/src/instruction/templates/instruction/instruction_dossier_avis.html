@@ -51,9 +51,11 @@
 
                             {% if msg.align == 'right' %}
                                 <!-- Formulaire pour supprimer le message -->
-                                <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form" style="display:inline;">
+                                <form method="post" action="{% url 'supprimer_message_avis' msg.id %}" class="delete-form" style="display:inline;">
                                     {% csrf_token %}
                                     <button type="submit" class="delete-button" title="Supprimer le message"></button>
+                                    <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+                                    <input type="hidden" name="avis_id" value="{{ avis.id }}">
                                 </form>
                             {% endif %}
                         </span>

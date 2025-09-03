@@ -105,6 +105,7 @@ tbody td[colspan="7"] {
     gap: 1rem;
     display: flex;
     align-items: center;
+    border: none;
 }
 
 .avis_icon {

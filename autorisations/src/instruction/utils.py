@@ -276,7 +276,6 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
                 dossiers_a_traiter_ids.add(dossier.id)
 
     return Dossier.objects.filter(id__in=dossiers_a_traiter_ids)
-    # return list(dossiers_a_traiter)
 
 
 

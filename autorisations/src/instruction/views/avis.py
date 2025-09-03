@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_avis import Avis, AvisNature, AvisThematique, DossierAvis, Expert
-from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur
 from autorisations.models.models_documents import MessageDocument
 from instruction.utils import create_message_avis_bdd
 from synchronisation.src.utils.model_helpers import update_fields
@@ -271,11 +271,30 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             messages.error(request, f"Erreur lors de la création du lien entre le dossier {dossier.numero} et {avis} : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        # Create message (formulation)
+        if avis.formulation :
+            try:
+                msg = Message.objects.create(
+                    body=avis.formulation,
+                    date_envoi=timezone.now(),
+                    piece_jointe=False,  #A changer par la suite?
+                    email_emetteur=request.user.email,
+                    id_avis=avis,
+                    lu=False,
+                )
+
+                logger.info(f"[DOSSIER {dossier.numero}] Avis {avis.id} : message envoyé à {avis.id_expert}")
+
+            except Exception as e:
+                avis.statut = "Brouillon"
+                avis.save()
+                messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+
         # NOTIF MAIL à l'expert
         
     
-
-
     return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
 
 
@@ -440,27 +459,38 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
     # Récupérer le dossier et l'avis
     dossier = get_object_or_404(Dossier, numero=num_dossier)
     avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     # Liste des emails des instructeurs du dossier
-    liste_email_instructeurs = [
-        i.email for i in Instructeur.objects.filter(dossierinstructeur__id_dossier=dossier)
-    ]
+    # liste_email_instructeurs = [
+    #     i.email for i in Instructeur.objects.filter(dossierinstructeur__id_dossier=dossier)
+    # ]
 
-    # Messages non lus envoyés par d’autres que les instructeurs
-    messages_non_lus = (
-        Message.objects.filter(id_avis=avis, lu=False)
-        .exclude(email_emetteur__in=liste_email_instructeurs)
-    )
+    est_instructeur_du_dossier = DossierInstructeur.objects.filter(
+        id_dossier=dossier,
+        id_instructeur=instructeur
+    ).exists()
 
+    # Messages non lus envoyés par l'expert
+    if avis.id_expert.est_interne :
+        email_expert = avis.id_expert.id_instructeur.email
+    else :
+        email_expert = avis.id_expert.id_contact_externe.email
+
+    messages_non_lus = (Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert))
     ids_non_lus = list(messages_non_lus.values_list("id", flat=True))
-
 
     # Affichage messages
     raw_messages = Message.objects.filter(id_avis=avis).order_by("date_envoi")
     messages_fmt = []
+
+    # Mise à jour des mesages non lus --> lus
+    if est_instructeur_du_dossier:
+        nb = messages_non_lus.update(lu=True)
+        if nb > 0:
+            logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
     
-    for msg in raw_messages:
-        
+    for msg in raw_messages:  
         nouv_mess = 'non'
         if ids_non_lus != []:
             if msg.id in ids_non_lus :
@@ -468,8 +498,8 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
         emetteur = msg.email_emetteur.lower().strip()
 
-        # left = Message reçu du demandeur, right = Message émis par instructeur
-        align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
+        # left = Message expert, right = Message émis par instructeur
+        align = "right" if emetteur != email_expert.lower().strip() else "left"
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
 
         # Recherche de la pièce jointe liée au message
@@ -477,13 +507,10 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         if msg.piece_jointe:
 
             message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
-            if message_doc and message_doc.id_document:
-                
+            if message_doc and message_doc.id_document:   
                 pj_title, pj_emplacement = message_doc.id_document.titre, message_doc.id_document.emplacement
 
         messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
-        
-
 
     return render(request, 'instruction/instruction_dossier_avis.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
@@ -497,11 +524,9 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
 
 
-
 @require_POST
 @csrf_exempt
 def envoyer_message_avis(request):
-
 
     # Récupération message et PJ de l'instructeur
     avis_id = request.POST.get("avis_id")
