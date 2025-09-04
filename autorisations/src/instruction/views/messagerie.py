@@ -8,6 +8,7 @@ from django.utils.timezone import localtime
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_documents import MessageDocument
 from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
+from autorisations.models.models_avis import DossierAvis
 from notifications.service import _render_message, send_outbox_now
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils import format_etat_dossier
@@ -36,12 +37,15 @@ def preinstruction_dossier_messagerie(request, numero):
         id_instructeur=instructeur
     ).exists()
 
+    est_receptionniste = request.user.groups.filter(name__in=["Réception SAADD", "Réception SPPN"]).exists()
+
     messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
         email_emetteur='contact@demarches-simplifiees.fr'
     ).exclude(
         email_emetteur__endswith='reunion-parcnational.fr'
     )
 
+    nb_messages_non_lus = messages_non_lus.count()
 
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
@@ -97,6 +101,9 @@ def preinstruction_dossier_messagerie(request, numero):
         "demandeur": demandeur,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "est_instructeur_du_dossier": est_instructeur_du_dossier,
+        "est_receptionniste": est_receptionniste,
+        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 
@@ -119,6 +126,8 @@ def instruction_dossier_messagerie(request, num_dossier):
     ).exclude(
         email_emetteur__endswith='reunion-parcnational.fr'
     )
+
+    nb_messages_non_lus = messages_non_lus.count()
 
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
@@ -166,6 +175,9 @@ def instruction_dossier_messagerie(request, num_dossier):
     else:
         logger.warning(f"[DOSSIER {dossier.numero}] Affichage messagerie : Le dossier n'a pas de bénéficaire de renseigné")
 
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
@@ -175,6 +187,9 @@ def instruction_dossier_messagerie(request, num_dossier):
         "beneficiaire": beneficiaire,
         "demandeur": demandeur,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
+        "nb_avis_envoyes": nb_avis_envoyes,
+        "est_instructeur_du_dossier": est_instructeur_du_dossier,
+        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 

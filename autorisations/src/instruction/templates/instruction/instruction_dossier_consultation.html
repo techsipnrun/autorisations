@@ -61,23 +61,36 @@
                     <tbody>
 
                         {% for a in avis %}
-                            <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %}" 
+                            <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %} {% if a.nb_messages_non_lus > 0 %}row-action{% endif %}" 
                             data-href="{% if a.statut == 'Brouillon' or a.statut == 'À valider' %}
                                             {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
                                         {% else %}
                                             {% url 'instruction_dossier_avis' dossier.numero a.numero %}
-                                        {% endif %}">
+                                        {% endif %}"
+                            {% if a.nb_messages_non_lus > 0 %}title="Nouveaux messages de l'expert"{% endif %}>
+
                                 <td class="statut_avis">
-                                    {{ a.statut }}
-                                    {% if a.statut == "Envoyé" %}
-                                        <img src="{% static 'instruction/img/envoye.png' %}" alt="Demande envoyée" title="Voir la demande envoyée" class="avis_envoye_icon">
-                                    {% elif a.statut == "Brouillon" %}
-                                        <img src="{% static 'instruction/img/brouillon.png' %}" alt="Brouillon de la demande d'avis" title="Voir le brouillon" class="avis_brouillon_icon">
-                                    {% elif a.statut == "À valider" %}
-                                        <img src="{% static 'instruction/img/badge-check.png' %}" alt="Demande d'avis à valider" title="Voir le brouillon" class="avis_a_valider_icon">
-                                    {% elif a.statut == "À envoyer" %}
-                                        <img src="{% static 'instruction/img/a_envoyer.png' %}" alt="Demande d'avis à valider" title="Voir le brouillon" class="avis_a_valider_icon">
-                                    {% endif %}
+                                    <div class="statut_avis_content">
+                                        {{ a.statut }}
+                                        {% if a.statut == "Envoyé" %}
+                                            <img src="{% static 'instruction/img/envoye.png' %}" alt="Demande envoyée" title="Voir la demande envoyée" class="avis_envoye_icon">
+                                        {% elif a.statut == "Brouillon" %}
+                                            <img src="{% static 'instruction/img/brouillon.png' %}" alt="Brouillon de la demande d'avis" title="Voir le brouillon" class="avis_brouillon_icon">
+                                        {% elif a.statut == "À valider" %}
+                                            <img src="{% static 'instruction/img/badge-check.png' %}" alt="Demande d'avis à valider" title="Voir le brouillon" class="avis_a_valider_icon">
+                                        {% elif a.statut == "À envoyer" %}
+                                            <img src="{% static 'instruction/img/a_envoyer.png' %}" alt="Demande d'avis à valider" title="Voir le brouillon" class="avis_a_valider_icon">
+                                        {% endif %}
+                                    
+                                        {% if a.nb_messages_non_lus > 0 %}
+                                            <div class="nouv_mess_wrapper_avis">
+                                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" 
+                                                    alt="Nouveaux messages"
+                                                    class="nouv_mess_icon">
+                                                <div class="pastille_nouv_mess_avis">{{ a.nb_messages_non_lus }}</div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td>{{ a.expert }}</td>
                                 <td>{{ a.numero }}</td>
@@ -123,17 +136,23 @@
                     <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
                             Messagerie
+                            {% if nb_messages_non_lus > 0 %}
+                                <span class="pastille_nouv_mess" title="Nombre de nouveaux messages">{{ nb_messages_non_lus }}</span>
+                            {% endif %}
                         </div>
                     </a>
                     <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
+                            {% if nb_avis_envoyes > 0 %}
+                                <span class="pastille_avis_envoye" title="Nombre de demandes d'avis envoyées">{{ nb_avis_envoyes }}</span>
+                            {% endif %}
                         </div>
                     </a>
                 </div>
                 
                 <!-- Lien dossier à droite -->
-                <div class="lien_dossier">
+                <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                     <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>

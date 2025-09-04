@@ -76,6 +76,7 @@ tbody td {
     border-right: 1px solid #ccc;
     max-width: 400px;
     word-wrap: break-word;
+    vertical-align: stretch;
 }
 
 .ligne_en_gras {
@@ -102,10 +103,15 @@ tbody td[colspan="7"] {
 
 /* Icon Brouillon et Envoyé */
 .statut_avis{
-    gap: 1rem;
+    vertical-align: middle;   /* le td suit la hauteur de la ligne */
+    white-space: nowrap;
+}
+
+.statut_avis_content {
     display: flex;
     align-items: center;
-    border: none;
+    gap: 1rem;
+    height: 100%;   /* prend toute la hauteur du td */
 }
 
 .avis_icon {
@@ -161,4 +167,68 @@ tbody td[colspan="7"] {
 .django-messages{
     color: rgb(172, 2, 2);
     font-weight: bold;
+}
+
+/* Pastille nouveaux messages DOSSIER*/
+.form_msg_box .pastille_nouv_mess {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #003366;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+    animation: pulse-icon 1s ease-in-out infinite alternate;
+}
+
+
+/* Pastille nouveaux messages AVIS*/
+.nouv_mess_wrapper_avis {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.pastille_nouv_mess_avis {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #003366;
+    text-align: center; 
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    line-height: 20px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: pulse-icon 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-icon {
+    from {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+    to {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+
+/* Avis avec nouveaux messages de  */
+.row-action {
+    background-color: #fff3cd !important; /* jaune */
+}
+.row-action:hover {
+    background-color: #ffe69c !important;
 }

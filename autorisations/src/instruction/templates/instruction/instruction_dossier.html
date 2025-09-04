@@ -903,7 +903,7 @@
                                <span class="msg-label-wrapper">
                                     Messagerie
                                     {% if nb_messages_non_lus > 0 %}
-                                        <span class="pastille_nouv_mess">{{ nb_messages_non_lus }}</span>
+                                        <span class="pastille_nouv_mess" title="Nombre de nouveaux messages">{{ nb_messages_non_lus }}</span>
                                     {% endif %}
                                 </span>
                             </div>
@@ -911,8 +911,8 @@
                         <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                             <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                                 Consultation
-                                {% if nb_messages_non_lus > 0 %}
-                                    <span class="pastille_avis_envoye">{{ nb_avis_envoyes }}</span>
+                                {% if nb_avis_envoyes > 0 %}
+                                    <span class="pastille_avis_envoye" title="Nombre de demandes d'avis envoyées">{{ nb_avis_envoyes }}</span>
                                 {% endif %}
                             </div>
                         </a>

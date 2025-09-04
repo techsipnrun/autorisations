@@ -38,7 +38,11 @@
             
             <div class="chat-container">
                 {% for msg in messages_doss %}
-                    <div class="message message-{{ msg.align }} {% if msg.nouv_mess == 'oui' %}nouv-mess{% endif %}">
+                    <div class="message message-{{ msg.align }} {% if msg.nouv_mess == 'oui' %}nouv-mess{% endif %}"
+                    {% if msg.nouv_mess == 'oui' and not est_instructeur_du_dossier %}
+                        title="Vous n'êtes pas instructeur.rice du dossier, le message restera comme 'non lu'"
+                    {% endif %}>
+                    
                         <div class="msg-body">
                             <p> {{ msg.body|safe }}</p>
                             {% if msg.pj_url %}
@@ -104,18 +108,24 @@
                     <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
                             Messagerie
+                            {% if nb_messages_non_lus > 0 %}
+                                <span class="pastille_nouv_mess" title="Nombre de nouveaux messages">{{ nb_messages_non_lus }}</span>
+                            {% endif %}
                         </div>
                     </a>
                     <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
+                            {% if nb_avis_envoyes > 0 %}
+                                <span class="pastille_avis_envoye" title="Nombre de demandes d'avis envoyées">{{ nb_avis_envoyes }}</span>
+                            {% endif %}
                         </div>
                     </a>
                 </div>
                 
                 
                 <!-- Lien dossier à droite -->
-                <div class="lien_dossier">
+                <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                     <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>

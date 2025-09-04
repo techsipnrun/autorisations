@@ -235,7 +235,7 @@
                                 <span class="msg-label-wrapper">
                                     Messagerie
                                     {% if nb_messages_non_lus > 0 %}
-                                        <span class="pastille_nouv_mess">{{ nb_messages_non_lus }}</span>
+                                        <span class="pastille_nouv_mess" title="Nombre de nouveaux messages">{{ nb_messages_non_lus }}</span>
                                     {% endif %}
                                 </span>
                             </div>
@@ -243,7 +243,7 @@
                     </div>
 
                     <!-- Lien dossier à droite -->
-                    <div class="lien_dossier">
+                    <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                         <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>

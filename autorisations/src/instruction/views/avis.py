@@ -50,6 +50,14 @@ def instruction_dossier_consultation(request, num_dossier):
         elif avis.statut == "Envoyé" :
             reponse = "En attente"
 
+        # Messages non lus envoyés par l'expert
+        if avis.id_expert.est_interne :
+            email_expert = avis.id_expert.id_instructeur.email
+        else :
+            email_expert = avis.id_expert.id_contact_externe.email
+
+        nb_messages_non_lus = Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert).count()
+
         # Construire le dictionnaire
         liste_avis.append({
             "statut": avis.statut,
@@ -59,6 +67,7 @@ def instruction_dossier_consultation(request, num_dossier):
             "date_demande": avis.date_demande_avis,
             "date_reponse": avis.date_reponse_avis,
             "favorable": reponse,
+            "nb_messages_non_lus": nb_messages_non_lus,
         })
 
     liste_avis = sorted(
@@ -68,6 +77,19 @@ def instruction_dossier_consultation(request, num_dossier):
         reverse=True  # Pour mettre la date en décroissant
     )
 
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+
+    # Messages non lus
+    nb_messages_non_lus = Message.objects.filter(
+        id_dossier=dossier,
+        lu=False
+    ).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    ).count()
+
     return render(request, "instruction/instruction_dossier_consultation.html", {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
@@ -75,6 +97,8 @@ def instruction_dossier_consultation(request, num_dossier):
         "is_messagerie_active": False,
         "is_consultation_active": True,
         "avis": liste_avis,
+        "nb_avis_envoyes": nb_avis_envoyes,
+        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 
@@ -512,6 +536,19 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
         messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
 
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+
+    # Messages non lus
+    nb_messages_non_lus = Message.objects.filter(
+        id_dossier=dossier,
+        lu=False
+    ).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    ).count()
+
     return render(request, 'instruction/instruction_dossier_avis.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
@@ -520,6 +557,9 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "is_formulaire_active": False,
         "is_messagerie_active": False,
         "is_consultation_active": True,
+        "nb_avis_envoyes": nb_avis_envoyes,
+        "est_instructeur_du_dossier": est_instructeur_du_dossier,
+        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 
