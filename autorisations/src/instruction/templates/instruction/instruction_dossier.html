@@ -23,6 +23,11 @@
 
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <!-- Leaflet.browser.print -->
+    <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
+
+
 </head>
 
 
@@ -848,6 +853,7 @@
                             
                             <div class="carte-container">
                                 <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                <!-- <button type="button" class="btn-browser-print btn-pdf">📥 Télécharger la carte en PDF</button> -->
                             </div>
                         
                         <!-- Champs pièces justificatives -->
@@ -881,6 +887,7 @@
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                    <!-- <button type="button" class="btn-browser-print btn-pdf">📥 Télécharger la carte en PDF</button> -->
                                 </div>
                             {% endif %}
 
@@ -2072,6 +2079,35 @@
 
 
     </script>
+
+
+    <!-- Script de test pour télécharger en PDF une carto Leaflet -->
+   <!-- <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".carte-container").forEach((container) => {
+                const btn = container.querySelector(".btn-browser-print");
+                const mapDiv = container.querySelector(".carte");
+
+                if (!btn || !mapDiv) return;
+
+                const map = mapDiv._leaflet_map;
+                if (!map) return;
+
+                btn.addEventListener("click", function () {
+                    map.closePopup();
+
+                    // 👉 lancer impression PDF directement
+                    L.control.browserPrint({
+                        printModes: ["Landscape"],
+                        closePopupsOnPrint: true
+                    }).print(map);
+                });
+            });
+        });
+    </script> -->
+
+
+
 
 
 

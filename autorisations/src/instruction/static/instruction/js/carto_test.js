@@ -73,6 +73,14 @@
             console.log("✅ Leaflet-Geoman initialisé");
         }
 
+        // Ajout du bouton impression PDF
+        L.control.browserPrint({
+            title: "📥 Télécharger en PDF",
+            position: "topleft",  // coin haut gauche comme zoom
+            closePopupsOnPrint: true,
+            printModes: ["Landscape", "Portrait"] // propose les 2
+        }).addTo(map);
+
         // Menu d'édition
         map.pm.addControls({
             position: 'topleft',

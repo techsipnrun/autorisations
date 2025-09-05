@@ -82,11 +82,11 @@
     margin-bottom: 2rem;
 }
 
-.infos-docs a {
+/* .infos-docs a {
     margin: 0.3rem 0;
     color: black;
     font-size: large;
-}
+} */
 
 .liste-documents-avis {
     list-style: none;
@@ -98,7 +98,11 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    /* margin-bottom: 0.3rem; */
+    margin-bottom: 0.8rem;
+}
+
+.liste-documents-avis p {
+    font-size: large;
 }
 
 .liste-documents-avis a {

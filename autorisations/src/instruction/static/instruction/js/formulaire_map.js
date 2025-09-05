@@ -53,6 +53,17 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------------------------------
         const map = L.map(div).setView([-21.1, 55.5], 10);
 
+        // Attacher l’instance Leaflet au <div> DOM (pour le téléchargement pdf)
+        div._leaflet_map = map;
+
+        L.control.browserPrint({
+            title: "📥 Télécharger en PDF",
+            position: "topleft",         // coin haut gauche (comme le zoom)
+            closePopupsOnPrint: true,
+            printModes: ["Landscape", "Portrait"] // propose les 2
+        }).addTo(map);
+
+
         // Fond satellite ESRI
         // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         //     attribution: 'Tiles &copy; Esri & NASA',
