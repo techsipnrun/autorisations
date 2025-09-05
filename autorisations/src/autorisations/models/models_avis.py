@@ -125,6 +125,9 @@ class Avis(models.Model):
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
+    id_projet_acte = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_projet_acte', blank=True, null=True, related_name='avis_projet_acte_set')
+    id_rapport_instance = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_rapport_instance', blank=True, null=True, related_name='avis_rapport_instance_set')
+    id_projet_avis = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_projet_avis', blank=True, null=True, related_name='avis_projet_avis_set')
 
     class Meta:
         managed = False

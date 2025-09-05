@@ -389,5 +389,3 @@ def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
         raise  # pour remonter l'erreur plus haut si besoin
 
 
-
-

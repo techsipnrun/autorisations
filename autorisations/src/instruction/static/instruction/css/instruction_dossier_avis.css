@@ -10,6 +10,10 @@
     border-radius: 10px;
 }
 
+.infos-avis h2 {
+    margin-bottom: 2rem;
+}
+
 .infos-avis p {
     margin: 1rem 0;
     color: black;
@@ -63,4 +67,50 @@
         transform: scale(1.1);
         opacity: 1;
     }
+}
+
+/* Les documents */
+.infos-docs {
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+}
+
+.infos-docs h2 {
+    margin-bottom: 2rem;
+}
+
+.infos-docs a {
+    margin: 0.3rem 0;
+    color: black;
+    font-size: large;
+}
+
+.liste-documents-avis {
+    list-style: none;
+    padding-left: 0;
+    /* margin-top: 0.3rem; */
+}
+
+.liste-documents-avis li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    /* margin-bottom: 0.3rem; */
+}
+
+.liste-documents-avis a {
+    text-decoration: none;
+    color: #006131;
+}
+
+.liste-documents-avis a:hover {
+    text-decoration: underline;
+}
+
+.doc-icon {
+    height: 20px;
+    width: 20px;
 }

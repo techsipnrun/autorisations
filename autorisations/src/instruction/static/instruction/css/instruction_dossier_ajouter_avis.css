@@ -200,3 +200,33 @@
 .header_nouvelle_demande_avis h2 {
     margin: 0;
 }
+
+
+/* Doc existant */
+.pj-existante {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.pj-existante a {
+    text-decoration: none;
+}
+
+/* Supprimer doc */
+.croix-retirer {
+    font-size: 1.2rem;
+    color: red;
+    opacity: 0.5;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.croix-retirer {
+    opacity: 1;
+}
+
+.croix-retirer:hover {
+    cursor: pointer;
+    transform: scale(1.3);
+}

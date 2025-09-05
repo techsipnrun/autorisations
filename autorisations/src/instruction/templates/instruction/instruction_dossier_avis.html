@@ -139,8 +139,8 @@
             </div>
 
             <div class="infos-avis">
+                <h2>Demande d'avis</h3>
                 <p> <strong>Expert.e :</strong> {{ avis.id_expert }} </p>
-
                 <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis }} </p>
 
                 {% if avis.date_reponse_avis %}
@@ -156,7 +156,61 @@
                 {% if avis.id_avis_thematique and avis.id_avis_thematique.thematique != 'Autre' %}
                     <p> <strong>Thématique :</strong> {{ avis.id_avis_thematique.thematique }} </p>
                 {% endif %}
+            </div>
 
+            <div class="infos-docs">
+                <!-- === Section Mes Documents === -->
+                <h2>Documents</h3>
+                <ul class="liste-documents-avis">
+                    {% if avis.id_projet_avis %}
+                        <li>
+                            <p><strong>Projet d'avis :</strong></p>
+                            {% with avis.id_projet_avis.titre|lower as titre %}
+                                {% if titre|slice:"-4:" == ".pdf" %}
+                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
+                                {% else %}
+                                    <img src="{% static 'instruction/img/logo_word.png' %}" alt="Word" class="doc-icon">
+                                {% endif %}
+                            {% endwith %}
+                            <a href="{% url 'afficher_annexe' chemin=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}" 
+                            target="_blank" rel="noopener noreferrer">
+                                {{ avis.id_projet_avis.titre }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if avis.id_projet_acte %}
+                        <li>
+                            <p><strong>Projet d'acte :</strong></p>
+                            <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
+                            <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" 
+                            target="_blank" rel="noopener noreferrer">
+                                {{ avis.id_projet_acte.titre }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if avis.id_rapport_instance %}
+                        <li>
+                            <p><strong>Rapport du conseil :</strong></p>
+                            <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
+                            <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}" 
+                            target="_blank" rel="noopener noreferrer">
+                                {{ avis.id_rapport_instance.titre }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <li>
+                        <p><strong>Résumé du dossier :</strong></p>
+                        <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" title="Télécharger le résumé du dossier" class="doc-icon">
+                        <a href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=resume_pdf_titre %}"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                            {{ resume_pdf_titre }}
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>

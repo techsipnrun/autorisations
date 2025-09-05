@@ -83,17 +83,53 @@
 
                     <div class="attribut_avis" id="bloc_pj_demande_avis">
                         <label for="pj_avis">Joindre la demande d'avis (Word) :</label>
-                        <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx">
+                        <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx"
+                               data-exists="{% if avis.id_projet_avis %}true{% else %}false{% endif %}">
+                        {% if avis.id_projet_avis %}
+                            <p class="pj-existante">
+                                📎 Déjà joint : 
+                                <a href="{% url 'afficher_annexe' chemin=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}" target="_blank">
+                                    {{ avis.id_projet_avis.titre }}
+                                </a>
+                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, 'id_projet_avis'); return false;">
+                                    ✕
+                                </a>
+
+                            </p>
+                        {% endif %}
                     </div>
 
                     <div class="attribut_avis" id="bloc_pj_projet_acte">
                         <label for="pj_avis">Joindre le projet d'acte (PDF)* :</label>
-                        <input type="file" id="pj_projet_acte" name="pj_projet_acte" accept=".pdf">
+                        <input type="file" id="pj_projet_acte" name="pj_projet_acte"accept=".pdf"
+                               data-exists="{% if avis.id_projet_acte %}true{% else %}false{% endif %}">
+                        {% if avis.id_projet_acte %}
+                            <p class="pj-existante">
+                                📎 Déjà joint : 
+                                <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" target="_blank">
+                                    {{ avis.id_projet_acte.titre }}
+                                </a>
+                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, 'id_projet_acte'); return false;">
+                                    ✕
+                                </a>
+                            </p>
+                        {% endif %}
                     </div>
 
                     <div class="attribut_avis" id="bloc_pj_rapport_cs">
                         <label for="pj_avis">Joindre le rapport d'avis du CS (PDF) :</label>
                         <input type="file" id="pj_rapport_cs" name="pj_rapport_cs" accept=".pdf">
+                        {% if avis.id_rapport_instance %}
+                            <p class="pj-existante">
+                                📎 Déjà joint : 
+                                <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}" target="_blank">
+                                    {{ avis.id_rapport_instance.titre }}
+                                </a>
+                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, 'id_rapport_instance'); return false;">
+                                    ✕
+                                </a>
+                            </p>
+                        {% endif %}
                     </div>
 
                     
@@ -218,7 +254,7 @@
                 
                 <!-- Lien dossier à droite -->
                 <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
-                    <a href="#" onclick="copierChemin('{{ dossier.emplacement }}')">
+                    <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>
                 </div>
@@ -314,8 +350,12 @@
                     expertExterne.required = true;
 
                     if (buttonType === "confirmer") {
-                        pjDemandeAvis.required = true;
-                        pjProjetActe.required = true;
+                        if (pjDemandeAvis.dataset.exists !== "true") {
+                            pjDemandeAvis.required = true;
+                        }
+                        if (pjProjetActe.dataset.exists !== "true") {
+                            pjProjetActe.required = true;
+                        }
                     }
                 }
             }
@@ -381,6 +421,39 @@
             });
             
         });
+
+
+        // Copier l'emplacement du Dossier
+        function copierChemin(chemin) {
+            navigator.clipboard.writeText(chemin).then(() => {
+                alert("Chemin copié dans le presse-papiers :\n" + chemin);
+            }).catch(err => {
+                console.error("Erreur copie chemin :", err);
+                alert("Impossible de copier le chemin");
+            });
+        }
+
+    </script>
+
+    <script>
+        function supprimerDoc(avisId, champ) {
+            if (!confirm("Supprimer ce document ?")) return;
+
+            fetch(`/avis/${avisId}/supprimer-doc/${champ}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                }
+            })
+            .then(resp => {
+                if (resp.ok) {
+                    location.reload(); // recharge la page
+                } else {
+                    alert("Erreur suppression : " + resp.status);
+                }
+            })
+            .catch(err => alert("Erreur réseau : " + err));
+        }
     </script>
 
 </body>
