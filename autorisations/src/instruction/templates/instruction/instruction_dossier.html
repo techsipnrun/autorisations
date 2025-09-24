@@ -108,10 +108,13 @@
                                         
                                         {% elif label == "Envoyer pour relecture qualité" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Envoyer pour relecture qualité</button>
+                                        
+                                        {% elif label == "Acte inchangé, envoyer pour relecture qualité" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Acte inchangé, envoyer pour relecture qualité</button>
 
                                         {% elif label == "Acte prêt à être envoyé" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
-
+                                        
                                         {% elif label == "Repasser en instruction" %}
                                             <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
                                                 {% csrf_token %}
@@ -280,7 +283,8 @@
                             </form>
                         </div>
                     {% endif %}
-
+                    
+                    <!-- Demandes d'avis à valider -->
                     {% if etape_actuelle.etape == "À valider avant demande d'avis" %}
                         <div class="validation-documents">
                             <h2>Demandes d'avis à valider</h2>
@@ -309,7 +313,40 @@
                             </ul>
                         </div>
                     {% endif %}
+                    
+                    <!-- Demandes d'avis envoyées -->
+                    {% if etape_actuelle.etape == "À valider avant signature" and avis_envoye %}
+                        <div class="validation-documents">
+                            <h2>Demandes d'avis envoyées</h2>
+                            <ul class="avis-a-valider-liste">
+                                {% for da in avis_envoye %}
+                                    <li>
+                                        <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                            Avis n°{{ da.id_avis.id }} –
+                                            {% if da.id_avis.id_avis_nature %}
+                                                {{ da.id_avis.id_avis_nature }}:
+                                            {% endif %}
+                                            {% if da.id_avis.id_expert %}
+                                                {% if da.id_avis.id_expert.est_interne %}
+                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
+                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
+                                                {% else %}
+                                                    {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
+                                                    {{ da.id_avis.id_expert.id_contact_externe.prenom }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </a>
+                                    </li>
+
+                                {% empty %}
+                                    <li>Aucun avis à envoyer</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
                 {% endif %}
+
+
    
                     
                 <!-- Document validé avant demande avis et Avis à envoyer -->
@@ -389,7 +426,7 @@
 
 
                     <div class="validation-documents">
-                        <h2>Demandes d'avis envoyés</h2>
+                        <h2>Demandes d'avis envoyées</h2>
                         <ul class="avis-a-valider-liste">
                             {% for da in avis_envoye %}
                                 <li>
@@ -464,7 +501,7 @@
                 <!-- Documents à envoyer -->
                 {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
                     <div class="validation-documents">
-                        <h2>Document(s) à envoyer</h2>
+                        <h2>Document à envoyer</h2>
                         <form method="post" action="#">
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
@@ -531,7 +568,7 @@
 
 
                 <!-- Zone masquée pour la demande de compléments -->
-                <div id="formulaire-complement" class="zone-complement">
+                <div id="formulaire-complement" class="zone-complement zone-envoyer-pour-validation">
                     <form id="form-complement" method="post" enctype="multipart/form-data" action="{% url 'demander_des_complements_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
@@ -545,7 +582,7 @@
                 </div>
 
                 <!-- Zone masquée : justification classement sans suite, refus dossier -->
-                <div id="formulaire-classement" class="zone-complement">
+                <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
@@ -557,7 +594,7 @@
                 </div>
 
                 <!-- Zone masquée : justification du refus -->
-                <div id="formulaire-refus" class="zone-complement">
+                <div id="formulaire-refus" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
@@ -569,7 +606,7 @@
                 </div>
 
                 <!-- Zone masquée pour envoyer l'acte -->
-                <div id="formulaire-acceptation" class="zone-complement">
+                <div id="formulaire-acceptation" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
@@ -798,7 +835,7 @@
 
                             <!-- Nom et prénom du bénéficiare -->
                             {% if champ.titre|slice:":36" == "Identification du bénéficiaire de la" %}
-                                {% if beneficiaire %}
+                                {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
                                     {% if beneficiaire.nom %}
                                         <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
                                     {% endif %}
@@ -810,9 +847,7 @@
 
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
-                                <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
-                                    car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
-                                </p>
+                         
                                 {% if demandeur_intermediaire %}
                                     {% if demandeur_intermediaire.nom %}
                                         <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
@@ -820,6 +855,11 @@
                                     {% if demandeur_intermediaire.prenom %}
                                         <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
                                     {% endif %}
+
+                                {% else %}
+                                    <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
+                                        car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
+                                    </p>
                                 {% endif %}
                             {% endif %}
 

@@ -71,17 +71,17 @@ def preinstruction_dossier_messagerie(request, numero):
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
 
         # Recherche de la pièce jointe liée au message
-        pj_url = pj_title = None
+        pj_url = pj_title = pj_emplacement = None
         if msg.piece_jointe:
 
             message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
 
             if message_doc and message_doc.id_document:
                 
-                pj_url, pj_title = message_doc.id_document.url_ds, message_doc.id_document.titre
+                pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "nouv_mess": nouv_mess})
-
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
+        
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
 
@@ -277,7 +277,9 @@ def supprimer_message(request, id):
 
     # Vérifie si l'utilisateur est bien l'émetteur
     if message.email_emetteur.lower() != request.user.email.lower():
-        return HttpResponseForbidden("Vous n'êtes pas autorisé à supprimer ce message car vous n'en n'êtes pas l'auteur'")
+        messages.error(request, f"❌ Vous n'êtes pas autorisé.e à supprimer ce message car vous n'en n'êtes pas l'auteur.rice")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+        # return HttpResponseForbidden("Vous n'êtes pas autorisé à supprimer ce message car vous n'en n'êtes pas l'auteur")
     
     # Suppression côté D-S
     try:
@@ -292,7 +294,9 @@ def supprimer_message(request, id):
     
     except Exception as e:
         logger.error(f"[DOSSIER {message.id_dossier.numero}] Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        return HttpResponse(f"Erreur : {e}", status=500)
+        messages.error(request, f"❌ Erreur lors de la suppression du message {id} par {request.user}: {e}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+        # return HttpResponse(f"Erreur : {e}", status=500)
     
     
 @login_required

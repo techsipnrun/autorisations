@@ -509,7 +509,7 @@ def instruction_dossier(request, num_dossier):
         "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
         "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
         "En relecture qualité": ["Repasser en instruction", "Envoyer pour signature"],
-        "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Envoyer pour relecture qualité"],
+        "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Acte inchangé, envoyer pour relecture qualité"],
         "Avis à envoyer":["Avis envoyé"],
         "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé"],
         "Acte à envoyer": ["Envoyer l'acte"],
@@ -609,8 +609,6 @@ def instruction_dossier(request, num_dossier):
         doc.id_document for doc in documents_du_dossier
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "validé avant demande d'avis" and doc.id_document.id_nature.nature in natures_valides
     ]
-    print(acte_valide_avant_demande_avis)
-
 
     acte_envoye = [
         doc.id_document for doc in documents_du_dossier

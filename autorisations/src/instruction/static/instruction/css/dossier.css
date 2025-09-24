@@ -115,7 +115,7 @@ h2 {
 /* Affichage des images PJ */
 
 .champs .pj_champ {
-    margin-top: 1.5rem;
+    margin: 1rem 0;
 }
 .champs .apercu_PJ {
     max-width: 80%;

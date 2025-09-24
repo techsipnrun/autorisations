@@ -649,7 +649,7 @@ def repasser_en_instruction(request):
 
 
 @login_required
-def envoyer_pour_relecture_qualite(request):
+def acte_inchange_envoyer_pour_relecture_qualite(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
         # relecteur = request.POST.get("choix-relecteur") #Objet Instructeur

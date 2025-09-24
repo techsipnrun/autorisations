@@ -56,9 +56,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // Attacher l’instance Leaflet au <div> DOM (pour le téléchargement pdf)
         div._leaflet_map = map;
 
+        // Ajout du bouton impression PDF
         L.control.browserPrint({
             title: "📥 Télécharger en PDF",
-            position: "topleft",         // coin haut gauche (comme le zoom)
+            position: "topleft",  // coin haut gauche comme zoom
             closePopupsOnPrint: true,
             printModes: ["Landscape", "Portrait"] // propose les 2
         }).addTo(map);

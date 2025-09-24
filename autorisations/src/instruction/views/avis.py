@@ -914,6 +914,6 @@ def supprimer_document_avis(request, avis_id, champ):
     setattr(avis, champ, None)
     avis.save(update_fields=[champ])
 
-    print(avis.id_projet_acte)
+    # print(avis.id_projet_acte)
     # messages.success(request, f"Document {champ} supprimé avec succès ✅")
     return redirect(request.META.get("HTTP_REFERER", "/"))

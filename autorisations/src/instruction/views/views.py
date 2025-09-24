@@ -515,10 +515,10 @@ def ajouter_annexe_dossier(request, dossier_id):
     if request.method == "POST" and request.FILES.get('annexe'):
         fichier = request.FILES['annexe']
 
-        # Vérification de la taille (max 50 Mo)
-        if fichier.size > 50 * 1024 * 1024:
+        # Vérification de la taille (max 20 Mo)
+        if fichier.size > 20 * 1024 * 1024:
             logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
-            messages.error(request, f"Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
+            messages.error(request, f"Annexe refusée ({request.user}) Taille > 20 Mo pour {fichier.name}")
             return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
         # Extension du fichier

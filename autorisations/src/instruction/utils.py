@@ -345,7 +345,7 @@ def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
                     rel_emplacement = os.path.join(dossier_obj.emplacement, "Annexes/")  # Pour la BDD
 
                     fichier_existe = os.path.exists(emplacement)
-                    enregistrement_existe = Document.objects.filter(emplacement=rel_emplacement, titre=document_title).exists()
+                    enregistrement_existe = Document.objects.filter(emplacement=rel_emplacement, titre=f"{titre_final}{ext}").exists()
 
                     if not fichier_existe and not enregistrement_existe:
                         break  # nom libre

@@ -1,0 +1,276 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+
+.navigation_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    background-color: whitesmoke;
+    border-bottom: solid black 2px;
+    height: 110px;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    color: black;
+}
+
+
+/* Logo */
+.logo-application {
+    height: 100%;
+}
+
+.logo-application img {
+    height: 100%;
+}
+
+
+
+/* Liens de navigation */
+.container-links {
+    display: flex;
+    align-self: flex-end;
+    font-weight: bold;
+}
+
+
+.navigation_links {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    /* border: red solid; */
+}
+
+.navigation_links li {
+    padding: 20px;
+    cursor: pointer;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border: solid black 2px;
+    border-bottom: none;
+    /* background-color: rgb(72, 105, 62); */
+}
+
+.navigation_links li:not(.active):hover{
+    background-color: rgb(247, 245, 245);
+    transform: scale(1.02);
+    transition: transform 0.2s ease-in-out;
+}
+
+.navigation_links a {
+    text-decoration: none;
+    color: rgb(17, 94, 49);
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navigation_links li.active a {
+    font-weight: bold;
+}
+
+.navigation_links li.active {
+    position: relative;
+    /* background-color: rgb(236, 230, 230); */
+    background-color: white;
+}
+
+.navigation_links li.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px; 
+    width: 100%;
+    height: 2px;
+    background-color: white;
+}
+
+
+/* Pastilles */
+.navigation_links .notif_pastille {
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 20px;
+    height: 20px;
+    padding: 2px 8px;
+
+    border-radius: 999px; /* pastille parfaitement ronde */
+    background: linear-gradient(135deg, #ff4b2b, #ff416c); /* dégradé rouge/orangé moderne */
+    color: #fff;
+
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    vertical-align: middle;
+}
+
+.navigation_links .notif_pastille:hover {
+    transform: scale(1.1); /* petit effet zoom au survol */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+
+
+
+/* ----------------------------------------------- */
+/* --------- Informations utilisateur ------------ */
+/* ----------------------------------------------- */
+
+.user_information {
+  padding-right: 1.5vw;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.user_dropdown, .settings_dropdown {
+  position: relative;
+}
+
+.user_dropdown:hover,
+.user_dropdown.open,
+.settings_dropdown:hover,
+.settings_dropdown.open {
+  background-color: rgb(216, 216, 216);
+}
+
+
+.user_toggle, .settings_toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.3rem;
+  padding: 1rem;
+}
+
+.chevron {
+  width: 20px;
+  transition: transform 0.2s ease;
+}
+
+.setting_icon{
+  width: 30px;
+  transition: transform 0.2s ease-in-out;
+}
+
+
+.setting_icon:hover {
+    transform: scale(1.2);
+}
+
+.user_dropdown.open .chevron {
+  transform: rotate(180deg);
+}
+
+.user_menu, .settings_menu {
+  position: absolute;
+  top: 100%;
+  background-color: whitesmoke;
+  border: 1px solid #ddd;
+  /* border-radius: 6px; */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  display: none;
+  z-index: 1000;
+  box-sizing: border-box; 
+}
+
+.user_menu {
+  left: 0;
+  min-width: 180px;
+  padding: 0.5rem;
+}
+
+.settings_menu {
+  right: 0;
+  min-width: 340px;
+}
+
+
+.user_dropdown.open .user_menu,
+.settings_dropdown.open .settings_menu {
+  display: block;
+}
+
+.logout-item{
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  color: black;
+  font-size: 1.2rem;
+  border:none;
+}
+
+.logout-item:hover {
+  background-color: rgb(216, 216, 216);
+}
+
+
+
+/* .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  color: black;
+  font-size: 1.2rem;
+  border-bottom: 1px solid whitesmoke;
+  border-top: 1px solid whitesmoke;
+} */
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  gap: 1rem;
+  text-decoration: none;
+  color: black;
+  font-size: 1.2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Colonne gauche : icône */
+.dropdown-item .icon {
+  flex: 0 0 15%;   /* 20% de la largeur */
+  max-width: 12%;
+  text-align: center;
+}
+
+/* Colonne droite : texte */
+.dropdown-item span {
+  flex: 1;         /* prend tout l’espace restant */
+  text-align: left;
+}
+
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: rgb(216, 216, 216);
+}
+
+/* .dropdown-item img.icon {
+  width: 20;
+  height: 20;
+} */

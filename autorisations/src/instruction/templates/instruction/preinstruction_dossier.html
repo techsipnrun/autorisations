@@ -19,6 +19,9 @@
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
+    <!-- Leaflet.browser.print -->
+    <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
+
 </head>
 
 
@@ -118,7 +121,7 @@
 
                             <!-- Nom et prénom du bénéficiare -->
                             {% if champ.titre|slice:":36" == "Identification du bénéficiaire de la" %}
-                                {% if beneficiaire %}
+                                {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
                                     {% if beneficiaire.nom %}
                                         <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
                                     {% endif %}
@@ -130,9 +133,7 @@
                             
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
-                                <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
-                                    car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
-                                </p>
+                                
                             
                                 {% if demandeur_intermediaire %}
                                     {% if demandeur_intermediaire.nom %}
@@ -141,6 +142,11 @@
                                     {% if demandeur_intermediaire.prenom %}
                                         <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
                                     {% endif %}
+
+                                {% else %}
+                                    <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
+                                        car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
+                                    </p>
                                 {% endif %}
                             {% endif %}
 
@@ -210,8 +216,6 @@
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ champ.geojson }}'></div>
                                 </div>
-
-                                
 
                             {% endif %}
                         {% endif %}

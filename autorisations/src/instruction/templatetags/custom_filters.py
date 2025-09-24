@@ -18,4 +18,6 @@ def url_name_from_label(label):
     """
     label = unicodedata.normalize('NFD', label).encode('ascii', 'ignore').decode("utf-8")
     label = re.sub(r"[^a-zA-Z0-9]+", "_", label.strip().lower())
+    if 'relecture' in label :
+        print(f"{label}_url")
     return f"{label}_url"
