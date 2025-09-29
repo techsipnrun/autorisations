@@ -1001,8 +1001,6 @@ def envoyer_l_acte(request):
 
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
-    if not dossier_id_ds or not instructeur or not instructeur.id_ds:
-        return HttpResponse(f"Echec de l'acceptation du dossier {dossier_numero} (dossier_id_ds = {dossier_id_ds}, motivation = {motivation}, fichier = {fichier})", status=401)
     
     if not dossier_id_ds or not instructeur or not instructeur.id_ds:
             messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Instructeur.rice = {instructeur}")
@@ -1120,6 +1118,52 @@ def envoyer_l_acte(request):
             partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
             emails = request.POST.getlist("emails_copie[]")
 
+            # Nouveaux contacts
+            emails_nouveaux = request.POST.getlist("email_contact[]")
+            noms = request.POST.getlist("nom_contact[]")
+            prenoms = request.POST.getlist("prenom_contact[]")
+            types = request.POST.getlist("type_contact[]")
+            raisons = request.POST.getlist("raison_sociale[]")
+
+            # --- Traiter les nouveaux contacts saisis dans le mini-form ---
+            for i, email in enumerate(emails_nouveaux):
+                email = (email or "").strip()
+                if not email:
+                    continue
+
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    logger.warning(f"[DOSSIER {dossier_numero}] Email invalide ignoré: {email}")
+                    continue
+
+                nom = (noms[i] if i < len(noms) else "").strip()
+                prenom = (prenoms[i] if i < len(prenoms) else "").strip()
+                raison = (raisons[i] if i < len(raisons) else "").strip()
+                type_id = types[i] if i < len(types) else None
+
+                type_obj = None
+                if type_id:
+                    type_obj = TypeContactExterne.objects.filter(id=type_id).first()
+                if not type_obj:
+                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="autre")
+
+                contact, created = ContactExterne.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        "nom": nom,
+                        "prenom": prenom,
+                        "raison_sociale": raison,
+                        "id_type": type_obj,
+                    }
+                )
+                if created:
+                    logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {email}")
+
+                # Ajouter ce mail aux destinataires
+                emails.append(email)
+
+
             # Normalise + dédoublonne
             if partager_par_mail == "oui":
                 
@@ -1144,19 +1188,6 @@ def envoyer_l_acte(request):
                 if not emails_norm:
                     logger.warning(request, "Aucun email valide sélectionné pour l’envoi en copie.")
                 else:
-                     # Création auto des ContactExterne manquants
-                    type_autre, _ = TypeContactExterne.objects.get_or_create(type="autre")
-                    for email in emails_norm:
-                        contact = ContactExterne.objects.filter(email=email).first()
-                        if not contact:
-                            contact = ContactExterne.objects.create(
-                                email=email,
-                                id_type=type_autre,
-                                nom="",
-                                prenom="",
-                            )
-                            logger.info(f"[DOSSIER {dossier_numero}] Nouveau ContactExterne créé automatiquement: {email}")
-
 
                     sujet = f"{nature_document} – Dossier {dossier.numero}"
                     dedupe = compute_dedupe_key(emails_norm, sujet, "libre", {"body": motivation})

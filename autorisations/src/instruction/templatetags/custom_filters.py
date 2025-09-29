@@ -21,3 +21,10 @@ def url_name_from_label(label):
     if 'relecture' in label :
         print(f"{label}_url")
     return f"{label}_url"
+
+@register.filter
+def contains(value, substring):
+    """Retourne True si substring est dans value"""
+    if value is None:
+        return False
+    return str(substring) in value

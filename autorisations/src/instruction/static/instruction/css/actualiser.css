@@ -13,7 +13,8 @@
     background: #00bb5d;
     border: none;
     border-radius: 50%;
-    padding: 12px;
+    width: 48px;  
+    height: 48px;
     cursor: pointer;
     transition: transform 0.2s, background 0.3s;
     box-shadow: 0 3px 6px rgba(0,0,0,0.15);
@@ -25,6 +26,7 @@
 }
 
 #btn-actualiser img {
+    /* border: red solid; */
     width: 22px;
     height: 22px;
 }

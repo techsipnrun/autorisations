@@ -27,6 +27,10 @@
     <!-- Leaflet.browser.print -->
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
+    <!-- Envoi de l'acte final -->
+    <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
+
+
 
 </head>
 
@@ -643,25 +647,56 @@
                             <input type="hidden" name="partager_par_mail" id="partager_par_mail" value="non">
                         </div>
 
-                        
-
-
-
                         <!-- Formulaire affiché uniquement si "Oui" -->
                         <div id="formulaire-partage-mails" class="zone-complement zone-partage-mails">
                             <label for="emails_copie">Contacts externes à mettre en copie :</label>
 
-                            <input
-                                type="text"
-                                id="search-contacts"
-                                class="search-contacts"
-                                placeholder="Rechercher (nom, email)…"
-                                autocomplete="off"
-                                aria-label="Rechercher un contact"
-                            />
+                            <div class="search-wrapper">
+                                <input
+                                    type="text"
+                                    id="search-contacts"
+                                    class="search-contacts"
+                                    placeholder="Rechercher (nom, email)…"
+                                    autocomplete="off"
+                                    aria-label="Rechercher un contact"
+                                />
+
+                                <button type="button" id="add-email-btn" class="add-email-btn" title="Ajouter un nouveau contact">+</button>
+                            </div>
+
+                            <!-- Template caché pour un nouveau contact -->
+                            <template id="nouveau-contact-template">
+                                <div class="nouveau-contact-form">
+                                    <input type="hidden" name="email_contact[]">
+
+                                    <label>Email :</label>
+                                    <input type="text" name="email_affiche" class="input-mini" disabled>
+
+                                    <label>Nom :</label>
+                                    <input type="text" name="nom_contact[]" class="input-mini">
+
+                                    <label>Prénom :</label>
+                                    <input type="text" name="prenom_contact[]" class="input-mini">
+
+                                    <label>Type :</label>
+                                    <select name="type_contact[]" class="input-mini">
+                                        {% for t in types_contacts %}
+                                            <option value="{{ type.id }}">{{ t.type }}</option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <label>Raison sociale :</label>
+                                    <input type="text" name="raison_sociale[]" class="input-mini">
+
+                                    <button type="button" class="btn-ajout-contact">Ajouter ce contact</button>
+                                    <button type="button" class="btn-annuler-ajout-contact">Annuler</button>
+                                </div>
+                            </template>
+
+                            <div id="nouveaux-contacts-container"></div>
 
                             <!-- multiple conservé MAIS on gère le clic en JS pour éviter Ctrl -->
-                            <select name="emails_copie[]" id="emails_copie" multiple size="8" class="emails-multiselect">
+                            <select name="emails_copie[]" id="emails_copie" multiple size="4" class="emails-multiselect">
                                 {% for e in emails_uniques %}
                                 <option class="ligne-contact" value="{{ e }}" data-nom="{{ e }}" data-email="{{ e|lower }}">
                                     {% if e %}
@@ -1016,7 +1051,7 @@
                 {% endif %}
 
 
-                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' %}
+                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' or dossier.id_etape_dossier.etape == 'À publier au RAA' or dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
                     <div class="groupe-instructeur-info">
                         <h3>Relecteurs.rices qualité</h3>
                         <ul class="groupe-instructeur-liste">
@@ -1060,7 +1095,6 @@
                     </div>
                 {% endif %}
                 
-                <!-- ICI -->
                 <!-- Bloc Mails envoyés -->
                 {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' %}
                     {% if emails_dossiers %}
@@ -1371,13 +1405,15 @@
                                     </a>
 
                                     <!-- Supprimer annexe instructeur -->
-                                    <form method="post" action="{% url 'supprimer_annexe_instructeur' %}" class="form-supprimer-annexe">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="document_id" value="{{ annexe.id }}">
-                                        <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                        <button type="button" class="btn-supprimer-annexe" title="Supprimer l'annexe"
-                                                onclick="confirmerSuppressionAnnexe(this)">✕</button>
-                                    </form>
+                                    {% if annexe.description|contains:request.user %}
+                                        <form method="post" action="{% url 'supprimer_annexe_instructeur' %}" class="form-supprimer-annexe">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="document_id" value="{{ annexe.id }}">
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <button type="button" class="btn-supprimer-annexe" title="Supprimer l'annexe"
+                                                    onclick="confirmerSuppressionAnnexe(this)">✕</button>
+                                        </form>
+                                    {% endif %}
                                     
                                     <!-- Copier path annexe instructeur -->
                                     <button type="button" class="btn-copier-chemin"
@@ -1397,15 +1433,24 @@
                             <p class="note-meta">
                                 <strong>{{ n.instructeur }}</strong> – {{ n.date|date:"d/m/Y H:i" }}
                             </p>
-                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
+
+
+                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form-note">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <input type="hidden" name="noteId" value="{{ n.id }}">
-                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
+                                <textarea name="note" rows="4">{{ n.note }}</textarea>
                                 {% if n.instructeur_id == instructeur_connecte.id %}
-                                    <button type="submit" class="valider-btn">Mettre à jour</button>
+                                    <div class="btn_maj_suppr">
+                                        <button type="submit" class="valider-btn">Mettre à jour</button>
+                                        <button type="submit" formaction="{% url 'supprimer_note_dossier' %}" class="supprimer-btn"
+                                                onclick="return confirm('Voulez-vous vraiment supprimer cette note ?');">
+                                            Supprimer
+                                        </button>
+                                    </div>
                                 {% endif %}
                             </form>
+                                                    
 
                         </div>
                     {% empty %}
@@ -1431,7 +1476,12 @@
         
     </div>
 
+
     
+    <!-- --------------------------------------------------------------------------->
+    <!-- --------------------------------CARTO ------------------------------------->
+    <!-- --------------------------------------------------------------------------->
+
     <!-- 1. Données JSON pour le fond de carte -->
     {{ coeurData|json_script:"fond-data" }}
     {{ adhesionData|json_script:"adhesion-data" }}
@@ -1443,7 +1493,6 @@
         window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
         window._mafateData = JSON.parse(document.getElementById("mafate-data").textContent);
     </script>
-
 
     <!-- Mise en forme des geojson (géométries du pétitionnaire ou modifiée par instructeur) -->
     <script>
@@ -1464,69 +1513,77 @@
 
     </script>
 
-
     <!-- 3. Script Leaflet personnalisé -->
     <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
 
 
-    <!-- Menu déroulant état dossier  + margin bottom auto -->
+
+    <!-- --------------------------------------------------------------------------->
+    <!-- --------------------- Menu déroulant Etape dossier ------------------------>
+    <!-- --------------------------------------------------------------------------->
     <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const toggleBtn = document.getElementById("etapeMenuToggle");
-        const menuContent = document.getElementById("etapeMenuContent");
-        const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleBtn = document.getElementById("etapeMenuToggle");
+            const menuContent = document.getElementById("etapeMenuContent");
+            const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
 
-        toggleBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-    
-            const isOpen = !dropdownWrapper.classList.contains("open");
-    
-            if (isOpen) {
-                menuContent.classList.add("show");
-                dropdownWrapper.classList.add("open");
+            toggleBtn.addEventListener("click", function (e) {
+                e.stopPropagation();
+        
+                const isOpen = !dropdownWrapper.classList.contains("open");
+        
+                if (isOpen) {
+                    menuContent.classList.add("show");
+                    dropdownWrapper.classList.add("open");
 
-                // Appliquer la hauteur comme margin-bottom
-                const hauteur = menuContent.scrollHeight;
-                dropdownWrapper.style.marginBottom = `${hauteur}px`;
-            } else {
-                menuContent.classList.remove("show");
-                dropdownWrapper.classList.remove("open");
-                dropdownWrapper.style.marginBottom = "";
-            }
+                    // Appliquer la hauteur comme margin-bottom
+                    const hauteur = menuContent.scrollHeight;
+                    dropdownWrapper.style.marginBottom = `${hauteur}px`;
+                } else {
+                    menuContent.classList.remove("show");
+                    dropdownWrapper.classList.remove("open");
+                    dropdownWrapper.style.marginBottom = "";
+                }
+            });
+
+            document.addEventListener("click", function (e) {
+                if (!dropdownWrapper.contains(e.target)) {
+                    menuContent.classList.remove("show");
+                    dropdownWrapper.classList.remove("open");
+                    dropdownWrapper.style.marginBottom = "";
+                }
+            });
         });
-
-        document.addEventListener("click", function (e) {
-            if (!dropdownWrapper.contains(e.target)) {
-                menuContent.classList.remove("show");
-                dropdownWrapper.classList.remove("open");
-                dropdownWrapper.style.marginBottom = "";
-            }
-        });
-    });
-    </script>
-
-    <!-- POP UP de validation du changement de groupe instructeur -->
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const select = document.getElementById("select-changer-groupe");
-        const form = document.getElementById("form-changer-groupe");
-
-        select.addEventListener("change", function() {
-            const selectedOption = select.options[select.selectedIndex].text;
-            const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
-
-            if (confirmed) {
-                form.submit();
-            } else {
-                // Réinitialise le select sur le placeholder
-                select.selectedIndex = 0;
-            }
-        });
-    });
     </script>
 
 
- <!-- Annulation ou écrasage du document en cas de doublon -->
+
+    <!-- --------------------------------------------------------------------------->
+    <!-- ------- POP UP de validation du changement de groupe instructeur ---------->
+    <!-- --------------------------------------------------------------------------->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const select = document.getElementById("select-changer-groupe");
+            const form = document.getElementById("form-changer-groupe");
+
+            select.addEventListener("change", function() {
+                const selectedOption = select.options[select.selectedIndex].text;
+                const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
+
+                if (confirmed) {
+                    form.submit();
+                } else {
+                    // Réinitialise le select sur le placeholder
+                    select.selectedIndex = 0;
+                }
+            });
+        });
+    </script>
+
+
+    <!------------------------------------------------------------------------------>
+    <!----------- Annulation ou écrasage du document en cas de doublon ------------->
+    <!------------------------------------------------------------------------------>
    {{ emplacements_documents|json_script:"emplacements-existants" }}
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -1550,7 +1607,11 @@
         });
     </script>
 
-    <!-- Copier le path de l'annexe instructeur -->
+
+
+    <!------------------------------------------------------------------------------>
+    <!------------------ Copier le path de l'annexe instructeur -------------------->
+    <!------------------------------------------------------------------------------>
     <script>
         function copierPath(button, path) {
             navigator.clipboard.writeText(path)
@@ -1568,7 +1629,11 @@
         }
     </script>
 
-    <!-- Bouton actualiser -->
+    
+
+    <!------------------------------------------------------------------------------>
+    <!--------------------------- Bouton actualiser -------------------------------->
+    <!------------------------------------------------------------------------------>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const refreshForm = document.querySelector(".refresh-doss form");
@@ -1583,8 +1648,9 @@
 
 
    
-
-    <!-- Gère l'ouverture et la fermeture des Zones textuelles -->
+    <!------------------------------------------------------------------------------>
+    <!--------------Ouverture et la fermeture des Zones textuelles ----------------->
+    <!------------------------------------------------------------------------------>
     <script>
         function masquerToutesZonesComplementaires() {
             const zones = document.querySelectorAll(".zone-complement");
@@ -1639,10 +1705,6 @@
             fermerMenuEtape();
         }
 
-
-        
-
-
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
             const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
@@ -1655,7 +1717,11 @@
         }
     </script>
 
-    <!--  POP UP de validation  -->
+
+
+    <!------------------------------------------------------------------------------>
+    <!--------------------- POP UP Message de confirmation  ------------------------>
+    <!------------------------------------------------------------------------------>
     <script>
         // Pour s'assurer que le valideur a bien informé l'instructeur (des modifications à faire) avant de repasser le dossier en instruction
         function confirmerRetourInstruction() {
@@ -1690,13 +1756,9 @@
                 const ok = confirm(`Un document nommé « ${documentTitre} » existe déjà dans le dossier Actes. Voulez-vous vraiment l’écraser ?`);
                 if (!ok) return;
             }
-
             //document.querySelector('#formulaire-acceptation form').submit();
             document.querySelector('#formulaire-acceptation form').requestSubmit();
-
         }
-
-
 
         // Pour confirmer la supression d'une Annexe instructeur (note)
         function confirmerSuppressionAnnexe(bouton) {
@@ -1733,7 +1795,7 @@
             }
         }
 
-         // Pour confirmer l'envoi pour Validation avant signature
+        // Pour confirmer l'envoi pour Validation avant signature
         function confirmerValidationAvantDemandeAvis() {
             const select = document.getElementById("nature_acte_avant_dmd_avis");
             const validant = document.getElementById("choix-validant-avant-dmd-avis");
@@ -1768,11 +1830,9 @@
             }
         }
         
-
         // Pour confirmer la transmission de l'acte signé
         function confirmerSignature() {
 
-            // TO DO
             const select = document.getElementById("nature_doc_signe");
             const signataire = document.getElementById("choix-signataire");
             const fichierInput = document.getElementById("pj_signe");
@@ -1810,7 +1870,6 @@
             }
         }
 
-
         // Pour confirmer relecture qualité
         function confirmerRelectureQualite() {
 
@@ -1825,43 +1884,56 @@
                 document.querySelector('#formulaire-relecture-qualite form').submit();
             }
         }
+    </script>
 
-        
-
+    <!-- Form Relecture juridique -->
+    <script>
+        function toggleRelecteurForm() {
+            const form = document.getElementById("formulaire-relecture-juridique");
+            form.classList.toggle("show");
+        }
+ 
+        function confirmerRelectureFaite() {
+            return confirm("Confirmez-vous que la relecture est faite ?");
+        }
 
     </script>
 
     <!-- POP UP Validation écrasement d'un acte existant avec le meme nom et le meme emplacement -->
     {{ titres_documents_actes|json_script:"titres-docs-actes" }}
     <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const inputActe = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
-        const confirmInput = document.getElementById("confirm-ecrasement");
+        document.addEventListener("DOMContentLoaded", function () {
+            const inputActe = document.querySelector("#formulaire-acceptation input[name='piece_jointe']");
+            const confirmInput = document.getElementById("confirm-ecrasement");
 
-        if (!inputActe || !confirmInput) return;
+            if (!inputActe || !confirmInput) return;
 
-        const titresExistants = JSON.parse(document.getElementById("titres-docs-actes").textContent);
+            const titresExistants = JSON.parse(document.getElementById("titres-docs-actes").textContent);
 
-        inputActe.addEventListener("change", function () {
-            const fichier = inputActe.files[0];
-            if (!fichier) return;
+            inputActe.addEventListener("change", function () {
+                const fichier = inputActe.files[0];
+                if (!fichier) return;
 
-            if (titresExistants.includes(fichier.name)) {
-                const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà dans le dossier Actes. Voulez-vous le remplacer ?`);
-                if (confirmReplace) {
-                    confirmInput.value = "true";
+                if (titresExistants.includes(fichier.name)) {
+                    const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà dans le dossier Actes. Voulez-vous le remplacer ?`);
+                    if (confirmReplace) {
+                        confirmInput.value = "true";
+                    } else {
+                        inputActe.value = ""; // On annule la sélection
+                        confirmInput.value = "false";
+                    }
                 } else {
-                    inputActe.value = ""; // On annule la sélection
                     confirmInput.value = "false";
                 }
-            } else {
-                confirmInput.value = "false";
-            }
+            });
         });
-    });
     </script>
 
-    <!-- Enregistrer les notes en cours de redaction -->
+
+
+    <!------------------------------------------------------------------------------>
+    <!--------------- Enregistrer les notes en cours de redaction  ----------------->
+    <!------------------------------------------------------------------------------>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const textarea = document.getElementById("nouvelle-note-textarea");
@@ -1899,197 +1971,12 @@
     </script>
 
 
-    <!-- Form Relecture juridique -->
-    <script>
-        function toggleRelecteurForm() {
-            const form = document.getElementById("formulaire-relecture-juridique");
-            form.classList.toggle("show");
-        }
- 
-        function confirmerRelectureFaite() {
-            return confirm("Confirmez-vous que la relecture est faite ?");
-        }
-
-    </script>
 
 
-    <!-- Form Envoi de l'acte final par mail -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const radios = document.querySelectorAll('input[name="partager_par_mail_choice"]');
-            const hidden = document.getElementById("partager_par_mail");
-            const bloc = document.getElementById("formulaire-partage-mails");
-            const selectEmails = document.getElementById("emails_copie");
 
-            function majPartage() {
-                const val = document.querySelector('input[name="partager_par_mail_choice"]:checked')?.value || "non";
-                hidden.value = val;
-
-                if (val === "oui") {
-                    bloc.classList.add("show");
-                } else {
-                    bloc.classList.remove("show");
-                    // on efface la sélection si on repasse à "Non"
-                    if (selectEmails) Array.from(selectEmails.options).forEach(o => o.selected = false);
-                }
-            }
-
-            radios.forEach(r => r.addEventListener("change", majPartage));
-            majPartage(); // état initial = Non
-        });
-    </script>
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const select = document.getElementById('emails_copie');        // <select multiple>
-            const search = document.getElementById('search-contacts');     // <input type="text">
-            const chips  = document.getElementById('selected-chips');      // conteneur des chips
-            if (!select || !search || !chips) return;
-
-            // === Source de vérité des options (liste des contacts connus) ===
-            const originalOptions = [...select.options].map(opt => ({
-                value: opt.value,
-                text:  opt.text,
-                nom:   (opt.dataset.nom   || '').toLowerCase(),
-                email: (opt.dataset.email || '').toLowerCase(),
-                emailRaw: opt.dataset.email || opt.value
-            }));
-
-            // === États ===
-            let selectedValues = new Set();   // emails choisis depuis la liste
-            let manualEmails   = new Set();   // emails ajoutés à la main (via entrée)
-
-            // Reconstruit les <option> visibles (selon filtre)
-            const rebuildOptions = (list) => {
-                const scrollTop = select.scrollTop;
-                select.innerHTML = '';
-                list.forEach(item => {
-                    const o = document.createElement('option');
-                    o.value = item.value;
-                    o.text  = item.text;
-                    o.dataset.nom   = item.nom;
-                    o.dataset.email = item.emailRaw;
-                    o.selected = selectedValues.has(item.value);
-                    select.appendChild(o);
-                });
-                select.scrollTop = scrollTop;
-            };
-
-            // Filtrage par texte
-            const filterOptions = () => {
-                const q = search.value.trim().toLowerCase();
-                if (!q) return rebuildOptions(originalOptions);
-                const filtered = originalOptions.filter(o =>
-                    o.text.toLowerCase().includes(q) || o.nom.includes(q) || o.email.includes(q)
-                );
-                rebuildOptions(filtered);
-            };
-
-            // Affiche tous les chips (emails de la liste + emails manuels)
-            const renderChips = () => {
-                chips.innerHTML = '';
-
-                // 1. emails choisis depuis la liste
-                selectedValues.forEach(val => {
-                    const opt = originalOptions.find(o => o.value === val);
-                    if (!opt) return;
-                    const emailRaw = opt.emailRaw;
-
-                    const chip = document.createElement("span");
-                    chip.className = "chip";
-                    chip.dataset.email = emailRaw.toLowerCase();
-                    chip.textContent = emailRaw;
-
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.textContent = "×";
-                    btn.onclick = () => {
-                        selectedValues.delete(val);
-                        renderChips();
-                    };
-
-                    chip.appendChild(btn);
-
-                    const hidden = document.createElement("input");
-                    hidden.type = "hidden";
-                    hidden.name = "emails_copie[]";
-                    hidden.value = emailRaw;
-                    chip.appendChild(hidden);
-
-                    chips.appendChild(chip);
-                });
-
-                // 2. emails manuels
-                manualEmails.forEach(emailCanon => {
-                    const chip = document.createElement("span");
-                    chip.className = "chip";
-                    chip.dataset.email = emailCanon;
-                    chip.textContent = emailCanon;
-
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.textContent = "×";
-                    btn.onclick = () => {
-                        manualEmails.delete(emailCanon);
-                        renderChips();
-                    };
-
-                    chip.appendChild(btn);
-
-                    const hidden = document.createElement("input");
-                    hidden.type = "hidden";
-                    hidden.name = "emails_copie[]";
-                    hidden.value = emailCanon;
-                    chip.appendChild(hidden);
-
-                    chips.appendChild(chip);
-                });
-            };
-
-            // Ajout d’un email manuel
-            function addManualEmail(email) {
-                if (!email) return;
-                email = email.trim();
-                if (!email) return;
-
-                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!regex.test(email)) {
-                    alert("Adresse email invalide : " + email);
-                    return;
-                }
-
-                manualEmails.add(email.toLowerCase());
-                renderChips();
-            }
-
-            // Ajout via Entrée ou virgule
-            search.addEventListener("keydown", function (e) {
-                if (e.key === "Enter" || e.key === ",") {
-                    e.preventDefault();
-                    addManualEmail(search.value);
-                    search.value = "";
-                }
-            });
-
-            // Ajout via sélection existante
-            select.addEventListener("change", function () {
-                [...select.selectedOptions].forEach(opt => {
-                    selectedValues.add(opt.value);
-                });
-                renderChips();
-            });
-
-            // Recherche
-            search.addEventListener('input', filterOptions);
-
-            // Init
-            rebuildOptions(originalOptions);
-            renderChips();
-        });
-    </script>
-
-    <!-- Rotation du triangle -->
+    <!------------------------------------------------------------------------------>
+    <!---------- Relecture : Ouverture/Fermeture et Rotation du triangle ----------->
+    <!------------------------------------------------------------------------------>
     <script>
         function toggleRelecture(item) {
             const details = item.querySelector(".relecture-details");
@@ -2116,39 +2003,7 @@
                 });
             });
         });
-
-
     </script>
-
-
-    <!-- Script de test pour télécharger en PDF une carto Leaflet -->
-   <!-- <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            document.querySelectorAll(".carte-container").forEach((container) => {
-                const btn = container.querySelector(".btn-browser-print");
-                const mapDiv = container.querySelector(".carte");
-
-                if (!btn || !mapDiv) return;
-
-                const map = mapDiv._leaflet_map;
-                if (!map) return;
-
-                btn.addEventListener("click", function () {
-                    map.closePopup();
-
-                    // 👉 lancer impression PDF directement
-                    L.control.browserPrint({
-                        printModes: ["Landscape"],
-                        closePopupsOnPrint: true
-                    }).print(map);
-                });
-            });
-        });
-    </script> -->
-
-
-
-
 
 
 </body>

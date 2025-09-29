@@ -86,6 +86,7 @@ urlpatterns = [
     path('annexe/<path:chemin>/<str:titre>/', views.afficher_annexe, name='afficher_annexe'),
 
     path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
+    path('instruction/supprimer_note/', instruction.supprimer_note_dossier, name='supprimer_note_dossier'),
     # path("instruction/relecture/", instruction.mettre_a_jour_relecture, name="mettre_a_jour_relecture"),
         
     

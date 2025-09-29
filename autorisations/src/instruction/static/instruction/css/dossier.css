@@ -723,6 +723,7 @@ h2 {
 /* ------------------------- */
 
 textarea[name="note"] {
+    display: block; 
     width: 95%;
     padding: 0.5rem;
     border: 1px solid #ccc;
@@ -732,7 +733,11 @@ textarea[name="note"] {
 }
 
 .form_groupe_select.form-note {
-    margin-top: 0.5rem; /* supprime l'espace au-dessus du formulaire */
+    margin-top: 0.5rem;
+    gap: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start; 
 }
 
 .notes_instructeurs {
@@ -748,21 +753,70 @@ textarea[name="note"] {
     margin-bottom: 1rem;
 }
 
-/* Bouton Valider */
-.valider-btn {
-    background-color: #006131;
-    color: white;
-    border: none;
-    padding: 0.5rem 1.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+
+/* Boutons modifier/envoyer/supprimer (modernisés) */
+.btn_maj_suppr {
+    display: flex;
+    gap: 0.5rem;
     margin-top: 0.5rem;
+    justify-content: flex-start;
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+}
+
+.form-note:hover .btn_maj_suppr {
+    opacity: 1;
+}
+
+.valider-btn,
+.supprimer-btn {
+    display: inline-block;
+    width: auto;
+    white-space: nowrap;
+    margin-top: 0;
+}
+
+.valider-btn {    
+    background-color: #e8f5e9;
+    color: #006131;
+    border: 1px solid #b2dfdb;
+    padding: 0.4rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
 .valider-btn:hover {
-    background-color: #0e4c27;
+    background-color: #c8e6c9;
+    color: #004d40;
+    border-color: #80cbc4;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
 }
+
+/* Bouton supprimer */
+.supprimer-btn {
+    background-color: #fdecea;        /* rouge très clair */
+    color: #c62828;                   /* rouge foncé */
+    border: 1px solid #f5c6cb;
+    padding: 0.4rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.supprimer-btn:hover {
+    background-color: #f8d7da;        /* rouge pastel */
+    color: #b71c1c;
+    border-color: #f1aeb5;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+}
+
 
 
 .note-item {

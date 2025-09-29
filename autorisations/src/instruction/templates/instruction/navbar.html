@@ -58,40 +58,100 @@
                 </ul>
             </div>
            
+            
             <div class="user_information">
-                <div class="user_mail">
-                    {% if request.user.is_superuser %}
-                        <div class="logo-api">
-                            <a href="/swagger/">
-                                <img class="logo_admin" src="{% static 'instruction/img/swagger-logo.png' %}" alt="Swagger" title="API Swagger">
-                            </a>
-                        </div>
+                <div class="user_dropdown">
+                    <button class="user_toggle">
+                        <strong>{{ user.email }}</strong>
+                        <img src="{% static 'instruction/img/chevron-down.svg' %}" class="chevron" alt="Menu">
+                    </button>
 
-                        <div class="logo-admin">
-                            <a href="/admin/">
-                                <img class="logo_admin" src="{% static 'instruction/img/admin.png' %}" alt="Admin" title="Page d'administration">
-                            </a>
-                        </div>
-
-                        <div class="logo-profil">
-                            <a href="/gestion_groupes/">
-                                <img class="logo_admin" src="{% static 'instruction/img/utilisateur.png' %}" alt="Gestion des groupes" title="Gestions des groupes et des utilisateurs">
-                            </a>
-                        </div>
-
-                    {% endif %}
-
-                    <strong>{{ user.email }}</strong>
+                    <div class="user_menu">
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="logout-item">
+                                <img src="{% static 'instruction/img/log-out.svg' %}" class="icon"> Se déconnecter
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                
 
-                <form method="post" action="{% url 'logout' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-logout">Se Déconnecter</button>
-                </form>
+                <div class="settings_dropdown">
+                    <button class="settings_toggle" title="Paramètres">
+                        <img src="{% static 'instruction/img/settings.svg' %}" class="setting_icon" alt="Paramètres">
+                    </button>
+
+                    <div class="settings_menu">
+                        <a href="/admin/" class="dropdown-item" target="_blank">
+                            <img src="{% static 'instruction/img/shield-user.svg' %}" class="icon" alt="">
+                            <span>Admin</span>
+                        </a>
+
+                        <a href="/gestion_groupes/" target="_blank" class="dropdown-item">
+                            <img src="{% static 'instruction/img/groups.svg' %}" class="icon" alt="">
+                            <span>Gestion des groupes</span>
+                        </a>
+
+                        <a href="/swagger/" target="_blank" class="dropdown-item">
+                            <img src="{% static 'instruction/img/api-icon.svg' %}" class="icon" alt="">
+                            <span>API Swagger</span>
+                        </a>
+                        
+                        <a href="https://www.demarches-simplifiees.fr/procedures" target="_blank" class="dropdown-item">
+                            <img src="{% static 'instruction/img/DS_noir_et_blanc.svg' %}" class="icon" alt="">
+                            <span>Démarches Simplifiées</span>
+                        </a>
+
+                        <a href="https://declaration-manifestations.gouv.fr/instructions/tableaudebord/50975/" target="_blank" class="dropdown-item">
+                            <img src="{% static 'instruction/img/prefet_icon.svg' %}" class="icon" alt="">
+                            <span>Déclaration Manifestations</span>
+                        </a>
+                    </div>
+                </div>
             </div>
+
+
         </div>
 
     </header>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+        const dropdowns = Array.from(document.querySelectorAll('.user_dropdown, .settings_dropdown'));
+
+        const closeAll = (except = null) => {
+            dropdowns.forEach(d => {
+            if (!except || d !== except) d.classList.remove('open');
+            });
+        };
+
+        // Ouvre le menu cliqué et ferme tous les autres
+        document.querySelectorAll('.user_toggle, .settings_toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const parent = btn.closest('.user_dropdown, .settings_dropdown');
+            const willOpen = !parent.classList.contains('open');
+            closeAll();                // ferme tout
+            if (willOpen) parent.classList.add('open');  // (ré)ouvre seulement celui cliqué
+            });
+        });
+
+        // Clic en dehors -> ferme tout
+        document.addEventListener('click', () => closeAll());
+
+        // Échap -> ferme tout (confort)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeAll();
+        });
+
+        // Optionnel : éviter la fermeture si on clique *dans* le menu (les liens continuent de fonctionner)
+        document.querySelectorAll('.user_menu, .settings_menu').forEach(menu => {
+            menu.addEventListener('click', (e) => e.stopPropagation());
+        });
+        });
+    </script>
+
+
+
 </body>
 </html>

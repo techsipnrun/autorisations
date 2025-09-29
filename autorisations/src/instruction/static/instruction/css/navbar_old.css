@@ -32,6 +32,27 @@
 
 
 
+.logo-admin, .logo-profil {
+    height: 25px;
+}
+
+.logo-api {
+    height: 30px;
+}
+
+.logo-api img, .logo-admin img, .logo-profil img {
+    height: 100%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+  
+.logo-api img:hover, .logo-admin img:hover, .logo-profil img:hover{
+    transform: scale(1.1);
+}
+
+
+
+
 /* Liens de navigation */
 .container-links {
     display: flex;
@@ -90,6 +111,17 @@
     background-color: white;
 }
 
+/* .navigation_links .notif_pastille{
+    margin-left: 5px;
+    border-radius: 50%;
+    background-color: rgb(255, 216, 216);
+    border: solid red 1px;
+    color: rgb(255, 0, 0);
+    padding: 5px 10px;
+    font-size: large;
+    font-weight: bold;
+} */
+
 
 /* Pastilles */
 .navigation_links .notif_pastille {
@@ -121,139 +153,35 @@
 
 
 
-
-/* ----------------------------------------------- */
-/* --------- Informations utilisateur ------------ */
-/* ----------------------------------------------- */
-
+/* Informations utilisateur */
 .user_information {
-  padding-right: 1.5vw;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  position: relative;
+    display: flex;
+    align-self: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    /* border: green solid; */
+    /* color: white; */
+    font-size: large;
+    align-items: center;
+    padding: 1.3rem 1.5rem 0 1rem;
 }
 
-.user_dropdown, .settings_dropdown {
-  position: relative;
+.user_information .btn-logout {
+    padding: 7px 14px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    background-color: white;
+    transition: all 0.3s ease-in-out;
 }
 
-.user_dropdown:hover,
-.user_dropdown.open,
-.settings_dropdown:hover,
-.settings_dropdown.open {
-  background-color: rgb(216, 216, 216);
+.user_information strong {
+    font-size: 1.2rem;
 }
 
-
-.user_toggle, .settings_toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 1.3rem;
-  padding: 1rem;
-}
-
-.chevron {
-  width: 20px;
-  transition: transform 0.2s ease;
-}
-
-.setting_icon{
-  width: 30px;
-  transition: transform 0.2s ease-in-out;
-}
-
-
-.setting_icon:hover {
-    transform: scale(1.2);
-}
-
-.user_dropdown.open .chevron {
-  transform: rotate(180deg);
-}
-
-.user_menu, .settings_menu {
-  position: absolute;
-  top: 100%;
-  background-color: whitesmoke;
-  border: 1px solid #ddd;
-  /* border-radius: 6px; */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  display: none;
-  z-index: 1000;
-  box-sizing: border-box; 
-}
-
-.user_menu {
-  left: 0;
-  min-width: 180px;
-  padding: 0.5rem;
-}
-
-.settings_menu {
-  right: 0;
-  min-width: 340px;
-}
-
-
-.user_dropdown.open .user_menu,
-.settings_dropdown.open .settings_menu {
-  display: block;
-}
-
-.logout-item{
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  cursor: pointer;
-  padding: 0.6rem 1rem;
-  text-decoration: none;
-  color: black;
-  font-size: 1.2rem;
-  border:none;
-}
-
-.logout-item:hover {
-  background-color: rgb(216, 216, 216);
-}
-
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  gap: 1rem;
-  text-decoration: none;
-  color: black;
-  font-size: 1.2rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Colonne gauche : icône */
-.dropdown-item .icon {
-  flex: 0 0 15%;   /* 20% de la largeur */
-  max-width: 12%;
-  text-align: center;
-}
-
-/* Colonne droite : texte */
-.dropdown-item span {
-  flex: 1;         /* prend tout l’espace restant */
-  text-align: left;
-}
-
-
-.dropdown-item:last-child {
-  border-bottom: none;
-}
-
-.dropdown-item:hover {
-  background-color: rgb(216, 216, 216);
+.user_information .btn-logout:hover {
+    background-color: black;
+    color: white;
 }
 
 
@@ -278,4 +206,15 @@
 .breadcrumb span {
     font-weight: bold;
     color: #333;
+}
+
+
+
+/* USER EMAIL */
+
+.user_mail {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
 }

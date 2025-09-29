@@ -1,0 +1,97 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbar</title>
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
+</head>
+<body>
+    <header>
+        <div class="navigation_header">
+
+            <div class="logo-application">
+                <a href="#">
+                    <img class="logo_svg" src="{% static 'instruction/img/logoPNRUN.png' %}">
+                </a>
+            </div>            
+
+            <div class="container-links">
+                <ul class="navigation_links">
+
+                    <a href="{% url 'preinstruction_view' %}">
+                        <li class="{% if '/preinstruction' in request.path %}active{% endif %}">
+                            Réception
+                        </li>
+                    </a>
+
+                    <a href="{% url 'accueil_view' %}">
+                        <li class="{% if '/instruction' in request.path %}active{% endif %}">
+                            Instruction 
+                        </li>
+                    </a>
+
+                    <a href="{% url 'mesdossiers_view' %}">
+                        <li class="{% if '/mesdossiers' in request.path or request.path == '/' %}active{% endif %}">
+                            Mes dossiers
+                            {% if nb_dossiers_instruction > 0 %}
+                                <span class="notif_pastille" title="Actions à faire">{{ nb_dossiers_instruction }}</span>
+                            {% endif %}
+                        </li>
+                    </a>
+
+
+                    <a href="{% url 'avis_view' %}">
+                        <li class="{% if '/reception_avis' in request.path %}active{% endif %}">
+                            Mes avis
+                        </li>
+                    </a>
+
+                    <a href="{% url 'requetes_view' %}">
+                        <li class="{% if request.path == '/requetes/' %}active{% endif %}">
+                            Requêtes
+                        </li>
+                    </a>
+
+                </ul>
+            </div>
+           
+            <div class="user_information">
+                <div class="user_mail">
+                    {% if request.user.is_superuser %}
+                        <div class="logo-api">
+                            <a href="/swagger/">
+                                <img class="logo_admin" src="{% static 'instruction/img/swagger-logo.png' %}" alt="Swagger" title="API Swagger">
+                            </a>
+                        </div>
+
+                        <div class="logo-admin">
+                            <a href="/admin/">
+                                <img class="logo_admin" src="{% static 'instruction/img/admin.png' %}" alt="Admin" title="Page d'administration">
+                            </a>
+                        </div>
+
+                        <div class="logo-profil">
+                            <a href="/gestion_groupes/">
+                                <img class="logo_admin" src="{% static 'instruction/img/utilisateur.png' %}" alt="Gestion des groupes" title="Gestions des groupes et des utilisateurs">
+                            </a>
+                        </div>
+
+                    {% endif %}
+
+                    <strong>{{ user.email }}</strong>
+                </div>
+                
+
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout">Se Déconnecter</button>
+                </form>
+            </div>
+        </div>
+
+    </header>
+</body>
+</html>

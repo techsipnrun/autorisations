@@ -234,13 +234,12 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
             if not drj.relu :
                 dossiers_a_traiter_ids.add(dossier.id)
 
-        if etape == "À valider avant signature":
+        if etape in ["À valider avant signature", "À valider avant demande d'avis"] :
             # Rôle : Valideur
-            if est_instructeur:  
+            if est_valideur:  
                 dossiers_a_traiter_ids.add(dossier.id)
 
         elif etape in ["Non soumis à autorisation", "Refusé", "Accepté"]:
-
             # Nb messages non lus côté pétitionnaire
             nb_messages_non_lus = Message.objects.filter(
                 id_dossier=dossier,
@@ -255,7 +254,7 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
             if est_instructeur and nb_messages_non_lus > 0:
                 dossiers_a_traiter_ids.add(dossier.id)
 
-        elif etape in ["En instruction", "En Pré-instruction", "En attente réponse d'avis", "En attente de compléments"]:
+        elif etape in ["En instruction", "En Pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"]:
             # Rôle : Instructeur
             if est_instructeur:
                 dossiers_a_traiter_ids.add(dossier.id)
@@ -268,11 +267,6 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
         elif etape == "En attente de signature":
             # Rôle : Signataire
             if est_signataire: 
-                dossiers_a_traiter_ids.add(dossier.id)
-
-        elif etape == "À valider avant demande d'avis":
-            # Rôle : Valideur
-            if est_valideur:
                 dossiers_a_traiter_ids.add(dossier.id)
 
     return Dossier.objects.filter(id__in=dossiers_a_traiter_ids)

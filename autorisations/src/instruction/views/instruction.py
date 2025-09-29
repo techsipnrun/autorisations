@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur, TypeContactExterne
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
@@ -160,19 +160,39 @@ def mesdossiers(request):
             email_emetteur__endswith='reunion-parcnational.fr'
         ).count()
 
-        # Déterminer mon rôle
-        if DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Instructeur.rice"
-        elif DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Valideur.se"
-        elif DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Signataire"
-        elif DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Relecteur.rice qualité"
-        elif DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
-            role = "Relecteur.rice"
-        else:
-            role = "Inconnu"
+        # Affinage du rôle si j'ai une action à faire
+        if dossier in dossier_action_a_faire :
+            est_relecteur = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
+            if dossier.id_etape_dossier.etape in ["À valider avant signature", "À valider avant demande d'avis"] :
+                role = "Valideur.se"
+            elif dossier.id_etape_dossier.etape in ["Non soumis à autorisation", "Refusé", "Accepté"]:
+                role = "Instructeur.rice"
+            elif dossier.id_etape_dossier.etape in ["En instruction", "En Pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"]:
+                role = "Instructeur.rice"
+            elif dossier.id_etape_dossier.etape in ["À affecter", "En relecture qualité", "À publier au RAA", "Acte à envoyer"]:
+                role = "Relecteur.rice qualité"
+            elif dossier.id_etape_dossier.etape == "En attente de signature":
+                role = "Signataire"
+            elif est_relecteur :
+                drj = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).first()
+                if not drj.relu :
+                    role = "Relecteur.rice"
+
+        # Je suis conerné par le dossier mais je n'ai pas d'action à faire
+        else :
+            # Déterminer mon rôle
+            if DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Instructeur.rice"
+            elif DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Valideur.se"
+            elif DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Signataire"
+            elif DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Relecteur.rice qualité"
+            elif DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Relecteur.rice"
+            else:
+                role = "Inconnu"
 
         # Structurer les infos
         dossiers_par_demarche.setdefault(dossier.id_demarche.titre, []).append({
@@ -736,6 +756,8 @@ def instruction_dossier(request, num_dossier):
     avis_envoye = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Envoyé').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
     avis_statut_brouillon = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Brouillon').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
 
+    # Type contacts externes
+    types_contacts = TypeContactExterne.objects.all()
 
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
@@ -797,6 +819,7 @@ def instruction_dossier(request, num_dossier):
         "avis_statut_brouillon": avis_statut_brouillon,
         "avis_envoye": avis_envoye,
         "nb_avis_envoyes": nb_avis_envoyes,
+        "types_contacts": types_contacts,
     })
 
 
@@ -875,15 +898,27 @@ def sauvegarder_note_dossier(request):
     dossier = get_object_or_404(Dossier, id_ds=dossier_id)
 
     if not instructeur:
-        logger.error(f"[DOSSIER {dossier.numero}] Sauvegarde note échouée : instructeur non identifié ({request.user.email}).")
+        logger.error(f"[DOSSIER {dossier_id}] Sauvegarde de la note échouée : instructeur non identifié ({request.user.email}).")
+        messages.error(request, "Erreur lors de la sauvegarde de la note : vous n'êtes pas reconnu comme instructeur.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
+    if not dossier:
+        logger.error(f"[DOSSIER {dossier_id}] Sauvegarde de la note échouée : dossier introuvable.")
+        messages.error(request, "Erreur lors de la sauvegarde de la note : le dossier est introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
     if note_id:  # Modification d'une note existante
-        note = get_object_or_404(DossierNote, id=note_id, id_instructeur=instructeur)
+        note = DossierNote.objects.filter(id=note_id, id_instructeur=instructeur).first()
+        if not note:
+            logger.error(f"[DOSSIER {dossier.numero}] Sauvegarde de la note échouée : note {note_id} introuvable ou non autorisée pour {instructeur}.")
+            messages.error(request, "Erreur : Vous n'êtes pas autorisé à modifier la note.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
         note.note = contenu
         note.date = timezone.now()
         note.save()
         logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {instructeur}")
+
     else:  # Création d'une nouvelle note
         DossierNote.objects.create(
             id_dossier=dossier,
@@ -894,6 +929,39 @@ def sauvegarder_note_dossier(request):
         logger.info(f"[DOSSIER {dossier.numero}] Nouvelle note ajoutée par {instructeur}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+@login_required
+def supprimer_note_dossier(request):
+    dossier_id = request.POST.get("dossierId")
+    note_id = request.POST.get("noteId")
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    dossier = Dossier.objects.filter(id_ds=dossier_id).first()
+
+    if not instructeur:
+        logger.error(f"[DOSSIER {dossier_id}] Suppression de la note échouée : instructeur non identifié ({request.user.email}).")
+        messages.error(request, "Erreur : vous n'êtes pas reconnu comme instructeur.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not dossier:
+        logger.error(f"[DOSSIER {dossier_id}] Suppression de la note échouée : dossier introuvable.")
+        messages.error(request, "Erreur : le dossier est introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    note = DossierNote.objects.filter(id=note_id, id_instructeur=instructeur).first()
+    if not note:
+        logger.error(f"[DOSSIER {dossier.numero}] Suppression échouée : note {note_id} introuvable ou non autorisée pour {instructeur}.")
+        messages.error(request, "Erreur : Vous n'êtes pas autorisé à supprimer cette note.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Suppression si tout est OK
+    note.delete()
+    logger.info(f"[DOSSIER {dossier.numero}] Note {note_id} supprimée par {instructeur}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 
 # @require_POST

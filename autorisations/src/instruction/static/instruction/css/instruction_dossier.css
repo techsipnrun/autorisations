@@ -139,9 +139,20 @@
 /*           Envoi acte en copie par mail           */
 /* ------------------------------------------------ */
 
+.zone-partage-mails{
+    display: none;
+    flex-direction: column;
+}
+
+/* Bloc spécifique pour le partage mails */
+.zone-partage-mails.show {
+  display: flex;
+}
+
 /* Recherche contact */
 .zone-partage-mails .search-contacts {
-    width: 80%;
+    max-width: 450px;
+    flex: 1;
     margin: .4rem 0 .6rem 0;
     padding: .5rem .6rem;
     border: 1px solid #ccc;
@@ -153,6 +164,7 @@
     width: 100%;
     min-height: 10rem;
     border: 1px solid #ccc;
+    margin: 0;
     border-radius: 6px;
     padding: .2rem;
     background: #fff;
@@ -205,9 +217,6 @@
 }
 
 
-/* .zone-partage-mails .actions-row {
-    margin-top: .6rem;
-} */
 
 .zone-partage-mails .btn-outline {
     background: transparent;
@@ -238,6 +247,93 @@
     background:#006131;
     color:#fff
 }
+
+/* Bouton ajouter mail */
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: 60%; /* même largeur que ton input d’avant */
+}
+
+
+.add-email-btn{
+    background: #006131;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: none;
+}
+
+
+
+.add-email-btn:hover, .btn-annuler-ajout-contact:hover {
+    background: #0e4c27;
+}
+
+
+/* ------------------------------------------------ */
+/*         Mini formulaire : nouveau contact        */
+/* ------------------------------------------------ */
+
+.nouveau-contact-form {
+    display: flex;
+    flex-wrap: wrap;  
+    text-align: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.8rem 0;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+
+.nouveau-contact-form .input-mini,
+.nouveau-contact-form select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    margin-right: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+}
+
+.nouveau-contact-form .btn-ajout-contact {
+    padding: 0.5rem 1rem;
+    background: #006131;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.nouveau-contact-form .btn-ajout-contact:hover {
+    background: #0e4c27;
+}
+
+.btn-annuler-ajout-contact {
+    padding: 0.5rem 1rem;
+    background: #ffffff;
+    color: #000000;
+    border: black solid 1px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+}
+
+.btn-annuler-ajout-contact:hover {
+    background: #ebebeb;
+}
+
 
 
 
