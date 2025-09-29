@@ -61,11 +61,11 @@
                     <tbody>
 
                         {% for a in avis %}
-                            <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %} {% if a.nb_messages_non_lus > 0 %}row-action{% endif %}" 
-                            data-href="{% if a.statut == 'Brouillon' or a.statut == 'À valider' %}
-                                            {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
-                                        {% else %}
+                            <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %} {% if a.nb_messages_non_lus > 0 %}row-action{% endif %} {% if a.statut == 'À envoyer' or a.statut == 'À valider' %}row-action{% endif %}" 
+                            data-href="{% if a.statut == 'Envoyé' %}
                                             {% url 'instruction_dossier_avis' dossier.numero a.numero %}
+                                        {% else %}
+                                            {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
                                         {% endif %}"
                             {% if a.nb_messages_non_lus > 0 %}title="Nouveaux messages de l'expert"{% endif %}>
 
@@ -145,7 +145,7 @@
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
                             {% if nb_avis_envoyes > 0 %}
-                                <span class="pastille_avis_envoye" title="Nombre de demandes d'avis envoyées">{{ nb_avis_envoyes }}</span>
+                                <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
                             {% endif %}
                         </div>
                     </a>

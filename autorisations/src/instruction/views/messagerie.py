@@ -178,6 +178,29 @@ def instruction_dossier_messagerie(request, num_dossier):
     # Nombre d'avis envoyés
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
 
+
+    # Compter le nombre d'avis avec au moins un message non lu de l'expert
+    nb_avis_avec_nouveau_mess = 0
+    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
+        avis = da.id_avis
+        if not avis or not avis.id_expert:
+            continue
+
+        if avis.id_expert.est_interne:
+            email_expert = avis.id_expert.id_instructeur.email
+        else:
+            email_expert = avis.id_expert.id_contact_externe.email
+
+        nb_non_lus_avis = Message.objects.filter(
+            id_avis=avis,
+            lu=False,
+            email_emetteur=email_expert
+        ).count()
+
+        if nb_non_lus_avis > 0:
+            nb_avis_avec_nouveau_mess += 1
+
+
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
@@ -190,6 +213,7 @@ def instruction_dossier_messagerie(request, num_dossier):
         "nb_avis_envoyes": nb_avis_envoyes,
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "nb_messages_non_lus": nb_messages_non_lus,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
     })
 
 

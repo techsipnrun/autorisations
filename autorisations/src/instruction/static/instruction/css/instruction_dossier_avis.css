@@ -36,7 +36,10 @@
     border-radius: 50%;
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
     z-index: 5;
+    animation: pulse-icon 1s ease-in-out infinite alternate;
 }
+
+
 
 
 /* Pastille nouveaux messages DOSSIER*/

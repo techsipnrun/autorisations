@@ -13,6 +13,9 @@
     <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
 
+    <!-- JS Formulaire Avis -->
+    <script src="{% static 'instruction/js/ajouter_avis.js' %}"></script>
+
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -82,7 +85,7 @@
                     </div>
 
                     <div class="attribut_avis" id="bloc_pj_demande_avis">
-                        <label for="pj_avis">Joindre la demande d'avis (Word) :</label>
+                        <label for="pj_avis">Joindre la demande d'avis (Word)* :</label>
                         <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx"
                                data-exists="{% if avis.id_projet_avis %}true{% else %}false{% endif %}">
                         {% if avis.id_projet_avis %}
@@ -198,7 +201,7 @@
                                         {% else %}
                                             {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}
                                         {% endif %}">
-                            Confirmer
+                            Envoyer
                         </button>
 
                         <!-- Flèche pour ouvrir le menu -->
@@ -206,17 +209,17 @@
 
                         <!-- Menu déroulant -->
                         <div class="dropdown-content">
-                            <button type="submit"
+                            <button type="submit" class="btn-confirmer-envoi"
                                 formaction="{% if avis %}
                                                 {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}
                                             {% else %}
                                                 {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}
                                             {% endif %}">
-                                Confirmer l’envoi
+                                Envoyer la demande
                             </button>
 
 
-                            <button type="submit"
+                            <button type="submit" class="btn-brouillon"
                                 formaction="{% if avis %}
                                                 {% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}
                                             {% else %}
@@ -243,11 +246,17 @@
                     <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
                             Messagerie
+                            {% if nb_messages_non_lus > 0 %}
+                                <span class="pastille_nouv_mess" title="Nombre de nouveaux messages">{{ nb_messages_non_lus }}</span>
+                            {% endif %}
                         </div>
                     </a>
                     <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
+                            {% if nb_avis_envoyes > 0 %}
+                                <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
+                            {% endif %}
                         </div>
                     </a>
                 </div>
@@ -262,199 +271,7 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const natureSelect = document.getElementById("nature");
-            const blocInterne = document.getElementById("bloc_expert_interne");
-            const blocExterne = document.getElementById("bloc_expert_externe");
-            const blocPJ_demandeAvis = document.getElementById("bloc_pj_demande_avis");
-            const blocPJ_rapportCS = document.getElementById("bloc_pj_rapport_cs");
-            const blocPJ_projetActe = document.getElementById("bloc_pj_projet_acte");
-            const expertInterne = document.getElementById("expert_interne");
-            const expertExterne = document.getElementById("expert_externe");
-            const pjDemandeAvis = document.getElementById("pj_demande_avis");
-            const pjRapportCS = document.getElementById("pj_rapport_cs");
-            // const pjProjetActe = document.getElementById("pj_projet_acte");
 
-            function toggleExperts() {
-                const selectedText = natureSelect.options[natureSelect.selectedIndex]?.text.trim();
-
-                // Cache par défaut
-                blocInterne.style.display = "none";
-                blocExterne.style.display = "none";
-                blocPJ_demandeAvis.style.display = "none";
-                blocPJ_rapportCS.style.display = "none";
-                blocPJ_projetActe.style.display = "none";
-
-                if (selectedText === "Consultation en interne") {
-                    blocInterne.style.display = "flex";
-                    blocPJ_demandeAvis.style.display = "flex";
-                    // expertInterne.required = true;
-                } else if (selectedText === "Demande à une instance") {
-                    blocExterne.style.display = "flex";
-                    // expertExterne.required = true;
-                    blocPJ_demandeAvis.style.display = "flex";
-                    // pjDemandeAvis.required = true;
-                    blocPJ_rapportCS.style.display = "flex";
-                    // pjRapportCS.required = true;
-                    blocPJ_projetActe.style.display = "flex";
-                   
-                }
-            }
-
-            natureSelect.addEventListener("change", toggleExperts);
-
-            // Exécuter au chargement (utile si le champ est prérempli)
-            toggleExperts();
-        });
-    </script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const form = document.getElementById("form-avis");
-
-            const nature = document.getElementById("nature");
-            const thematique = document.getElementById("thematique");
-            const modeContact = document.getElementById("mode_contact");
-            const formulation = document.getElementById("formulation_avis");
-
-            const expertInterne = document.getElementById("expert_interne");
-            const expertExterne = document.getElementById("expert_externe");
-
-            const pjDemandeAvis = document.getElementById("pj_demande_avis");
-            const pjProjetActe = document.getElementById("pj_projet_acte");
-
-            function resetRequired() {
-                [nature, thematique, modeContact, formulation,
-                expertInterne, expertExterne,
-                pjDemandeAvis, pjProjetActe].forEach(el => {
-                    if (el) el.required = false;
-                });
-            }
-
-            function setRequired(buttonType) {
-                resetRequired();
-
-                // Toujours obligatoires
-                nature.required = true;
-                thematique.required = true;
-                modeContact.required = true;
-                formulation.required = true;
-
-                const selectedNature = nature.options[nature.selectedIndex]?.text.trim();
-
-                if (selectedNature === "Consultation en interne") {
-                    expertInterne.required = true;
-                }
-                if (selectedNature === "Demande à une instance") {
-                    expertExterne.required = true;
-
-                    if (buttonType === "confirmer") {
-                        if (pjDemandeAvis.dataset.exists !== "true") {
-                            pjDemandeAvis.required = true;
-                        }
-                        if (pjProjetActe.dataset.exists !== "true") {
-                            pjProjetActe.required = true;
-                        }
-                    }
-                }
-            }
-
-            function handleSubmit(e, buttonType) {
-                e.preventDefault(); // empêche le submit natif trop tôt
-                setRequired(buttonType);
-
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
-                }
-
-                // soumettre manuellement en respectant formaction
-                const action = e.target.getAttribute("formaction") || form.getAttribute("action");
-                form.setAttribute("action", action);
-                form.submit();
-            }
-
-            // Boutons confirmer
-            document.querySelector(".main-btn").addEventListener("click", function (e) {
-                handleSubmit(e, "confirmer");
-            });
-
-            document.querySelector(".btn-confirmer-envoi").addEventListener("click", function (e) {
-                handleSubmit(e, "confirmer");
-            });
-
-            // Bouton brouillon
-            document.getElementById("btn-brouillon").addEventListener("click", function (e) {
-                handleSubmit(e, "brouillon");
-            });
-        });
-    </script>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // toggle menu sur clic flèche
-            document.querySelectorAll(".btn-dropdown .toggle-btn").forEach(function(btn) {
-                btn.addEventListener("click", function(e) {
-                    console.log(("click"))
-                    e.stopPropagation();
-                    const parent = btn.closest(".btn-dropdown");
-
-                    // Ferme tous les autres menus ouverts
-                    document.querySelectorAll(".btn-dropdown.show").forEach(function(open) {
-                        if (open !== parent) {
-                            open.classList.remove("show");
-                        }
-                    });
-                    // Toggle du menu cliqué
-                    parent.classList.toggle("show");
-                });
-            });
-
-            // Ferme le menu si clic en dehors
-            document.addEventListener("click", function(e) {
-                document.querySelectorAll(".btn-dropdown.show").forEach(function(open) {
-                    if (!open.contains(e.target)) {
-                        open.classList.remove("show");
-                    }
-                });
-            });
-            
-        });
-
-
-        // Copier l'emplacement du Dossier
-        function copierChemin(chemin) {
-            navigator.clipboard.writeText(chemin).then(() => {
-                alert("Chemin copié dans le presse-papiers :\n" + chemin);
-            }).catch(err => {
-                console.error("Erreur copie chemin :", err);
-                alert("Impossible de copier le chemin");
-            });
-        }
-
-    </script>
-
-    <script>
-        function supprimerDoc(avisId, champ) {
-            if (!confirm("Supprimer ce document ?")) return;
-
-            fetch(`/avis/${avisId}/supprimer-doc/${champ}/`, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}",
-                }
-            })
-            .then(resp => {
-                if (resp.ok) {
-                    location.reload(); // recharge la page
-                } else {
-                    alert("Erreur suppression : " + resp.status);
-                }
-            })
-            .catch(err => alert("Erreur réseau : " + err));
-        }
-    </script>
 
 </body>
 </html>

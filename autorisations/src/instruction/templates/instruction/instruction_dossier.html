@@ -806,6 +806,7 @@
                                             {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
                                         </option>
                                     {% endfor %}
+                                        
                                 <!-- Validants SAADD -->
                                 {% else %}
                                     {% for validant in validants_SAADD %}
@@ -814,6 +815,14 @@
                                         </option>
                                     {% endfor %}
                                 {% endif %}
+
+                                {% for i in instructeurs_du_dossier %}
+                                    {% if i not in validants_SAADD and i not in validants_SPPN %}
+                                        <option value="{{ i.id }}">
+                                            {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
                             </select>
                         </div>
 
@@ -994,7 +1003,7 @@
                             <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                                 Consultation
                                 {% if nb_avis_envoyes > 0 %}
-                                    <span class="pastille_avis_envoye" title="Nombre de demandes d'avis envoyées">{{ nb_avis_envoyes }}</span>
+                                    <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
                                 {% endif %}
                             </div>
                         </a>

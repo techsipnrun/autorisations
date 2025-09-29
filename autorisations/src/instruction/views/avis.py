@@ -25,13 +25,12 @@ logger = logging.getLogger('ORM_DJANGO')
 
 @login_required
 def instruction_dossier_consultation(request, num_dossier):
+
     dossier = get_object_or_404(Dossier, numero=num_dossier)
-
-    # dossiers_avis= Liste de tous les avis ou DossierAvis (id dossier=dossier)
-    
     dossiers_avis = (DossierAvis.objects.filter(id_dossier=dossier))
-
     liste_avis = []
+    nb_avis_avec_nouveau_mess = 0
+
     for da in dossiers_avis:
         avis = da.id_avis
 
@@ -39,7 +38,7 @@ def instruction_dossier_consultation(request, num_dossier):
         expert = "N/A"
         if avis.id_avis_nature.nature == "Demande à une instance":
             if avis.id_expert and avis.id_expert.id_contact_externe:
-                expert = avis.id_expert.id_contact_externe.get_display_name()
+                expert = str(avis.id_expert.id_contact_externe)
         elif avis.id_avis_nature.nature == "Consultation en interne":
             if avis.id_expert and avis.id_expert.id_instructeur:
                 expert = f"{avis.id_expert.id_instructeur} (Interne)"
@@ -58,7 +57,11 @@ def instruction_dossier_consultation(request, num_dossier):
         else :
             email_expert = avis.id_expert.id_contact_externe.email
 
-        nb_messages_non_lus = Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert).count()
+        nb_messages_non_lus_avis = Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert).count()
+
+        # Compteur d'avis avec des nouveaux messages
+        if nb_messages_non_lus_avis > 0:
+            nb_avis_avec_nouveau_mess += 1
 
         # Construire le dictionnaire
         liste_avis.append({
@@ -69,7 +72,7 @@ def instruction_dossier_consultation(request, num_dossier):
             "date_demande": avis.date_demande_avis,
             "date_reponse": avis.date_reponse_avis,
             "favorable": reponse,
-            "nb_messages_non_lus": nb_messages_non_lus,
+            "nb_messages_non_lus": nb_messages_non_lus_avis,
         })
 
     liste_avis = sorted(
@@ -101,6 +104,7 @@ def instruction_dossier_consultation(request, num_dossier):
         "avis": liste_avis,
         "nb_avis_envoyes": nb_avis_envoyes,
         "nb_messages_non_lus": nb_messages_non_lus,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
     })
 
 
@@ -153,6 +157,40 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
     instructeurs = {i.email: i for i in instructeurs_qs}.values()
     contacts_externes = {c.email: c for c in contacts_qs}.values()
 
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+
+    # Messages non lus
+    nb_messages_non_lus = Message.objects.filter(
+        id_dossier=dossier,
+        lu=False
+    ).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    ).count()
+
+    # Nombre d'avis avec au moins un message non lu de l'expert
+    nb_avis_avec_nouveau_mess = 0
+    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
+        avis_item = da.id_avis
+        if not avis_item or not avis_item.id_expert:
+            continue
+
+        if avis_item.id_expert.est_interne:
+            email_expert = avis_item.id_expert.id_instructeur.email
+        else:
+            email_expert = avis_item.id_expert.id_contact_externe.email
+
+        nb_non_lus_avis = Message.objects.filter(
+            id_avis=avis_item,
+            lu=False,
+            email_emetteur=email_expert
+        ).count()
+
+        if nb_non_lus_avis > 0:
+            nb_avis_avec_nouveau_mess += 1
+
 
     return render(request, "instruction/instruction_dossier_ajouter_avis.html", {
         "dossier": dossier,
@@ -164,6 +202,9 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "is_formulaire_active": False,
         "is_messagerie_active": False,
         "is_consultation_active": True,
+        "nb_avis_envoyes": nb_avis_envoyes,
+        "nb_messages_non_lus": nb_messages_non_lus,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
     })
 
@@ -257,11 +298,21 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         
 
 
+        emplacement = ""
+        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
         # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
         if pj_projet_avis or pj_projet_acte or pj_rapport_cs :
-           
-            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/Annexes/"
-            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
+            
+            # On récupère l'emplacement physique de l'avis
+            if brouillon_avis :
+                if not brouillon_avis.emplacement :
+                    emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+                else :
+                    emplacement = brouillon_avis.emplacement
+            else :
+                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+            
+            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
             os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
 
             if pj_projet_avis :
@@ -269,12 +320,32 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 if extension not in {".doc", ".docx", ".odt"} :
                     messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
+                
+                doc_projet_avis = enregistrer_document(
+                    fichier=pj_projet_avis,
+                    dossier=dossier,
+                    # nom_prenom_expert=nom_prenom_expert,
+                    nature_str="Annexe avis",
+                    description=f"Projet de demande pour l'avis {avis_id}",
+                    request=request,
+                    emplacement_avis = emplacement,
+                )
             
             if pj_projet_acte :
                 extension = Path(pj_projet_acte.name).suffix.lower()
                 if extension != ".pdf" :
                     messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
+                
+                doc_projet_acte = enregistrer_document(
+                    fichier=pj_projet_acte,
+                    dossier=dossier,
+                    # nom_prenom_expert=nom_prenom_expert,
+                    nature_str="Annexe avis",
+                    description=f"Projet d’acte pour l'avis {avis_id}",
+                    request=request,
+                    emplacement_avis = emplacement,
+                )
             
             if pj_rapport_cs :
                 extension = Path(pj_rapport_cs.name).suffix.lower()
@@ -282,35 +353,17 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
                 
-            
-        doc_projet_avis = enregistrer_document(
-            fichier=pj_projet_avis,
-            dossier=dossier,
-            nom_prenom_expert=nom_prenom_expert,
-            nature_str="Annexe avis",
-            description=f"Projet de demande pour l'avis {avis_id}",
-            request=request,
-        )
+                doc_rapport_instance = enregistrer_document(
+                    fichier=pj_rapport_cs,
+                    dossier=dossier,
+                    # nom_prenom_expert=nom_prenom_expert,
+                    nature_str="Annexe avis",
+                    description=f"Rapport Instance pour l'avis {avis_id}",
+                    request=request,
+                    emplacement_avis = emplacement,
+                )
 
-        doc_projet_acte = enregistrer_document(
-            fichier=pj_projet_acte,
-            dossier=dossier,
-            nom_prenom_expert=nom_prenom_expert,
-            nature_str="Annexe avis",
-            description=f"Projet d’acte pour l'avis {avis_id}",
-            request=request,
-        )
-
-        doc_rapport_instance = enregistrer_document(
-            fichier=pj_rapport_cs,
-            dossier=dossier,
-            nom_prenom_expert=nom_prenom_expert,
-            nature_str="Annexe avis",
-            description=f"Rapport Instance pour l'avis {avis_id}",
-            request=request,
-        )
-
-
+        # Brouillon deja existant
         if brouillon_avis :
 
             fields_to_update = {
@@ -322,9 +375,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 "note": note,
                 "formulation": formulation_avis,
                 "mode_contact": mode_contact,
-                # "id_projet_acte": doc_projet_acte,
-                # "id_rapport_instance": doc_rapport_instance,
-                # "id_projet_avis": doc_projet_avis,
+                "emplacement": emplacement,
             }
 
             # Ajouter uniquement les docs non-nuls
@@ -371,7 +422,8 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
 
             # NOTIF MAIL à l'expert
-                
+        
+        # Création du Brouillon
         else :
             try:
 
@@ -389,6 +441,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                         id_projet_acte=doc_projet_acte,
                         id_rapport_instance=doc_rapport_instance,
                         id_projet_avis=doc_projet_avis,
+                        emplacement = emplacement,
                 )
 
                 logger.info(f"[DOSSIER {dossier.numero}] Brouillon de demande d'avis créé : {avis}")
@@ -467,9 +520,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
         expert_externe_id = request.POST.get("expert_externe") # contact externe ici
         pj_projet_avis = request.FILES.get("pj_demande_avis")
         pj_projet_acte = request.FILES.get("pj_projet_acte")
-        pj_rapport_cs = request.FILES.get("pj_rapport_cs")
-
-        
+        pj_rapport_cs = request.FILES.get("pj_rapport_cs")  
 
         # fichiers a reprendre
         fichier = request.FILES.get("pj_avis")
@@ -532,11 +583,21 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 return redirect(request.META.get("HTTP_REFERER", "/"))
             
 
-         # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
+        emplacement = ""
+        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
+        # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
         if pj_projet_avis or pj_projet_acte or pj_rapport_cs :
-           
-            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/Annexes/"
-            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
+            
+            # On récupère l'emplacement physique de l'avis
+            if brouillon_avis :
+                if not brouillon_avis.emplacement :
+                    emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+                else :
+                    emplacement = brouillon_avis.emplacement
+            else :
+                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+            
+            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
             os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
 
             if pj_projet_avis :
@@ -544,12 +605,32 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 if extension not in {".doc", ".docx", ".odt"} :
                     messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
+                
+                doc_projet_avis = enregistrer_document(
+                    fichier=pj_projet_avis,
+                    dossier=dossier,
+                    # nom_prenom_expert=nom_prenom_expert,
+                    nature_str="Annexe avis",
+                    description=f"Projet de demande pour l'avis {avis_id}",
+                    request=request,
+                    emplacement_avis = emplacement,
+                )
             
             if pj_projet_acte :
                 extension = Path(pj_projet_acte.name).suffix.lower()
                 if extension != ".pdf" :
                     messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
+                
+                doc_projet_acte = enregistrer_document(
+                    fichier=pj_projet_acte,
+                    dossier=dossier,
+                    # nom_prenom_expert=nom_prenom_expert,
+                    nature_str="Annexe avis",
+                    description=f"Projet d’acte pour l'avis {avis_id}",
+                    request=request,
+                    emplacement_avis = emplacement,
+                )
             
             if pj_rapport_cs :
                 extension = Path(pj_rapport_cs.name).suffix.lower()
@@ -557,36 +638,19 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                     messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
                 
-            
-        doc_projet_avis = enregistrer_document(
-            fichier=pj_projet_avis,
-            dossier=dossier,
-            nom_prenom_expert=nom_prenom_expert,
-            nature_str="Annexe avis",
-            description=f"Projet de demande pour l'avis {avis_id}",
-            request=request,
-        )
-
-        doc_projet_acte = enregistrer_document(
-            fichier=pj_projet_acte,
-            dossier=dossier,
-            nom_prenom_expert=nom_prenom_expert,
-            nature_str="Annexe avis",
-            description=f"Projet d’acte pour l'avis {avis_id}",
-            request=request,
-        )
-
-        doc_rapport_instance = enregistrer_document(
-            fichier=pj_rapport_cs,
-            dossier=dossier,
-            nom_prenom_expert=nom_prenom_expert,
-            nature_str="Annexe avis",
-            description=f"Rapport Instance pour l'avis {avis_id}",
-            request=request,
-        )
-            
+                doc_rapport_instance = enregistrer_document(
+                    fichier=pj_rapport_cs,
+                    dossier=dossier,
+                    # nom_prenom_expert=nom_prenom_expert,
+                    nature_str="Annexe avis",
+                    description=f"Rapport Instance pour l'avis {avis_id}",
+                    request=request,
+                    emplacement_avis = emplacement,
+                )
+                
+        
+        # Brouillon deja existant
         if brouillon_avis :
-            # + enregistrer docs
             fields_to_update = {
                 "id_avis_nature": nature,
                 "id_avis_thematique": thematique,
@@ -594,9 +658,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 "note": note,
                 "formulation": formulation_avis,
                 "mode_contact": mode_contact,
-                # "id_projet_acte": doc_projet_acte,
-                # "id_rapport_instance": doc_rapport_instance,
-                # "id_projet_avis": doc_projet_avis,
+                "emplacement": emplacement,
             }
 
             # Ajouter uniquement les docs non-nuls
@@ -621,10 +683,9 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 messages.error(request, f"[ENVOI AVIS DOSSIER {dossier.numero}] Erreur lors de la mise à jour de l'avis {brouillon_avis} : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        # Création du Brouillon
         else:
-        
             try:
-
                 avis = Avis.objects.create(
                         id_avis_nature=nature,
                         id_avis_thematique=thematique,
@@ -639,6 +700,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                         id_projet_acte=doc_projet_acte,
                         id_rapport_instance=doc_rapport_instance,
                         id_projet_avis=doc_projet_avis,
+                        emplacement = emplacement
                 )
 
                 logger.info(f"[DOSSIER {dossier.numero}] Brouillon de demande d'avis créé : {avis}")
@@ -649,10 +711,8 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 return redirect(request.META.get("HTTP_REFERER", "/"))
             
             try:
-                avis_dossier = DossierAvis.objects.create(
-                        id_avis=avis,
-                        id_dossier=dossier,
-                )
+                DossierAvis.objects.create(id_avis=avis, id_dossier=dossier)
+
             except Exception as e:
                 messages.error(request, f"Erreur lors de la création du lien entre le dossier {dossier.numero} et {avis} : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -757,6 +817,28 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
+    # Nombre d'avis avec au moins un message non lu de l'expert
+    nb_avis_avec_nouveau_mess = 0
+    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
+        avis_item = da.id_avis
+        if not avis_item or not avis_item.id_expert:
+            continue
+
+        if avis_item.id_expert.est_interne:
+            email_expert_item = avis_item.id_expert.id_instructeur.email
+        else:
+            email_expert_item = avis_item.id_expert.id_contact_externe.email
+
+        nb_non_lus_avis = Message.objects.filter(
+            id_avis=avis_item,
+            lu=False,
+            email_emetteur=email_expert_item
+        ).count()
+
+        if nb_non_lus_avis > 0:
+            nb_avis_avec_nouveau_mess += 1
+
+
     return render(request, 'instruction/instruction_dossier_avis.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
@@ -769,6 +851,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "nb_messages_non_lus": nb_messages_non_lus,
         "resume_pdf_titre": resume_pdf_titre,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
     })
 
 
@@ -845,7 +928,7 @@ def envoyer_message_avis(request):
 
 
 
-def enregistrer_document(fichier, dossier, nom_prenom_expert, nature_str, description, request):
+def enregistrer_document(fichier, dossier, nature_str, description, request, emplacement_avis):
     if not fichier:
         return None
 
@@ -866,11 +949,11 @@ def enregistrer_document(fichier, dossier, nom_prenom_expert, nature_str, descri
         return None
 
     # Emplacement et chemin
-    emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/Annexes/"
-    chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
+    emplacement_annexes = f"{emplacement_avis}Annexes/"
+    chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement_annexes}"
 
     # Maj de l'ancien doc s’il existe
-    doc = Document.objects.filter(emplacement=emplacement, titre=fichier.name).first()
+    doc = Document.objects.filter(emplacement=emplacement_annexes, titre=fichier.name).first()
     if doc:
         # Mise à jour plutôt que suppression
         doc.id_format = format_obj
@@ -882,7 +965,7 @@ def enregistrer_document(fichier, dossier, nom_prenom_expert, nature_str, descri
         doc = Document.objects.create(
             id_format=format_obj,
             id_nature=nature_obj,
-            emplacement=emplacement,
+            emplacement=emplacement_annexes,
             titre=fichier.name,
             description=description,
         )

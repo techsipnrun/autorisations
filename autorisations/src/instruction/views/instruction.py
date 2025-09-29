@@ -759,6 +759,34 @@ def instruction_dossier(request, num_dossier):
     # Type contacts externes
     types_contacts = TypeContactExterne.objects.all()
 
+    # Instructeur.rices du dossier
+    instructeurs_du_dossier = Instructeur.objects.filter(
+        dossierinstructeur__id_dossier=dossier
+    ).select_related("id_agent_autorisations")
+
+    # Messages non lus envoyés par les experts des avis
+    nb_avis_avec_nouveau_mess = 0
+    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
+        avis = da.id_avis
+        if not avis or not avis.id_expert:
+            continue
+
+        if avis.id_expert.est_interne:
+            email_expert = avis.id_expert.id_instructeur.email
+        else:
+            email_expert = avis.id_expert.id_contact_externe.email
+
+        nb_non_lus_avis = Message.objects.filter(
+            id_avis=avis,
+            lu=False,
+            email_emetteur=email_expert
+        ).count()
+
+        if nb_non_lus_avis > 0:
+            nb_avis_avec_nouveau_mess += 1
+
+
+
     return render(request, 'instruction/instruction_dossier.html', {
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
@@ -775,6 +803,7 @@ def instruction_dossier(request, num_dossier):
         "etapes_possibles": etapes_possibles,
         "etape_actuelle": etape_actuelle,
         "instructeurs_dossier_ids": instructeurs_dossier,
+        "instructeurs_du_dossier": instructeurs_du_dossier,
         "peut_se_declarer": peut_se_declarer,
         "instructeur_connecte": instructeur_connecte,
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
@@ -820,6 +849,7 @@ def instruction_dossier(request, num_dossier):
         "avis_envoye": avis_envoye,
         "nb_avis_envoyes": nb_avis_envoyes,
         "types_contacts": types_contacts,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
     })
 
 
