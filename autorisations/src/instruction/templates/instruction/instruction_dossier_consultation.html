@@ -26,13 +26,21 @@
                 {{ dossier.id_etape_dossier }}
             </div> 
 
-            {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
-                <div class="nouvelle_demande_avis">
-                    <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
-                        + Nouvelle demande d'avis
+            <div class="btn_avis">
+                {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                    <div class="nouvelle_demande_avis">
+                        <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
+                            + Nouvelle demande d'avis
+                        </a>
+                    </div>
+                {% endif %}
+
+                <div class="ajouter_avis_existant">
+                    <a href="{% url 'instruction_dossier_ajouter_avis_existant' num_dossier=dossier.numero %}" class="btn-ajouter-avis">
+                        + Ajouter un avis existant
                     </a>
                 </div>
-            {% endif %}
+            </div>
 
             {% if messages %}
                 <div class="django-messages">
@@ -96,7 +104,20 @@
                                 <td>{{ a.numero }}</td>
                                 <td>{{ a.demandeur }}</td>
                                 <td>{{ a.date_demande|date:"d/m/Y" }}</td>
-                                <td>{{ a.favorable }}</td>
+
+                                <td>
+                                    <div class="rep_value">
+                                        {{ a.favorable }}
+                                        {% if a.favorable == "Favorable" %}
+                                            <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Demande acceptée" class="avis_reponse_icon">
+                                        {% elif a.favorable == "Défavorable" %}
+                                            <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Demande refusée" class="avis_reponse_icon">
+                                        {% elif a.favorable == "En attente" %}
+                                            <img src="{% static 'instruction/img/loader.svg' %}" alt="Demande en attente" class="avis_reponse_icon">
+                                        {% endif %}
+                                    </div>
+                                </td>
+
                                 <td class="cell-suppr">
                                     {{ a.date_reponse|date:"d/m/Y" }}
                                     <!-- Bouton supprimer directement dans la cellule -->
@@ -144,7 +165,7 @@
                     <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
-                            {% if nb_avis_envoyes > 0 %}
+                            {% if nb_avis_avec_nouveau_mess > 0 %}
                                 <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
                             {% endif %}
                         </div>

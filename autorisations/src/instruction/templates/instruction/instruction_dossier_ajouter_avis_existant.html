@@ -1,0 +1,242 @@
+{% load static %}
+{% load breadcrumb_tags %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page pour formuler une demande d'avis</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_ajouter_avis_existant.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
+
+    <!-- JS Ajout Avis existant -->
+    <script src="{% static 'instruction/js/ajouter_avis_existant.js' %}"></script>
+
+
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% breadcrumb breadcrumb_items %}
+
+    <div class="avis-page-container">
+        <div class="avis">
+
+            <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+            <div class="etat-badge-menu">
+                {{ dossier.id_etape_dossier }}
+            </div> 
+
+            <div class="form_ajout_demande_avis">
+                <div class="header_nouvelle_demande_avis">
+                    <h2>Ajouter un avis existant au dossier</h2>
+                </div>
+
+                {% if messages %}
+                    <div class="django-messages">
+                        {% for message in messages %}
+                            <div class="message {{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="attribut_avis">
+                    <label>Type d'avis* :</label>
+                    <select id="type_avis" name="type_avis" required>
+                        <option value="">-- Sélectionner --</option>
+                        <option value="avis_sur_application">Avis existant sur l'application</option>
+                        <option value="avis_hors_application">Avis émis en dehors de l'application</option>
+                    </select>
+                </div>
+
+                <!-- Avis réalisé en dehors de l'application -->
+                <div class="form_avis_hors_appli">
+                    <form id="form-avis" method="post" enctype="multipart/form-data" action="{% url 'ajouter_avis_hors_appli' num_dossier=dossier.numero %}">
+                        {% csrf_token %}
+
+                        <div class="attribut_avis">
+                            <label>Nature de l'avis* :</label>
+                            <select id="nature" name="nature" required>
+                                <option value="">-- Sélectionner --</option>
+                                {% for nature in natures %}
+                                    <option value="{{ nature.id }}"> {{ nature.nature }} </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="attribut_avis" id="bloc_demandeur_avis">
+                            <label>Instructeur.rice à l'origine de la demande* :</label>
+                            <select id="demandeur_avis" name="demandeur_avis">
+                                <option value="">-- Sélectionner --</option>
+                                {% for i in tous_les_instructeurs %}
+                                    <option value="{{ i.id }}">
+                                        {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}
+                                            {{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {{ i.email }}
+                                        {% else %}
+                                            {{ i.email }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="attribut_avis" id="bloc_expert_interne">
+                            <label>Expert interne* :</label>
+                            <select id="expert_interne" name="expert_interne">
+                                <option value="">-- Sélectionner --</option>
+                                {% for i in instructeurs %}
+                                    <option value="{{ i.id }}">
+                                        {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}
+                                            {{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {{ i.email }}
+                                        {% else %}
+                                            {{ i.email }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="attribut_avis" id="bloc_expert_externe">
+                            <label>Expert externe* :</label>
+                            <select id="expert_externe" name="expert_externe">
+                                <option value="">-- Sélectionner --</option>
+                                {% for c in contacts_externes %}
+                                    <option value="{{ c.id }}">
+                                        {% if c.nom and c.prenom and c.email %}
+                                            {{ c.nom }} {{ c.prenom }} - {{ c.email }}
+                                        {% elif c.nom and c.prenom %}
+                                            {{ c.nom }} {{ c.prenom }}
+                                        {% elif c.raison_sociale %}
+                                            {{ c.raison_sociale }} - {{ c.email }}
+                                        {% elif c.organisation %}
+                                            {{ c.organisation }} - {{ c.email }}
+                                        {% else %}
+                                            {{ c.email }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="attribut_avis">
+                            <label>Thématique de l'avis* :</label>
+                            <select id="thematique" name="thematique" required>
+                                <option value="">-- Sélectionner --</option>
+                                {% for t in thematiques %}
+                                    <option value="{{ t.id }}"> {{ t.thematique }} </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="attribut_avis">
+                            <label>Expert.e sollicité.e via* :</label>
+                            <select id="mode_contact" name="mode_contact" required>
+                                <option value="">-- Sélectionner --</option>
+                                <option value="Courrier papier">courrier papier</option>
+                                <option value="Téléphone">téléphone</option>
+                                <option value="Mail">mail</option>
+                                <option value="Autre">autre</option>
+                            </select>
+                        </div>
+
+                        <div class="attribut_avis">
+                            <label>Réponse de l'avis* :</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="favorable" value="true" checked required>
+                                    Favorable
+                                </label>
+                                <label>
+                                    <input type="radio" name="favorable" value="false" required>
+                                    Défavorable
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="attribut_avis">
+                            <label for="date_demande_avis">Date de la demande d'avis* :</label>
+                            <input type="datetime-local" id="date_demande_avis" name="date_demande_avis" required>
+                        </div>
+
+                        <div class="attribut_avis">
+                            <label for="date_reponse_avis">Date de la réponse de l'expert.e* :</label>
+                            <input type="datetime-local" id="date_reponse_avis" name="date_reponse_avis" required>
+                        </div>
+
+                        <div class="attribut_avis texte_libre">
+                            <label for="note_demandeur">Note :</label>
+                            <textarea id="note_demandeur" name="note_demandeur" rows="2" placeholder="Note libre..."></textarea>
+                        </div>
+
+                        <div class="attribut_avis" id="bloc_pj_avis">
+                            <label for="pj_avis">Pièce jointe liée à l'avis :</label>
+                            <input type="file" id="pj_lie_avis" name="pj_lie_avis" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple>
+                        </div>
+
+                        <div class="confirm-ajout-avis">
+                            <!-- Bouton principal -->
+                            <button type="submit" class="main-btn">
+                                Ajouter l'avis au dossier
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+
+                <!-- Avis présent dans l'application -->
+                <div class="form_avis_dans_appli">
+                    Retrouver l'avis existant
+                </div>
+
+
+            </div>
+        </div>
+    
+
+        <!-- Colonne droite : navigation -->
+        <div class="nav_preinstruction">
+            <div class="nav_top">
+            
+                <div class="form_messagerie">
+                    <a href="{% url 'instruction_dossier' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">
+                            Formulaire
+                        </div>
+                    </a>
+                    <a href="{% url 'instruction_dossier_messagerie' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_messagerie_active %}active{% endif %}">
+                            Messagerie
+                            {% if nb_messages_non_lus > 0 %}
+                                <span class="pastille_nouv_mess" title="Nombre de nouveaux messages">{{ nb_messages_non_lus }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
+                        <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
+                            Consultation
+                            {% if nb_avis_avec_nouveau_mess > 0 %}
+                                <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+                
+                <!-- Lien dossier à droite -->
+                <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
+                    <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
+                        <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+</body>
+</html>

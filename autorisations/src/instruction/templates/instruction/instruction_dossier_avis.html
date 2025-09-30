@@ -122,7 +122,7 @@
                     <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
-                            {% if nb_avis_envoyes > 0 %}
+                            {% if nb_avis_avec_nouveau_mess > 0 %}
                                 <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
                             {% endif %}
                         </div>
@@ -210,12 +210,90 @@
                             {{ resume_pdf_titre }}
                         </a>
                     </li>
+
+                    {% if avis_documents %}
+                        <div class="pj_avis">
+                            {% for ad in avis_documents %}
+                                    <li>
+                                        <p><strong>Pièce jointe :</strong></p>
+                                        {% if ad.id_document.id_format.format == 'pdf' %}
+                                            <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
+                                        {% elif ad.id_document.id_format.format == 'docx' or ad.id_document.id_format.format == 'doc' or ad.id_document.id_format.format == 'odt' %}
+                                            <img src="{% static 'instruction/img/logo_word.png' %}" alt="Word" class="doc-icon">
+                                        {% elif ad.id_document.id_format.format == 'png' %}
+                                            <img src="{% static 'instruction/img/logo_png.png' %}" alt="Word" class="doc-icon">
+                                        {% else %}
+                                            <img src="{% static 'instruction/img/logo_file.png' %}" alt="Word" class="doc-icon">
+                                        {% endif %}
+                                        <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}" target="_blank">
+                                            {{ ad.id_document.titre }}
+                                        </a>
+                                    </li>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </ul>
+
+                <div class="bouton_ajouter_pj">
+                    <form id="form-ajout-pj" method="post" enctype="multipart/form-data"
+                        action="{% url 'ajouter_pj_avis' num_dossier=dossier.numero avis_id=avis.id %}">
+                        {% csrf_token %}
+                        <input type="file" id="input-pj-avis" name="pj_avis" 
+                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple style="display:none">
+                    </form>
+
+                    <!-- Données JSON des documents existants -->
+                    {{ liste_avis_documents|json_script:"docs-existants" }}
+
+                    <!-- Bouton flottant + -->
+                    <button type="button" class="btn-ajouter-pj" title="Ajouter des pièces jointes"
+                            onclick="document.getElementById('input-pj-avis').click();">
+                        +
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
         
             
+    <!-- POP UP Confirmation pour écrasage d'une pj deja existante -->
+    <script>
+        // Confirmation PJ avant upload
+        document.addEventListener("DOMContentLoaded", function () {
+            const inputPJ = document.getElementById("input-pj-avis");
+            const formPJ = document.getElementById("form-ajout-pj");
+            const docsExistantsEl = document.getElementById("docs-existants");
+
+            if (inputPJ && formPJ && docsExistantsEl) {
+                const docsExistants = JSON.parse(docsExistantsEl.textContent);
+
+                inputPJ.addEventListener("change", function () {
+                    const fichiers = Array.from(inputPJ.files);
+
+                    for (const f of fichiers) {
+                        const dejaExistant = docsExistants.some(
+                            d => d.titre.toLowerCase() === f.name.toLowerCase()
+                        );
+
+                        if (dejaExistant) {
+                            const ok = confirm(
+                                `Un fichier nommé "${f.name}" existe déjà.\nVoulez-vous le remplacer ?`
+                            );
+                            if (!ok) {
+                                inputPJ.value = ""; // annule la sélection
+                                return;
+                            }
+                        }
+                    }
+
+                    // soumission après la vérif
+                    formPJ.submit();
+                });
+            }
+        });
+    </script>
+
             
             
     <script>

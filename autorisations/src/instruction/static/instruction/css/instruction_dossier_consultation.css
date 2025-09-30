@@ -17,10 +17,18 @@
     margin: 0 0 1rem 0;
 }
 
-/* Bouton Ajouter Avis */
-.nouvelle_demande_avis{
+/* Boutons nouveau/ajout avis */
+.btn_avis {
     margin-top: 4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
+
+/* Bouton Nouvelle demande d'Avis */
+/* .nouvelle_demande_avis{
+    margin-top: 4rem;
+} */
 
 .btn-nouvel-avis {
   text-decoration: none;
@@ -35,6 +43,29 @@
 .btn-nouvel-avis:hover {
   background-color: #e6ffed;
 }
+
+
+/* Bouton Ajouter Avis existant */
+/* .ajouter_avis_existant{
+    margin-top: 4rem;
+} */
+
+.btn-ajouter-avis {
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  color: #000000;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-ajouter-avis:hover {
+  background-color: #f0f0f0;
+}
+
+
+
 
 /* ------------------------------------ */
 /*           Tables des avis            */
@@ -161,10 +192,25 @@ tbody td[colspan="7"] {
     transition: transform 0.2s ease, filter 0.2s ease;
 }
 
+/* Icon réponses*/
+.avis_reponse_icon {
+    width: 25px; 
+    height: 25px;
+    display: block;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.rep_value{
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+}
 
 
 /* Messages d'erreurs */
 .django-messages{
+    margin-top: 2rem;
     color: rgb(172, 2, 2);
     font-weight: bold;
 }

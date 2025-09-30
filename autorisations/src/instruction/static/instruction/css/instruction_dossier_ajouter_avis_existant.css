@@ -1,0 +1,185 @@
+/* ---------------------------------------------- */
+/* -------------- Bloc principal ---------------- */
+/* ---------------------------------------------- */
+
+.avis-page-container {
+    display: flex;
+    gap: 2rem;
+    padding: 4rem;
+    margin-bottom: 8rem;
+}
+
+.avis {
+    width: 70%;
+}
+
+.form_ajout_demande_avis {
+    position: relative;
+    width: 100%;
+    border: solid #006131 3px;
+    margin-top: 2rem;
+    padding: 2rem 1rem 4rem 1rem;
+}
+
+.form_ajout_demande_avis h2 {
+    margin: 0;
+    padding: 0;
+    color: #006131;
+    text-align: center;
+}
+
+.form_avis_hors_appli {
+    /* border: solid red 1px; */
+}
+
+.form_avis_dans_appli{
+    /* border: solid blueviolet 1px; */
+    padding-left: 1rem;
+}
+
+
+/* ---------------------------------------------- */
+/* ----------- Headers haut de page ------------- */
+/* ---------------------------------------------- */
+.header_nouvelle_demande_avis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.header_nouvelle_demande_avis .etat-badge-menu {
+    background-color: #dddddd;
+    color: #006131; ;
+}
+
+.header_nouvelle_demande_avis h2 {
+    margin: 0;
+}
+
+
+/* ---------------------------------------------- */
+/* -------------- Formulaire ---------------- */
+/* ---------------------------------------------- */
+.attribut_avis {
+    display: flex;
+    align-items: center;
+    vertical-align: center;
+    margin: 1rem 0;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    gap: 1rem;
+}
+
+/* Label à gauche */
+.attribut_avis label {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #006131;
+}
+
+/* Menu déroulant Select */
+.attribut_avis select {
+    padding: 0.4rem 0.6rem;
+    border: 2px solid #006131;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* Affichage conditionnel pour le choix de l'expert interne/externe */
+/* #bloc_expert_externe, #bloc_expert_interne {
+    display: none;
+} */
+
+/* Champs de texte libre */
+.attribut_avis textarea {
+    vertical-align: top;
+    width: 70%;
+    min-height: 80px;
+    resize: vertical; /* permet d'agrandir seulement en hauteur */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit; /* garde la même police que le reste */
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.texte_libre {
+    align-items: flex-start;
+}
+
+/* Effet focus */
+.attribut_avis textarea:focus {
+    border-color: #006131;       /* vert du parc */
+    box-shadow: 0 0 5px rgba(0, 97, 49, 0.4);
+    outline: none;
+}
+
+/* Pièce jointe */
+.bloc_pj_demande_avis, .bloc_pj_projet_acte, .bloc_pj_rapport_cs{
+    display: none;
+}
+
+
+/* Bouton confirmer */
+.confirm-ajout-avis {
+    position: absolute;
+    display: inline-flex;
+    right: 1rem;
+    bottom: 1rem;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.confirm-ajout-avis .main-btn {
+    background-color: #006131;
+    border-right: 1px solid #fff;
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.confirm-ajout-avis .main-btn:hover {
+    background-color: #004e27;
+}
+
+/* boutons à cocher */
+.radio-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.radio-group input {
+    cursor: pointer;
+}
+
+.radio-group label {
+    font-weight: normal;
+    color: black;
+}
+
+/* Champs date */
+#date_reponse_avis, #date_demande_avis {
+    padding: 0.7rem 0.5rem;
+    cursor: pointer;
+}
+
+
+
+
+
+/* Messages d'erreurs */
+.django-messages{
+    margin-top: 2rem;
+    color: rgb(172, 2, 2);
+    font-weight: bold;
+}

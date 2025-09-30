@@ -86,6 +86,7 @@ class Avis(models.Model):
         ("Mail", "Mail"),
         ("Téléphone", "Téléphone"),
         ("Courrier papier", "Courrier papier"),
+        ("Autre", "Autre"),
     ]
 
     STATUT_CHOICES = [

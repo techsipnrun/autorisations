@@ -116,7 +116,7 @@
                     <a href="{% url 'instruction_dossier_consultation' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_consultation_active %}active{% endif %}">
                             Consultation
-                            {% if nb_avis_envoyes > 0 %}
+                            {% if nb_avis_avec_nouveau_mess > 0 %}
                                 <span class="pastille_avis_envoye" title="Avis avec nouveaux messages">{{ nb_avis_avec_nouveau_mess }}</span>
                             {% endif %}
                         </div>

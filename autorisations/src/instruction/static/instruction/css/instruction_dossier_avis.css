@@ -74,6 +74,7 @@
 
 /* Les documents */
 .infos-docs {
+    position: relative;
     padding: 1rem;
     margin-top: 1rem;
     border-radius: 8px;
@@ -120,4 +121,40 @@
 .doc-icon {
     height: 20px;
     width: 20px;
+}
+
+.pj_avis{
+    border-top: solid #006131 1px;
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+/* Bouton ajouter PJ */
+.bouton_ajouter_pj{
+    display: flex;
+    align-items: center;
+    justify-content: right;
+}
+
+.btn-ajouter-pj {
+    background-color: #006131;
+    color: white;
+    font-size: 1.3rem;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    padding-bottom: 4px;
+}
+.btn-ajouter-pj:hover {
+    background-color: #0a7a44;
+    transform: scale(1.1);
+    padding-bottom: 3px;
 }

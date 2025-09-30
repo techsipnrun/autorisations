@@ -6,9 +6,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from autorisations.models.models_instruction import Dossier, Message
-from autorisations.models.models_avis import Avis, AvisNature, AvisThematique, DossierAvis, Expert
+from autorisations.models.models_avis import Avis, AvisDocument, AvisNature, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from instruction.utils import create_message_avis_bdd
@@ -150,6 +151,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         .exclude(email__exact="")
         .exclude(email=request.user.email)  # pas soi-même
         .exclude(email__in=contacts_utilises)  # pas déjà utilisé
+        .exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"])  # on ne veut pas les demandeurs, juste les potentiels experts
         .order_by("nom", "email")
     )
 
@@ -207,6 +209,300 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
     })
+
+
+@login_required
+def instruction_dossier_ajouter_avis_existant(request, num_dossier):
+    dossier = get_object_or_404(Dossier, numero=num_dossier)
+
+    # Récupérer toutes les natures et thématiques
+    natures = AvisNature.objects.all().order_by("nature")
+    thematiques = AvisThematique.objects.all().order_by("thematique")
+
+    # Tous les instructeurs
+    tous_les_instructeurs = Instructeur.objects.all()
+
+    # Instructeur courant (user connecté)
+    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+
+    # Tous les avis déjà envoyés pour ce dossier
+    avis_existants = Avis.objects.filter(id_dossier=dossier, statut="Envoyé")
+
+    # Extraire les instructeurs et contacts déjà utilisés
+    instructeurs_utilises = avis_existants.filter(id_expert__id_instructeur__isnull=False) \
+                                          .values_list("id_expert__id_instructeur__email", flat=True)
+    # contacts_utilises = avis_existants.filter(id_expert__id_contact_externe__isnull=False) \
+    #                                   .values_list("id_expert__id_contact_externe__email", flat=True)
+
+    # Instructeurs candidats
+    instructeurs_qs = (
+        Instructeur.objects
+        .filter(email__isnull=False)
+        .exclude(email__exact="")
+        .exclude(email=request.user.email)  # pas soi-même
+        .exclude(email__in=instructeurs_utilises)  # pas déjà utilisé
+        .order_by("email")
+    )
+
+    # Contacts externes candidats
+    contacts_qs = (
+        ContactExterne.objects
+        .filter(email__isnull=False)
+        .exclude(email__exact="")
+        .exclude(email=request.user.email)  # pas soi-même
+        # .exclude(email__in=contacts_utilises)  # pas déjà utilisé
+        .exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"])
+        .order_by("nom", "email")
+    )
+
+    # Supprimer les doublons d'email (si jamais)
+    instructeurs = {i.email: i for i in instructeurs_qs}.values()
+    contacts_externes = {c.email: c for c in contacts_qs}.values()
+
+    # Nombre d'avis envoyés
+    # nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+
+    # Messages non lus
+    nb_messages_non_lus = Message.objects.filter(
+        id_dossier=dossier,
+        lu=False
+    ).exclude(
+        email_emetteur='contact@demarches-simplifiees.fr'
+    ).exclude(
+        email_emetteur__endswith='reunion-parcnational.fr'
+    ).count()
+
+    # Nombre d'avis avec au moins un message non lu de l'expert
+    nb_avis_avec_nouveau_mess = 0
+    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
+        avis_item = da.id_avis
+        if not avis_item or not avis_item.id_expert:
+            continue
+
+        if avis_item.id_expert.est_interne:
+            email_expert = avis_item.id_expert.id_instructeur.email
+        else:
+            email_expert = avis_item.id_expert.id_contact_externe.email
+
+        nb_non_lus_avis = Message.objects.filter(
+            id_avis=avis_item,
+            lu=False,
+            email_emetteur=email_expert
+        ).count()
+
+        if nb_non_lus_avis > 0:
+            nb_avis_avec_nouveau_mess += 1
+
+
+    return render(request, "instruction/instruction_dossier_ajouter_avis_existant.html", {
+        "dossier": dossier,
+        "natures": natures,
+        "thematiques": thematiques,
+        "instructeurs": instructeurs,
+        "tous_les_instructeurs": tous_les_instructeurs,
+        "contacts_externes": contacts_externes,
+        "is_formulaire_active": False,
+        "is_messagerie_active": False,
+        "is_consultation_active": True,
+        # "nb_avis_envoyes": nb_avis_envoyes,
+        "nb_messages_non_lus": nb_messages_non_lus,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+    })
+
+
+
+@login_required
+def ajouter_avis_hors_appli(request, num_dossier):
+    dossier = get_object_or_404(Dossier, numero=num_dossier)
+    # instructeur = Instructeur.objects.filter(email=request.user.email).first()
+
+    if request.method == "POST":
+        try:
+            # 1. Récupérer les champs du formulaire
+            nature_id = request.POST.get("nature")
+            thematique_id = request.POST.get("thematique")
+            mode_contact = request.POST.get("mode_contact")
+            favorable = request.POST.get("favorable") == "true"
+            note = request.POST.get("note_demandeur")
+            date_demande_avis = parse_datetime(request.POST.get("date_demande_avis")) if request.POST.get("date_demande_avis") else None
+            date_reponse_avis = parse_datetime(request.POST.get("date_reponse_avis")) if request.POST.get("date_reponse_avis") else None
+            instructeur_demandeur_id = request.POST.get("demandeur_avis")
+            expert_interne = request.POST.get("expert_interne")
+            expert_externe = request.POST.get("expert_externe")
+
+            expert = None
+            if expert_externe:
+                expert, created = Expert.objects.get_or_create(
+                    id_contact_externe_id=expert_externe,
+                    defaults={"est_interne": True}
+                )
+            elif expert_interne:
+                expert, created = Expert.objects.get_or_create(
+                    id_instructeur=expert_interne,
+                    defaults={"est_interne": True}
+                )
+
+            
+            instructeur_demandeur = None
+            if instructeur_demandeur_id:
+                instructeur_demandeur = Instructeur.objects.get(id=instructeur_demandeur_id)
+
+
+            # Création emplacement
+            
+            emplacement = ""
+            if expert_interne:
+                try:
+                    instru = Instructeur.objects.get(id=expert_interne)
+                    expert, created = Expert.objects.get_or_create(
+                        id_instructeur=instru,
+                        defaults={"est_interne": True}
+                    )
+                    if created:
+                        logger.info(f"[EXPERT] Nouvel expert interne créé : {instru}")
+                    
+                    nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
+
+                except Exception as e:
+                    messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+                
+            elif expert_externe:
+                try:
+                    contact = ContactExterne.objects.get(id=expert_externe)
+                    expert, created = Expert.objects.get_or_create(
+                        id_contact_externe=contact,
+                        defaults={"est_interne": False}
+                    )
+                    if created:
+                        logger.info(f"[EXPERT] Nouvel expert externe créé : {contact}")
+
+                    if contact.nom and contact.prenom :
+                        nom_prenom_expert = nettoyer_nom_fichier(f"{contact.nom}_{contact.prenom}")
+                    elif contact.raison_sociale :
+                        nom_prenom_expert = nettoyer_nom_fichier(f"{contact.raison_sociale}")
+                    elif contact.organisation :
+                        nom_prenom_expert = nettoyer_nom_fichier(f"{contact.organisation}")
+                    else :
+                        nom_prenom_expert = f"Avis_{avis.id}"
+
+                except Exception as e:
+                    messages.error(request, f"Erreur lors de la récupération de l'expert externe : {e}")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
+                
+            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+
+            # 2. Créer l’avis
+            # Construire la formulation
+            formulation = f"Avis demandé par {instructeur_demandeur} à {expert}."
+            if mode_contact and mode_contact.lower() != "autre":
+                formulation += f" La demande d'avis a été faite en dehors de l'application par {mode_contact}."
+
+            avis = Avis.objects.create(
+                id_avis_nature_id=nature_id,
+                id_avis_thematique_id=thematique_id,
+                id_dossier=dossier,
+                id_expert=expert,
+                emplacement=emplacement,
+                id_instructeur=instructeur_demandeur,
+                mode_contact=mode_contact,
+                statut="Envoyé",
+                formulation=formulation,
+                favorable=favorable,
+                note=note,
+                date_demande_avis=date_demande_avis,
+                date_reponse_avis=date_reponse_avis,
+            )
+
+            # formulation = models.TextField()
+            # emplacement = models.TextField(blank=True, null=True)
+            # id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
+    
+
+            # 3. Associer l’avis au dossier
+            DossierAvis.objects.create(
+                id_dossier=dossier,
+                id_avis=avis
+            )
+
+
+            # 4. Gestion des pièces jointes
+            fichiers = request.FILES.getlist("pj_lie_avis")
+            if fichiers :
+                chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
+                os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+                
+                # on parcourt les fichiers et on les écrit physiquement
+                for pj in fichiers :
+                    
+                    doc_pj = enregistrer_document(
+                        fichier=pj,
+                        dossier=dossier,
+                        nature_str="Annexe avis",
+                        description=f"Pièce jointe pour la demande d'avis {avis.id} effectuée en dehors de l'application",
+                        request=request,
+                        emplacement_avis = emplacement,
+                    )
+
+                    # Création AvisDocument
+                    if doc_pj:
+                        AvisDocument.objects.create(
+                            id_avis=avis,
+                            id_document=doc_pj
+                        )
+                
+               
+
+            return redirect("instruction_dossier_consultation", num_dossier=dossier.numero)
+
+        except Exception as e:
+            messages.error(request, f"Erreur lors de l'ajout de l'avis : {e}")
+            
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+            # return redirect('instruction_dossier_consultation', num_dossier=dossier.numero)
+
+
+from django.contrib import messages
+
+@login_required
+def ajouter_pj_avis(request, num_dossier, avis_id):
+    dossier = get_object_or_404(Dossier, numero=num_dossier)
+    avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+
+    if request.method == "POST":
+        try:
+            fichiers = request.FILES.getlist("pj_avis")
+            if not fichiers:
+                messages.warning(request, "⚠️ Aucun fichier sélectionné.")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+
+            for pj in fichiers:
+                try:
+                    doc_pj = enregistrer_document(
+                        fichier=pj,
+                        dossier=dossier,
+                        nature_str="Annexe avis",
+                        description=f"Pièce jointe ajoutée à l'avis {avis.id} par {instructeur}",
+                        request=request,
+                        emplacement_avis=avis.emplacement,
+                    )
+                    if doc_pj:
+                        AvisDocument.objects.get_or_create(id_avis=avis, id_document=doc_pj)
+                    else:
+                        messages.error(request, f"❌ Erreur lors de l’enregistrement du document {pj.name}.")
+                except Exception as e:
+                    messages.error(request, f"❌ Erreur sur le fichier {pj.name} : {e}")
+
+        except Exception as e:
+            messages.error(request, f"❌ Erreur inattendue lors de l'ajout des pièces jointes : {e}")
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
 
 
 @require_POST
@@ -838,11 +1134,32 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         if nb_non_lus_avis > 0:
             nb_avis_avec_nouveau_mess += 1
 
+        # Avis Document
+        avis_documents = (
+            AvisDocument.objects.filter(id_avis=avis)
+            .select_related("id_document", "id_document__id_nature")
+            .exclude(id_document__id_nature__nature="Avis Instance") #pour ne pas prendre l'avis signé
+        )
+
+        # Liste avis_documents
+        liste_avis_documents = [
+            {
+                "titre": ad.id_document.titre,
+                "emplacement": ad.id_document.emplacement,
+                "format": ad.id_document.id_format.format,
+                "nature": ad.id_document.id_nature.nature,
+            }
+            for ad in avis_documents
+        ]
+
+
 
     return render(request, 'instruction/instruction_dossier_avis.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
         "avis": avis,
+        "avis_documents": avis_documents,
+        "liste_avis_documents": liste_avis_documents,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,
@@ -977,6 +1294,7 @@ def enregistrer_document(fichier, dossier, nature_str, description, request, emp
     # Sauvegarde physique
     filepath = os.path.join(chemin_complet, fichier.name)
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        
     with open(filepath, 'wb+') as destination:
         for chunk in fichier.chunks():
             destination.write(chunk)
