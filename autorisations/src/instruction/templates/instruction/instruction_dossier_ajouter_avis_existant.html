@@ -48,10 +48,17 @@
                 <div class="attribut_avis">
                     <label>Type d'avis* :</label>
                     <select id="type_avis" name="type_avis" required>
-                        <option value="">-- Sélectionner --</option>
-                        <option value="avis_sur_application">Avis existant sur l'application</option>
-                        <option value="avis_hors_application">Avis émis en dehors de l'application</option>
+                        <option value="" disabled {% if not request.GET %}selected{% endif %}>-- Sélectionner --</option>
+                        <option value="avis_sur_application"
+                            {% if request.GET or typeAvis == "avis_sur_application" %}selected{% endif %}>
+                            Avis existant sur l'application
+                        </option>
+                        <option value="avis_hors_application"
+                            {% if typeAvis == "avis_hors_application" %}selected{% endif %}>
+                            Avis hors application
+                        </option>
                     </select>
+
                 </div>
 
                 <!-- Avis réalisé en dehors de l'application -->
@@ -190,8 +197,115 @@
 
                 <!-- Avis présent dans l'application -->
                 <div class="form_avis_dans_appli">
-                    Retrouver l'avis existant
+                    <h3>Retrouver l'avis existant</h3>
+
+                    <form method="get">
+                        <input type="text" name="numero" placeholder="Numéro avis"
+                            value="{{ request.GET.numero }}">
+                        
+                        <select name="expert" class="select-filtre">
+                            <option value="">-- Expert --</option>
+                            {% for e in instructeurs %}
+                                <option value="{{ e.id }}" {% if request.GET.expert == e.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ e }}
+                                </option>
+                            {% endfor %}
+                            {% for c in contacts_externes %}
+                                <option value="{{ c.id }}" {% if request.GET.expert == c.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ c }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <select name="demandeur" class="select-filtre">
+                            <option value="">-- Demandeur --</option>
+                            {% for i in tous_les_instructeurs %}
+                                <option value="{{ i.id }}" {% if request.GET.demandeur == i.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ i }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+
+                        <select name="favorable" class="select-filtre">
+                            <option value="">-- Avis favorable ? --</option>
+                            <option value="true" {% if request.GET.favorable == "true" %}selected{% endif %}>Oui</option>
+                            <option value="false" {% if request.GET.favorable == "false" %}selected{% endif %}>Non</option>
+                        </select>
+
+                        <select name="thematique" class="select-filtre">
+                            <option value="">-- Thématique --</option>
+                            {% for t in thematiques %}
+                                <option value="{{ t.id }}" {% if request.GET.thematique == t.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ t.thematique }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <select name="nature" class="select-filtre">
+                            <option value="">-- Nature --</option>
+                            {% for n in natures %}
+                                <option value="{{ n.id }}" {% if request.GET.nature == n.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ n.nature }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <select name="statut" class="select-filtre">
+                            <option value="">-- Statut --</option>
+                            <option value="Brouillon" {% if request.GET.statut == "Brouillon" %}selected{% endif %}>Brouillon</option>
+                            <option value="Envoyé" {% if request.GET.statut == "Envoyé" %}selected{% endif %}>Envoyé</option>
+                            <option value="À valider" {% if request.GET.statut == "À valider" %}selected{% endif %}>À valider</option>
+                            <option value="À envoyer" {% if request.GET.statut == "À envoyer" %}selected{% endif %}>À envoyer</option>
+                        </select>
+
+
+                        <select name="deja_lie" class="select-filtre">
+                            <option value="">-- Déjà lié à un dossier ? --</option>
+                            <option value="1" {% if request.GET.deja_lie == "1" %}selected{% endif %}>Oui</option>
+                            <option value="0" {% if request.GET.deja_lie == "0" %}selected{% endif %}>Non</option>
+                        </select>
+
+                        <div class="ligne_champs_dates">
+                            <div class="filtre_date">
+                                <label for="date_demande">Date de la demande :</label>
+                                <input type="date" id="date_demande" name="date_demande" value="{{ request.GET.date_demande }}">
+                            </div>
+
+                            <div class="filtre_date">
+                                <label for="date_reponse">Date de la réponse :</label>
+                                <input type="date" id="date_reponse" name="date_reponse" value="{{ request.GET.date_reponse }}">
+                            </div>
+                        </div>
+
+                        <button type="submit">Rechercher</button>
+                    </form>
+
+
+                    {% if avis_list != None %}
+                        <div class="resultat">
+                            <h4>Résultats :</h4>
+                            <ul>
+                                {% for a in avis_list %}
+                                    <li>
+
+                                            <span>{{ a }}</span>
+                                            <form method="post" action="{% url 'lier_dossier_avis' num_dossier=dossier.numero avis_id=a.id %}" 
+                                                onsubmit="return confirm('Voulez-vous vraiment lier cet avis au dossier ?');" class="form_lier_avis">
+                                                {% csrf_token %}
+                                                <button type="submit">Associer au dossier</button>
+                                            </form>
+
+                                    </li>
+                                {% empty %}
+                                    <li>Aucun avis trouvé.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
                 </div>
+
+
 
 
             </div>

@@ -146,7 +146,8 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                     contacts_externes["demandeur_intermediaire"]["adresse"] = ch["stringValue"]
                 if ch['label'] == "Email du demandeur intermédiaire" and ch["stringValue"] != None:
                     contacts_externes["demandeur_intermediaire"]["email"] = ch["stringValue"]
-                    contacts_externes['demandeur_intermediaire']['id_type'] = get_first_id(TypeContactExterne, type="demandeur_intermediaire")
+                    contacts_externes['demandeur_intermediaire']['id_type'] = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+
                 # Attention si jamais le péti ne sélectionne pas 'Demandeur Intermédiaire' dans la page d'ouverture de Démarches Simplifiées, 
                 # mais qu'il coche Demandeur Intermédiaire dans le formulaire : On a une contradiction. Ici on fait le choix de le créer malgré tout (mais sans nom ni prénom)
                     
@@ -155,13 +156,5 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
             liste_dossiers_champs.append({
                 "champ": dico_champ
             })
-
-
-    # ajout des infos demandeur et benef
-    # 'beneficiaire': {'email', 'id_type', 'nom', 'prenom'}
-    # 'demandeur_intermediaire': {'email', 'id_type', 'nom'', 'prenom', 'siret', 'raison_sociale', 'organisation', 'adresse'}
-    # logger.info(doss['number'])
-    # logger.info(contacts_externes)
-
 
     return liste_dossiers_champs, contacts_externes

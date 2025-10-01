@@ -86,7 +86,7 @@ class ContactExterne(models.Model):
         return self.email or f"Contact {self.id}"
 
     def __str__(self):
-        if self.id_type.type != 'autre' :
+        if self.id_type.type != 'Autre' :
             if self.nom and self.prenom :
                 return f"{self.nom} {self.prenom} ({self.id_type.type})"
             elif self.raison_sociale :

@@ -178,12 +178,12 @@ class Avis(models.Model):
         avis_id = f" {self.pk}" if self.pk else ""
         if self.id_expert.est_interne :
             return (
-                f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_instructeur.id_agent_autorisations.prenom} "
-                f"{self.id_expert.id_instructeur.id_agent_autorisations.nom} (Interne au Parc) {' : Favorable' if self.favorable else ''}"
+                f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_instructeur} "
+                f" (Interne au Parc) {' : Favorable' if self.favorable else ''}"
             )
         return (
-                f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_contact_externe.prenom} "
-                f"{self.id_expert.id_contact_externe.nom} ({self.id_expert.id_contact_externe.id_type.type}) {' : Favorable' if self.favorable else ''}"
+                f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert} "
+                f"{' : Favorable' if self.favorable else ''}"
             )
 
 

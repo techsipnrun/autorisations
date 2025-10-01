@@ -24,9 +24,15 @@
         <div class="messagerie">
             <h1>AVIS n° {{ avis.id }} - {{ dossier.id_demarche.type }}</h1>
             
-            <div class="etat-badge-menu">
+            <div class="etat-badge-menu {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
                 {% if avis.date_reponse_avis %}
-                    Avis rendu
+                    {% if avis.favorable %}
+                        Avis rendu : Favorable
+                    {% elif not avis.favorable %}
+                        Avis rendu : Défavorable
+                    {% else %}
+                        Avis rendu
+                    {% endif %}
                 {% else %}
                     En attente de réponse
                 {% endif %}
@@ -214,7 +220,7 @@
                     {% if avis_documents %}
                         <div class="pj_avis">
                             {% for ad in avis_documents %}
-                                    <li>
+                                    <li class="pj-item">
                                         <p><strong>Pièce jointe :</strong></p>
                                         {% if ad.id_document.id_format.format == 'pdf' %}
                                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
@@ -228,6 +234,12 @@
                                         <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}" target="_blank">
                                             {{ ad.id_document.titre }}
                                         </a>
+
+                                        <!-- Formulaire suppression PJ -->
+                                        <form method="post" action="{% url 'supprimer_pj_avis' avis.id ad.id_document.id %}" class="form-supprimer-pj">
+                                            {% csrf_token %}
+                                            <button type="button" class="btn-supprimer-pj" title="Supprimer la pièce jointe" onclick="confirmerSuppressionPJ(this)">✕</button>
+                                        </form>
                                     </li>
                             {% endfor %}
                         </div>
@@ -253,6 +265,20 @@
                 </div>
 
             </div>
+
+            {% if avis.note %}
+                <div class="infos-note-avis">
+                    <h2>Notes des demandeurs</h2>
+
+                    <form method="post" action="{% url 'mettre_a_jour_note_avis' avis.id %}" class="form-note-avis">
+                        {% csrf_token %}
+                        <textarea name="note" rows="5">{{ avis.note }}</textarea>
+                        <button type="submit" class="valider-btn">Mettre à jour</button>
+                    </form>
+                </div>
+            {% endif %}
+
+
         </div>
     </div>
         
@@ -293,6 +319,16 @@
             }
         });
     </script>
+
+    <!-- Supprimer PJ Avis -->
+    <script>
+        function confirmerSuppressionPJ(bouton) {
+            if (confirm("Supprimer définitivement cette pièce jointe de l'avis ?")) {
+                bouton.closest("form").submit();
+            }
+        }
+    </script>
+
 
             
             

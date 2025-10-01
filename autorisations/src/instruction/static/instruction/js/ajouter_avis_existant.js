@@ -53,3 +53,39 @@ document.addEventListener("DOMContentLoaded", function () {
     // Init au chargement
     toggleFormAvis();
 });
+
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Si recherche soumise, forcer l'affichage du bloc "avis sur application"
+    if (window.location.search.includes("numero=") ||
+        window.location.search.includes("expert=") ||
+        window.location.search.includes("demandeur=") ||
+        window.location.search.includes("date_demande=") ||
+        window.location.search.includes("date_reponse=") ||
+        window.location.search.includes("favorable=") ||
+        window.location.search.includes("thematique=") ||
+        window.location.search.includes("nature=") ||
+        window.location.search.includes("deja_lie=")) {
+        
+        const typeAvis = document.getElementById("type_avis");
+        if (typeAvis) {
+            typeAvis.value = "avis_sur_application"; // force le select
+            typeAvis.dispatchEvent(new Event("change")); // simule un changement
+        }
+    }
+
+    // Affichage gris --> noir si champ selectionné
+    // document.querySelectorAll(".select-filtre").forEach(sel => {
+    //     function updateColor() {
+    //         if (sel.value === "") {
+    //             sel.style.color = "#aaa";
+    //         } else {
+    //             sel.style.color = "#000";
+    //         }
+    //     }
+    //     sel.addEventListener("change", updateColor);
+    //     updateColor(); // init au chargement
+    // });
+});

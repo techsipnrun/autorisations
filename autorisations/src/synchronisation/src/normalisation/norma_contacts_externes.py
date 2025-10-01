@@ -9,6 +9,9 @@ def contact_externe_normalize(doss, contacts_externes):
     Normalise les contacts externes : Bénéficiaire et Demandeur intermédiaire.
     """
 
+    id_type_demandeur_intermédiaire = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+    id_type_beneficiaire = get_first_id(TypeContactExterne, type="Bénéficiaire")
+
     # if contacts_externes :
     #     if contacts_externes.get('beneficiaire') :
     #         if contacts_externes.get('beneficiaire').get('adresse') :
@@ -22,7 +25,7 @@ def contact_externe_normalize(doss, contacts_externes):
             'demandeur_intermediaire': {}
         }
 
-    # Démarche à destination d'une personne physique, avec un demandeur intermédiaire)
+    # Démarche à destination d'une personne physique, avec un demandeur intermédiaire
     if doss.get("prenomMandataire") and doss.get("nomMandataire"):
 
         # contacts_externes['demandeur_intermediaire'] = {
@@ -33,20 +36,17 @@ def contact_externe_normalize(doss, contacts_externes):
         # }
 
         contacts_externes['demandeur_intermediaire']['email'] = clean_email(doss['usager']['email'])
-        contacts_externes['demandeur_intermediaire']['id_type'] = get_first_id(TypeContactExterne, type="demandeur_intermediaire")
+        contacts_externes['demandeur_intermediaire']['id_type'] = id_type_demandeur_intermédiaire
         contacts_externes['demandeur_intermediaire']['nom'] = clean_surname(doss['nomMandataire'])
         contacts_externes['demandeur_intermediaire']['prenom'] = clean_name(doss['prenomMandataire'])
 
 
-
-
-        # email_benef = None
         if doss['demandeur']['__typename'] == "PersonnePhysique" :
             if clean_email(doss['demandeur']['email']) :
                 contacts_externes['beneficiaire']["email"] = clean_email(doss['demandeur']['email'])
 
 
-        contacts_externes['beneficiaire']["id_type"] = get_first_id(TypeContactExterne, type="beneficiaire")
+        contacts_externes['beneficiaire']["id_type"] = id_type_beneficiaire
         contacts_externes['beneficiaire']["nom"] = clean_surname(doss['demandeur']['nom'])
         contacts_externes['beneficiaire']["prenom"] = clean_name(doss['demandeur']['prenom'])
 
@@ -68,10 +68,9 @@ def contact_externe_normalize(doss, contacts_externes):
 
             # }
             contacts_externes['beneficiaire']["email"] = clean_email(doss['usager']['email'])
-            contacts_externes['beneficiaire']["id_type"] = get_first_id(TypeContactExterne, type="beneficiaire")
+            contacts_externes['beneficiaire']["id_type"] = id_type_beneficiaire
             contacts_externes['beneficiaire']["nom"] = clean_surname(doss['demandeur']['nom'])
             contacts_externes['beneficiaire']["prenom"] = clean_name(doss['demandeur']['prenom'])
-
 
 
         if doss['demandeur']['__typename'] == 'PersonneMorale' :
@@ -86,7 +85,7 @@ def contact_externe_normalize(doss, contacts_externes):
                 contacts_externes['beneficiaire']["organisation"] = orga
 
             contacts_externes['beneficiaire']["email"] = clean_email(doss['usager']['email'])
-            contacts_externes['beneficiaire']["id_type"] = get_first_id(TypeContactExterne, type="beneficiaire")
+            contacts_externes['beneficiaire']["id_type"] = id_type_beneficiaire
 
             if doss['demandeur']['siret'] :
                 # logger.info(f"siret : {doss['demandeur']['siret']}")
@@ -94,20 +93,5 @@ def contact_externe_normalize(doss, contacts_externes):
 
             if doss['demandeur']['address']['cityName'] :
                 contacts_externes['beneficiaire']["adresse"] = doss['demandeur']['address']['cityName']
-
-            # if raison_sociale or orga :
-            #     contacts_externes['beneficiaire']["nom"] = raison_sociale or orga
-
-
-            # contacts_externes['beneficiaire'] = {
-            #     "email": clean_email(doss['usager']['email']),
-            #     "id_type": get_first_id(TypeContactExterne, type="beneficiaire"),
-            #     "nom": raison_sociale or orga or "",
-                
-            #     "siret": doss['demandeur']['siret'],
-            #     "raison_sociale": raison_sociale,
-            #     "organisation": orga,
-            #     "adresse": doss['demandeur']['address']['cityName'],
-            # }
 
     return contacts_externes
