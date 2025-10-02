@@ -1,4 +1,27 @@
-/* Global table style */
+/* --------------------------------------------- */
+/* ---------------- Titres --------------------- */
+/* --------------------------------------------- */
+h1 {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #333;
+    margin: 30px 0;
+    font-weight: 600;
+}
+
+h2 {
+    margin-left: 7.5%;
+    margin-top: 3rem;
+}
+
+.h2_first {
+    margin-top: 2rem;
+}
+
+
+/* --------------------------------------------- */
+/* --------- Style global des tables ----------- */
+/* --------------------------------------------- */
 table {
     width: 85%;
     margin: 2rem auto;
@@ -11,7 +34,6 @@ table {
     line-height: 1.5;
 }
 
-/* Table header */
 thead {
     background-color: rgb(219, 219, 219);
     border-bottom: 2px solid black;
@@ -22,7 +44,6 @@ thead th {
     color: #006131;
 }
 
-/* Table rows */
 tbody td { 
     border-bottom: 1px solid #ddd;
 }
@@ -31,7 +52,6 @@ tbody .td_demarche{
     font-weight: bold;
 }
 
-/* Styles pour les colonnes */
 thead th,
 tbody td {
     padding: 12px;
@@ -40,24 +60,10 @@ tbody td {
     word-wrap: break-word;
 }
 
-/* Supprimer le trait à droite de la dernière colonne */
-/* thead th:last-child,
-tbody td:last-child {
-    border-right: none;
-} */
-
-
-/* Alternating row colors */
+/* Couleurs alternées */
 tbody tr:nth-child(even) {
     background-color: #f0f0f0;
 }
-
-/* Hover effect */
-/* tbody tr:hover {
-    background-color: #eef8ee;
-    cursor: pointer;
-    font-weight: bold;
-} */
 
 /* Empty state */
 tbody td[colspan="5"] {
@@ -69,37 +75,15 @@ tbody td[colspan="5"] {
 .clickable-row:hover {
     background-color: #eef8ee;
     cursor: pointer;
-    /* font-weight: bold; */
-    /* font-weight: 600; */
 }
 
 
-/* Page title */
-h1 {
-    text-align: center;
-    /* margin-top: 3rem; */
-    font-size: 2.5rem;
-    /* color: #006131;*/
-    color: #333;
-    margin: 30px 0;
-    font-weight: 600;
-}
-
-
-/* Manifestations sportives */
-h2 {
-    margin-left: 7.5%;
-    margin-top: 3rem;
-}
-
-.h2_first {
-    margin-top: 2rem;
-}
-
+/* ---------------------------------------------- */
+/* --------- Manifestations sportives ----------- */
+/* ---------------------------------------------- */
 .manif-sportive {
-    border-top: 1px solid #006131;
-    margin-top: 12rem;
-    padding-top: 4rem;
+    /* border-top: 1px solid #006131; */
+    margin-top: 10rem;
 }
 
 /* Actualisation manifs sportives */

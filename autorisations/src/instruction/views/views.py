@@ -31,44 +31,10 @@ loggerDS = logging.getLogger("API_DS")
 
 
 @login_required(login_url='/login/')
-def avis(request):
-    return render(request, 'instruction/avis.html')
-
-
-@login_required(login_url='/login/')
 def requetes(request):
     return render(request, 'instruction/requetes.html')
 
 
-# Synchronisation et Normalisation en arrière plan 
-# etat_sync = {"en_cours": False}
-# sync_lock = Lock()
-
-
-# def lancer_en_arriere_plan():
-#     with sync_lock:
-#         if etat_sync["en_cours"]:
-#             logger.warning("Synchro déjà en cours – nouvelle tentative ignorée.")
-#             return False
-
-#         etat_sync["en_cours"] = True
-
-#         def lancement_et_suivi():
-#             with open("logs/synchronisation.log", "a", buffering=1) as f:
-#                 process = subprocess.Popen(
-#                     [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
-#                     stdout=f,
-#                     stderr=f,
-#                 )
-#                 process.wait()  # Attend la fin du script
-#                 with sync_lock:
-#                     etat_sync["en_cours"] = False
-
-#         # Lance le watcher dans un thread pour ne pas bloquer Django
-#         threading.Thread(target=lancement_et_suivi, daemon=True).start()
-
-#         return True
-    
 
 def lancer_en_arriere_plan2():
     """
@@ -140,30 +106,6 @@ def etat_actualisation(request):
 })
 
 
-
-
-# @require_POST
-# def changer_etape_dossier(request):
-#     dossier_id = request.POST.get("dossierId")
-#     etape_id = request.POST.get("etapeDossierId")
-
-#     dossier = get_object_or_404(Dossier, id_ds=dossier_id)
-#     nouvelle_etape = get_object_or_404(EtapeDossier, id=etape_id)
-
-#     ancienne_etape = dossier.id_etape_dossier  # sauvegarde avant modification
-
-#     dossier.id_etape_dossier = nouvelle_etape
-#     dossier.save()
-
-#     logger.info(
-#         f"[ETAPE] Dossier {dossier.nom_dossier} (n° {dossier.numero}) : étape changée de "
-#         f"{ancienne_etape.etape if ancienne_etape else 'Non définie'} → {nouvelle_etape.etape}"
-#     )
-
-#     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
-
 @require_POST
 @login_required
 def se_declarer_instructeur(request):
@@ -194,27 +136,6 @@ def se_declarer_instructeur(request):
 
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
-# @require_POST
-# @login_required
-# def retirer_instructeur(request):
-
-#     dossier_id = request.POST.get("dossier_id")
-#     instructeur_id = request.POST.get("instructeur_id")
-
-#     dossier = get_object_or_404(Dossier, id=dossier_id)
-#     instructeur = get_object_or_404(Instructeur, id=instructeur_id)
-
-#     DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
-#     logger.info(f"[DOSSIER {dossier.numero}] On retire l'instructeur {instructeur.email} du dossier.")
-
-#     # Dossier Action
-#     nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
-#     enregistrer_action(dossier, instructeur, "Instructeur.e retiré.e", nom_prenom)
-
-#     return redirect(request.META.get("HTTP_REFERER", "/"))
-
 
 
 @require_POST
@@ -433,12 +354,6 @@ def enregistrer_geom(request):
 
 
 
-#Vue de test
-# @login_required(login_url='/login/')
-# def carto_test(request):
-#     return render(request, 'edit_carto.html')
-
-
 @login_required
 def edit_carto(request, numero_dossier, id_champ):
     dossier = get_object_or_404(Dossier, numero=numero_dossier)
@@ -617,17 +532,6 @@ def synchroniser_demarche_depuis_reception(request, num_demarche):
     return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
 
-# def afficher_annexe(request, chemin):
-#     try:
-#         if not os.path.exists(chemin):
-#             raise Http404("Fichier introuvable")
-#         return FileResponse(open(chemin, 'rb'), content_type='image/png')
-#     except Exception as e:
-#         raise Http404("Erreur d'accès au fichier : " + str(e))
-    
-
-
-
 @login_required
 def afficher_annexe(request, chemin, titre=None):
     try:
@@ -644,11 +548,6 @@ def afficher_annexe(request, chemin, titre=None):
             content_type = 'application/octet-stream'  # type par défaut
         
         response = FileResponse(open(chemin_entier, 'rb'), content_type=content_type)
-
-        # if content_type == 'application/pdf':
-        #     response['Content-Disposition'] = 'inline; filename="%s"' % os.path.basename(chemin_entier)
-
-        #     print(response)
         return response
 
 

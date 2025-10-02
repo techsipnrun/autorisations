@@ -16,7 +16,6 @@
     <!-- JS Ajout Avis existant -->
     <script src="{% static 'instruction/js/ajouter_avis_existant.js' %}"></script>
 
-
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -288,14 +287,12 @@
                             <ul>
                                 {% for a in avis_list %}
                                     <li>
-
-                                            <span>{{ a }}</span>
-                                            <form method="post" action="{% url 'lier_dossier_avis' num_dossier=dossier.numero avis_id=a.id %}" 
-                                                onsubmit="return confirm('Voulez-vous vraiment lier cet avis au dossier ?');" class="form_lier_avis">
-                                                {% csrf_token %}
-                                                <button type="submit">Associer au dossier</button>
-                                            </form>
-
+                                        <span>{{ a }}</span>
+                                        <form method="post" action="{% url 'lier_dossier_avis' num_dossier=dossier.numero avis_id=a.id %}" 
+                                            onsubmit="return confirm('Voulez-vous vraiment lier cet avis au dossier ?');" class="form_lier_avis">
+                                            {% csrf_token %}
+                                            <button type="submit">Associer au dossier</button>
+                                        </form>
                                     </li>
                                 {% empty %}
                                     <li>Aucun avis trouvé.</li>
@@ -304,10 +301,6 @@
                         </div>
                     {% endif %}
                 </div>
-
-
-
-
             </div>
         </div>
     
@@ -349,8 +342,6 @@
             </div>
         </div>
     </div>
-
-
 
 </body>
 </html>

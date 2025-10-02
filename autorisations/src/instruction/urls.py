@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from django.urls import path
-from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis
+from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert
 from django.contrib import admin
 
 urlpatterns = [
@@ -28,9 +28,9 @@ urlpatterns = [
     path('message/<int:id>/supprimer_message_avis/', messagerie.supprimer_message_avis, name='supprimer_message_avis'),
     path("avis/<int:avis_id>/supprimer-doc/<str:champ>/", avis.supprimer_document_avis, name="supprimer_document_avis"),
 
-    
-    
-    path('reception_avis/', views.avis, name='avis_view'),
+
+    # EXPERT
+    path('reception_avis/', expert.avis, name='avis_view'),
     
 
     # INSTRUCTION

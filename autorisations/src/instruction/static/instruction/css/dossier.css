@@ -1,7 +1,6 @@
 /* ---------------------------------------------------------------- */
 /*                        ACTUALISER DOSSIER                        */
 /* ---------------------------------------------------------------- */
-
 .refresh-doss {
     text-align: left;
     margin-top: 2rem;
@@ -46,12 +45,9 @@
 }
 
 
-
-
 /* ------------------------------------------------------------ */
 /*                        FORMULAIRE                            */
 /* ------------------------------------------------------------ */
-
 .page-container {
     display: flex;
     gap: 2rem;
@@ -77,8 +73,6 @@
 
 h1 {
     color: #006131;
-    
-    /* margin-bottom: 1rem; */
     text-align: center;
     font-size: 2.5rem;
     margin: 30px 0;
@@ -113,7 +107,6 @@ h2 {
 
 /* Visualisation des pièces jointes */
 /* Affichage des images PJ */
-
 .champs .pj_champ {
     margin: 1rem 0;
 }
@@ -128,14 +121,12 @@ h2 {
 
 
 /* Bloc répétable */
-
 .bloc_repetition {
     background-color: #ccc;
     gap: 1rem;
     display: flex;
     margin: 1rem 0;
     padding: 1rem;
-    /* position: relative; */
     flex-direction: column;
 }
 
@@ -155,7 +146,6 @@ h2 {
 /* ------------------------------------- */
 /*           Etat du dossier             */
 /* ------------------------------------- */
-
 .etat-badge-menu {
     display: inline-block;
     padding: 6px 16px;
@@ -249,7 +239,6 @@ h2 {
     align-self: flex-start;
 }
 
-
 .download-pdf img{
     width: 100%;
     transition: transform 0.2s ease-in-out;
@@ -264,13 +253,11 @@ h2 {
 /* ----------------------------------- */
 /*           Carto Leaflet             */
 /* ----------------------------------- */
-
 .carte-container {
     position: relative;
 }
 
 .leaflet-container {
-    /* position: relative; */
     height: 60vh;
     width: 100%;
     border: 1px solid #ccc;
@@ -323,8 +310,6 @@ h2 {
 .btn-edit-carto:hover {
   background-color: #ddd;
 }
-
-
 
 
 /* -------------------------------------------- */
@@ -386,13 +371,27 @@ h2 {
   border-radius: 4px;
 }
 
+/* Télécharger Carto Leaflet en PDF */
+.btn-pdf {
+    padding: 0.6rem 1.2rem;
+    background-color: #006131;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s;
+}
+
+.btn-pdf:hover {
+    background-color: #0a4c2e;
+}
 
 
 
 /* ---------------------------------------------------------------- */
 /*                        PARTIE DROITE                             */
 /* ---------------------------------------------------------------- */
-
 .nav_preinstruction {
     width: 30%;
 }
@@ -526,7 +525,6 @@ h2 {
 /* ---------------------------------------*/
 /*            Groupe Instructeur          */
 /* -------------------------------------- */
-
 .form_groupe_select {
     display: flex;
     flex-direction: column;
@@ -632,13 +630,11 @@ h2 {
 .croix-retirer {
     font-weight: bold;
     font-size: 1.1rem;
-    /* line-height: 1; */
     margin-bottom: auto;
     display: flex;
     vertical-align: middle;
 
 }
-
 
 /* Bouton 'Je me retire du dossier' */
 .btn-retirer-soi {
@@ -658,7 +654,6 @@ h2 {
     margin-top: 1rem;
     opacity: 1 !important;
 }
-
 
 .btn-retirer-soi:hover {
     background-color: #f7cfcf;
@@ -683,12 +678,9 @@ h2 {
     opacity: 1 !important;
 }
 
-
 .btn-ajouter-soi:hover {
     background-color: #d2ffc6;
 }
-
-
 
 
 /* ----- Ajouter instructeur ----- */
@@ -728,11 +720,9 @@ h2 {
 
 
 
-
 /* --------------------------*/
 /*     Notes Instructeur     */
 /* ------------------------- */
-
 textarea[name="note"] {
     display: block; 
     width: 95%;
@@ -763,7 +753,6 @@ textarea[name="note"] {
     color: #006131;
     margin-bottom: 1rem;
 }
-
 
 /* Boutons modifier/envoyer/supprimer (modernisés) */
 .btn_maj_suppr {
@@ -822,13 +811,11 @@ textarea[name="note"] {
 }
 
 .supprimer-btn:hover {
-    background-color: #f8d7da;        /* rouge pastel */
+    background-color: #f8d7da;
     color: #b71c1c;
     border-color: #f1aeb5;
     box-shadow: 0 3px 6px rgba(0,0,0,0.12);
 }
-
-
 
 .note-item {
     margin-bottom: 1.5rem;
@@ -861,11 +848,9 @@ textarea[name="note"] {
 
 
 
-
 /* ----------------------------*/
 /*     ANNEXES INSTRUCTEUR     */
 /* --------------------------- */
-
 .form-ajout-annexe {
     display: inline-block;
 }
@@ -933,15 +918,6 @@ textarea[name="note"] {
     opacity: 1;
 }
 
-/* .copie-feedback {
-    opacity: 0;
-    margin-left: 0.5rem;
-    color: green;
-    font-weight: bold;
-    transition: opacity 0.3s ease;
-    font-size: 0.9rem;
-} */
-
 .copie-feedback.show {
     opacity: 1;
     transform: scale(1);
@@ -984,11 +960,9 @@ textarea[name="note"] {
     margin-left: 0.3rem;
 }
 
-
 .btn-supprimer-annexe:hover {
     transform: scale(1.2);
 }
-
 
 /* Messages d'erreurs */
 .django-messages{
@@ -998,7 +972,6 @@ textarea[name="note"] {
 
 
 /* ICON DS */
-
 .icon_DS {
     width: 40px;
     margin-left: 1rem;
@@ -1017,22 +990,4 @@ textarea[name="note"] {
 
 .txt_en_gras {
     font-weight: bold;
-}
-
-
-/* Télécharger Carto Leaflet en PDF */
-.btn-pdf {
-    /* margin-top: 1rem; */
-    padding: 0.6rem 1.2rem;
-    background-color: #006131;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background 0.3s;
-}
-
-.btn-pdf:hover {
-    background-color: #0a4c2e;
 }
