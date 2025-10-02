@@ -30,7 +30,7 @@ urlpatterns = [
 
 
     # EXPERT
-    path('reception_avis/', expert.avis, name='avis_view'),
+    path('reception_avis/', expert.avis2, name='avis_view'),
     
 
     # INSTRUCTION

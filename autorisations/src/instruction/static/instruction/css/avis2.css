@@ -1,0 +1,167 @@
+/* --------------------------------------------------- */
+/* ---------------- Bloc principaux ------------------ */
+/* --------------------------------------------------- */
+.reception {
+    margin-top: 12rem;
+    margin-bottom: 6rem;
+    padding: 0 2rem;
+}
+
+/* Titre principal de section */
+.section-title {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin-bottom: 4rem;
+    text-align: center;
+}
+
+h1 {
+    color: #006131;
+    margin: 2rem 0 1.5rem 3rem;
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: left;
+}
+
+/*-------- Vision Expert ----------*/
+.vision_expert {
+    border: 3px solid #006131;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 5rem;
+    background-color: #f6fff9; /* léger vert clair */
+}
+
+.vision_expert h1 {
+    color: #006131;   
+}
+
+.avis_rendus{
+    margin-top: 7rem;
+}
+
+/*-------- Vision Demandeur ----------*/
+.vision_demandeur {
+    border: 3px solid #004080;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 5rem;
+    background-color: #f9fbff; /* léger bleu clair */
+}
+
+.vision_demandeur h1 {
+    color: #004080;
+}
+
+.avis-demandes-traites{
+    margin-top: 7rem;
+}
+
+
+
+/* --------------------------------------------------- */
+/* ------------------- Tableau ----------------------- */
+/* --------------------------------------------------- */
+table {
+    width: 95%;
+    margin: 3rem auto 3rem auto;
+    border-collapse: collapse;
+    font-size: 1.1rem;
+    background-color: #fafafa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table_avis_a_rendre, .table_demande_en_cours {
+    margin-top: 0;
+}
+
+thead {
+    background-color: #006131;
+    color: white;
+}
+
+.thead_demandeur{
+    background-color: #000261;
+}
+
+thead th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+tbody td {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+tbody tr:hover {
+    background-color: #eef8ee !important;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+td:first-child {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Décalage à gauche pour la première colonne */
+thead th:first-child,
+tbody td:first-child {
+    padding-left: 2rem;
+}
+
+/* Couleurs alternées */
+tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+/* États */
+td.etat-attente {
+    color: #d17f00;
+    font-weight: bold;
+}
+
+td.etat-favorable {
+    color: #006131;
+    font-weight: bold;
+}
+
+td.etat-defavorable {
+    color: #a00;
+    font-weight: bold;
+}
+
+.aucun_avis{
+    text-align: center;
+}
+
+
+/* --------------------------------------------------- */
+/* ------------- Tableau des archivés ---------------- */
+/* --------------------------------------------------- */
+.form-annee-archives {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-left: 3rem;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+
+.form-annee-archives select {
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.table_archive{
+    margin-top: 2rem;
+}

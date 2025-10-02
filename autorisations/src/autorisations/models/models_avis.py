@@ -124,7 +124,8 @@ class Avis(models.Model):
     )
     formulation = models.TextField()
     emplacement = models.TextField(blank=True, null=True)
-    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.SET_NULL, db_column='id_dossier', blank=True, null=True)
+    id_demarche = models.ForeignKey('autorisations.Demarche', models.SET_NULL, db_column='id_demarche', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')
     id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
     id_projet_acte = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_projet_acte', blank=True, null=True, related_name='avis_projet_acte_set')
@@ -157,7 +158,7 @@ class Avis(models.Model):
                 "id_avis_nature": self.id_avis_nature,
                 "id_avis_thematique": self.id_avis_thematique,
                 "mode_contact": self.mode_contact,
-                "id_dossier": self.id_dossier,
+                # "id_dossier": self.id_dossier,
                 "date_demande_avis": self.date_demande_avis,
                 "id_expert": self.id_expert,
                 "id_instructeur": self.id_instructeur,
@@ -172,7 +173,13 @@ class Avis(models.Model):
 
         if erreurs:
             raise ValidationError(erreurs)
-        
+    
+    @property
+    def demarche_effective(self):
+        if self.id_demarche:
+            return self.id_demarche
+        da = self.dossieravis_set.first()
+        return da.id_dossier.id_demarche if da else None
 
     def __str__(self):
         avis_id = f" {self.pk}" if self.pk else ""
