@@ -123,7 +123,7 @@ class Avis(models.Model):
         default="Brouillon",
     )
     formulation = models.TextField()
-    emplacement = models.TextField(blank=True, null=True)
+    emplacement = models.CharField()
     id_dossier = models.ForeignKey('autorisations.Dossier', models.SET_NULL, db_column='id_dossier', blank=True, null=True)
     id_demarche = models.ForeignKey('autorisations.Demarche', models.SET_NULL, db_column='id_demarche', blank=True, null=True)
     id_expert = models.ForeignKey(Expert, models.RESTRICT, db_column='id_expert')

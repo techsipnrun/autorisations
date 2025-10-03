@@ -339,7 +339,7 @@ class DossierNote(models.Model):
 class DossierManifSportive(models.Model):
     id = models.AutoField(primary_key=True)
     geometrie = models.JSONField(blank=True, null=True)
-    emplacement = models.TextField()
+    emplacement = models.CharField()
     archive = models.BooleanField(default=False)
 
     nom_organisateur = models.TextField(blank=True, null=True)

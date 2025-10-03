@@ -129,6 +129,14 @@ def breadcrumb_context(request):
             items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
             items.append({"label": f"Avis n°{numero_avis}", "url": ""})
 
+    elif view_name == "avis_expert":
+        items.append({"label": "Mes avis", "url": "/reception_avis/"})
+        numero_avis = kwargs.get("avis_id")
+
+       
+        if numero_avis:
+            items.append({"label": f"Avis n°{numero_avis}", "url": ""})
+
     elif view_name == "gestion_groupes":
         items.append({"label": f"Mes dossiers", "url": "/mesdossiers"})
         items.append({"label": f"Gestion des groupes", "url": ""})

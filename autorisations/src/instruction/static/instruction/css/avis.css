@@ -3,33 +3,78 @@
 /* --------------------------------------------------- */
 .reception {
     margin-top: 12rem;
+    margin-bottom: 6rem;
+    padding: 0 3rem;
 }
 
-.avis-demandes{
-    margin-top: 8rem;
+/* Titre principal de section */
+.section-title {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin-bottom: 4rem;
+    text-align: center;
 }
 
 h1 {
     color: #006131;
-    margin: 2rem 0 1.5rem 0;
+    margin: 2rem 0 1.5rem 2.5vw;
     font-size: 2rem;
     font-weight: bold;
-    text-align: center;
+    text-align: left;
 }
+
+/*-------- Vision Expert ----------*/
+.vision_expert {
+    border: 3px solid #006131;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 5rem;
+    background-color: #f6fff9; /* léger vert clair */
+}
+
+.vision_expert h1 {
+    color: #006131;   
+}
+
+.avis_rendus{
+    margin-top: 7rem;
+}
+
+/*-------- Vision Demandeur ----------*/
+.vision_demandeur {
+    border: 3px solid #004080;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 5rem;
+    background-color: #f9fbff; /* léger bleu clair */
+}
+
+.vision_demandeur h1 {
+    color: #004080;
+}
+
+.avis-demandes-traites{
+    margin-top: 7rem;
+}
+
+
 
 /* --------------------------------------------------- */
 /* ------------------- Tableau ----------------------- */
 /* --------------------------------------------------- */
 table {
-    width: 90%;
+    width: 95%;
     margin: 3rem auto 3rem auto;
-    /* padding: 0.3rem; */
     border-collapse: collapse;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     background-color: #fafafa;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border-radius: 8px;
     overflow: hidden;
+}
+
+.table_avis_a_rendre, .table_demande_en_cours {
+    margin-top: 0;
 }
 
 thead {
@@ -37,12 +82,15 @@ thead {
     color: white;
 }
 
+.thead_demandeur{
+    background-color: #000261;
+}
+
 thead th {
     padding: 1rem;
     text-align: left;
     font-weight: bold;
-    font-size: 1.4rem;
-    border-bottom: 2px solid #004d25;
+    font-size: 1.2rem;
 }
 
 tbody td {
@@ -87,4 +135,33 @@ td.etat-favorable {
 td.etat-defavorable {
     color: #a00;
     font-weight: bold;
+}
+
+.aucun_avis{
+    text-align: center;
+}
+
+
+/* --------------------------------------------------- */
+/* ------------- Tableau des archivés ---------------- */
+/* --------------------------------------------------- */
+.form-annee-archives {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-left: 2.5vw;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+
+.form-annee-archives select {
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.table_archive{
+    margin-top: 2rem;
 }

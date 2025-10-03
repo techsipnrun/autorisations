@@ -1,0 +1,136 @@
+{% load static %}
+{% load group_tags %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page d'accueil des avis</title>
+    <link rel="stylesheet" href="{% static 'instruction/css/avis.css' %}">
+</head>
+<body>
+
+    {% include 'navbar.html' %}
+
+    <div class="reception">
+
+        <div class="avis_a_rendre">
+            <h1>Mes avis à rendre</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Démarche</th>
+                        <th>Demandeur</th>
+                        <th>Date de la demande</th>
+                        <th>État</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for avis in avis_list %}
+                        <tr class="clickable-row" data-href="#">
+                            <!-- <td>{{ avis.id_dossier.id_demarche.type }}</td> -->
+                            <td>{{ avis.demarche_effective.type }}</td>
+                            <td>{{ avis.id_instructeur }}</td>
+                            <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                            <td class="
+                                {% if not avis.date_reponse_avis %}etat-attente
+                                {% elif avis.favorable %}etat-favorable
+                                {% else %}etat-defavorable{% endif %}
+                            ">
+                                {% if avis.date_reponse_avis %}
+                                    {% if avis.favorable %}
+                                        ✅ Favorable
+                                    {% else %}
+                                        ❌ Défavorable
+                                    {% endif %}
+                                {% else %}
+                                    ⏳ En attente
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">Aucun avis en cours</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="avis-demandes">
+            <h1>Mes demandes d'avis</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Démarche</th>
+                        <th>Nature</th>
+                        <th>Expert</th>
+                        <th>Date de la demande</th>
+                        <th>État</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for avis in demandes_avis %}
+                        <tr class="clickable-row" data-href="#">
+                            <td>
+                                {% if avis.id_demarche %}
+                                    {{ avis.id_demarche.type }}
+                                {% else %}
+                                    {% with da=avis.dossieravis_set.first %}
+                                        {% if da %}
+                                            {{ da.id_dossier.id_demarche.type }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            </td>
+                            <td>{{ avis.id_avis_nature.nature }}</td>
+                            <td>{{ avis.id_expert }}</td>
+                            <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                            <td class="
+                                {% if not avis.date_reponse_avis %}etat-attente
+                                {% elif avis.favorable %}etat-favorable
+                                {% else %}etat-defavorable{% endif %}
+                            ">
+                                {% if avis.date_reponse_avis %}
+                                    {% if avis.favorable %}
+                                        ✅ Favorable
+                                    {% else %}
+                                        ❌ Défavorable
+                                    {% endif %}
+                                {% else %}
+                                    ⏳ En attente
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Aucune demande d'avis effectuée</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+    </div>
+    
+    <!-- Script pour rendre les lignes cliquables -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".clickable-row").forEach(function (row) {
+                row.addEventListener("click", function () {
+                    const href = this.getAttribute("data-href");
+                    if (href && href !== "#") {
+                        window.location.href = href;
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

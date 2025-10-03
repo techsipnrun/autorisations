@@ -1,0 +1,161 @@
+/* ---------------------------------------------------------------- */
+/*              Informations Avis - Partie de droite                */
+/* ---------------------------------------------------------------- */
+.infos-avis-expert {
+    margin-top: 9rem;
+}
+
+/* Faire descendre le bloc de droite quand le formulaire est ouvert */
+.infos-avis-expert.with-form {
+    margin-top: 20.5rem;
+}
+
+.dossiers_lies {
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+}
+
+.dossiers_lies h2 {
+    margin-bottom: 2rem;
+}
+
+.dossiers_lies p {
+    margin: 1rem 0;
+    color: black;
+    font-size: large;
+}
+
+.liste-dossiers-avis {
+    list-style: none;
+    padding-left: 0;
+}
+
+.liste-dossiers-avis a{
+    text-decoration: none;
+    font-size: 1.1rem;
+    color: black;
+}
+
+.liste-dossiers-avis .doss_et_resume{
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    text-align: center;
+}
+
+.doc-icon-expert{
+    height: 30px;
+    width: 30px;
+    transition: transform 0.2s ease
+}
+
+.doc-icon-expert:hover {
+    transform: scale(1.1);
+}
+
+
+/* Lien vers Dossier */
+.liste-dossiers-avis .dossier_lien {
+    text-decoration: none;
+    position: relative;
+    color: black;
+    transition: color 0.3s ease;
+}
+
+.liste-dossiers-avis .dossier_lien::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background-color: #006131;
+    transition: width 0.3s ease;
+}
+
+.liste-dossiers-avis .dossier_lien:hover {
+    color: #006131;
+}
+
+.liste-dossiers-avis .dossier_lien:hover::after {
+    width: 100%;
+}
+
+
+
+/* ---------------------------------------------------------------- */
+/*           Bouton et Formulaire pour Donner son avis              */
+/* ---------------------------------------------------------------- */
+.joindre_avis_signe {
+    display: flex;
+    margin: 1.5rem 0;
+    text-align: center;
+    flex-direction: column;
+    justify-content: left;
+}
+
+.btn-donner-avis {
+    color: #006131;
+    background-color: #fff;
+    border: #006131 solid 3px;
+    padding: 0.7rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    max-width: 240px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-donner-avis:hover {
+    background-color: #006131;
+    color: #fff;
+}
+
+.form-donner-avis {
+    display: none; /* caché au départ */
+    margin-top: 1.5rem;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border: 2px solid #006131;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    text-align: left;
+    width: 50%;
+    min-width: 540px;
+}
+
+.form-donner-avis .avis-choix {
+    margin-bottom: 1rem;
+}
+
+.form-donner-avis .avis-choix input{
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.form-donner-avis label {
+    margin-right: 1.5rem;
+}
+
+.btn-confirmer-avis {
+    background-color: #006131;
+    margin-top: 1.5rem;
+    font-size: 1.1rem;
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-confirmer-avis:hover {
+    background-color: #004d25;
+}
+
+

@@ -12,7 +12,7 @@ urlpatterns = [
     path("instruction/<int:num_dossier>/ajouter_avis", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
     path("instruction/<int:num_dossier>/ajouter_avis_existant", avis.instruction_dossier_ajouter_avis_existant, name="instruction_dossier_ajouter_avis_existant"),
     path("instruction/<int:num_dossier>/ajouter-avis-hors-appli/", avis.ajouter_avis_hors_appli, name="ajouter_avis_hors_appli"),
-    path("instruction/<int:num_dossier>/ajouter-pj_avis/<int:avis_id>/", avis.ajouter_pj_avis, name="ajouter_pj_avis"),
+    path("instruction/ajouter-pj_avis/<int:avis_id>/", avis.ajouter_pj_avis, name="ajouter_pj_avis"),
     path("instruction/<int:num_dossier>/lier-avis/<int:avis_id>/", avis.lier_dossier_avis, name="lier_dossier_avis"),
     path("avis/<int:avis_id>/pj/<int:document_id>/supprimer/", avis.supprimer_pj_avis,name="supprimer_pj_avis",),
     path("avis/<int:avis_id>/note/", avis.mettre_a_jour_note_avis, name="mettre_a_jour_note_avis"),
@@ -30,7 +30,11 @@ urlpatterns = [
 
 
     # EXPERT
-    path('reception_avis/', expert.avis2, name='avis_view'),
+    path('reception_avis/', expert.avis, name='avis_view'),
+    path("reception_avis/<int:avis_id>/", expert.avis_expert, name="avis_expert"),
+    path('message/<int:id>/supprimer_message_avis_vision_expert/', messagerie.supprimer_message_avis_vision_expert, name='supprimer_message_avis_vision_expert'),
+    path("instruction/envoyer_message_avis_vision_expert/", avis.envoyer_message_avis_vision_expert, name="envoyer_message_avis_vision_expert"),
+    path("reception_avis/<int:avis_id>/donner_son_avis", expert.donner_son_avis, name="donner_son_avis"),
     
 
     # INSTRUCTION

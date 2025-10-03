@@ -32,6 +32,13 @@
     font-size: large;
 }
 
+/* si user = expert ou user = demandeur */
+.highlight-user {
+    color: #064d06;
+    font-weight: bold;
+}
+
+
 /* Nombre d'avis envoyés */
 .pastille_avis_envoye{
     position: absolute;

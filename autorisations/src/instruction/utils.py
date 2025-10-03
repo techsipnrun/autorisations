@@ -273,7 +273,7 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
 
 
 
-def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
+def create_message_avis_bdd(body, email_emetteur, avis_obj,
                             document_file=None,  # fichier ouvert, ou None
                             document_title=None,  # titre affiché (nom d'origine)
                             document_format_str=None,  # ex: 'pdf', 'jpg'
@@ -312,7 +312,7 @@ def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
             lu=False,
         )
 
-        logger.info(f"[DOSSIER {dossier_obj.numero}] Message {msg.id} enregistré en BDD par {email_emetteur}")
+        logger.info(f"[AVIS {avis_obj.id}] Message {msg.id} enregistré en BDD par {email_emetteur}")
 
         doc = None
         if document_file:
@@ -361,7 +361,7 @@ def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
                     description=document_description or "",
                 )
 
-                logger.info(f"[DOSSIER {dossier_obj.numero}] {avis_obj} - Document {doc.id} ({document_nature_str}) créé")
+                logger.info(f"[AVIS {avis_obj.id}] - Document {doc.id} ({document_nature_str}) créé")
 
                 # 3. Créer le lien message-document
                 MessageDocument.objects.create(
@@ -371,7 +371,7 @@ def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
 
 
             except Exception as e_doc:
-                logger.error(f"[DOSSIER {dossier_obj.numero}] {avis_obj} - Erreur lors de la création de la pièce jointe pour Message {msg.id} : {e_doc}")
+                logger.error(f"[AVIS {avis_obj.id}] Erreur lors de la création de la pièce jointe pour Message {msg.id} : {e_doc}")
                 msg.delete()  # rollback du message si le document échoue
                 raise Exception(f"Erreur lors de la création du document : {e_doc}")
 
@@ -379,7 +379,7 @@ def create_message_avis_bdd(body, email_emetteur, dossier_obj, avis_obj,
     
 
     except Exception as e:
-        logger.exception(f"[DOSSIER {dossier_obj.numero}] {avis_obj} - Échec de création du message")
-        raise  # pour remonter l'erreur plus haut si besoin
+        logger.exception(f"[AVIS {avis_obj.id}] {avis_obj} - Échec de création du message")
+        raise
 
 

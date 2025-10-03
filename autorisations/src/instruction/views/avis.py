@@ -525,7 +525,6 @@ def ajouter_avis_hors_appli(request, num_dossier):
                     
                     doc_pj = enregistrer_document(
                         fichier=pj,
-                        dossier=dossier,
                         nature_str="Annexe avis",
                         description=f"Pièce jointe pour la demande d'avis {avis.id} effectuée en dehors de l'application",
                         request=request,
@@ -538,8 +537,6 @@ def ajouter_avis_hors_appli(request, num_dossier):
                             id_avis=avis,
                             id_document=doc_pj
                         )
-                
-               
 
             return redirect("instruction_dossier_consultation", num_dossier=dossier.numero)
 
@@ -550,12 +547,10 @@ def ajouter_avis_hors_appli(request, num_dossier):
 
 
 
-from django.contrib import messages
-
 @login_required
-def ajouter_pj_avis(request, num_dossier, avis_id):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
-    avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+def ajouter_pj_avis(request, avis_id):
+    # dossier = get_object_or_404(Dossier, numero=num_dossier)
+    avis = get_object_or_404(Avis, id=avis_id)
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
 
     if request.method == "POST":
@@ -569,7 +564,6 @@ def ajouter_pj_avis(request, num_dossier, avis_id):
                 try:
                     doc_pj = enregistrer_document(
                         fichier=pj,
-                        dossier=dossier,
                         nature_str="Annexe avis",
                         description=f"Pièce jointe ajoutée à l'avis {avis.id} par {instructeur}",
                         request=request,
@@ -693,20 +687,19 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 return redirect(request.META.get("HTTP_REFERER", "/"))
         
 
-
-        emplacement = ""
         doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
+
+        # On récupère l'emplacement physique de l'avis
+        if brouillon_avis :
+            if not brouillon_avis.emplacement :
+                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+            else :
+                emplacement = brouillon_avis.emplacement
+        else :
+            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+        
         # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
         if pj_projet_avis or pj_projet_acte or pj_rapport_cs :
-            
-            # On récupère l'emplacement physique de l'avis
-            if brouillon_avis :
-                if not brouillon_avis.emplacement :
-                    emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
-                else :
-                    emplacement = brouillon_avis.emplacement
-            else :
-                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
             
             chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
             os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
@@ -719,8 +712,6 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 
                 doc_projet_avis = enregistrer_document(
                     fichier=pj_projet_avis,
-                    dossier=dossier,
-                    # nom_prenom_expert=nom_prenom_expert,
                     nature_str="Annexe avis",
                     description=f"Projet de demande pour l'avis {avis_id}",
                     request=request,
@@ -735,8 +726,6 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 
                 doc_projet_acte = enregistrer_document(
                     fichier=pj_projet_acte,
-                    dossier=dossier,
-                    # nom_prenom_expert=nom_prenom_expert,
                     nature_str="Annexe avis",
                     description=f"Projet d’acte pour l'avis {avis_id}",
                     request=request,
@@ -751,8 +740,6 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 
                 doc_rapport_instance = enregistrer_document(
                     fichier=pj_rapport_cs,
-                    dossier=dossier,
-                    # nom_prenom_expert=nom_prenom_expert,
                     nature_str="Annexe avis",
                     description=f"Rapport Instance pour l'avis {avis_id}",
                     request=request,
@@ -797,16 +784,23 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 messages.error(request, f"[ENVOI AVIS DOSSIER {dossier.numero}] Erreur lors de la mise à jour de l'avis {brouillon_avis} : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
             
-            # Create message (formulation)
+            # Create message (formulation) + projet demande d'avis en PJ si il existe
             try:
                 msg = Message.objects.create(
                     body=brouillon_avis.formulation,
                     date_envoi=timezone.now(),
-                    piece_jointe=False,
+                    piece_jointe=True if doc_projet_avis else False,
                     email_emetteur=request.user.email,
                     id_avis=brouillon_avis,
                     lu=False,
                 )
+
+                # Joindre le projet de demande d'avis au message
+                if doc_projet_avis :
+                    MessageDocument.objects.create(
+                        id_message=msg,
+                        id_document=doc_projet_avis
+                    )
 
                 logger.info(f"[DOSSIER {dossier.numero}] Avis {brouillon_avis.id} : message envoyé à {brouillon_avis.id_expert}")
 
@@ -860,11 +854,18 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     msg = Message.objects.create(
                         body=avis.formulation,
                         date_envoi=timezone.now(),
-                        piece_jointe=False,
+                        piece_jointe=True if doc_projet_avis else False,
                         email_emetteur=request.user.email,
                         id_avis=avis,
                         lu=False,
                     )
+
+                    # Joindre le projet de demande d'avis au message
+                    if doc_projet_avis :
+                        MessageDocument.objects.create(
+                            id_message=msg,
+                            id_document=doc_projet_avis
+                        )
 
                     logger.info(f"[DOSSIER {dossier.numero}] Avis {avis.id} : message envoyé à {avis.id_expert}")
 
@@ -1004,8 +1005,6 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 
                 doc_projet_avis = enregistrer_document(
                     fichier=pj_projet_avis,
-                    dossier=dossier,
-                    # nom_prenom_expert=nom_prenom_expert,
                     nature_str="Annexe avis",
                     description=f"Projet de demande pour l'avis {avis_id}",
                     request=request,
@@ -1020,8 +1019,6 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 
                 doc_projet_acte = enregistrer_document(
                     fichier=pj_projet_acte,
-                    dossier=dossier,
-                    # nom_prenom_expert=nom_prenom_expert,
                     nature_str="Annexe avis",
                     description=f"Projet d’acte pour l'avis {avis_id}",
                     request=request,
@@ -1036,8 +1033,6 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 
                 doc_rapport_instance = enregistrer_document(
                     fichier=pj_rapport_cs,
-                    dossier=dossier,
-                    # nom_prenom_expert=nom_prenom_expert,
                     nature_str="Annexe avis",
                     description=f"Rapport Instance pour l'avis {avis_id}",
                     request=request,
@@ -1317,19 +1312,17 @@ def envoyer_message_avis(request):
             create_message_avis_bdd(
                 body=body,
                 email_emetteur=request.user.email,
-                dossier_obj=dossier,
                 avis_obj=avis,
                 document_file=fichier_bdd,
                 document_title=fichier.name,
                 document_format_str=fichier.name.split('.')[-1].lower(),
-                document_description=f"Pièce jointe instructeur dans la messagerie de l'avis {avis.id} du dossier {dossier_numero}",
+                document_description=f"Pièce jointe instructeur dans la messagerie de l'avis {avis.id}",
             )
 
         else:
             create_message_avis_bdd(
                 body=body,
                 email_emetteur=request.user.email,
-                dossier_obj=dossier,
                 avis_obj=avis
             )
 
@@ -1344,8 +1337,63 @@ def envoyer_message_avis(request):
 
 
 
+@require_POST
+@csrf_exempt
+def envoyer_message_avis_vision_expert(request):
 
-def enregistrer_document(fichier, dossier, nature_str, description, request, emplacement_avis):
+    avis_id = request.POST.get("avis_id")
+    avis = get_object_or_404(Avis, id=avis_id)
+
+    # Récupération message et PJ de l'envoyeur
+    body = request.POST.get("body")
+    fichier = request.FILES.get("piece_jointe")
+
+    if not body:
+        messages.error(request, "Message vide")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # Vérification taille fichier (20 Mo max)
+    if fichier and fichier.size > 20 * 1024 * 1024:
+        messages.error(request, "Fichier trop volumineux. Taille maximale : 20 Mo.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+ 
+    try: 
+        if fichier:
+
+            fichier.seek(0)
+            fichier_bdd = SimpleUploadedFile(
+                name=fichier.name,
+                content=fichier.read(),
+                content_type=fichier.content_type
+            )
+            create_message_avis_bdd(
+                body=body,
+                email_emetteur=request.user.email,
+                avis_obj=avis,
+                document_file=fichier_bdd,
+                document_title=fichier.name,
+                document_format_str=fichier.name.split('.')[-1].lower(),
+                document_description=f"Pièce jointe instructeur dans la messagerie de l'avis {avis.id}",
+            )
+
+        else:
+            create_message_avis_bdd(
+                body=body,
+                email_emetteur=request.user.email,
+                avis_obj=avis
+            )
+
+    except Exception as e:
+
+        logger.error(f"[AVIS {avis_id}] Erreur lors de l'envoi du message : {e}")
+        messages.error(request, f"Erreur lors de l'envoi du message : {e}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+def enregistrer_document(fichier, nature_str, description, request, emplacement_avis, annexe=True):
     if not fichier:
         return None
 
@@ -1366,7 +1414,11 @@ def enregistrer_document(fichier, dossier, nature_str, description, request, emp
         return None
 
     # Emplacement et chemin
-    emplacement_annexes = f"{emplacement_avis}Annexes/"
+    if annexe :
+        emplacement_annexes = f"{emplacement_avis}Annexes/"
+    else :
+        emplacement_annexes = emplacement_avis
+
     chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement_annexes}"
 
     # Maj de l'ancien doc s’il existe

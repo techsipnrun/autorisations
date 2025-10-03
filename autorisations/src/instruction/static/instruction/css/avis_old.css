@@ -1,0 +1,90 @@
+/* --------------------------------------------------- */
+/* ---------------- Bloc principaux ------------------ */
+/* --------------------------------------------------- */
+.reception {
+    margin-top: 12rem;
+}
+
+.avis-demandes{
+    margin-top: 8rem;
+}
+
+h1 {
+    color: #006131;
+    margin: 2rem 0 1.5rem 0;
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* --------------------------------------------------- */
+/* ------------------- Tableau ----------------------- */
+/* --------------------------------------------------- */
+table {
+    width: 90%;
+    margin: 3rem auto 3rem auto;
+    /* padding: 0.3rem; */
+    border-collapse: collapse;
+    font-size: 1.2rem;
+    background-color: #fafafa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+thead {
+    background-color: #006131;
+    color: white;
+}
+
+thead th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: bold;
+    font-size: 1.4rem;
+    border-bottom: 2px solid #004d25;
+}
+
+tbody td {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+tbody tr:hover {
+    background-color: #eef8ee !important;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+td:first-child {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Décalage à gauche pour la première colonne */
+thead th:first-child,
+tbody td:first-child {
+    padding-left: 2rem;
+}
+
+/* Couleurs alternées */
+tbody tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+/* États */
+td.etat-attente {
+    color: #d17f00;
+    font-weight: bold;
+}
+
+td.etat-favorable {
+    color: #006131;
+    font-weight: bold;
+}
+
+td.etat-defavorable {
+    color: #a00;
+    font-weight: bold;
+}
