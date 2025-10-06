@@ -37,6 +37,20 @@
                     En attente de réponse
                 {% endif %}
             </div> 
+
+            {% if avis_signes %}
+                <div class="avis_signes">
+                    {% for as in avis_signes %}
+                        <li>
+                            Avis signé :
+                            <a href="{% url 'afficher_annexe' chemin=as.emplacement titre=as.titre %}" title="Voir l'avis signé" target="_blank" rel="noopener noreferrer">
+                                {{as.titre}}
+                                <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon-avis-signe">
+                            </a>       
+                        </li>
+                    {% endfor %}
+                </div>  
+            {% endif %}
         
             
             <div class="chat-container">
@@ -145,9 +159,17 @@
             </div>
 
             <div class="infos-avis">
-                <h2>{{avis.id_avis_nature.nature}}</h2>
-                <!-- <p> <strong>Expert.e :</strong> {{ avis.id_expert }} </p>
-                <p> <strong>Demandeur.euse :</strong> {{ avis.id_instructeur }} </p> -->
+                <div class="nature_et_lien_avis">
+                    <h2>{{avis.id_avis_nature.nature}}</h2>
+                    
+                    {% if avis.emplacement %}
+                        <!-- Lien Avis à droite -->
+                        <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ avis.emplacement }}')" title="Copier l'emplacement de l'avis">
+                            <img src="{% static 'instruction/img/folder.png' %}" alt="Emplacement de l'avis">
+                        </a>
+                    {% endif %}
+                </div>
+
                 <p>
                     <strong>Expert.e :</strong>
                     <span class="{% if avis.id_expert.est_interne and avis.id_expert.id_instructeur.email == request.user.email or not avis.id_expert.est_interne and avis.id_expert.id_contact_externe.email == request.user.email %}highlight-user{% endif %}">

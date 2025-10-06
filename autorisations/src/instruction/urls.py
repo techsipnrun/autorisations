@@ -35,6 +35,8 @@ urlpatterns = [
     path('message/<int:id>/supprimer_message_avis_vision_expert/', messagerie.supprimer_message_avis_vision_expert, name='supprimer_message_avis_vision_expert'),
     path("instruction/envoyer_message_avis_vision_expert/", avis.envoyer_message_avis_vision_expert, name="envoyer_message_avis_vision_expert"),
     path("reception_avis/<int:avis_id>/donner_son_avis", expert.donner_son_avis, name="donner_son_avis"),
+    path("remplacer-avis-signe/", expert.remplacer_avis_signe, name="remplacer_avis_signe"),
+
     
 
     # INSTRUCTION

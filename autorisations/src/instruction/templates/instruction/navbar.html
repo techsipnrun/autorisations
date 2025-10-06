@@ -46,6 +46,9 @@
                     <a href="{% url 'avis_view' %}">
                         <li class="{% if '/reception_avis' in request.path %}active{% endif %}">
                             Mes avis
+                            {% if nb_avis_action_a_faire > 0 %}
+                                <span class="notif_pastille" title="Actions à faire">{{ nb_avis_action_a_faire }}</span>
+                            {% endif %}
                         </li>
                     </a>
 

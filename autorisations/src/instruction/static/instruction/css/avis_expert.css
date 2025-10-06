@@ -1,13 +1,151 @@
+/* Badge Etat Avis */
+.etat-badge-menu-avis {
+    display: inline-block;
+    margin: 1rem 0;
+    padding: 6px 16px;
+    background-color: #e0e0e0;
+    color: #272727;
+    font-size: 1.3rem;
+    font-style: italic;
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* Messages succès */
+.success{
+    color: #006131;
+}
+
+/* ----------------------------------- */
+/*            Avis signé               */
+/* ----------------------------------- */
+.avis_signes{
+    list-style: none;
+    background-color: #f8f9fa;
+    border-left: 4px solid #006131;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    font-size: 1.05rem;
+    color: #333;
+}
+
+.avis_signes li {
+    text-decoration: none;
+}
+
+.ligne_un_avis_signe {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.avis_signes .a_avis_signe{
+    display: inline;
+    margin: 0;
+    font-weight: bold;
+    align-items: center;
+    position: relative;
+    text-decoration: none;
+    color: black;
+    transition: color 0.3s ease;
+}
+
+.avis_signes .a_avis_signe::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;     
+    width: 0;
+    height: 2px;
+    background-color: #006131;
+    transition: width 0.3s ease;
+}
+
+.a_avis_signe:hover {
+    color: #006131;
+}
+
+.avis_signes .a_avis_signe:hover::after {
+    width: 100%;
+}
+
+/* Icon PDF et Modifier */
+/* Empêche le surlignage ou les effets de lien classiques */
+.ligne_un_avis_signe a:not(.a_avis_signe) {
+    text-decoration: none !important;
+    border: none !important;
+    color: inherit !important;
+    position: static !important;
+}
+
+.doc-icon-avis-signe{
+    height: 25px;
+    width: 25px;
+    transition: transform 0.2s ease;
+}
+
+.doc-icon-avis-signe:hover {
+    transform: scale(1.1);
+}
+
+/* Modifier avis signé */
+.icon-modif-avis-signe{
+    height: 30px;
+    width: 30px;
+    transition: transform 0.2s ease;
+    opacity: 30%;
+}
+
+.icon-modif-avis-signe:hover {
+    transform: scale(1.1);
+}
+
+/* Quand on survole tout le bloc d'avis signé */
+.avis_signes:hover .icon-modif-avis-signe {
+    opacity: 1;
+}
+
+
+
+
 /* ---------------------------------------------------------------- */
 /*              Informations Avis - Partie de droite                */
 /* ---------------------------------------------------------------- */
+
+/* Lien emplacement Avis */
+.nature_et_lien_avis {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.nature_et_lien_avis h2 {
+    margin: 0;
+}
+
+.nature_et_lien_avis img {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.nature_et_lien_avis img:hover {
+    transform: scale(1.1);
+}
+
+
 .infos-avis-expert {
     margin-top: 9rem;
 }
 
 /* Faire descendre le bloc de droite quand le formulaire est ouvert */
 .infos-avis-expert.with-form {
-    margin-top: 20.5rem;
+    margin-top: 21rem;
 }
 
 .dossiers_lies {
@@ -55,6 +193,8 @@
 .doc-icon-expert:hover {
     transform: scale(1.1);
 }
+
+
 
 
 /* Lien vers Dossier */

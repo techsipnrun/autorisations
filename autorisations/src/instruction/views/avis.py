@@ -74,7 +74,7 @@ def instruction_dossier_consultation(request, num_dossier):
             "date_demande": avis.date_demande_avis,
             "date_reponse": avis.date_reponse_avis,
             "favorable": reponse,
-            "nb_messages_non_lus": nb_messages_non_lus_avis,
+            "avis_nb_messages_non_lus": nb_messages_non_lus_avis,
         })
 
     liste_avis = sorted(
@@ -1128,7 +1128,7 @@ def supprimer_avis(request):
         avis.delete()
         logger.info(f"Suppression de l'avis ({avis_id}) : {avis}")
     except Exception as e:
-        messages.error(request, f"Erreur lors de la suppressino de l'avis {avis} : {e}")
+        messages.error(request, f"Erreur lors de la suppression de l'avis {avis} : {e}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1233,7 +1233,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         avis_documents = (
             AvisDocument.objects.filter(id_avis=avis)
             .select_related("id_document", "id_document__id_nature")
-            .exclude(id_document__id_nature__nature="Avis Instance") #pour ne pas prendre l'avis signé
+            .exclude(id_document__id_nature__nature="Avis instance") #pour ne pas prendre l'avis signé
         )
 
         # Liste avis_documents
@@ -1246,6 +1246,16 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
             }
             for ad in avis_documents
         ]
+    
+    # Avis signés
+    avis_signes = (
+        Document.objects.filter(
+            id__in=AvisDocument.objects.filter(
+                id_avis=avis,
+                id_document__id_nature__nature="Avis instance"
+            ).values_list("id_document", flat=True)
+        )
+    )
 
 
 
@@ -1255,6 +1265,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "avis": avis,
         "avis_documents": avis_documents,
         "liste_avis_documents": liste_avis_documents,
+        "avis_signes": avis_signes,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,

@@ -27,6 +27,15 @@
     justify-content: center;
 }
 
+/* Aucun dossier */
+.aucun_dossier {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    font-size: large;
+    font-weight: bold;
+}
+
 
 /* ================================
    Section d'une démarche

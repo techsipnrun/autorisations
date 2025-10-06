@@ -8,9 +8,10 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
-from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, SynchronisationEtat
+from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
+from autorisations.models.models_avis import Avis, Expert
 from instruction.utils import dossiers_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Lock
@@ -420,6 +421,77 @@ def mes_dossiers_a_traiter_count(request):
     dossiers_actions = dossiers_action_a_faire(dossiers, instructeur)
 
     return {"nb_dossiers_instruction": len(dossiers_actions)}
+
+
+def mes_avis_action_a_faire(request):
+    """
+    Renvoie un dictionnaire contenant le nombre d'avis où l'utilisateur
+    a une action à faire :
+      - Avis où il est expert (interne ou externe) et favorable is null
+      - Avis où il est expert (interne ou externe) et favorable not null
+        mais avec des messages non lus dont il n'est pas l'émetteur
+      - Avis où il est demandeur et a des messages non lus de l'expert
+    """
+    if not request.user.is_authenticated:
+        return {}
+
+    email_user = request.user.email
+    nb_avis_action = 0
+
+    # ----------------------------------------------------------
+    # 1️⃣ Identifier l’utilisateur comme instructeur et/ou expert
+    # ----------------------------------------------------------
+    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=email_user).first()
+
+    expert = (
+        Expert.objects.filter(id_instructeur=instructeur).first()
+        if instructeur
+        else Expert.objects.filter(id_contact_externe__email=email_user).first()
+    )
+
+    # ----------------------------------------------------------
+    # 2️⃣ Cas où l’utilisateur est EXPERT (interne ou externe)
+    # ----------------------------------------------------------
+    if expert:
+        # (a) Avis à rendre → favorable is null
+        nb_avis_a_rendre = Avis.objects.filter(
+            id_expert=expert, favorable__isnull=True
+        ).count()
+
+        # (b) Avis rendus avec messages non lus dont il n’est pas l’émetteur
+        avis_rendus = Avis.objects.filter(
+            id_expert=expert, favorable__isnull=False
+        )
+        for avis in avis_rendus:
+            nb_non_lus = Message.objects.filter(
+                id_avis=avis, lu=False
+            ).exclude(email_emetteur=email_user).count()
+            if nb_non_lus > 0:
+                nb_avis_action += 1
+
+        nb_avis_action += nb_avis_a_rendre
+
+    # ----------------------------------------------------------
+    # 3️⃣ Cas où l’utilisateur est DEMANDEUR d’avis
+    # ----------------------------------------------------------
+    if instructeur:
+        avis_demandes = Avis.objects.filter(id_instructeur=instructeur)
+        for avis in avis_demandes:
+            # récupérer l’adresse mail de l’expert associé
+            if avis.id_expert.est_interne:
+                email_expert = avis.id_expert.id_instructeur.email
+            else:
+                email_expert = avis.id_expert.id_contact_externe.email
+
+            nb_non_lus = Message.objects.filter(
+                id_avis=avis, lu=False, email_emetteur=email_expert
+            ).count()
+
+            if nb_non_lus > 0:
+                nb_avis_action += 1
+
+    return {"nb_avis_action_a_faire": nb_avis_action}
+
 
 
 @login_required(login_url='/login/')

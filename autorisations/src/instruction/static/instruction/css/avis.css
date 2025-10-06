@@ -70,7 +70,7 @@ table {
     background-color: #fafafa;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .table_avis_a_rendre, .table_demande_en_cours {
@@ -80,6 +80,7 @@ table {
 thead {
     background-color: #006131;
     color: white;
+    cursor: pointer;
 }
 
 .thead_demandeur{
@@ -164,4 +165,73 @@ td.etat-defavorable {
 
 .table_archive{
     margin-top: 2rem;
+}
+
+
+/* --------------------------------------------------- */
+/* ----------- Pastille nouveau message -------------- */
+/* --------------------------------------------------- */
+.nouv_mess_wrapper {
+    position: relative;
+    display: inline-block;
+    margin-left: 1rem;
+    padding: 0;
+}
+
+.pastille_nouv_mess {
+    position: absolute;
+    padding: 1px;
+    top: -9px;
+    right: -9px;
+    background-color: #003366;
+    text-align: center;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+    animation: pulse-icon 1s ease-in-out infinite alternate;
+}
+
+.nouv_mess_icon {
+    width: 32px;
+    height: auto;
+    vertical-align: middle;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+@keyframes pulse-icon {
+    from {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+    to {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+
+/* Petit rond à gauche des lignes avec messages non lus */
+tbody tr.ligne-non-lue {
+    position: relative;
+}
+
+tbody tr.ligne-non-lue::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -18px; /* plus loin pour vraiment être à l’extérieur du tableau */
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+    box-shadow: 0 0 6px rgba(255, 65, 108, 0.6);
+    z-index: 10;
 }

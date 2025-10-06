@@ -52,7 +52,7 @@
                     </form>
                 </div>
             {% else %}
-                <div class="etat-badge-menu {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
+                <div class="etat-badge-menu-avis {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
                     {% if avis.date_reponse_avis %}
                         {% if avis.favorable %}
                             Avis rendu : Favorable
@@ -66,9 +66,46 @@
                     {% endif %}
                 </div>
             {% endif %}
+            
+            {% if avis_signes %}
+                <div class="avis_signes">
+                    {% for as in avis_signes %}
+                        <li>
+                            <div class="ligne_un_avis_signe">
+                                <span>Avis signé :</span>
+                                <a href="{% url 'afficher_annexe' chemin=as.emplacement titre=as.titre %}" class="a_avis_signe" title="Voir l'avis signé" target="_blank" rel="noopener noreferrer">
+                                    {{as.titre}}
+                                </a>
+                                 <a href="{% url 'afficher_annexe' chemin=as.emplacement titre=as.titre %}" title="Voir l'avis signé" target="_blank" rel="noopener noreferrer">
+                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon-avis-signe">
+                                </a>
+                                
+                                <form id="form-remplacer-{{ avis.id }}-{{ as.id }}" 
+                                    action="{% url 'remplacer_avis_signe' %}" 
+                                    method="post" 
+                                    enctype="multipart/form-data" 
+                                    style="display:none;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                                    <input type="hidden" name="document_id" value="{{ as.id }}">
+                                    <input type="file" name="fichier" accept=".pdf" onchange="confirmerRemplacement(this)">
+                                </form>
+
+                                <a href="#" class="modif_avis_signe" 
+                                title="Remplacer l'avis signé"
+                                onclick="ouvrirFichier(event, '{{ avis.id }}', '{{ as.id }}')">
+                                    <img src="{% static 'instruction/img/modifier.svg' %}" 
+                                        alt="Remplacer l'avis signé" 
+                                        class="icon-modif-avis-signe">
+                                </a>
 
 
-        
+                            </div>      
+                        </li>
+                    {% endfor %}
+                </div>  
+            {% endif %}
+
             
             <div class="chat-container">
                 {% for msg in messages_avis %}
@@ -117,10 +154,9 @@
                 </div>
             {% endif %}
         
-            <!-- A adapter -->
+
             <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis_vision_expert' %}"> 
                 {% csrf_token %}
-                <!-- <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}"> -->
                 <input type="hidden" name="avis_id" value="{{ avis.id }}">
                 <textarea name="body" placeholder="Écrire un message..." required></textarea>
                 <div class="pj-actions">
@@ -131,7 +167,6 @@
                     <button type="submit" title="Envoyer le message">Envoyer</button>
                 </div>
             </form>
-            
         </div>
 
 
@@ -139,9 +174,17 @@
         <div class="nav_preinstruction">
            
             <div class="infos-avis infos-avis-expert">
-                <h2>{{avis.id_avis_nature.nature}}</h2>
-                <!-- <p> <strong>Expert.e :</strong> {{ avis.id_expert }} </p>
-                <p> <strong>Demandeur.euse :</strong> {{ avis.id_instructeur }} </p> -->
+                <div class="nature_et_lien_avis">
+                    <h2>{{avis.id_avis_nature.nature}}</h2>
+
+                    {% if avis.emplacement %}
+                        <!-- Lien Avis à droite -->
+                        <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ avis.emplacement }}')" title="Copier l'emplacement de l'avis">
+                            <img src="{% static 'instruction/img/folder.png' %}" alt="Emplacement de l'avis">
+                        </a>
+                    {% endif %}
+                </div>
+                
                 <p>
                     <strong>Expert.e :</strong>
                     <span class="{% if avis.id_expert.est_interne and avis.id_expert.id_instructeur.email == request.user.email or not avis.id_expert.est_interne and avis.id_expert.id_contact_externe.email == request.user.email %}highlight-user{% endif %}">
@@ -167,18 +210,6 @@
                 {% endif %}
             </div>
 
-            <!-- <div class="dossiers_lies">
-                <h2>Le(s) dossier(s) lié(s)</h2>
-                <ul class="liste-dossiers-avis">
-                    <li>
-                        <p><strong>Dossier 123 avec lien + résumé PDF</strong></p>
-                    </li>
-                    <li>
-                        <p><strong>Dossier 145 avec lien + résumé PDF</strong></p>
-                    </li>
-                </ul>
-            </div> -->
-
             <div class="dossiers_lies">
                 <h2>
                     {% if dossiers_lies|length > 1 %}
@@ -193,7 +224,7 @@
                         <li>
                             <div class="doss_et_resume">
                                 <a href="{% url 'instruction_dossier' dossier.numero %}" target="_blank" class="dossier_lien" title="Voir le dossier">
-                                    <strong>Dossier n° {{ dossier.numero }}</strong> – {{ dossier.id_demarche.type }}
+                                    <strong>Dossier n° {{ dossier.numero }}</strong> – {{ dossier.id_demarche.type|truncatechars:34 }}
                                 </a>
                                 <a href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=dossier.resume_pdf_titre %}" target="_blank" rel="noopener noreferrer">
                                     <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" title="Télécharger le résumé du dossier" class="doc-icon doc-icon-expert">
@@ -254,6 +285,8 @@
                     {% if avis_documents %}
                         <div class="pj_avis">
                             {% for ad in avis_documents %}
+                                <!-- On exclu l'avis signé -->
+                                {% if ad.nature != 'Avis Instance' %}
                                     <li class="pj-item">
                                         <p><strong>Pièce jointe :</strong></p>
                                         {% if ad.id_document.id_format.format == 'pdf' %}
@@ -275,6 +308,7 @@
                                             <button type="button" class="btn-supprimer-pj" title="Supprimer la pièce jointe" onclick="confirmerSuppressionPJ(this)">✕</button>
                                         </form>
                                     </li>
+                                {% endif %}
                             {% endfor %}
                         </div>
                     {% endif %}
@@ -413,6 +447,52 @@
             updateRequired();
         });
     </script>
+
+    <script>
+        // Copier l'emplacement du Dossier
+        function copierChemin(chemin) {
+            navigator.clipboard.writeText(chemin).then(() => {
+                alert("Chemin copié dans le presse-papiers :\n" + chemin);
+            }).catch(err => {
+                console.error("Erreur copie chemin :", err);
+                alert("Impossible de copier le chemin");
+            });
+        }
+    </script>
+
+
+    <!-- Remplacer l'avis signé -->
+   <script>
+        function ouvrirFichier(event, avisId, docId) {
+            event.preventDefault();
+            const input = document.querySelector(`#form-remplacer-${avisId}-${docId} input[type='file']`);
+            if (input) input.click();
+        }
+
+        function confirmerRemplacement(input) {
+            const fichier = input.files[0];
+            if (!fichier) return;
+
+            const ext = fichier.name.split('.').pop().toLowerCase();
+            if (ext !== "pdf") {
+                alert("❌ Le fichier doit être au format PDF.");
+                input.value = "";
+                return;
+            }
+
+            const ok = confirm(`Voulez-vous vraiment remplacer l'avis signé par "${fichier.name}" ?`);
+            if (ok) {
+                console.log("Form envoyé :", input.closest("form"));
+                console.log("avis_id =", input.closest("form").querySelector("input[name='avis_id']").value);
+                console.log("document_id =", input.closest("form").querySelector("input[name='document_id']").value);
+
+                input.closest("form").submit();
+            } else {
+                input.value = "";
+            }
+        }
+    </script>
+
 
 
 

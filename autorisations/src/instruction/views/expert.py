@@ -36,6 +36,8 @@ def avis(request):
     current_year = datetime.date.today().year
     selected_year = int(request.GET.get("annee", current_year))
 
+    # nb_messages_non_lus_avis = Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert).count()
+
     ###################################
     # Avis à rendre/rendu (en tant qu’expert)
     ###################################
@@ -77,6 +79,31 @@ def avis(request):
         annees_disponibles_demandeur = Avis.objects.filter(
             id_instructeur=instructeur, date_reponse_avis__isnull=False
         ).dates("date_reponse_avis", "year", order="DESC")
+
+    
+    ##############################################################
+    # Le nombre de message non lu pour chaque avis
+    ##############################################################
+    # Messages non lus en tant qu'expert
+    for liste_avis in [avis_a_rendre, avis_rendus]:
+        for a in liste_avis:
+           
+            a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False).exclude(email_emetteur=request.user.email).count()
+
+    # Messages non lus en tant que demandeur
+
+    #  expert = Expert.objects.filter(id_instructeur__email=request.user.email).first()
+    # if not expert:
+    #     expert = Expert.objects.filter(id_contact_externe__email=request.user.email).first()
+
+    for liste_avis in [demandes_en_cours, demandes_traitees]:
+        for a in liste_avis:
+            if a.id_expert.est_interne :
+                email_expert = a.id_expert.id_instructeur.email
+            else :
+                email_expert = a.id_expert.id_contact_externe.email
+            a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False, email_emetteur=email_expert).count()
+
 
     return render(
         request,
@@ -211,7 +238,7 @@ def avis_expert(request, avis_id):
     avis_documents = (
         AvisDocument.objects.filter(id_avis=avis)
         .select_related("id_document", "id_document__id_nature")
-        .exclude(id_document__id_nature__nature="Avis Instance") #pour ne pas prendre l'avis signé
+        .exclude(id_document__id_nature__nature="Avis instance") #pour ne pas prendre l'avis signé
     )
 
     # Liste avis_documents
@@ -225,11 +252,23 @@ def avis_expert(request, avis_id):
         for ad in avis_documents
     ]
 
+    # Avis signés
+    avis_signes = (
+        Document.objects.filter(
+            id__in=AvisDocument.objects.filter(
+                id_avis=avis,
+                id_document__id_nature__nature="Avis instance"
+            ).values_list("id_document", flat=True)
+        )
+    )
+
+
     return render(request, 'instruction/avis_expert.html', {
-        # "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "avis": avis,
         "avis_documents": avis_documents,
         "liste_avis_documents": liste_avis_documents,
+        "avis_signes": avis_signes,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,
@@ -263,9 +302,13 @@ def donner_son_avis(request, avis_id):
         if extension != ".pdf" :
             messages.error(request, f"❌ L'avis signé doit être au format PDF --> Type de fichier non autorisé : {extension}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        nature_annexe_avis = DocumentNature.objects.filter(nature__iexact="Annexe avis").first()
+        if not nature_annexe_avis:
+            messages.error(request, "⚠️ La nature 'Annexe avis' n'existe pas en base, reclassification impossible. Contactez l'administrateur.")
 
         # Sauvegarder le fichier physiquement  
-        emplacement = {avis.emplacement}
+        emplacement = avis.emplacement
         if not emplacement :
             messages.error(request, f"❌ L'avis n'a aucun emplacement de renseigné")
             return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -273,10 +316,16 @@ def donner_son_avis(request, avis_id):
         chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
         os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
 
+        # --- Vérifie si un avis signé existait déjà ---
+        avis_signe_existant = AvisDocument.objects.filter(
+            id_avis=avis,
+            id_document__id_nature__nature__iexact="Avis instance"
+        ).select_related("id_document").first()
+
         # Les vérifs sur la Nature et le Format du doc sont faits dans la fonction ci-dessous
         doc_avis_signe = enregistrer_document(
                 fichier=pj_avis_signe,
-                nature_str="Avis Instance",
+                nature_str="Avis instance",
                 description=f"Avis signé pour la Demande d'avis {avis_id}",
                 request=request,
                 emplacement_avis = emplacement,
@@ -289,9 +338,88 @@ def donner_son_avis(request, avis_id):
                 id_avis=avis,
                 id_document=doc_avis_signe,
             )
+
         else :
             # On revient sur la page pour afficher les messages d'erreurs
             return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+
+    # Message automatique Acceptation/Refus + Avis signé
+    if favorable and doc_avis_signe :
+        try:
+            if avis_signe_existant :
+                ancien_doc = avis_signe_existant.id_document
+                ancien_doc.id_nature = nature_annexe_avis
+                ancien_doc.save()
+                logger.info(f"[AVIS {avis.id}] Ancien avis signé reclassé en 'Annexe avis' par {request.user}.")
+                msg_reponse_expert = "Modification de l'avis signé par l'expert, vous trouverez ci-joint le nouvel avis signé"
+            else :
+                msg_reponse_expert = "La demande d'avis a reçu une réponse favorable, vous trouverez ci-joint l'avis signé."
+            
+
+            msg = Message.objects.create(
+                body=msg_reponse_expert,
+                date_envoi=timezone.now(),
+                piece_jointe=True,
+                email_emetteur=request.user.email,
+                id_avis=avis,
+                lu=False,
+            )
+
+            # Joindre l'avis signé au message
+            MessageDocument.objects.create(
+                id_message=msg,
+                id_document=doc_avis_signe
+            )
+
+        except Exception as e:
+            logger.warning(f"[AVIS {avis.id}] : Echec lors de l'envoi du message automatique (Acceptation/Refus de l'expert) : {e}")
 
     avis.save()
     return redirect("avis_expert", avis_id=avis.id)
+
+
+
+
+@require_POST
+def remplacer_avis_signe(request):
+    avis_id = request.POST.get("avis_id")
+    document_id = request.POST.get("document_id")
+    fichier = request.FILES.get("fichier")
+
+    avis_doc = get_object_or_404(AvisDocument, id_avis=avis_id, id_document=document_id)
+    avis = avis_doc.id_avis
+
+    try:
+        # L'ancien document devient Annexe instance
+        nature_annexe = DocumentNature.objects.get(nature="Annexe avis")
+        ancien_doc = avis_doc.id_document
+        ancien_doc.id_nature = nature_annexe
+        ancien_doc.save()
+
+        # Sauvegarde du nouvel avis signé 
+        doc_avis_signe = enregistrer_document(
+                fichier=fichier,
+                nature_str="Avis instance",
+                description=f"Remplacement de l'avis signé pour la Demande d'avis {avis_id}",
+                request=request,
+                emplacement_avis = avis.emplacement,
+                annexe=False
+            )
+        
+        if doc_avis_signe :
+            # Créer AvisDocument
+            AvisDocument.objects.get_or_create(
+                id_avis=avis,
+                id_document=doc_avis_signe,
+            )
+            logger.info(f"[AVIS {avis.id}] : Avis signé remplacé avec succès par l'expert {request.user}")
+            messages.success(request, "✅ Avis signé remplacé avec succès.")
+        else :
+            # On revient sur la page pour afficher les messages d'erreurs
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+    except Exception as e:
+        messages.error(request, f"❌ Erreur : {e}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))

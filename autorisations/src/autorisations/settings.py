@@ -70,6 +70,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'instruction.views.views.mes_dossiers_a_traiter_count',
+                'instruction.views.views.mes_avis_action_a_faire',
                 'instruction.context_processors.breadcrumb_context',
             ],
         },
