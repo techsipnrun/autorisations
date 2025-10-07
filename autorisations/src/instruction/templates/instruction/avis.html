@@ -144,7 +144,13 @@
             <h2 class="section-title">Vision Demandeur</h2>
 
             <div class="avis-demandes">
-                <h1>Mes demandes en cours</h1>
+                <div class="demandes_en_cours_et_bouton">
+                    <h1>Mes demandes en cours</h1>
+                    <a href="{% url 'nouvelle_demande_avis_generique' %}" class="btn-nouvel-demande-generique" title="Demande qui n'est pas forcément liée à un dossier">
+                        + Nouvelle demande d'avis générique
+                    </a>
+                </div>
+                
                 <table class="table_demande_en_cours">
                     <thead class="thead_demandeur">
                         <tr>

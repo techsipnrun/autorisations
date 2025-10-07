@@ -262,7 +262,6 @@ def avis_expert(request, avis_id):
         )
     )
 
-
     return render(request, 'instruction/avis_expert.html', {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "avis": avis,

@@ -2,9 +2,10 @@
 /* ---------------- Bloc principaux ------------------ */
 /* --------------------------------------------------- */
 .reception {
-    margin-top: 12rem;
-    margin-bottom: 6rem;
+    margin: 12rem auto 6rem auto;
     padding: 0 3rem;
+    max-width: 2000px;
+    justify-content: center;
 }
 
 /* Titre principal de section */
@@ -57,6 +58,27 @@ h1 {
     margin-top: 7rem;
 }
 
+/* Bouton nouvelle demande générique */
+.demandes_en_cours_et_bouton{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-right: 3rem;
+}
+
+.btn-nouvel-demande-generique {
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid #000261;
+  border-radius: 4px;
+  color: #000261;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-nouvel-demande-generique:hover {
+  background-color: #0002611f;
+}
 
 
 /* --------------------------------------------------- */

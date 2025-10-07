@@ -29,6 +29,7 @@ urlpatterns = [
     path("avis/<int:avis_id>/supprimer-doc/<str:champ>/", avis.supprimer_document_avis, name="supprimer_document_avis"),
 
 
+
     # EXPERT
     path('reception_avis/', expert.avis, name='avis_view'),
     path("reception_avis/<int:avis_id>/", expert.avis_expert, name="avis_expert"),
@@ -36,6 +37,8 @@ urlpatterns = [
     path("instruction/envoyer_message_avis_vision_expert/", avis.envoyer_message_avis_vision_expert, name="envoyer_message_avis_vision_expert"),
     path("reception_avis/<int:avis_id>/donner_son_avis", expert.donner_son_avis, name="donner_son_avis"),
     path("remplacer-avis-signe/", expert.remplacer_avis_signe, name="remplacer_avis_signe"),
+    path("reception_avis/nouvelle_demande_avis_generique/", avis.nouvelle_demande_avis_generique, name="nouvelle_demande_avis_generique"),
+    path("reception_avis/nouvelle_demande_avis_generique/confirmer/", avis.avis_confirmer_nouvelle_demande_generique, name="avis_confirmer_nouvelle_demande_generique"),
 
     
 

@@ -1,0 +1,120 @@
+/* --------------------------------------------------- */
+/* ---------------- Bloc principaux ------------------ */
+/* --------------------------------------------------- */
+.django-messages{
+    color: rgb(172, 2, 2);
+    font-weight: bold;
+}
+
+.avis-page-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 15rem 0 8rem 0; 
+}
+
+.avis-page-container h1 {
+    text-align: center;
+}
+
+
+.form_nouvelle_demande_generique {
+    /* position: relative; */
+    width: 80%;
+    max-width: 1500px;
+    border: solid #006131 3px;
+    margin-top: 2rem;
+    padding: 2rem 1rem;
+}
+
+/* ---------------------------------------------- */
+/* ---------------- Formulaire ------------------ */
+/* ---------------------------------------------- */
+.attribut_avis {
+    display: flex;
+    align-items: center;
+    vertical-align: center;
+    margin: 1rem 0;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    gap: 1rem;
+}
+
+/* Label à gauche */
+.attribut_avis label {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #006131;
+}
+
+/* Menu déroulant Select */
+.attribut_avis select {
+    padding: 0.4rem 0.6rem;
+    border: 2px solid #006131;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* Affichage conditionnel pour le choix de l'expert interne/externe */
+#bloc_expert_externe, #bloc_expert_interne {
+    display: none;
+}
+
+/* Champs de texte libre */
+.attribut_avis textarea {
+    vertical-align: top;
+    width: 70%;
+    min-height: 80px;
+    resize: vertical; /* permet d'agrandir seulement en hauteur */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.texte_libre {
+    align-items: flex-start;
+}
+
+/* Effet focus */
+.attribut_avis textarea:focus {
+    border-color: #006131;       /* vert du parc */
+    box-shadow: 0 0 5px rgba(0, 97, 49, 0.4);
+    outline: none;
+}
+
+/* Pièce jointe */
+#bloc_pj_demande_avis, #bloc_pj_projet_acte, #bloc_pj_rapport_cs {
+    display: none;
+}
+
+/* Bouton envoyé */
+.div-btn-confirmer-envoi{
+    display: flex;
+    justify-content: right;
+    padding-right: 1rem;
+}
+
+.btn-confirmer-envoi {
+    color: #006131;
+    background-color: #fff;
+    border: #006131 solid 3px;
+    padding: 0.7rem 1.3rem;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    /* max-width: 240px; */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-confirmer-envoi:hover {
+    background-color: #006131;
+    color: #fff;
+}

@@ -1,0 +1,155 @@
+{% load static %}
+{% load breadcrumb_tags %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page pour formuler une demande d'avis</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/avis_nouvelle_demande_generique.css' %}">
+
+    <!-- JS -->
+    <script src="{% static 'instruction/js/nouvelle_demande_avis_generique.js' %}"></script>
+</head>
+<body>
+
+    {% include 'navbar.html' %}
+    {% breadcrumb breadcrumb_items %}
+
+    <div class="avis-page-container">
+        <h1>Nouvelle demande d'avis générique</h1>
+
+        <div class="form_nouvelle_demande_generique">
+            <form id="form-avis" method="post" enctype="multipart/form-data" action="{% url 'avis_confirmer_nouvelle_demande_generique' %}">
+                {% csrf_token %}
+
+                <div class="attribut_avis">
+                    <label>Nature de l'avis* :</label>
+                    <select id="nature" name="nature" required>
+                        <option value="">-- Sélectionner --</option>
+                        {% for nature in natures %}
+                            <option value="{{ nature.id }}">
+                                {{ nature.nature }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="attribut_avis">
+                    <label>Type de demande* :</label>
+                    <select id="demarche" name="demarche" required>
+                        <option value="">-- Sélectionner --</option>
+                        {% for d in demarches %}
+                            <option value="{{ d.id }}">
+                                {{ d.type }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="attribut_avis">
+                    <label>Thématique de l'avis* :</label>
+                    <select id="thematique" name="thematique" required>
+                        <option value="">-- Sélectionner --</option>
+                        {% for t in thematiques %}
+                            <option value="{{ t.id }}">
+                                {{ t.thematique }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="attribut_avis texte_libre">
+                    <label for="note_demandeur">Note :</label>
+                    <textarea id="note_demandeur" name="note_demandeur" rows="2" placeholder="Note libre pour le demandeur..."></textarea>
+                </div>
+
+                <div class="attribut_avis" id="bloc_pj_demande_avis">
+                    <label for="pj_avis">Joindre la demande d'avis (Word) :</label>
+                    <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx">
+                </div>
+
+                <div class="attribut_avis" id="bloc_pj_projet_acte">
+                    <label for="pj_avis">Joindre le projet d'acte (PDF) :</label>
+                    <input type="file" id="pj_projet_acte" name="pj_projet_acte" accept=".pdf">
+                </div>
+
+                <div class="attribut_avis" id="bloc_pj_rapport_cs">
+                    <label for="pj_avis">Joindre le rapport d'avis du CS (PDF) :</label>
+                    <input type="file" id="pj_rapport_cs" name="pj_rapport_cs" accept=".pdf">
+                </div>
+
+                <div class="attribut_avis" id="bloc_pj_avis" title="Donnez des noms parlants aux fichiers">
+                    <label for="pj_avis">Pièces jointes liées à l'avis :</label>
+                    <input type="file" id="pj_lie_avis" name="pj_lie_avis" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple>
+                </div>
+
+                
+                <div class="attribut_avis" id="bloc_expert_interne">
+                    <label>Choix de l'expert interne* :</label>
+                    <select id="expert_interne" name="expert_interne">
+                        <option value="">-- Sélectionner --</option>
+                        {% for i in instructeurs %}
+                            <option value="{{ i.id }}">
+                                {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}
+                                    {{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {{ i.email }}
+                                {% else %}
+                                    {{ i.email }}
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="attribut_avis" id="bloc_expert_externe">
+                    <label>Choix de l'expert externe* :</label>
+                    <select id="expert_externe" name="expert_externe">
+                        <option value="">-- Sélectionner --</option>
+                        {% for c in contacts_externes %}
+                            <option value="{{ c.id }}">
+                                {% if c.nom and c.prenom and c.email %}
+                                    {{ c.nom }} {{ c.prenom }} - {{ c.email }}
+                                {% elif c.nom and c.prenom %}
+                                    {{ c.nom }} {{ c.prenom }}
+                                {% elif c.raison_sociale %}
+                                    {{ c.raison_sociale }} - {{ c.email }}
+                                {% elif c.organisation %}
+                                    {{ c.organisation }} - {{ c.email }}
+                                {% else %}
+                                    {{ c.email }}
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="attribut_avis texte_libre">
+                    <label for="formulation_avis">Formulation de l'avis* :</label>
+                    <textarea id="formulation_avis" name="formulation_avis" rows="5" placeholder="Bonjour, vous trouverez ci-joint la demande d'avis..." required></textarea>
+                </div>
+
+                {% if messages %}
+                    <div class="django-messages">
+                        {% for message in messages %}
+                            <div class="message {{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="div-btn-confirmer-envoi">
+                    <!-- Bouton Envoyer avis -->
+                    <button type="submit" class="btn-confirmer-envoi">Envoyer la demande</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+            
+</body>
+</html>
