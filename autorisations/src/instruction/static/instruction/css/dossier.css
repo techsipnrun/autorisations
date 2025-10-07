@@ -198,7 +198,7 @@ h2 {
     top: 100%;
     left: 0;
     background-color: #fff;
-    min-width: 260px;
+    min-width: 310px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     border-radius: 8px;
     z-index: 1000;
@@ -764,7 +764,11 @@ textarea[name="note"] {
     transition: opacity 0.3s ease;
 }
 
-.form-note:hover .btn_maj_suppr {
+.ajouter-note .valider-btn {
+    opacity: 0.4;
+}
+
+.note-item:hover .btn_maj_suppr, .ajouter-note:hover .valider-btn {
     opacity: 1;
 }
 
@@ -825,10 +829,10 @@ textarea[name="note"] {
     border-radius: 4px;
 }
 
-
 .note-meta {
     font-weight: bold;
     color: #333;
+    margin-bottom: 0.6rem;
 }
 
 .note-aucune {

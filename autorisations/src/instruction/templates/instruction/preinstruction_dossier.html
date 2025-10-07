@@ -399,13 +399,19 @@
                             <p class="note-meta">
                                 <strong>{{ n.instructeur }}</strong> – {{ n.date|date:"d/m/Y H:i" }}
                             </p>
-                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
+                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form-note">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <input type="hidden" name="noteId" value="{{ n.id }}">
-                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
+                                <textarea name="note" rows="4">{{ n.note }}</textarea>
                                 {% if n.instructeur_id == instructeur_connecte.id %}
-                                    <button type="submit" class="valider-btn">Mettre à jour</button>
+                                    <div class="btn_maj_suppr">
+                                        <button type="submit" class="valider-btn">Mettre à jour</button>
+                                        <button type="submit" formaction="{% url 'supprimer_note_dossier' %}" class="supprimer-btn"
+                                                onclick="return confirm('Voulez-vous vraiment supprimer cette note ?');">
+                                            Supprimer
+                                        </button>
+                                    </div>
                                 {% endif %}
                             </form>
                         </div>

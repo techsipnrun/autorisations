@@ -1178,6 +1178,9 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
                 nouv_mess = 'oui'
 
         emetteur = msg.email_emetteur.lower().strip()
+        instru = Instructeur.objects.filter(email=emetteur).first()
+        contact = ContactExterne.objects.filter(email=emetteur).first()
+
 
         # left = Message expert, right = Message émis par instructeur
         align = "right" if emetteur != email_expert.lower().strip() else "left"
@@ -1191,7 +1194,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
             if message_doc and message_doc.id_document:   
                 pj_title, pj_emplacement = message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
 
     # Nombre d'avis envoyés
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()

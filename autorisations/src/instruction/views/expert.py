@@ -8,7 +8,7 @@ from django.utils.timezone import localtime
 from pathlib import Path
 
 from autorisations.models.models_instruction import Dossier, Message
-from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from autorisations.models.models_avis import Avis, AvisDocument, DossierAvis, Expert
 
@@ -202,6 +202,9 @@ def avis_expert(request, avis_id):
     
     for msg in raw_messages:
         emetteur = msg.email_emetteur.lower().strip()
+        instru = Instructeur.objects.filter(email=emetteur).first()
+        contact = ContactExterne.objects.filter(email=emetteur).first()
+
         nouv_mess = 'non'
         # VISION DEMANDEUR
         if est_demandeur:
@@ -229,7 +232,7 @@ def avis_expert(request, avis_id):
             if message_doc and message_doc.id_document:   
                 pj_title, pj_emplacement = message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
 
     ##############################################################
     # Documents

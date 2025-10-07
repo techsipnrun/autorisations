@@ -43,7 +43,7 @@
                     {% endif %}>
                     
                         <div class="msg-body">
-                            <p> {{ msg.body|safe }}</p>
+                            <p>{{ msg.body|safe|linebreaksbr }}</p>
                             {% if msg.pj_url %}
                                 <div class="pj-download">
                                     <!-- <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a> -->
@@ -53,13 +53,20 @@
                             {% endif %}
                         </div>
                         <span class="timestamp">
-                            {{ msg.date_envoi }}
+                            <span class="emetteur_message">
+                                {% if msg.emetteur %}
+                                    {{ msg.emetteur }}
+                                {% endif %}
+                            </span>
+                            <span>{{ msg.date_envoi }}</span>
 
-                            {% if msg.align == 'right' %}
+                            {% if msg.align == 'right' and msg.emetteur.email == request.user.email %}
                                 <!-- Formulaire pour supprimer le message -->
                                 <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form" style="display:inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="delete-button" title="Supprimer le message"></button>
+                                    <button type="submit" class="delete-button" title="Supprimer le message">
+                                        <img src="{% static 'instruction/img/trash.svg' %}" alt="Supprimer" class="trash-icon">
+                                    </button>
                                 </form>
                             {% endif %}
                         </span>

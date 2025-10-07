@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_documents import MessageDocument
-from autorisations.models.models_utilisateurs import DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
+from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
 from autorisations.models.models_avis import DossierAvis
 from notifications.service import _render_message, send_outbox_now
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
@@ -66,6 +66,9 @@ def preinstruction_dossier_messagerie(request, numero):
 
         emetteur = msg.email_emetteur.lower().strip()
 
+        instru = Instructeur.objects.filter(email=emetteur).first()
+        contact = ContactExterne.objects.filter(email=emetteur).first()
+
         # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
         align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
@@ -80,7 +83,7 @@ def preinstruction_dossier_messagerie(request, numero):
                 
                 pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
         
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
@@ -149,6 +152,9 @@ def instruction_dossier_messagerie(request, num_dossier):
 
         emetteur = msg.email_emetteur.lower().strip()
 
+        instru = Instructeur.objects.filter(email=emetteur).first()
+        contact = ContactExterne.objects.filter(email=emetteur).first()
+
         # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
         align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
@@ -156,19 +162,17 @@ def instruction_dossier_messagerie(request, num_dossier):
         # Recherche de la pièce jointe liée au message
         pj_url = pj_title = pj_emplacement = None
         if msg.piece_jointe:
-
             message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
 
             if message_doc and message_doc.id_document:
-                
                 pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess})
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
         
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
     
-    beneficiaire = None 
+    beneficiaire = None
     benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
     if benef :
         beneficiaire = benef.id_beneficiaire if interlocuteur else None

@@ -124,15 +124,23 @@ h1 {
 }
 
 .timestamp {
-    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: right;
+    text-align: right;
+    font-size: 0.8rem;
     color: #666;
     margin-top: 0.5rem;
-    display: block;
-    text-align: right;
+    /* display: block; */
 }
 
 
 /* Supprimer message */
+.delete-form{
+    display: inline;
+    align-items: center;
+}
+
 .delete-button {
     background: none;
     border: none;
@@ -142,13 +150,30 @@ h1 {
     margin-left: 0.5rem;
 }
 
-.delete-button::before {
+.emetteur_message {
+    margin-right: 1rem;
+}
+
+.trash-icon {
+    margin-left: 0.5rem;
+    transition: transform 0.2s ease;
+    width: 20px;
+    height: 20px;
+    opacity: 60%;
+}
+
+.trash-icon:hover {
+    transform: scale(1.1);
+    opacity: 100%;
+}
+
+/* .delete-button::before {
     content: "🗑️";
 }
 
 .delete-button:hover::before {
-    filter: grayscale(1) brightness(0) sepia(1) hue-rotate(-50deg) saturate(5); /* Teinte rouge */
-}
+    filter: grayscale(1) brightness(0) sepia(1) hue-rotate(-50deg) saturate(5);
+} */
 
 
 
