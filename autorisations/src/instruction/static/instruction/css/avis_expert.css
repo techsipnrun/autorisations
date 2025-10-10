@@ -298,4 +298,13 @@
     background-color: #004d25;
 }
 
+/* Select */
+.avis-choix select {
+    padding: 0.4rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
 

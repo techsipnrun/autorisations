@@ -289,12 +289,27 @@ def donner_son_avis(request, avis_id):
 
     avis = get_object_or_404(Avis, id=avis_id)
 
-    favorable = request.POST.get("favorable") == "true"
+    # favorable = request.POST.get("favorable") == "true"
     pj_avis_signe = request.FILES.get("avis_signe")
-
+    reponse = request.POST.get("reponse_expert")
 
     # Mise à jour de l'avis
-    avis.favorable = favorable
+    if reponse == "Favorable" or reponse == "Favorable sous réserve" :
+        avis.favorable = True
+        if reponse == "Favorable sous réserve" :
+            avis.sous_reserve = True
+        else :
+            avis.sous_reserve = False
+
+    elif reponse == "Défavorable" :
+        avis.favorable = False
+        avis.sous_reserve = False
+
+    else :
+        messages.error(request, f"❌ Erreur lors de la réponse à la demande d'avis : Vous devez choisir entre Favorable, Favorable sous réserve et Défavorable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
     avis.date_reponse_avis = timezone.now()
 
     # Enregistrer l'avis signé si présent
@@ -336,7 +351,7 @@ def donner_son_avis(request, avis_id):
 
         if doc_avis_signe :
             # Créer AvisDocument
-            AvisDocument.objects.create(
+            AvisDocument.objects.get_or_create(
                 id_avis=avis,
                 id_document=doc_avis_signe,
             )
@@ -347,9 +362,15 @@ def donner_son_avis(request, avis_id):
         
 
     # Message automatique Acceptation/Refus + Avis signé
-    if favorable and doc_avis_signe :
+    if (reponse == "Favorable" or reponse == "Favorable sous réserve") and doc_avis_signe :
         try:
-            if avis_signe_existant :
+            # Compte le nombre de documents "Avis instance" associés à cet avis
+            nb_avis_instance = AvisDocument.objects.filter(
+                id_avis=avis,
+                id_document__id_nature__nature__iexact="Avis instance"
+            ).count()
+
+            if avis_signe_existant and nb_avis_instance > 1 :
                 ancien_doc = avis_signe_existant.id_document
                 ancien_doc.id_nature = nature_annexe_avis
                 ancien_doc.save()

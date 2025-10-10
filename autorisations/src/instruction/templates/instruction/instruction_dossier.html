@@ -88,6 +88,7 @@
                         <div class="etat-badge-menu-content" id="etapeMenuContent">
                             {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
                                 {% if actions %}
+                                    <!-- Déclencher ouverture Zone masquée en fonction du bouton cliqué -->
                                     {% for label in actions %}
                                         {% if label == "Demander des compléments" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
@@ -101,11 +102,11 @@
                                         {% elif label == "Envoyer l'acte" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte</button>
                                         
-                                        {% elif label == "Envoyer pour validation avant signature" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Envoyer pour validation avant signature</button>
+                                        {% elif label == "Faire valider le projet d'acte" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Faire valider le projet d'acte</button>
                                         
-                                        {% elif label == "Envoyer pour validation avant demande d'avis" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Envoyer pour validation avant demande d'avis</button>
+                                        {% elif label == "Faire valider une demande d'avis" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider une demande d'avis</button>
                                         
                                         {% elif label == "Valider et envoyer pour relecture qualité" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
@@ -115,6 +116,9 @@
                                         
                                         {% elif label == "Acte inchangé, envoyer pour relecture qualité" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Acte inchangé, envoyer pour relecture qualité</button>
+                                        
+                                        {% elif label == "Prêt à la signature" and delibCA %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
 
                                         {% elif label == "Acte prêt à être envoyé" %}
                                             <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
@@ -149,8 +153,7 @@
                         </div>
                     </div>
 
-
-
+                    <!-- Bouton Se déclarer comme instructeur.trice du dossier -->
                     {% if peut_se_declarer %}
                         <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-declarer-instructeur">
                             {% csrf_token %}
@@ -170,15 +173,20 @@
                         rel="noopener noreferrer">
                         <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger le résumé du dossier" title="Télécharger le résumé du dossier">
                     </a>
-                    <!-- /suivis par défaut, /traites si dossier.etat == refuse ou accepte ou sans_suite -->
+
+                    <!-- Lien DS -->
                     <a class="icon_DS" href="https://www.demarches-simplifiees.fr/procedures/{{ demarche.numero }}{% if dossier.id_etat_dossier.nom in 'refuse,accepte,sans_suite' %}/traites{% else %}/suivis{% endif %}/dossiers/{{ dossier.numero }}" target="_blank">
                         <img src="{% static 'instruction/img/icon_DS_32.png' %}"
                             alt="Visualiser le dossier sur Démarches Simplifiées"
                             title="Visualiser le dossier sur Démarches Simplifiées">
                     </a>
-
                 </div>
 
+
+                
+                <!-- #################################################################
+                ########################## ZONES MASQUÉES ############################
+                ###################################################################-->
 
                 <!-- Zone masquée pour envoyer pour relecture qualité -->
                 <div id="formulaire-relecture-qualite" class="zone-complement zone-envoyer-pour-validation">
@@ -203,10 +211,35 @@
                         <div class="envoi-pour-validation-avant-signature">
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerRelectureQualite()">Confirmer l’envoi pour relecture qualité</button>
                         </div>
-
                     </form>
                 </div>
 
+
+                <!-- Zone masquée pour transmettre à l'intermédiaire CA -->
+                <div id="formulaire-transmission-ca" class="zone-complement zone-envoyer-pour-validation" style="display: none;">
+                    <form method="post" action="{% url 'pret_a_la_signature_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+
+                        <div class="choix-intermediaire-ca">
+                            <label for="choix_intermediaire_ca">Choisir qui fera l’intermédiaire avec le CA :</label>
+                            <select name="intermediaireCA" id="choix_intermediaire_ca" required>
+                                <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
+                                {% for ica in intermédiaires_CA %}
+                                    <option value="{{ ica.id }}">
+                                        {{ ica }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="envoi-pour-validation-avant-signature">
+                            <button type="button" class="btn-envoyer-complement" onclick="confirmerTransmissionIntermediaireCA()">
+                                Confirmer la transmission
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
 
                 <!-- Zone masquée pour transmettre doc signé -->
@@ -236,7 +269,7 @@
                         </div>
 
                         <div class="validant">
-                            <label>Signataire :</label>
+                            <label>Signataire {% if delibCA %}au Parc{% endif %} :</label>
                             <select name="choix-signataire" id="choix-signataire" required>
                                 <option value="" disabled selected>Choisir un.e signataire</option>
                                 <!-- Liste signataires -->
@@ -255,9 +288,16 @@
 
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
-                                <label for="pj_validation">Joindre l’acte signé :</label>
+                                <label for="pj_validation">Joindre l’acte signé (PDF) :</label>
                                 <input type="file" name="piece_jointe" id="pj_signe" accept=".pdf" required>
                             </div>
+                            
+                            {% if delibCA %}
+                                <div class="projet_acte_pj" id="joindre_pj_rapportCA">
+                                    <label for="pj_validation">Joindre le rapport au CA (PDF) :</label>
+                                    <input type="file" name="pj_rapport_CA" id="pj_rapport_CA" accept=".pdf" required>
+                                </div>
+                            {% endif %}
 
                             <p class="hint-text">📁 Merci de sélectionner un fichier <strong>PDF</strong> situé dans le dossier <strong>Work</strong>.</p>
                             <div class="envoi-pour-validation-avant-signature">
@@ -267,347 +307,6 @@
                     </form>
                 </div>
 
-                
-                <!-- Documents à valider -->
-                {% if etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" %}
-                    {% if doc_a_valider %}
-                        <div class="validation-documents">
-                            <h2>Projet d'acte à valider</h2>
-                            <form method="post" action="#">
-                                {% csrf_token %}
-                                <ul class="doc-a-valider-liste">
-                                    {% for doc in doc_a_valider %}
-                                        <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </form>
-                        </div>
-                    {% endif %}
-                    
-                    <!-- Demandes d'avis à valider -->
-                    {% if etape_actuelle.etape == "À valider avant demande d'avis" %}
-                        <div class="validation-documents">
-                            <h2>Demandes d'avis à valider</h2>
-                            <ul class="avis-a-valider-liste">
-                                {% for da in avis_a_valider %}
-                                    <li>
-                                        <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
-                                            Avis n°{{ da.id_avis.id }} –
-                                            {% if da.id_avis.id_avis_nature %}
-                                                {{ da.id_avis.id_avis_nature }}:
-                                            {% endif %}
-                                            {% if da.id_avis.id_expert %}
-                                                {% if da.id_avis.id_expert.est_interne %}
-                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                                {% else %}
-                                                    {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                    {{ da.id_avis.id_expert.id_contact_externe.prenom }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </a>
-                                    </li>
-                                {% empty %}
-                                    <li>Aucun avis disponible</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                    
-                    <!-- Demandes d'avis envoyées -->
-                    {% if etape_actuelle.etape == "À valider avant signature" and avis_envoye %}
-                        <div class="validation-documents">
-                            <h2>Demandes d'avis envoyées</h2>
-                            <ul class="avis-a-valider-liste">
-                                {% for da in avis_envoye %}
-                                    <li>
-                                        <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
-                                            Avis n°{{ da.id_avis.id }} –
-                                            {% if da.id_avis.id_avis_nature %}
-                                                {{ da.id_avis.id_avis_nature }}:
-                                            {% endif %}
-                                            {% if da.id_avis.id_expert %}
-                                                {% if da.id_avis.id_expert.est_interne %}
-                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                                {% else %}
-                                                    {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                    {{ da.id_avis.id_expert.id_contact_externe.prenom }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </a>
-                                    </li>
-
-                                {% empty %}
-                                    <li>Aucun avis à envoyer</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                {% endif %}
-
-
-   
-                    
-                <!-- Document validé avant demande avis et Avis à envoyer -->
-                {% if etape_actuelle.etape == "Avis à envoyer" %}
-
-                    {% if doc_valide_avant_demande_avis %}
-                        <div class="validation-documents">
-                            <h2>Projet d'acte validé avant demande d'avis</h2>
-                            <form method="post" action="#">
-                                {% csrf_token %}
-                                <ul class="doc-a-valider-liste">
-                                    {% for doc in doc_valide_avant_demande_avis %}
-                                        <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </form>
-                        </div>
-                    {% endif %}
-
-
-
-                    <div class="validation-documents">
-                        <h2>Demandes d'avis à envoyer</h2>
-                        <ul class="avis-a-valider-liste">
-                            {% for da in avis_a_envoyer %}
-                                <li>
-                                    <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
-                                        Avis n°{{ da.id_avis.id }} –
-                                        {% if da.id_avis.id_avis_nature %}
-                                            {{ da.id_avis.id_avis_nature }}:
-                                        {% endif %}
-                                        {% if da.id_avis.id_expert %}
-                                            {% if da.id_avis.id_expert.est_interne %}
-                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                            {% else %}
-                                                {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                {{ da.id_avis.id_expert.id_contact_externe.prenom }}
-                                            {% endif %}
-                                        {% endif %}
-                                    </a>
-                                </li>
-
-                            {% empty %}
-                                <li>Aucun avis à envoyer</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-                
-
-                <!-- Document validé avant demande avis et Avis envoyés -->
-                {% if etape_actuelle.etape == "En attente réponse d'avis" %}
-
-                    {% if doc_valide_avant_demande_avis %}
-                        <div class="validation-documents">
-                            <h2>Projet d'acte validé avant demande d'avis</h2>
-                            <form method="post" action="#">
-                                {% csrf_token %}
-                                <ul class="doc-a-valider-liste">
-                                    {% for doc in doc_valide_avant_demande_avis %}
-                                        <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </form>
-                        </div>
-                    {% endif %}
-
-
-
-                    <div class="validation-documents">
-                        <h2>Demandes d'avis envoyées</h2>
-                        <ul class="avis-a-valider-liste">
-                            {% for da in avis_envoye %}
-                                <li>
-                                    <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
-                                        Avis n°{{ da.id_avis.id }} –
-                                        {% if da.id_avis.id_avis_nature %}
-                                            {{ da.id_avis.id_avis_nature }}:
-                                        {% endif %}
-                                        {% if da.id_avis.id_expert %}
-                                            {% if da.id_avis.id_expert.est_interne %}
-                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                            {% else %}
-                                                {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                {{ da.id_avis.id_expert.id_contact_externe.prenom }}
-                                            {% endif %}
-                                        {% endif %}
-                                    </a>
-                                </li>
-
-                            {% empty %}
-                                <li>Aucun avis à envoyer</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-
-                <!-- Documents à relire -->
-                {% if etape_actuelle.etape == "En relecture qualité" and doc_a_relire %}
-                    <div class="validation-documents">
-                        <h2>Document à relire</h2>
-                        <form method="post" action="#">
-                            {% csrf_token %}
-                            <ul class="doc-a-valider-liste">
-                                {% for doc in doc_a_relire %}
-                                    <li class="doc-item">
-                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{ doc.titre }}
-                                        </a>
-                                        
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </form>
-                    </div>
-                {% endif %}
-
-                <!-- Documents à signer -->
-                {% if etape_actuelle.etape == "En attente de signature" and doc_a_signer %}
-                    <div class="validation-documents">
-                        <h2>Document à signer</h2>
-                        <form method="post" action="#">
-                            {% csrf_token %}
-                            <ul class="doc-a-valider-liste">
-                                {% for doc in doc_a_signer %}
-                                    <li class="doc-item">
-                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{ doc.titre }}
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </form>
-                            <!-- 
-                        <label for="pj_validation">Joindre l'acte signé :</label>
-                        <input type="file" name="piece_jointe" id="pj_validation" accept=".pdf,.doc,.docx" required> -->
-
-                    </div>
-                {% endif %}
-
-                <!-- Documents à envoyer -->
-                {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
-                    <div class="validation-documents">
-                        <h2>Document à envoyer</h2>
-                        <form method="post" action="#">
-                            {% csrf_token %}
-                            <ul class="doc-a-valider-liste">
-                                {% for doc in doc_a_envoyer %}
-                                    <li class="doc-item">
-                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{ doc.titre }}
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </form>
-                    </div>
-                {% endif %}
-
-                <!-- Documents envoyés -->
-                 {% if doc_envoye %}
-                    {% if etape_actuelle.etape == "À publier au RAA" %}
-                        <div class="validation-documents">            
-                                <h2>
-                                    Document à publier au RAA
-                                    <a href="https://www.reunion-parcnational.fr/fr/node/add/raa" target="_blank" rel="noopener noreferrer">
-                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="Lien vers le RAA" title="Lien vers le recueil des actes administratifs">
-                                    </a>
-                                </h2>
-
-                            <form method="post" action="#">
-                                {% csrf_token %}
-                                <ul class="doc-a-valider-liste">
-                                    {% for doc in doc_envoye %}
-                                        <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </form>
-                        </div>
-                    {% endif %}
-                {% endif %}
-
-                 <!-- Documents envoyés et publiés -->
-                 {% if doc_envoye_et_publie %}
-                    {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé"%}
-                        <div class="validation-documents">
-                            <h2>Document(s) publié(s) au RAA</h2>
-                       
-                            <form method="post" action="#">
-                                {% csrf_token %}
-                                <ul class="doc-a-valider-liste">
-                                    {% for doc in doc_envoye %}
-                                        <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
-                                            </a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </form>
-                        </div>
-                    {% endif %}
-                {% endif %}
-
-
-                <!-- Zone masquée pour la demande de compléments -->
-                <div id="formulaire-complement" class="zone-complement zone-envoyer-pour-validation">
-                    <form id="form-complement" method="post" enctype="multipart/form-data" action="{% url 'demander_des_complements_url' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
-                        <input type="hidden" name="correction" value='True'>
-                        <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required></textarea>
-                        <div class="zone-pj-complement">
-                            <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
-                            <button type="submit" class="btn-envoyer-complement">Envoyer</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Zone masquée : justification classement sans suite, refus dossier -->
-                <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required></textarea>
-                        <div class="zone-pj-complement">
-                            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Zone masquée : justification du refus -->
-                <div id="formulaire-refus" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required></textarea>
-                        <div class="zone-pj-complement">
-                            <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
-                        </div>
-                    </form>
-                </div>
 
                 <!-- Zone masquée pour envoyer l'acte -->
                 <div id="formulaire-acceptation" class="zone-complement zone-envoyer-pour-validation">
@@ -643,7 +342,6 @@
                                     Oui
                                 </label>
                             </div>
-                            <!-- Valeur envoyée au backend -->
                             <input type="hidden" name="partager_par_mail" id="partager_par_mail" value="non">
                         </div>
 
@@ -695,7 +393,6 @@
 
                             <div id="nouveaux-contacts-container"></div>
 
-                            <!-- multiple conservé MAIS on gère le clic en JS pour éviter Ctrl -->
                             <select name="emails_copie[]" id="emails_copie" multiple size="4" class="emails-multiselect">
                                 {% for e in emails_uniques %}
                                 <option class="ligne-contact" value="{{ e }}" data-nom="{{ e }}" data-email="{{ e|lower }}">
@@ -711,19 +408,66 @@
                         </div>
 
                         <div class="zone-pj-complement">
-                            <!-- <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx"> -->
+                            <!-- Acte à envoyer -->
                             {% if doc_a_envoyer.0 %}
                                 <input type="hidden" name="document_id_existant" value="{{ doc_a_envoyer.0.id }}">
                             {% endif %}
+                            <!-- Rapport CA -->
+                            {% if rapports_ca %}
+                                {% if rapports_ca.0 %}
+                                    <input type="hidden" name="rapportCA_id" value="{{ rapports_ca.0.id }}">
+                                {% endif %} 
+                            {% endif %}
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerEnvoiActe()">Confirmer l'envoi de l'acte</button>
                         </div>
-
                     </form>
                 </div>
 
+
+                <!-- Zone masquée pour la demande de compléments -->
+                <div id="formulaire-complement" class="zone-complement zone-envoyer-pour-validation">
+                    <form id="form-complement" method="post" enctype="multipart/form-data" action="{% url 'demander_des_complements_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
+                        <input type="hidden" name="correction" value='True'>
+                        <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required></textarea>
+                        <div class="zone-pj-complement">
+                            <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
+                            <button type="submit" class="btn-envoyer-complement">Envoyer</button>
+                        </div>
+                    </form>
+                </div>
+
+
+                <!-- Zone masquée : justification classement sans suite, refus dossier -->
+                <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required></textarea>
+                        <div class="zone-pj-complement">
+                            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
+                        </div>
+                    </form>
+                </div>
+
+
+                <!-- Zone masquée : justification du refus -->
+                <div id="formulaire-refus" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required></textarea>
+                        <div class="zone-pj-complement">
+                            <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
+                        </div>
+                    </form>
+                </div>
+
+
                 <!-- Zone masquée pour envoyer pour validation avant signature -->
                 <div id="formulaire-validation-signature" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_pour_validation_avant_signature_url' %}">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'faire_valider_le_projet_d_acte_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
@@ -768,18 +512,46 @@
                                 <input type="file" name="piece_jointe" id="pj_validation" accept=".odt,.doc,.docx" required>
                             </div>
 
-                            <p class="hint-text">📁 Merci de sélectionner un fichier situé dans le dossier <strong>Work</strong>.</p>
+                            <div id="zone-projet-rapport"></div>
+                            <p class="hint-text">📁 Merci de sélectionner des fichiers situés dans le dossier <strong>Work</strong>.</p>
+
                             <div class="envoi-pour-validation-avant-signature">
                                 <button type="button" class="btn-envoyer-complement" onclick="confirmerValidationAvantSignature()">Confirmer l’envoi pour validation</button>
                             </div>
                         </div>
                     </form>
                 </div>
+                <!-- Affichage conditionnel si on choisit Délibération CA  -->
+                <script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        const selectNature = document.getElementById("nature_validation");
+                        const zoneRapport = document.getElementById("zone-projet-rapport");
+
+                        selectNature.addEventListener("change", function() {
+                            // Si Délibération CA → ajouter un champ supplémentaire
+                            if (this.value === "Déliberation CA") {
+                                if (!document.getElementById("pj_rapport_ca")) {
+                                    const div = document.createElement("div");
+                                    div.classList.add("projet_rapport_ca_pj");
+                                    div.innerHTML = `
+                                        <label for="pj_rapport_ca">Joindre le projet de Rapport du CA :</label>
+                                        <input type="file" name="piece_jointe_rapport_ca" id="pj_rapport_ca" accept=".odt,.doc,.docx" required>
+                                    `;
+                                    zoneRapport.appendChild(div);
+                                }
+                            } else {
+                                // Supprimer le champ si on change de nature
+                                const existing = document.getElementById("pj_rapport_ca");
+                                if (existing) existing.parentElement.remove();
+                            }
+                        });
+                    });
+                </script>
 
 
                 <!-- Zone masquée pour envoyer pour validation avant demande d'avis -->
                 <div id="formulaire-validation-demande-avis" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_pour_validation_avant_demande_avis_url' %}">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'faire_valider_une_demande_d_avis_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
@@ -846,21 +618,13 @@
                                                 {{ da.id_avis.id_avis_nature }}: 
                                             {% endif %}
                                             {% if da.id_avis.id_expert %}
-                                                {% if da.id_avis.id_expert.est_interne %}
-                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom|upper }}
-                                                    {{ da.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom }}
-                                                {% else %}
-                                                    {{ da.id_avis.id_expert.id_contact_externe.nom|upper }}
-                                                    {{ da.id_avis.id_expert.id_contact_externe.prenom }}
-                                                {% endif %}
+                                                {{da.id_avis.id_expert}}
                                             {% endif %}
                                         </option>
                                  
                                 {% empty %}
                                     <option disabled>Aucun avis "Brouillon" à faire valider</option>
                                 {% endfor %}
-
-
                             </select>
                             <p class="hint-text">Maintenez <strong>Ctrl</strong> pour sélectionner plusieurs avis.</p>
                         </div>
@@ -868,10 +632,317 @@
                         <div class="envoi-pour-validation-avant-signature">
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerValidationAvantDemandeAvis()">Confirmer l’envoi pour validation</button>
                         </div>
-
                     </form>
                 </div>
 
+
+
+                <!-- ###############################################################
+                ########################## BLOCS DOCUMENTS #########################
+                #################################################################-->
+
+                <!-- Documents à valider -->
+                {% if etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" %}
+                    {% if doc_a_valider %}
+                        <div class="validation-documents">
+                            <h2>Projet d'acte à valider</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_a_valider %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.id_nature.nature }} : {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                <!-- Document validé avant demande avis -->
+                {% if etape_actuelle.etape == "En attente réponse d'avis" or etape_actuelle.etape == "Avis à envoyer" %}
+                    {% if doc_valide_avant_demande_avis %}
+                        <div class="validation-documents">
+                            <h2>Projet d'acte validé avant demande d'avis</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_valide_avant_demande_avis %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Documents à relire -->
+                {% if etape_actuelle.etape == "En relecture qualité" %}
+                    {% if doc_a_relire %}
+                        <div class="validation-documents">
+                            <h2>Document à relire</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_a_relire %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{doc.id_nature.nature}} : {{ doc.titre }}
+                                            </a>
+                                            
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Documents à signer -->
+                {% if etape_actuelle.etape == "En attente de signature" and doc_a_signer %}
+                    <div class="validation-documents">
+                        <h2>Document à signer</h2>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <ul class="doc-a-valider-liste">
+                                {% for doc in doc_a_signer %}
+                                    <li class="doc-item">
+                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                            {{doc.id_nature.nature}} : {{ doc.titre }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <!-- Documents à envoyer -->
+                {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
+                    <div class="validation-documents">
+                        <h2>Document à envoyer</h2>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <ul class="doc-a-valider-liste">
+                                {% for doc in doc_a_envoyer %}
+                                    <li class="doc-item">
+                                        <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                            {{doc.id_nature.nature}} : {{ doc.titre }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </form>
+                    </div>
+                {% endif %}
+
+                <!-- Documents envoyés -->
+                 {% if doc_envoye %}
+                    {% if etape_actuelle.etape == "À publier au RAA" %}
+                        <div class="validation-documents">            
+                                <h2>
+                                    Document à publier au RAA
+                                    <a href="https://www.reunion-parcnational.fr/fr/node/add/raa" target="_blank" rel="noopener noreferrer">
+                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="Lien vers le RAA" title="Lien vers le recueil des actes administratifs">
+                                    </a>
+                                </h2>
+
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_envoye %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Documents envoyés et publiés -->
+                {% if doc_envoye_et_publie %}
+                    {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé"%}
+                        <div class="validation-documents">
+                            <h2>Document(s) publié(s) au RAA</h2>
+                       
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in doc_envoye %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+                <!-- Projet de rapport au CA -->
+                {% if delibCA and projets_rapport_ca %}
+                    {% if etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" %}
+                        <div class="validation-documents">
+                            <h2>Projet de rapport au CA</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in projets_rapport_ca %}
+                                        <li class="doc-item">
+                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                {{doc.id_nature.nature}} : {{ doc.titre }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                    
+                <!-- Rapport CA PDF -->
+                {% if delibCA and rapports_ca %}
+                    {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
+                        <div class="validation-documents">
+                            <h2>Rapport CA</h2>
+                            <form method="post" action="#">
+                                {% csrf_token %}
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in rapports_ca %}
+                                        <!-- Si rapport CA enregistré dans /Actes : on les ignore ici -->
+                                        {% if doc.id_statut.statut != "Envoyé" %}
+                                            <li class="doc-item">
+                                                <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
+                                                    {{doc.id_nature.nature}} : {{ doc.titre }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+
+                <!-- #############################################################
+                ########################### BLOCS AVIS ###########################
+                ###############################################################-->
+
+                <!-- ######################## AVIS ENVOYÉS ######################### -->
+                {% if etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "Refusé" or etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "En attente réponse d'avis" %}
+                    {% if avis_envoye %}
+                        <div class="validation-documents">
+                            <h2>Demandes d'avis envoyées</h2>
+                            <ul class="avis-a-valider-liste">
+                                {% for da in avis_envoye %}
+                                    <li>
+                                        <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}" title="Voir l'avis">
+                                            Avis n°{{ da.id_avis.id }} –
+                                            
+                                            {% if da.id_avis.id_expert %}
+                                                {{ da.id_avis.id_expert }}
+                                            {% endif %}
+
+                                            {% if da.id_avis.favorable %}
+                                                (Favorable)
+                                            {% elif da.id_avis.favorable == False %}
+                                                (Défavorable)
+                                            {% endif %}
+                                        </a>
+
+                                        {% if da.id_avis.documents %}
+                                            {% for avis_signe in da.id_avis.documents %}
+                                                <a id="download_avis_signe" href="{% url 'afficher_annexe' chemin=avis_signe.emplacement titre=avis_signe.titre %}" target="_blank">
+                                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger l'avis signé" title="Télécharger l'avis signé">
+                                                </a>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </li>
+
+                                {% empty %}
+                                    <li>Aucun avis à envoyer</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endif %}   
+
+                <!-- ######################## AVIS À ENVOYER ######################### -->
+                {% if etape_actuelle.etape == "Avis à envoyer" %}
+                    {% if avis_a_envoyer %}
+                        <div class="validation-documents">
+                            <h2>Demandes d'avis à envoyer</h2>
+                            <ul class="avis-a-valider-liste">
+                                {% for da in avis_a_envoyer %}
+                                    <li>
+                                        <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                            Avis n°{{ da.id_avis.id }} –
+                                            {% if da.id_avis.id_avis_nature %}
+                                                {{ da.id_avis.id_avis_nature }}:
+                                            {% endif %}
+                                            {% if da.id_avis.id_expert %}
+                                            {{da.id_avis.id_expert}}
+                                            {% endif %}
+                                        </a>
+                                    </li>
+
+                                {% empty %}
+                                    <li>Aucun avis à envoyer</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+            <!-- ######################## AVIS À VALIDER ######################### -->
+            {% if etape_actuelle.etape == "À valider avant demande d'avis" %}
+                {% if avis_a_valider %}
+                    <div class="validation-documents">
+                        <h2>Demandes d'avis à valider</h2>
+                        <ul class="avis-a-valider-liste">
+                            {% for da in avis_a_valider %}
+                                <li>
+                                    <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}">
+                                        Avis n°{{ da.id_avis.id }} –
+                                        {% if da.id_avis.id_avis_nature %}
+                                            {{ da.id_avis.id_avis_nature }}:
+                                        {% endif %}
+                                        {% if da.id_avis.id_expert %}
+                                            {{da.id_avis.id_expert}}
+                                        {% endif %}
+                                    </a>
+                                </li>
+                            {% empty %}
+                                <li>Aucun avis disponible</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            {% endif %}
+                
+                
+
+
+
+                <!-- 
+                ####################################################################
+                ######################## CHAMPS FORMULAIRE #########################
+                ####################################################################
+                -->
                 <div class="champs">
                     {% for champ in champs %}
                         {% if champ.type == 'header' %}
@@ -980,6 +1051,12 @@
                 </div>
             </div>
 
+            
+            <!-- 
+                ####################################################################
+                ######################## PARTIE DE DROITE ##########################
+                ####################################################################
+            -->
             <!-- Colonne droite : navigation -->
             <div class="nav_preinstruction">
                 <div class="nav_top">
@@ -1017,6 +1094,8 @@
                     </div>
                 </div>
                 
+
+                <!-- ############################# VALIDANTS ############################# -->
                 {% if dossier.id_etape_dossier.etape == 'À valider avant signature' or dossier.id_etape_dossier.etape == "À valider avant demande d'avis" %}
                     <div class="groupe-instructeur-info">
                         <h3>Validant.e.s</h3>
@@ -1059,7 +1138,7 @@
                     </div>
                 {% endif %}
 
-
+                <!-- ############################# RELECTEURS QUALITÉS ############################# -->
                 {% if dossier.id_etape_dossier.etape == 'En relecture qualité' or dossier.id_etape_dossier.etape == 'À publier au RAA' or dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
                     <div class="groupe-instructeur-info">
                         <h3>Relecteurs.rices qualité</h3>
@@ -1069,8 +1148,7 @@
                                 {% if relecteur in relecteurs_qualite_du_dossier %}
                                     <li class="instructeur_du_dossier">
                                         {{ relecteur.id_agent_autorisations.nom|upper }} {{ relecteur.id_agent_autorisations.prenom|capfirst }}
-                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Relecteur.rice" title="Relecteur.rice du dossier" class="logo_instructeur logo_relecteur_qualite">
-                                            
+                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Relecteur.rice" title="Relecteur.rice du dossier" class="logo_instructeur logo_relecteur_qualite">  
                                     </li>
 
                                     {% if changer_relecteur_qualite_message %}
@@ -1081,9 +1159,7 @@
 
                                 {% else %}
                                     <li class="pas_instructeur_du_dossier">
-
                                         {{ relecteur.id_agent_autorisations.nom|upper }} {{ relecteur.id_agent_autorisations.prenom|capfirst }}
-                                            
                                         <form method="post" action="{% url 'changer_relecteur' %}" class="form-changer-valideur">
                                             {% csrf_token %}
                                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
@@ -1095,16 +1171,15 @@
                                         </form>
                                     </li>
                                 {% endif %}
-                            
                             {% empty %}
                                 <li>Aucun·e relecteur.rice défini·e.</li>
                             {% endfor %}
-
                         </ul>
                     </div>
                 {% endif %}
                 
-                <!-- Bloc Mails envoyés -->
+
+                <!-- ############################# MAILS ENVOYÉS ############################# -->
                 {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' %}
                     {% if emails_dossiers %}
                         <div class="mails_dossier">
@@ -1175,7 +1250,7 @@
                     {% endif %}
                 {% endif %}
 
-
+                <!-- ############################# GROUPES INSTRUCTEURS ############################# -->
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
                         <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
@@ -1258,11 +1333,10 @@
                                 </button>
                             </form>
                         {% endif %}
-
                     </div>
                 {% endif %}
 
-                
+                <!-- ############################# RELECTURE ############################# -->
                 <div class="groupe-instructeur-info demander-relecture_juridique">
                     <h3>Relecture</h3>
 
@@ -1279,18 +1353,12 @@
                             {% for rj in relecteurs_du_dossier %}
                                 <li class="instructeur_du_dossier_relecture" onclick="toggleRelecture(this)">
                                     <div class="relecture-header">
-                                        <!-- {% if rj.relu %}
-                                            <img src="{% static 'instruction/img/fait.png' %}" alt="Fait" title="Relecture terminée" class="logo_instructeur">
-                                        {% else %}
-                                            <img src="{% static 'instruction/img/en_cours.png' %}" alt="En cours" title="Relecture en cours" class="logo_instructeur">
-                                        {% endif %} -->
 
                                         <div class="bloc-gauche">
                                             <span class="triangle">&#9654;</span>
                                             <div class="nom_prenom_relecteur {% if request.user.email == rj.id_instructeur.email %}txt_en_gras{% endif %}">
                                                 {{ rj.id_instructeur.id_agent_autorisations.nom|upper }} {{ rj.id_instructeur.id_agent_autorisations.prenom|capfirst }}
                                             </div>
-                                            
                                             
                                             {% if rj.relu %}
                                             <div class="relecture_faite">
@@ -1316,7 +1384,6 @@
                              
                                     <div class="relecture-details hidden">
                                         <p><strong>Demande :</strong> {{ rj.demande_relecture }}</p>
-
                                         {% with docs=rj.dossierrelecteurdocument_set.all %}
                                             {% if docs %}
                                                 <ul>
@@ -1346,12 +1413,8 @@
                                             </form>
                                         {% elif request.user.email == rj.id_instructeur.email and rj.relu %}
                                             <p><strong>Réponse :</strong> {{ rj.reponse_relecture }}</p>
-
                                         {% endif %}
                                     </div>
-
-
-
                                 </li>
                             {% endfor %}
                         </ul>
@@ -1385,6 +1448,8 @@
                     </div>
                 </div>
 
+
+                <!-- ############################# NOTES ############################# -->
                 <div class="groupe-instructeur-info notes_instructeurs">
                     <h3 class="notes-titre">
                         <span>📝 Notes :</span>
@@ -1479,6 +1544,8 @@
             </div>
         </div>
 
+
+        <!-- ############################# FORMULAIRE MANIF SPORTIVES ############################# -->
         {% if doss_manif_sportive %}
             {% include "dossier_manif_sportive.html" with doss_manif_sportive=doss_manif_sportive %}
         {% endif %}
@@ -1714,6 +1781,16 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireTransmissionCA() {
+            masquerToutesZonesComplementaires();
+            document.querySelectorAll('.zone-complement').forEach(el => el.style.display = 'none');
+            // Afficher la zone Transmission CA
+            const zone = document.getElementById('formulaire-transmission-ca');
+            if (zone) zone.style.display = 'block';
+
+            fermerMenuEtape();
+        }
+
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
             const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
@@ -1776,6 +1853,22 @@
                 bouton.closest("form").submit();
             }
         }
+
+        // Pour confirmer la transmission du dossier à l'intermédiaire CA
+        function confirmerTransmissionIntermediaireCA() {
+            const select = document.getElementById('choix_intermediaire_ca');
+            const intermediaire = select.value;
+            if (!intermediaire) {
+                alert("Veuillez sélectionner un intermédiaire avant de confirmer.");
+                return;
+            }
+
+            const confirmation = confirm("Confirmer la transmission du dossier à l’intermédiaire CA ?");
+            if (confirmation) {
+                select.closest("form").submit();
+            }
+        }
+
 
         // Pour confirmer l'envoi pour Validation avant signature
         function confirmerValidationAvantSignature() {

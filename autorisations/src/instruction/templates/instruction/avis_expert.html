@@ -32,7 +32,8 @@
                     <form id="form-donner-avis" class="form-donner-avis" method="post" enctype="multipart/form-data"
                         action="{% url 'donner_son_avis' avis.id %}">
                         {% csrf_token %}
-                        <div class="avis-choix">
+
+                        <!-- <div class="avis-choix">
                             <label>
                                 <input type="radio" name="favorable" value="true" checked>
                                 Favorable
@@ -41,7 +42,28 @@
                                 <input type="radio" name="favorable" value="false">
                                 Défavorable
                             </label>
+                        </div> -->
+
+                        <div class="avis-choix">
+                            <label>Votre réponse :</label>
+                            <select name="reponse_expert" id="reponse_expert" required>
+                                <option value="" disabled selected>Sélectionner</option>
+                                <option value="Favorable">
+                                    Favorable
+                                </option>
+
+                                <option value="Favorable sous réserve">
+                                    Favorable sous réserve
+                                </option>
+
+                                <option value="Défavorable">
+                                    Défavorable
+                                </option>
+                            </select>
                         </div>
+
+
+
 
                         <div class="avis-fichier">
                             <label for="avis-signe">Joindre l'avis signé {% if not avis.id_projet_avis %}(optionnel){% endif %} :</label>
@@ -54,8 +76,10 @@
             {% else %}
                 <div class="etat-badge-menu-avis {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
                     {% if avis.date_reponse_avis %}
-                        {% if avis.favorable %}
+                        {% if avis.favorable and not avis.sous_reserve %}
                             Avis rendu : Favorable
+                        {% elif avis.favorable and avis.sous_reserve %}
+                            Avis rendu : Favorable sous réserve
                         {% elif avis.favorable == False %}
                             Avis rendu : Défavorable
                         {% else %}

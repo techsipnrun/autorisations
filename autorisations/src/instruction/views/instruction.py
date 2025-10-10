@@ -13,7 +13,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierBene
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
-from autorisations.models.models_avis import DossierAvis
+from autorisations.models.models_avis import AvisDocument, DossierAvis
 from declaration_manifestations.call_api_dm import recup_un_seul_dossier
 from synchronisation.src.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.src.synchro.sync_declaration_manifestations import sync_declaration_manifestations
@@ -218,16 +218,11 @@ def mesdossiers(request):
 def instruction_demarche(request, num_demarche):
 
     demarche = get_object_or_404(Demarche, numero=num_demarche)
-
     etapes_sans_a_affecter = EtapeDossier.objects.exclude(etape="À affecter")
- 
     etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
-
     mes_dossiers = request.GET.get("mes_dossiers", "1")
-
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
-
 
     dossiers_query_tous = (
             Dossier.objects.filter(
@@ -318,7 +313,6 @@ def instruction_demarche(request, num_demarche):
             if dossier_beneficiaire:
                 beneficiaire = dossier_beneficiaire.id_beneficiaire
 
-
         nb_messages_non_lus = Message.objects.filter(
             id_dossier=dossier,
             lu=False
@@ -341,7 +335,6 @@ def instruction_demarche(request, num_demarche):
 
         dossier_archives_infos.sort(key=lambda d: (not d["action_a_faire"], -d["nb_messages_non_lus"]))
 
-
     return render(request, "instruction/instruction_demarche.html", {
     "demarche": demarche,
     "dossiers": dossier_infos,
@@ -352,17 +345,20 @@ def instruction_demarche(request, num_demarche):
 
 
 
+
 @login_required
 def instruction_dossier(request, num_dossier):
 
     dossier = get_object_or_404(Dossier, numero=num_dossier)
     demarche = dossier.id_demarche
 
-    # Charger le fond de carte GeoJSON (une seule fois)
+
+    ####################################
+    # Charger les fonds de carte GeoJSON
+    ####################################
     fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
     with open(fond_coeur_de_parc, encoding="utf-8") as f:
         fond_coeur_de_parc = json.load(f)
-
 
     fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
     with open(fond_aire_adhesion, encoding="utf-8") as f:
@@ -372,6 +368,10 @@ def instruction_dossier(request, num_dossier):
     with open(fond_mafate, encoding="utf-8") as f:
         fond_mafate = json.load(f)
 
+
+    ####################################
+    # Récupérer les champs du formulaire
+    ####################################
     nb_cartes = 0
     champs_prepares = []
     for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("ordre"):
@@ -380,7 +380,6 @@ def instruction_dossier(request, num_dossier):
         nom = champ.id_champ.nom
         if nom.endswith(":"):
             nom = nom.rstrip(":").strip()
-
 
         # Ignorer les champs de type explication
         if ct == "explication": continue
@@ -431,44 +430,31 @@ def instruction_dossier(request, num_dossier):
             })
             
         elif ct == "drop_down_list":
-            
             if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in champ.valeur :
                 geojson_source = champ.geometrie_modif or champ.geometrie
-
                 if not (geojson_source) :
-
                     champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'oui', "geojson": json.dumps({}), "id":champ.id})
                 else :
-
                     champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'non', "geojson": json.dumps(geojson_source), "id":champ.id})
-
             else :
                 champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
-        
-
         else:
             champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
 
-    #Récupérer tous les noms de groupes instructeurs pour la démarche en question
+
+
+
+    ####################################
+    # Groupe Instructeurs
+    ####################################
+    #Groupes instructeurs de la démarche en question
     groupes_instructeurs = Groupeinstructeur.objects.filter(groupeinstructeurdemarche__id_demarche=dossier.id_demarche).order_by("nom")
-
-    membres_groupe = []
-    if dossier.id_groupeinstructeur:
-        membres_groupe = dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations").values_list("id_instructeur", flat=False)
-        membres_groupe = [m.id_instructeur for m in dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")]
-
-    etapes_possibles = EtapeDossier.objects.all().order_by("etape")
-    etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
 
     instructeurs_dossier = set(
         DossierInstructeur.objects.filter(id_dossier=dossier)
         .values_list("id_instructeur_id", flat=True)
     )
 
-
-    '''
-        ### pour savoir si on affiche le bouton 'Se déclarer comme l'instructeur du dossier'
-    '''
     # Identifier l'instructeur lié à l'utilisateur connecté
     instructeur_connecte = (
         Instructeur.objects
@@ -476,6 +462,11 @@ def instruction_dossier(request, num_dossier):
         .select_related("id_agent_autorisations")
         .first()
     )
+ 
+    membres_groupe = []
+    if dossier.id_groupeinstructeur:
+        membres_groupe = dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations").values_list("id_instructeur", flat=False)
+        membres_groupe = [m.id_instructeur for m in dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")]
 
     # Par défaut, on n'affiche pas le bouton
     peut_se_declarer = False
@@ -487,26 +478,20 @@ def instruction_dossier(request, num_dossier):
             .values_list("id_instructeur_id", flat=True)
         )
 
-        instructeurs_dossier = set(
-            DossierInstructeur.objects.filter(id_dossier=dossier)
-            .values_list("id_instructeur_id", flat=True)
-        )
+        # instructeurs_dossier = set(
+        #     DossierInstructeur.objects.filter(id_dossier=dossier)
+        #     .values_list("id_instructeur_id", flat=True)
+        # )
 
         # Si aucun instructeur du groupe n'est affecté au dossier, et que l'utilisateur connecté fait partie du groupe : il peut se déclarer
         if not instructeurs_dossier & instructeurs_du_groupe and instructeur_connecte.id in instructeurs_du_groupe:
             peut_se_declarer = True
 
 
-    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
-    emplacements_documents = [doc.id_document.emplacement for doc in dossier_documents]
 
-    # Documents de nature "Annexe instructeur"
-    annexes_instructeur = [
-        doc.id_document for doc in dossier_documents
-        if doc.id_document.id_nature.nature.lower() == "annexe instructeur"
-    ]
-
-    # Recup des infos sur le bénéficiaire
+    ####################################################
+    # Infos sur le bénéficiaire/demandeur intermédiaires
+    ####################################################
     beneficiaire = None
     demandeur_intermediaire = None
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
@@ -520,20 +505,27 @@ def instruction_dossier(request, num_dossier):
         if interlocuteur.id_demandeur_intermediaire:
             demandeur_intermediaire = interlocuteur.id_demandeur_intermediaire
 
-    #Menu déroulant adpaté enfocntion de l'étape en cours du dossier
+
+
+    ########################################
+    #Menu déroulant avec les choix d'étapes
+    ########################################
+    etapes_possibles = EtapeDossier.objects.all().order_by("etape")
+    etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
+
     etapes_custom = {
         "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
         "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Passer en instruction"],
         "En attente de compléments": ["Passer en instruction"],
-        "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Envoyer pour validation avant demande d'avis", "Envoyer pour validation avant signature"],
+        "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
         "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
         "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
-        "En relecture qualité": ["Repasser en instruction", "Envoyer pour signature"],
+        "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
         "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Acte inchangé, envoyer pour relecture qualité"],
         "Avis à envoyer":["Avis envoyé"],
-        "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé"],
+        "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
         "Acte à envoyer": ["Envoyer l'acte"],
-        "À publier au RAA": ["Classer le dossier comme accepté"],  #message de confirmation (publication au RAA faite ?)
+        "À publier au RAA": ["Classer le dossier comme accepté"],
         "Non soumis à autorisation": ["Repasser en instruction"],
         "Accepté": ["Repasser en instruction"],
         "Refusé": ["Repasser en instruction"]
@@ -543,44 +535,56 @@ def instruction_dossier(request, num_dossier):
     if etape_actuelle and etape_actuelle.etape == "En instruction" and demarche.type == "Manifestations sportives":
         actions = etapes_custom.get("En instruction", [])
         etapes_custom["En instruction"] = [a for a in actions if a != "Envoyer pour validation avant demande d'avis"]
-
-
-    # Mapping entre les actions et leurs logos
+    
+    
+    #####################################################
+    # Timeline : Mapping entre les actions et leurs logos
+    #####################################################
     logo_mapping = {
-    "Dossier reçu": "recu.png",
-    "Instructeur.e retiré.e": "instructeur_retire.png",
-    "Instructeur.e ajouté.e": "instructeur_ajoute.png",
-    "Classé sans suite": "classe-sans-suite.png",
-    "Classé comme refusé": "refuse.png",
-    "Classé comme accepté": "accepte.png",
-    "Demande de compléments": "demande-de-complements.png",
-    "Avis reçu": "recu.png",
-    "Avis demandé": "acte-envoye.png",
-    "Acte signé": "acte-signe.png",
-    "Acte envoyé": "acte-envoye.png",
-    "Validé avant demande d'avis": "valide.png",
-    "Publié au RAA": "publie_au_raa.png",
-    "Envoyé pour signature": "envoye.png",
-    "Relecture qualité": "relecture-qualite.png",
-    "Validé avant signature": "valide.png",
-    "Relecture": "relecture-qualite.png",
-    "Passage en instruction": "envoye.png",
-    "Repassage en instruction": "envoye.png",
-    "Affectation au groupe": "groupe_instructeur.png",
-    "Passage en pré-instruction": "envoye.png",
-    "Envoyé pour validation": "envoye_pour_validation.png",
-    "Envoyé pour relecture qualité": "envoye.png",
-    "Avis demandé": "acte-envoye.png",
-    "Validant.e changé.e": "changer_validant.png",
-    "Relecteur.rice changé.e": "changer_validant.png",
-}
+        "Dossier reçu": "recu.png",
+        "Instructeur.e retiré.e": "instructeur_retire.png",
+        "Instructeur.e ajouté.e": "instructeur_ajoute.png",
+        "Classé sans suite": "classe-sans-suite.png",
+        "Classé comme refusé": "refuse.png",
+        "Classé comme accepté": "accepte.png",
+        "Demande de compléments": "demande-de-complements.png",
+        "Avis reçu": "recu.png",
+        "Avis demandé": "acte-envoye.png",
+        "Acte signé": "acte-signe.png",
+        "Acte envoyé": "acte-envoye.png",
+        "Validé avant demande d'avis": "valide.png",
+        "Publié au RAA": "publie_au_raa.png",
+        "Envoyé pour signature": "envoye.png",
+        "Relecture qualité": "relecture-qualite.png",
+        "Validé avant signature": "valide.png",
+        "Relecture": "relecture-qualite.png",
+        "Passage en instruction": "envoye.png",
+        "Repassage en instruction": "envoye.png",
+        "Affectation au groupe": "groupe_instructeur.png",
+        "Passage en pré-instruction": "envoye.png",
+        "Envoyé pour validation": "envoye_pour_validation.png",
+        "Envoyé pour relecture qualité": "envoye.png",
+        "Avis demandé": "acte-envoye.png",
+        "Validant.e changé.e": "changer_validant.png",
+        "Relecteur.rice changé.e": "changer_validant.png",
+    }
 
-
-    # Dossier Actions
     dossier_actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date')
-
     for action in dossier_actions:
         action.logo = logo_mapping.get(action.id_action.action, "timeline.png")
+
+
+
+    ################################
+    #  Notes & Annexes Instructeur
+    ################################
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    emplacements_documents = [doc.id_document.emplacement for doc in documents_du_dossier]
+
+    annexes_instructeur = [
+        doc.id_document for doc in documents_du_dossier
+        if doc.id_document.id_nature.nature.lower() == "annexe instructeur"
+    ]
 
     notes_queryset = DossierNote.objects.filter(id_dossier=dossier).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
 
@@ -595,14 +599,17 @@ def instruction_dossier(request, num_dossier):
         for n in notes_queryset
     ]
 
+
+
+    #############################
+    # Documents
+    #############################
+
     documents_actes = Document.objects.filter(
         emplacement=f"{dossier.emplacement}/Actes/"
     ).values_list("titre", flat=True)
 
-
-    # Récupération des documents liés au dossier
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
-
+    # Actes et statut
     natures_valides = ['Déliberation CA', 'Arrêté directeur', 'Avis simple', 'Avis conforme']
 
     acte_a_valider = [
@@ -610,9 +617,10 @@ def instruction_dossier(request, num_dossier):
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à valider" and doc.id_document.id_nature.nature in natures_valides
     ]
 
+    natures_valides_avec_rapport = natures_valides + ["Projet Rapport CA"]
     acte_a_relire = [
         doc.id_document for doc in documents_du_dossier
-        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à relire" and doc.id_document.id_nature.nature in natures_valides
+        if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "à relire" and doc.id_document.id_nature.nature in natures_valides_avec_rapport
     ]
 
     acte_a_signer = [
@@ -635,7 +643,6 @@ def instruction_dossier(request, num_dossier):
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides
     ]
 
-
     acte_envoye_et_publie = [
         doc.id_document for doc in documents_du_dossier
         if doc.id_document.id_statut and doc.id_document.id_statut.statut.lower() == "envoyé" and doc.id_document.id_nature.nature in natures_valides and doc.id_document.publie_au_raa
@@ -643,12 +650,30 @@ def instruction_dossier(request, num_dossier):
 
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
-    titres_documents_actes = list(
-        Document.objects.filter(
-            emplacement=os.path.join(dossier.emplacement, "Actes/")
-        ).values_list("titre", flat=True)
-    )
-    
+    # Rapport CA
+    projets_rapport_ca = [
+        dd.id_document
+        for dd in documents_du_dossier
+        if dd.id_document.id_nature.nature.lower() == "projet rapport ca"
+    ]
+
+    rapports_ca = [
+        dd.id_document
+        for dd in documents_du_dossier
+        if dd.id_document.id_nature.nature.lower() == "rapport ca"
+    ]
+
+
+
+    ###############################
+    # Liste d'instructeurs par rôle
+    ###############################
+    # Intermédiaires CA
+    groupe = Group.objects.filter(name="Intermédiaire CA").first()
+    user_intermédiaire_CA = groupe.user_set.all() if groupe else []
+    emails_intermédiaire_CA = [user.email for user in user_intermédiaire_CA if user.email]
+    intermédiaires_CA = Instructeur.objects.filter(email__in=emails_intermédiaire_CA).select_related("id_agent_autorisations")
+
     # Validant.e.s SAADD
     groupe = Group.objects.filter(name="Validant-e SAADD").first()
     user_validants_SAADD = groupe.user_set.all() if groupe else []
@@ -677,7 +702,6 @@ def instruction_dossier(request, num_dossier):
 
     # Relecteur du dossier
     relecteurs_du_dossier = DossierRelecteur.objects.filter(id_dossier=dossier)
-    
 
     # Relecteur-rice juridique
     # groupe = Group.objects.filter(name="Relecteur-rice juridique").first()
@@ -691,8 +715,6 @@ def instruction_dossier(request, num_dossier):
     emails_signataire = [user.email for user in user_signataire if user.email]
     signataires = Instructeur.objects.filter(email__in=emails_signataire).select_related("id_agent_autorisations")
 
-
-
     # Fusionner les relecteurs qualité et les instructeurs du groupe instructeur (sans doublon)
     relecteurs_ids = {r.id for r in relecteurs_qualite}
     instructeurs_groupe = []
@@ -705,12 +727,21 @@ def instruction_dossier(request, num_dossier):
         ]
 
     relecteurs_qualite_et_instructeurs = list(relecteurs_qualite) + instructeurs_groupe
-
     instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
 
+    # Type contacts externes
+    types_contacts = TypeContactExterne.objects.all()
+
+    # Instructeur.rices du dossier
+    instructeurs_du_dossier = Instructeur.objects.filter(
+        dossierinstructeur__id_dossier=dossier
+    ).select_related("id_agent_autorisations")
 
 
+
+    ###############################
     # Messages non lus
+    ###############################
     nb_messages_non_lus = Message.objects.filter(
         id_dossier=dossier,
         lu=False
@@ -721,11 +752,10 @@ def instruction_dossier(request, num_dossier):
     ).count()
 
 
-    # Nombre d'avis envoyés
-    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
-
-
+    
+    ####################################
     # Dossier Déclaration Manifestations
+    ####################################
     doss_manif_sportive = None
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
@@ -733,7 +763,10 @@ def instruction_dossier(request, num_dossier):
             doss_manif_sportive = liaison.id_dossier_manif
  
 
-    # Emails
+
+    ################
+    #    Emails
+    ################
     emails_contacts = ContactExterne.objects.filter(
         email__isnull=False
     ).exclude(email__exact="").values_list("email", flat=True).distinct()
@@ -745,24 +778,38 @@ def instruction_dossier(request, num_dossier):
     # Fusionner et dédoublonner
     emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
 
-
     # Liste tous les emails de la table outbox liés à ce dossier
     emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id).order_by("-date_creation")
+
+
+
+    ##################
+    #  AVIS 
+    ##################
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
 
     # Avis du dossier
     avis_du_dossier = DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_avis_nature", "id_avis__id_expert")
     avis_a_valider = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='À valider').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
     avis_a_envoyer = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='À envoyer').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
-    avis_envoye = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Envoyé').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
     avis_statut_brouillon = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Brouillon').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
+    
+    avis_envoye = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut='Envoyé').select_related("id_avis__id_avis_nature", "id_avis__id_expert")
 
-    # Type contacts externes
-    types_contacts = TypeContactExterne.objects.all()
+    # Ajout des documents "Avis signés" à chaque avis
+    for da in avis_envoye:
+        da.id_avis.documents = [
+            ad.id_document
+            for ad in AvisDocument.objects
+                .select_related("id_document__id_nature")
+                .filter(
+                    id_avis=da.id_avis,
+                    id_document__id_nature__nature="Avis instance"
+                )
+        ]
 
-    # Instructeur.rices du dossier
-    instructeurs_du_dossier = Instructeur.objects.filter(
-        dossierinstructeur__id_dossier=dossier
-    ).select_related("id_agent_autorisations")
+
 
     # Messages non lus envoyés par les experts des avis
     nb_avis_avec_nouveau_mess = 0
@@ -784,7 +831,6 @@ def instruction_dossier(request, num_dossier):
 
         if nb_non_lus_avis > 0:
             nb_avis_avec_nouveau_mess += 1
-
 
 
     return render(request, 'instruction/instruction_dossier.html', {
@@ -828,7 +874,10 @@ def instruction_dossier(request, num_dossier):
         "doc_envoye": acte_envoye,
         "doc_valide_avant_demande_avis":acte_valide_avant_demande_avis,
         "doc_envoye_et_publie": acte_envoye_et_publie,
-        "titres_documents_actes": titres_documents_actes,
+        "projets_rapport_ca": projets_rapport_ca,
+        "rapports_ca": rapports_ca,
+        # "titres_documents_actes": titres_documents_actes,
+        "intermédiaires_CA": intermédiaires_CA,
         "validants_SAADD": validants_SAADD,
         "validants_SPPN": validants_SPPN,
         "validants": validants,
@@ -850,6 +899,7 @@ def instruction_dossier(request, num_dossier):
         "nb_avis_envoyes": nb_avis_envoyes,
         "types_contacts": types_contacts,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
+        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" for dd in documents_du_dossier)
     })
 
 

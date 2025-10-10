@@ -112,7 +112,7 @@
 }
 
 #formulaire-acceptation {
-    margin-bottom: 8rem;
+    margin-bottom: 2rem;
 }
 
 #formulaire-acceptation label {
@@ -409,9 +409,28 @@
     margin-top: 2rem;
 }
 
+.pj-validation-avant-signature .projet_rapport_ca_pj {
+    margin: 0.5rem 0;
+}
+
 .envoi-pour-validation-avant-signature {
     width: 100%;
     text-align: right;
+}
+
+/* Bloc Transmission à l'intermédiaire CA */
+#formulaire-transmission-ca {
+    margin-bottom: 1rem;
+}
+
+#choix_intermediaire_ca {
+    margin-bottom: 1rem;
+}
+
+/* Bloc pour joindre la délib CA signée + Rapport du CA*/
+#joindre_pj_rapportCA {
+    margin-top: 0.7rem;
+    margin-bottom: 0.4rem;
 }
 
 
@@ -420,7 +439,7 @@
     background-color: #f9f9f9;
     border-left: 4px solid #006131;
     padding: 1rem;
-    margin-bottom: 0.5rem;
+    margin: 1rem 0;
 }
 
 .validation-documents h2 {
@@ -438,6 +457,7 @@
 .doc-titre {
     color: #006131;
     text-decoration: none;
+    margin-bottom: 0.5rem;
 }
 
 .doc-titre:hover {
@@ -519,7 +539,10 @@
 }
 
 .avis-a-valider-liste li {
-    margin: 0.3rem 0;
+    margin: 0.8rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .avis-a-valider-liste a {
@@ -537,6 +560,24 @@
     text-decoration: underline;
 }
 
+#download_avis_signe {
+    margin: 0;
+    padding: 0;
+
+}
+
+#download_avis_signe img {
+    width: 25px;
+    height: 25px;
+    margin: 0;
+    padding: 0;
+}
+
+.avis-a-valider-liste #download_avis_signe:hover {
+    background-color: transparent;
+    color: inherit;
+    text-decoration: none;
+}
 
 
 

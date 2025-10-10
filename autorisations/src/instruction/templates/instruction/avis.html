@@ -53,11 +53,11 @@
                                 </td>
                                 <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
                                 <td class="
-                                    {% if not avis.date_reponse_avis %}etat-attente
+                                    {% if not avis.date_reponse_avis or avis.favorable is null %}etat-attente
                                     {% elif avis.favorable %}etat-favorable
                                     {% else %}etat-defavorable{% endif %}
                                 ">
-                                    {% if avis.date_reponse_avis %}
+                                    {% if avis.date_reponse_avis and avis.favorable is not null %}
                                         {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
                                     {% else %}
                                         ⏳ En attente
@@ -125,8 +125,10 @@
                                 <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
                                 <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
                                 <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
-                                    {% if avis.favorable %}
+                                    {% if avis.favorable and not avis.sous_reserve %}
                                         ✅ Favorable
+                                    {% elif avis.favorable and avis.sous_reserve %}
+                                        ✅ Favorable sous réserve
                                     {% else %}
                                         ❌ Défavorable
                                     {% endif %}
@@ -192,13 +194,15 @@
                                 </td>
                                 <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
                                 <td class="
-                                    {% if not avis.date_reponse_avis %}etat-attente
+                                    {% if not avis.date_reponse_avis or avis.favorable is null %}etat-attente
                                     {% elif avis.favorable %}etat-favorable
                                     {% else %}etat-defavorable{% endif %}
                                 ">
                                     {% if avis.date_reponse_avis %}
-                                        {% if avis.favorable %}
+                                        {% if avis.favorable and not avis.sous_reserve %}
                                             ✅ Favorable
+                                        {% elif avis.favorable and avis.sous_reserve %}
+                                            ✅ Favorable sous réserve
                                         {% else %}
                                             ❌ Défavorable
                                         {% endif %}
