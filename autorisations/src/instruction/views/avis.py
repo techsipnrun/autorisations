@@ -633,6 +633,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         pj_projet_avis = request.FILES.get("pj_demande_avis")
         pj_projet_acte = request.FILES.get("pj_projet_acte")
         pj_rapport_cs = request.FILES.get("pj_rapport_cs")
+        liste_autres_pj = request.FILES.getlist("pj_lie_avis")
 
         try:
             nature = AvisNature.objects.get(id=nature_id)
@@ -776,6 +777,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
                 if updated_fields:
                     brouillon_avis.save(update_fields=updated_fields)
+                    avis = brouillon_avis
                     logger.info(
                         f"[DOSSIER {dossier.numero}] Brouillon d'avis ({brouillon_avis}) mis à jour. "
                         f"Changements: {', '.join(updated_fields)}"
@@ -847,7 +849,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             except Exception as e:
                 messages.error(request, f"Erreur lors de la création du lien entre le dossier {dossier.numero} et {avis} : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
-            
+
             # Create message (formulation)
             if avis.formulation :
                 try:
@@ -874,6 +876,38 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     avis.save()
                     messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        try :
+
+            # Ajout des autres pièces jointes si présentes 
+            if liste_autres_pj :
+                chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
+                os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+                
+                # on parcourt les fichiers et on les écrit physiquement
+                for pj in liste_autres_pj :
+                    
+                    doc_pj = enregistrer_document(
+                        fichier=pj,
+                        nature_str="Annexe avis",
+                        description=f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis.id}",
+                        request=request,
+                        emplacement_avis = emplacement,
+                    )
+
+                    # Création AvisDocument
+                    if doc_pj:
+                        AvisDocument.objects.create(
+                            id_avis=avis,
+                            id_document=doc_pj
+                        )
+        except Exception as e:
+
+                messages.error(request, f"Erreur lors du rattachement des autres pièces jointes à la demande d'avis : {e}")
+                logger.error(request, f"[DOSSIER {dossier.numero}] Avis {avis.id} : Echec du rattachement des autres pièces jointes à la demande d'avis : {e}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
 
         # NOTIF par MAIL à l'expert
 

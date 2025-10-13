@@ -282,7 +282,7 @@ def envoyer_message_dossier(request, numero):
 
         else:
             loggerDS.error(f"[DOSSIER {dossier.numero}] Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)")
-            return HttpResponse(f"Dossier {numero} : Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)", status=500)
+            return HttpResponse(f"Dossier {numero} : Erreur lors de l'envoi du message sur Démarches Simplifiées (Le dossier n'a pas été trouvé)", status=500)
         
     except Exception as e:
 

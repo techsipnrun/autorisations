@@ -191,10 +191,14 @@
                     </span>
                 </p>
                 
-                <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis }} </p>
-
+                <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis|date:"d/m/Y" }} </p>
+                
+                {% if avis.date_transmission_cs %}
+                    <p> <strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }} </p>
+                {% endif %}
+                
                 {% if avis.date_reponse_avis %}
-                    <p> <strong>Date de réponse :</strong> avis.date_reponse_avis </p>
+                    <p> <strong>Date de réponse :</strong> avis.date_reponse_avis|date:"d/m/Y" </p>
                 {% endif %}
 
                 <!-- {% if avis.favorable and avis.favorable == True %}
@@ -325,6 +329,27 @@
 
         </div>
     </div>
+    
+
+    <!-- Défilement automatique en bas et gestion de l'envoi du message -->
+    <script>
+        window.addEventListener('load', function() {
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            const messageForm = document.querySelector('.message-form');
+            const sendButton = messageForm?.querySelector('button[type="submit"]');
+
+            if (messageForm && sendButton) {
+                messageForm.addEventListener('submit', function() {
+                    sendButton.disabled = true;
+                    sendButton.innerText = 'Envoi...';
+                });
+            }
+        });
+    </script>
         
             
     <!-- POP UP Confirmation pour écrasage d'une pj deja existante -->

@@ -77,6 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderChips() {
         chips.innerHTML = '';
 
+        // ⚠️ Désélectionner toutes les options d'abord
+        Array.from(select.options).forEach(o => o.selected = false);
+
         // 1. depuis le select
         selectedValues.forEach(val => {
             const opt = originalOptions.find(o => o.value === val);

@@ -80,7 +80,7 @@ def passer_en_pre_instruction(request):
         )
         return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
 
-    # ✅ Passage autorisé
+    # Passage autorisé
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
     changer_etape_si_differente(dossier, "En pré-instruction", request.user)
     enregistrer_action(dossier, instructeur_connecte, "Passage en pré-instruction")
@@ -149,15 +149,16 @@ def dossier_non_soumis_a_autorisation(request):
             logger.error(f"[DOSSIER {dossier.numero}] Echec classement 'Non soumis à autorisation' : Instructeur introuvable ou non présent sur DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
 
-         # Si l'étape est 'En pré-instruction' ou 'À affecter' et l'état 'en_construction' --> passer l'état à en_instruction
-        if dossier.id_etat_dossier.nom == 'en_construction' and (dossier.id_etape_dossier.etape == 'En pré-instruction' or dossier.id_etape_dossier.etape == 'À affecter') :
-            passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+        if dossier.present_sur_ds :
+            # Si l'étape est 'En pré-instruction' ou 'À affecter' et l'état 'en_construction' --> passer l'état à en_instruction
+            if dossier.id_etat_dossier.nom == 'en_construction' and (dossier.id_etape_dossier.etape == 'En pré-instruction' or dossier.id_etape_dossier.etape == 'À affecter') :
+                passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
 
-        # Appel API GraphQL
-        result = classer_sans_suite_ds(dossier.id_ds, instructeur.id_ds, motivation)
-        if not result.get("success"):
-            logger.error(f"[DOSSIER {dossier.numero}] Classement sans suite DS échoué : {result.get('message')}")
-            return HttpResponseBadRequest("Erreur DS : classement sans suite échoué.")
+            # Appel API GraphQL
+            result = classer_sans_suite_ds(dossier.id_ds, instructeur.id_ds, motivation)
+            if not result.get("success"):
+                logger.error(f"[DOSSIER {dossier.numero}] Classement sans suite DS échoué : {result.get('message')}")
+                return HttpResponseBadRequest("Erreur DS : classement sans suite échoué.")
 
         # Mettre à jour étape + état si besoin
         changer_etape_si_differente(dossier, "Non soumis à autorisation", request.user)
@@ -191,15 +192,16 @@ def refuse_le_dossier(request):
             logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier : Instructeur introuvable ou non connecté à DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
 
-        # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
-        if dossier.id_etat_dossier.nom == 'en_construction' and dossier.id_etape_dossier.etape == 'En pré-instruction' :
-            passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+        if dossier.present_sur_ds :
+            # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
+            if dossier.id_etat_dossier.nom == 'en_construction' and dossier.id_etape_dossier.etape == 'En pré-instruction' :
+                passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
 
-        # Appel de l'API DS
-        result = refuser_dossier_ds(dossier.id_ds, instructeur.id_ds, motivation)
-        if not result.get("success"):
-            logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier sur DS : {result.get('message')}")
-            return HttpResponseBadRequest("Erreur Démarches Simplifiées : refus échoué.")
+            # Appel de l'API DS
+            result = refuser_dossier_ds(dossier.id_ds, instructeur.id_ds, motivation)
+            if not result.get("success"):
+                logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier sur DS : {result.get('message')}")
+                return HttpResponseBadRequest("Erreur Démarches Simplifiées : refus échoué.")
 
         # Mettre à jour étape + état si besoin
         changer_etape_si_differente(dossier, "Refusé", request.user)
@@ -231,11 +233,12 @@ def passer_en_instruction(request):
             logger.error(f"[DOSSIER {dossier.numero}] Echec du passage en instruction : Instructeur introuvable ou non connecté à DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
 
-        # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
-        if etat_actuel_dossier.nom.lower() != "en_instruction":
-            result = passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
-            if not result.get("success"):
-                logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS : {result.get('message')}")
+        if dossier.present_sur_ds :
+            # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
+            if etat_actuel_dossier.nom.lower() != "en_instruction":
+                result = passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+                if not result.get("success"):
+                    logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS : {result.get('message')}")
 
         # Changer l'étape et l'état si besoin
         changer_etape_si_differente(dossier, "En instruction", request.user)
@@ -650,17 +653,19 @@ def repasser_en_instruction(request):
 
         if not instructeur or not instructeur.id_ds:
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à DS.")
-   
-        # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
-        if etat_actuel_dossier.nom.lower() != "en_instruction":
-            result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
 
-            if not result.get("success"):
-                if result.get('message') == "Le dossier est déjà en instruction" :
-                    logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'a pas été repassé en instruction sur DS car il est déjà en instruction : {result.get('message')}")
-                else:
-                    logger.error(f"[DOSSIER {dossier.numero}] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
-                    return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
+        if dossier.present_sur_ds :
+
+            # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
+            if etat_actuel_dossier.nom.lower() != "en_instruction":
+                result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+
+                if not result.get("success"):
+                    if result.get('message') == "Le dossier est déjà en instruction" :
+                        logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'a pas été repassé en instruction sur DS car il est déjà en instruction : {result.get('message')}")
+                    else:
+                        logger.error(f"[DOSSIER {dossier.numero}] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
+                        return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
 
         # Changer l'étape et l'état si besoin
         changer_etape_si_differente(dossier, "En instruction", request.user)
@@ -704,7 +709,6 @@ def repasser_en_instruction(request):
 
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
-
     return HttpResponseBadRequest("Méthode non autorisée.")
 
 
@@ -845,7 +849,7 @@ def pret_a_la_signature(request):
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        enregistrer_action(dossier, instructeur, "Envoyé pour signature")
+        enregistrer_action(dossier, instructeur, "Prêt à la signature")
 
         # Récupérer l'objet statut "À signer"
         statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
@@ -1202,197 +1206,200 @@ def envoyer_l_acte(request):
 
 
         
+        if dossier.present_sur_ds :
+            result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
+        
+            if result["success"]:
+                loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur.email}")
 
-        result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
-        if result["success"]:
-
-            loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur.email}")
-
-            # Mettre à jour l'étape et l'état en BDD
-            etape_raa = EtapeDossier.objects.filter(etape__iexact="À publier au RAA").first()
-            etat_accepte = EtatDossier.objects.filter(nom__iexact="accepte").first()
-
-            if dossier:
-                if etape_raa and dossier.id_etape_dossier != etape_raa:
-                    changer_etape_si_differente(dossier, "À publier au RAA", request.user)
-
-                if etat_accepte and dossier.id_etat_dossier != etat_accepte:
-                    changer_etat_si_different(dossier, 'accepte', request.user)
-            
-            # Dossier Action
-            enregistrer_action(dossier, instructeur, "Acte envoyé")
-
-            # Créer le Document en physique
-            if fichier and dossier:
-    
-                # Format : extraire l'extension
-                nom, extension = os.path.splitext(fichier.name)
-                ext = extension.lstrip('.').lower()
-                format_obj = DocumentFormat.objects.filter(format__iexact=ext).first()
-
-                # Nature : à partir du label sélectionné
-                nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
-
-                if not format_obj or not nature_obj:
-                    logger.error(f"[DOSSIER {dossier_numero}] Format ({ext}) ou nature ({nature_document}) introuvable.")
-                else:
-                    if doc_existant :
-                        # Supprimer le lien avec le dossier
-                        DossierDocument.objects.filter(id_document=doc_existant.id).delete()
-                        # Supprimer l’objet Document
-                        doc_existant.delete()
-                        logger.warning(f"[DOSSIER {dossier_numero}] Suppression de l'ancien Document et DossierDocument {emplacement_doc}")
-                    
-                    # Logger l'écrasement du fichier
-                    if os.path.exists(full_path):
-                        logger.warning(f"[DOSSIER {dossier_numero}] Écrasement de {full_path}")
-
-                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                    with open(full_path, 'wb+') as dest:
-                        for chunk in fichier.chunks():
-                            dest.write(chunk)
-                    logger.info(f"[DOSSIER {dossier_numero}] {nature_document} ({fichier.name}) écrit : {full_path}")
-
-                    # Récupérer l'objet statut "Envoyé"
-                    statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
-
-                    # Par sécurité
-                    if not statut_envoye:
-                        logger.error("Statut 'Envoyé' introuvable en base.")
-                        messages.error("Statut 'Envoyé' introuvable en base.")
-                        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-                    # Mise à jour des champs existants
-                    document.id_format = format_obj
-                    document.id_nature = nature_obj
-                    document.id_statut = statut_envoye
-                    document.emplacement = os.path.join(dossier_path, 'Actes/')
-                    document.description = f"{nature_document} pour le dossier {dossier.numero}"
-                    document.save()
-
-            # -------------------------------------#
-            # Envoyer une copie de l'acte par Mail
-            # -------------------------------------#
-            partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
-            emails = request.POST.getlist("emails_copie[]")
-
-            # Nouveaux contacts
-            emails_nouveaux = request.POST.getlist("email_contact[]")
-            noms = request.POST.getlist("nom_contact[]")
-            prenoms = request.POST.getlist("prenom_contact[]")
-            types = request.POST.getlist("type_contact[]")
-            raisons = request.POST.getlist("raison_sociale[]")
-
-            # --- Traiter les nouveaux contacts saisis dans le mini-form ---
-            for i, email in enumerate(emails_nouveaux):
-                email = (email or "").strip()
-                if not email:
-                    continue
-
-                try:
-                    validate_email(email)
-                except ValidationError:
-                    logger.warning(f"[DOSSIER {dossier_numero}] Email invalide ignoré: {email}")
-                    continue
-
-                nom = (noms[i] if i < len(noms) else "").strip()
-                prenom = (prenoms[i] if i < len(prenoms) else "").strip()
-                raison = (raisons[i] if i < len(raisons) else "").strip()
-                type_id = types[i] if i < len(types) else None
-
-                type_obj = None
-                if type_id:
-                    type_obj = TypeContactExterne.objects.filter(id=type_id).first()
-                if not type_obj:
-                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="autre")
-
-                contact, created = ContactExterne.objects.get_or_create(
-                    email=email,
-                    defaults={
-                        "nom": nom,
-                        "prenom": prenom,
-                        "raison_sociale": raison,
-                        "id_type": type_obj,
-                    }
-                )
-                if created:
-                    logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {email}")
-
-                # Ajouter ce mail aux destinataires
-                emails.append(email)
+            else:
+                logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
+                loggerDS.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
 
 
-            # Normalise + dédoublonne
-            if partager_par_mail == "oui":
+        # Mettre à jour l'étape et l'état en BDD
+        etape_raa = EtapeDossier.objects.filter(etape__iexact="À publier au RAA").first()
+        etat_accepte = EtatDossier.objects.filter(nom__iexact="accepte").first()
+
+        if dossier:
+            if etape_raa and dossier.id_etape_dossier != etape_raa:
+                changer_etape_si_differente(dossier, "À publier au RAA", request.user)
+
+            if etat_accepte and dossier.id_etat_dossier != etat_accepte:
+                changer_etat_si_different(dossier, 'accepte', request.user)
+        
+        # Dossier Action
+        enregistrer_action(dossier, instructeur, "Acte envoyé")
+
+        # Créer le Document en physique
+        if fichier and dossier:
+
+            # Format : extraire l'extension
+            nom, extension = os.path.splitext(fichier.name)
+            ext = extension.lstrip('.').lower()
+            format_obj = DocumentFormat.objects.filter(format__iexact=ext).first()
+
+            # Nature : à partir du label sélectionné
+            nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
+
+            if not format_obj or not nature_obj:
+                logger.error(f"[DOSSIER {dossier_numero}] Format ({ext}) ou nature ({nature_document}) introuvable.")
+            else:
+                if doc_existant :
+                    # Supprimer le lien avec le dossier
+                    DossierDocument.objects.filter(id_document=doc_existant.id).delete()
+                    # Supprimer l’objet Document
+                    doc_existant.delete()
+                    logger.warning(f"[DOSSIER {dossier_numero}] Suppression de l'ancien Document et DossierDocument {emplacement_doc}")
                 
-                emails_norm = []
-                seen = set()
-                for e in emails:
-                    e_norm = (e or "").strip()
-                    if not e_norm:
-                        continue
-                    e_key = e_norm.lower()
-                    if e_key in seen:
-                        continue
-                    # Valide l'email
-                    try:
-                        validate_email(e_norm)
-                    except ValidationError:
-                        logger.warning(f"[DOSSIER {dossier_numero}] Email invalide ignoré: {e_norm}")
-                        continue
-                    seen.add(e_key)
-                    emails_norm.append(e_norm)
+                # Logger l'écrasement du fichier
+                if os.path.exists(full_path):
+                    logger.warning(f"[DOSSIER {dossier_numero}] Écrasement de {full_path}")
 
-                if not emails_norm:
-                    logger.warning(request, "Aucun email valide sélectionné pour l’envoi en copie.")
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with open(full_path, 'wb+') as dest:
+                    for chunk in fichier.chunks():
+                        dest.write(chunk)
+                logger.info(f"[DOSSIER {dossier_numero}] {nature_document} ({fichier.name}) écrit : {full_path}")
+
+                # Récupérer l'objet statut "Envoyé"
+                statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
+
+                # Par sécurité
+                if not statut_envoye:
+                    logger.error("Statut 'Envoyé' introuvable en base.")
+                    messages.error("Statut 'Envoyé' introuvable en base.")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+                # Mise à jour des champs existants
+                document.id_format = format_obj
+                document.id_nature = nature_obj
+                document.id_statut = statut_envoye
+                document.emplacement = os.path.join(dossier_path, 'Actes/')
+                document.description = f"{nature_document} pour le dossier {dossier.numero}"
+                document.save()
+
+
+        # -------------------------------------#
+        # Envoyer une copie de l'acte par Mail
+        # -------------------------------------#
+        partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
+        emails = request.POST.getlist("emails_copie[]")
+
+        # Nouveaux contacts
+        emails_nouveaux = request.POST.getlist("email_contact[]")
+        noms = request.POST.getlist("nom_contact[]")
+        prenoms = request.POST.getlist("prenom_contact[]")
+        types = request.POST.getlist("type_contact[]")
+        raisons = request.POST.getlist("raison_sociale[]")
+
+        # --- Traiter les nouveaux contacts saisis dans le mini-form ---
+        for i, email in enumerate(emails_nouveaux):
+            email = (email or "").strip()
+            if not email:
+                continue
+
+            try:
+                validate_email(email)
+            except ValidationError:
+                logger.warning(f"[DOSSIER {dossier_numero}] Email invalide ignoré: {email}")
+                continue
+
+            nom = (noms[i] if i < len(noms) else "").strip()
+            prenom = (prenoms[i] if i < len(prenoms) else "").strip()
+            raison = (raisons[i] if i < len(raisons) else "").strip()
+            type_id = types[i] if i < len(types) else None
+
+            type_obj = None
+            if type_id:
+                type_obj = TypeContactExterne.objects.filter(id=type_id).first()
+            if not type_obj:
+                type_obj, _ = TypeContactExterne.objects.get_or_create(type="autre")
+
+            contact, created = ContactExterne.objects.get_or_create(
+                email=email,
+                defaults={
+                    "nom": nom,
+                    "prenom": prenom,
+                    "raison_sociale": raison,
+                    "id_type": type_obj,
+                }
+            )
+            if created:
+                logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {email}")
+
+            # Ajouter ce mail aux destinataires
+            emails.append(email)
+
+
+        # Normalise + dédoublonne
+        if partager_par_mail == "oui":
+            
+            emails_norm = []
+            seen = set()
+            for e in emails:
+                e_norm = (e or "").strip()
+                if not e_norm:
+                    continue
+                e_key = e_norm.lower()
+                if e_key in seen:
+                    continue
+                # Valide l'email
+                try:
+                    validate_email(e_norm)
+                except ValidationError:
+                    logger.warning(f"[DOSSIER {dossier_numero}] Email invalide ignoré: {e_norm}")
+                    continue
+                seen.add(e_key)
+                emails_norm.append(e_norm)
+
+            if not emails_norm:
+                logger.warning(request, "Aucun email valide sélectionné pour l’envoi en copie.")
+            else:
+
+                sujet = f"{nature_document} – Dossier {dossier.numero}"
+                dedupe = compute_dedupe_key(emails_norm, sujet, "libre", {"body": motivation})
+            
+                try:
+                    outbox = EmailOutbox.objects.create(
+                        to=emails_norm,
+                        email_from=os.getenv("DEFAULT_FROM_EMAIL"),
+                        sujet=sujet,
+                        template="libre",
+                        dedupe_key=dedupe,
+                        context={"body": motivation},
+                        id_dossier=dossier,
+                        id_document=document,
+                    )
+                    logger.info(f"[DOSSIER {dossier_numero}] EmailOutbox créé pour {emails_norm}")
+
+                except IntegrityError as e:
+                    # Si c’est bien un conflit sur l’unicité partielle (ux_outbox_dedupe_pending)
+                    is_unique_violation = (
+                        (UniqueViolation and isinstance(getattr(e, "__cause__", None), UniqueViolation))
+                        or "ux_outbox_dedupe_pending" in str(e)
+                        or "unique" in str(e).lower()
+                    )
+                    if is_unique_violation:
+                        # On récupère l'élément déjà en attente (cas « doublon »)
+                        outbox = (
+                            EmailOutbox.objects
+                            .filter(dedupe_key=dedupe, statut__in=["À envoyer", "Échec"])
+                            .order_by("-date_creation")
+                            .first()
+                        )
+                        logger.warning(f"[DOSSIER {dossier_numero}] Email à envoyé ({outbox.sujet} -> {", ".join(outbox.to)}) ")
+
+
+                # return (True, "") ou (False, "msg erreur")
+                ok, err = send_outbox_now(outbox.id)
+
+                if ok:
+                    logger.info(f"[DOSSIER {dossier_numero}] Email ({outbox.sujet}) envoyé à {", ".join(outbox.to)} ")
                 else:
+                    logger.error(f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
+                    messages.error(request, f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
 
-                    sujet = f"{nature_document} – Dossier {dossier.numero}"
-                    dedupe = compute_dedupe_key(emails_norm, sujet, "libre", {"body": motivation})
-                   
-                    try:
-                        outbox = EmailOutbox.objects.create(
-                            to=emails_norm,
-                            email_from=os.getenv("DEFAULT_FROM_EMAIL"),
-                            sujet=sujet,
-                            template="libre",
-                            dedupe_key=dedupe,
-                            context={"body": motivation},
-                            id_dossier=dossier,
-                            id_document=document,
-                        )
-                        logger.info(f"[DOSSIER {dossier_numero}] EmailOutbox créé pour {emails_norm}")
-
-                    except IntegrityError as e:
-                        # Si c’est bien un conflit sur l’unicité partielle (ux_outbox_dedupe_pending)
-                        is_unique_violation = (
-                            (UniqueViolation and isinstance(getattr(e, "__cause__", None), UniqueViolation))
-                            or "ux_outbox_dedupe_pending" in str(e)
-                            or "unique" in str(e).lower()
-                        )
-                        if is_unique_violation:
-                            # On récupère l'élément déjà en attente (cas « doublon »)
-                            outbox = (
-                                EmailOutbox.objects
-                                .filter(dedupe_key=dedupe, statut__in=["À envoyer", "Échec"])
-                                .order_by("-date_creation")
-                                .first()
-                            )
-                            logger.warning(f"[DOSSIER {dossier_numero}] Email à envoyé ({outbox.sujet} -> {", ".join(outbox.to)}) ")
-
-
-                    # return (True, "") ou (False, "msg erreur")
-                    ok, err = send_outbox_now(outbox.id)
-
-                    if ok:
-                        logger.info(f"[DOSSIER {dossier_numero}] Email ({outbox.sujet}) envoyé à {", ".join(outbox.to)} ")
-                    else:
-                        logger.error(f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
-                        messages.error(request, f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
-
-        else:
-            logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
-            loggerDS.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur.email} : {result['message']}")
 
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email}: {str(e)}")

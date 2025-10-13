@@ -88,13 +88,13 @@ h2 {
 .info-message {
     display: inline-block;
     color: #a94442;
+    width: 90%;
     background-color: #f9d6d5;
     border-left: 4px solid #a94442;
     padding: 0.8rem 1rem;
     margin-top: 1rem;
     border-radius: 4px;
     font-weight: bold;
-    white-space: nowrap; /* évite le retour à la ligne automatique */
 }
 
 .instruction-warning {

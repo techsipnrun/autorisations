@@ -24,73 +24,89 @@
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
             <h1>AVIS n° {{ avis.id }} - {{ avis.demarche_effective.type }}</h1>
-            
-            {% if est_expert and avis.favorable == None %}
-                <div class="joindre_avis_signe">
-                    <button type="button" id="toggle-form-avis" class="btn-donner-avis">Je donne mon avis</button>
 
-                    <form id="form-donner-avis" class="form-donner-avis" method="post" enctype="multipart/form-data"
-                        action="{% url 'donner_son_avis' avis.id %}">
-                        {% csrf_token %}
+            <div class="badge_et_publi_raa">
+                {% if est_expert and avis.favorable == None %}
+                    <div class="joindre_avis_signe">
+                        <button type="button" id="toggle-form-avis" class="btn-donner-avis">Je donne mon avis</button>
 
-                        <!-- <div class="avis-choix">
-                            <label>
-                                <input type="radio" name="favorable" value="true" checked>
-                                Favorable
-                            </label>
-                            <label>
-                                <input type="radio" name="favorable" value="false">
-                                Défavorable
-                            </label>
-                        </div> -->
+                        <form id="form-donner-avis" class="form-donner-avis" method="post" enctype="multipart/form-data"
+                            action="{% url 'donner_son_avis' avis.id %}">
+                            {% csrf_token %}
 
-                        <div class="avis-choix">
-                            <label>Votre réponse :</label>
-                            <select name="reponse_expert" id="reponse_expert" required>
-                                <option value="" disabled selected>Sélectionner</option>
-                                <option value="Favorable">
-                                    Favorable
-                                </option>
+                            <div class="avis-choix">
+                                <label>Votre réponse :</label>
+                                <select name="reponse_expert" id="reponse_expert" required>
+                                    <option value="" disabled selected>Sélectionner</option>
+                                    <option value="Favorable">
+                                        Favorable
+                                    </option>
 
-                                <option value="Favorable sous réserve">
-                                    Favorable sous réserve
-                                </option>
+                                    <option value="Favorable sous réserve">
+                                        Favorable sous réserve
+                                    </option>
 
-                                <option value="Défavorable">
-                                    Défavorable
-                                </option>
-                            </select>
-                        </div>
+                                    <option value="Défavorable">
+                                        Défavorable
+                                    </option>
+                                </select>
+                            </div>
 
+                            <div class="avis-fichier">
+                                <label for="avis-signe">Joindre l'avis signé {% if not avis.id_projet_avis %}(optionnel){% endif %} :</label>
+                                <input type="file" id="avis-signe" name="avis_signe" accept=".pdf">
+                            </div>
 
-
-
-                        <div class="avis-fichier">
-                            <label for="avis-signe">Joindre l'avis signé {% if not avis.id_projet_avis %}(optionnel){% endif %} :</label>
-                            <input type="file" id="avis-signe" name="avis_signe" accept=".pdf">
-                        </div>
-
-                        <button type="submit" class="btn-confirmer-avis">Confirmer</button>
-                    </form>
-                </div>
-            {% else %}
-                <div class="etat-badge-menu-avis {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
-                    {% if avis.date_reponse_avis %}
-                        {% if avis.favorable and not avis.sous_reserve %}
-                            Avis rendu : Favorable
-                        {% elif avis.favorable and avis.sous_reserve %}
-                            Avis rendu : Favorable sous réserve
-                        {% elif avis.favorable == False %}
-                            Avis rendu : Défavorable
+                            <button type="submit" class="btn-confirmer-avis">Confirmer</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <div class="etat-badge-menu-avis {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
+                        {% if avis.date_reponse_avis %}
+                            {% if avis.favorable and not avis.sous_reserve %}
+                                Avis rendu : Favorable
+                            {% elif avis.favorable and avis.sous_reserve %}
+                                Avis rendu : Favorable sous réserve
+                            {% elif avis.favorable == False %}
+                                Avis rendu : Défavorable
+                            {% else %}
+                                Avis rendu
+                            {% endif %}
                         {% else %}
-                            Avis rendu
+                            En attente de réponse
                         {% endif %}
-                    {% else %}
-                        En attente de réponse
+                    </div>
+
+                    {% if avis.publie_au_raa %}
+                        <div class="publication_raa_faite">
+                            <p> Publication au RAA faite </p>
+                        </div>
                     {% endif %}
-                </div>
-            {% endif %}
-            
+                {% endif %}
+
+
+                <!-- Publication RAA faite ? -->
+                {% if avis.favorable and avis_signes and not avis.publie_au_raa %}
+                    <div class="publication_raa">
+                        <form id="form-publier-raa-{{ avis.id }}" 
+                            action="{% url 'publier_avis_raa' avis.id %}" 
+                            method="post" 
+                            style="display:none;">
+                            {% csrf_token %}
+                        </form>
+
+                        <button type="button" 
+                                class="btn-publier-raa" 
+                                onclick="confirmerPublicationRAA('{{ avis.id }}')">
+                            Valider la publication au RAA
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+
+
+
             {% if avis_signes %}
                 <div class="avis_signes">
                     {% for as in avis_signes %}
@@ -127,8 +143,29 @@
                             </div>      
                         </li>
                     {% endfor %}
-                </div>  
+                </div>
+            {% else %}
+                <div class="deposer_mon_avis">
+                    <!-- Formulaire caché -->
+                    <form id="form-deposer-{{ avis.id }}"
+                        action="{% url 'deposer_avis_signe' %}"
+                        method="post"
+                        enctype="multipart/form-data"
+                        style="display:none;">
+                        {% csrf_token %}
+                        <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                        <input type="file" name="fichier" accept=".pdf" onchange="confirmerDepotAvis(this)">
+                    </form>
+
+                    <!-- Bouton principal -->
+                    <button type="button"
+                            class="btn-deposer-avis"
+                            onclick="ouvrirDepotAvis('{{ avis.id }}')">
+                        Déposer mon avis signé
+                    </button>
+                </div>
             {% endif %}
+
 
             
             <div class="chat-container">
@@ -229,10 +266,22 @@
                     </span>
                 </p>
 
-                <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis }} </p>
+                <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis|date:"d/m/Y" }} </p>
+
+                {% if avis.date_transmission_cs %}
+                    <p><strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
+                {% else %}
+                    <form method="post" action="{% url 'enregistrer_date_transmission_cs' avis.id %}" class="form-date-cs">
+                        {% csrf_token %}
+                        <label for="date_transmission_cs"><strong>Date de transmission aux membres du CS :</strong></label>
+                        <input type="date" id="date_transmission_cs" name="date_transmission_cs" required>
+                        <button type="submit" class="btn-valider-date-cs">Enregistrer</button>
+                    </form>
+                {% endif %}
+
 
                 {% if avis.date_reponse_avis %}
-                    <p> <strong>Date de réponse :</strong> {{ avis.date_reponse_avis }} </p>
+                    <p> <strong>Date de réponse :</strong> {{ avis.date_reponse_avis|date:"d/m/Y" }} </p>
                 {% endif %}
 
                 {% if avis.id_avis_thematique and avis.id_avis_thematique.thematique != 'Autre' %}
@@ -380,6 +429,27 @@
         </div>
     </div>
         
+
+    <!-- Défilement automatique en bas et gestion de l'envoi du message -->
+    <script>
+        window.addEventListener('load', function() {
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            const messageForm = document.querySelector('.message-form');
+            const sendButton = messageForm?.querySelector('button[type="submit"]');
+
+            if (messageForm && sendButton) {
+                messageForm.addEventListener('submit', function() {
+                    sendButton.disabled = true;
+                    sendButton.innerText = 'Envoi...';
+                });
+            }
+        });
+    </script>
+
             
     <!-- POP UP Confirmation pour écrasage d'une pj deja existante -->
     <script>
@@ -519,6 +589,43 @@
                 input.closest("form").submit();
             } else {
                 input.value = "";
+            }
+        }
+    </script>
+
+    <!-- Déposer l'avis signé -->
+    <script>
+        function ouvrirDepotAvis(avisId) {
+            const input = document.querySelector(`#form-deposer-${avisId} input[type='file']`);
+            if (input) input.click();
+        }
+
+        function confirmerDepotAvis(input) {
+            const fichier = input.files[0];
+            if (!fichier) return;
+
+            const ext = fichier.name.split('.').pop().toLowerCase();
+            if (ext !== "pdf") {
+                alert("❌ Le fichier doit être au format PDF.");
+                input.value = "";
+                return;
+            }
+
+            const ok = confirm(`Voulez-vous déposer l'avis signé "${fichier.name}" ?`);
+            if (ok) {
+                input.closest("form").submit();
+            } else {
+                input.value = "";
+            }
+        }
+    </script>
+
+    <!-- Confirmation avis signé publié au RAA -->
+    <script>
+        function confirmerPublicationRAA(avisId) {
+            const ok = confirm("Confirmez-vous que l'avis a bien été publié au RAA ?");
+            if (ok) {
+                document.getElementById(`form-publier-raa-${avisId}`).submit();
             }
         }
     </script>

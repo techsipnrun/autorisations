@@ -107,11 +107,13 @@ class Avis(models.Model):
     id_expert_ds = models.CharField(unique=True, blank=True, null=True)
     note = models.CharField(blank=True, null=True)
     favorable = models.BooleanField(blank=True, null=True)
+    publie_au_raa = models.BooleanField(blank=True, null=True)
     sous_reserve = models.BooleanField(default=False)
     date_limite = models.DateTimeField(blank=True, null=True)
     date_presentation = models.DateTimeField(blank=True, null=True)
     date_demande_avis = models.DateTimeField(blank=True, null=True)
     date_reponse_avis = models.DateTimeField(blank=True, null=True)
+    date_transmission_cs = models.DateTimeField(blank=True, null=True)
     mode_contact = models.CharField(
         blank=True, null=True,
         max_length=20,

@@ -513,23 +513,43 @@ def instruction_dossier(request, num_dossier):
     etapes_possibles = EtapeDossier.objects.all().order_by("etape")
     etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
 
-    etapes_custom = {
-        "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
-        "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Passer en instruction"],
-        "En attente de compléments": ["Passer en instruction"],
-        "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
-        "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
-        "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
-        "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
-        "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Acte inchangé, envoyer pour relecture qualité"],
-        "Avis à envoyer":["Avis envoyé"],
-        "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
-        "Acte à envoyer": ["Envoyer l'acte"],
-        "À publier au RAA": ["Classer le dossier comme accepté"],
-        "Non soumis à autorisation": ["Repasser en instruction"],
-        "Accepté": ["Repasser en instruction"],
-        "Refusé": ["Repasser en instruction"]
-    }
+    if dossier.present_sur_ds :
+        etapes_custom = {
+            "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
+            "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Passer en instruction"],
+            "En attente de compléments": ["Passer en instruction"],
+            "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
+            "À valider avant demande d'avis": ["Repasser en instruction", "Valider le modèle de demande d'avis et le projet d'acte"],
+            "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
+            "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
+            "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Acte inchangé, envoyer pour relecture qualité"],
+            "Avis à envoyer":["Avis envoyé"],
+            "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "Acte à envoyer": ["Envoyer l'acte"],
+            "À publier au RAA": ["Classer le dossier comme accepté"],
+            "Non soumis à autorisation": ["Repasser en instruction"],
+            "Accepté": ["Repasser en instruction"],
+            "Refusé": ["Repasser en instruction"]
+        }
+    # Si dossier n'existe plus sur DS
+    else :
+        etapes_custom = {
+            "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
+            "En pré-instruction": ["Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Passer en instruction"],
+            "En attente de compléments": [],
+            "En instruction": ["Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé", "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
+            "À valider avant demande d'avis": ["Valider le modèle de demande d'avis et le projet d'acte"],
+            "À valider avant signature": ["Valider et envoyer pour relecture qualité", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "En relecture qualité": ["Prêt à la signature", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation", "Acte inchangé, envoyer pour relecture qualité", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "Avis à envoyer":["Avis envoyé", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "En attente de signature": ["Acte prêt à être envoyé", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "Acte à envoyer": ["Envoyer l'acte", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "À publier au RAA": ["Classer le dossier comme accepté", "Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé"],
+            "Non soumis à autorisation": [],
+            "Accepté": [],
+            "Refusé": []
+        }
 
     # Suppression de l'action si conditions spécifiques
     if etape_actuelle and etape_actuelle.etape == "En instruction" and demarche.type == "Manifestations sportives":
@@ -554,6 +574,7 @@ def instruction_dossier(request, num_dossier):
         "Acte envoyé": "acte-envoye.png",
         "Validé avant demande d'avis": "valide.png",
         "Publié au RAA": "publie_au_raa.png",
+        "Prêt à la signature": "envoye.png",
         "Envoyé pour signature": "envoye.png",
         "Relecture qualité": "relecture-qualite.png",
         "Validé avant signature": "valide.png",

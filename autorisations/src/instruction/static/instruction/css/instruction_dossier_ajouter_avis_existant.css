@@ -170,6 +170,16 @@
     cursor: pointer;
 }
 
+/* Hint text */
+.form_avis_hors_appli .hint-text {
+    font-size: 1.1rem;
+    color: #000000;
+    font-style: italic;
+    margin: 0;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+}
+
 
 
 
@@ -276,6 +286,17 @@
     justify-content: center;
     margin: 0;
     /* margin-left: 1rem; */
+}
+
+.resultat .avis_result{
+    cursor: pointer;
+    padding: 0.6rem 0.4rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.resultat .avis_result:hover{
+    background-color: #0061300a;
 }
 
 /* Bouton associer */

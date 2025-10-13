@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const expertExterne = document.getElementById("expert_externe");
 
     // Pièces jointes
+    const blocAutresPJ = document.getElementById("bloc_autres_pj_avis");
     const blocPJ_demandeAvis = document.getElementById("bloc_pj_demande_avis");
     const blocPJ_rapportCS   = document.getElementById("bloc_pj_rapport_cs");
     const blocPJ_projetActe  = document.getElementById("bloc_pj_projet_acte");
@@ -22,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // ---- Masquer / afficher selon la nature ----
     function toggleExperts() {
-        [blocInterne, blocExterne, blocPJ_demandeAvis, blocPJ_rapportCS, blocPJ_projetActe]
+        [blocInterne, blocExterne, blocPJ_demandeAvis, blocPJ_rapportCS, blocPJ_projetActe, blocAutresPJ]
             .forEach(b => b.style.display = "none");
 
         const selected = nature.options[nature.selectedIndex]?.text.trim();
@@ -30,12 +31,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (selected === "Consultation en interne") {
             blocInterne.style.display = "flex";
             blocPJ_demandeAvis.style.display = "flex";
-            // expertInterne.required = true;
+            blocAutresPJ.style.display = "flex";
         } 
         else if (selected === "Demande à une instance") {
             blocExterne.style.display = "flex";
             // expertExterne.required = true;
             blocPJ_demandeAvis.style.display = "flex";
+            blocAutresPJ.style.display = "flex";
             blocPJ_rapportCS.style.display = "flex";
             blocPJ_projetActe.style.display = "flex";
         }

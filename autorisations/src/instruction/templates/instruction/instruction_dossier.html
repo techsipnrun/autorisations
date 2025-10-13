@@ -74,7 +74,12 @@
                 {% endif %}
 
                 {% if not dossier.present_sur_ds %}
-                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
+                    <p class="info-message">
+                        ⚠️ Ce dossier n'est plus sur Démarches Simplifiées.
+                        {% if etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "À publier au RAA" %}
+                            Si un acte est à envoyer au pétitionnaire, vous devez lui transmettre en dehors de l'application.
+                        {% endif %}    
+                    </p>
                 {% endif %}
 
                 <div class="etat-badge-container">
@@ -147,7 +152,7 @@
 
                                     {% endfor %}
                                 {% else %}
-                                    <p>Aucune action disponible</p>
+                                    <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
                                 {% endif %}
                             {% endwith %}
                         </div>
@@ -972,8 +977,8 @@
                                     {% endif %}
 
                                 {% else %}
-                                    <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
-                                        car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
+                                    <p style="color: rgb(158, 11, 0);" title="La personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.">
+                                        Le prénom et le nom du demandeur intermédiaire n’ont pas été fournis.
                                     </p>
                                 {% endif %}
                             {% endif %}

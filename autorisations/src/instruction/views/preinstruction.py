@@ -310,6 +310,7 @@ def preinstruction_dossier(request, numero):
         "Acte envoyé": "acte-envoye.png",
         "Validé avant demande d'avis": "valide.png",
         "Publié au RAA": "publie_au_raa.png",
+        "Prêt à la signature": "envoye.png",
         "Envoyé pour signature": "envoye.png",
         "Relecture qualité": "relecture-qualite.png",
         "Validé avant signature": "valide.png",

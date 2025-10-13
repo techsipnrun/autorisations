@@ -362,41 +362,57 @@ def donner_son_avis(request, avis_id):
         
 
     # Message automatique Acceptation/Refus + Avis signé
-    if (reponse == "Favorable" or reponse == "Favorable sous réserve") and doc_avis_signe :
-        try:
-            # Compte le nombre de documents "Avis instance" associés à cet avis
-            nb_avis_instance = AvisDocument.objects.filter(
-                id_avis=avis,
-                id_document__id_nature__nature__iexact="Avis instance"
-            ).count()
-
-            if avis_signe_existant and nb_avis_instance > 1 :
-                ancien_doc = avis_signe_existant.id_document
-                ancien_doc.id_nature = nature_annexe_avis
-                ancien_doc.save()
-                logger.info(f"[AVIS {avis.id}] Ancien avis signé reclassé en 'Annexe avis' par {request.user}.")
-                msg_reponse_expert = "Modification de l'avis signé par l'expert, vous trouverez ci-joint le nouvel avis signé"
-            else :
-                msg_reponse_expert = "La demande d'avis a reçu une réponse favorable, vous trouverez ci-joint l'avis signé."
+    try:
+        if (reponse == "Favorable" or reponse == "Favorable sous réserve") and doc_avis_signe :
             
+                # Compte le nombre de documents "Avis instance" associés à cet avis
+                nb_avis_instance = AvisDocument.objects.filter(
+                    id_avis=avis,
+                    id_document__id_nature__nature__iexact="Avis instance"
+                ).count()
 
+                if avis_signe_existant and nb_avis_instance > 1 :
+                    ancien_doc = avis_signe_existant.id_document
+                    ancien_doc.id_nature = nature_annexe_avis
+                    ancien_doc.save()
+                    logger.info(f"[AVIS {avis.id}] Ancien avis signé reclassé en 'Annexe avis' par {request.user}.")
+                    msg_reponse_expert = "Modification de l'avis signé par l'expert, vous trouverez ci-joint le nouvel avis signé"
+                else :
+                    msg_reponse_expert = "La demande d'avis a reçu une réponse favorable, vous trouverez ci-joint l'avis signé."
+                
+
+                msg = Message.objects.create(
+                    body=msg_reponse_expert,
+                    date_envoi=timezone.now(),
+                    piece_jointe=True,
+                    email_emetteur=request.user.email,
+                    id_avis=avis,
+                    lu=False,
+                )
+
+                # Joindre l'avis signé au message
+                MessageDocument.objects.create(
+                    id_message=msg,
+                    id_document=doc_avis_signe
+                )
+
+        elif (reponse == "Défavorable") :
+            msg_reponse_expert = "La demande d'avis a reçu une réponse défavorable."
+            # Message automatique pour le refus
             msg = Message.objects.create(
                 body=msg_reponse_expert,
                 date_envoi=timezone.now(),
-                piece_jointe=True,
+                piece_jointe=False,
                 email_emetteur=request.user.email,
                 id_avis=avis,
                 lu=False,
             )
 
-            # Joindre l'avis signé au message
-            MessageDocument.objects.create(
-                id_message=msg,
-                id_document=doc_avis_signe
-            )
 
-        except Exception as e:
-            logger.warning(f"[AVIS {avis.id}] : Echec lors de l'envoi du message automatique (Acceptation/Refus de l'expert) : {e}")
+
+
+    except Exception as e:
+        logger.warning(f"[AVIS {avis.id}] : Echec lors de l'envoi du message automatique (Acceptation/Refus de l'expert) : {e}")
 
     avis.save()
     return redirect("avis_expert", avis_id=avis.id)
@@ -444,5 +460,80 @@ def remplacer_avis_signe(request):
         
     except Exception as e:
         messages.error(request, f"❌ Erreur : {e}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+def deposer_avis_signe(request):
+    avis_id = request.POST.get("avis_id")
+    fichier = request.FILES.get("fichier")
+
+    avis = Avis.objects.get(id=avis_id)
+    try:
+       
+        # Sauvegarde du nouvel avis signé 
+        doc_avis_signe = enregistrer_document(
+                fichier=fichier,
+                nature_str="Avis instance",
+                description=f"Dépot de l'avis signé par {request.user} pour la Demande d'avis {avis_id}",
+                request=request,
+                emplacement_avis = avis.emplacement,
+                annexe=False
+            )
+        
+        if doc_avis_signe :
+            # Créer AvisDocument
+            AvisDocument.objects.get_or_create(
+                id_avis=avis,
+                id_document=doc_avis_signe,
+            )
+            logger.info(f"[AVIS {avis.id}] : Avis signé déposé avec succès par l'expert {request.user}")
+            messages.success(request, "✅ Avis signé déposé avec succès.")
+        else :
+            # On revient sur la page pour afficher les messages d'erreurs
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+    except Exception as e:
+        messages.error(request, f"❌ Erreur : {e}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+@require_POST
+@login_required
+def enregistrer_date_transmission_cs(request, avis_id):
+
+    avis = get_object_or_404(Avis, id=avis_id)
+    date_str = request.POST.get("date_transmission_cs")
+
+    if not date_str:
+        messages.error(request, "Veuillez saisir une date valide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    try:
+        avis.date_transmission_cs = timezone.datetime.strptime(date_str, "%Y-%m-%d")
+        avis.save()
+    except Exception as e:
+        logger.error(f"[AVIS {avis.id}] Erreur enregistrement date_transmission_cs : {e}")
+        messages.error(request, "Erreur lors de l'enregistrement de la date.")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+@login_required
+def publier_avis_raa(request, avis_id):
+
+    avis = get_object_or_404(Avis, id=avis_id)
+
+    try:
+        avis.publie_au_raa = True
+        avis.save()
+        logger.info(f"[AVIS {avis.id}] Publication au RAA validée par {request.user}.")
+    except Exception as e:
+        messages.error(request, f"❌ Erreur lors de la validation de la publication au RAA : {e}")
+        logger.error(f"[AVIS {avis.id}] Erreur mise à jour publie_au_raa : {e}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))

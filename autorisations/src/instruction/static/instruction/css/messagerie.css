@@ -18,6 +18,18 @@ h1 {
     position: relative;
 }
 
+/* Si dossier pas présent sur DS */
+.info-message {
+    display: inline-block;
+    color: #a94442;
+    background-color: #f9d6d5;
+    border-left: 4px solid #a94442;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
 
 /* ---------------------------------------------------------------- */
 /*                        BOUTON ACTUALISER                         */
@@ -166,14 +178,6 @@ h1 {
     transform: scale(1.1);
     opacity: 100%;
 }
-
-/* .delete-button::before {
-    content: "🗑️";
-}
-
-.delete-button:hover::before {
-    filter: grayscale(1) brightness(0) sepia(1) hue-rotate(-50deg) saturate(5);
-} */
 
 
 

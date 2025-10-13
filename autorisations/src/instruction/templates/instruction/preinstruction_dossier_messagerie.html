@@ -21,19 +21,28 @@
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+
+            {% if not dossier.present_sur_ds %}
+                <div class="pas_sur_ds">
+                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
+                </div>
+            {% endif %}
+
             <div class="etat-badge-menu">
                 {{ dossier.id_etape_dossier }}
             </div> 
 
-            <div class="refresh-messages">
-                <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
-                    {% csrf_token %}
-                    <button type="submit" class="refresh-button" id="btn-refresh-messages">
-                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                        Actualiser
-                    </button>
-                </form>
-            </div>
+            {% if dossier.present_sur_ds %}
+                <div class="refresh-messages">
+                    <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
+                        {% csrf_token %}
+                        <button type="submit" class="refresh-button" id="btn-refresh-messages">
+                            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                            Actualiser
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
             
             <div class="chat-container">
                 {% for msg in messages_doss %}
@@ -60,7 +69,7 @@
                             </span>
                             <span>{{ msg.date_envoi }}</span>
 
-                            {% if msg.align == 'right' and msg.emetteur.email == request.user.email %}
+                            {% if dossier.present_sur_ds and msg.align == 'right' and msg.emetteur.email == request.user.email %}
                                 <!-- Formulaire pour supprimer le message -->
                                 <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form" style="display:inline;">
                                     {% csrf_token %}
@@ -86,19 +95,21 @@
                     {% endfor %}
                 </div>
             {% endif %}
-
-            <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
-                {% csrf_token %}
-                <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
-                <textarea name="body" placeholder="Écrire un message..." required></textarea>
-                <div class="pj-actions">
-                    <div class="pj-input-wrapper">
-                        <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
-                        <span class="pj-max">(20 Mo max)</span>
+            
+            {% if dossier.present_sur_ds %}
+                <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
+                    {% csrf_token %}
+                    <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
+                    <textarea name="body" placeholder="Écrire un message..." required></textarea>
+                    <div class="pj-actions">
+                        <div class="pj-input-wrapper">
+                            <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                            <span class="pj-max">(20 Mo max)</span>
+                        </div>
+                        <button type="submit" title="Envoyer le message">Envoyer</button>
                     </div>
-                    <button type="submit" title="Envoyer le message">Envoyer</button>
-                </div>
-            </form>
+                </form>
+            {% endif %}
         </div>
 
         <!-- Colonne droite : navigation -->
