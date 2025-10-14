@@ -13,192 +13,135 @@
 
     {% include 'navbar.html' %}
 
-    <div class="reception">
-        <div class="vision_expert">
-            <h2 class="section-title">Vision Expert</h2>
-        
-            <div class="avis_a_rendre">
-                <h1>Mes avis à rendre</h1>
-
-                <table class="table_avis_a_rendre">
-                    <thead>
-                        <tr>
-                            <th>Démarche</th>
-                            <th title="Numéro de la demande d'avis">N° Avis</th>
-                            <th>Demandeur</th>
-                            <th title="Date de la demande d'avis">Demande</th>
-                            <th title="État de la demande d'avis">État</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for avis in avis_a_rendre %}
-                            <tr class="clickable-row ligne-non-lue" data-href="{% url 'avis_expert' avis.id %}">
-                                <td>
-                                    {% if avis.demarche_effective %}
-                                        {{ avis.demarche_effective.type }}
-                                    {% else %}
-                                        Non renseignée
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.id }}</td>
-                                <td>
-                                    {{ avis.id_instructeur }}
-
-                                    {% if avis.nb_messages_non_lus > 0 %}
-                                        <div class="nouv_mess_wrapper">
-                                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
-                                            <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
-                                <td class="
-                                    {% if not avis.date_reponse_avis or avis.favorable is null %}etat-attente
-                                    {% elif avis.favorable %}etat-favorable
-                                    {% else %}etat-defavorable{% endif %}
-                                ">
-                                    {% if avis.date_reponse_avis and avis.favorable is not null %}
-                                        {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
-                                    {% else %}
-                                        ⏳ En attente
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr><td colspan="4" class="aucun_avis">Aucun avis en cours</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="avis_rendus">
-                <h1>Mes avis rendus</h1>
-
-                <form method="get" class="form-annee-archives">
-                    <label for="annee-select">Année :</label>
-                    <select name="annee" id="annee-select" onchange="this.form.submit()">
-                        {% for annee in annees_disponibles_expert %}
-                            <option value="{{ annee }}" {% if annee == annee_selectionnee %}selected{% endif %}>
-                                {{ annee.year }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </form>
-
-                <table class="table_archive">
-                    <thead>
-                        <tr>
-                            <th>Démarche</th>
-                            <th title="Numéro de la demande d'avis">N° Avis</th>
-                            <th>Demandeur</th>
-                            <th title="Date de la demande d'avis">Demande</th>
-                            <th title="Date de la réponse de l'expert">Réponse</th>
-                            <th title="État de la demande d'avis">État</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for avis in avis_rendus %}
-                            <!-- <tr class="clickable-row" data-href="{% url 'avis_expert' avis.id %}"> -->
-                            <tr class="clickable-row {% if avis.nb_messages_non_lus > 0 %}ligne-non-lue{% endif %}" 
-                            data-href="{% url 'avis_expert' avis.id %}"
-                            {% if avis.nb_messages_non_lus > 0 %}
-                                title="Nouveaux messages du/de la demandeur.se"
-                            {% endif %}>
-                                <td>
-                                    {% if avis.demarche_effective %}
-                                        {{ avis.demarche_effective.type }}
-                                    {% else %}
-                                        Non renseignée
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.id }}</td>
-                                <td>
-                                    {{ avis.id_instructeur }}
-
-                                    {% if avis.nb_messages_non_lus > 0 %}
-                                        <div class="nouv_mess_wrapper">
-                                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
-                                            <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
-                                <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
-                                <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
-                                    {% if avis.favorable and not avis.sous_reserve %}
-                                        ✅ Favorable
-                                    {% elif avis.favorable and avis.sous_reserve %}
-                                        ✅ Favorable sous réserve
-                                    {% else %}
-                                        ❌ Défavorable
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr><td colspan="5" class="aucun_avis">Aucun avis archivé pour cette année</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="vision_demandeur">
-            <h2 class="section-title">Vision Demandeur</h2>
-
-            <div class="avis-demandes">
-                <div class="demandes_en_cours_et_bouton">
-                    <h1>Mes demandes en cours</h1>
-                    <a href="{% url 'nouvelle_demande_avis_generique' %}" class="btn-nouvel-demande-generique" title="Demande qui n'est pas forcément liée à un dossier">
-                        + Nouvelle demande d'avis générique
-                    </a>
+    {% if messages %}
+        <div class="django-messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
                 </div>
-                
-                <table class="table_demande_en_cours">
-                    <thead class="thead_demandeur">
-                        <tr>
-                            <th>Démarche</th>
-                            <th title="Numéro de la demande d'avis">N° Avis</th>
-                            <th>Nature</th>
-                            <th>Expert</th>
-                            <th title="Date de la demande d'avis">Demande</th>
-                            <th title="État de la demande d'avis">État</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for avis in demandes_en_cours %}
-                            <tr class="clickable-row {% if avis.nb_messages_non_lus > 0 %}ligne-non-lue{% endif %}" 
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if not demandes_en_cours and not demandes_traitees and not avis_a_rendre and not avis_rendus %}
+        <div class="pas_concerne">
+            Vous n'êtes concerné.e par aucun avis.
+        </div>
+    {% endif %}
+
+    <div class="reception">
+        {% if avis_a_rendre or avis_rendus %}
+            <div class="vision_expert">
+                <h2 class="section-title">Vision Expert</h2>
+            
+                <div class="avis_a_rendre">
+                    <h1>Mes avis à rendre</h1>
+
+                    <table class="table_avis_a_rendre">
+                        <thead>
+                            <tr>
+                                <th>Démarche</th>
+                                <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>Demandeur</th>
+                                <th title="Date de la demande d'avis">Demande</th>
+                                <th title="État de la demande d'avis">État</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for avis in avis_a_rendre %}
+                                <tr class="clickable-row ligne-non-lue" data-href="{% url 'avis_expert' avis.id %}">
+                                    <td>
+                                        {% if avis.demarche_effective %}
+                                            {{ avis.demarche_effective.type }}
+                                        {% else %}
+                                            Non renseignée
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.id }}</td>
+                                    <td>
+                                        {{ avis.id_instructeur }}
+
+                                        {% if avis.nb_messages_non_lus > 0 %}
+                                            <div class="nouv_mess_wrapper">
+                                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                                <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                                    <td class="
+                                        {% if not avis.date_reponse_avis or avis.favorable is null %}etat-attente
+                                        {% elif avis.favorable %}etat-favorable
+                                        {% else %}etat-defavorable{% endif %}
+                                    ">
+                                        {% if avis.date_reponse_avis and avis.favorable is not null %}
+                                            {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
+                                        {% else %}
+                                            ⏳ En attente
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="aucun_avis">Aucun avis en cours</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="avis_rendus">
+                    <h1>Mes avis rendus</h1>
+
+                    <form method="get" class="form-annee-archives">
+                        <label for="annee-select">Année :</label>
+                        <select name="annee" id="annee-select" onchange="this.form.submit()">
+                            {% for annee in annees_disponibles_expert %}
+                                <option value="{{ annee }}" {% if annee == annee_selectionnee %}selected{% endif %}>
+                                    {{ annee.year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    <table class="table_archive">
+                        <thead>
+                            <tr>
+                                <th>Démarche</th>
+                                <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>Demandeur</th>
+                                <th title="Date de la demande d'avis">Demande</th>
+                                <th title="Date de la réponse de l'expert">Réponse</th>
+                                <th title="État de la demande d'avis">État</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for avis in avis_rendus %}
+                                <!-- <tr class="clickable-row" data-href="{% url 'avis_expert' avis.id %}"> -->
+                                <tr class="clickable-row {% if avis.nb_messages_non_lus > 0 %}ligne-non-lue{% endif %}" 
                                 data-href="{% url 'avis_expert' avis.id %}"
                                 {% if avis.nb_messages_non_lus > 0 %}
-                                    title="Nouveaux messages de l'expert·e"
+                                    title="Nouveaux messages du/de la demandeur.se"
                                 {% endif %}>
+                                    <td>
+                                        {% if avis.demarche_effective %}
+                                            {{ avis.demarche_effective.type }}
+                                        {% else %}
+                                            Non renseignée
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.id }}</td>
+                                    <td>
+                                        {{ avis.id_instructeur }}
 
-                                <td>
-                                    {% if avis.demarche_effective %}
-                                        {{ avis.demarche_effective.type }}
-                                    {% else %}
-                                        Non renseignée
-                                    {% endif %}
-                                </td>
-
-                                <td>{{ avis.id }}</td>
-                                <td>{{ avis.id_avis_nature.nature }}</td>
-                                <td>
-                                    {{ avis.id_expert }}
-
-                                    {% if avis.nb_messages_non_lus > 0 %}
-                                        <div class="nouv_mess_wrapper">
-                                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
-                                            <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
-                                <td class="
-                                    {% if not avis.date_reponse_avis or avis.favorable is null %}etat-attente
-                                    {% elif avis.favorable %}etat-favorable
-                                    {% else %}etat-defavorable{% endif %}
-                                ">
-                                    {% if avis.date_reponse_avis %}
+                                        {% if avis.nb_messages_non_lus > 0 %}
+                                            <div class="nouv_mess_wrapper">
+                                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                                <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                                    <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
+                                    <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
                                         {% if avis.favorable and not avis.sous_reserve %}
                                             ✅ Favorable
                                         {% elif avis.favorable and avis.sous_reserve %}
@@ -206,87 +149,166 @@
                                         {% else %}
                                             ❌ Défavorable
                                         {% endif %}
-                                    {% else %}
-                                        ⏳ En attente
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% empty %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5" class="aucun_avis">Aucun avis archivé pour cette année</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+
+        {% if demandes_en_cours or demandes_traitees %}
+            <div class="vision_demandeur">
+                <h2 class="section-title">Vision Demandeur</h2>
+
+                <div class="avis-demandes">
+                    <div class="demandes_en_cours_et_bouton">
+                        <h1>Mes demandes en cours</h1>
+                        <a href="{% url 'nouvelle_demande_avis_generique' %}" class="btn-nouvel-demande-generique" title="Demande qui n'est pas forcément liée à un dossier">
+                            + Nouvelle demande d'avis générique
+                        </a>
+                    </div>
+                    
+                    <table class="table_demande_en_cours">
+                        <thead class="thead_demandeur">
                             <tr>
-                                <td colspan="5" class="aucun_avis">Aucune demande d'avis effectuée</td>
+                                <th>Démarche</th>
+                                <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>Nature</th>
+                                <th>Expert</th>
+                                <th title="Date de la demande d'avis">Demande</th>
+                                <th title="État de la demande d'avis">État</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-           <div class="avis-demandes-traites">
-                <h1>Mes demandes traitées</h1>
-
-                <form method="get" class="form-annee-archives">
-                    <label for="annee-demandeur">Année :</label>
-                    <select name="annee_demandeur" id="annee-demandeur" onchange="this.form.submit()">
-                        {% for annee in annees_disponibles_demandeur %}
-                            <option value="{{ annee.year }}" {% if annee.year == annee_selectionnee_demandeur %}selected{% endif %}>
-                                {{ annee.year }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </form>
-
-                <table class="table_archive">
-                    <thead class="thead_demandeur">
-                        <tr>
-                            <th>Démarche</th>
-                            <th title="Numéro de la demande d'avis">N° Avis</th>
-                            <th title="Nature de la demande d'avis">Nature</th>
-                            <th>Expert</th>
-                            <th title="Date de la demande d'avis">Demande</th>
-                            <th title="Date de la réponse de l'expert">Réponse</th>
-                            <th title="État de la demande d'avis">État</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for avis in demandes_traitees %}
-                            <tr class="clickable-row {% if avis.nb_messages_non_lus > 0 %}ligne-non-lue{% endif %}" 
-                            data-href="{% url 'avis_expert' avis.id %}"
-                            {% if avis.nb_messages_non_lus > 0 %}
-                                title="Nouveaux messages de l'expert·e"
-                            {% endif %}>
-                                <td>
-                                    {% if avis.demarche_effective %}
-                                        {{ avis.demarche_effective.type }}
-                                    {% else %}
-                                        Non renseignée
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.id }}</td>
-                                <td>{{ avis.id_avis_nature.nature }}</td>
-                                <td>
-                                    {{ avis.id_expert }}
-
+                        </thead>
+                        <tbody>
+                            {% for avis in demandes_en_cours %}
+                                <tr class="clickable-row {% if avis.nb_messages_non_lus > 0 %}ligne-non-lue{% endif %}" 
+                                    data-href="{% url 'avis_expert' avis.id %}"
                                     {% if avis.nb_messages_non_lus > 0 %}
-                                        <div class="nouv_mess_wrapper">
-                                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
-                                            <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                                <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
-                                <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
-                                <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
-                                    {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr><td colspan="7" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                        title="Nouveaux messages de l'expert·e"
+                                    {% endif %}>
 
-        </div>
+                                    <td>
+                                        {% if avis.demarche_effective %}
+                                            {{ avis.demarche_effective.type }}
+                                        {% else %}
+                                            Non renseignée
+                                        {% endif %}
+                                    </td>
+
+                                    <td>{{ avis.id }}</td>
+                                    <td>{{ avis.id_avis_nature.nature }}</td>
+                                    <td>
+                                        {{ avis.id_expert }}
+
+                                        {% if avis.nb_messages_non_lus > 0 %}
+                                            <div class="nouv_mess_wrapper">
+                                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                                <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                                    <td class="
+                                        {% if not avis.date_reponse_avis or avis.favorable is null %}etat-attente
+                                        {% elif avis.favorable %}etat-favorable
+                                        {% else %}etat-defavorable{% endif %}
+                                    ">
+                                        {% if avis.date_reponse_avis %}
+                                            {% if avis.favorable and not avis.sous_reserve %}
+                                                ✅ Favorable
+                                            {% elif avis.favorable and avis.sous_reserve %}
+                                                ✅ Favorable sous réserve
+                                            {% else %}
+                                                ❌ Défavorable
+                                            {% endif %}
+                                        {% else %}
+                                            ⏳ En attente
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" class="aucun_avis">Aucune demande d'avis effectuée</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="avis-demandes-traites">
+                    <h1>Mes demandes traitées</h1>
+
+                    <form method="get" class="form-annee-archives">
+                        <label for="annee-demandeur">Année :</label>
+                        <select name="annee_demandeur" id="annee-demandeur" onchange="this.form.submit()">
+                            {% for annee in annees_disponibles_demandeur %}
+                                <option value="{{ annee.year }}" {% if annee.year == annee_selectionnee_demandeur %}selected{% endif %}>
+                                    {{ annee.year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    <table class="table_archive">
+                        <thead class="thead_demandeur">
+                            <tr>
+                                <th>Démarche</th>
+                                <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th title="Nature de la demande d'avis">Nature</th>
+                                <th>Expert</th>
+                                <th title="Date de la demande d'avis">Demande</th>
+                                <th title="Date de la réponse de l'expert">Réponse</th>
+                                <th title="État de la demande d'avis">État</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for avis in demandes_traitees %}
+                                <tr class="clickable-row {% if avis.nb_messages_non_lus > 0 %}ligne-non-lue{% endif %}" 
+                                data-href="{% url 'avis_expert' avis.id %}"
+                                {% if avis.nb_messages_non_lus > 0 %}
+                                    title="Nouveaux messages de l'expert·e"
+                                {% endif %}>
+                                    <td>
+                                        {% if avis.demarche_effective %}
+                                            {{ avis.demarche_effective.type }}
+                                        {% else %}
+                                            Non renseignée
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.id }}</td>
+                                    <td>{{ avis.id_avis_nature.nature }}</td>
+                                    <td>
+                                        {{ avis.id_expert }}
+
+                                        {% if avis.nb_messages_non_lus > 0 %}
+                                            <div class="nouv_mess_wrapper">
+                                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                                <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                                    <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
+                                    <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
+                                        {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="7" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
     </div>
+
+
     
     <!-- Script pour rendre les lignes cliquables -->
     <script>

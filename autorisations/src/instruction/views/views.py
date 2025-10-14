@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, Message, SynchronisationEtat
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
 from instruction.utils import dossiers_action_a_faire, enregistrer_action
@@ -768,4 +768,49 @@ def gestion_groupes(request):
         "instructeurs": instructeurs,
         "users": users,  # pour liste déroulante d’ajout
         "show_only_mine": show_only_mine,
+    })
+
+
+
+
+@login_required
+def gestion_contacts(request):
+    """
+    Affiche et permet de modifier les contacts externes et les instructeurs.
+    """
+    if request.method == "POST":
+        type_objet = request.POST.get("type_objet")
+        obj_id = request.POST.get("id")
+
+        if type_objet == "contact":
+            contact = get_object_or_404(ContactExterne, id=obj_id)
+            contact.nom = request.POST.get("nom")
+            contact.prenom = request.POST.get("prenom")
+            contact.email = request.POST.get("email")
+            contact.telephone = request.POST.get("telephone")
+            contact.organisation = request.POST.get("organisation")
+            contact.raison_sociale = request.POST.get("raison_sociale")
+            contact.adresse = request.POST.get("adresse")
+            contact.save()
+            messages.success(request, f"✅ Contact {contact.get_display_name()} mis à jour.")
+
+        elif type_objet == "instructeur":
+            instructeur = get_object_or_404(Instructeur, id=obj_id)
+            agent = instructeur.id_agent_autorisations
+            agent.nom = request.POST.get("nom")
+            agent.prenom = request.POST.get("prenom")
+            agent.mail_1 = request.POST.get("email")
+            agent.acronyme = request.POST.get("acronyme")
+            agent.actif = "actif" in request.POST
+            agent.save()
+            messages.success(request, f"✅ Instructeur {agent.nom} {agent.prenom} mis à jour.")
+
+        return redirect("gestion_contacts")
+
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all().order_by("id_agent_autorisations__nom")
+    contacts = ContactExterne.objects.select_related("id_type").all().order_by("nom", "prenom")
+
+    return render(request, "instruction/gestion_contacts.html", {
+        "instructeurs": instructeurs,
+        "contacts": contacts,
     })

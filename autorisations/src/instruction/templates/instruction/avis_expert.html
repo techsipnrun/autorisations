@@ -340,7 +340,7 @@
 
                     {% if avis.id_projet_acte %}
                         <li>
-                            <p><strong>Projet d'acte :</strong></p>
+                            <p><strong>Projet d'acte {% if avis.id_projet_acte.numero %} {{ avis.id_projet_acte.numero }} {% endif %} :</strong></p>
                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                             <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" 
                             target="_blank" rel="noopener noreferrer">
@@ -367,7 +367,7 @@
                                 <!-- On exclu l'avis signé -->
                                 {% if ad.nature != 'Avis Instance' %}
                                     <li class="pj-item">
-                                        <p><strong>Pièce jointe :</strong></p>
+                                        <p class="pj_title"><strong>Pièce jointe :</strong></p>
                                         {% if ad.id_document.id_format.format == 'pdf' %}
                                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                                         {% elif ad.id_document.id_format.format == 'docx' or ad.id_document.id_format.format == 'doc' or ad.id_document.id_format.format == 'odt' %}

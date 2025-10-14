@@ -1,0 +1,142 @@
+{% load static %}
+{% load breadcrumb_tags %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des contacts externes</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/gestion_contacts.css' %}">
+   
+</head>
+<body>
+    {% include 'navbar.html' %}
+    {% breadcrumb breadcrumb_items %}
+
+     <div class="container">
+        <h1>Gestion des contacts et des instructeurs.rices</h1>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+
+         <!-- SECTION INSTRUCTEURS -->
+        <div class="section-collapsible">
+            <div class="section-header" data-target="instructeurs-table">
+                <h2>Instructeurs</h2>
+                <img src="{% static 'instruction/img/chevron-down.svg' %}" class="chevron" alt="Chevron">
+            </div>
+
+            <div id="instructeurs-table" class="section-content collapsed">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th class="th_email1">Email</th>
+                            <th>Acronyme</th>
+                            <th>Sauvegarder</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in instructeurs %}
+                        <tr>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="type_objet" value="instructeur">
+                                <input type="hidden" name="id" value="{{ i.id }}">
+                                <td><input type="text" name="nom" value="{{ i.id_agent_autorisations.nom }}"></td>
+                                <td><input type="text" name="prenom" value="{{ i.id_agent_autorisations.prenom }}"></td>
+                                <td class="td_email1"><input type="email" name="email" value="{{ i.email }}"></td>
+                                <td><input type="text" name="acronyme" value="{{ i.id_agent_autorisations.acronyme }}"></td>
+                                <td class="td_save">
+                                    <button type="submit" class="save" title="Sauvegarder">
+                                        <img src="{% static 'instruction/img/save.svg' %}" alt="Enregistrer">
+                                    </button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECTION CONTACTS EXTERNES -->
+        <div class="section-collapsible">
+            <div class="section-header" data-target="contacts-table">
+                <h2>Contacts externes</h2>
+                <img src="{% static 'instruction/img/chevron-down.svg' %}" class="chevron" alt="Chevron">
+            </div>
+
+            <div id="contacts-table" class="section-content collapsed">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th class="th_email2">Email</th>
+                            <th>Organisation / Raison sociale</th>
+                            <th>Téléphone</th>
+                            <th class="th_adresse">Adresse</th>
+                            <th>Sauvegarder</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contacts %}
+                        <tr>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="type_objet" value="contact">
+                                <input type="hidden" name="id" value="{{ c.id }}">
+                                <td><input type="text" name="nom" value="{{ c.nom }}"></td>
+                                <td><input type="text" name="prenom" value="{{ c.prenom }}"></td>
+                                <td class="td_email2"><input type="email" name="email" value="{{ c.email }}"></td>
+                                <td><input type="text" name="raison_sociale" value="{{ c.raison_sociale }}"></td>
+                                <td><input type="text" name="telephone" value="{{ c.telephone }}"></td>
+                                <td class="td_adresse"><input type="text" name="adresse" value="{{ c.adresse }}"></td>
+                                <td class="td_save">
+                                    <button type="submit" class="save" title="Sauvegarder">
+                                        <img src="{% static 'instruction/img/save.svg' %}" alt="Enregistrer">
+                                    </button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+     <script>
+        // Gérer les sections repliables
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".section-header").forEach(header => {
+                header.addEventListener("click", () => {
+                    const targetId = header.dataset.target;
+                    const content = document.getElementById(targetId);
+                    const chevron = header.querySelector(".chevron");
+
+                    content.classList.toggle("collapsed");
+                    if (content.classList.contains("collapsed")) {
+                        chevron.src = "{% static 'instruction/img/chevron-down.svg' %}";
+                    } else {
+                        chevron.src = "{% static 'instruction/img/chevron-up.svg' %}";
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

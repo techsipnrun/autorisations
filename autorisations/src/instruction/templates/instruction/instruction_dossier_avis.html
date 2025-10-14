@@ -198,7 +198,7 @@
                 {% endif %}
                 
                 {% if avis.date_reponse_avis %}
-                    <p> <strong>Date de réponse :</strong> avis.date_reponse_avis|date:"d/m/Y" </p>
+                    <p> <strong>Date de réponse :</strong> {{avis.date_reponse_avis|date:"d/m/Y"}} </p>
                 {% endif %}
 
                 <!-- {% if avis.favorable and avis.favorable == True %}
@@ -217,8 +217,8 @@
                 <h2>Documents</h2>
                 <ul class="liste-documents-avis">
                     {% if avis.id_projet_avis %}
-                        <li>
-                            <p><strong>Projet d'avis :</strong></p>
+                        <li class="doc-item">
+                            <p class="doc-item-title"><strong>Projet d'avis :</strong></p>
                             {% with avis.id_projet_avis.titre|lower as titre %}
                                 {% if titre|slice:"-4:" == ".pdf" %}
                                     <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
@@ -230,28 +230,105 @@
                             target="_blank" rel="noopener noreferrer">
                                 {{ avis.id_projet_avis.titre }}
                             </a>
+
+
+
+
+                            <!-- Formulaire remplacement -->
+                            <form id="form-remplacer-projet-avis-{{ avis.id }}"
+                                action="{% url 'remplacer_document_avis' %}"
+                                method="post"
+                                enctype="multipart/form-data"
+                                style="display:none;">
+                                {% csrf_token %}
+                                <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                                <input type="hidden" name="document_id" value="{{ avis.id_projet_avis.id }}">
+                                <input type="file" name="fichier" accept=".pdf,.doc,.docx" onchange="confirmerRemplacement(this)">
+                            </form>
+
+                            <a href="#" class="btn-modifier-doc"
+                            title="Remplacer le projet d'avis"
+                            onclick="ouvrirFichier(event, 'projet-avis', '{{ avis.id }}')">
+                                <img src="{% static 'instruction/img/modifier.svg' %}" alt="Modifier" class="icon-modif-doc">
+                            </a>
+
+
+
+
+
                         </li>
                     {% endif %}
 
                     {% if avis.id_projet_acte %}
-                        <li>
-                            <p><strong>Projet d'acte :</strong></p>
+                        <li class="doc-item">
+                            <p class="doc-item-title"><strong>Projet d'acte {% if avis.id_projet_acte.numero %} {{ avis.id_projet_acte.numero }} {% endif %} :</strong></p>
                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                             <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" 
                             target="_blank" rel="noopener noreferrer">
                                 {{ avis.id_projet_acte.titre }}
                             </a>
+
+
+
+                            <!-- Formulaire remplacement -->
+                            <form id="form-remplacer-projet-acte-{{ avis.id }}"
+                                action="{% url 'remplacer_document_avis' %}"
+                                method="post"
+                                enctype="multipart/form-data"
+                                style="display:none;">
+                                {% csrf_token %}
+                                <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                                <input type="hidden" name="document_id" value="{{ avis.id_projet_acte.id }}">
+                                <input type="file" name="fichier" accept=".pdf,.doc,.docx" onchange="confirmerRemplacement(this)">
+                            </form>
+
+                            <a href="#" class="btn-modifier-doc"
+                            title="Remplacer le projet d'acte"
+                            onclick="ouvrirFichier(event, 'projet-acte', '{{ avis.id }}')">
+                                <img src="{% static 'instruction/img/modifier.svg' %}" alt="Modifier" class="icon-modif-doc">
+                            </a>
+
+
+
+
+
+
                         </li>
                     {% endif %}
 
                     {% if avis.id_rapport_instance %}
-                        <li>
+                        <li class="doc-item">
                             <p><strong>Rapport du conseil :</strong></p>
                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                             <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}" 
                             target="_blank" rel="noopener noreferrer">
                                 {{ avis.id_rapport_instance.titre }}
                             </a>
+
+
+
+
+                            <!-- Formulaire remplacement -->
+                            <form id="form-remplacer-rapport-{{ avis.id }}"
+                                action="{% url 'remplacer_document_avis' %}"
+                                method="post"
+                                enctype="multipart/form-data"
+                                style="display:none;">
+                                {% csrf_token %}
+                                <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                                <input type="hidden" name="document_id" value="{{ avis.id_rapport_instance.id }}">
+                                <input type="file" name="fichier" accept=".pdf,.doc,.docx" onchange="confirmerRemplacement(this)">
+                            </form>
+
+                            <a href="#" class="btn-modifier-doc"
+                            title="Remplacer le rapport du conseil"
+                            onclick="ouvrirFichier(event, 'rapport', '{{ avis.id }}')">
+                                <img src="{% static 'instruction/img/modifier.svg' %}" alt="Modifier" class="icon-modif-doc">
+                            </a>
+
+
+
+
                         </li>
                     {% endif %}
 
@@ -269,7 +346,7 @@
                         <div class="pj_avis">
                             {% for ad in avis_documents %}
                                     <li class="pj-item">
-                                        <p><strong>Pièce jointe :</strong></p>
+                                        <p class="pj_title"><strong>Pièce jointe :</strong></p>
                                         {% if ad.id_document.id_format.format == 'pdf' %}
                                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                                         {% elif ad.id_document.id_format.format == 'docx' or ad.id_document.id_format.format == 'doc' or ad.id_document.id_format.format == 'odt' %}
@@ -412,6 +489,59 @@
             });
         }
     </script>
+
+
+    <script>
+        /**
+         * Ouvre le sélecteur de fichier correspondant au document à remplacer
+         * @param {Event} event - clic sur l’icône de modification
+         * @param {string} typeDoc - identifiant du type de document (projet-avis, projet-acte, rapport)
+         * @param {string|number} avisId - ID de l'avis concerné
+         */
+        function ouvrirFichier(event, typeDoc, avisId) {
+            event.preventDefault();
+            const input = document.querySelector(`#form-remplacer-${typeDoc}-${avisId} input[type='file']`);
+            if (input) {
+                input.click();
+            } else {
+                console.error(`Impossible de trouver le champ file pour #form-remplacer-${typeDoc}-${avisId}`);
+            }
+        }
+
+        /**
+         * Confirme le remplacement du document et soumet le formulaire
+         * @param {HTMLInputElement} input - le champ file du formulaire
+         */
+        function confirmerRemplacement(input) {
+            const fichier = input.files[0];
+            if (!fichier) return;
+
+            const ext = fichier.name.split('.').pop().toLowerCase();
+
+            // Autorise uniquement PDF ou Word
+            const formatsAutorises = ["pdf", "doc", "docx"];
+            if (!formatsAutorises.includes(ext)) {
+                alert("❌ Le fichier doit être au format PDF ou Word (.pdf, .doc, .docx).");
+                input.value = "";
+                return;
+            }
+
+            // Message de confirmation
+            const ok = confirm(`Voulez-vous vraiment remplacer ce document par "${fichier.name}" ?`);
+
+            if (ok) {
+                const form = input.closest("form");
+                if (form) {
+                    form.submit();
+                } else {
+                    console.error("Formulaire introuvable pour le fichier sélectionné.");
+                }
+            } else {
+                input.value = "";
+            }
+        }
+    </script>
+
 
 </body>
 </html>

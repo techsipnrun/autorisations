@@ -42,14 +42,43 @@
     <div class="page_instruction_dossier">
         {% breadcrumb breadcrumb_items %}
 
-        <div class="refresh-doss">
-            <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
-                {% csrf_token %}
-                <button type="submit" class="refresh-button">
-                    <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                    Actualiser
-                </button>
-            </form>
+        <div class="refresh_et_timeline">
+            <div class="refresh-doss">
+                <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+                    {% csrf_token %}
+                    <button type="submit" class="refresh-button">
+                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                        Actualiser
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Mini timeline -->
+            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                <div class="mini_timeline">
+                
+                    {% if etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "En attente réponse d'avis" or etape_actuelle.etape == "En attente de compléments " %}
+                        <img src="{% static 'instruction/img/timeline/2.svg' %}" alt="Timeline" class="mini_timeline">
+                    {% endif %}
+
+                    {% if etape_actuelle.etape == "À affecter" or etape_actuelle.etape == "En pré-instruction" %}
+                        <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
+                    {% endif %}
+
+                    {% if etape_actuelle.etape == "En attente de signature" %}
+                        <img src="{% static 'instruction/img/timeline/3.svg' %}" alt="Timeline" class="mini_timeline">
+                    {% endif %}
+
+                    {% if etape_actuelle.etape == "Acte à envoyer" %}
+                        <img src="{% static 'instruction/img/timeline/4.svg' %}" alt="Timeline" class="mini_timeline">
+                    {% endif %}
+
+                    {% if etape_actuelle.etape == "À publier au RAA" %}
+                        <img src="{% static 'instruction/img/timeline/5.svg' %}" alt="Timeline" class="mini_timeline">
+                    {% endif %}
+                </div>
+            {% endif %}
+
         </div>
         
         <div class="page-container">
@@ -288,8 +317,14 @@
 
                         <div class="validant numero-acte">
                             <label for="numero_acte">Numéro de l'acte :</label>
-                            <input type="text" name="numero_acte" id="numero_acte" placeholder="Saisir le numéro de l'acte" required>
+                            <input type="text"
+                                name="numero_acte"
+                                id="numero_acte"
+                                value="{{ doc_a_signer.0.numero|default:'' }}"
+                                placeholder="Saisir le numéro de l'acte"
+                                readonly>
                         </div>
+
 
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
@@ -304,7 +339,7 @@
                                 </div>
                             {% endif %}
 
-                            <p class="hint-text">📁 Merci de sélectionner un fichier <strong>PDF</strong> situé dans le dossier <strong>Work</strong>.</p>
+                            <!-- <p class="hint-text">📁 Merci de sélectionner un fichier <strong>PDF</strong> situé dans le dossier <strong>Work</strong>.</p> -->
                             <div class="envoi-pour-validation-avant-signature">
                                 <button type="button" class="btn-envoyer-complement" onclick="confirmerSignature()">Confirmer que l'acte signé est prêt à l'envoi</button>
                             </div>
@@ -657,7 +692,7 @@
                                     {% for doc in doc_a_valider %}
                                         <li class="doc-item">
                                             <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.id_nature.nature }} : {{ doc.titre }}
+                                                {{ doc.id_nature.nature }} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -678,7 +713,7 @@
                                     {% for doc in doc_valide_avant_demande_avis %}
                                         <li class="doc-item">
                                             <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
+                                                {{ doc.titre }} {% if doc.numero %} {{ doc.numero }} {% endif %}
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -699,7 +734,7 @@
                                     {% for doc in doc_a_relire %}
                                         <li class="doc-item">
                                             <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{doc.id_nature.nature}} : {{ doc.titre }}
+                                                {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
                                             </a>
                                             
                                         </li>
@@ -720,7 +755,7 @@
                                 {% for doc in doc_a_signer %}
                                     <li class="doc-item">
                                         <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{doc.id_nature.nature}} : {{ doc.titre }}
+                                            {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
                                         </a>
                                     </li>
                                 {% endfor %}
@@ -739,7 +774,7 @@
                                 {% for doc in doc_a_envoyer %}
                                     <li class="doc-item">
                                         <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{doc.id_nature.nature}} : {{ doc.titre }}
+                                            {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
                                         </a>
                                     </li>
                                 {% endfor %}
@@ -765,7 +800,7 @@
                                     {% for doc in doc_envoye %}
                                         <li class="doc-item">
                                             <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
+                                                {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -787,7 +822,7 @@
                                     {% for doc in doc_envoye %}
                                         <li class="doc-item">
                                             <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }}
+                                                {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
                                             </a>
                                         </li>
                                     {% endfor %}

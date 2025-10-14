@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.db import models
 from django.db.models import Exists, OuterRef
 
 from autorisations.models.models_instruction import Demarche, Dossier, Message
@@ -1779,3 +1780,140 @@ def avis_confirmer_nouvelle_demande_generique(request):
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
     return redirect('avis_expert', avis_id=avis.id)
+
+
+
+@login_required
+def remplacer_document_avis(request):
+    """
+    Remplace un document lié à un avis :
+    - Projet d'avis
+    - Projet d'acte
+    - Rapport du conseil
+
+    Si le document est partagé avec d'autres champs d'avis,
+    un nouveau Document est créé au lieu de remplacer le fichier existant.
+    """
+    if request.method != "POST":
+        messages.error(request, "Méthode non autorisée.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    avis_id = request.POST.get("avis_id")
+    document_id = request.POST.get("document_id")
+    fichier = request.FILES.get("fichier")
+
+    if not avis_id or not document_id or not fichier:
+        messages.error(request, "❌ Données manquantes (avis_id, document_id ou fichier).")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    avis = get_object_or_404(Avis, id=avis_id)
+    document = get_object_or_404(Document, id=document_id)
+
+    # Vérification extension
+    ext = Path(fichier.name).suffix.lower()
+    if ext not in [".pdf", ".doc", ".docx", ".odt"]:
+        messages.error(request, f"❌ Format non autorisé ({ext}). Formats acceptés : .pdf, .doc, .docx, .odt")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    format_obj = DocumentFormat.objects.filter(format__iexact=ext.lstrip(".")).first()
+    if not format_obj:
+        messages.error(request, f"❌ Format '{ext}' introuvable en base.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    root = os.environ.get("ROOT_FOLDER", "")
+    os.makedirs(os.path.join(root, document.emplacement), exist_ok=True)
+
+    # --- Vérification si le Document est partagé entre plusieurs avis ---
+    utilisations = Avis.objects.filter(
+        models.Q(id_projet_avis=document) |
+        models.Q(id_projet_acte=document) |
+        models.Q(id_rapport_instance=document)
+    ).distinct()
+
+    est_partage = utilisations.count() > 1
+    logger.info(f"[AVIS {avis.id}] Document {document.id} partagé : {est_partage}")
+
+    try:
+        # === CAS 1 : document partagé → création d’un nouveau ===
+        if est_partage:
+            nom_base, ext = os.path.splitext(fichier.name)
+            titre_final = nom_base
+            i = 1
+            repertoire_absolu = os.path.join(root, document.emplacement)
+
+            # Boucle pour éviter doublons (fichier + enregistrement)
+            while True:
+                chemin_candidat = os.path.join(repertoire_absolu, f"{titre_final}{ext}")
+                existe_fichier = os.path.exists(chemin_candidat)
+                existe_enregistrement = Document.objects.filter(
+                    emplacement=document.emplacement,
+                    titre=f"{titre_final}{ext}"
+                ).exists()
+
+                if not existe_fichier and not existe_enregistrement:
+                    break  # nom libre
+
+                i += 1
+                titre_final = f"{nom_base}_{i}"
+
+            # Écriture du fichier sur disque
+            with open(chemin_candidat, "wb+") as dest:
+                for chunk in fichier.chunks():
+                    dest.write(chunk)
+            logger.info(f"[AVIS {avis.id}] Nouveau fichier créé : {chemin_candidat}")
+
+            # Création du nouvel enregistrement Document
+            nouveau_doc = Document.objects.create(
+                id_format=format_obj,
+                id_nature=document.id_nature,
+                id_statut=document.id_statut,
+                url_ds=document.url_ds,
+                emplacement=document.emplacement,
+                description=f"Nouveau document pour l'avis {avis.id}",
+                titre=f"{titre_final}{ext}",
+                numero=document.numero,
+            )
+
+            # On détermine quel champ de l’avis doit être mis à jour
+            if avis.id_projet_avis_id == document.id:
+                avis.id_projet_avis = nouveau_doc
+            elif avis.id_projet_acte_id == document.id:
+                avis.id_projet_acte = nouveau_doc
+            elif avis.id_rapport_instance_id == document.id:
+                avis.id_rapport_instance = nouveau_doc
+
+            avis.save()
+
+        # === CAS 2 : document non partagé → on écrase directement ===
+        else:
+            ancien_chemin = os.path.join(root, document.emplacement, document.titre)
+            nouveau_chemin = os.path.join(root, document.emplacement, fichier.name)
+
+            # Si doublon exact de nom → incrémentation aussi
+            nom_base, ext = os.path.splitext(fichier.name)
+            titre_final = nom_base
+            i = 1
+            while Document.objects.filter(emplacement=document.emplacement, titre=f"{titre_final}{ext}").exclude(id=document.id).exists():
+                titre_final = f"{nom_base}_{i}"
+                i += 1
+            nouveau_chemin = os.path.join(root, document.emplacement, f"{titre_final}{ext}")
+
+            if os.path.exists(ancien_chemin):
+                os.remove(ancien_chemin)
+                logger.info(f"[AVIS {avis.id}] Ancien fichier supprimé : {ancien_chemin}")
+
+            with open(nouveau_chemin, "wb+") as dest:
+                for chunk in fichier.chunks():
+                    dest.write(chunk)
+            logger.info(f"[AVIS {avis.id}] Nouveau fichier enregistré : {nouveau_chemin}")
+
+            document.titre = f"{titre_final}{ext}"
+            document.id_format = format_obj
+            document.description = f"Remplacement du {document.id_nature.nature} pour l'avis {avis.id}"
+            document.save()
+
+    except Exception as e:
+        logger.error(f"[AVIS {avis.id}] Erreur lors du remplacement du document : {e}")
+        messages.error(request, f"❌ Erreur lors du remplacement du document : {e}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))

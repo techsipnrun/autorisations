@@ -230,6 +230,58 @@
     padding-top: 1rem;
 }
 
+.pj_title {
+    min-width: 110px;
+}
+
+
+
+
+/* Bouton remplacer pj */
+.doc-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-modifier-doc {
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    transition: transform 0.2s ease;
+}
+
+
+.btn-modifier-doc:hover {
+    transform: scale(1.1);
+}
+
+
+.doc-item:hover .btn-modifier-doc {
+    opacity: 1;
+}
+
+.icon-modif-doc {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    filter: grayscale(100%);
+    transition: filter 0.2s ease-in-out;
+}
+
+.icon-modif-doc:hover {
+    filter: none;
+}
+
+.doc-item-title {
+    min-width: 120px;
+}
+
+
+
+
+
 /* Bouton ajouter PJ */
 .bouton_ajouter_pj{
     display: flex;

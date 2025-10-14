@@ -33,6 +33,16 @@
     
     <h1>Dossiers en cours d'instruction</h1>
 
+    {% if messages %}
+        <div class="django-messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <table>
         <thead>
             <tr>

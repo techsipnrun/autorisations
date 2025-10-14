@@ -89,11 +89,12 @@ def accueil(request):
     current_year = date.today().year
     demarches = Demarche.objects.all().order_by("titre")
 
-    # ✅ Sécurisation
     groupes_user = []
-    instructeur = Instructeur.objects.get(email=request.user.email)
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if instructeur:
         groupes_user = list(instructeur.groupeinstructeurinstructeur_set.values_list("id_groupeinstructeur_id", flat=True))
+    else :
+        messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     dossier_infos = [
         get_dossier_counts(d, etape_a_affecter, etapes_instruction, etapes_termines, current_year, groupes_user, instructeur)
@@ -110,8 +111,9 @@ def mesdossiers(request):
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
 
     if not instructeur:
-        messages.error(request, f"❌ L'instructeur.rice {request.user} est introuvable.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        messages.error(request, f"❌ Aucun profil 'Instructeur.rice' existant pour l'utilsateur.rice {request.user} : Contactez l'administrateur.rice si besoin.")
+        return render(request, "instruction/mesdossiers.html", { "dossiers_par_demarche": [] })
+        # return redirect(request.META.get("HTTP_REFERER", "/"))
     
     # Étapes terminées
     etapes_termines = EtapeDossier.objects.filter(

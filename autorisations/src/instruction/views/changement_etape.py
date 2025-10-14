@@ -883,11 +883,10 @@ def acte_pret_a_etre_envoye(request):
         dossier_id_ds = request.POST.get("dossierId")
         fichier = request.FILES.get("piece_jointe")
         fichier_rapportCA = request.FILES.get("pj_rapport_CA")
-        print(fichier_rapportCA)
 
         signataire_id = request.POST.get("choix-signataire") # id Instructeur
         nature_document = request.POST.get("nature_document")
-        numero_acte = request.POST.get("numero_acte")
+        # numero_acte = request.POST.get("numero_acte")
 
         if not dossier_id_ds:
             raise Http404(f"[Transmission acte signé] ID dossier DS manquant.")
@@ -904,14 +903,29 @@ def acte_pret_a_etre_envoye(request):
             messages.error(request, f"❌ L'acte joint doit etre au format pdf --> Type de fichier non autorisé : {extension}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        # Chemin du dossier Work
         dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
         full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
         os.makedirs(full_path, exist_ok=True)
         filepath = os.path.join(full_path, fichier.name)
 
+        # Si le fichier n’existe pas déjà, on le crée à partir de l’upload
         if not os.path.exists(filepath):
-            messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+            try:
+                with open(filepath, "wb+") as destination:
+                    for chunk in fichier.chunks():
+                        destination.write(chunk)
+                logger.info(f"[DOSSIER {dossier.numero}] Fichier {fichier.name} créé dans {dossier_path}")
+            except Exception as e:
+                messages.error(request, f"❌ Impossible d’enregistrer le fichier dans {dossier_path} : {e}")
+                logger.error(f"[DOSSIER {dossier.numero}] Erreur écriture {filepath} : {e}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+        else:
+            logger.info(f"[DOSSIER {dossier.numero}] Fichier {fichier.name} déjà présent dans {dossier_path}")
+
+        # if not os.path.exists(filepath):
+        #     messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+        #     return redirect(request.META.get("HTTP_REFERER", "/"))
         
         # RAPPORT CA
         if fichier_rapportCA :
@@ -922,9 +936,21 @@ def acte_pret_a_etre_envoye(request):
             
             filepath_rapportCA = os.path.join(full_path, fichier_rapportCA.name)
 
+            # if not os.path.exists(filepath_rapportCA):
+            #     messages.error(request, "❌ Le rapport au CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+            #     return redirect(request.META.get("HTTP_REFERER", "/"))
+
             if not os.path.exists(filepath_rapportCA):
-                messages.error(request, "❌ Le rapport au CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
+                try:
+                    with open(filepath_rapportCA, "wb+") as destination:
+                        for chunk in fichier_rapportCA.chunks():
+                            destination.write(chunk)
+                    logger.info(f"[DOSSIER {dossier.numero}] Rapport CA {fichier_rapportCA.name} enregistré dans {dossier_path}")
+                except Exception as e:
+                    messages.error(request, f"❌ Impossible d’enregistrer le rapport CA : {e}")
+                    logger.error(f"[DOSSIER {dossier.numero}] Erreur écriture du Rapport CA {filepath_rapportCA} : {e}")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
         # --------------------------------------------
         # Vérification existence Statut, Nature, Format, Signataire
@@ -991,7 +1017,7 @@ def acte_pret_a_etre_envoye(request):
                                     "id_nature": doc_nature,
                                     "id_statut": statut_a_envoyer,
                                     "description": f"{doc_nature.nature} du dossier {dossier.numero}",
-                                    "numero": numero_acte,
+                                    # "numero": numero_acte,
                                 }
                             )
         
@@ -1196,7 +1222,6 @@ def envoyer_l_acte(request):
                 logger.info(f"[DOSSIER {dossier_numero}] Rapport CA ({fichier.name}) copié du dossier Work au dossier Actes.")
                 # Changer l'emplacement /Work par /Actes
                 docRapportCA.emplacement = nouv_emplacement
-                docRapportCA.id_statut.statut = "Envoyé"
                 docRapportCA.save()
         
         except Exception as e:

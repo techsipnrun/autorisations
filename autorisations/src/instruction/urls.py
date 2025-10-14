@@ -5,8 +5,10 @@ from django.contrib import admin
 
 urlpatterns = [
 
-    # HABILITATIONS
+    # GESTION
     path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),
+    path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
+    
 
     # AVIS
     path("instruction/<int:num_dossier>/ajouter_avis", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
@@ -27,7 +29,7 @@ urlpatterns = [
     path("instruction/envoyer_message_avis/", avis.envoyer_message_avis, name="envoyer_message_avis"),
     path('message/<int:id>/supprimer_message_avis/', messagerie.supprimer_message_avis, name='supprimer_message_avis'),
     path("avis/<int:avis_id>/supprimer-doc/<str:champ>/", avis.supprimer_document_avis, name="supprimer_document_avis"),
-
+    path("avis/remplacer_document_avis/", avis.remplacer_document_avis, name="remplacer_document_avis"),
 
 
     # EXPERT
@@ -43,7 +45,6 @@ urlpatterns = [
     path("reception_avis/nouvelle_demande_avis_generique/confirmer/", avis.avis_confirmer_nouvelle_demande_generique, name="avis_confirmer_nouvelle_demande_generique"),
     path("enregistrer-date-transmission-cs/<int:avis_id>/", expert.enregistrer_date_transmission_cs, name="enregistrer_date_transmission_cs"),
 
-    
 
     # INSTRUCTION
     path('instruction/', instruction.accueil, name='accueil_view'),
@@ -66,7 +67,6 @@ urlpatterns = [
     path('mesdossiers/', instruction.mesdossiers, name='mesdossiers_view'),
 
 
-
     # PRÉ-INSTRUCTION
     path('preinstruction/', preinstruction.preinstruction, name='preinstruction_view'),
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
@@ -75,7 +75,6 @@ urlpatterns = [
     path('preinstruction/declaration_manifestations/<int:numero>/', views.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
     
 
-
     # ACTUALISATION
     path("actualiser/", views.actualiser_donnees, name="actualiser_donnees"),
     path("etat-actualisation/", views.etat_actualisation, name="etat_actualisation"),
@@ -83,7 +82,6 @@ urlpatterns = [
     path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
     path('preinstruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),
     path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
-
 
 
     # GROUPE INSTRUCTEUR

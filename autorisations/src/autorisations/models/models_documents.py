@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Max
+from datetime import date
 
 from .models_utilisateurs import DossierRelecteur
 
@@ -59,6 +61,53 @@ class Document(models.Model):
             models.Index(fields=['id_format'], name='idx_document_id_format'),
             models.Index(fields=['id_nature'], name='idx_document_id_nature'),
         ]
+    
+    def save(self, *args, **kwargs):
+        """
+        Incrémente automatiquement le numéro au format AAAA-XXX
+        pour les natures : 'Arrêté directeur', 'Déliberation CA', 'Avis simple', 'Avis conforme'.
+        Si la nature du document change, le numéro est régénéré.
+        """
+        natures_cibles = ["Arrêté directeur", "Déliberation CA", "Avis simple", "Avis conforme"]
+        annee = date.today().year
+        nature_actuelle = self.id_nature.nature if self.id_nature else None
+
+        # Récupère la nature précédente si le doc existe déjà
+        ancienne_nature = None
+        if self.pk:
+            try:
+                ancien_doc = Document.objects.get(pk=self.pk)
+                ancienne_nature = ancien_doc.id_nature.nature if ancien_doc.id_nature else None
+            except Document.DoesNotExist:
+                pass
+
+        nature_changee = (ancienne_nature != nature_actuelle)
+
+        # Nouveau document cible OU changement de nature
+        if (not self.numero or nature_changee) and nature_actuelle in natures_cibles:
+            dernier = (
+                Document.objects
+                .filter(
+                    id_nature=self.id_nature,
+                    numero__startswith=str(annee)
+                )
+                .aggregate(max_num=Max('numero'))
+            )
+
+            dernier_num = dernier["max_num"]
+            if dernier_num:
+                try:
+                    last_counter = int(dernier_num.split('-')[-1])
+                    nouveau_num = f"{annee}-{last_counter + 1:03d}"
+                except ValueError:
+                    nouveau_num = f"{annee}-001"
+            else:
+                nouveau_num = f"{annee}-001"
+
+            self.numero = nouveau_num
+
+        super().save(*args, **kwargs)
+
 
     def __str__(self):
         if self.numero :

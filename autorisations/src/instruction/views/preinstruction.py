@@ -32,6 +32,10 @@ def preinstruction(request):
 
     dossier_infos = []
 
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
+
     for dossier in dossiers:
         if dossier.id_demarche.type != "Manifestations sportives" :
 

@@ -13,16 +13,16 @@ USERNAME = os.getenv("DM_USERNAME")
 PASSWORD = os.getenv("DM_PASSWORD")
 CLIENT_ID = os.getenv("DM_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DM_CLIENT_SECRET")
-API_URL = os.getenv("DM_API_URL_DEV")  #mettre celle de preprod pour les tests
+API_URL = os.getenv("DM_API_URL_PREPROD")  # URL de preprod pour les tests
 
 
 # ==== URLS ====
 TOKEN_URL = f"{API_URL}o/token/"
 AVIS_LIST_URL = f"{API_URL}api/Avis/"
-AVIS_DETAIL_URL = f"{API_URL}" + "api/Avis/{}"
-DOSSIER_DETAIL_URL = f"{API_URL}" + "api/Dossier/{}"
+AVIS_DETAIL_URL = f"{API_URL}" + "api/Avis/{}/"
+DOSSIER_DETAIL_URL = f"{API_URL}" + "api/Dossier/{}/"
 GEOJSON_URL = f"{API_URL}" + "api/Dossier/{}/carto_GeoJson/"
-GPX_URL = f"{API_URL}" + "api/Dossier/{}/carto_GPX"
+GPX_URL = f"{API_URL}" + "api/Dossier/{}/carto_GPX/"
 
 
 # Récupération de l'access token

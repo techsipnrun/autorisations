@@ -41,28 +41,32 @@ def avis(request):
     ###################################
     # Avis à rendre/rendu (en tant qu’expert)
     ###################################
-    avis_a_rendre = (
-        Avis.objects.filter(id_expert=expert, favorable__isnull=True)
-        .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
-        .order_by("-date_demande_avis")
-    )
+    avis_a_rendre = avis_rendus = annees_disponibles_expert = []
+    if expert :
+        avis_a_rendre = (
+            Avis.objects.filter(id_expert=expert, favorable__isnull=True)
+            .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
+            .order_by("-date_demande_avis")
+        )
 
-    # Avis archivés de l’année
-    avis_rendus = (
-        Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year)
-        .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
-        .order_by("-date_reponse_avis")
-    )
+        # Avis archivés de l’année
+        avis_rendus = (
+            Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year)
+            .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
+            .order_by("-date_reponse_avis")
+        )
 
-    # Années disponibles
-    annees_disponibles_expert = Avis.objects.filter(
-        id_expert=expert, date_reponse_avis__isnull=False
-    ).dates("date_reponse_avis", "year", order="DESC")
+        # Années disponibles
+        annees_disponibles_expert = Avis.objects.filter(
+            id_expert=expert, date_reponse_avis__isnull=False
+        ).dates("date_reponse_avis", "year", order="DESC")
 
 
     ##############################################################
     # Mes demandes d’avis en cours/traitées (en tant que demandeur)
     ##############################################################
+    demandes_en_cours = demandes_traitees = annees_disponibles_demandeur = []
+
     if instructeur:
 
         # Demandes en cours
@@ -104,6 +108,9 @@ def avis(request):
                 email_expert = a.id_expert.id_contact_externe.email
             a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False, email_emetteur=email_expert).count()
 
+    if not expert and not instructeur :
+        print('heyyy')
+        messages.error(request, f"❌ Vous n'avez ni un profil 'Expert.e', ni un profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     return render(
         request,

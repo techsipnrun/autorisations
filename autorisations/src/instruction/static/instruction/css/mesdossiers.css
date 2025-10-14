@@ -23,6 +23,7 @@
     display: flex;
     color: rgb(172, 2, 2);
     font-weight: bold;
+    font-size: 1.2rem;
     align-items: center;
     justify-content: center;
 }

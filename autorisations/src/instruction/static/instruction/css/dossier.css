@@ -1,10 +1,25 @@
 /* ---------------------------------------------------------------- */
 /*                        ACTUALISER DOSSIER                        */
 /* ---------------------------------------------------------------- */
+
+.refresh_et_timeline{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3rem 4rem 0 4rem;
+    width: 70%;
+}
+
+.refresh_et_timeline .mini_timeline{
+    max-width: 70%;
+    min-width: 400px;
+    margin: 0 auto;
+}
+
+
+
 .refresh-doss {
-    text-align: left;
-    margin-top: 2rem;
-    padding: 1rem 4rem 0 4rem;
+        align-self: flex-end;
 }
 
 .refresh-doss form {
@@ -51,7 +66,7 @@
 .page-container {
     display: flex;
     gap: 2rem;
-    padding: 1rem 4rem 6rem 4rem;
+    padding: 0.5rem 4rem 6rem 4rem;
 }
 
 .formulaire {
@@ -60,6 +75,11 @@
     background-color: rgb(239, 239, 239);
     border: solid 1px black;
 }
+
+.formulaire_dm {
+    width: 80%;
+}
+
 
 .champs p {
     margin-bottom: 0.4rem;

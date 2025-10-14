@@ -1,8 +1,19 @@
+/* Messages d'erreurs */
+.django-messages{
+    display: flex;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-top: 2rem;
+    color: rgb(172, 2, 2);
+    font-weight: bold;
+}
+
 /* Global table style */
 table {
     width: 95%;
     max-width: 900px;
     margin: 2rem auto;
+    margin-bottom: 6rem;
     border-collapse: collapse;
     font-family: "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 1rem;

@@ -32,15 +32,22 @@
     <div class="page_preinstruction_dossier">
         {% breadcrumb breadcrumb_items %}
 
-        <div class="refresh-doss">
-            <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
-                {% csrf_token %}
-                <button type="submit" class="refresh-button">
-                    <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                    Actualiser
-                </button>
-            </form>
+        <div class="refresh_et_timeline">
+            <div class="refresh-doss">
+                <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+                    {% csrf_token %}
+                    <button type="submit" class="refresh-button">
+                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                        Actualiser
+                    </button>
+                </form>
+            </div>
+            
+            <div class="mini_timeline">
+                <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
+            </div>
         </div>
+        
 
         <div class="page-container">
             

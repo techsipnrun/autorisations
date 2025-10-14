@@ -31,6 +31,16 @@
         <span id="message-actualisation" class="actualisation-texte"></span>
     </div>
 
+    {% if messages %}
+        <div class="django-messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
 
     <h1>Réception des demandes d'autorisation</h1>
 
