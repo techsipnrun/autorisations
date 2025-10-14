@@ -23,7 +23,7 @@ def dossiers_declaration_manifestations_normalize(d):
                     "structure": doss.get("structure_organisatrice_fk").get("precision_nom_s"),
                     "adresse": doss.get("structure_organisatrice_fk").get("adresse_s"),
                     "numero_telephone": doss.get("structure_organisatrice_fk").get("telephone_s"),
-                    "email_structure": "Pas récupérable par API",
+                    "email_structure": doss.get("structure_organisatrice_fk").get("email_s"),
 
                     "nom_dossier": doss.get("nom"),
                     "numero_dossier_declaration_manifestations": doss.get("pk"),

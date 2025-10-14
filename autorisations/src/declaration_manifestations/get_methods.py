@@ -6,7 +6,6 @@ import logging
 
 loggerDM = logging.getLogger("API_DM")
 
-
 # ==== Chargement des variables d'environnement ====
 load_dotenv()
 USERNAME = os.getenv("DM_USERNAME")

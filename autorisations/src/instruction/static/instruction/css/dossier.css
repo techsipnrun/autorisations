@@ -995,22 +995,23 @@ textarea[name="note"] {
 }
 
 
-/* ICON DS */
-.icon_DS {
+/* ICON DS et DM */
+.icon_DS, .icon_DM {
     width: 40px;
     margin-left: 1rem;
     align-self: flex-start;
     transition: transform 0.2s ease-in-out;
 }
 
-.icon_DS:hover {
+.icon_DS:hover, .icon_DM:hover {
     transform: scale(1.2);
     cursor: pointer;
 }
 
-.icon_DS img {
+.icon_DS img, .icon_DM img {
     width: 100%;
 }
+
 
 .txt_en_gras {
     font-weight: bold;

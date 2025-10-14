@@ -50,7 +50,6 @@ def main():
                 else :
                     loggerDM.warning(f"Le dossier {dossier["nom"]} ({dossier["pk"]}) est en double sur Déclaration Manifestations")
  
-
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
 
     return dossiers
@@ -60,7 +59,6 @@ def recup_un_seul_dossier(manif_id):
 
     # Récupère le token
     token = get_access_token()
-
 
     dossier = get_dossier_by_id(token, manif_id)
     if dossier:
