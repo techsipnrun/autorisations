@@ -6,6 +6,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Navbar</title>
+
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+
+    <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
 </head>
 <body>
@@ -85,25 +90,27 @@
                     </button>
 
                     <div class="settings_menu">
-                        <a href="/admin/" class="dropdown-item" target="_blank">
-                            <img src="{% static 'instruction/img/shield-user.svg' %}" class="icon" alt="">
-                            <span>Admin</span>
-                        </a>
+                        {% if request.user.is_superuser %}
+                            <a href="/admin/" class="dropdown-item" target="_blank">
+                                <img src="{% static 'instruction/img/shield-user.svg' %}" class="icon" alt="">
+                                <span>Admin</span>
+                            </a>
 
-                        <a href="/gestion_groupes/" class="dropdown-item">
-                            <img src="{% static 'instruction/img/groups.svg' %}" class="icon" alt="">
-                            <span>Gestion des groupes</span>
-                        </a>
+                            <a href="/gestion_groupes/" class="dropdown-item">
+                                <img src="{% static 'instruction/img/groups.svg' %}" class="icon" alt="">
+                                <span>Gestion des groupes</span>
+                            </a>
 
-                        <a href="/gestion_contacts/" class="dropdown-item">
-                            <img src="{% static 'instruction/img/contact_externe.svg' %}" class="icon" alt="">
-                            <span>Gestion des contacts</span>
-                        </a>
+                            <a href="/gestion_contacts/" class="dropdown-item">
+                                <img src="{% static 'instruction/img/contact_externe.svg' %}" class="icon" alt="">
+                                <span>Gestion des contacts</span>
+                            </a>
 
-                        <a href="/swagger/" target="_blank" class="dropdown-item">
-                            <img src="{% static 'instruction/img/api-icon.svg' %}" class="icon" alt="">
-                            <span>API Swagger</span>
-                        </a>
+                            <a href="/swagger/" target="_blank" class="dropdown-item">
+                                <img src="{% static 'instruction/img/api-icon.svg' %}" class="icon" alt="">
+                                <span>API Swagger</span>
+                            </a>
+                        {% endif %}
                         
                         <a href="https://www.demarches-simplifiees.fr/procedures" target="_blank" class="dropdown-item">
                             <img src="{% static 'instruction/img/DS_noir_et_blanc.svg' %}" class="icon" alt="">

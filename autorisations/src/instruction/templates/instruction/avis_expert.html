@@ -1,5 +1,6 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load group_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -7,6 +8,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messagerie</title>
+
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_avis.css' %}">
@@ -84,23 +88,25 @@
                     {% endif %}
                 {% endif %}
 
+                
+                {% if request.user|est_concerne_par_avis:avis %}
+                    <!-- Publication RAA faite ? -->
+                    {% if avis.favorable and avis_signes and not avis.publie_au_raa %}
+                        <div class="publication_raa">
+                            <form id="form-publier-raa-{{ avis.id }}" 
+                                action="{% url 'publier_avis_raa' avis.id %}" 
+                                method="post" 
+                                style="display:none;">
+                                {% csrf_token %}
+                            </form>
 
-                <!-- Publication RAA faite ? -->
-                {% if avis.favorable and avis_signes and not avis.publie_au_raa %}
-                    <div class="publication_raa">
-                        <form id="form-publier-raa-{{ avis.id }}" 
-                            action="{% url 'publier_avis_raa' avis.id %}" 
-                            method="post" 
-                            style="display:none;">
-                            {% csrf_token %}
-                        </form>
-
-                        <button type="button" 
-                                class="btn-publier-raa" 
-                                onclick="confirmerPublicationRAA('{{ avis.id }}')">
-                            Valider la publication au RAA
-                        </button>
-                    </div>
+                            <button type="button" 
+                                    class="btn-publier-raa" 
+                                    onclick="confirmerPublicationRAA('{{ avis.id }}')">
+                                Valider la publication au RAA
+                            </button>
+                        </div>
+                    {% endif %}
                 {% endif %}
             </div>
 
@@ -120,25 +126,26 @@
                                     <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon-avis-signe">
                                 </a>
                                 
-                                <form id="form-remplacer-{{ avis.id }}-{{ as.id }}" 
-                                    action="{% url 'remplacer_avis_signe' %}" 
-                                    method="post" 
-                                    enctype="multipart/form-data" 
-                                    style="display:none;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="avis_id" value="{{ avis.id }}">
-                                    <input type="hidden" name="document_id" value="{{ as.id }}">
-                                    <input type="file" name="fichier" accept=".pdf" onchange="confirmerRemplacement(this)">
-                                </form>
+                                {% if request.user|est_concerne_par_avis:avis %}
+                                    <form id="form-remplacer-{{ avis.id }}-{{ as.id }}" 
+                                        action="{% url 'remplacer_avis_signe' %}" 
+                                        method="post" 
+                                        enctype="multipart/form-data" 
+                                        style="display:none;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                                        <input type="hidden" name="document_id" value="{{ as.id }}">
+                                        <input type="file" name="fichier" accept=".pdf" onchange="confirmerRemplacement(this)">
+                                    </form>
 
-                                <a href="#" class="modif_avis_signe" 
-                                title="Remplacer l'avis signé"
-                                onclick="ouvrirFichier(event, '{{ avis.id }}', '{{ as.id }}')">
-                                    <img src="{% static 'instruction/img/modifier.svg' %}" 
-                                        alt="Remplacer l'avis signé" 
-                                        class="icon-modif-avis-signe">
-                                </a>
-
+                                    <a href="#" class="modif_avis_signe" 
+                                    title="Remplacer l'avis signé"
+                                    onclick="ouvrirFichier(event, '{{ avis.id }}', '{{ as.id }}')">
+                                        <img src="{% static 'instruction/img/modifier.svg' %}" 
+                                            alt="Remplacer l'avis signé" 
+                                            class="icon-modif-avis-signe">
+                                    </a>
+                                {% endif %}
 
                             </div>      
                         </li>
@@ -221,19 +228,20 @@
                 </div>
             {% endif %}
         
-
-            <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis_vision_expert' %}"> 
-                {% csrf_token %}
-                <input type="hidden" name="avis_id" value="{{ avis.id }}">
-                <textarea name="body" placeholder="Écrire un message..." required></textarea>
-                <div class="pj-actions">
-                    <div class="pj-input-wrapper">
-                        <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
-                        <span class="pj-max">(20 Mo max)</span>
+            {% if request.user|est_concerne_par_avis:avis %}
+                <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis_vision_expert' %}"> 
+                    {% csrf_token %}
+                    <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                    <textarea name="body" placeholder="Écrire un message..." required></textarea>
+                    <div class="pj-actions">
+                        <div class="pj-input-wrapper">
+                            <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                            <span class="pj-max">(20 Mo max)</span>
+                        </div>
+                        <button type="submit" title="Envoyer le message">Envoyer</button>
                     </div>
-                    <button type="submit" title="Envoyer le message">Envoyer</button>
-                </div>
-            </form>
+                </form>
+            {% endif %}
         </div>
 
 
@@ -270,7 +278,7 @@
 
                 {% if avis.date_transmission_cs %}
                     <p><strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
-                {% else %}
+                {% elif est_expert %}
                     <form method="post" action="{% url 'enregistrer_date_transmission_cs' avis.id %}" class="form-date-cs">
                         {% csrf_token %}
                         <label for="date_transmission_cs"><strong>Date de transmission aux membres du CS :</strong></label>
@@ -380,12 +388,14 @@
                                         <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}" target="_blank">
                                             {{ ad.id_document.titre }}
                                         </a>
-
-                                        <!-- Formulaire suppression PJ -->
-                                        <form method="post" action="{% url 'supprimer_pj_avis' avis.id ad.id_document.id %}" class="form-supprimer-pj">
-                                            {% csrf_token %}
-                                            <button type="button" class="btn-supprimer-pj" title="Supprimer la pièce jointe" onclick="confirmerSuppressionPJ(this)">✕</button>
-                                        </form>
+                                        
+                                        {% if request.user|est_concerne_par_avis:avis %}
+                                            <!-- Formulaire suppression PJ -->
+                                            <form method="post" action="{% url 'supprimer_pj_avis' avis.id ad.id_document.id %}" class="form-supprimer-pj">
+                                                {% csrf_token %}
+                                                <button type="button" class="btn-supprimer-pj" title="Supprimer la pièce jointe" onclick="confirmerSuppressionPJ(this)">✕</button>
+                                            </form>
+                                        {% endif %}
                                     </li>
                                 {% endif %}
                             {% endfor %}
@@ -393,23 +403,25 @@
                     {% endif %}
                 </ul>
 
-                <div class="bouton_ajouter_pj">
-                    <form id="form-ajout-pj" method="post" enctype="multipart/form-data"
-                        action="{% url 'ajouter_pj_avis' avis_id=avis.id %}">
-                        {% csrf_token %}
-                        <input type="file" id="input-pj-avis" name="pj_avis" 
-                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple style="display:none">
-                    </form>
+                {% if request.user|est_concerne_par_avis:avis %}
+                    <div class="bouton_ajouter_pj">
+                        <form id="form-ajout-pj" method="post" enctype="multipart/form-data"
+                            action="{% url 'ajouter_pj_avis' avis_id=avis.id %}">
+                            {% csrf_token %}
+                            <input type="file" id="input-pj-avis" name="pj_avis" 
+                                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple style="display:none">
+                        </form>
 
-                    <!-- Données JSON des documents existants -->
-                    {{ liste_avis_documents|json_script:"docs-existants" }}
+                        <!-- Données JSON des documents existants -->
+                        {{ liste_avis_documents|json_script:"docs-existants" }}
 
-                    <!-- Bouton flottant + -->
-                    <button type="button" class="btn-ajouter-pj" title="Ajouter des pièces jointes"
-                            onclick="document.getElementById('input-pj-avis').click();">
-                        +
-                    </button>
-                </div>
+                        <!-- Bouton flottant + -->
+                        <button type="button" class="btn-ajouter-pj" title="Ajouter des pièces jointes"
+                                onclick="document.getElementById('input-pj-avis').click();">
+                            +
+                        </button>
+                    </div>
+                {% endif %}
 
             </div>
 
@@ -419,8 +431,18 @@
 
                     <form method="post" action="{% url 'mettre_a_jour_note_avis' avis.id %}" class="form-note-avis">
                         {% csrf_token %}
-                        <textarea name="note" rows="5">{{ avis.note }}</textarea>
-                        <button type="submit" class="valider-btn">Mettre à jour</button>
+
+                        <!-- <textarea name="note" rows="5">{{ avis.note }}</textarea> -->
+
+                        <textarea name="note" rows="5"
+                            {% if not request.user|est_concerne_par_avis:avis %}
+                                readonly
+                                title="Vous devez être concerné.e par l'avis pour modifier cette note"
+                            {% endif %}>{{ avis.note }}</textarea>
+
+                        {% if request.user|est_concerne_par_avis:avis %}
+                            <button type="submit" class="valider-btn" title="Mettre à jour la note">Mettre à jour</button>
+                        {% endif %}
                     </form>
                 </div>
             {% endif %}

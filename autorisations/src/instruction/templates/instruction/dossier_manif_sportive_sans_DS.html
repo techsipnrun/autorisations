@@ -8,6 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dossier manifestations sportives</title>
 
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+    
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -33,6 +36,34 @@
             <div class="en_attente_DS"><p> En attente d'un dossier Démarches Simpifiées </p></div>
             <div class="titre-manif"><h1>{{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</h1></div>
             
+            <h2>Avis du Parc sur Déclaration Manifestations</h2>
+            {% if avis_manif_sportive %}
+                <div class="champs">
+                    {% if avis_manif_sportive.service %}
+                        <p><strong>Service :</strong> {{ avis_manif_sportive.service }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.etat %}
+                        <p><strong>État :</strong> {{ avis_manif_sportive.etat }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.date_demande %}
+                        <p><strong>Date de demande :</strong> {{ avis_manif_sportive.date_demande|date:"d/m/Y" }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.date_reponse %}
+                        <p><strong>Date de réponse :</strong> {{ avis_manif_sportive.date_reponse|date:"d/m/Y" }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.reponse_avis %}
+                        <p><strong>Réponse :</strong> {{ avis_manif_sportive.reponse_avis }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.prescriptions %}
+                        <p><strong>Prescriptions :</strong> {{ avis_manif_sportive.prescriptions }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.objet_demande %}
+                        <p><strong>Objet :</strong> {{ avis_manif_sportive.objet_demande }}</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p><em>Aucun avis enregistré pour ce dossier.</em></p>
+            {% endif %}
 
             <h2>Organisateur.trice</h2>
             <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"Non renseigné" }}</p></div>

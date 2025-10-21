@@ -1,6 +1,7 @@
 {% load static %}
 {% load breadcrumb_tags %}
 {% load custom_filters %}
+{% load group_tags %}
 
 
 
@@ -10,6 +11,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page d'instruction d'un dossier</title>
+
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
     <!-- <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}"> -->
@@ -29,8 +33,6 @@
 
     <!-- Envoi de l'acte final -->
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
-
-
 
 </head>
 
@@ -114,77 +116,80 @@
                 <div class="etat-badge-container">
                     <div class="etat-badge-menu-dropdown">
 
-                        <div class="etat-badge-label" id="etapeMenuToggle">
+                        <div class="etat-badge-label" id="etapeMenuToggle" 
+                        {% if not request.user|est_concerné_par_le_dossier:dossier %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
                             {{ etape_actuelle.etape|default:"Non défini" }}
                             <span class="dropdown-arrow">&#9660;</span>
                         </div>
 
-                        <div class="etat-badge-menu-content" id="etapeMenuContent">
-                            {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
-                                {% if actions %}
-                                    <!-- Déclencher ouverture Zone masquée en fonction du bouton cliqué -->
-                                    {% for label in actions %}
-                                        {% if label == "Demander des compléments" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
-                                        
-                                        {% elif label == "Classer le dossier comme non soumis à autorisation" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
-                                        
-                                        {% elif label == "Classer le dossier comme refusé" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
+                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                            <div class="etat-badge-menu-content" id="etapeMenuContent">
+                                {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
+                                    {% if actions %}
+                                        <!-- Déclencher ouverture Zone masquée en fonction du bouton cliqué -->
+                                        {% for label in actions %}
+                                            {% if label == "Demander des compléments" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
+                                            
+                                            {% elif label == "Classer le dossier comme non soumis à autorisation" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
+                                            
+                                            {% elif label == "Classer le dossier comme refusé" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
 
-                                        {% elif label == "Envoyer l'acte" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte</button>
-                                        
-                                        {% elif label == "Faire valider le projet d'acte" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Faire valider le projet d'acte</button>
-                                        
-                                        {% elif label == "Faire valider une demande d'avis" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider une demande d'avis</button>
-                                        
-                                        {% elif label == "Valider et envoyer pour relecture qualité" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
-                                        
-                                        {% elif label == "Envoyer pour relecture qualité" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Envoyer pour relecture qualité</button>
-                                        
-                                        {% elif label == "Acte inchangé, envoyer pour relecture qualité" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Acte inchangé, envoyer pour relecture qualité</button>
-                                        
-                                        {% elif label == "Prêt à la signature" and delibCA %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
+                                            {% elif label == "Envoyer l'acte" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte</button>
+                                            
+                                            {% elif label == "Faire valider le projet d'acte" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Faire valider le projet d'acte</button>
+                                            
+                                            {% elif label == "Faire valider une demande d'avis" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider une demande d'avis</button>
+                                            
+                                            {% elif label == "Valider et envoyer pour relecture qualité" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
+                                            
+                                            {% elif label == "Envoyer pour relecture qualité" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Envoyer pour relecture qualité</button>
+                                            
+                                            {% elif label == "Acte inchangé, envoyer pour relecture qualité" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Acte inchangé, envoyer pour relecture qualité</button>
+                                            
+                                            {% elif label == "Prêt à la signature" and delibCA %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
 
-                                        {% elif label == "Acte prêt à être envoyé" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
-                                        
-                                        {% elif label == "Repasser en instruction" %}
-                                            <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                <button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
-                                            </form>
-                                        
-                                        {% elif label == "Classer le dossier comme accepté" %}
-                                            <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                <button type="button" class="btn_dropdown_instruction" onclick="confirmerPublicationRAA()">Classer le dossier comme accepté</button>
-                                            </form>
+                                            {% elif label == "Acte prêt à être envoyé" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
+                                            
+                                            {% elif label == "Repasser en instruction" %}
+                                                <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
+                                                </form>
+                                            
+                                            {% elif label == "Classer le dossier comme accepté" %}
+                                                <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerPublicationRAA()">Classer le dossier comme accepté</button>
+                                                </form>
 
-                                        {% else %}
-                                            <form method="post" action="{% url label|url_name_from_label %}">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                <button type="submit" class="btn_dropdown_instruction">{{ label }}</button>
-                                            </form>
-                                        {% endif %}
+                                            {% else %}
+                                                <form method="post" action="{% url label|url_name_from_label %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                    <button type="submit" class="btn_dropdown_instruction">{{ label }}</button>
+                                                </form>
+                                            {% endif %}
 
-                                    {% endfor %}
-                                {% else %}
-                                    <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
-                                {% endif %}
-                            {% endwith %}
-                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        {% endif %}
                     </div>
 
                     <!-- Bouton Se déclarer comme instructeur.trice du dossier -->
@@ -209,11 +214,13 @@
                     </a>
 
                     <!-- Lien DS -->
-                    <a class="icon_DS" href="https://www.demarches-simplifiees.fr/procedures/{{ demarche.numero }}{% if dossier.id_etat_dossier.nom in 'refuse,accepte,sans_suite' %}/traites{% else %}/suivis{% endif %}/dossiers/{{ dossier.numero }}" target="_blank">
-                        <img src="{% static 'instruction/img/icon_DS_32.png' %}"
-                            alt="Visualiser le dossier sur Démarches Simplifiées"
-                            title="Visualiser le dossier sur Démarches Simplifiées">
-                    </a>
+                    {% if request.user|est_concerné_par_le_dossier:dossier %}
+                        <a class="icon_DS" href="https://www.demarches-simplifiees.fr/procedures/{{ demarche.numero }}{% if dossier.id_etat_dossier.nom in 'refuse,accepte,sans_suite' %}/traites{% else %}/suivis{% endif %}/dossiers/{{ dossier.numero }}" target="_blank">
+                            <img src="{% static 'instruction/img/icon_DS_32.png' %}"
+                                alt="Visualiser le dossier sur Démarches Simplifiées"
+                                title="Visualiser le dossier sur Démarches Simplifiées">
+                        </a>
+                    {% endif %}
 
                     <!-- Lien DM -->
                     {% if demarche.type|lower == "manifestations sportives" %}
@@ -1052,7 +1059,9 @@
                         {% elif champ.type == 'carte' %}
                             <div class="titre-carte-avec-bouton">
                                 <h2>{{ champ.nom }}</h2>
-                                <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                {% endif %}
                             </div>
                             
                             <div class="carte-container">
@@ -1077,17 +1086,22 @@
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
                             
                             {% if champ.geometrie_a_saisir == 'oui' %}
-                                <div class="titre-carte-avec-bouton">
-                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
-                                </div>
+                                {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                    <div class="titre-carte-avec-bouton">
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
+                                    </div>
+                                {% endif %}
+
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
                                 </div>
 
                             {% elif champ.geometrie_a_saisir == 'non' %}
-                                <div class="titre-carte-avec-bouton">
-                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
-                                </div>
+                                {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                    <div class="titre-carte-avec-bouton">
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                    </div>
+                                {% endif %}
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
@@ -1166,17 +1180,22 @@
                                 {% else %}
                                     <li class="pas_instructeur_du_dossier">
 
-                                        {{ valideur.id_agent_autorisations.nom|upper }} {{ valideur.id_agent_autorisations.prenom|capfirst }}
-                                            
-                                        <form method="post" action="{% url 'changer_valideur' %}" class="form-changer-valideur">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <input type="hidden" name="new_valideur_id" value="{{ valideur.id }}">
+                                        <span title="La personne n'est pas déclarée comme validant.e">
+                                            {{ valideur.id_agent_autorisations.nom|upper }} {{ valideur.id_agent_autorisations.prenom|capfirst }}
+                                        </span>
+                                        
+                                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                            <form method="post" action="{% url 'changer_valideur' %}" class="form-changer-valideur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="new_valideur_id" value="{{ valideur.id }}">
 
-                                            <button type="submit" class="btn-changer-valideur" title="Changer de validant.e">
-                                                <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer de valideur" class="logo_actualiser">
-                                            </button>
-                                        </form>
+                                                <button type="submit" class="btn-changer-valideur" title="Changer de validant.e">
+                                                    <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer de valideur" class="logo_actualiser">
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
                                     </li>
                                 {% endif %}
                             
@@ -1311,15 +1330,18 @@
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
                                         <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur.rice du dossier" title="Instructeur.rice du dossier" class="logo_instructeur logo_groupe_instru">
                                         
-                                        <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                            <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
 
-                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
-                                                <span class="croix-retirer">✕</span>
-                                            </button>
-                                        </form>
+                                                <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
+                                                    <span class="croix-retirer">✕</span>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
                                     </li>
                                     {% if retirer_instructeur_message %}
                                         <div class="instruction-warning">
@@ -1332,34 +1354,40 @@
                                     <li class="pas_instructeur_du_dossier">
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
 
-                                        <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                            <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
 
-                                            <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
-                                                <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
-                                            </button>
-                                        </form>
+                                                <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
                                     </li>
 
                                 {% endif %}
                             {% endfor %}
                         </ul>
 
+
                         {% if groupes_instructeurs|length > 1 %}
-                            <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
-                                {% csrf_token %}
-                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <select name="groupeInstructeurId" id="select-changer-groupe">
-                                    <option value="" selected disabled hidden>Changer le groupe instructeur</option>
-                                    {% for groupe in groupes_instructeurs %}
-                                        {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
-                                            <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
-                                        {% endif %}
-                                    {% endfor %}
-                                </select>
-                            </form>
+                            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                    <select name="groupeInstructeurId" id="select-changer-groupe">
+                                        <option value="" selected disabled hidden>Changer le groupe instructeur</option>
+                                        {% for groupe in groupes_instructeurs %}
+                                            {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
+                                                <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            {% endif %}
                         {% endif %}
 
                         {% if instructeur_connecte.id in instructeurs_dossier_ids %}
@@ -1395,8 +1423,10 @@
                         </div>
                     {% endif %}
 
-                    {% if not relecteurs_du_dossier %}
+                    {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier %}
                         <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
+                    {% elif not relecteurs_du_dossier and not request.user|est_concerné_par_le_dossier:dossier %}
+                        <p class="note-aucune">Aucune relecture demandée pour ce dossier</p>
                     {% else %}
                         <ul class="groupe-instructeur-liste">
                             {% for rj in relecteurs_du_dossier %}
@@ -1420,15 +1450,17 @@
                                                 </div>
                                             {% endif %}
                                         </div>
-                                    
-                                        <form method="post" action="{% url 'retirer_relecteur' %}" class="form-retirer-relecteur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice ?')">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_relecture_id" value="{{ rj.id }}">
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <button type="submit" class="btn-retirer-instructeur" title="Supprimer la demande de relecture">
-                                                <span class="croix-retirer">✕</span>
-                                            </button>
-                                        </form>
+                                        
+                                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                            <form method="post" action="{% url 'retirer_relecteur' %}" class="form-retirer-relecteur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice ?')">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_relecture_id" value="{{ rj.id }}">
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <button type="submit" class="btn-retirer-instructeur" title="Supprimer la demande de relecture">
+                                                    <span class="croix-retirer">✕</span>
+                                                </button>
+                                            </form>
+                                        {% endif %}
                                     </div>
                              
                                     <div class="relecture-details hidden">
@@ -1467,8 +1499,9 @@
                                 </li>
                             {% endfor %}
                         </ul>
-
-                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
+                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                            <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
+                        {% endif %}
                     {% endif %}
 
                     <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
@@ -1503,15 +1536,17 @@
                     <h3 class="notes-titre">
                         <span>📝 Notes :</span>
 
-                        <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
-                            {% csrf_token %}
-                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
-                                <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
-                            </label>
-                            <input type="file" id="file-upload" name="annexe"
-                                accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                class="annexe-input" onchange="this.form.submit()">
-                        </form>
+                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                            <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
+                                {% csrf_token %}
+                                <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
+                                    <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
+                                </label>
+                                <input type="file" id="file-upload" name="annexe"
+                                    accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
+                                    class="annexe-input" onchange="this.form.submit()">
+                            </form>
+                        {% endif %}
                     </h3>
 
                     {% if annexes_instructeur %}
@@ -1579,16 +1614,18 @@
                     {% empty %}
                         <p class="note-aucune">Aucune note pour ce dossier.</p>
                     {% endfor %}
-
-                    <div class="ajouter-note">
-                        <h4>Ajouter une nouvelle note :</h4>
-                        <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                            <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
-                            <button type="submit" class="valider-btn">Enregistrer</button>
-                        </form>
-                    </div>
+                    
+                    {% if request.user|est_concerné_par_le_dossier:dossier %}
+                        <div class="ajouter-note">
+                            <h4>Ajouter une nouvelle note :</h4>
+                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
+                                <button type="submit" class="valider-btn">Enregistrer</button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

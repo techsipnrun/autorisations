@@ -1,5 +1,6 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load group_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -7,6 +8,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page de de formulation et de consultation des avis</title>
+
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_consultation.css' %}">
@@ -26,21 +30,23 @@
                 {{ dossier.id_etape_dossier }}
             </div> 
 
-            <div class="btn_avis">
-                {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
-                    <div class="nouvelle_demande_avis">
-                        <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
-                            + Nouvelle demande d'avis
+            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                <div class="btn_avis">
+                    {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                        <div class="nouvelle_demande_avis">
+                            <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
+                                + Nouvelle demande d'avis
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <div class="ajouter_avis_existant">
+                        <a href="{% url 'instruction_dossier_ajouter_avis_existant' num_dossier=dossier.numero %}" class="btn-ajouter-avis">
+                            + Ajouter un avis existant
                         </a>
                     </div>
-                {% endif %}
-
-                <div class="ajouter_avis_existant">
-                    <a href="{% url 'instruction_dossier_ajouter_avis_existant' num_dossier=dossier.numero %}" class="btn-ajouter-avis">
-                        + Ajouter un avis existant
-                    </a>
                 </div>
-            </div>
+            {% endif %}
 
             {% if messages %}
                 <div class="django-messages">
@@ -72,7 +78,7 @@
                             <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %} {% if a.avis_nb_messages_non_lus > 0 %}row-action{% endif %} {% if a.statut == 'À envoyer' or a.statut == 'À valider' %}row-action{% endif %}" 
                             data-href="{% if a.statut == 'Envoyé' %}
                                             {% url 'instruction_dossier_avis' dossier.numero a.numero %}
-                                        {% else %}
+                                        {% elif request.user|est_concerné_par_le_dossier:dossier %}
                                             {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
                                         {% endif %}"
                             {% if a.avis_nb_messages_non_lus > 0 %}title="Nouveaux messages de l'expert"{% endif %}>
@@ -118,16 +124,20 @@
                                     </div>
                                 </td>
 
+                                
                                 <td class="cell-suppr">
                                     {{ a.date_reponse|date:"d/m/Y" }}
-                                    <!-- Bouton supprimer directement dans la cellule -->
-                                    <form method="post" action="{% url 'supprimer_avis' %}" class="form-supprimer-avis">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="avis_id" value="{{ a.numero }}">
-                                        <button type="submit" class="btn-supprimer-avis" title="Supprimer l'avis" onclick="confirmerSuppressionAvis(this, event)">
-                                            <img src="{% static 'instruction/img/supprimer.png' %}" alt="Supprimer l'avis" title="Supprimer l'avis" class="supprimer_avis_icon">
-                                        </button>
-                                    </form>
+
+                                    {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                        <!-- Bouton supprimer directement dans la cellule -->
+                                        <form method="post" action="{% url 'supprimer_avis' %}" class="form-supprimer-avis">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="avis_id" value="{{ a.numero }}">
+                                            <button type="submit" class="btn-supprimer-avis" title="Supprimer l'avis" onclick="confirmerSuppressionAvis(this, event)">
+                                                <img src="{% static 'instruction/img/supprimer.png' %}" alt="Supprimer l'avis" title="Supprimer l'avis" class="supprimer_avis_icon">
+                                            </button>
+                                        </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                 

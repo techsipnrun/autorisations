@@ -1,5 +1,7 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load group_tags %}
+
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -7,6 +9,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page de pré-instruction</title>
+
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
@@ -69,22 +74,25 @@
                             {{ etape_dossier }}
                             <span class="dropdown-arrow">&#9660;</span>
                         </div>
-                        <div class="etat-badge-menu-content" id="etatMenuContent">
-                            {% if dossier.id_groupeinstructeur %}
-                                <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                    <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
-                                </form>
-                                <!-- Classer comme non soumis à autorisation -->
-                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
-                                        
-                            {% else %}
-                                <div class="instruction-warning">
-                                    Veuillez d’abord sélectionner un groupe instructeur.
-                                </div>
-                            {% endif %}
-                        </div>
+
+                        {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                            <div class="etat-badge-menu-content" id="etatMenuContent">
+                                {% if dossier.id_groupeinstructeur %}
+                                    <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                        <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
+                                    </form>
+                                    <!-- Classer comme non soumis à autorisation -->
+                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
+                                            
+                                {% else %}
+                                    <div class="instruction-warning">
+                                        Veuillez d’abord sélectionner un groupe instructeur.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     </div>
 
                     <!-- Téléchargement PDF -->
@@ -96,11 +104,13 @@
                     </a>
 
                     <!-- Lien DS -->
-                    <a class="icon_DS" href="https://www.demarches-simplifiees.fr/procedures/{{ dossier.id_demarche.numero }}/a-suivre/dossiers/{{ dossier.numero }}" target="_blank">
-                        <img src="{% static 'instruction/img/icon_DS_32.png' %}"
-                            alt="Visualiser le dossier sur Démarches Simplifiées"
-                            title="Visualiser le dossier sur Démarches Simplifiées">
-                    </a>
+                    {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                        <a class="icon_DS" href="https://www.demarches-simplifiees.fr/procedures/{{ dossier.id_demarche.numero }}/a-suivre/dossiers/{{ dossier.numero }}" target="_blank">
+                            <img src="{% static 'instruction/img/icon_DS_32.png' %}"
+                                alt="Visualiser le dossier sur Démarches Simplifiées"
+                                title="Visualiser le dossier sur Démarches Simplifiées">
+                        </a>
+                    {% endif %}
 
                     <!-- Lien DM -->
                     {% if dossier.id_demarche.type|lower == "manifestations sportives" %}
@@ -174,8 +184,10 @@
                         {% elif champ.type == 'carte' %}
                             <div class="titre-carte-avec-bouton">
                                 <h2>{{ champ.nom }}</h2>
-                                <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
 
+                                {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                {% endif %}
                             </div>
                             
                             <div class="carte-container">
@@ -216,19 +228,24 @@
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
                             
                             {% if champ.geometrie_a_saisir == 'oui' %}
-                                <div class="titre-carte-avec-bouton">
-                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
-                                </div>
-                                
+
+                                {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                    <div class="titre-carte-avec-bouton">
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
+                                    </div>
+                                {% endif %}
+
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ champ.geojson }}'></div>
                                 </div>
 
                                
                             {% elif champ.geometrie_a_saisir == 'non' %}
-                                <div class="titre-carte-avec-bouton">
-                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
-                                </div>
+                                {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                    <div class="titre-carte-avec-bouton">
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                    </div>
+                                {% endif %}
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ champ.geojson }}'></div>
@@ -292,14 +309,17 @@
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
                                         <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
                                         
-                                        <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
-                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
-                                                <span class="croix-retirer">✕</span>
-                                            </button>
-                                        </form>
+                                        {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                            <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                                <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.trice du dossier">
+                                                    <span class="croix-retirer">✕</span>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
                                     </li>
                                     {% if retirer_instructeur_message %}
                                         <div class="instruction-warning">
@@ -311,15 +331,17 @@
 
                                     <li class="pas_instructeur_du_dossier">
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
-
-                                        <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
-                                            <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
-                                                <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
-                                            </button>
-                                        </form>
+                                        
+                                        {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                            <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajout-instructeur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                                <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter instructeur" title="Ajouter comme instructeur.trice sur le dossier">
+                                                </button>
+                                            </form>
+                                        {% endif %}
                                     </li>
 
                                 {% endif %}
@@ -327,18 +349,20 @@
                         </ul>
 
                         {% if groupes_instructeurs|length > 1 %}
-                            <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
-                                {% csrf_token %}
-                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <select name="groupeInstructeurId" id="select-changer-groupe">
-                                    <option value="" selected disabled hidden>Changer le groupe instructeur</option>
-                                    {% for groupe in groupes_instructeurs %}
-                                        {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
-                                            <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
-                                        {% endif %}
-                                    {% endfor %}
-                                </select>
-                            </form>
+                            {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                    <select name="groupeInstructeurId" id="select-changer-groupe">
+                                        <option value="" selected disabled hidden>Changer le groupe instructeur</option>
+                                        {% for groupe in groupes_instructeurs %}
+                                            {% if not dossier.id_groupeinstructeur or groupe.id != dossier.id_groupeinstructeur.id %}
+                                                <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            {% endif %}
                         {% endif %}
 
                         {% if instructeur_connecte.id in instructeurs_dossier_ids %}
@@ -370,15 +394,17 @@
                      <h3 class="notes-titre">
                         <span>📝 Notes :</span>
 
-                        <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
-                            {% csrf_token %}
-                            <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
-                                <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
-                            </label>
-                            <input type="file" id="file-upload" name="annexe"
-                                accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                class="annexe-input" onchange="this.form.submit()">
-                        </form>
+                        {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                            <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
+                                {% csrf_token %}
+                                <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
+                                    <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
+                                </label>
+                                <input type="file" id="file-upload" name="annexe"
+                                    accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
+                                    class="annexe-input" onchange="this.form.submit()">
+                            </form>
+                        {% endif %}
                     </h3>
 
                     {% if annexes_instructeur %}
@@ -435,16 +461,18 @@
                     {% empty %}
                         <p class="note-aucune">Aucune note pour ce dossier.</p>
                     {% endfor %}
-
-                    <div class="ajouter-note">
-                        <h4>Ajouter une nouvelle note :</h4>
-                        <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                            <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
-                            <button type="submit" class="valider-btn">Enregistrer</button>
-                        </form>
-                    </div>
+                    
+                    {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                        <div class="ajouter-note">
+                            <h4>Ajouter une nouvelle note :</h4>
+                            <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
+                                <button type="submit" class="valider-btn">Enregistrer</button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

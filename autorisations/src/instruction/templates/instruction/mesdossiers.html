@@ -7,6 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mes dossiers</title>
 
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+
     <!-- CSS -->
     <!-- <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}"> -->
     <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
@@ -22,16 +25,18 @@
     {% include 'navbar.html' %}
     {% include 'breadcrumb.html' %}
 
-    <div class="actualiser-wrapper">
-        <button id="btn-actualiser"
-                data-url="{% url 'actualiser_donnees' %}"
-                data-csrf="{{ csrf_token }}"
-                title="Actualiser les données">
-            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
-        </button>
+    {% if instructeur %}
+        <div class="actualiser-wrapper">
+            <button id="btn-actualiser"
+                    data-url="{% url 'actualiser_donnees' %}"
+                    data-csrf="{{ csrf_token }}"
+                    title="Actualiser les données">
+                <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser">
+            </button>
 
-        <span id="message-actualisation" class="actualisation-texte"></span>
-    </div>
+            <span id="message-actualisation" class="actualisation-texte"></span>
+        </div>
+    {% endif %}
 
     <div class="page_mes_dossiers">
 

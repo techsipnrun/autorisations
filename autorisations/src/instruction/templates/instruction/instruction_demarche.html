@@ -8,6 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page d'accueil de l'application</title>
 
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}">
@@ -18,17 +21,30 @@
     {% breadcrumb breadcrumb_items %}
 
     <h1>{{ demarche.titre }}</h1>
-    
-    <div class="refresh-doss">
-        <form method="post" action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}">
-            {% csrf_token %}
-            <button type="submit" class="refresh-button" id="btn-sync">
-                <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
-                Actualiser
-            </button>
-        </form>
-    </div>
 
+    {% if messages %}
+        <div class="django-messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    {% if instructeur %}
+        <div class="refresh-doss">
+            <form method="post" action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}">
+                {% csrf_token %}
+                <button type="submit" class="refresh-button" id="btn-sync">
+                    <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
+                    Actualiser
+                </button>
+            </form>
+        </div>
+    {% endif %}
+    
+    
     <div class="filtre-au-dessus">
         <form method="get">
             <input type="hidden" name="mes_dossiers" value="0">

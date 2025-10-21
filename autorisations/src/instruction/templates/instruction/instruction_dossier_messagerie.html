@@ -1,5 +1,6 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load group_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -8,6 +9,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messagerie</title>
 
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+    
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
@@ -98,19 +102,22 @@
                 </div>
             {% endif %}
 
+
             {% if dossier.present_sur_ds %}
-                <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
-                    {% csrf_token %}
-                    <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
-                    <textarea name="body" placeholder="Écrire un message..." required></textarea>
-                    <div class="pj-actions">
-                        <div class="pj-input-wrapper">
-                            <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
-                            <span class="pj-max">(20 Mo max)</span>
+                {% if request.user|est_concerné_par_le_dossier:dossier %}
+                    <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_dossier' numero=dossier.numero %}">
+                        {% csrf_token %}
+                        <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
+                        <textarea name="body" placeholder="Écrire un message..." required></textarea>
+                        <div class="pj-actions">
+                            <div class="pj-input-wrapper">
+                                <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                                <span class="pj-max">(20 Mo max)</span>
+                            </div>
+                            <button type="submit" title="Envoyer le message">Envoyer</button>
                         </div>
-                        <button type="submit" title="Envoyer le message">Envoyer</button>
-                    </div>
-                </form>
+                    </form>
+                {% endif %}
             {% endif %}
         </div>
 
