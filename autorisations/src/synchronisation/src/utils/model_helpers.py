@@ -19,6 +19,7 @@ def get_first_id(model, **filters):
 
 
 def update_fields(obj, data: dict, date_fields: list = []):
+    logger = logging.getLogger("SYNCHRONISATION")
     updated = []
     for field, new_val in data.items():
         old_val = getattr(obj, field)
@@ -27,6 +28,13 @@ def update_fields(obj, data: dict, date_fields: list = []):
             new_val = parse_datetime_with_tz(new_val)
 
         if old_val != new_val and str(old_val) != str(new_val):
+            
+            logger.warning('-------------')
+            logger.warning(f"{field}")
+            logger.warning(f"old val : {old_val}")
+            logger.warning(f"new val : {new_val}")
+            logger.warning('-------------')
+
             setattr(obj, field, new_val)
             updated.append(field)
     return updated

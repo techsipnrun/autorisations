@@ -2,8 +2,8 @@ from pathlib import Path
 from django.utils import timezone
 import logging
 from autorisations.models.models_instruction import Action, Dossier, DossierAction, EtapeDossier, EtatDossier, Message
-import pythoncom
-import win32com.client
+# import pythoncom
+# import win32com.client
 import os
 import subprocess
 import tempfile

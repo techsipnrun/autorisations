@@ -32,8 +32,12 @@ def instruction_dossier_consultation(request, num_dossier):
 
     dossier = get_object_or_404(Dossier, numero=num_dossier)
     dossiers_avis = (DossierAvis.objects.filter(id_dossier=dossier))
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
     liste_avis = []
     nb_avis_avec_nouveau_mess = 0
+
+    if not instructeur:
+        messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     for da in dossiers_avis:
         avis = da.id_avis
@@ -1656,7 +1660,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
         doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
 
         # On créé l'emplacement physique de l'avis
-        emplacement_avis = f"Avis/{nettoyer_nom_fichier(demarche.type)}/{date.today().year}/{nom_prenom_expert}_{date.today().strftime("%d_%m")}/"
+        emplacement_avis = f"Avis/{nettoyer_nom_fichier(demarche.type)}/{date.today().year}/{nom_prenom_expert}_{date.today().strftime('%d_%m')}/"
         
         # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
         if pj_projet_avis or pj_projet_acte or pj_rapport_cs or pjs_avis :

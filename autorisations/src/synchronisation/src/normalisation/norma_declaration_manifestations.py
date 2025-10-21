@@ -11,7 +11,7 @@ def dossiers_declaration_manifestations_normalize(d):
     dossiers_manifs_sportives = []
     for doss in d :
 
-            emplacement_geojson = f"Declaration_manifestations/{doss.get("date_debut")[:4]}/{nettoyer_nom_fichier(doss.get("nom"))}"
+            emplacement_geojson = f"Declaration_manifestations/{doss.get('date_debut')[:4]}/{nettoyer_nom_fichier(doss.get('nom'))}"
             
             
 

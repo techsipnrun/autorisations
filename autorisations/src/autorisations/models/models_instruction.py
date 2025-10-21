@@ -434,3 +434,24 @@ class SynchronisationEtat(models.Model):
 
     def __str__(self):
         return "En cours" if self.en_cours else "Libre"
+    
+
+class AvisManifSportive(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_avis_manif_sportive = models.IntegerField()
+    id_dossier_manif_sportive = models.OneToOneField(DossierManifSportive, on_delete=models.CASCADE, db_column='id_dossier_manif_sportive', 
+                                                    to_field='id', related_name='avis', null=True, blank=True)
+    etat = models.TextField(null=True, blank=True)
+    service = models.TextField(null=True, blank=True)
+    date_demande = models.DateTimeField(null=True, blank=True)
+    date_reponse = models.DateTimeField(null=True, blank=True)
+    reponse_avis = models.TextField(null=True, blank=True)
+    prescriptions = models.TextField(null=True, blank=True)
+    objet_demande = models.TextField(null=True, blank=True)
+
+    class Meta:
+        managed = False  # la table existe déjà dans la base
+        db_table = 'instruction"."avis_manif_sportive'
+
+    def __str__(self):
+        return f"Avis {self.id_avis_manif_sportive} (Manifestation sportive) pour {self.id_dossier_manif_sportive.nom_dossier}"

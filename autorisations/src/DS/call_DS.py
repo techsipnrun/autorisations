@@ -171,7 +171,7 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
         result = client.execute_query("DS/mutations/send_message.graphql", send_message_vars)
 
         if result["data"]["dossierEnvoyerMessage"]['errors'] :
-            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Échec de l'envoi du message avec PJ par {email_instructeur} : {result["data"]["dossierEnvoyerMessage"]['errors']}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Échec de l'envoi du message avec PJ par {email_instructeur} : {result['data']['dossierEnvoyerMessage']['errors']}")
         else :
             message_data = result["data"]["dossierEnvoyerMessage"]["message"]
             message_preview = message_data[:100] + "..." if len(message_data) > 100 else message_data
@@ -566,7 +566,7 @@ def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=No
         result = client.execute_query("DS/mutations/accepter_dossier.graphql", variables)
         response_data = result.get("data", {}).get("dossierAccepter", {})
         if response_data.get("errors"):
-            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de l’acceptation du dossier sur DS : {response_data.get("errors")}")
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de l’acceptation du dossier sur DS : {response_data.get('errors')}")
             return {"success": False, "message": response_data["errors"]}
         return {"success": True, "message": response_data.get("message", "OK")}
     except Exception as e:

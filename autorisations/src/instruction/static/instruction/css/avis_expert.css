@@ -248,6 +248,16 @@
     width: 100%;
 }
 
+/* Notes */
+
+.infos-note-avis .valider-btn {
+    opacity: 0.3;
+}
+
+.infos-note-avis:hover .valider-btn {
+    opacity: 1;
+}
+
 
 
 /* ---------------------------------------------------------------- */

@@ -95,11 +95,6 @@ def avis(request):
             a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False).exclude(email_emetteur=request.user.email).count()
 
     # Messages non lus en tant que demandeur
-
-    #  expert = Expert.objects.filter(id_instructeur__email=request.user.email).first()
-    # if not expert:
-    #     expert = Expert.objects.filter(id_contact_externe__email=request.user.email).first()
-
     for liste_avis in [demandes_en_cours, demandes_traitees]:
         for a in liste_avis:
             if a.id_expert.est_interne :
@@ -109,7 +104,6 @@ def avis(request):
             a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False, email_emetteur=email_expert).count()
 
     if not expert and not instructeur :
-        print('heyyy')
         messages.error(request, f"❌ Vous n'avez ni un profil 'Expert.e', ni un profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     return render(
@@ -213,14 +207,7 @@ def avis_expert(request, avis_id):
         contact = ContactExterne.objects.filter(email=emetteur).first()
 
         nouv_mess = 'non'
-        # VISION DEMANDEUR
-        if est_demandeur:
-            if ids_msg_de_expert_non_lus != []:
-                if msg.id in ids_msg_de_expert_non_lus :
-                    nouv_mess = 'oui'
-            # left = Message expert, right = Message émis par demandeur
-            align = "right" if emetteur != email_expert.lower().strip() else "left"
-            date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
+        date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
 
         # VISION EXPERT
         if est_expert:
@@ -229,7 +216,18 @@ def avis_expert(request, avis_id):
                     nouv_mess = 'oui'
             # left = Message émis par demandeur, right = Message expert
             align = "left" if emetteur != email_expert.lower().strip() else "right"
-            date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
+
+        # VISION DEMANDEUR
+        else :
+            if ids_msg_de_expert_non_lus != []:
+                if msg.id in ids_msg_de_expert_non_lus :
+                    nouv_mess = 'oui'
+            # left = Message expert, right = Message émis par demandeur
+            align = "right" if emetteur != email_expert.lower().strip() else "left"
+            
+
+        
+
 
         # Recherche de la pièce jointe liée au message
         pj_title = pj_emplacement = None

@@ -38,8 +38,8 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
         # "id_dossier_parent": "",  # À compléter si les dossiers parents sont gérés
         
         "note": "",
-        "nom_dossier": f"{doss['number']}_{doss['demandeur']['nom'].upper()}_{doss['demandeur']['prenom']}_{date_depot.strftime("%d-%m")}" if doss['demandeur']['__typename'] == 'PersonnePhysique'  #Personne Physique
-                                                                                                    else f"{doss['number']}_{nom_personne_morale}_{date_depot.strftime("%d-%m")}", # Personne Morale
+        "nom_dossier": f"{doss['number']}_{doss['demandeur']['nom'].upper()}_{doss['demandeur']['prenom']}_{date_depot.strftime('%d-%m')}" if doss['demandeur']['__typename'] == 'PersonnePhysique'  #Personne Physique
+                                                                                                    else f"{doss['number']}_{nom_personne_morale}_{date_depot.strftime('%d-%m')}", # Personne Morale
         "emplacement": emplacement_dossier,
         "date_limite_traitement": calcul_date_limite_instruction(doss["dateDepot"], id_demarche),  #On est sur que le délais d'instruction est lancé dès la reception du doss ?
         "geometrie": geojson,

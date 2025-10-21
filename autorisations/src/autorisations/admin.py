@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument, MessageDocument
-from .models.models_instruction import Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
+from .models.models_instruction import AvisManifSportive, Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 
 
@@ -724,6 +724,13 @@ admin.site.register(SynchronisationEtat)
 
 admin.site.register(EmailOutbox)
 
+@admin.register(AvisManifSportive)
+class AvisManifSportiveAdmin(admin.ModelAdmin):
+    list_display = ('id', 'id_avis_manif_sportive', 'id_dossier_manif_sportive', 'etat', 'date_demande', 'date_reponse', 'reponse_avis',)
+    list_filter = ('etat',)
+    search_fields = ('id_avis_manif_sportive', 'id_dossier_manif_sportive',)
+    date_hierarchy = 'date_demande'
+    ordering = ('-date_demande',)
 
 
 

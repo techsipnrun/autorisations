@@ -1,5 +1,6 @@
 from autorisations.models.models_instruction import Demarche
 from .sync_declaration_manifestations import sync_declaration_manifestations
+from .sync_avis_declaration_manifestations import sync_avis_declaration_manifestations
 from .sync_demarche import sync_demarche
 from .sync_groupeinstr import sync_groupeinstructeurs_demarches
 from .sync_champ import sync_champs
@@ -11,7 +12,7 @@ def synchro_process(dico):
     logger = logging.getLogger("SYNCHRONISATION")
     logger.info('')
 
-     # Récupération du type de la démarche à partir du titre
+    # Récupération du type de la démarche à partir du titre
     try:
         demarche_obj = Demarche.objects.get(titre=dico['demarche']['titre'])
         if demarche_obj.type.lower() == 'manifestations sportives':
@@ -29,11 +30,29 @@ def synchro_process(dico):
     sync_champs(dico["champs"])
     sync_dossiers(dico["dossiers"], demarche_obj.numero)
 
+
+    # Manif Sportive
     if demarche_obj.type.lower() == 'manifestations sportives':
-        logger.info(f"------ Démarche {demarche_obj.type} (Déclaration Manifestations) ------")
-        for doss in dico["manif_sportives"] :
-            sync_declaration_manifestations(doss, logger)
-        logger.info("------------------------------------------------\n")
+
+        try:
+            logger.info(f"------ Démarche {demarche_obj.type} (Déclaration Manifestations) ------")
+
+            # Dossier
+            logger.info("")
+            logger.info("------- Dossiers Manif sportives -------\n")
+            for doss in dico["manif_sportives"] :
+                sync_declaration_manifestations(doss, logger)
+            logger.info("------------------------------------------------\n")
+
+        except Exception as e:
+            logger.error(f"Erreur lors de la synchronisation des Dossiers de Manifestation Sportives : {e}")
+
     
-
-
+        try:
+            # Avis
+            logger.info("------- Avis Manif sportives -------\n")
+            for avis in dico["avis_manif_sportives"] :
+                sync_avis_declaration_manifestations(avis, logger)
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la synchronisation des Avis de Manifestation Sportives : {e}")

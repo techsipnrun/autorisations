@@ -309,7 +309,7 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
 
     # 4. Nom du dossier
     if not doss["number"] :
-        loggerDS.error(f"Erreur lors de la construction de l'emplacement du Dossier {doss["id"]} : le number n'a pas été récupéré sur DS")
+        loggerDS.error(f"Erreur lors de la construction de l'emplacement du Dossier {doss['id']} : le number n'a pas été récupéré sur DS")
     else:
         numero = str(doss.get("number", "000000"))
 

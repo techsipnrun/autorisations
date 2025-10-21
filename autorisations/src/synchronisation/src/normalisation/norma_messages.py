@@ -47,7 +47,7 @@ def message_normalize(doss, emplacement_dossier):
 
                         id_format_doc = get_first_id(DocumentFormat, format=extension_fichier)
                         if not id_format_doc:
-                            logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss["number"]}")
+                            logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss['number']}")
                             continue
 
                         id_nature_doc = get_first_id(DocumentNature, nature="Pièce jointe message")
@@ -73,7 +73,7 @@ def message_normalize(doss, emplacement_dossier):
 
                         id_format_doc = get_first_id(DocumentFormat, format=extension_fichier)
                         if not id_format_doc:
-                            logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss["number"]}")
+                            logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss['number']}")
                             continue
 
                         id_nature_doc = get_first_id(DocumentNature, nature="Annexe instructeur")

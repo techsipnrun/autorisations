@@ -101,7 +101,10 @@ def accueil(request):
         for d in demarches
     ]
 
-    return render(request, 'instruction/instruction.html', {"dossier_infos": dossier_infos})
+    return render(request, 'instruction/instruction.html', {
+                                                            "dossier_infos": dossier_infos,
+                                                            "instructeur":instructeur,
+                                                            })
 
 
 
@@ -210,6 +213,7 @@ def mesdossiers(request):
 
     return render(request, "instruction/mesdossiers.html", {
         "dossiers_par_demarche": dossiers_par_demarche,
+        "instructeur": instructeur,
     })
 
 
@@ -225,6 +229,9 @@ def instruction_demarche(request, num_demarche):
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
     mes_dossiers = request.GET.get("mes_dossiers", "1")
     instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+
+    if not instructeur:
+        messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     dossiers_query_tous = (
             Dossier.objects.filter(
@@ -343,6 +350,7 @@ def instruction_demarche(request, num_demarche):
     "annees_disponibles": annees_disponibles,
     "annee_selectionnee": annee_selectionnee,
     "dossiers_archives": dossier_archives_infos,
+    "instructeur": instructeur,
 })
 
 
@@ -957,7 +965,7 @@ def actualiser_dossier(request, num_dossier):
             doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
             doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
             loggerSynchro.info("")
-            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]["nom_dossier"]} (Déclaration Manifestations) ------")
+            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ------")
 
             for ddm in doss_dm_norma :
                 sync_declaration_manifestations(ddm, loggerSynchro)
@@ -976,9 +984,9 @@ def actualiser_dossier(request, num_dossier):
 
         # 3. Synchronisation en base
         if liaison:
-            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]["nom_dossier"]} (Démarches Simplifiées) ------")
+            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarches Simplifiées) ------")
         else:
-            loggerSynchro.info(f"------ DOSSIER {dico_dossier["dossier"]["nom_dossier"]} (Démarches Simplifiées) ------")
+            loggerSynchro.info(f"------ DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarches Simplifiées) ------")
 
         sync_dossiers([dico_dossier], demarche.numero, True)
         

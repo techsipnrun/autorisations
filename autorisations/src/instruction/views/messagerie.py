@@ -432,10 +432,10 @@ def envoyer_mail(request, email_id):
     ok, err = send_outbox_now(email_id)
 
     if ok:
-        logger.info(f"[DOSSIER {dossier.numero}] Email ({email.sujet}) envoyé à {", ".join(email.to)} ")
+        logger.info(f"[DOSSIER {dossier.numero}] Email ({email.sujet}) envoyé à {', '.join(email.to)} ")
     else:
-        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {", ".join(email.to)} : {err}")
-        messages.error(request, f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {", ".join(email.to)} : {err}")
+        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {', '.join(email.to)} : {err}")
+        messages.error(request, f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {', '.join(email.to)} : {err}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -447,5 +447,5 @@ def supprimer_mail(request, email_id):
     dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
     email.delete()
     
-    logger.info(f"[DOSSIER {dossier.numero}] Email ({email.statut}) supprimé avec succès : ({email.sujet}) à destination de {", ".join(email.to)} ")
+    logger.info(f"[DOSSIER {dossier.numero}] Email ({email.statut}) supprimé avec succès : ({email.sujet}) à destination de {', '.join(email.to)} ")
     return redirect(request.META.get("HTTP_REFERER", "/"))

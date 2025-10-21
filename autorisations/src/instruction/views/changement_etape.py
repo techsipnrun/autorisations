@@ -1413,17 +1413,17 @@ def envoyer_l_acte(request):
                             .order_by("-date_creation")
                             .first()
                         )
-                        logger.warning(f"[DOSSIER {dossier_numero}] Email à envoyé ({outbox.sujet} -> {", ".join(outbox.to)}) ")
+                        logger.warning(f"[DOSSIER {dossier_numero}] Email à envoyé ({outbox.sujet} -> {', '.join(outbox.to)}) ")
 
 
                 # return (True, "") ou (False, "msg erreur")
                 ok, err = send_outbox_now(outbox.id)
 
                 if ok:
-                    logger.info(f"[DOSSIER {dossier_numero}] Email ({outbox.sujet}) envoyé à {", ".join(outbox.to)} ")
+                    logger.info(f"[DOSSIER {dossier_numero}] Email ({outbox.sujet}) envoyé à {', '.join(outbox.to)} ")
                 else:
-                    logger.error(f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
-                    messages.error(request, f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {", ".join(outbox.to)} : {err}")
+                    logger.error(f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
+                    messages.error(request, f"[DOSSIER {dossier_numero}] Échec envoi email ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
 
 
     except Exception as e:

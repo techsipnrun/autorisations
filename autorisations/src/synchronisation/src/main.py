@@ -21,6 +21,12 @@ def lancer_normalisation_et_synchronisation():
 
 
 def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
+    logger.info("\n\n")
+    logger.info("SYNCHRONISATION MANIFS SPORIVES \n")
+    
     datas_DS = recup_data_DS(num_demarche)
     resultats = normalize_process(datas_DS["demarche"])
     synchro_process(resultats)
+
+    logger.info("")
+    logger.info("FIN SYNCHRONISATION MANIFS SPORIVES \n")

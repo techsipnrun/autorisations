@@ -5,7 +5,6 @@ import logging
 from django.conf import settings
 
 
-
 # Ajouter le chemin vers la racine du projet
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
@@ -23,6 +22,7 @@ logger = logging.getLogger("SYNCHRONISATION")
 try:
     from synchronisation.src.main import lancer_normalisation_et_synchronisation
     lancer_normalisation_et_synchronisation()
+    
 except Exception as e:
     from autorisations.models.models_instruction import SynchronisationEtat
     import traceback

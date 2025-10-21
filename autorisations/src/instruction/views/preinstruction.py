@@ -153,6 +153,7 @@ def preinstruction(request):
         "dossiers_manif_sportive_DM": dossiers_manif_sportive_DM,
         "dossiers_manif_sportive_DS_infos": dossiers_manif_sportive_DS_infos,
         "dossiers_manif_sportive_complet": dossiers_manif_sportive_complet_list,
+        "instructeur": instructeur,
         })
 
 

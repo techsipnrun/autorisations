@@ -45,7 +45,7 @@ def calcul_priorite_instruction(id_demarche, doss):
 
         if delais_jours_instruction is None :
             loggerORM.error(f"[DOSSIER {doss['number']}] Erreur lors du calcul de Priorité d'instruction du dossier : la colonne delais_jours_instruction de la Démarche " +
-                   f"{Demarche.objects.filter(id=id_demarche).values_list("type", flat=True).first()} est null")
+                   f"{Demarche.objects.filter(id=id_demarche).values_list('type', flat=True).first()} est null")
             return None
 
         # Conversion de la date ISO 8601 en datetime Python

@@ -37,7 +37,7 @@ class API_PG_LogMiddleware:
 
         if request.path.startswith(f"/{os.environ.get('API_PG_URL')}"):  # Cible uniquement les endpoints API
             user = self.get_authenticated_user(request)  # Récupérer l'utilisateur
-            logger.info(f"[Requete] {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {request.method} {request.path} | Utilisateur: {user}")
+            logger.info(f"[Requete] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {request.method} {request.path} | Utilisateur: {user}")
 
         # Forcer Django REST Framework à utiliser l'utilisateur authentifié
         request._force_auth_user = request.user 
@@ -47,7 +47,7 @@ class API_PG_LogMiddleware:
 
         # Log de la réponse
         if request.path.startswith(f"/{os.environ.get('API_PG_URL')}"):
-            logger.info(f"[Réponse] {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} {response.status_code} | {response.content.decode()[:100]}...")
+            logger.info(f"[Réponse] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {response.status_code} | {response.content.decode()[:100]}...")
             logger.info("------------------------------------------------")
         return response
     
