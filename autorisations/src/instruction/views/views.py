@@ -12,6 +12,7 @@ from autorisations.models.models_instruction import Dossier, DossierChamp, Dossi
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, DossierRelecteurQualite, DossierValideur, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils import dossiers_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Lock
@@ -115,9 +116,7 @@ def se_declarer_instructeur(request):
     dossier = get_object_or_404(Dossier, id=dossier_id)
 
     instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-
     instructeur_id = request.POST.get("instructeur_id")
-
     instructeur = Instructeur.objects.filter(id=instructeur_id).first()
 
     if instructeur and dossier.id_groupeinstructeur:
@@ -130,6 +129,34 @@ def se_declarer_instructeur(request):
 
             # Dossier Action
             enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
+
+
+            #######################
+            # NOTIFICATION PAR MAIL 
+            #######################
+
+            # emails_norm = [instructeur.email]
+            emails_norm = ["louis.calu@hotmail.fr"]
+            sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
+            # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+            context = {"dossier": dossier}
+            template_name = "ajouter_a_instruction"  #to do
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Instruteur ajouté : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Ajout instructeur) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
+                messages.error(f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
         else :
             logger.error(f"[DOSSIER {dossier.numero}] Incohérence lors de l'affectation du dossier à l'instructeur {instructeur.email}. L'utilisateur n'est pas dans le groupe instructeur : {instructeurs_du_groupe}")
     else :
@@ -179,12 +206,38 @@ def retirer_instructeur(request):
         )
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # ✅ Retrait autorisé
+    # Retrait autorisé
     DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
-    logger.info(f"[DOSSIER {dossier.numero}] On retire l'instructeur {instructeur.email} du dossier.")
+    user = Instructeur.objects.filter(email=request.user.email).first()
+    logger.info(f"[DOSSIER {dossier.numero}] {user} a retiré l'instructeur {instructeur} du dossier.")
 
     nom_prenom = f"({instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom})"
-    enregistrer_action(dossier, instructeur, "Instructeur.e retiré.e", nom_prenom)
+    enregistrer_action(dossier, user, "Instructeur.e retiré.e", nom_prenom)
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    # emails_norm = [instructeur.email]
+    emails_norm = ["louis.calu@hotmail.fr"]
+    sujet = f"Dossier {dossier.numero} - Vous avez été retiré.e de l'instruction"
+    # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+    context = {"dossier": dossier}
+    template_name = "retirer_de_instruction"
+    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+    if outbox :
+        ok, err = envoi_mail(outbox.id)
+    else :
+        logger.error(f"[DOSSIER {dossier.numero}] Instruteur retiré : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
+        messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        
+    if ok:
+        logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Instructeur retiré) envoyée à {', '.join(outbox.to)} ")
+    else:
+        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur retiré) à {', '.join(outbox.to)} : {err}")
+        messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -230,6 +283,31 @@ def changer_valideur(request):
     enregistrer_action(dossier, instructeur_request, "Validant.e changé.e", f"({new_valideur})")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement de validant.e : {old_valideur} --> {new_valideur}")
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    # emails_norm = [new_valideur.email]
+    emails_norm = ["louis.calu@hotmail.fr"]
+    sujet = f"Dossier {dossier.numero} - Vous êtes désormais le-la validant.e du dossier"
+    # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+    context = {"dossier": dossier}
+    template_name = "changer_validant"
+    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+    if outbox :
+        ok, err = envoi_mail(outbox.id)
+    else :
+        logger.error(f"[DOSSIER {dossier.numero}] Nouveau validant : Erreur lors de la création de l'EmailOutbox, {new_valideur} n'a pas été notifié par mail.")
+        messages.error(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        
+    if ok:
+        logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau validant) envoyée à {', '.join(outbox.to)} ")
+    else:
+        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau validant) à {', '.join(outbox.to)} : {err}")
+        messages.error(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 

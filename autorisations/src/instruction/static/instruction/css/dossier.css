@@ -65,7 +65,7 @@
 /* ------------------------------------------------------------ */
 .page-container {
     display: flex;
-    gap: 2rem;
+    gap: clamp(1rem, 3vw, 3rem);
     padding: 0.5rem 4rem 6rem 4rem;
 }
 
@@ -79,7 +79,6 @@
 .formulaire_dm {
     width: 80%;
 }
-
 
 .champs p {
     margin-bottom: 0.4rem;
@@ -418,7 +417,7 @@ h2 {
 
 .nav_top {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     gap: 2rem;
     margin-bottom: 2rem;
     align-items: center;
@@ -528,6 +527,8 @@ h2 {
 
 
 /* ====== Path du dossier ====== */
+
+
 .lien_dossier img {
     width: 50px;
     height: 50px;
@@ -562,7 +563,7 @@ h2 {
 }
 
 .groupe-instructeur-info {
-    margin: 1rem 2rem;
+    margin: 1rem 0;
     padding: 1rem;
     background-color: #f9f9f9;
     border-left: 4px solid #006131;

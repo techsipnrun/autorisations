@@ -59,7 +59,7 @@ urlpatterns = [
     path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),
     path("instruction/retirer-relecteur/", instruction.retirer_relecteur, name="retirer_relecteur"),
     path("email/<int:email_id>/preview/", messagerie.previsualiser_email, name="preview_email"),
-    path("email/<int:email_id>/envoyer/", messagerie.envoyer_mail, name="envoyer_mail"),
+    path("email/<int:email_id>/envoyer/", messagerie.envoyer_mail_en_copie, name="envoyer_mail_en_copie"),
     path("email/<int:email_id>/supprimer/", messagerie.supprimer_mail, name="supprimer_mail"),
 
     # MES DOSSIERS

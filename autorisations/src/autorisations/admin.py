@@ -1,3 +1,4 @@
+import logging
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument, MessageDocument
@@ -346,7 +347,7 @@ class DemarcheTypeFilter(admin.SimpleListFilter):
 
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'nom_dossier', 'etat','groupe_instructeur', 'date_depot')
+    list_display = ('numero', 'id', 'nom_dossier', 'etat','groupe_instructeur', 'date_depot')
     list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds')
     search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
     list_per_page = 20
@@ -641,12 +642,13 @@ class DossierBeneficiaireAdmin(admin.ModelAdmin):
 
 admin.site.register(DossierNote)
 
+
 @admin.register(DossierValideur)
 class DossierValideurAdmin(admin.ModelAdmin):
-    list_filter = ('id_instructeur',)
+    list_filter = ('id_instructeur', 'id_dossier')
+    # list_display = ('id_instructeur', 'id_dossier') # ne passe pas
 
 # admin.site.register(DossierValideur)
-
 
 @admin.register(DossierRelecteur)
 class DossierRelecteurAdmin(admin.ModelAdmin):

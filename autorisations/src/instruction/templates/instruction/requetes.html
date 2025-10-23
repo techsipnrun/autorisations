@@ -35,7 +35,7 @@
             <div class="form-field">
                 <label for="etape">Étape dossier :</label>
                 <select name="etape" id="etape">
-                    <option value="" disabled {% if not request.GET.etape %}selected{% endif %}>Choisir une étape</option>
+                    <option value="" {% if not request.GET.etape %}selected{% endif %}> - - - </option>
                     {% for etape in etapes_dossier %}
                         <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
                     {% endfor %}
@@ -52,7 +52,7 @@
             <div class="form-field">
                 <label for="groupe">Groupe Instructeur :</label>
                 <select name="groupe" id="groupe">
-                    <option value="" disabled {% if not request.GET.groupe %}selected{% endif %}>Choisir un groupe</option>
+                    <option value="" {% if not request.GET.groupe %}selected{% endif %}> - - - </option>
                     {% for g in groupes %}
                         <option value="{{ g.nom }}" {% if request.GET.groupe == g.nom %}selected{% endif %}>{{ g.nom }}</option>
                     {% endfor %}
@@ -62,7 +62,7 @@
             <div class="form-field">
                 <label for="type_demarche">Type de démarche :</label>
                <select name="type_demarche" id="type_demarche">
-                    <option value="" disabled {% if not request.GET.type_demarche %}selected{% endif %}>Choisir une démarche</option>
+                    <option value="" {% if not request.GET.type_demarche %}selected{% endif %}> - - - </option>
                     {% for d in demarches %}
                         <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
                     {% endfor %}
@@ -72,7 +72,7 @@
             <div class="form-field">
                 <label for="annee">Année :</label>
                 <select name="annee" id="annee">
-                    <option value="" disabled {% if not request.GET.annee %}selected{% endif %}>Choisir une année</option>
+                    <option value="" {% if not request.GET.annee %}selected{% endif %}> - - - </option>
                     {% for an in annees %}
                         <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
                     {% endfor %}

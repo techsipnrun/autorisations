@@ -15,14 +15,14 @@ def normalize_process(d):
     avis_manif_sportives = None
 
     if "Manifestations sportives" in d["title"] :
+        logger.info(f"------ MANIF SPORTIVES : Récupération des infos sur DM et DS ------")
         dic_dm, list_avis = call_api_dm.main()
         
         manif_sportives = dossiers_declaration_manifestations_normalize(dic_dm)
 
-        # logger.info("LISTE AVIS")
-        # logger.info(list_avis)
         avis_manif_sportives = avis_declaration_manifestations_normalize(list_avis)
 
+        
     return {
         "demarche": demarche_normalize(d),
         "groupeinstructeurs_demarches": groupeinstructeur_demarche_normalize(d),

@@ -1,6 +1,7 @@
 import logging
 from DS.call_DS import recup_data_DS
 from BDD.pg_functions import get_number_demarche_Postgres
+from autorisations.models.models_instruction import Demarche
 from .synchro.sync_process import synchro_process
 from .normalisation.normalize_main import normalize_process
 
@@ -21,12 +22,14 @@ def lancer_normalisation_et_synchronisation():
 
 
 def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
+    demarche = Demarche.objects.get(numero=num_demarche)
+    
     logger.info("\n\n")
-    logger.info("SYNCHRONISATION MANIFS SPORIVES \n")
+    logger.info(f"SYNCHRONISATION {demarche.type.upper()} \n")
     
     datas_DS = recup_data_DS(num_demarche)
     resultats = normalize_process(datas_DS["demarche"])
     synchro_process(resultats)
 
     logger.info("")
-    logger.info("FIN SYNCHRONISATION MANIFS SPORIVES \n")
+    logger.info(f"FIN SYNCHRONISATION {demarche.type.upper()} \n")

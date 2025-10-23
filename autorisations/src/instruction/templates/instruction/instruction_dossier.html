@@ -1299,7 +1299,7 @@
                                     {% endfor %}
 
                                     {% if email.statut != 'Envoyé' %}
-                                        <form action="{% url 'envoyer_mail' email.id %}" method="post">
+                                        <form action="{% url 'envoyer_mail_en_copie' email.id %}" method="post">
                                             {% csrf_token %}
                                             <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
                                                 {% if email.statut == 'À envoyer' %}

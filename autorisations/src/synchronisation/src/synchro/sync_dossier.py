@@ -75,6 +75,50 @@ def sync_doss(dossier):
             etape_sans_suite = EtapeDossier.objects.get(etape='Non soumis à autorisation')
             obj.id_etape_dossier = etape_sans_suite
             obj.save()
+
+
+        #######################
+        # NOTIFICATION PAR MAIL 
+        #######################
+        '''
+        type_demarche contient Mission scientifique : Notifier groupe Réception SPPN
+        sinon Notifier groupe Réception SAADD
+
+        POUR EVITER LE SPAM : ON POURRAIT FAIRE UN MAIL REGROUPANT LE NOMBRE DE NOUVEAUX DOSSIERS POUR TOUTES LES DEMARCHES
+        '''
+
+        if "mission scientifique" in type_demarche.lower():
+            # emails_norm = list(GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur__nom__iexact="Réception SPPN").select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+            emails_norm = ["louis.calu@hotmail.fr"]
+        else :
+            # emails_norm = list(GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur__nom__iexact="Réception SAADD").select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+            emails_norm = ["louis.calu@hotmail.fr"]
+
+        sujet = f"{type_demarche} : Réception d'un nouveau dossier"
+
+        # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+        # context = {"dossier": dossier}
+        # template_name = "nouveaux_dossiers"
+        # dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        # outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+        # if outbox :
+        #     ok, err = envoi_mail(outbox.id)
+        # else :
+        #     logger.error(f"[DOSSIER {dossier.numero}] Nouveau.x dossier.s : Erreur lors de la création de l'EmailOutbox, pas de notification pour {', '.join(outbox.to)}")
+            
+        # if ok:
+        #     logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau.x dossier.s) envoyée à {', '.join(outbox.to)} ")
+        # else:
+        #     logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau.x dossier.s) à {', '.join(outbox.to)} : {err}")
+
+
+
+
+
+
+
+
             
 
     else:

@@ -9,7 +9,7 @@ from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_documents import MessageDocument
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
 from autorisations.models.models_avis import DossierAvis
-from notifications.service import _render_message, send_outbox_now
+from notifications.service import _render_message, envoi_mail
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils import format_etat_dossier
 from DS.call_DS import suppr_msg_DS, get_msg_DS
@@ -17,6 +17,8 @@ from DS.graphql_client import GraphQLClient
 from synchronisation.src.normalisation.norma_messages import message_normalize
 from synchronisation.src.synchro.sync_messages import sync_messages
 import logging, os
+from django.utils import timezone
+from datetime import timedelta
 
 from django.template.loader import render_to_string
 from autorisations.models.models_utilisateurs import EmailOutbox
@@ -420,22 +422,32 @@ def previsualiser_email(request, email_id):
 
 @login_required
 @require_POST
-def envoyer_mail(request, email_id):
+def envoyer_mail_en_copie(request, email_id):
     email = get_object_or_404(EmailOutbox, pk=email_id)
+    if email.type_mail != "Envoi de l'acte":
+        email.update(type_mail = "Envoi de l'acte")
+        email.save()
+
     dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
 
-    print(email.sujet)
-    print(email.to)
-    print(email.statut)
+    # Tentative >=3 et dernière tentative date de moins de 2h
+    if email.try_count >= 3 and (timezone.now() - email.derniere_tentative_envoi) < timedelta(hours=2) :
 
+        logger.error(f"[DOSSIER {dossier.numero}] {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}.")
+        messages.error(request, f"Déjà {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}. Contactez l'administrateur.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    ok, err = send_outbox_now(email_id)
+    ok, err = envoi_mail(email_id)
 
     if ok:
         logger.info(f"[DOSSIER {dossier.numero}] Email ({email.sujet}) envoyé à {', '.join(email.to)} ")
     else:
-        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {', '.join(email.to)} : {err}")
-        messages.error(request, f"[DOSSIER {dossier.numero}] Échec envoi email ({email.sujet}) à {', '.join(email.to)} : {err}")
+        logger.error(f"[DOSSIER {dossier.numero}] Tentative {email.try_count} : Échec envoi email à {', '.join(email.to)} : {err}")
+
+        if email.try_count < 3 :
+            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez l'administrateur.")
+        else :
+            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez l'administrateur.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 

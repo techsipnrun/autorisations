@@ -17,6 +17,11 @@
     margin: 0 0 1rem 0;
 }
 
+#nav_top_consult {
+    justify-content: left;
+    gap: clamp(1rem, 3vw, 3rem);
+}
+
 /* Boutons nouveau/ajout avis */
 .btn_avis {
     margin-top: 4rem;

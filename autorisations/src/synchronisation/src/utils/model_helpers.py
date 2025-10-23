@@ -29,11 +29,11 @@ def update_fields(obj, data: dict, date_fields: list = []):
 
         if old_val != new_val and str(old_val) != str(new_val):
             
-            logger.warning('-------------')
-            logger.warning(f"{field}")
-            logger.warning(f"old val : {old_val}")
-            logger.warning(f"new val : {new_val}")
-            logger.warning('-------------')
+            # logger.warning('-------------')
+            # logger.warning(f"{field}")
+            # logger.warning(f"old val : {old_val}")
+            # logger.warning(f"new val : {new_val}")
+            # logger.warning('-------------')
 
             setattr(obj, field, new_val)
             updated.append(field)

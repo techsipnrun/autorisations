@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 import logging
 import os
+from django.db import connection
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import AuthenticationFailed

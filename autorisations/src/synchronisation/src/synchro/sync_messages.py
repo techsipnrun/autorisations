@@ -1,5 +1,6 @@
 from autorisations.models.models_documents import Document, MessageDocument
-from autorisations.models.models_instruction import Message
+from autorisations.models.models_instruction import Dossier, Message
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from ..utils.model_helpers import update_fields
 from ..utils.fichiers import write_pj
 import logging
@@ -16,6 +17,8 @@ def sync_messages(messages, id_dossier):
     }
     
     """
+
+    nb_nouv_msg = 0
     for entry in messages:
         message_data = entry.get("message")
         docs = entry.get("documents", [])
@@ -38,10 +41,8 @@ def sync_messages(messages, id_dossier):
                 lu = True
             else :
                 lu = False
-
-            # Si étapes = Accepté ou Refusé ou Non soumis à autorisation
-                # Ca veut dire que Le péti renvoi un msg sur son dossier deja traité
-                
+                nb_nouv_msg += 1
+                   
         else:
             updated_fields = update_fields(msg_obj, {
                 "body": message_data["body"],
@@ -83,3 +84,34 @@ def sync_messages(messages, id_dossier):
 
                 if link_created:
                     logger.info(f"[CREATE] Lien MessageDocument créé (Message: {msg_obj.id}, Document: {doc_obj.id}).")
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    # Notifier les instructeurs
+    if nb_nouv_msg > 0 :
+        dossier = Dossier.objects.filter(id=id_dossier).first()
+        if dossier :
+            # emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+            emails_norm = ["louis.calu@hotmail.fr"]
+            if nb_nouv_msg == 1 :
+                sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveau message du pétitionnaire"
+            else :
+                sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveaux messages du pétitionnaire"
+
+            # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+            context = {"dossier": dossier}
+            template_name = "changer_validant"
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Nouveau.x message.s : Erreur lors de la création de l'EmailOutbox, pas de notification pour {', '.join(outbox.to)}")
+                
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau.x message.s) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau.x message.s) à {', '.join(outbox.to)} : {err}")

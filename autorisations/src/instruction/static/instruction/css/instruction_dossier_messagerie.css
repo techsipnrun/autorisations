@@ -7,8 +7,8 @@
 
 .nav_top {
     display: flex;
-    justify-content: center;
-    gap: 2rem;
+    justify-content: left;
+    gap: 3rem;
     margin-bottom: 2rem;
     align-items: center;
 }

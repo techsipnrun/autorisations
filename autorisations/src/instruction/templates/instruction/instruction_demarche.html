@@ -44,17 +44,18 @@
         </div>
     {% endif %}
     
-    
-    <div class="filtre-au-dessus">
-        <form method="get">
-            <input type="hidden" name="mes_dossiers" value="0">
-            <label class="label-filtre">
-                <input type="checkbox" name="mes_dossiers" value="1" onchange="this.form.submit()"
-                    {% if request.GET.mes_dossiers == '1' or not request.GET.mes_dossiers %}checked{% endif %}>
-                Afficher mes dossiers
-            </label>
-        </form>
-    </div>
+    {% if instructeur %}
+        <div class="filtre-au-dessus">
+            <form method="get">
+                <input type="hidden" name="mes_dossiers" value="0">
+                <label class="label-filtre">
+                    <input type="checkbox" name="mes_dossiers" value="1" onchange="this.form.submit()"
+                        {% if request.GET.mes_dossiers == '1' or not request.GET.mes_dossiers %}checked{% endif %}>
+                    Afficher mes dossiers
+                </label>
+            </form>
+        </div>
+    {% endif %}
     
     <table class="table_demarche_instru">
         <thead>

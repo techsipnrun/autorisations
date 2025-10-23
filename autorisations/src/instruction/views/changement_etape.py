@@ -11,7 +11,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierRele
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
-from notifications.service import compute_dedupe_key, send_outbox_now
+from notifications.service import compute_dedupe_key, envoi_mail
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
@@ -530,15 +530,6 @@ def faire_valider_le_projet_d_acte(request):
                 logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors de la création du Document ou de l'écriture physique dans le dossier Work ({str(e)})")
 
 
-
-
-        # Changer Etape
-        changer_etape_si_differente(dossier, "À valider avant signature", request.user)
-
-        # Dossier Action
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        enregistrer_action(dossier, instructeur, "Envoyé pour validation")
-
         # Ajout du validant au dossier
         try:
             # Suppression des valideurs du dossier (si existants)
@@ -547,11 +538,23 @@ def faire_valider_le_projet_d_acte(request):
                 logger.info(f"[DOSSIER {dossier.numero}] {deleted_count} validant(s) existant(s) supprimé(s) du dossier.")
             validant_obj = get_object_or_404(Instructeur, id=validant)
 
-            DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=validant_obj)
+            valideur, created = DossierValideur.objects.get_or_create(
+                id_dossier=dossier,
+                id_instructeur=validant_obj
+            )
+
+
             logger.info(f"[DOSSIER {dossier.numero}] Validant·e {validant_obj} affecté·e au dossier.")
         except Exception as e:
             logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'affectation du validant·e {validant} : {e}")
 
+
+        # Changer Etape
+        changer_etape_si_differente(dossier, "À valider avant signature", request.user)
+
+        # Dossier Action
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        enregistrer_action(dossier, instructeur, "Envoyé pour validation")
 
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -749,6 +752,23 @@ def valider_et_envoyer_pour_relecture_qualite(request):
             messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Relecteur.rice = {relecteur}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        # Récupérer l'objet statut "À relire"
+        statut_relire = DocumentStatut.objects.filter(statut__iexact="à relire").first()
+
+        # Par sécurité
+        if not statut_relire:
+            logger.error("Statut 'À relire' introuvable en base.")
+            messages.error("Statut 'À relire' introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # Ajout du relecteur au dossier
+        try:
+            relecteur_obj = get_object_or_404(Instructeur, id=relecteur)
+            DossierRelecteurQualite.objects.get_or_create(id_dossier=dossier, id_instructeur=relecteur_obj)
+            logger.info(f"[DOSSIER {dossier.numero}] Relecteur.rice {relecteur_obj} affecté·e au dossier.")
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'affectation du relecteur.rice {relecteur} : {e}")
+
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
@@ -760,16 +780,8 @@ def valider_et_envoyer_pour_relecture_qualite(request):
 
         enregistrer_action(dossier, instructeur, "Validé avant signature", nom_prenom)
 
-       
-        # Récupérer l'objet statut "À relire"
-        statut_relire = DocumentStatut.objects.filter(statut__iexact="à relire").first()
 
-        # Par sécurité
-        if not statut_relire:
-            logger.error("Statut 'À relire' introuvable en base.")
-            messages.error("Statut 'À relire' introuvable en base.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
+        
         # Récupération des documents du dossier
         documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
 
@@ -781,15 +793,6 @@ def valider_et_envoyer_pour_relecture_qualite(request):
                 doc.id_statut = statut_relire
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À relire.")
-
-    
-        # Ajout du relecteur au dossier
-        try:
-            relecteur_obj = get_object_or_404(Instructeur, id=relecteur)
-            DossierRelecteurQualite.objects.get_or_create(id_dossier=dossier, id_instructeur=relecteur_obj)
-            logger.info(f"[DOSSIER {dossier.numero}] Relecteur.rice {relecteur_obj} affecté·e au dossier.")
-        except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'affectation du relecteur.rice {relecteur} : {e}")
 
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -843,6 +846,16 @@ def pret_a_la_signature(request):
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
+         # Récupérer l'objet statut "À signer"
+        statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
+
+        # Par sécurité
+        if not statut_a_signer:
+            logger.error("Statut 'À signer' introuvable en base.")
+            messages.error("Statut 'À signer' introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         changer_etape_si_differente(dossier, "En attente de signature", request.user)
@@ -851,14 +864,6 @@ def pret_a_la_signature(request):
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         enregistrer_action(dossier, instructeur, "Prêt à la signature")
 
-        # Récupérer l'objet statut "À signer"
-        statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
-
-        # Par sécurité
-        if not statut_a_signer:
-            logger.error("Statut 'À signer' introuvable en base.")
-            messages.error("Statut 'À signer' introuvable en base.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Récupération des documents du dossier
         documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
@@ -1389,6 +1394,7 @@ def envoyer_l_acte(request):
                     outbox = EmailOutbox.objects.create(
                         to=emails_norm,
                         email_from=os.getenv("DEFAULT_FROM_EMAIL"),
+                        type_mail = "Envoi de l'acte",
                         sujet=sujet,
                         template="libre",
                         dedupe_key=dedupe,
@@ -1396,7 +1402,7 @@ def envoyer_l_acte(request):
                         id_dossier=dossier,
                         id_document=document,
                     )
-                    logger.info(f"[DOSSIER {dossier_numero}] EmailOutbox créé pour {emails_norm}")
+                    # logger.info(f"[DOSSIER {dossier_numero}] EmailOutbox créé pour {emails_norm}")
 
                 except IntegrityError as e:
                     # Si c’est bien un conflit sur l’unicité partielle (ux_outbox_dedupe_pending)
@@ -1417,7 +1423,7 @@ def envoyer_l_acte(request):
 
 
                 # return (True, "") ou (False, "msg erreur")
-                ok, err = send_outbox_now(outbox.id)
+                ok, err = envoi_mail(outbox.id)
 
                 if ok:
                     logger.info(f"[DOSSIER {dossier_numero}] Email ({outbox.sujet}) envoyé à {', '.join(outbox.to)} ")

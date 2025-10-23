@@ -39,6 +39,11 @@
     text-align: center;
 }
 
+#nav_top_ajout_avis {
+    justify-content: left;
+    gap: clamp(1rem, 3vw, 3rem);
+}
+
 
 
 /* ---------------------------------------------- */

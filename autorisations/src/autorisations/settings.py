@@ -97,6 +97,7 @@ DATABASES = {
         'PASSWORD': os.environ.get('BDD_PASSWORD'),
         'HOST': os.environ.get('BDD_HOSTNAME'),
         'PORT': os.environ.get('BDD_PORT'),
+        'CONN_MAX_AGE': 0,
         'OPTIONS': {
             'options': '-c search_path=public,avis,documents,instruction,utilisateurs'
         },

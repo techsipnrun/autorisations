@@ -14,6 +14,7 @@ from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
 from autorisations.models.models_avis import AvisDocument, DossierAvis
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from declaration_manifestations.call_api_dm import recup_un_seul_dossier
 from synchronisation.src.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.src.synchro.sync_declaration_manifestations import sync_declaration_manifestations
@@ -734,12 +735,6 @@ def instruction_dossier(request, num_dossier):
     # Relecteur du dossier
     relecteurs_du_dossier = DossierRelecteur.objects.filter(id_dossier=dossier)
 
-    # Relecteur-rice juridique
-    # groupe = Group.objects.filter(name="Relecteur-rice juridique").first()
-    # user_relecteur_qualite = groupe.user_set.all() if groupe else []
-    # emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
-    # relecteurs_juridique = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
-
     # Signataires
     groupe = Group.objects.filter(name="Signataire").first()
     user_signataire = groupe.user_set.all() if groupe else []
@@ -1167,10 +1162,37 @@ def ajouter_relecteur_dossier(request):
                     id_dossier_relecteur=dossier_relecteur,
                     id_document=document
                 )
+
+        ####################################
+        # NOTIFICATION PAR MAIL AU RELECTEUR 
+        ####################################
+        # emails_norm = [relecteur.email]
+        emails_norm = ["louis.calu@hotmail.fr"]
+        sujet = f"Dossier {dossier.numero} - Relecture demandée"
+        # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+        context = {"dossier": dossier}
+        template_name = "demande_relecture"
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+        if outbox :
+            ok, err = envoi_mail(outbox.id)
+        else :
+            logger.error(f"[DOSSIER {dossier.numero}] Demande de relecture : Erreur lors de la création de l'EmailOutbox, {relecteur} n'a pas été notifié de la demande de relecture par mail.")
+            request.session["relecteur_message"] = (f"L'email de notification à {relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+        if ok:
+            logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Demande de relecture) envoyée à {', '.join(outbox.to)} ")
+        else:
+            logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Demande de relecture) à {', '.join(outbox.to)} : {err}")
+            request.session["relecteur_message"] = (f"L'email de notification à {relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
     else:
         dossRJ = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=relecteur).first()
         if dossRJ.relu :
-             request.session["relecteur_message"] = (
+            request.session["relecteur_message"] = (
                 "Cet.te relecteur.rice a déjà réalisé.e une relecture sur le dossier."
             )
         else:

@@ -161,7 +161,7 @@ class Instructeur(models.Model):
         db_table = '"utilisateurs"."instructeur"'
 
     def __str__(self):
-        if self.id_agent_autorisations_id :
+        if self.id_agent_autorisations :
             return f"{self.id_agent_autorisations.nom} {self.id_agent_autorisations.prenom}"
         else :
             return self.email
@@ -302,11 +302,8 @@ class DossierSignataire(models.Model):
 
 class EmailOutbox(models.Model):
 
-    STATUT_CHOICES = [
-    ("À envoyer", "À envoyer"),
-    ("Envoyé", "Envoyé"),
-    ("Échec", "Échec"),
-    ]
+    STATUT_CHOICES = [("À envoyer", "À envoyer"), ("Envoyé", "Envoyé"), ("Échec", "Échec"),]
+    TYPE_CHOICES = [("Notification", "Notification"), ("Envoi de l'acte", "Envoi de l'acte"),]
 
     to = ArrayField(models.TextField())
     email_from = models.EmailField()
@@ -314,11 +311,12 @@ class EmailOutbox(models.Model):
     template = models.CharField(max_length=100)
     context = models.JSONField(default=dict)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default="À envoyer")  # À envoyer/Envoyé/Échec
+    type_mail = models.CharField(max_length=100, choices=TYPE_CHOICES, default="Notification")
     try_count = models.IntegerField(default=0)
     derniere_tentative_envoi = models.DateTimeField(blank=True, default=timezone.now)
     dedupe_key = models.CharField(max_length=64, blank=True, db_index=True)  # optionnel
     derniere_erreur = models.TextField(blank=True)
-    date_creation = models.DateTimeField(auto_now_add=True)
+    date_creation = models.DateTimeField(auto_now_add=True)  # pas utilisé pour le moment
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True)
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
