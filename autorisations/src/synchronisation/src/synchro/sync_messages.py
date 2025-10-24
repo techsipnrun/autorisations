@@ -93,15 +93,26 @@ def sync_messages(messages, id_dossier):
     if nb_nouv_msg > 0 :
         dossier = Dossier.objects.filter(id=id_dossier).first()
         if dossier :
-            # emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
-            emails_norm = ["louis.calu@hotmail.fr"]
+            # si etape dossier != A affecter
+                # emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+            # sinon
+                # si mission scientifique
+                    # emails_norm = liste des emails de Receptionneurs SPPN
+                # sinon
+                    # emails_norm = liste des emails de Receptionneurs SAADD
+
+
+            emails_norm = ["louis.calu@reunion-parcnational.fr"]
             if nb_nouv_msg == 1 :
                 sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveau message du pétitionnaire"
             else :
                 sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveaux messages du pétitionnaire"
 
             # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-            context = {"dossier": dossier}
+            context = {
+                "dossier_numero": dossier.numero,
+                "demarche_type": dossier.id_demarche.type
+            }
             template_name = "changer_validant"
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
             outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")

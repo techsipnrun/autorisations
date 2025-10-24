@@ -7,7 +7,7 @@ from .sync_champ import sync_champs
 from .sync_dossiers import sync_dossiers
 import logging
 
-def synchro_process(dico):
+def synchro_process(dico, dico_notifs):
     
     logger = logging.getLogger("SYNCHRONISATION")
     logger.info('')
@@ -28,7 +28,8 @@ def synchro_process(dico):
     sync_demarche(dico["demarche"])
     sync_groupeinstructeurs_demarches(dico["groupeinstructeurs_demarches"])
     sync_champs(dico["champs"])
-    sync_dossiers(dico["dossiers"], demarche_obj.numero)
+
+    sync_dossiers(dico["dossiers"], demarche_obj.numero, False, dico_notifs)
 
 
     # Manif Sportive

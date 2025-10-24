@@ -11,7 +11,7 @@ from .sync_messages import sync_messages
 from .sync_demandes import sync_demandes
 
 
-def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False):
+def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notifs={}):
     """
     Synchronise les objets suivants à partir des données récupérées sur D-S.
     [
@@ -59,7 +59,7 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False):
     for doss in dossiers_list:
         logger.info(f"Dossier {doss['dossier']['nom_dossier']}")
 
-        id_dossier = sync_doss(doss['dossier'])
+        id_dossier = sync_doss(doss['dossier'], dico_notifs)
         ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
 
         id_dossier_interlocuteur = sync_dossier_interlocuteur(

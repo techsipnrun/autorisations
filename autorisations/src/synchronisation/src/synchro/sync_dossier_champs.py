@@ -15,6 +15,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
     """
     dossier = Dossier.objects.get(id=id_dossier)
     ordre_number = 0
+    notif_demande_de_compléments = False
     for ch in dossier_champs:
         dossier_champ = ch["champ"]
         documents = ch.get("documents", [])
@@ -103,6 +104,10 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     }, date_fields=["date_saisie"])
                     if updated_fields and updated_fields != ['ordre']:
                         champ_obj.save()
+
+                        if dossier.id_etape_dossier.etape == "En attente de compléments" :
+                            notif_demande_de_compléments = True
+
                         logger.info(f"[SAVE] DossierChamp (champ: {champ_obj}) mis à jour avec PJ. Champs modifiés : {', '.join(updated_fields)}.")
                 else:
                     champ_obj = DossierChamp.objects.create(
@@ -114,6 +119,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         geometrie=dossier_champ.get("geometrie"),
                         ordre=ordre_number,
                     )
+                    if dossier.id_etape_dossier.etape == "En attente de compléments" :
+                        notif_demande_de_compléments = True
                     logger.info(f"[CREATE] Nouveau DossierChamp (champ: {champ_obj}) avec PJ.")
 
         else:
@@ -133,9 +140,10 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
             if created:
                 logger.info(f"[CREATE] DossierChamp (champ: {champ_obj}) sans PJ créé.")
-
-                # Manifestations Sportives
+                if dossier.id_etape_dossier.etape == "En attente de compléments" :
+                        notif_demande_de_compléments = True
                 
+                # Manifestations Sportives
                 if dossier_champ["nom_champ"] == "Numéro du dossier sur la plateforme déclaration-manifestations":
                     num_doss_dm = dossier_champ["valeur"]
                     if num_doss_dm:
@@ -173,7 +181,10 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 }, date_fields=["date_saisie"])
                 if updated_fields and updated_fields != ['ordre']:
                     champ_obj.save()
-                    # logger.info(f"updated_fields : {updated_fields}")
+
+                    if dossier.id_etape_dossier.etape == "En attente de compléments" :
+                        notif_demande_de_compléments = True
+
                     logger.info(f"[SAVE] DossierChamp (champ: {champ_obj.id_champ.nom}, dossier: {dossier.numero}) sans PJ mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
                     # si 'Numéro du dossier sur la plateforme déclaration-manifestations' in updated_fields
@@ -251,8 +262,8 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         except Exception as e:
                             logger.error(f"Erreur Création de liaison suite à modif déclaration-manifestations pour Dossier {dossier.numero} : {e}")
                         
-
         ordre_number+=1
+
 
     # --------------------------------------------------------------------------------------------
     # Suppression éventuelle de champs suite à une modification du dossier DS par le pétitionnaire.
@@ -286,6 +297,17 @@ def sync_dossier_champs(dossier_champs, id_dossier):
             # logger.info(f"BDD : {d.id_champ.id_ds}")
             # print(f"{d.id_champ.nom} : LE CHAMPS EXISTE EN BDD MAIS N'EST PLUS SUR DS")
             # print(f"{d.id_document.titre}")
+
+
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    # Notifier les instructeurs que le pétitionnaire a modifié son dossier suite à la demande de compléments (renseigner les champs modifiés si possible)
+    # if notif_demande_de_compléments :
+        # logger.warning('#####################  Péti a modif le dossier qui est en attente de compléments  ######################')
+
 
     logger.info(' ----- ')
 

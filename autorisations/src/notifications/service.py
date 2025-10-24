@@ -82,10 +82,14 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
                             derniere_tentative_envoi=timezone.now(),
                             derniere_erreur=str(e)[:1000],
                         )
-                        return False, f"Mail non envoyé (Dossier {item.id_dossier}): La pièce jointe (Document {doc.id}) n'a pas été trouvé à l'emplacement {chemin_fichier}"
-
+                        if item.id_dossier :
+                            return False, f"Mail non envoyé (Dossier {item.id_dossier}): La pièce jointe (Document {doc.id}) n'a pas été trouvé à l'emplacement {chemin_fichier}"
+                        else :
+                            return False, f"Mail non envoyé : La pièce jointe (Document {doc.id}) n'a pas été trouvé à l'emplacement {chemin_fichier}"
 
                 msg.send(fail_silently=False)
+
+                # logger le bon envoi de mail
 
         except Exception as e:
             # Échec
@@ -165,17 +169,96 @@ def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, doss
         if is_unique_violation:
             # On récupère l'élément déjà en attente (cas « doublon »)
             outbox = (EmailOutbox.objects.filter(dedupe_key=dedupe, statut__in=["À envoyer", "Échec"]).order_by("-date_creation").first())
-            logger.warning(f"[DOSSIER {dossier.numero}] Doublon détecté et récupéré : Email ({type_mail}) déjà existant ({outbox.sujet} -> {', '.join(outbox.to)})")
+            if dossier :
+                logger.warning(f"[DOSSIER {dossier.numero}] Doublon détecté et récupéré : Email ({type_mail}) déjà existant ({outbox.sujet} -> {', '.join(outbox.to)})")
+            else :
+                logger.warning(f"[ENVOI MAIL NOTIFICATION] Doublon détecté et récupéré : ({outbox.sujet} -> {', '.join(outbox.to)})")
             return outbox
         
         else:
-            logger.error(f"[DOSSIER {dossier.numero}] Erreur IntegrityError non liée à l’unicité lors de la création de l'EmailOutbox ({type_mail}) : {e}")
+            if dossier :
+                logger.error(f"[DOSSIER {dossier.numero}] Erreur IntegrityError non liée à l’unicité lors de la création de l'EmailOutbox ({type_mail}) : {e}")
+            else :
+                logger.error(f"[ENVOI MAIL NOTIFICATION] Erreur IntegrityError non liée à l’unicité lors de la création de l'EmailOutbox ({type_mail}) : {e}")
             return None
 
     except DatabaseError as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur en base de données lors de la création de l'EmailOutbox ({type_mail}) : {e}")
+        if dossier :
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur en base de données lors de la création de l'EmailOutbox ({type_mail}) : {e}")
+        else :  
+             logger.error(f"[ENVOI MAIL NOTIFICATION] Erreur en base de données lors de la création de l'EmailOutbox ({type_mail}) : {e}")
         return None
     
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur inattendue lors de la création de l'EmailOutbox ({type_mail}) : {e}")
+        if dossier :
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur inattendue lors de la création de l'EmailOutbox ({type_mail}) : {e}")
+        else :
+            logger.error(f"[ENVOI MAIL NOTIFICATION] Erreur en base de données lors de la création de l'EmailOutbox ({type_mail}) : {e}")
         return None
+    
+
+
+def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
+    """
+    Envoi email pour notifier les réceptionniste de l'arrivée de nouveaux dossiers.
+    Clés de dico_notifs = types démarches 
+    Si dico_notifs contient Mission scientifique : Notifier groupe Réception SPPN, sinon Notifier groupe Réception SAADD
+    - Si succès : True, 
+    - Si erreur : False,
+    """
+    # 
+
+    keys_mission = {"Mission scientifique", "Mission scientifique en espace protégé"}
+    has_mission = "Mission scientifique" in dico_notifs
+    has_mission_protege = "Mission scientifique en espace protégé" in dico_notifs
+    has_other = any(k not in keys_mission for k in dico_notifs)
+
+    template_name = "nouveaux_dossiers"
+    sujet = f"Nouveau(x) dossier(s) arrivé(s) en Réception"
+
+
+    #################################
+    # Paramètres MAIL Reception SAADD
+    #################################
+    if has_other :
+        
+        emails_norm_saadd = ["louis.calu@reunion-parcnational.fr"]
+        # emails_norm_saadd = list(GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur__nom__iexact="Réception SAADD").select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+        context_saadd = {k: v for k, v in dico_notifs.items() if k not in keys_mission}
+        dedupe_saadd = compute_dedupe_key(emails_norm_saadd, sujet, template_name, context_saadd)
+
+        outbox_saadd = create_EmailOutbox(emails_norm_saadd, sujet, template_name, dedupe_saadd, {"dico_notif" : context_saadd}, None, type_mail = "Notification")
+
+        if outbox_saadd :
+            ok, err = envoi_mail(outbox_saadd.id)
+        else :
+            logger.error(f"[ENVOI MAIL NOTIFICATION] Nouveau.x dossier.s SAADD : Erreur lors de la création de l'EmailOutbox, pas de notification pour {', '.join(outbox_saadd.to)}")
+            
+        if ok:
+            logger.info(f"[ENVOI MAIL NOTIFICATION] Notification Email {outbox_saadd.id} (Nouveau.x dossier.s SAADD) envoyée à {', '.join(outbox_saadd.to)} ")
+        else:
+            logger.error(f"[ENVOI MAIL NOTIFICATION] Échec envoi notification email {outbox_saadd.id} (Nouveau.x dossier.s SAADD) à {', '.join(outbox_saadd.to)} : {err}")
+
+
+    ################################
+    # Paramètres MAIL Reception SPPN
+    ################################
+    if (has_mission or has_mission_protege) :
+
+        emails_norm_sppn = ["louis.calu@reunion-parcnational.fr"]
+        # emails_norm_sppn = list(GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur__nom__iexact="Réception SPPN").select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+      
+        context_sppn = {k: v for k, v in dico_notifs.items() if k in keys_mission}
+        dedupe_sppn = compute_dedupe_key(emails_norm_sppn, sujet, template_name, context_sppn)
+
+        outbox_sppn = create_EmailOutbox(emails_norm_sppn, sujet, template_name, dedupe_sppn, {"dico_notif" : context_sppn}, None, type_mail = "Notification")
+
+        if outbox_sppn :
+            ok, err = envoi_mail(outbox_sppn.id)
+        else :
+            logger.error(f"[ENVOI MAIL NOTIFICATION] Nouveau.x dossier.s SPPN : Erreur lors de la création de l'EmailOutbox, pas de notification pour {', '.join(outbox_sppn.to)}")
+            
+        if ok:
+            logger.info(f"[ENVOI MAIL NOTIFICATION] Notification Email {outbox_sppn.id} (Nouveau.x dossier.s SPPN) envoyée à {', '.join(outbox_sppn.to)} ")
+        else:
+            logger.error(f"[ENVOI MAIL NOTIFICATION] Échec envoi notification email {outbox_sppn.id} (Nouveau.x dossier.s SPPN) à {', '.join(outbox_sppn.to)} : {err}")

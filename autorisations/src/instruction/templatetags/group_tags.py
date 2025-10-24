@@ -72,7 +72,7 @@ def est_concerne_par_le_dossier(user, dossier):
     # 6️⃣ sinon → non concerné
     return False
 
-@register.filter(name="est_concerné_par_le_dossier")
+@register.filter(name="est_concerné_par_le_dossier_sans_les_admins")
 def est_concerne_par_le_dossier_sans_les_admins(user, dossier):
     """
     Retourne True si l'utilisateur est concerné par le dossier :

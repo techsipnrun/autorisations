@@ -76,11 +76,13 @@
 
                         {% for a in avis %}
                             <tr class="clickable-row {% if a.statut == 'Envoyé' %} ligne_en_gras {% endif %} {% if a.avis_nb_messages_non_lus > 0 %}row-action{% endif %} {% if a.statut == 'À envoyer' or a.statut == 'À valider' %}row-action{% endif %}" 
-                            data-href="{% if a.statut == 'Envoyé' %}
+                            {% if est_instructeur %}
+                                data-href="{% if a.statut == 'Envoyé' %}
                                             {% url 'instruction_dossier_avis' dossier.numero a.numero %}
                                         {% elif request.user|est_concerné_par_le_dossier:dossier %}
                                             {% url 'instruction_dossier_ajouter_avis' dossier.numero a.numero %}
                                         {% endif %}"
+                            {% endif %}
                             {% if a.avis_nb_messages_non_lus > 0 %}title="Nouveaux messages de l'expert"{% endif %}>
 
                                 <td class="statut_avis">

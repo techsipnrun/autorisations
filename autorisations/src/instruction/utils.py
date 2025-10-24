@@ -103,9 +103,13 @@ def changer_etape_si_differente(dossier, nom_etape, user):
 
                 print(f"Mails ayant une action à faire (après retirage du user ayant fait le changement d'étape) : {emails_norm2}")
 
-                emails_norm = ["louis.calu@hotmail.fr"]
+                emails_norm = ["louis.calu@reunion-parcnational.fr"]
                 sujet = f"Dossier {dossier.numero} - Action à faire"
-                context = {"dossier": dossier}
+                context = {
+                    "dossier_numero": dossier.numero,
+                    "demarche_type": dossier.id_demarche.type,
+                    "dossier_etape": dossier.id_etape_dossier.etape
+                }
                 template_name = "changement_etape"
                 dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 

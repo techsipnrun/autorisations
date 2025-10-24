@@ -15,6 +15,7 @@ from autorisations.models.models_instruction import Demarche, Dossier, Message
 from autorisations.models.models_avis import Avis, AvisDocument, AvisNature, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils import create_message_avis_bdd
 from synchronisation.src.utils.model_helpers import update_fields
 from pathlib import Path
@@ -106,6 +107,7 @@ def instruction_dossier_consultation(request, num_dossier):
     return render(request, "instruction/instruction_dossier_consultation.html", {
         "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
         "dossier": dossier,
+        "est_instructeur": instructeur,
         "is_formulaire_active": False,
         "is_messagerie_active": False,
         "is_consultation_active": True,
@@ -205,7 +207,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "dossier": dossier,
         "avis": avis,
         "natures": natures,
-        "thematiques": thematiques,
+        "thematiques": thematiques, 
         "instructeurs": instructeurs,
         "contacts_externes": contacts_externes,
         "is_formulaire_active": False,
@@ -651,7 +653,8 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         except Exception as e:
             messages.error(request, f"Erreur lors de la récupération de la thématique de l'avis : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
-    
+
+        email_expert = ""
         if expert_interne_id:
             try:
                 instru = Instructeur.objects.get(id=expert_interne_id)
@@ -663,6 +666,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     logger.info(f"[EXPERT] Nouvel expert interne créé : {instru}")
                 
                 nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
+                email_expert = instru.email
 
             except Exception as e:
                 messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
@@ -687,6 +691,8 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     nom_prenom_expert = nettoyer_nom_fichier(f"{contact.organisation}")
                 else :
                     nom_prenom_expert = f"Avis_{avis_id}"
+
+                email_expert = contact.email
 
 
             except Exception as e:
@@ -787,6 +793,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                         f"[DOSSIER {dossier.numero}] Brouillon d'avis ({brouillon_avis}) mis à jour. "
                         f"Changements: {', '.join(updated_fields)}"
                     )
+
             except Exception as e:
                 logger.error(f"[DOSSIER {dossier.numero}] Avis {brouillon_avis.id} : Message supprimé car il y a eu une erreur lors de l'envoi de l'avis")
                 messages.error(request, f"[ENVOI AVIS DOSSIER {dossier.numero}] Erreur lors de la mise à jour de l'avis {brouillon_avis} : {e}")
@@ -818,8 +825,6 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
 
-            # NOTIF MAIL à l'expert
-        
         # Pas de Brouillon existant
         else :
             try:
@@ -913,8 +918,41 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+        #################################
+        # NOTIFICATION PAR MAIL à l'expert
+        #################################
+        # Nouvel avis recu
 
-        # NOTIF par MAIL à l'expert
+        # emails_norm = [email_expert]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+        if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier) and avis.id_demarche.type :
+            sujet = f"{avis.id_instructeur} vous demande votre avis sur un dossier de {avis.id_demarche.type}"
+        else :
+            sujet = f"{avis.id_instructeur} vous demande votre avis"
+
+        context = {
+            "avis_numero": avis.id,
+            "dossier_numero": dossier.numero,
+            "demarche_type": avis.id_demarche.type
+        }
+        template_name = "nouvelle_demande_avis" 
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+        if outbox :
+            ok, err = envoi_mail(outbox.id)
+        else :
+            logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande d'avis : Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
+            messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+        if ok:
+            logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
+        else:
+            logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
+            messages.error(f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
 
     else :
         messages.error(request, f"Erreur lors de la transmission du formulaire : POST method required")
@@ -1386,6 +1424,11 @@ def envoyer_message_avis(request):
         messages.error(request, f"Erreur lors de l'envoi du message : {e}")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
+    ####################################
+    # NOTIFICATION PAR MAIL A L'EXPERT
+    ####################################
+    # TO DO  (Si plusieurs nouveaux mess dans la journée on envoi un seul mail (pour éviter le spam))
+    
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -1393,6 +1436,7 @@ def envoyer_message_avis(request):
 @require_POST
 @csrf_exempt
 def envoyer_message_avis_vision_expert(request):
+    #Cette vue peut etre appelée par l'expert ou le demandeur
 
     avis_id = request.POST.get("avis_id")
     avis = get_object_or_404(Avis, id=avis_id)
@@ -1436,12 +1480,23 @@ def envoyer_message_avis_vision_expert(request):
                 avis_obj=avis
             )
 
+        
     except Exception as e:
-
         logger.error(f"[AVIS {avis_id}] Erreur lors de l'envoi du message : {e}")
         messages.error(request, f"Erreur lors de l'envoi du message : {e}")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
+    # if avis.expert = request.user
+        ####################################
+        # NOTIFICATION PAR MAIL AU DEMANDEUR
+        ####################################
+        # TO DO  (Si plusieurs nouveaux mess dans la journée on envoi un seul mail (pour éviter le spam))
+    # else :
+        ####################################
+        # NOTIFICATION PAR MAIL A L'EXPERT
+        ####################################
+        # TO DO  (Si plusieurs nouveaux mess dans la journée on envoi un seul mail (pour éviter le spam))
+
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -1614,7 +1669,8 @@ def avis_confirmer_nouvelle_demande_generique(request):
         except Exception as e:
             messages.error(request, f"Erreur lors de la récupération de la démarche {demarche_id} : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
-    
+
+        email_expert = ""
         if expert_interne_id:
             try:
                 instru = Instructeur.objects.get(id=expert_interne_id)
@@ -1626,6 +1682,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
                     logger.info(f"[EXPERT] Nouvel expert interne créé : {instru}")
                 
                 nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
+                email_expert = instru.email
 
             except Exception as e:
                 messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
@@ -1650,6 +1707,8 @@ def avis_confirmer_nouvelle_demande_generique(request):
                     nom_prenom_expert = nettoyer_nom_fichier(f"{contact.organisation}")
                 else :
                     nom_prenom_expert = f"Expert_Inconnu"
+
+                email_expert = contact.email
 
 
             except Exception as e:
@@ -1776,8 +1835,43 @@ def avis_confirmer_nouvelle_demande_generique(request):
             except Exception as e:
                 messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        #################################
+        # NOTIFICATION PAR MAIL À L'EXPERT
+        #################################
+        # TO DO
 
-        # NOTIF par MAIL à l'expert
+        # emails_norm = [email_expert]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+        # Demande générique non liée à un dossier
+        if avis.id_demarche.type :
+            sujet = f"{avis.id_instructeur} vous demande votre avis sur la thématique {avis.id_demarche.type}"
+        else :
+            sujet = f"{avis.id_instructeur} vous demande votre avis"
+
+
+        context = {
+            "avis_numero": avis.id,
+            "demarche_type": avis.id_demarche.type
+        }
+        template_name = "nouvelle_demande_avis_generique" 
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
+
+        if outbox :
+            ok, err = envoi_mail(outbox.id)
+        else :
+            logger.error(f"[NOUVELLE DEMANDE D'AVIS] Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
+            messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+        if ok:
+            logger.info(f"[NOUVELLE DEMANDE D'AVIS] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
+        else:
+            logger.error(f"[NOUVELLE DEMANDE D'AVIS] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
+            messages.error(f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
 
     else :
         messages.error(request, f"Erreur lors de la transmission du formulaire : POST method required")

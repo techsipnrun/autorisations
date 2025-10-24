@@ -317,7 +317,7 @@ class EmailOutbox(models.Model):
     dedupe_key = models.CharField(max_length=64, blank=True, db_index=True)  # optionnel
     derniere_erreur = models.TextField(blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)  # pas utilisé pour le moment
-    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:

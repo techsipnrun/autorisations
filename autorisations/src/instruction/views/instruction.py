@@ -983,7 +983,8 @@ def actualiser_dossier(request, num_dossier):
         else:
             loggerSynchro.info(f"------ DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarches Simplifiées) ------")
 
-        sync_dossiers([dico_dossier], demarche.numero, True)
+        dico_notifs = {}  #Est ce que on onvoi vraiment une notifs pour l'actualisation d'un dossier ? je ne pense pas
+        sync_dossiers([dico_dossier], demarche.numero, True, dico_notifs)
         
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1167,10 +1168,13 @@ def ajouter_relecteur_dossier(request):
         # NOTIFICATION PAR MAIL AU RELECTEUR 
         ####################################
         # emails_norm = [relecteur.email]
-        emails_norm = ["louis.calu@hotmail.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Relecture demandée"
         # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-        context = {"dossier": dossier}
+        context = {
+                    "dossier_numero": dossier.numero,
+                    "demarche_type": dossier.id_demarche.type
+                }
         template_name = "demande_relecture"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
         outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")

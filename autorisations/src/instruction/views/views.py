@@ -130,17 +130,19 @@ def se_declarer_instructeur(request):
             # Dossier Action
             enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
 
-
             #######################
             # NOTIFICATION PAR MAIL 
             #######################
 
             # emails_norm = [instructeur.email]
-            emails_norm = ["louis.calu@hotmail.fr"]
+            emails_norm = ["louis.calu@reunion-parcnational.fr"]
             sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
             # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-            context = {"dossier": dossier}
-            template_name = "ajouter_a_instruction"  #to do
+            context = {
+                "dossier_numero": dossier.numero,
+                "demarche_type": dossier.id_demarche.type
+            }
+            template_name = "ajouter_a_instruction" 
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
             outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
 
@@ -219,10 +221,13 @@ def retirer_instructeur(request):
     # NOTIFICATION PAR MAIL 
     #######################
     # emails_norm = [instructeur.email]
-    emails_norm = ["louis.calu@hotmail.fr"]
+    emails_norm = ["louis.calu@reunion-parcnational.fr"]
     sujet = f"Dossier {dossier.numero} - Vous avez été retiré.e de l'instruction"
     # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-    context = {"dossier": dossier}
+    context = {
+        "dossier_numero": dossier.numero,
+        "demarche_type": dossier.id_demarche.type
+    }
     template_name = "retirer_de_instruction"
     dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
     outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
@@ -284,14 +289,18 @@ def changer_valideur(request):
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement de validant.e : {old_valideur} --> {new_valideur}")
 
+
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
     # emails_norm = [new_valideur.email]
-    emails_norm = ["louis.calu@hotmail.fr"]
+    emails_norm = ["louis.calu@reunion-parcnational.fr"]
     sujet = f"Dossier {dossier.numero} - Vous êtes désormais le-la validant.e du dossier"
     # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-    context = {"dossier": dossier}
+    context = {
+                "dossier_numero": dossier.numero,
+                "demarche_type": dossier.id_demarche.type
+               }
     template_name = "changer_validant"
     dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
     outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")

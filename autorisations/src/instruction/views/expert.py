@@ -305,10 +305,51 @@ def donner_son_avis(request, avis_id):
             avis.sous_reserve = True
         else :
             avis.sous_reserve = False
+        avis.save()
 
     elif reponse == "Défavorable" :
         avis.favorable = False
         avis.sous_reserve = False
+        avis.save()
+
+    ####################################
+    # NOTIFICATION PAR MAIL AU DEMANDEUR
+    ####################################
+    # TO DO
+
+    # emails_norm = [avis.instructeur.email]
+    emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+    if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
+        sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
+    else :
+        sujet = f"{avis.id_instructeur} vous demande votre avis"
+
+
+    # context = {
+    #     "avis_numero": avis.id,
+    #     "dossier_numero": dossier.numero,
+    #     "demarche_type": avis.id_demarche.type
+    # }
+    # template_name = "nouvelle_demande_avis" 
+    # dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+    # outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+    # if outbox :
+    #     ok, err = envoi_mail(outbox.id)
+    # else :
+    #     logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande d'avis : Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
+    #     messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+    # if ok:
+    #     logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
+    # else:
+    #     logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
+    #     messages.error(f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
+
+    
 
     else :
         messages.error(request, f"❌ Erreur lors de la réponse à la demande d'avis : Vous devez choisir entre Favorable, Favorable sous réserve et Défavorable.")
@@ -459,6 +500,13 @@ def remplacer_avis_signe(request):
             )
             logger.info(f"[AVIS {avis.id}] : Avis signé remplacé avec succès par l'expert {request.user}")
             messages.success(request, "✅ Avis signé remplacé avec succès.")
+
+            ####################################
+            # NOTIFICATION PAR MAIL AU DEMANDEUR
+            ####################################
+            # TO DO
+
+
         else :
             # On revient sur la page pour afficher les messages d'erreurs
             return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -495,6 +543,12 @@ def deposer_avis_signe(request):
             )
             logger.info(f"[AVIS {avis.id}] : Avis signé déposé avec succès par l'expert {request.user}")
             messages.success(request, "✅ Avis signé déposé avec succès.")
+
+            ####################################
+            # NOTIFICATION PAR MAIL AU DEMANDEUR
+            ####################################
+            # TO DO
+
         else :
             # On revient sur la page pour afficher les messages d'erreurs
             return redirect(request.META.get("HTTP_REFERER", "/"))
