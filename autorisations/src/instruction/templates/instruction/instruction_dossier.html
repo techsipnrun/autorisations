@@ -1597,7 +1597,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <input type="hidden" name="noteId" value="{{ n.id }}">
-                                <textarea name="note" rows="4">{{ n.note }}</textarea>
+                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
                                 {% if n.instructeur_id == instructeur_connecte.id %}
                                     <div class="btn_maj_suppr">
                                         <button type="submit" class="valider-btn">Mettre à jour</button>

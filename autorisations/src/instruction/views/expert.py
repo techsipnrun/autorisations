@@ -8,13 +8,14 @@ from django.utils.timezone import localtime
 from pathlib import Path
 
 from autorisations.models.models_instruction import Dossier, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, EmailOutbox, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from autorisations.models.models_avis import Avis, AvisDocument, DossierAvis, Expert
 
 from django.contrib import messages
 import logging
 
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.views.avis import enregistrer_document
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -312,45 +313,6 @@ def donner_son_avis(request, avis_id):
         avis.sous_reserve = False
         avis.save()
 
-    ####################################
-    # NOTIFICATION PAR MAIL AU DEMANDEUR
-    ####################################
-    # TO DO
-
-    # emails_norm = [avis.instructeur.email]
-    emails_norm = ["louis.calu@reunion-parcnational.fr"]
-
-    if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
-        sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
-    else :
-        sujet = f"{avis.id_instructeur} vous demande votre avis"
-
-
-    # context = {
-    #     "avis_numero": avis.id,
-    #     "dossier_numero": dossier.numero,
-    #     "demarche_type": avis.id_demarche.type
-    # }
-    # template_name = "nouvelle_demande_avis" 
-    # dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-    # outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
-
-    # if outbox :
-    #     ok, err = envoi_mail(outbox.id)
-    # else :
-    #     logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande d'avis : Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
-    #     messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-    # if ok:
-    #     logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
-    # else:
-    #     logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
-    #     messages.error(f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-
-
-    
-
     else :
         messages.error(request, f"❌ Erreur lors de la réponse à la demande d'avis : Vous devez choisir entre Favorable, Favorable sous réserve et Défavorable.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -461,6 +423,40 @@ def donner_son_avis(request, avis_id):
         logger.warning(f"[AVIS {avis.id}] : Echec lors de l'envoi du message automatique (Acceptation/Refus de l'expert) : {e}")
 
     avis.save()
+
+    ####################################
+    # NOTIFICATION PAR MAIL AU DEMANDEUR
+    ####################################
+
+    # emails_norm = [avis.id_instructeur.email]
+    emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+    # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
+    sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
+    
+    context = {
+            "avis_numero": avis.id,
+            "expert": str(avis.id_expert),
+            "demarche_type": avis.id_demarche.type,
+            "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
+        }
+
+    template_name = "avis_rendu" 
+    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
+
+    if outbox :
+        ok, err = envoi_mail(outbox.id)
+    else :
+        logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
+        messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+    if ok:
+        logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis rendu) envoyée à {', '.join(outbox.to)} ")
+    else:
+        logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
+        messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
     return redirect("avis_expert", avis_id=avis.id)
 
 
@@ -504,8 +500,42 @@ def remplacer_avis_signe(request):
             ####################################
             # NOTIFICATION PAR MAIL AU DEMANDEUR
             ####################################
-            # TO DO
 
+            # emails_norm = [avis.id_instructeur.email]
+            emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+            # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
+            sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a remplacé son avis signé"
+            
+            context = {
+                    "avis_numero": avis.id,
+                    "expert": str(avis.id_expert),
+                    "demarche_type": avis.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
+                }
+
+            template_name = "avis_remplace" 
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+            # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+            existe_deja = EmailOutbox.objects.filter(
+                dedupe_key=dedupe,
+                date_creation__date=datetime.date.today()
+            ).exists()
+
+            if not existe_deja:
+                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
+                if outbox :
+                    ok, err = envoi_mail(outbox.id)
+                else :
+                    logger.error(f"[AVIS {avis.id}] Avis modifié par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
+                    messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+                if ok:
+                    logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis modifié) envoyée à {', '.join(outbox.to)} ")
+                else:
+                    logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis modifié) à {', '.join(outbox.to)} : {err}")
+                    messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
         else :
             # On revient sur la page pour afficher les messages d'erreurs
@@ -547,7 +577,41 @@ def deposer_avis_signe(request):
             ####################################
             # NOTIFICATION PAR MAIL AU DEMANDEUR
             ####################################
-            # TO DO
+
+            # emails_norm = [avis.id_instructeur.email]
+            emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+            # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
+            sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a déposé son avis signé"
+            
+            context = {
+                    "avis_numero": avis.id,
+                    "expert": str(avis.id_expert),
+                    "demarche_type": avis.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
+                }
+
+            template_name = "avis_depose" 
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+            if ok:
+                logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis rendu) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
+                messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+            return redirect("avis_expert", avis_id=avis.id)
+
+
+
+
 
         else :
             # On revient sur la page pour afficher les messages d'erreurs

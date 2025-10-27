@@ -1,5 +1,8 @@
+from datetime import date
+import os
 from autorisations.models.models_documents import Document, MessageDocument
 from autorisations.models.models_instruction import Dossier, Message
+from autorisations.models.models_utilisateurs import EmailOutbox
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from ..utils.model_helpers import update_fields
 from ..utils.fichiers import write_pj
@@ -108,21 +111,30 @@ def sync_messages(messages, id_dossier):
             else :
                 sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveaux messages du pétitionnaire"
 
-            # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
             context = {
                 "dossier_numero": dossier.numero,
-                "demarche_type": dossier.id_demarche.type
+                "demarche_type": dossier.id_demarche.type,
+                "nb_nouv_msg": nb_nouv_msg,
+                "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
             }
-            template_name = "changer_validant"
+            template_name = "nouveau_message_petitionnaire"
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
 
-            if outbox :
-                ok, err = envoi_mail(outbox.id)
-            else :
-                logger.error(f"[DOSSIER {dossier.numero}] Nouveau.x message.s : Erreur lors de la création de l'EmailOutbox, pas de notification pour {', '.join(outbox.to)}")
-                
-            if ok:
-                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau.x message.s) envoyée à {', '.join(outbox.to)} ")
-            else:
-                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau.x message.s) à {', '.join(outbox.to)} : {err}")
+            # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+            existe_deja = EmailOutbox.objects.filter(
+                dedupe_key=dedupe,
+                date_creation__date=date.today()
+            ).exists()
+
+            if not existe_deja:
+                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+                if outbox :
+                    ok, err = envoi_mail(outbox.id)
+                else :
+                    logger.error(f"[DOSSIER {dossier.numero}] Nouveau.x message.s : Erreur lors de la création de l'EmailOutbox, pas de notification pour {', '.join(outbox.to)}")
+                    
+                if ok:
+                    logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau.x message.s) envoyée à {', '.join(outbox.to)} ")
+                else:
+                    logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau.x message.s) à {', '.join(outbox.to)} : {err}")

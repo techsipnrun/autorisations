@@ -8,12 +8,21 @@
 /*              RECHERCHE FILTRÉE             */
 /* ------------------------------------------ */
 
+/* Titre principal */
+#titre_requete {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-top: 14rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
 .recherche_filtre{
     display: flex;
     justify-content: center;
     align-items: center;
     border: solid #0e4c27;
-    margin: 18rem 10% 2rem 10%;
+    margin: 4rem 10% 2rem 10%;
     flex-direction: column;
 }
 

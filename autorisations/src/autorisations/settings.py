@@ -332,7 +332,9 @@ REST_FRAMEWORK = {
 
 EMAIL_BACKEND = "autorisations.backends.UnsafeEmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+# EMAIL_HOST = "toto"
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 25))
+# EMAIL_PORT = 0
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")

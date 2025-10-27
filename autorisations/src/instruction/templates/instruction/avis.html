@@ -18,6 +18,12 @@
 
     {% include 'navbar.html' %}
 
+    {% if not demandes_en_cours and not demandes_traitees and not avis_a_rendre and not avis_rendus %}
+        <div class="pas_concerne">
+            Vous n'êtes concerné.e par aucun avis.
+        </div>
+    {% endif %}
+
     {% if messages %}
         <div class="django-messages">
             {% for message in messages %}
@@ -25,12 +31,6 @@
                     {{ message }}
                 </div>
             {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if not demandes_en_cours and not demandes_traitees and not avis_a_rendre and not avis_rendus %}
-        <div class="pas_concerne">
-            Vous n'êtes concerné.e par aucun avis.
         </div>
     {% endif %}
 

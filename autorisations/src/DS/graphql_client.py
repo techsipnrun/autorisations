@@ -18,7 +18,7 @@ class GraphQLClient:
         """
         
         self.url = os.environ.get('API_URL')
-        self.token = os.environ.get('API_TOKEN')
+        self.token = os.environ.get('API_TOKEN_BOITE_AUTO')
 
         
 

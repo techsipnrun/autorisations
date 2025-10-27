@@ -13,6 +13,7 @@ import os
 import subprocess
 import tempfile
 import shutil
+from django.contrib import messages
 
 
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Instructeur
@@ -43,7 +44,8 @@ def template_mail_name_from_etape(label):
     return label
 
 
-def changer_etape_si_differente(dossier, nom_etape, user):
+def changer_etape_si_differente(dossier, nom_etape, user, request):
+
     """
     Met à jour l'étape du dossier uniquement si elle est différente de l'étape actuelle.
     Envoi un mail de notification aux concerné.e.s selon le changement d'étape
@@ -80,7 +82,8 @@ def changer_etape_si_differente(dossier, nom_etape, user):
             # Skip pour le moment, si besoin on peut faire un email notif aussi.
             return True
         
-        elif nouvelle_etape.etape == 'À valider avant signature' or nouvelle_etape.etape == "À valider avant demande d'avis" :
+        # elif nouvelle_etape.etape == 'À valider avant signature' or nouvelle_etape.etape == "À valider avant demande d'avis" :
+        else :
 
             user_faisant_le_changement = Instructeur.objects.filter(email=user.email).first()
             users_ayant_une_action_a_faire = get_instructeurs_a_actionner(dossier)
@@ -89,7 +92,7 @@ def changer_etape_si_differente(dossier, nom_etape, user):
             if not users_ayant_une_action_a_faire :
                 return True
 
-            print(f"Users ayant une action à faire sur le dossier : {users_ayant_une_action_a_faire}")
+            # print(f"Users ayant une action à faire sur le dossier : {users_ayant_une_action_a_faire}")
 
             # Le user ayant fait le changement d'étape n'a pas d'action à faire (ou du moins n'est pas le seul à en avoir)
             if not (len(users_ayant_une_action_a_faire) == 1 and user_faisant_le_changement in users_ayant_une_action_a_faire) :
@@ -101,14 +104,15 @@ def changer_etape_si_differente(dossier, nom_etape, user):
                     if i and i != user_faisant_le_changement
                 ]
 
-                print(f"Mails ayant une action à faire (après retirage du user ayant fait le changement d'étape) : {emails_norm2}")
+                # print(f"Mails ayant une action à faire (après retirage du user ayant fait le changement d'étape) : {emails_norm2}")
 
                 emails_norm = ["louis.calu@reunion-parcnational.fr"]
                 sujet = f"Dossier {dossier.numero} - Action à faire"
                 context = {
                     "dossier_numero": dossier.numero,
                     "demarche_type": dossier.id_demarche.type,
-                    "dossier_etape": dossier.id_etape_dossier.etape
+                    "dossier_etape": dossier.id_etape_dossier.etape,
+                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
                 template_name = "changement_etape"
                 dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
@@ -119,14 +123,16 @@ def changer_etape_si_differente(dossier, nom_etape, user):
                     ok, err = envoi_mail(outbox.id)
                 else :
                     logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la création de l'EmailOutbox, personne n'a été notifié du changement d'étape à '{nouvelle_etape.etape}'")
+                    messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
                     return True
 
                 if ok:
                     logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} ({outbox.sujet}) envoyée à {', '.join(outbox.to)} ")
                 else:
                     logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
-            else :
-                print("Le user ayant fait le changement d'étape est le seul à avoir une action à faire sur cette nouvelle étape")
+                    messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
+            # else :
+                # print("Le user ayant fait le changement d'étape est le seul à avoir une action à faire sur cette nouvelle étape")
 
         return True
 

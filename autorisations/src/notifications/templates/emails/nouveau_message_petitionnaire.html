@@ -1,0 +1,17 @@
+<p>Bonjour,</p>
+
+{% if nb_nouv_msg == 1 %}
+    <p>Vous avez reçu un nouveau message de la part du pétitionnaire sur le dossier n° {{ dossier_numero }} ({{ demarche_type }}).</p>
+{% else %}
+    <p>Vous avez reçu {{ nb_nouv_msg }} nouveaux messages de la part du pétitionnaire sur le dossier n° {{ dossier_numero }} ({{ demarche_type }}).</p>
+{% endif %}
+
+<p>
+    Consulter la messagerie  : 
+    <a href="{{ url }}" target="_blank">
+        {{ url }}
+    </a>
+</p>
+
+<br>
+<p style="font-style: italic">=== VEUILLEZ NE PAS RÉPONDRE À CET E-MAIL ! ===</p>

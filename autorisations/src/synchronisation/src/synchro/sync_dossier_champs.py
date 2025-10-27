@@ -2,11 +2,13 @@ import json
 import os
 from autorisations.models.models_instruction import Dossier, DossierChamp, Champ, ChampType, DossierManifSportive, DossierManifestationLiaison
 from autorisations.models.models_documents import Document
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from ..utils.model_helpers import get_first_id, update_fields, update_fields_dossier_champs
 from ..utils.fichiers import get_nom_disponible, write_geojson, write_pj
 import logging
 
 logger = logging.getLogger("SYNCHRONISATION")
+loggerMail = logging.getLogger("MAIL")
 
 
 def sync_dossier_champs(dossier_champs, id_dossier):
@@ -304,14 +306,34 @@ def sync_dossier_champs(dossier_champs, id_dossier):
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    # Notifier les instructeurs que le pétitionnaire a modifié son dossier suite à la demande de compléments (renseigner les champs modifiés si possible)
-    # if notif_demande_de_compléments :
-        # logger.warning('#####################  Péti a modif le dossier qui est en attente de compléments  ######################')
+    # Notifier les instructeurs que le pétitionnaire a modifié son dossier suite à la demande de compléments
+    if notif_demande_de_compléments :
+        
+        # emails_norm = (DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur__mail", flat=True))
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+        # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
+        sujet = f"Dossier n° {dossier.numero} - {dossier.id_demarche.type} : Dossier modifié suite à une demande de compléments"
+        
+        context = {
+                "dossier_numero": dossier.numero,
+                "demarche_type": dossier.id_demarche.type,
+                "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+            }
+
+        template_name = "dossier_modifie" 
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
+
+        if outbox :
+            ok, err = envoi_mail(outbox.id)
+        else :
+            loggerMail.error(f"[DOSSIER {dossier.numero}] Dossier modifié suite à une demande de compléments : Erreur lors de la création de l'EmailOutbox, {', '.join(outbox.to)} n'a pas été notifié par mail.")
+
+        if ok:
+            loggerMail.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Dossier modifié suite à une demande de compléments) envoyée à {', '.join(outbox.to)} ")
+        else:
+            loggerMail.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Dossier modifié suite à une demande de compléments) à {', '.join(outbox.to)} : {err}")
 
 
     logger.info(' ----- ')
-
-
-
-        
-

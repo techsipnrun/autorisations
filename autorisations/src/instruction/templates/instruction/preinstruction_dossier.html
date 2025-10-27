@@ -307,7 +307,7 @@
                                     
                                     <li class="instructeur_du_dossier">
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
-                                        <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur du dossier" class="logo_instructeur">
+                                        <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur.rice du dossier" title="Instructeur.rice du dossier" class="logo_instructeur">
                                         
                                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
                                             <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
@@ -446,7 +446,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <input type="hidden" name="noteId" value="{{ n.id }}">
-                                <textarea name="note" rows="4">{{ n.note }}</textarea>
+                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
                                 {% if n.instructeur_id == instructeur_connecte.id %}
                                     <div class="btn_maj_suppr">
                                         <button type="submit" class="valider-btn">Mettre à jour</button>

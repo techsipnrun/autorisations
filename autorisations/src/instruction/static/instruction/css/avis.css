@@ -29,13 +29,13 @@ h1 {
     display: flex;
     justify-content: center;
     font-size: 1.2rem;
-    margin-top: 12rem;
+    margin-top: 2rem;
     color: rgb(172, 2, 2);
     font-weight: bold;
 }
 
 .pas_concerne{
-    margin-top: 2rem;
+    margin-top: 12rem;
     display: flex;
     justify-content: center;
     font-size: 1.2rem;

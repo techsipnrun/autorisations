@@ -150,7 +150,8 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
             send_message_vars = {
                 "input": {
                     "dossierId": dossier_id_ds,
-                    "instructeurId": instructeur_id_ds,
+                    # "instructeurId": instructeur_id_ds,
+                    "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
                     "body": body,
                     "attachment": signed_blob_id
                 }
@@ -159,7 +160,8 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
             send_message_vars = {
                 "input": {
                     "dossierId": dossier_id_ds,
-                    "instructeurId": instructeur_id_ds,
+                    # "instructeurId": instructeur_id_ds,
+                    "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
                     "body": body,
                     "attachment": signed_blob_id,
                     "correction": 'incomplete'
@@ -200,14 +202,15 @@ def suppr_msg_DS(msg):
 
     # Récupérer l'instructeur à partir de l'email de l'émetteur du message
     instructeur = Instructeur.objects.filter(email=msg.email_emetteur).first()
-    if not instructeur or not instructeur.id_ds:
+    if not instructeur :
         raise Exception(f"Instructeur introuvable pour l'email {msg.email_emetteur}")
 
     instru_id = instructeur.id_ds  # ID DS de l'instructeur
 
     delete_message_vars = {
         "input": {
-            "instructeurId": instru_id,
+            # "instructeurId": instru_id,
+            "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
             "messageId": msg.id_ds
         }
     }
@@ -349,7 +352,8 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
         variables = {
             "input": {
                 "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds
+                "instructeurId": os.getenv("ID_DS_BOITE_AUTO")
+                # "instructeurId": instructeur_id_ds
             }
         }
 
@@ -397,7 +401,8 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
         variables = {
             "input": {
                 "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds,
+                "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
+                # "instructeurId": instructeur_id_ds
                 "motivation": motivation
             }
         }
@@ -443,7 +448,8 @@ def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
         variables = {
             "input": {
                 "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds,
+                "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
+                # "instructeurId": instructeur_id_ds
                 "motivation": motivation
             }
         }
@@ -486,7 +492,8 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
         variables = {
             "input": {
                 "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds
+                "instructeurId": os.getenv("ID_DS_BOITE_AUTO")
+                # "instructeurId": instructeur_id_ds
             }
         }
 
@@ -505,8 +512,6 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
     except Exception as e:
         loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors du repassage en instruction sur DS : {str(e)}")
         return {"success": False, "message": str(e)}
-
-
 
 
 
@@ -556,7 +561,8 @@ def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=No
         variables = {
             "input": {
                 "dossierId": dossier_id_ds,
-                "instructeurId": instructeur_id_ds,
+                "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
+                # "instructeurId": instructeur_id_ds
                 "motivation": motivation
             }
         }

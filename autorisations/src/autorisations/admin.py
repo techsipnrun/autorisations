@@ -724,7 +724,12 @@ admin.site.register(DossierManifestationLiaison)
 
 admin.site.register(SynchronisationEtat)
 
-admin.site.register(EmailOutbox)
+@admin.register(EmailOutbox)
+class EmailOutboxAdmin(admin.ModelAdmin):
+    list_display = ("sujet", "statut", "type_mail", "email_from", "date_creation")
+    list_filter = ("statut", "type_mail")
+    search_fields = ("sujet", "email_from", "to")
+    ordering = ("-date_creation",)
 
 @admin.register(AvisManifSportive)
 class AvisManifSportiveAdmin(admin.ModelAdmin):

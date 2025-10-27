@@ -727,8 +727,18 @@ def instruction_dossier(request, num_dossier):
     relecteurs_qualite_du_dossier = Instructeur.objects.filter(id__in=relecteur_ids).select_related("id_agent_autorisations")
 
     # Relecteur-rice qualité
-    groupe = Group.objects.filter(name="Relecteur-rice qualité").first()
+    if "mission scientifique" in demarche.type.lower():
+        # Relecteur-rice qualité SPPN
+        groupe = Group.objects.filter(name="Relecteur-rice qualité SPPN").first()
+    else :
+        # Relecteur-rice qualité SAADD
+        groupe = Group.objects.filter(name="Relecteur-rice qualité SAADD").first()
+
+    # groupe = Group.objects.filter(name="Relecteur-rice qualité").first()
     user_relecteur_qualite = groupe.user_set.all() if groupe else []
+
+    print (user_relecteur_qualite)
+
     emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
     relecteurs_qualite = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
 
@@ -1170,28 +1180,37 @@ def ajouter_relecteur_dossier(request):
         # emails_norm = [relecteur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Relecture demandée"
-        # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+
         context = {
                     "dossier_numero": dossier.numero,
-                    "demarche_type": dossier.id_demarche.type
+                    "demarche_type": dossier.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
         template_name = "demande_relecture"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
 
-        if outbox :
-            ok, err = envoi_mail(outbox.id)
-        else :
-            logger.error(f"[DOSSIER {dossier.numero}] Demande de relecture : Erreur lors de la création de l'EmailOutbox, {relecteur} n'a pas été notifié de la demande de relecture par mail.")
-            request.session["relecteur_message"] = (f"L'email de notification à {relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        existe_deja = EmailOutbox.objects.filter(
+            dedupe_key=dedupe,
+            date_creation__date=date.today()
+        ).exists()
 
-        if ok:
-            logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Demande de relecture) envoyée à {', '.join(outbox.to)} ")
-        else:
-            logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Demande de relecture) à {', '.join(outbox.to)} : {err}")
-            request.session["relecteur_message"] = (f"L'email de notification à {relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+        if not existe_deja:
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Demande de relecture : Erreur lors de la création de l'EmailOutbox, {relecteur} n'a pas été notifié de la demande de relecture par mail.")
+                request.session["relecteur_message"] = (f"L'email de notification à {relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Demande de relecture) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Demande de relecture) à {', '.join(outbox.to)} : {err}")
+                request.session["relecteur_message"] = (f"L'email de notification à {relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
     else:
         dossRJ = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=relecteur).first()

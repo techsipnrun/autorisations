@@ -34,7 +34,7 @@ loggerDS = logging.getLogger("API_DS")
 #         dossier_id_ds = request.POST.get("dossierId")
 #         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
 
-#         changer_etape_si_differente(dossier,"En pré-instruction", request.user)
+#         changer_etape_si_differente(dossier,"En pré-instruction", request.user, request)
 
 #         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         
@@ -82,7 +82,7 @@ def passer_en_pre_instruction(request):
 
     # Passage autorisé
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
-    changer_etape_si_differente(dossier, "En pré-instruction", request.user)
+    changer_etape_si_differente(dossier, "En pré-instruction", request.user, request)
     enregistrer_action(dossier, instructeur_connecte, "Passage en pré-instruction")
 
     request.session.pop("preinstruction_message", None)
@@ -101,7 +101,7 @@ def demander_des_complements(request):
         dossier = get_object_or_404(Dossier, numero=numero)
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-        if not (dossier.id_ds and instructeur and instructeur.id_ds and body):
+        if not (dossier.id_ds and instructeur and body):
             return HttpResponseBadRequest("Echec de la demande de compléments : Informations manquantes")
 
         tmp_file_path = None
@@ -118,7 +118,7 @@ def demander_des_complements(request):
                 enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=id_ds_msg, url_ds=url_ds)
 
                 # Mettre à jour étape + état si besoin
-                changer_etape_si_differente(dossier, "En attente de compléments", request.user)
+                changer_etape_si_differente(dossier, "En attente de compléments", request.user, request)
                 changer_etat_si_different(dossier, "en_construction", request.user)
 
                 # Dossiers Actions
@@ -145,9 +145,9 @@ def dossier_non_soumis_a_autorisation(request):
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-        if not instructeur or not instructeur.id_ds:
-            logger.error(f"[DOSSIER {dossier.numero}] Echec classement 'Non soumis à autorisation' : Instructeur introuvable ou non présent sur DS.")
-            return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
+        if not instructeur :
+            logger.error(f"[DOSSIER {dossier.numero}] Echec classement 'Non soumis à autorisation' : Instructeur introuvable.")
+            return HttpResponseBadRequest("Instructeur introuvable.")
 
         if dossier.present_sur_ds :
             # Si l'étape est 'En pré-instruction' ou 'À affecter' et l'état 'en_construction' --> passer l'état à en_instruction
@@ -161,7 +161,7 @@ def dossier_non_soumis_a_autorisation(request):
                 return HttpResponseBadRequest("Erreur DS : classement sans suite échoué.")
 
         # Mettre à jour étape + état si besoin
-        changer_etape_si_differente(dossier, "Non soumis à autorisation", request.user)
+        changer_etape_si_differente(dossier, "Non soumis à autorisation", request.user, request)
         changer_etat_si_different(dossier, "sans_suite", request.user)
 
         # Maj Date Fin Instruction
@@ -188,9 +188,9 @@ def refuse_le_dossier(request):
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-        if not instructeur or not instructeur.id_ds:
-            logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier : Instructeur introuvable ou non connecté à DS.")
-            return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
+        if not instructeur :
+            logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier : Instructeur introuvable .")
+            return HttpResponseBadRequest("Instructeur introuvable.")
 
         if dossier.present_sur_ds :
             # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
@@ -204,7 +204,7 @@ def refuse_le_dossier(request):
                 return HttpResponseBadRequest("Erreur Démarches Simplifiées : refus échoué.")
 
         # Mettre à jour étape + état si besoin
-        changer_etape_si_differente(dossier, "Refusé", request.user)
+        changer_etape_si_differente(dossier, "Refusé", request.user, request)
         changer_etat_si_different(dossier, "refuse", request.user)
 
         # Maj Date Fin Instruction
@@ -229,7 +229,7 @@ def passer_en_instruction(request):
         etat_actuel_dossier = get_object_or_404(EtatDossier, id=dossier.id_etat_dossier_id)
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-        if not instructeur or not instructeur.id_ds:
+        if not instructeur :
             logger.error(f"[DOSSIER {dossier.numero}] Echec du passage en instruction : Instructeur introuvable ou non connecté à DS.")
             return HttpResponseBadRequest("Instructeur introuvable ou non connecté à Démarches Simplifiées.")
 
@@ -241,7 +241,7 @@ def passer_en_instruction(request):
                     logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS : {result.get('message')}")
 
         # Changer l'étape et l'état si besoin
-        changer_etape_si_differente(dossier, "En instruction", request.user)
+        changer_etape_si_differente(dossier, "En instruction", request.user, request)
         changer_etat_si_different(dossier, "en_instruction", request.user)
         
         # Enregistrer dossier action
@@ -378,7 +378,7 @@ def faire_valider_une_demande_d_avis(request):
         
 
         # Changer Etape
-        changer_etape_si_differente(dossier, "À valider avant demande d'avis", request.user)
+        changer_etape_si_differente(dossier, "À valider avant demande d'avis", request.user, request)
 
         # Dossier Action
         enregistrer_action(dossier, instructeur, "Envoyé pour validation")
@@ -550,7 +550,7 @@ def faire_valider_le_projet_d_acte(request):
 
 
         # Changer Etape
-        changer_etape_si_differente(dossier, "À valider avant signature", request.user)
+        changer_etape_si_differente(dossier, "À valider avant signature", request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -587,7 +587,7 @@ def avis_envoye(request):
             messages.error(request, "Il reste un/des avis à envoyer.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        changer_etape_si_differente(dossier, "En attente réponse d'avis", request.user)
+        changer_etape_si_differente(dossier, "En attente réponse d'avis", request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -633,7 +633,7 @@ def valider_le_modele_de_demande_d_avis_et_le_projet_d_acte(request):
             avis.save()
 
         # Changer Etape
-        changer_etape_si_differente(dossier, "Avis à envoyer", request.user)
+        changer_etape_si_differente(dossier, "Avis à envoyer", request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -654,14 +654,15 @@ def repasser_en_instruction(request):
         etat_actuel_dossier = get_object_or_404(EtatDossier, id=dossier.id_etat_dossier_id)
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-        if not instructeur or not instructeur.id_ds:
-            return HttpResponseBadRequest("Instructeur introuvable ou non connecté à DS.")
+        if not instructeur :
+            return HttpResponseBadRequest("Instructeur introuvable")
 
         if dossier.present_sur_ds :
 
             # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
             if etat_actuel_dossier.nom.lower() != "en_instruction":
-                result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+                # result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+                result = repasser_en_instruction_ds(dossier.id_ds, os.getenv("DM_CLIENT_ID"))
 
                 if not result.get("success"):
                     if result.get('message') == "Le dossier est déjà en instruction" :
@@ -671,7 +672,7 @@ def repasser_en_instruction(request):
                         return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
 
         # Changer l'étape et l'état si besoin
-        changer_etape_si_differente(dossier, "En instruction", request.user)
+        changer_etape_si_differente(dossier, "En instruction", request.user, request)
         changer_etat_si_different(dossier, "en_instruction", request.user)
 
         # Enregistrer dossier action
@@ -729,7 +730,7 @@ def acte_inchange_envoyer_pour_relecture_qualite(request):
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-        changer_etape_si_differente(dossier, "En relecture qualité",request.user)
+        changer_etape_si_differente(dossier, "En relecture qualité",request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -752,13 +753,15 @@ def valider_et_envoyer_pour_relecture_qualite(request):
             messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Relecteur.rice = {relecteur}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+
         # Récupérer l'objet statut "À relire"
         statut_relire = DocumentStatut.objects.filter(statut__iexact="à relire").first()
 
         # Par sécurité
         if not statut_relire:
             logger.error("Statut 'À relire' introuvable en base.")
-            messages.error("Statut 'À relire' introuvable en base.")
+            messages.error(request, "Statut 'À relire' introuvable en base.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Ajout du relecteur au dossier
@@ -772,7 +775,7 @@ def valider_et_envoyer_pour_relecture_qualite(request):
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-        changer_etape_si_differente(dossier, "En relecture qualité",request.user)
+        changer_etape_si_differente(dossier, "En relecture qualité",request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -823,7 +826,7 @@ def envoyer_les_modifications_de_l_acte_pour_validation(request):
         
 
         # Changer l'étape
-        changer_etape_si_differente(dossier, "À valider avant signature", request.user)
+        changer_etape_si_differente(dossier, "À valider avant signature", request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -852,13 +855,13 @@ def pret_a_la_signature(request):
         # Par sécurité
         if not statut_a_signer:
             logger.error("Statut 'À signer' introuvable en base.")
-            messages.error("Statut 'À signer' introuvable en base.")
+            messages.error(request, "Statut 'À signer' introuvable en base.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-        changer_etape_si_differente(dossier, "En attente de signature", request.user)
+        changer_etape_si_differente(dossier, "En attente de signature", request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -1086,7 +1089,7 @@ def acte_pret_a_etre_envoye(request):
 
         # Changer l'étape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-        changer_etape_si_differente(dossier, "Acte à envoyer", request.user)
+        changer_etape_si_differente(dossier, "Acte à envoyer", request.user, request)
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -1110,7 +1113,7 @@ def classer_le_dossier_comme_accepte(request):
 
         # Changer Etape
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-        changer_etape_si_differente(dossier, "Accepté", request.user)
+        changer_etape_si_differente(dossier, "Accepté", request.user, request)
 
         # Maj Date Fin Instruction
         dossier.date_fin_instruction = timezone.now()
@@ -1148,7 +1151,7 @@ def envoyer_l_acte(request):
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     
-    if not dossier_id_ds or not instructeur or not instructeur.id_ds:
+    if not dossier_id_ds or not instructeur :
             messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Instructeur.rice = {instructeur}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1253,7 +1256,7 @@ def envoyer_l_acte(request):
 
         if dossier:
             if etape_raa and dossier.id_etape_dossier != etape_raa:
-                changer_etape_si_differente(dossier, "À publier au RAA", request.user)
+                changer_etape_si_differente(dossier, "À publier au RAA", request.user, request)
 
             if etat_accepte and dossier.id_etat_dossier != etat_accepte:
                 changer_etat_si_different(dossier, 'accepte', request.user)
@@ -1298,7 +1301,7 @@ def envoyer_l_acte(request):
                 # Par sécurité
                 if not statut_envoye:
                     logger.error("Statut 'Envoyé' introuvable en base.")
-                    messages.error("Statut 'Envoyé' introuvable en base.")
+                    messages.error(request, "Statut 'Envoyé' introuvable en base.")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
 
                 # Mise à jour des champs existants

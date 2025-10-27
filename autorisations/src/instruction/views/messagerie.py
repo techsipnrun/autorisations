@@ -253,7 +253,7 @@ def envoyer_message_dossier(request, numero):
     # Récupérer l'instructeur
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-    if not dossier.id_ds or not instructeur or not instructeur.id_ds:
+    if not dossier.id_ds or not instructeur :
         logger.error(f"[DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas")
         return HttpResponse(f"Session incomplète [DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas", status=401)
     
@@ -266,9 +266,7 @@ def envoyer_message_dossier(request, numero):
             result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, fichier, fichier.content_type, tmp_file_path, numero, correction=correction)
 
         else:
-
             result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, num_dossier=numero, correction=correction)
-
 
             
         if result_API_DS.get("data"):
