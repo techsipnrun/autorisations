@@ -257,7 +257,7 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
         if est_relecteur :
             drj = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).first()
             # Si relecture pas encore faite --> action à faire
-            if not drj.relu :
+            if not drj.relu and etape not in ["Non soumis à autorisation", "Refusé", "Accepté"]  :
                 dossiers_a_traiter_ids.add(dossier.id)
 
         if etape in ["À valider avant signature", "À valider avant demande d'avis"] :

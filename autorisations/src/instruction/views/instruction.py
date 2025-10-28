@@ -736,9 +736,6 @@ def instruction_dossier(request, num_dossier):
 
     # groupe = Group.objects.filter(name="Relecteur-rice qualité").first()
     user_relecteur_qualite = groupe.user_set.all() if groupe else []
-
-    print (user_relecteur_qualite)
-
     emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
     relecteurs_qualite = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
 
@@ -814,8 +811,8 @@ def instruction_dossier(request, num_dossier):
     # Fusionner et dédoublonner
     emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
 
-    # Liste tous les emails de la table outbox liés à ce dossier
-    emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id).order_by("-date_creation")
+    # Liste tous les emails (envoi acte en copie) liés à ce dossier
+    emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id, type_mail="Envoi de l'acte").order_by("-date_creation")
 
 
 
@@ -935,7 +932,7 @@ def instruction_dossier(request, num_dossier):
         "nb_avis_envoyes": nb_avis_envoyes,
         "types_contacts": types_contacts,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
-        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" for dd in documents_du_dossier)
+        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" and dd.id_document.id_statut.statut.lower() == "à relire" for dd in documents_du_dossier)
     })
 
 

@@ -1207,7 +1207,7 @@
                 {% endif %}
 
                 <!-- ############################# RELECTEURS QUALITÉS ############################# -->
-                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' or dossier.id_etape_dossier.etape == 'À publier au RAA' or dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
+                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' or dossier.id_etape_dossier.etape == 'En attente de signature' or dossier.id_etape_dossier.etape == 'À publier au RAA' or dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
                     <div class="groupe-instructeur-info">
                         <h3>Relecteurs.rices qualité</h3>
                         <ul class="groupe-instructeur-liste">
@@ -1422,8 +1422,7 @@
                             {{ relecteur_message }}
                         </div>
                     {% endif %}
-
-                    {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier %}
+                    {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
                         <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
                     {% elif not relecteurs_du_dossier and not request.user|est_concerné_par_le_dossier:dossier %}
                         <p class="note-aucune">Aucune relecture demandée pour ce dossier</p>
@@ -1499,7 +1498,7 @@
                                 </li>
                             {% endfor %}
                         </ul>
-                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                        {% if request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
                             <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
                         {% endif %}
                     {% endif %}

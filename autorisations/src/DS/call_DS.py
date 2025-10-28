@@ -82,7 +82,7 @@ def recup_data_DS(number):
 
 
 
-def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_original, content_type="application/pdf", body=None, correction=False):
+def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original, content_type="application/pdf", body=None, correction=False):
     '''
     Envoie un message avec une pièce jointe via l’API Démarches Simplifiées.
 
@@ -100,7 +100,7 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    email_instructeur = instructeur.email
 
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative envoi de mesasge avec PJ par {email_instructeur} (fichier '{os.path.basename(chemin_fichier_original)}')")
 
@@ -150,7 +150,6 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
             send_message_vars = {
                 "input": {
                     "dossierId": dossier_id_ds,
-                    # "instructeurId": instructeur_id_ds,
                     "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
                     "body": body,
                     "attachment": signed_blob_id
@@ -160,7 +159,6 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur_id_ds, chemin_fichier_ori
             send_message_vars = {
                 "input": {
                     "dossierId": dossier_id_ds,
-                    # "instructeurId": instructeur_id_ds,
                     "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
                     "body": body,
                     "attachment": signed_blob_id,
@@ -205,11 +203,9 @@ def suppr_msg_DS(msg):
     if not instructeur :
         raise Exception(f"Instructeur introuvable pour l'email {msg.email_emetteur}")
 
-    instru_id = instructeur.id_ds  # ID DS de l'instructeur
 
     delete_message_vars = {
         "input": {
-            # "instructeurId": instru_id,
             "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
             "messageId": msg.id_ds
         }
@@ -330,13 +326,13 @@ def change_groupe_instructeur_ds(dossier_id, groupe_instructeur_id):
 
 
 
-def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
+def passer_en_instruction_ds(dossier_id_ds, instructeur):
     """
     Passe un dossier en instruction via l’API DS.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.
-        instructeur_id_ds (str): ID de l’instructeur D-S.
+        instructeur (obj Instructeur)
 
     Returns:
         dict: Résultat de la mutation avec 'success' et 'message'.
@@ -344,7 +340,7 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    email_instructeur = instructeur.email
 
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de passage en instruction sur DS par {email_instructeur}")
 
@@ -353,7 +349,6 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
             "input": {
                 "dossierId": dossier_id_ds,
                 "instructeurId": os.getenv("ID_DS_BOITE_AUTO")
-                # "instructeurId": instructeur_id_ds
             }
         }
 
@@ -379,13 +374,13 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
 
 
 
-def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
+def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
     """
     Classe un dossier comme "sans suite" via l'API Démarches Simplifiées.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.
-        instructeur_id_ds (str): ID de l'instructeur D-S.
+        instructeur (obj Instructeur)
         motivation (str): Justification du 'classement sans suite'
 
     Returns:
@@ -394,7 +389,7 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    email_instructeur = instructeur.email
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de classement sans suite sur DS par {email_instructeur}")
 
     try:
@@ -402,7 +397,6 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
             "input": {
                 "dossierId": dossier_id_ds,
                 "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
-                # "instructeurId": instructeur_id_ds
                 "motivation": motivation
             }
         }
@@ -426,13 +420,13 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur_id_ds, motivation):
 
 
 
-def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
+def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
     """
     Refuse un dossier via l'API Démarches Simplifiées.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.
-        instructeur_id_ds (str): ID de l'instructeur D-S.
+        instructeur (obj Instructeur)
         motivation (str): Justification du refus
 
     Returns:
@@ -441,7 +435,7 @@ def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    email_instructeur = instructeur.email
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de refus du dossier sur DS par {email_instructeur}")
 
     try:
@@ -449,7 +443,6 @@ def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
             "input": {
                 "dossierId": dossier_id_ds,
                 "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
-                # "instructeurId": instructeur_id_ds
                 "motivation": motivation
             }
         }
@@ -471,13 +464,13 @@ def refuser_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation):
         return {"success": False, "message": str(e)}
 
 
-def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
+def repasser_en_instruction_ds(dossier_id_ds, instructeur):
     """
     Rebascule un dossier en instruction via l'API Démarches Simplifiées.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.
-        instructeur_id_ds (str): ID de l'instructeur D-S.
+        instructeur (obj Instructeur)
 
     Returns:
         dict: Résultat de la mutation avec 'success' et 'message'.
@@ -485,15 +478,14 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
     client = GraphQLClient()
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
-    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de repasser en instruction le dossier sur DS par {email_instructeur}")
+    email_instructeur = instructeur.email
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de repasser en instruction le dossier sur DS par {instructeur}")
 
     try:
         variables = {
             "input": {
                 "dossierId": dossier_id_ds,
                 "instructeurId": os.getenv("ID_DS_BOITE_AUTO")
-                # "instructeurId": instructeur_id_ds
             }
         }
 
@@ -515,12 +507,12 @@ def repasser_en_instruction_ds(dossier_id_ds, instructeur_id_ds):
 
 
 
-def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=None):
+def accepter_dossier_ds(dossier_id_ds, instructeur, motivation, fichier=None):
     client = GraphQLClient()
     signed_blob_id = None
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    email_instructeur = instructeur.email
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative d'acceptation du dossier sur DS (mutation create_direct_upload.graphql) par {email_instructeur}")
 
     if fichier:
@@ -562,7 +554,6 @@ def accepter_dossier_ds(dossier_id_ds, instructeur_id_ds, motivation, fichier=No
             "input": {
                 "dossierId": dossier_id_ds,
                 "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
-                # "instructeurId": instructeur_id_ds
                 "motivation": motivation
             }
         }

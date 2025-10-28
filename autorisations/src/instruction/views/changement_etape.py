@@ -108,9 +108,9 @@ def demander_des_complements(request):
         try:
             if fichier:
                 tmp_file_path = prepare_temp_file(fichier)
-                result = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, fichier, fichier.content_type, tmp_file_path, numero, correction=True)
+                result = envoyer_message_ds(dossier.id_ds, instructeur, body, fichier, fichier.content_type, tmp_file_path, numero, correction=True)
             else:
-                result = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, num_dossier=numero, correction=True)
+                result = envoyer_message_ds(dossier.id_ds, instructeur, body, num_dossier=numero, correction=True)
 
             if result.get("data"):
                 id_ds_msg = result["data"]["dossierEnvoyerMessage"]["message"]["id"]
@@ -152,10 +152,10 @@ def dossier_non_soumis_a_autorisation(request):
         if dossier.present_sur_ds :
             # Si l'étape est 'En pré-instruction' ou 'À affecter' et l'état 'en_construction' --> passer l'état à en_instruction
             if dossier.id_etat_dossier.nom == 'en_construction' and (dossier.id_etape_dossier.etape == 'En pré-instruction' or dossier.id_etape_dossier.etape == 'À affecter') :
-                passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+                passer_en_instruction_ds(dossier.id_ds, instructeur)
 
             # Appel API GraphQL
-            result = classer_sans_suite_ds(dossier.id_ds, instructeur.id_ds, motivation)
+            result = classer_sans_suite_ds(dossier.id_ds, instructeur, motivation)
             if not result.get("success"):
                 logger.error(f"[DOSSIER {dossier.numero}] Classement sans suite DS échoué : {result.get('message')}")
                 return HttpResponseBadRequest("Erreur DS : classement sans suite échoué.")
@@ -172,7 +172,7 @@ def dossier_non_soumis_a_autorisation(request):
         enregistrer_action(dossier, instructeur, "Classé sans suite")
 
 
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+    return redirect(reverse('instruction_dossier', kwargs={'num_dossier': dossier.numero}))
 
 
 
@@ -195,10 +195,10 @@ def refuse_le_dossier(request):
         if dossier.present_sur_ds :
             # Si l'étape est 'En pré-instruction' et l'état 'en_construction' --> passer l'état à en_instruction
             if dossier.id_etat_dossier.nom == 'en_construction' and dossier.id_etape_dossier.etape == 'En pré-instruction' :
-                passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+                passer_en_instruction_ds(dossier.id_ds, instructeur)
 
             # Appel de l'API DS
-            result = refuser_dossier_ds(dossier.id_ds, instructeur.id_ds, motivation)
+            result = refuser_dossier_ds(dossier.id_ds, instructeur, motivation)
             if not result.get("success"):
                 logger.error(f"[DOSSIER {dossier.numero}] Echec de refus du dossier sur DS : {result.get('message')}")
                 return HttpResponseBadRequest("Erreur Démarches Simplifiées : refus échoué.")
@@ -236,7 +236,7 @@ def passer_en_instruction(request):
         if dossier.present_sur_ds :
             # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
             if etat_actuel_dossier.nom.lower() != "en_instruction":
-                result = passer_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
+                result = passer_en_instruction_ds(dossier.id_ds, instructeur)
                 if not result.get("success"):
                     logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS : {result.get('message')}")
 
@@ -661,15 +661,20 @@ def repasser_en_instruction(request):
 
             # Appel GraphQL uniquement si l'état n'est pas déjà 'en_instruction'
             if etat_actuel_dossier.nom.lower() != "en_instruction":
-                # result = repasser_en_instruction_ds(dossier.id_ds, instructeur.id_ds)
-                result = repasser_en_instruction_ds(dossier.id_ds, os.getenv("DM_CLIENT_ID"))
+                result = repasser_en_instruction_ds(dossier.id_ds, instructeur)
 
                 if not result.get("success"):
                     if result.get('message') == "Le dossier est déjà en instruction" :
-                        logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'a pas été repassé en instruction sur DS car il est déjà en instruction : {result.get('message')}")
+                        logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'est pas repassé en instruction sur DS car il est déjà en instruction : {result.get('message')}")
+                        messages.error(request, f"❌ Le dossier n'est pas repassé en instruction sur Démarches Simplifiées car il est déjà en instruction. Contactez le support.")
+                    
+                    elif result.get('message') == "Le dossier est déjà construction" :
+                        logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'est pas repassé en instruction sur DS car il est déjà en construction : {result.get('message')}")
+                        messages.error(request, f"❌ Le dossier n'est pas repassé en instruction sur Démarches Simplifiées car il est déjà en construction. Contactez le support.")
                     else:
                         logger.error(f"[DOSSIER {dossier.numero}] Échec du repassage en instruction du dossier {dossier.numero} : {result.get('message')}")
-                        return HttpResponseBadRequest("Erreur côté DS lors du repassage en instruction.")
+                        messages.error(request, f"❌ Le dossier n'est pas repassé en instruction sur Démarches Simplifiées. Contactez le support.")
+                        return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Changer l'étape et l'état si besoin
         changer_etape_si_differente(dossier, "En instruction", request.user, request)
@@ -1045,7 +1050,7 @@ def acte_pret_a_etre_envoye(request):
         # Création Document Rapport CA
         # ---------------------------------
         if fichier_rapportCA :
-            print('juste avant création doc rapport CA')
+
             doc_ca, created = Document.objects.get_or_create(
                                     emplacement=doc_path, titre=fichier_rapportCA.name,
                                     defaults={
@@ -1240,7 +1245,7 @@ def envoyer_l_acte(request):
 
         
         if dossier.present_sur_ds :
-            result = accepter_dossier_ds(dossier_id_ds, instructeur.id_ds, motivation, fichier)
+            result = accepter_dossier_ds(dossier_id_ds, instructeur, motivation, fichier)
         
             if result["success"]:
                 loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur.email}")

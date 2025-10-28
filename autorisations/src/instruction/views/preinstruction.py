@@ -444,7 +444,7 @@ def passer_en_instruction(request):
     dossier_id = request.POST.get("dossierId")
     instructeur_email = request.user.email
 
-    instructeur_id_ds = Instructeur.objects.filter(email=instructeur_email).values_list("id_ds", flat=True).first()
+    instructeur = Instructeur.objects.filter(email=instructeur_email).first()
     dossier = get_object_or_404(Dossier, id_ds=dossier_id)
 
     # Vérifie qu'un groupe instructeur est affecté
@@ -452,11 +452,11 @@ def passer_en_instruction(request):
         logger.warning(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : aucun groupe instructeur affecté.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    if not instructeur_id_ds:
+    if not instructeur :
         logger.error(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : Mail de l'instructeur non reconnu en BDD.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    result = passer_en_instruction_ds(dossier_id, instructeur_id_ds)
+    result = passer_en_instruction_ds(dossier_id, instructeur)
 
     if result["success"]:
         logger.info(f"[DOSSIER {dossier.numero}] Passage en instruction réussi sur DS par {instructeur_email}")

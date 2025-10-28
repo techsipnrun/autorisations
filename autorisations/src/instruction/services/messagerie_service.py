@@ -30,18 +30,18 @@ def prepare_temp_file(fichier):
         return None
 
 
-def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, content_type=None, chemin_fichier=None, num_dossier=None, correction=False):
+def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_type=None, chemin_fichier=None, num_dossier=None, correction=False):
     """
     Envoie un message via l’API Démarches Simplifiées, avec ou sans pièce jointe.
     """
-    email_instructeur = Instructeur.objects.filter(id_ds=instructeur_id_ds).values_list("email", flat=True).first()
+    email_instructeur = instructeur.email
     
     client = GraphQLClient()
 
-    if not all([dossier_id_ds, instructeur_id_ds, body]):
+    if not all([dossier_id_ds, email_instructeur, body]):
         loggerDS.error(
             f"[DOSSIER {num_dossier}] Paramètres manquants pour l'envoi du message : "
-            f"dossier_id_ds={dossier_id_ds}, instructeur_id_ds={instructeur_id_ds}, body présent --> {bool(body)}"
+            f"dossier_id_ds={dossier_id_ds}, email_instructeur={email_instructeur}, body présent --> {bool(body)}"
         )
         return {"success": False, "message": "Paramètres requis manquants."}
 
@@ -52,7 +52,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
         if not correction :
             return ds_envoyer_message_avec_pj(
                 dossier_id_ds=dossier_id_ds,
-                instructeur_id_ds=instructeur_id_ds,
+                instructeur=instructeur,
                 chemin_fichier_original=chemin_fichier,
                 content_type=content_type,
                 body=body,
@@ -60,7 +60,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
         else:
             return ds_envoyer_message_avec_pj(
                 dossier_id_ds=dossier_id_ds,
-                instructeur_id_ds=instructeur_id_ds,
+                instructeur=instructeur,
                 chemin_fichier_original=chemin_fichier,
                 content_type=content_type,
                 body=body,
@@ -74,7 +74,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
             variables = {
                 "input": {
                     "dossierId": dossier_id_ds,
-                    "instructeurId": instructeur_id_ds,
+                    "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
                     "body": body
                 }
             }
@@ -82,7 +82,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur_id_ds, body, fichier=None, con
             variables = {
                 "input": {
                     "dossierId": dossier_id_ds,
-                    "instructeurId": instructeur_id_ds,
+                    "instructeurId": os.getenv("ID_DS_BOITE_AUTO"),
                     "body": body,
                     "correction": 'incomplete'
                 }

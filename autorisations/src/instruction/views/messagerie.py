@@ -263,10 +263,10 @@ def envoyer_message_dossier(request, numero):
         if fichier:
 
             tmp_file_path = prepare_temp_file(fichier)
-            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, fichier, fichier.content_type, tmp_file_path, numero, correction=correction)
+            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur, body, fichier, fichier.content_type, tmp_file_path, numero, correction=correction)
 
         else:
-            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur.id_ds, body, num_dossier=numero, correction=correction)
+            result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur, body, num_dossier=numero, correction=correction)
 
             
         if result_API_DS.get("data"):

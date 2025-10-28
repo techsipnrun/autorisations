@@ -10,6 +10,7 @@
                 <form method="post" style="display:inline;">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="type" value="groupe">
                     <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
                     <input type="hidden" name="user_id" value="{{ user.id }}">
                     <button type="submit" class="btn-remove" title="Supprimer l'utilisateur">✕</button>
