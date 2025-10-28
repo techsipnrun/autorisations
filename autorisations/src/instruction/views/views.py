@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, Message, SynchronisationEtat
-from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -434,6 +434,271 @@ def changer_relecteur(request):
 
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+@require_POST
+@login_required
+def changer_intermediaire_signature(request):
+    dossier_id = request.POST.get("dossier_id")
+    new_intermediaire_id = request.POST.get("new_intermediaire_id")
+
+    if not dossier_id or not new_intermediaire_id:
+        messages.error(request, f"Données manquantes pour le changement d'intermédiaire pour la signature.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    new_intermediaire = get_object_or_404(Instructeur, id=new_intermediaire_id)
+    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
+
+    if not dossier:
+        messages.error(request, f"Dossier introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not new_intermediaire:
+        messages.error(request, f"Intermédiaire pour la signature sélectionné·e invalide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    id_old_intermediaire = DossierIntermediaireSignature.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
+    old_intermediaire = Instructeur.objects.filter(id=id_old_intermediaire).first()
+
+
+    # S'assurer que le nouveau intermédiaire est différent
+    if old_intermediaire and old_intermediaire.id == new_intermediaire.id:
+        messages.error(request, f"L'intermédiaire sélectionné·e est déjà affecté·e à ce dossier.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Suppression de l'ancien intermédiaire (s'il existe)
+    if old_intermediaire:
+        DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=old_intermediaire).delete()
+    # Ajout du nouveau intermédiaire
+    DossierIntermediaireSignature.objects.get_or_create(id_dossier=dossier, id_instructeur=new_intermediaire)
+    
+    # On enregistre l'action
+    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
+    enregistrer_action(dossier, instructeur_request, "Intermédiaire signature changé.e", f"({new_intermediaire})")
+
+    logger.info(f"[DOSSIER {dossier.numero}] Changement d'intermédiaire pour la signature : {old_intermediaire} --> {new_intermediaire}")
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    if user_faisant_le_changement != new_intermediaire :
+
+        # emails_norm = [new_intermediaire.email]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        sujet = f"Dossier {dossier.numero} - Vous faites désormais l'intermédiaire pour la signature"
+
+        context = {
+                    "dossier_numero": dossier.numero,
+                    "demarche_type": dossier.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+                }
+        template_name = "changer_intermediaire"
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        existe_deja = EmailOutbox.objects.filter(
+            dedupe_key=dedupe,
+            date_creation__date=date.today()
+        ).exists()
+
+        if not existe_deja:
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Nouveau intermédiaire pour la signature : Erreur lors de la création de l'EmailOutbox, {new_intermediaire} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau intermédiaire pour la signature) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau intermédiaire pour la signature) à {', '.join(outbox.to)} : {err}")
+                messages.error(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+@login_required
+def changer_envoyeur_acte(request):
+    dossier_id = request.POST.get("dossier_id")
+    new_envoyeur_id = request.POST.get("new_envoyeur_id")
+
+    if not dossier_id or not new_envoyeur_id:
+        messages.error(request, f"Données manquantes pour le changement d'envoyeur.se d'acte.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    new_envoyeur = get_object_or_404(Instructeur, id=new_envoyeur_id)
+    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
+
+    if not dossier:
+        messages.error(request, f"Dossier introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not new_envoyeur:
+        messages.error(request, f"Envoyeur.se d'acte sélectionné·e invalide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    id_old_envoyeur = DossierEnvoiActe.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
+    old_envoyeur = Instructeur.objects.filter(id=id_old_envoyeur).first()
+
+
+    # S'assurer que le nouveau envoyeur d'acte est différent
+    if old_envoyeur and old_envoyeur.id == new_envoyeur.id:
+        messages.error(request, f"L'envoyeur.se d'acte sélectionné·e est déjà affecté·e à ce dossier.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Suppression de l'ancien envoyeur d'acte (s'il existe)
+    if old_envoyeur:
+        DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=old_envoyeur).delete()
+    # Ajout du nouveau envoyeur d'acte
+    DossierEnvoiActe.objects.get_or_create(id_dossier=dossier, id_instructeur=new_envoyeur)
+    
+    # On enregistre l'action
+    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
+    enregistrer_action(dossier, instructeur_request, "Envoyeur.se d'acte changé.e", f"({new_envoyeur})")
+
+    logger.info(f"[DOSSIER {dossier.numero}] Changement d'envoyeur.se d'acte : {old_envoyeur} --> {new_envoyeur}")
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    if user_faisant_le_changement != new_envoyeur :
+
+        # emails_norm = [new_envoyeur.email]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        sujet = f"Dossier {dossier.numero} - Vous êtes désormais chargé.e d'envoyer l'acte"
+
+        context = {
+                    "dossier_numero": dossier.numero,
+                    "demarche_type": dossier.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+                }
+        template_name = "changer_envoyeur"
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        existe_deja = EmailOutbox.objects.filter(
+            dedupe_key=dedupe,
+            date_creation__date=date.today()
+        ).exists()
+
+        if not existe_deja:
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Nouveau envoyeur d'acte : Erreur lors de la création de l'EmailOutbox, {new_envoyeur} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau envoyeur d'acte) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau envoyeur d'acte) à {', '.join(outbox.to)} : {err}")
+                messages.error(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+
+@require_POST
+@login_required
+def changer_publieur_raa(request):
+    dossier_id = request.POST.get("dossier_id")
+    new_publieur_raa_id = request.POST.get("new_publieur_raa_id")
+
+    if not dossier_id or not new_publieur_raa_id:
+        messages.error(request, f"Données manquantes pour le changement de publieur.se d'acte au RAA.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    new_publieur = get_object_or_404(Instructeur, id=new_publieur_raa_id)
+    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
+
+    if not dossier:
+        messages.error(request, f"Dossier introuvable.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    if not new_publieur:
+        messages.error(request, f"Publieur.se d'acte au RAA sélectionné·e invalide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    id_old_publieur = DossierPublicationRAA.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
+    old_publieur = Instructeur.objects.filter(id=id_old_publieur).first()
+
+
+    # S'assurer que le nouveau publieur d'acte au RAA est différent
+    if old_publieur and old_publieur.id == new_publieur.id:
+        messages.error(request, f"Le ou la publieur.se d'acte au RAA sélectionné·e est déjà affecté·e à ce dossier.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Suppression de l'ancien publieur d'acte au RAA (s'il existe)
+    if old_publieur:
+        DossierPublicationRAA.objects.filter(id_dossier=dossier, id_instructeur=old_publieur).delete()
+    # Ajout du nouveau publieur d'acte au RAA
+    DossierPublicationRAA.objects.get_or_create(id_dossier=dossier, id_instructeur=new_publieur)
+    
+    # On enregistre l'action
+    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
+    enregistrer_action(dossier, instructeur_request, "Publieur.se RAA changé.e", f"({new_publieur})")
+
+    logger.info(f"[DOSSIER {dossier.numero}] Changement de publieur.se d'acte au RAA : {old_publieur} --> {new_publieur}")
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    if user_faisant_le_changement != new_publieur :
+
+        # emails_norm = [new_publieur.email]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        sujet = f"Dossier {dossier.numero} - Vous êtes désormais chargé.e d'envoyer l'acte"
+
+        context = {
+                    "dossier_numero": dossier.numero,
+                    "demarche_type": dossier.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+                }
+        template_name = "changer_publieur"
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        existe_deja = EmailOutbox.objects.filter(
+            dedupe_key=dedupe,
+            date_creation__date=date.today()
+        ).exists()
+
+        if not existe_deja:
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Nouveau publieur.se d'acte au RAA : Erreur lors de la création de l'EmailOutbox, {new_publieur} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau publieur.se d'acte au RAA) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau publieur.se d'acte au RAA) à {', '.join(outbox.to)} : {err}")
+                messages.error(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
 
 
 @require_POST

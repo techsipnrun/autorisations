@@ -158,6 +158,10 @@
                                             {% elif label == "Prêt à la signature" and delibCA %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
 
+                                            {% elif label == "Prêt à la signature" and not delibCA %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionDirecteur()">Prêt à la signature</button>
+
+
                                             {% elif label == "Acte prêt à être envoyé" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
                                             
@@ -285,6 +289,61 @@
 
                         <div class="envoi-pour-validation-avant-signature">
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerTransmissionIntermediaireCA()">
+                                Confirmer la transmission
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+
+                <!-- Zone masquée pour choisir qui enverra l'acte à la direction pour signature -->
+                <div id="formulaire-transmission-dir" class="zone-complement zone-envoyer-pour-validation" style="display: none;">
+                    <form method="post" action="{% url 'pret_a_la_signature_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+
+                        <div class="choix-intermediaire-dir">
+                            <label for="choix_intermediaire_dir">Choisir qui fera l’intermédiaire avec la direction :</label>
+                            <select name="intermediaire_dir" id="choix_intermediaire_dir" required>
+                                <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
+                                <!-- SPPN -->
+                                {% if "mission scientifique" in demarche.type|lower %}
+                                    {% for idir in intermédiaires_dir_sppn %}
+                                        <option value="{{ idir.id }}">
+                                            {{ idir }}
+                                        </option>
+                                    {% endfor %}
+
+                                    {% for i in instructeurs_du_dossier %}
+                                        {% if i not in intermédiaires_dir_sppn %}
+                                            <option value="{{ i.id }}">
+                                                {{ i }}
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                <!-- SAADD -->
+                                {% else %}
+                                    {% for idir in intermédiaires_dir_saadd %}
+                                        <option value="{{ idir.id }}">
+                                            {{ idir }}
+                                        </option>
+                                    {% endfor %}
+
+                                    {% for i in instructeurs_du_dossier %}
+                                        {% if i not in intermédiaires_dir_saadd %}
+                                            <option value="{{ i.id }}">
+                                                {{ i }}
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <div class="envoi-pour-validation-avant-signature">
+                            <button type="button" class="btn-envoyer-complement" onclick="confirmerTransmissionIntermediaireDIR()">
                                 Confirmer la transmission
                             </button>
                         </div>
@@ -1207,7 +1266,7 @@
                 {% endif %}
 
                 <!-- ############################# RELECTEURS QUALITÉS ############################# -->
-                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' or dossier.id_etape_dossier.etape == 'En attente de signature' or dossier.id_etape_dossier.etape == 'À publier au RAA' or dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
+                {% if dossier.id_etape_dossier.etape == 'En relecture qualité' or dossier.id_etape_dossier.etape == 'À publier au RAA' or dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
                     <div class="groupe-instructeur-info">
                         <h3>Relecteurs.rices qualité</h3>
                         <ul class="groupe-instructeur-liste">
@@ -1245,6 +1304,109 @@
                         </ul>
                     </div>
                 {% endif %}
+
+
+                <!-- ############################# INTERMÉDIAIRE SIGNATURE CA ############################# -->
+                {% if dossier.id_etape_dossier.etape == 'En attente de signature' and delibCA %}
+                    <div class="groupe-instructeur-info">
+                        <h3>Intermédiaire pour la signature</h3>
+                        <ul class="groupe-instructeur-liste">
+        
+                            {% for inter in intermédiaires_CA %}
+                                {% if inter in intermediaires_signature_du_dossier %}
+                                    <li class="instructeur_du_dossier">
+                                        {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
+                                        <img src="{% static 'instruction/img/instructeur.png' %}" alt="Intermédiaire pour la signature" title="Intermédiaire pour la signature" class="logo_instructeur logo_relecteur_qualite">  
+                                    </li>
+
+                                {% else %}
+                                    <li class="pas_instructeur_du_dossier">
+                                        {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
+                                        <form method="post" action="{% url 'changer_intermediaire_signature' %}" class="form-changer-valideur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <input type="hidden" name="new_intermediaire_id" value="{{ inter.id }}">
+
+                                            <button type="submit" class="btn-changer-valideur" title="Changer d'intermédiaire pour la signature">
+                                                <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer d'intermédiaire pour la signature" class="logo_actualiser">
+                                            </button>
+                                        </form>
+                                    </li>
+                                {% endif %}
+                            {% empty %}
+                                <li>Aucun·e intermédiaire défini·e.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+
+                <!-- ############################# INTERMÉDIAIRE SIGNATURE DIRECTION ############################# -->
+                {% if dossier.id_etape_dossier.etape == 'En attente de signature' %}
+                    <div class="groupe-instructeur-info">
+                        <h3>Intermédiaire pour la signature</h3>
+                        <ul class="groupe-instructeur-liste">
+                            
+                            <!-- SPPN -->
+                            {% if "mission scientifique" in demarche.type|lower %}
+                                {% for inter in intermédiaires_dir_sppn_et_instructeurs %}
+                                    {% if inter in intermediaires_signature_du_dossier %}
+                                        <li class="instructeur_du_dossier">
+                                            {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
+                                            <img src="{% static 'instruction/img/instructeur.png' %}" alt="Intermédiaire pour la signature" title="Intermédiaire pour la signature" class="logo_instructeur logo_relecteur_qualite">  
+                                        </li>
+
+                                    {% else %}
+                                        <li class="pas_instructeur_du_dossier">
+                                            {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
+                                            <form method="post" action="{% url 'changer_intermediaire_signature' %}" class="form-changer-valideur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="new_intermediaire_id" value="{{ inter.id }}">
+
+                                                <button type="submit" class="btn-changer-valideur" title="Changer d'intermédiaire pour la signature">
+                                                    <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer d'intermédiaire pour la signature" class="logo_actualiser">
+                                                </button>
+                                            </form>
+                                        </li>
+                                    {% endif %}
+                                {% empty %}
+                                    <li>Aucun·e intermédiaire défini·e.</li>
+                                {% endfor %}
+                            
+                            <!-- SAADD -->
+                            {% else %}
+                                {% for inter in intermédiaires_dir_saadd_et_instructeurs %}
+                                    {% if inter in intermediaires_signature_du_dossier %}
+                                        <li class="instructeur_du_dossier">
+                                            {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
+                                            <img src="{% static 'instruction/img/instructeur.png' %}" alt="Intermédiaire pour la signature" title="Intermédiaire pour la signature" class="logo_instructeur logo_relecteur_qualite">  
+                                        </li>
+
+                                    {% else %}
+                                        <li class="pas_instructeur_du_dossier">
+                                            {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
+                                            <form method="post" action="{% url 'changer_intermediaire_signature' %}" class="form-changer-valideur">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                <input type="hidden" name="new_intermediaire_id" value="{{ inter.id }}">
+
+                                                <button type="submit" class="btn-changer-valideur" title="Changer d'intermédiaire pour la signature">
+                                                    <img src="{% static 'instruction/img/actualiser.png' %}" title="Changer d'intermédiaire pour la signature" class="logo_actualiser">
+                                                </button>
+                                            </form>
+                                        </li>
+                                    {% endif %}
+                                {% empty %}
+                                    <li>Aucun·e intermédiaire défini·e.</li>
+                                {% endfor %}
+
+                            {% endif %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+
                 
 
                 <!-- ############################# MAILS ENVOYÉS ############################# -->
@@ -1876,6 +2038,20 @@
             fermerMenuEtape();
         }
 
+        function afficherFormulaireTransmissionDirecteur() {
+            masquerToutesZonesComplementaires();
+            document.querySelectorAll('.zone-complement').forEach(el => el.style.display = 'none');
+            // Afficher la zone Transmission DIR
+            const zone = document.getElementById('formulaire-transmission-dir');
+            if (zone) zone.style.display = 'block';
+
+            fermerMenuEtape();
+        }
+
+
+        
+
+
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
             const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
@@ -1949,6 +2125,22 @@
             }
 
             const confirmation = confirm("Confirmer la transmission du dossier à l’intermédiaire CA ?");
+            if (confirmation) {
+                select.closest("form").submit();
+            }
+        }
+
+
+        // Pour confirmer la transmission du dossier à l'intermédiaire DIR
+        function confirmerTransmissionIntermediaireDIR() {
+            const select = document.getElementById('choix_intermediaire_dir');
+            const intermediaire = select.value;
+            if (!intermediaire) {
+                alert("Veuillez sélectionner un intermédiaire avant de confirmer.");
+                return;
+            }
+
+            const confirmation = confirm("Confirmer la transmission du dossier à l’intermédiaire ?");
             if (confirmation) {
                 select.closest("form").submit();
             }

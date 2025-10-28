@@ -55,6 +55,8 @@ urlpatterns = [
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
     path('changer-relecteur/', views.changer_relecteur, name='changer_relecteur'),
+    path('changer_intermediaire_signature/', views.changer_intermediaire_signature, name='changer_intermediaire_signature'),
+    
     path("instruction/ajouter-relecteur/", instruction.ajouter_relecteur_dossier, name="ajouter_relecteur_dossier"),
     path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),
     path("instruction/retirer-relecteur/", instruction.retirer_relecteur, name="retirer_relecteur"),

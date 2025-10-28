@@ -266,7 +266,6 @@ class DossierRelecteur(models.Model):
         return f"{self.id_instructeur} relecteur·rice du dossier {self.id_dossier.numero}"
     
 
-
 class DossierRelecteurQualite(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
@@ -283,6 +282,49 @@ class DossierRelecteurQualite(models.Model):
         return f"{self.id_instructeur} relecteur·rice qualité du dossier {self.id_dossier.numero}"
 
 
+class DossierEnvoiActe(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', on_delete=models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, on_delete=models.CASCADE, db_column='id_instructeur')
+
+    class Meta:
+        db_table = '"utilisateurs"."dossier_envoi_acte"'
+        unique_together = ('id_dossier', 'id_instructeur')
+        managed = False
+
+    def __str__(self):
+        return f"{self.id_instructeur} : Chargé.e d'envoyer l’acte (Dossier {self.id_dossier.numero})"
+
+
+class DossierPublicationRAA(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', on_delete=models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey(Instructeur, on_delete=models.CASCADE, db_column='id_instructeur')
+
+    class Meta:
+        db_table = '"utilisateurs"."dossier_publication_raa"'
+        unique_together = ('id_dossier', 'id_instructeur')
+        managed = False
+
+    def __str__(self):
+        return f"{self.id_instructeur} : Chargé.e de publier l'acte au RAA (Dossier {self.id_dossier.numero})"
+
+
+# class DossierReception(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     id_dossier = models.ForeignKey('autorisations.Dossier', on_delete=models.CASCADE, db_column='id_dossier')
+#     id_instructeur = models.ForeignKey(Instructeur, on_delete=models.CASCADE, db_column='id_instructeur')
+
+#     class Meta:
+#         db_table = '"utilisateurs"."dossier_reception"'
+#         unique_together = ('id_dossier', 'id_instructeur')
+#         managed = False
+
+#     def __str__(self):
+#         return f"{self.id_instructeur} : Réceptionnaire du dossier {self.id_dossier.numero}"
+
+
+
 class DossierSignataire(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
@@ -296,8 +338,21 @@ class DossierSignataire(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.id_instructeur} signataire du dossier {self.id_dossier.numero}"
+        return f"{self.id_instructeur} : signataire du dossier {self.id_dossier.numero}"
     
+
+class DossierIntermediaireSignature(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey('autorisations.Dossier', on_delete=models.CASCADE, db_column='id_dossier')
+    id_instructeur = models.ForeignKey('Instructeur', on_delete=models.PROTECT,db_column='id_instructeur')
+
+    class Meta:
+        db_table = '"utilisateurs"."dossier_intermediaire_signature"'
+        unique_together = ('id_dossier', 'id_instructeur')
+        managed = False
+
+    def __str__(self):
+        return f"{self.id_instructeur} : intermédiraire pour la signature (Dossier {self.id_dossier.numero})"
 
 
 class EmailOutbox(models.Model):

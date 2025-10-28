@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import AvisManifSportive, Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
-from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, DossierInstructeur, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
+from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 
 
 # Personnalisation globale de l'admin
@@ -659,7 +659,6 @@ class DossierRelecteurDocumentAdmin(admin.ModelAdmin):
     list_filter = ('id_dossier_relecteur', 'id_document',)
 
 
-
 @admin.register(DossierRelecteurQualite)
 class DossierRelecteurQualiteAdmin(admin.ModelAdmin):
     list_filter = ('id_instructeur',)
@@ -667,6 +666,27 @@ class DossierRelecteurQualiteAdmin(admin.ModelAdmin):
 
 @admin.register(DossierSignataire)
 class DossierSignataireAdmin(admin.ModelAdmin):
+    list_filter = ('id_instructeur',)
+
+
+@admin.register(DossierIntermediaireSignature)
+class DossierIntermediaireSignatureAdmin(admin.ModelAdmin):
+    # list_display = ('id', 'id_dossier', 'id_instructeur')
+    # search_fields = ('id_dossier__numero', )
+    list_filter = ('id_instructeur',)
+
+
+@admin.register(DossierEnvoiActe)
+class DossierEnvoiActeAdmin(admin.ModelAdmin):
+    # list_display = ('id', 'id_dossier', 'id_instructeur')
+    # search_fields = ('id_dossier__numero',)
+    list_filter = ('id_instructeur',)
+
+
+@admin.register(DossierPublicationRAA)
+class DossierPublicationRAAAdmin(admin.ModelAdmin):
+    # list_display = ('id', 'id_dossier', 'id_instructeur')
+    # search_fields = ('id_dossier__numero',)
     list_filter = ('id_instructeur',)
 
 

@@ -16,7 +16,7 @@ import shutil
 from django.contrib import messages
 
 
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierIntermediaireSignature, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail, envoi_notification_par_mail
 from psycopg2.errors import UniqueViolation
@@ -190,51 +190,6 @@ def enregistrer_action(dossier, instructeur, nom_action, description=None, date=
 
 
 
-# def convertir_docx_en_pdf_libreoffice(path_docx, output_dir, dossier_numero=None, logger=None):
-#     try:
-#         if not os.path.exists(path_docx):
-#             raise FileNotFoundError(f"Le fichier source {path_docx} est introuvable.")
-
-#         if not os.path.exists(output_dir):
-#             raise FileNotFoundError(f"Le dossier de sortie {output_dir} est introuvable.")
-
-#         # soffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
-#         soffice_path = os.getenv('SOFFICE_PATH')
-
-#         if not soffice_path:
-#             raise EnvironmentError(f"[DOSSIER {dossier_numero}] Conversion PDF : Variable d'environnement 'SOFFICE_PATH' non définie.")
-
-#         with tempfile.TemporaryDirectory() as temp_dir:
-#             temp_docx = os.path.join(temp_dir, os.path.basename(path_docx))
-
-#             shutil.copy(path_docx, temp_docx)
-
-#             cmd = [
-#                 soffice_path, "--headless", "--convert-to", "pdf",
-#                 "--outdir", output_dir, path_docx
-#             ]
-
-#             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-
-#             # Cherche le PDF
-#             nom_pdf_genere = Path(path_docx).with_suffix(".pdf").name
-#             pdf_genere_path = os.path.join(output_dir, nom_pdf_genere)
-
-#             if not os.path.exists(pdf_genere_path):
-#                 raise FileNotFoundError(f"[DOSSIER {dossier_numero}] PDF attendu introuvable : {pdf_genere_path}")
-
-
-#             if logger:
-#                 logger.info(f"[DOSSIER {dossier_numero}] Conversion LibreOffice -> PDF OK.")
-
-#     except Exception as e:
-#         if logger:
-#             logger.error(f"[DOSSIER {dossier_numero}] Échec Conversion LibreOffice - PDF ({path_docx}) : {e}")
-#             # logger.error(f"[DOSSIER {dossier_numero}] Erreur : {e}")
-#         raise
-
-
-
 def dossiers_action_a_faire(dossiers, obj_instructeur):
     """
     Retourne les dossiers où l'utilisateur doit réaliser une action,
@@ -251,7 +206,7 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
         est_relecteur_qualite = DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_relecteur = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_signataire = DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
-
+        est_intermediaire_signature = DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
 
         # === Mapping Étape -> Rôle attendu ===
         if est_relecteur :
@@ -285,17 +240,23 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
             if est_instructeur:
                 dossiers_a_traiter_ids.add(dossier.id)
 
-        elif etape in ["À affecter", "En relecture qualité", "À publier au RAA", "Acte à envoyer", "En attente de signature"]:
+        # "À affecter", "À publier au RAA", "Acte à envoyer" : Vocation à dégager (elles auront leur propre role)
+        elif etape in ["À affecter", "En relecture qualité", "À publier au RAA", "Acte à envoyer"]:
             # Rôle : Relecteur Qualité
             if est_relecteur_qualite:
                 dossiers_a_traiter_ids.add(dossier.id)
 
+        elif etape in ["En attente de signature"]:
+            # Rôle : Intermédiaire signature
+            if est_intermediaire_signature:
+                dossiers_a_traiter_ids.add(dossier.id)
+
             # Pour "À publier au RAA" et "Acte à envoyer" si délib CA et que le user appartient au groupe 'Intermédiaire CA' alors dossiers_a_traiter_ids.add(dossier.id)
 
-        elif etape == "En attente de signature": #(pour le moment la signature se fait en dehors)
-            # Rôle : Signataire
-            if est_signataire: 
-                dossiers_a_traiter_ids.add(dossier.id)
+        # elif etape == "En attente de signature": #(pour le moment la signature se fait en dehors)
+        #     # Rôle : Signataire
+        #     if est_signataire: 
+        #         dossiers_a_traiter_ids.add(dossier.id)
 
     return Dossier.objects.filter(id__in=dossiers_a_traiter_ids)
 
@@ -471,8 +432,14 @@ def get_instructeurs_a_actionner(dossier):
         instructeurs = (DossierValideur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
 
     # Étapes où les RELECTEURS QUALITÉ agissent
-    elif etape in ["En relecture qualité", "À publier au RAA", "Acte à envoyer", "À affecter", "En attente de signature"]:
+
+    # "À publier au RAA", "Acte à envoyer", "À affecter"  : vocation à dégager (elles vont aoir leurporpre groupe)
+    elif etape in ["En relecture qualité", "À publier au RAA", "Acte à envoyer", "À affecter"]:
         instructeurs = (DossierRelecteurQualite.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
+
+    # Étapes où les INTERMEDIAIRES SIGNATURE agissent
+    elif etape in ["En attente de signature"]:
+        instructeurs = (DossierIntermediaireSignature.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
 
     # Étapes où les SIGNATAIRES agissent (pour le moment la signature se fait en dehors)
     # elif etape == "En attente de signature":

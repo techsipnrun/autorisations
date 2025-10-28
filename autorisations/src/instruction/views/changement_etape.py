@@ -7,7 +7,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import ContactExterne, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DossierIntermediaireSignature, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
@@ -847,14 +847,17 @@ def envoyer_les_modifications_de_l_acte_pour_validation(request):
 def pret_a_la_signature(request):
     if request.method == "POST":
         dossier_id_ds = request.POST.get("dossierId")
-        intermediaire_id = request.POST.get("intermediaireCA") #id instructeur
 
-        intermediaire_CA = Instructeur.objects.filter(id=intermediaire_id).first()
+        intermediaire_CA_id = request.POST.get("intermediaireCA") #id instructeur
+        intermediaire_CA = Instructeur.objects.filter(id=intermediaire_CA_id).first()
 
+        intermediaire_dir_id = request.POST.get("intermediaire_dir") #id instructeur
+        intermediaire_dir = Instructeur.objects.filter(id=intermediaire_dir_id).first()
+        
         if not dossier_id_ds:
             return HttpResponseBadRequest("ID dossier manquant.")
 
-         # Récupérer l'objet statut "À signer"
+        # Récupérer l'objet statut "À signer"
         statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
 
         # Par sécurité
@@ -883,6 +886,30 @@ def pret_a_la_signature(request):
                 doc.id_statut = statut_a_signer
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À signer.")
+
+
+
+        # INTERMÉDIAIRE SIGNATURE
+        
+        # Supprime les anciens intermédiaires associés au dossier
+        DossierIntermediaireSignature.objects.filter(id_dossier=dossier).delete()
+
+        # Ajoute l’intermédiaire du CA s’il est renseigné
+        if intermediaire_CA:
+            DossierIntermediaireSignature.objects.create(
+                id_dossier=dossier,
+                id_instructeur=intermediaire_CA
+            )
+            logger.info(f"[DOSSIER {dossier.numero}] Intermédiaire de signature CA ajouté : {intermediaire_CA}")
+
+        # Ajoute l’intermédiaire du Directeur s’il est renseigné
+        if intermediaire_dir:
+            DossierIntermediaireSignature.objects.create(
+                id_dossier=dossier,
+                id_instructeur=intermediaire_dir
+            )
+            logger.info(f"[DOSSIER {dossier.numero}] Intermédiaire de signature Directeur ajouté : {intermediaire_dir}")
+
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 

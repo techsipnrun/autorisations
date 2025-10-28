@@ -64,7 +64,6 @@ def write_resume_pdf(emplacement, name, url_du_pdf):
         with open(chemin_complet, "wb") as f:
             f.write(response.content)
 
-
     except requests.exceptions.RequestException as e:
         loggerFile.error(f"[ERREUR] Impossible de télécharger le RÉSUMÉ PDF : {e}")
     except Exception as e:

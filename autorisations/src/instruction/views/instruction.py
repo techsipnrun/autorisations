@@ -597,8 +597,13 @@ def instruction_dossier(request, num_dossier):
         "Envoyé pour validation": "envoye_pour_validation.png",
         "Envoyé pour relecture qualité": "envoye.png",
         "Avis demandé": "acte-envoye.png",
+
         "Validant.e changé.e": "changer_validant.png",
         "Relecteur.rice changé.e": "changer_validant.png",
+        "Intermédiaire signature changé.e": "changer_validant.png",
+        "Envoyeur.se d'acte changé.e": "changer_validant.png",
+        "Publieur.se RAA changé.e": "changer_validant.png",
+        # "Réceptionniste changé.e": "changer_validant.png",
     }
 
     dossier_actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date')
@@ -700,11 +705,39 @@ def instruction_dossier(request, num_dossier):
     ###############################
     # Liste d'instructeurs par rôle
     ###############################
+    # Instructeurs déjà associés au dossier
+    instructeurs_du_dossier = Instructeur.objects.filter(dossierinstructeur__id_dossier=dossier).select_related("id_agent_autorisations")
+
     # Intermédiaires CA
     groupe = Group.objects.filter(name="Intermédiaire CA").first()
     user_intermédiaire_CA = groupe.user_set.all() if groupe else []
     emails_intermédiaire_CA = [user.email for user in user_intermédiaire_CA if user.email]
     intermédiaires_CA = Instructeur.objects.filter(email__in=emails_intermédiaire_CA).select_related("id_agent_autorisations")
+
+    # Intermédiaires DIR SAADD
+    groupe = Group.objects.filter(name="Envoi pour signature SAADD").first()
+    user_intermédiaire_dir_saadd = groupe.user_set.all() if groupe else []
+    emails_intermédiaire_dir_saadd = [user.email for user in user_intermédiaire_dir_saadd if user.email]
+    intermédiaires_dir_saadd = Instructeur.objects.filter(email__in=emails_intermédiaire_dir_saadd).select_related("id_agent_autorisations")
+    
+    # Fusion sans doublon
+    ids_saadd = {i.id for i in intermédiaires_dir_saadd}
+    instructeurs_supp_saadd = [i for i in instructeurs_du_dossier if i.id not in ids_saadd]
+    intermédiaires_dir_saadd_et_instructeurs = list(intermédiaires_dir_saadd) + instructeurs_supp_saadd
+
+    # Intermédiaires DIR SPPN
+    groupe = Group.objects.filter(name="Envoi pour signature SPPN").first()
+    user_intermédiaire_dir_sppn = groupe.user_set.all() if groupe else []
+    emails_intermédiaire_dir_sppn = [user.email for user in user_intermédiaire_dir_sppn if user.email]
+    intermédiaires_dir_sppn = Instructeur.objects.filter(email__in=emails_intermédiaire_dir_sppn).select_related("id_agent_autorisations")
+    
+    # Fusion sans doublon
+    ids_sppn = {i.id for i in intermédiaires_dir_sppn}
+    instructeurs_supp_sppn = [i for i in instructeurs_du_dossier if i.id not in ids_sppn]
+    intermédiaires_dir_sppn_et_instructeurs = list(intermédiaires_dir_sppn) + instructeurs_supp_sppn
+
+    # Intermediaires pour la signature
+    intermediaires_signature_du_dossier =  Instructeur.objects.filter(dossierintermediairesignature__id_dossier=dossier).select_related("id_agent_autorisations")
 
     # Validant.e.s SAADD
     groupe = Group.objects.filter(name="Validant-e SAADD").first()
@@ -753,14 +786,17 @@ def instruction_dossier(request, num_dossier):
     instructeurs_groupe = []
 
     if dossier.id_groupeinstructeur:
+
         instructeurs_groupe = [
-            i.id_instructeur for i in 
-            dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")
-            if i.id_instructeur.id not in relecteurs_ids
+            di.id_instructeur
+            for di in DossierInstructeur.objects.select_related("id_instructeur__id_agent_autorisations")
+            .filter(id_dossier=dossier)
+            if di.id_instructeur.id not in relecteurs_ids
         ]
 
     relecteurs_qualite_et_instructeurs = list(relecteurs_qualite) + instructeurs_groupe
     instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
+
 
     # Type contacts externes
     types_contacts = TypeContactExterne.objects.all()
@@ -911,6 +947,11 @@ def instruction_dossier(request, num_dossier):
         "rapports_ca": rapports_ca,
         # "titres_documents_actes": titres_documents_actes,
         "intermédiaires_CA": intermédiaires_CA,
+        "intermédiaires_dir_sppn": intermédiaires_dir_sppn,
+        "intermédiaires_dir_saadd": intermédiaires_dir_saadd,
+        "intermédiaires_dir_sppn_et_instructeurs": intermédiaires_dir_sppn_et_instructeurs,
+        "intermédiaires_dir_saadd_et_instructeurs": intermédiaires_dir_saadd_et_instructeurs, 
+        "intermediaires_signature_du_dossier": intermediaires_signature_du_dossier,       
         "validants_SAADD": validants_SAADD,
         "validants_SPPN": validants_SPPN,
         "validants": validants,
@@ -932,7 +973,7 @@ def instruction_dossier(request, num_dossier):
         "nb_avis_envoyes": nb_avis_envoyes,
         "types_contacts": types_contacts,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
-        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" and dd.id_document.id_statut.statut.lower() == "à relire" for dd in documents_du_dossier)
+        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" and (dd.id_document.id_statut.statut.lower() == "à relire" or dd.id_document.id_statut.statut.lower() == "à signer") for dd in documents_du_dossier)
     })
 
 
