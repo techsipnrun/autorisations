@@ -13,7 +13,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvo
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
-from instruction.utils import dossiers_action_a_faire, enregistrer_action
+from instruction.utils import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Lock
 import threading
@@ -125,7 +125,7 @@ def se_declarer_instructeur(request):
             DossierInstructeur.objects.get_or_create(id_dossier=dossier, id_instructeur=instructeur)
             logger.info(f"[DOSSIER {dossier.numero}] Affectation à l'instructeur {instructeur.email}")
 
-            nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+            nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
 
             # Dossier Action
             enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
@@ -222,7 +222,7 @@ def retirer_instructeur(request):
     user = Instructeur.objects.filter(email=request.user.email).first()
     logger.info(f"[DOSSIER {dossier.numero}] {user} a retiré l'instructeur {instructeur} du dossier.")
 
-    nom_prenom = f"({instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom})"
+    nom_prenom = f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
     enregistrer_action(dossier, user, "Instructeur.e retiré.e", nom_prenom)
 
 
@@ -304,7 +304,7 @@ def changer_valideur(request):
     
     # On enregistre l'action
     instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Validant.e changé.e", f"({new_valideur})")
+    enregistrer_action(dossier, instructeur_request, "Validant.e changé.e", f"→ {new_valideur}")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement de validant.e : {old_valideur} --> {new_valideur}")
 
@@ -389,7 +389,7 @@ def changer_relecteur(request):
     
     # On enregistre l'action
     instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Relecteur.rice changé.e", f"({new_relecteur})")
+    enregistrer_action(dossier, instructeur_request, "Relecteur.rice changé.e", f"→ {new_relecteur}")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement de relecteur.rice : {old_relecteur} --> {new_relecteur}")
 
@@ -476,7 +476,7 @@ def changer_intermediaire_signature(request):
     
     # On enregistre l'action
     instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Intermédiaire signature changé.e", f"({new_intermediaire})")
+    enregistrer_action(dossier, instructeur_request, "Intermédiaire signature changé.e", f"→ {new_intermediaire}")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement d'intermédiaire pour la signature : {old_intermediaire} --> {new_intermediaire}")
 
@@ -562,7 +562,7 @@ def changer_envoyeur_acte(request):
     
     # On enregistre l'action
     instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Envoyeur.se d'acte changé.e", f"({new_envoyeur})")
+    enregistrer_action(dossier, instructeur_request, "Envoyeur.se d'acte changé.e", f"→ {new_envoyeur}")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement d'envoyeur.se d'acte : {old_envoyeur} --> {new_envoyeur}")
 
@@ -651,7 +651,7 @@ def changer_publieur_raa(request):
     
     # On enregistre l'action
     instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Publieur.se RAA changé.e", f"({new_publieur})")
+    enregistrer_action(dossier, instructeur_request, "Publieur.se RAA changé.e", f"→ {new_publieur}")
 
     logger.info(f"[DOSSIER {dossier.numero}] Changement de publieur.se d'acte au RAA : {old_publieur} --> {new_publieur}")
 
@@ -823,7 +823,7 @@ def mes_dossiers_a_traiter_count(request):
     if not request.user.is_authenticated:
         return {}
 
-    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
         return {}
 
@@ -834,7 +834,10 @@ def mes_dossiers_a_traiter_count(request):
             Q(dossierrelecteurqualite__id_instructeur=instructeur) |
             Q(dossiervalideur__id_instructeur=instructeur) |
             Q(dossierrelecteur__id_instructeur=instructeur) |
-            Q(dossiersignataire__id_instructeur=instructeur)
+            Q(dossiersignataire__id_instructeur=instructeur) |
+            Q(dossierintermediairesignature__id_instructeur=instructeur) |
+            Q(dossierpublicationraa__id_instructeur=instructeur) |
+            Q(dossierenvoiacte__id_instructeur=instructeur)
         )
         .exclude(id_etape_dossier__etape__in=["À affecter", "Accepté", "Refusé", "Non soumis à autorisation"])
         .distinct()
@@ -843,6 +846,24 @@ def mes_dossiers_a_traiter_count(request):
     dossiers_actions = dossiers_action_a_faire(dossiers, instructeur)
 
     return {"nb_dossiers_instruction": len(dossiers_actions)}
+
+
+
+def mes_dossiers_a_receptionner_count(request):
+    if not request.user.is_authenticated:
+        return {}
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        return {}
+
+    # Dossiers (en reception) où l’utilisateur intervient
+    dossiers = Dossier.objects.filter(id_etape_dossier__etape="À affecter")
+
+    dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
+
+    return {"nb_dossiers_reception": len(dossiers_actions)}
+
 
 
 def mes_avis_action_a_faire(request):
@@ -863,7 +884,7 @@ def mes_avis_action_a_faire(request):
     # ----------------------------------------------------------
     # 1️⃣ Identifier l’utilisateur comme instructeur et/ou expert
     # ----------------------------------------------------------
-    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=email_user).first()
+    instructeur = Instructeur.objects.filter(email=email_user).first()
 
     expert = (
         Expert.objects.filter(id_instructeur=instructeur).first()

@@ -2,7 +2,7 @@ from django import template
 
 from autorisations.models.models_avis import DossierAvis
 
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
 from django.db.models import Q
 
 
@@ -28,9 +28,13 @@ def est_concerne_par_le_dossier(user, dossier):
     Retourne True si l'utilisateur est concerné par le dossier :
     - superuser
     - instructeur du dossier
-    - membre d’un groupe instructeur de la démarche
+    - membre du groupe instructeur du dossier
     - valideur
-    - relecteur (juridique ou qualité)
+    - intermédiaire signature
+    - publieur RAA
+    - envoyeur acte
+    - relecteur
+    - relecteur qualité
     - signataire
     """
 
@@ -54,68 +58,21 @@ def est_concerne_par_le_dossier(user, dossier):
         or DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
         or DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
         or DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
+        or DossierPublicationRAA.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
+        or DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
+        or DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
     ):
         return True
 
-    # 5️⃣ Vérifie si l’instructeur appartient à un groupe lié à la démarche du dossier
-    if getattr(dossier, "id_demarche", None):
-        groupes_ids = GroupeinstructeurDemarche.objects.filter(
-            id_demarche=dossier.id_demarche
-        ).values_list("id_groupeinstructeur_id", flat=True)
-
-        if GroupeinstructeurInstructeur.objects.filter(
-            id_instructeur=instructeur,
-            id_groupeinstructeur_id__in=groupes_ids,
-        ).exists():
-            return True
-
+    # 5️⃣ Vérifie si l’instructeur appartient au groupe instructeur du dossier
+    if ( dossier.id_groupeinstructeur and GroupeinstructeurInstructeur.objects
+        .filter(id_instructeur=instructeur,id_groupeinstructeur=dossier.id_groupeinstructeur).exists()):
+         return True
+    
     # 6️⃣ sinon → non concerné
     return False
 
-@register.filter(name="est_concerné_par_le_dossier_sans_les_admins")
-def est_concerne_par_le_dossier_sans_les_admins(user, dossier):
-    """
-    Retourne True si l'utilisateur est concerné par le dossier :
-    - instructeur du dossier
-    - membre d’un groupe instructeur de la démarche
-    - valideur
-    - relecteur (juridique ou qualité)
-    - signataire
-    """
 
-    # utilisateur non connecté → non concerné
-    if not user.is_authenticated:
-        return False
-
-    # recherche d’un Instructeur par email exact (champ email du modèle Instructeur)
-    instructeur = Instructeur.objects.filter(email__iexact=user.email).first()
-    if not instructeur:
-        return False  # aucun instructeur lié à cet utilisateur
-
-    # Vérifie tous les liens directs avec le dossier
-    if (
-        DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
-        or DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
-        # or DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
-        or DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
-        # or DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
-    ):
-        return True
-
-    # Vérifie si l’instructeur appartient à un groupe lié à la démarche du dossier
-    if getattr(dossier, "id_demarche", None):
-        groupes_ids = GroupeinstructeurDemarche.objects.filter(
-            id_demarche=dossier.id_demarche
-        ).values_list("id_groupeinstructeur_id", flat=True)
-
-        if GroupeinstructeurInstructeur.objects.filter(
-            id_instructeur=instructeur,
-            id_groupeinstructeur_id__in=groupes_ids,
-        ).exists():
-            return True
-
-    # sinon → non concerné
-    return False
 
 
 @register.filter(name="est_concerne_par_avis")

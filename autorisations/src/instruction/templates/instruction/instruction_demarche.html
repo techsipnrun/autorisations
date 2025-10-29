@@ -1,5 +1,6 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load group_tags %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -20,135 +21,164 @@
     {% include 'navbar.html' %}
     {% breadcrumb breadcrumb_items %}
 
-    <h1>{{ demarche.titre }}</h1>
+    <div class="page_entiere_instruction_demarche">
+        <h1>{{ demarche.titre }}</h1>
 
-    {% if messages %}
-        <div class="django-messages">
-            {% for message in messages %}
-                <div class="message {{ message.tags }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    
-    {% if instructeur %}
-        <div class="refresh-doss">
-            <form method="post" action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}">
-                {% csrf_token %}
-                <button type="submit" class="refresh-button" id="btn-sync">
-                    <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
-                    Actualiser
-                </button>
-            </form>
-        </div>
-    {% endif %}
-    
-    {% if instructeur %}
-        <div class="filtre-au-dessus">
-            <form method="get">
-                <input type="hidden" name="mes_dossiers" value="0">
-                <label class="label-filtre">
-                    <input type="checkbox" name="mes_dossiers" value="1" onchange="this.form.submit()"
-                        {% if request.GET.mes_dossiers == '1' or not request.GET.mes_dossiers %}checked{% endif %}>
-                    Afficher mes dossiers
-                </label>
-            </form>
-        </div>
-    {% endif %}
-    
-    <table class="table_demarche_instru">
-        <thead>
-          <tr>
-            <th>Dossier</th>
-            <th>Numéro</th>
-            <th>Bénéficiaire</th>
-            <th>Reçu le</th>
-            <th>Groupe Instructeur</th>
-            <th>Étape</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for d in dossiers %}
-            <tr class="clickable-row {% if d.action_a_faire %} ligne_en_gras {% endif %}" data-href="{% url 'instruction_dossier' d.numero %}">
-                <td>
-                    {% if d.nb_messages_non_lus > 0 %}
-                        <div class="nouv_mess_wrapper">
-                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
-                            <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
-                        </div>
-                    {% endif %}
-                    {{ d.nom_dossier }}
-                </td>
-                <!-- <td>{{ d.type }}</td> -->
-                <td>{{ d.numero }}</td>
-                <td>{{ d.beneficiaire }}</td>
-                <td>{{ d.date_depot|date:"d/m/Y" }}</td>
-                <td>{{ d.groupe }}</td>
-                <td {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
-                    {% if d.action_a_faire %}
-                        <span class="dot-action"></span>
-                    {% endif %}
-                    {{ d.etape }}
-                </td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="6" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-      <div class="zone-archives">
-
-        <h1>Les dossiers archivés</h1>
-        <form method="get" class="form-annee-archives">
-            <label for="annee-select">Année :</label>
-            <select name="annee" id="annee-select" onchange="this.form.submit()">
-                {% for annee in annees_disponibles %}
-                    <option value="{{ annee }}" {% if annee == annee_selectionnee %}selected{% endif %}>{{ annee }}</option>
+        {% if messages %}
+            <div class="django-messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">
+                        {{ message }}
+                    </div>
                 {% endfor %}
-            </select>
-        </form>
+            </div>
+        {% endif %}
+        
+        {% if instructeur %}
+            <div class="refresh-doss">
+                <form method="post" action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}">
+                    {% csrf_token %}
+                    <button type="submit" class="refresh-button" id="btn-sync">
+                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
+                        Actualiser
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+        
+        <!-- {% if instructeur %}
+            <div class="filtre-au-dessus">
+                <form method="get">
+                    <input type="hidden" name="mes_dossiers" value="0">
+                    <label class="label-filtre">
+                        <input type="checkbox" name="mes_dossiers" value="1" onchange="this.form.submit()"
+                            {% if request.GET.mes_dossiers == '1' or not request.GET.mes_dossiers %}checked{% endif %}>
+                        Afficher mes dossiers
+                    </label>
+                </form>
+            </div>
+        {% endif %} -->
 
-        <table class="table_archives">
+        {% if instructeur %}
+            <div class="filtre-au-dessus">
+                <div class="filtre-action-mes-doss">
+                    <label class="switch">
+                        <input type="checkbox" id="filtre-mes-dossiers">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Afficher uniquement les dossiers qui me concernent</span>
+                </div>
+            </div>
+        {% endif %}
+
+        
+        <table class="table_demarche_instru">
             <thead>
-                <tr>
-                    <th>Dossier</th>
-                    <th>Numéro</th>
-                    <th>Bénéficiaire</th>
-                    <th>Déposé le</th>
-                    <th>Groupe Instructeur</th>
-                    <th>Étape</th>
-                </tr>
+            <tr>
+                <th>Dossier</th>
+                <th>Numéro</th>
+                <th>Bénéficiaire</th>
+                <th>Reçu le</th>
+                <th>Groupe Instructeur</th>
+                <th>Étape</th>
+            </tr>
             </thead>
             <tbody>
-                {% for d in dossiers_archives %}
-                    <tr class="clickable-row {% if d.action_a_faire %} ligne_en_gras {% endif %}" data-href="{% url 'instruction_dossier' d.numero %}">
-                        <td>
-                            {% if d.nb_messages_non_lus > 0 %}
-                                <div class="nouv_mess_wrapper">
-                                    <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
-                                    <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
-                                </div>
-                            {% endif %}
-                            {{ d.nom_dossier }}
-                        </td>
-                        <td>{{ d.numero }}</td>
-                        <td>{{ d.beneficiaire }}</td>
-                        <td>{{ d.date_depot|date:"d/m/Y" }}</td>
-                        <td>{{ d.groupe }}</td>
-                        <td {% if d.action_a_faire %} title="Nouveau message sur le dossier archivé" {% endif %}>
-                            {% if d.action_a_faire %}
-                                <span class="dot-action-archive"></span>
-                            {% endif %}
-                            {{ d.etape }}
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="6" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
-                {% endfor %}
+            {% for d in dossiers %}
+                <tr class="clickable-row {% if d.action_a_faire %}ligne_en_gras{% endif %} {% if request.user|est_concerné_par_le_dossier:d.obj_doss %}ligne_concerne_par_dossier{% endif %}" 
+                data-href="{% url 'instruction_dossier' d.numero %}" {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
+                    <td>
+                        {% if d.nb_messages_non_lus > 0 %}
+                            <div class="nouv_mess_wrapper">
+                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
+                            </div>
+                        {% endif %}
+                        {{ d.nom_dossier }}
+                    </td>
+                    <!-- <td>{{ d.type }}</td> -->
+                    <td>{{ d.numero }}</td>
+                    <td>{{ d.beneficiaire }}</td>
+                    <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                    <td>{{ d.groupe }}</td>
+                    <td {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
+                        {% if d.action_a_faire %}
+                            <span class="dot-action"></span>
+                        {% endif %}
+                        {{ d.etape }}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
+            {% endfor %}
             </tbody>
         </table>
+
+
+        <div class="zone-archives">
+            <h1>Les dossiers archivés</h1>
+
+            <div class="filtre-au-dessus filtre-au-dessus-archive">
+                <div class="filtre-action-archives">
+                    <label class="switch">
+                        <input type="checkbox" id="filtre-archives">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Afficher uniquement les dossiers archivés qui me concernent</span>
+                </div>
+            </div>
+
+
+            <form method="get" class="form-annee-archives">
+                <label for="annee-select">Année :</label>
+                <select name="annee" id="annee-select" onchange="this.form.submit()">
+                    {% for annee in annees_disponibles %}
+                        <option value="{{ annee }}" {% if annee == annee_selectionnee %}selected{% endif %}>{{ annee }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <table class="table_archives">
+                <thead>
+                    <tr>
+                        <th>Dossier</th>
+                        <th>Numéro</th>
+                        <th>Bénéficiaire</th>
+                        <th>Déposé le</th>
+                        <th>Groupe Instructeur</th>
+                        <th>Étape</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dossiers_archives %}
+                        <tr class="clickable-row {% if d.action_a_faire %} ligne_en_gras {% endif %} {% if request.user|est_concerné_par_le_dossier:d.obj_doss %}ligne_concerne_par_dossier{% endif %}"
+                        data-href="{% url 'instruction_dossier' d.numero %}" {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
+                            <td>
+                                {% if d.nb_messages_non_lus > 0 %}
+                                    <div class="nouv_mess_wrapper">
+                                        <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                        <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
+                                    </div>
+                                {% endif %}
+                                {{ d.nom_dossier }}
+                            </td>
+                            <td>{{ d.numero }}</td>
+                            <td>{{ d.beneficiaire }}</td>
+                            <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                            <td>{{ d.groupe }}</td>
+                            <td {% if d.action_a_faire %} title="Nouveau message sur le dossier archivé" {% endif %}>
+                                {% if d.action_a_faire %}
+                                    <span class="dot-action-archive"></span>
+                                {% endif %}
+                                {{ d.etape }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Pour rendre les lignes cliquables -->
@@ -177,6 +207,42 @@
           });
       });
   </script>
+
+
+<!-- Bouton toggle pour afficher Mes dossiers -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleMesDossiers = document.getElementById("filtre-mes-dossiers");
+        const lignes = document.querySelectorAll(".table_demarche_instru tbody tr.clickable-row");
+
+        toggleMesDossiers.addEventListener("change", function () {
+            const filtreActif = this.checked;
+            lignes.forEach(ligne => {
+                const estMonDossier = ligne.classList.contains("ligne_en_gras") || ligne.classList.contains("ligne_concerne_par_dossier");
+                // Quand le filtre est actif → afficher seulement mes dossiers
+                // Quand il est inactif → tout afficher
+                ligne.style.display = filtreActif && !estMonDossier ? "none" : "";
+            });
+        });
+    });
+</script>
+
+<!-- Bouton toggle pour afficher Mes dossiers archivés -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleArchives = document.getElementById("filtre-archives");
+        const lignesArchives = document.querySelectorAll(".table_archives tbody tr.clickable-row");
+
+        toggleArchives.addEventListener("change", function () {
+            const filtreActif = this.checked;
+            lignesArchives.forEach(ligne => {
+                const estMonDossier = ligne.classList.contains("ligne_en_gras") || ligne.classList.contains("ligne_concerne_par_dossier");
+                ligne.style.display = filtreActif && !estMonDossier ? "none" : "";
+            });
+        });
+    });
+</script>
+
 
 </body>
 </html>

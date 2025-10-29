@@ -56,6 +56,10 @@ urlpatterns = [
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
     path('changer-relecteur/', views.changer_relecteur, name='changer_relecteur'),
     path('changer_intermediaire_signature/', views.changer_intermediaire_signature, name='changer_intermediaire_signature'),
+    path('changer_envoyeur_acte/', views.changer_envoyeur_acte, name='changer_envoyeur_acte'),
+    path('changer_publieur_raa/', views.changer_publieur_raa, name='changer_publieur_raa'),
+
+    
     
     path("instruction/ajouter-relecteur/", instruction.ajouter_relecteur_dossier, name="ajouter_relecteur_dossier"),
     path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),

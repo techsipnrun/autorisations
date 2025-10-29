@@ -121,7 +121,7 @@
 
 .copie_par_mail {
     display: flex;
-    margin-bottom: 2rem;
+    margin: 2rem 0;
 }
 
 .copie_par_mail .toggle-group input {

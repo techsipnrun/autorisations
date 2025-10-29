@@ -7,7 +7,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
-from autorisations.models.models_utilisateurs import ContactExterne, DossierIntermediaireSignature, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
@@ -637,7 +637,7 @@ def valider_le_modele_de_demande_d_avis_et_le_projet_d_acte(request):
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+        nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
 
         enregistrer_action(dossier, instructeur, "Validé avant demande d'avis", nom_prenom)
 
@@ -784,7 +784,7 @@ def valider_et_envoyer_pour_relecture_qualite(request):
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
+        nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
 
         enregistrer_action(dossier, instructeur, "Validé avant signature", nom_prenom)
 
@@ -925,6 +925,8 @@ def acte_pret_a_etre_envoye(request):
         fichier_rapportCA = request.FILES.get("pj_rapport_CA")
 
         signataire_id = request.POST.get("choix-signataire") # id Instructeur
+        envoyeur_id = request.POST.get("choix-envoi-acte-peti") # id Instructeur
+
         nature_document = request.POST.get("nature_document")
         # numero_acte = request.POST.get("numero_acte")
 
@@ -1026,6 +1028,12 @@ def acte_pret_a_etre_envoye(request):
             logger.error(f"Instructeur (ID {signataire_id}) introuvable en base.")
             messages.error(request, f"❌ Instructeur (ID {signataire_id}) introuvable en base.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        envoyeur = get_object_or_404(Instructeur, id=envoyeur_id)
+        if not envoyeur:
+            logger.error(f"Instructeur (ID {envoyeur_id}) introuvable en base.")
+            messages.error(request, f"❌ Instructeur (ID {envoyeur_id}) introuvable en base.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
         # -------------------------------
@@ -1103,20 +1111,23 @@ def acte_pret_a_etre_envoye(request):
         # -----------------------------
         # Ajout du signataire au dossier
         # -----------------------------
-        existe_deja = DossierSignataire.objects.filter(
-            id_dossier=dossier,
-            id_instructeur=signataire
-        ).exists()
 
-        if existe_deja:
-            logger.info(f"[DOSSIER {dossier.numero}] Signataire {signataire} déjà enregistré pour ce dossier.")
-        else:
-            DossierSignataire.objects.create(
-                id_dossier=dossier,
-                id_instructeur=signataire
-            )
-            logger.info(f"[DOSSIER {dossier.numero}] Signataire {signataire} ajouté au dossier.")
+        # Supprime les anciens signataires associés au dossier (s'ils existent)
+        DossierSignataire.objects.filter(id_dossier=dossier).delete()
+        # On créé le nouveau
+        DossierSignataire.objects.create(id_dossier=dossier, id_instructeur=signataire)
+        logger.info(f"[DOSSIER {dossier.numero}] Signataire {signataire} ajouté au dossier.")
 
+
+        # -------------------------------------
+        # Ajout de l'envoyeur d'acte au dossier
+        # -------------------------------------
+
+        # Supprime les anciens envoyeurs associés au dossier (s'ils existent)
+        DossierEnvoiActe.objects.filter(id_dossier=dossier).delete()
+        # On créé le nouveau
+        DossierEnvoiActe.objects.create(id_dossier=dossier, id_instructeur=envoyeur)
+        logger.info(f"[DOSSIER {dossier.numero}] Envoyeur d'acte {envoyeur} ajouté au dossier.")
 
 
         # Changer l'étape
@@ -1125,7 +1136,7 @@ def acte_pret_a_etre_envoye(request):
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        signataire_nom_prenom = f"({signataire.id_agent_autorisations.nom} {signataire.id_agent_autorisations.prenom})"
+        signataire_nom_prenom = f"{signataire.id_agent_autorisations.nom} {signataire.id_agent_autorisations.prenom}"
 
         enregistrer_action(dossier, instructeur, "Acte signé", signataire_nom_prenom)
 
@@ -1180,12 +1191,20 @@ def envoyer_l_acte(request):
     document_id = request.POST.get("document_id_existant")  #ID du Doc à envoyer
     rapportCA_id = request.POST.get("rapportCA_id")
     nature_document = request.POST.get("nature_document")
+    publieur_raa_id = request.POST.get("choix-publieur-raa") # id Instructeur
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     
     if not dossier_id_ds or not instructeur :
             messages.error(request, f"❌ Données manquantes ou invalides : ID du dossier DS = {dossier_id_ds}, Instructeur.rice = {instructeur}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
+    publieur_raa = get_object_or_404(Instructeur, id=publieur_raa_id)
+    if not publieur_raa:
+        logger.error(f"Instructeur (ID {publieur_raa_id}) introuvable en base.")
+        messages.error(request, f"❌ Instructeur (ID {publieur_raa_id}) introuvable en base.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     try:
         dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
@@ -1295,6 +1314,18 @@ def envoyer_l_acte(request):
         
         # Dossier Action
         enregistrer_action(dossier, instructeur, "Acte envoyé")
+
+
+        # -------------------------------------------------------
+        # Ajout de la personne chargée de publier l'acte au RAA
+        # ------------------------------------------------------
+
+        # Supprime les anciens envoyeurs associés au dossier (s'ils existent)
+        DossierPublicationRAA.objects.filter(id_dossier=dossier).delete()
+        # On créé le nouveau
+        DossierPublicationRAA.objects.create(id_dossier=dossier, id_instructeur=publieur_raa)
+        logger.info(f"[DOSSIER {dossier.numero}] Publieur RAA {publieur_raa} ajouté au dossier.")
+
 
         # Créer le Document en physique
         if fichier and dossier:

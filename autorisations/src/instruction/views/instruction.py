@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInstructeur, DossierInterlocuteur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur, TypeContactExterne
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
@@ -62,14 +62,16 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
             Q(dossierrelecteurqualite__id_instructeur=instructeur) |
             Q(dossiervalideur__id_instructeur=instructeur) |
             Q(dossierrelecteur__id_instructeur=instructeur) |
-            Q(dossiersignataire__id_instructeur=instructeur)
+            Q(dossiersignataire__id_instructeur=instructeur) |
+            Q(dossierintermediairesignature__id_instructeur=instructeur) |
+            Q(dossierpublicationraa__id_instructeur=instructeur) |
+            Q(dossierenvoiacte__id_instructeur=instructeur)
         )
         .distinct()
     )
 
 
     dossiers_actions = dossiers_action_a_faire(dossiers_query_tous, instructeur).count()
-
 
 
     return {
@@ -89,6 +91,9 @@ def accueil(request):
 
     current_year = date.today().year
     demarches = Demarche.objects.all().order_by("titre")
+
+    # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
+    demarches = demarches.exclude(type__icontains="manifestations sportives")
 
     groupes_user = []
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -112,7 +117,7 @@ def accueil(request):
 @login_required
 def mesdossiers(request):
 
-    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     if not instructeur:
         messages.error(request, f"❌ Aucun profil 'Instructeur.rice' existant pour l'utilsateur.rice {request.user} : Contactez l'administrateur.rice si besoin.")
@@ -120,8 +125,8 @@ def mesdossiers(request):
         # return redirect(request.META.get("HTTP_REFERER", "/"))
     
     # Étapes terminées
-    etapes_termines = EtapeDossier.objects.filter(
-        etape__in=["Non soumis à autorisation", "Refusé", "Accepté"]
+    etapes_termines_et_a_affecter = EtapeDossier.objects.filter(
+        etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"]
     )
 
     # Dossiers où l’utilisateur intervient
@@ -131,13 +136,16 @@ def mesdossiers(request):
             Q(dossierrelecteurqualite__id_instructeur=instructeur) |
             Q(dossiervalideur__id_instructeur=instructeur) |
             Q(dossierrelecteur__id_instructeur=instructeur) |
-            Q(dossiersignataire__id_instructeur=instructeur)
+            Q(dossiersignataire__id_instructeur=instructeur) |
+            Q(dossierintermediairesignature__id_instructeur=instructeur) |
+            Q(dossierpublicationraa__id_instructeur=instructeur) |
+            Q(dossierenvoiacte__id_instructeur=instructeur)
         )
         .distinct()
     )
 
     # Liste avec exclusion des étapes terminées
-    dossiers = base_query.exclude(id_etape_dossier__in=etapes_termines)
+    dossiers = base_query.exclude(id_etape_dossier__in=etapes_termines_et_a_affecter)
     # Liste complète (y compris dossiers terminés)
     dossiers_tous = base_query
     dossier_action_a_faire = dossiers_action_a_faire(dossiers_tous, instructeur)
@@ -175,10 +183,14 @@ def mesdossiers(request):
                 role = "Instructeur.rice"
             elif dossier.id_etape_dossier.etape in ["En instruction", "En Pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"]:
                 role = "Instructeur.rice"
-            elif dossier.id_etape_dossier.etape in ["À affecter", "En relecture qualité", "À publier au RAA", "Acte à envoyer"]:
+            elif dossier.id_etape_dossier.etape in ["À affecter", "En relecture qualité"]:
                 role = "Relecteur.rice qualité"
+            elif dossier.id_etape_dossier.etape == "À publier au RAA" :
+                role = "Publieur.se au RAA"
+            elif dossier.id_etape_dossier.etape == "Acte à envoyer" :
+                role = "Envoyeur.se de l'acte"
             elif dossier.id_etape_dossier.etape == "En attente de signature":
-                role = "Signataire"
+                role = "Intermédiaire signature"
             elif est_relecteur :
                 drj = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).first()
                 if not drj.relu :
@@ -195,6 +207,12 @@ def mesdossiers(request):
                 role = "Signataire"
             elif DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
                 role = "Relecteur.rice qualité"
+            elif DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Envoyeur.se de l'acte"
+            elif DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Intermédiaire signature"
+            elif DossierPublicationRAA.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
+                role = "Publieur.se au RAA"
             elif DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists():
                 role = "Relecteur.rice"
             else:
@@ -228,8 +246,8 @@ def instruction_demarche(request, num_demarche):
     etapes_sans_a_affecter = EtapeDossier.objects.exclude(etape="À affecter")
     etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
     ids_etapes_termines = list(etapes_termines.values_list("id", flat=True))
-    mes_dossiers = request.GET.get("mes_dossiers", "1")
-    instructeur = Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first()
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     if not instructeur:
         messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
@@ -240,7 +258,10 @@ def instruction_demarche(request, num_demarche):
                 Q(dossierrelecteurqualite__id_instructeur=instructeur) |
                 Q(dossiervalideur__id_instructeur=instructeur) |
                 Q(dossierrelecteur__id_instructeur=instructeur) |
-                Q(dossiersignataire__id_instructeur=instructeur)
+                Q(dossiersignataire__id_instructeur=instructeur) |
+                Q(dossierintermediairesignature__id_instructeur=instructeur) |
+                Q(dossierpublicationraa__id_instructeur=instructeur) |
+                Q(dossierenvoiacte__id_instructeur=instructeur)
             )
             .exclude(id_etape_dossier__etape = 'À affecter')
             .distinct()
@@ -248,20 +269,11 @@ def instruction_demarche(request, num_demarche):
 
     dossiers_actions = dossiers_action_a_faire(dossiers_query_tous, instructeur)
 
-    # Filtre 'Mes dossiers' si case cochée
-    if mes_dossiers == "1":
-        dossiers_query = dossiers_query_tous.filter(id_demarche=demarche.id).exclude(id_etape_dossier__etape__in=["Accepté", "Refusé", "Non soumis à autorisation"])
+    dossiers_query = Dossier.objects.filter(
+        id_demarche=demarche.id
+    ).exclude(id_etape_dossier__etape__in=["Accepté", "Refusé", "Non soumis à autorisation", "À affecter"])
 
-    # Si case pas cochée
-    else :
-        dossiers_query = Dossier.objects.filter(
-                id_etape_dossier__in=etapes_sans_a_affecter,
-                id_demarche=demarche.id
-        ).exclude(
-            id_etape_dossier__in=ids_etapes_termines
-        )
 
-   
     dossiers = dossiers_query.select_related("id_groupeinstructeur").order_by("date_depot")
 
     dossier_infos = []
@@ -288,7 +300,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_infos.append({
             "nom_dossier": dossier.nom_dossier,
-            # "type": dossier.id_dossier_type.type if dossier.id_dossier_type else "N/A",
+            "obj_doss": dossier,
             "numero": dossier.numero,
             "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "date_depot": dossier.date_depot,
@@ -334,6 +346,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_archives_infos.append({
             "nom_dossier": dossier.nom_dossier,
+            "obj_doss": dossier,
             "numero": dossier.numero,
             "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "date_depot": dossier.date_depot,
@@ -344,6 +357,7 @@ def instruction_demarche(request, num_demarche):
         })
 
         dossier_archives_infos.sort(key=lambda d: (not d["action_a_faire"], -d["nb_messages_non_lus"]))
+
 
     return render(request, "instruction/instruction_demarche.html", {
     "demarche": demarche,
@@ -469,7 +483,7 @@ def instruction_dossier(request, num_dossier):
     # Identifier l'instructeur lié à l'utilisateur connecté
     instructeur_connecte = (
         Instructeur.objects
-        .filter(id_agent_autorisations__mail_1=request.user.email)
+        .filter(email=request.user.email)
         .select_related("id_agent_autorisations")
         .first()
     )
@@ -705,14 +719,20 @@ def instruction_dossier(request, num_dossier):
     ###############################
     # Liste d'instructeurs par rôle
     ###############################
+
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
     # Instructeurs déjà associés au dossier
     instructeurs_du_dossier = Instructeur.objects.filter(dossierinstructeur__id_dossier=dossier).select_related("id_agent_autorisations")
 
+    # --------------------------------
+    # INTERMÉDIAIRES POUR LA SIGNATURE
+    # --------------------------------
     # Intermédiaires CA
     groupe = Group.objects.filter(name="Intermédiaire CA").first()
     user_intermédiaire_CA = groupe.user_set.all() if groupe else []
     emails_intermédiaire_CA = [user.email for user in user_intermédiaire_CA if user.email]
     intermédiaires_CA = Instructeur.objects.filter(email__in=emails_intermédiaire_CA).select_related("id_agent_autorisations")
+
 
     # Intermédiaires DIR SAADD
     groupe = Group.objects.filter(name="Envoi pour signature SAADD").first()
@@ -739,6 +759,88 @@ def instruction_dossier(request, num_dossier):
     # Intermediaires pour la signature
     intermediaires_signature_du_dossier =  Instructeur.objects.filter(dossierintermediairesignature__id_dossier=dossier).select_related("id_agent_autorisations")
 
+
+    # --------------------------------
+    # ENVOYEURS D'ACTE SIGNÉ AU PÉTI
+    # --------------------------------
+    # Envoyeurs actes
+    envoyeurs_actes_du_dossier =  Instructeur.objects.filter(dossierenvoiacte__id_dossier=dossier).select_related("id_agent_autorisations")
+
+    # Envoyeurs acte SAADD
+    groupe = Group.objects.filter(name="Envoi de l'acte SAADD").first()
+    user_envoyeur_saadd = groupe.user_set.all() if groupe else []
+    emails_envoyeur_saadd = [user.email for user in user_envoyeur_saadd if user.email]
+    envoyeurs_acte_saadd = Instructeur.objects.filter(email__in=emails_envoyeur_saadd).select_related("id_agent_autorisations")
+
+    # Fusion sans doublon
+    ids_saadd = {i.id for i in envoyeurs_acte_saadd}
+    instructeurs_supp_saadd= [i for i in instructeurs_du_dossier if i.id not in ids_saadd]
+    # On ajoute Intermédiaire CA si délib CA
+    if any(dd.id_document.id_nature.nature.lower() == "déliberation ca" for dd in documents_du_dossier):
+        for intermediaire in intermédiaires_CA:
+            if intermediaire not in instructeurs_supp_saadd and intermediaire not in envoyeurs_acte_saadd :
+                instructeurs_supp_saadd.append(intermediaire)
+    envoyeurs_saadd_et_instructeurs = list(envoyeurs_acte_saadd) + instructeurs_supp_saadd
+
+    # Envoyeurs acte SPPN
+    groupe = Group.objects.filter(name="Envoi de l'acte SPPN").first()
+    user_envoyeur_sppn = groupe.user_set.all() if groupe else []
+    emails_envoyeur_sppn = [user.email for user in user_envoyeur_sppn if user.email]
+    envoyeurs_acte_sppn = Instructeur.objects.filter(email__in=emails_envoyeur_sppn).select_related("id_agent_autorisations")
+
+    # Fusion sans doublon
+    ids_sppn = {i.id for i in envoyeurs_acte_sppn}
+    instructeurs_supp_sppn= [i for i in instructeurs_du_dossier if i.id not in ids_sppn]
+    # On ajoute Intermédiaire CA si délib CA
+    if any(dd.id_document.id_nature.nature.lower() == "déliberation ca" for dd in documents_du_dossier):
+        for intermediaire in intermédiaires_CA:
+            if intermediaire not in instructeurs_supp_sppn and intermediaire not in envoyeurs_acte_sppn:
+                instructeurs_supp_sppn.append(intermediaire)
+    envoyeurs_sppn_et_instructeurs = list(envoyeurs_acte_sppn) + instructeurs_supp_sppn
+
+
+    # --------------------------------
+    # PUBLIEURS D'ACTE AU RAA
+    # --------------------------------
+    # Publieurs RAA
+    publieurs_RAA_du_dossier =  Instructeur.objects.filter(dossierenvoiacte__id_dossier=dossier).select_related("id_agent_autorisations")
+
+    # Publieurs RAA SAADD
+    groupe = Group.objects.filter(name="Publication RAA SAADD").first()
+    user_publieur_saadd = groupe.user_set.all() if groupe else []
+    emails_publieur_saadd = [user.email for user in user_publieur_saadd if user.email]
+    publieurs_RAA_saadd = Instructeur.objects.filter(email__in=emails_publieur_saadd).select_related("id_agent_autorisations")
+
+    # Fusion sans doublon
+    ids_saadd = {i.id for i in publieurs_RAA_saadd}
+    instructeurs_supp_saadd= [i for i in instructeurs_du_dossier if i.id not in ids_saadd]
+    # On ajoute Intermédiaire CA si délib CA
+    if any(dd.id_document.id_nature.nature.lower() == "déliberation ca" for dd in documents_du_dossier):
+        for intermediaire in intermédiaires_CA:
+            if intermediaire not in instructeurs_supp_saadd and intermediaire not in publieurs_RAA_saadd :
+                instructeurs_supp_saadd.append(intermediaire)
+    publieurs_RAA_saadd_et_instructeurs = list(publieurs_RAA_saadd) + instructeurs_supp_saadd
+
+    # Publieurs RAA SPPN
+    groupe = Group.objects.filter(name="Publication RAA SPPN").first()
+    user_publieur_sppn = groupe.user_set.all() if groupe else []
+    emails_publieur_sppn = [user.email for user in user_publieur_sppn if user.email]
+    publieurs_RAA_sppn = Instructeur.objects.filter(email__in=emails_publieur_sppn).select_related("id_agent_autorisations")
+
+    # Fusion sans doublon
+    ids_sppn = {i.id for i in publieurs_RAA_sppn}
+    instructeurs_supp_sppn= [i for i in instructeurs_du_dossier if i.id not in ids_sppn]
+    # On ajoute Intermédiaire CA si délib CA
+    if any(dd.id_document.id_nature.nature.lower() == "déliberation ca" for dd in documents_du_dossier):
+        for intermediaire in intermédiaires_CA:
+            if intermediaire not in instructeurs_supp_sppn and intermediaire not in publieurs_RAA_sppn :
+                instructeurs_supp_sppn.append(intermediaire)
+    publieurs_RAA_sppn_et_instructeurs = list(publieurs_RAA_sppn) + instructeurs_supp_sppn
+
+
+    # --------------
+    #    VALIDANTS
+    # --------------
     # Validant.e.s SAADD
     groupe = Group.objects.filter(name="Validant-e SAADD").first()
     user_validants_SAADD = groupe.user_set.all() if groupe else []
@@ -755,6 +857,10 @@ def instruction_dossier(request, num_dossier):
     validant_ids = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
     validants = Instructeur.objects.filter(id__in=validant_ids).select_related("id_agent_autorisations")
 
+
+    # ----------------------
+    #   RELECTEURS QUALITÉ
+    # ----------------------
     # Relecteur qualité du dossier
     relecteur_ids = DossierRelecteurQualite.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
     relecteurs_qualite_du_dossier = Instructeur.objects.filter(id__in=relecteur_ids).select_related("id_agent_autorisations")
@@ -772,15 +878,6 @@ def instruction_dossier(request, num_dossier):
     emails_relecteur_qualite = [user.email for user in user_relecteur_qualite if user.email]
     relecteurs_qualite = Instructeur.objects.filter(email__in=emails_relecteur_qualite).select_related("id_agent_autorisations")
 
-    # Relecteur du dossier
-    relecteurs_du_dossier = DossierRelecteur.objects.filter(id_dossier=dossier)
-
-    # Signataires
-    groupe = Group.objects.filter(name="Signataire").first()
-    user_signataire = groupe.user_set.all() if groupe else []
-    emails_signataire = [user.email for user in user_signataire if user.email]
-    signataires = Instructeur.objects.filter(email__in=emails_signataire).select_related("id_agent_autorisations")
-
     # Fusionner les relecteurs qualité et les instructeurs du groupe instructeur (sans doublon)
     relecteurs_ids = {r.id for r in relecteurs_qualite}
     instructeurs_groupe = []
@@ -795,7 +892,17 @@ def instruction_dossier(request, num_dossier):
         ]
 
     relecteurs_qualite_et_instructeurs = list(relecteurs_qualite) + instructeurs_groupe
-    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
+
+
+    # Relecteur du dossier
+    relecteurs_du_dossier = DossierRelecteur.objects.filter(id_dossier=dossier)
+
+
+    # Signataires
+    groupe = Group.objects.filter(name="Signataire").first()
+    user_signataire = groupe.user_set.all() if groupe else []
+    emails_signataire = [user.email for user in user_signataire if user.email]
+    signataires = Instructeur.objects.filter(email__in=emails_signataire).select_related("id_agent_autorisations")
 
 
     # Type contacts externes
@@ -963,6 +1070,16 @@ def instruction_dossier(request, num_dossier):
         # "relecteurs_juridique": relecteurs_juridique,
         "relecteurs_du_dossier": relecteurs_du_dossier,
         "signataires": signataires,
+        "envoyeurs_actes_du_dossier": envoyeurs_actes_du_dossier,
+        "envoyeurs_acte_saadd": envoyeurs_acte_saadd,
+        "envoyeurs_acte_sppn": envoyeurs_acte_sppn,
+        "envoyeurs_saadd_et_instructeurs": envoyeurs_saadd_et_instructeurs,
+        "envoyeurs_sppn_et_instructeurs": envoyeurs_sppn_et_instructeurs,
+        "publieurs_RAA_saadd": publieurs_RAA_saadd,
+        "publieurs_RAA_sppn": publieurs_RAA_sppn,
+        "publieurs_RAA_saadd_et_instructeurs": publieurs_RAA_saadd_et_instructeurs,
+        "publieurs_RAA_sppn_et_instructeurs": publieurs_RAA_sppn_et_instructeurs,
+        "publieurs_RAA_du_dossier": publieurs_RAA_du_dossier,
         "emails_uniques": emails_uniques,
         "emails_dossiers": emails_dossiers,
         "avis_du_dossier": avis_du_dossier,
@@ -973,7 +1090,7 @@ def instruction_dossier(request, num_dossier):
         "nb_avis_envoyes": nb_avis_envoyes,
         "types_contacts": types_contacts,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
-        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" and (dd.id_document.id_statut.statut.lower() == "à relire" or dd.id_document.id_statut.statut.lower() == "à signer") for dd in documents_du_dossier)
+        "delibCA": any(dd.id_document.id_nature.nature.lower() == "déliberation ca" and dd.id_document.id_statut and (dd.id_document.id_statut.statut.lower() == "à relire" or dd.id_document.id_statut.statut.lower() == "à signer" or dd.id_document.id_statut.statut.lower() == "à envoyer") for dd in documents_du_dossier)
     })
 
 
@@ -1281,8 +1398,8 @@ def relecture_faite(request):
 
         # Dossier Action
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        nom_prenom = '(' + instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom + ')'
-        enregistrer_action(dossier, instructeur, "Relecture", nom_prenom)
+        nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
+        enregistrer_action(dossier, instructeur, "Relecture faite", nom_prenom)
 
     else:
         request.session["relecteur_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")

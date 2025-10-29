@@ -16,7 +16,7 @@ import shutil
 from django.contrib import messages
 
 
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierIntermediaireSignature, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Instructeur
+from autorisations.models.models_utilisateurs import DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail, envoi_notification_par_mail
 from psycopg2.errors import UniqueViolation
@@ -207,7 +207,10 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
         est_relecteur = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_signataire = DossierSignataire.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
         est_intermediaire_signature = DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_envoyeur_acte_signe = DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
+        est_publieur_RAA = DossierPublicationRAA.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).exists()
 
+        
         # === Mapping Étape -> Rôle attendu ===
         if est_relecteur :
             drj = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=obj_instructeur).first()
@@ -240,10 +243,20 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
             if est_instructeur:
                 dossiers_a_traiter_ids.add(dossier.id)
 
-        # "À affecter", "À publier au RAA", "Acte à envoyer" : Vocation à dégager (elles auront leur propre role)
-        elif etape in ["À affecter", "En relecture qualité", "À publier au RAA", "Acte à envoyer"]:
+        elif etape in ["En relecture qualité"]:
             # Rôle : Relecteur Qualité
             if est_relecteur_qualite:
+                dossiers_a_traiter_ids.add(dossier.id)
+        
+        elif etape in ["À publier au RAA"]:
+            # Rôle : Publieur RAA
+            if est_publieur_RAA:
+                dossiers_a_traiter_ids.add(dossier.id)
+
+            
+        elif etape in ["Acte à envoyer"]:
+            # Rôle : Envoyeur de l'acte signé
+            if est_envoyeur_acte_signe:
                 dossiers_a_traiter_ids.add(dossier.id)
 
         elif etape in ["En attente de signature"]:
@@ -257,6 +270,43 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
         #     # Rôle : Signataire
         #     if est_signataire: 
         #         dossiers_a_traiter_ids.add(dossier.id)
+
+    return Dossier.objects.filter(id__in=dossiers_a_traiter_ids)
+
+
+
+def dossiers_reception_action_a_faire(dossiers, user):
+    """
+    Retourne les dossiers où l'utilisateur doit affecter le dossier qui est en reception
+    POUR LE MOMENT ON EXCLU LES DOSSIERS DE MANIFESTATIONS SPORTIVES
+    """
+    if not user.is_authenticated:
+        return set()
+    
+    # Exclure les démarches "Manifestations sportives"
+    dossiers = dossiers.exclude(id_demarche__type__icontains="manifestations sportives")
+
+    dossiers_a_traiter_ids = set()
+
+    # Vérification rôle Reception
+    est_receptionniste_SAADD = False
+    est_receptionniste_SPPN = False
+
+    if user.groups.filter(name="Réception SAADD").exists():
+        est_receptionniste_SAADD = True
+    if user.groups.filter(name="Réception SPPN").exists():
+        est_receptionniste_SPPN = True
+
+
+    for dossier in dossiers:
+        # SPPN
+        if dossier.id_demarche and dossier.id_demarche.type and "mission scientifique" in dossier.id_demarche.type.lower():
+            if est_receptionniste_SPPN :
+                dossiers_a_traiter_ids.add(dossier.id)
+        # SAADD
+        else :
+            if est_receptionniste_SAADD :
+                dossiers_a_traiter_ids.add(dossier.id)
 
     return Dossier.objects.filter(id__in=dossiers_a_traiter_ids)
 
@@ -432,10 +482,16 @@ def get_instructeurs_a_actionner(dossier):
         instructeurs = (DossierValideur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
 
     # Étapes où les RELECTEURS QUALITÉ agissent
-
-    # "À publier au RAA", "Acte à envoyer", "À affecter"  : vocation à dégager (elles vont aoir leurporpre groupe)
-    elif etape in ["En relecture qualité", "À publier au RAA", "Acte à envoyer", "À affecter"]:
+    elif etape in ["En relecture qualité"]:
         instructeurs = (DossierRelecteurQualite.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
+
+    # Étapes où les PUBLIEURS RAA agissent
+    elif etape in ["À publier au RAA"]:
+        instructeurs = (DossierPublicationRAA.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
+
+    # Étapes où les ENVOYEURS D'ACTE agissent
+    elif etape in ["Acte à envoyer"]:
+        instructeurs = (DossierEnvoiActe.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
 
     # Étapes où les INTERMEDIAIRES SIGNATURE agissent
     elif etape in ["En attente de signature"]:

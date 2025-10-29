@@ -29,6 +29,9 @@
                     <a href="{% url 'preinstruction_view' %}">
                         <li class="{% if '/preinstruction' in request.path %}active{% endif %}">
                             Réception
+                            {% if nb_dossiers_reception > 0 %}
+                                <span class="notif_pastille" title="Dossiers à affecter">{{ nb_dossiers_reception }}</span>
+                            {% endif %}
                         </li>
                     </a>
 

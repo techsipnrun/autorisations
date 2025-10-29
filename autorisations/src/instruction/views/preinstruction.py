@@ -10,7 +10,7 @@ from autorisations.models.models_instruction import Demarche, Dossier, DossierAc
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
-from instruction.utils import enregistrer_action, format_etat_dossier
+from instruction.utils import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
 import ast
@@ -29,6 +29,8 @@ def preinstruction(request):
 
     etape = EtapeDossier.objects.filter(etape="À affecter").first()
     dossiers = Dossier.objects.filter(id_etape_dossier=etape).select_related("id_demarche").order_by("date_depot")
+
+    dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
 
     dossier_infos = []
 
@@ -54,6 +56,7 @@ def preinstruction(request):
                 "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
                 "nom_projet": dossier.nom_dossier,
                 "numero": dossier.numero,
+                "action_a_faire": True if dossier in dossiers_actions else False
             })
 
     num_demarche_manif_sportive = Demarche.objects.get(type="Manifestations sportives").numero
@@ -271,7 +274,7 @@ def preinstruction_dossier(request, numero):
     # Instructeur connecté (pour le bouton 'se déclarer instructeur')
     instructeur_connecte = (
         Instructeur.objects
-        .filter(id_agent_autorisations__mail_1=request.user.email)
+        .filter(email=request.user.email)
         .select_related("id_agent_autorisations")
         .first()
     )

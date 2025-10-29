@@ -49,6 +49,14 @@
 
     <h1>Réception des demandes d'autorisation</h1>
 
+    <div class="filtre-action-container">
+        <label class="switch">
+            <input type="checkbox" id="filtre-action">
+            <span class="slider round"></span>
+        </label>
+        <span class="switch-label">Afficher uniquement mes dossiers à affecter</span>
+    </div>
+
     <table>
         <thead>
             <tr>
@@ -61,7 +69,8 @@
         </thead>
         <tbody>
             {% for d in dossier_infos %}
-                <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=d.numero %}">
+                <tr class="clickable-row {% if d.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'preinstruction_dossier' numero=d.numero %}"
+                {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
                     <td class="td_demarche">{{ d.demarche }}</td>
                     <td>{{ d.date_depot }}</td>
                     <td>{{ d.demandeur }}</td>
@@ -220,5 +229,23 @@
         });
     });
 </script>
+
+<!-- Bouton toggle pour afficher que les dossiers qu'on doit réceptionner -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggle = document.getElementById("filtre-action");
+        const lignes = document.querySelectorAll("tbody tr.clickable-row");
+
+        toggle.addEventListener("change", function () {
+            const actif = this.checked;
+            lignes.forEach(ligne => {
+                const aFaire = ligne.classList.contains("ligne-non-lue");
+                // Si le filtre est actif : on garde uniquement ceux avec action à faire
+                ligne.style.display = (actif && !aFaire) ? "none" : "";
+            });
+        });
+    });
+</script>
+
 
 </html>

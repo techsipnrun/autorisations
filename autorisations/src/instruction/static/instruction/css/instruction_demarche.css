@@ -17,14 +17,44 @@ h2 {
     text-align: center;
 }
 
+.page_entiere_instruction_demarche {
+    max-width: 2400px;     /* largeur max souhaitée */
+    margin: 0 auto;        /* centre la page */
+}
+
+
+/* -------------------------------------------------------- */
+/* ----------- Filtre "Mes dossiers uniquement" ----------- */
+/* -------------------------------------------------------- */
+
 /* Filtre : Afficher mes dossiers */
 .filtre-au-dessus {
   display: flex;
-  justify-content: flex-start;
-  margin-left: 8vw;
-  margin-top: 1.5rem;
+  width: 85%;
+  align-items: center;
+  justify-content: left;
+  /* margin-left: 8vw; */
+  margin: 1.5rem auto;
   font-weight: bold;
 }
+
+.filtre-au-dessus-archive {
+    width: 100% !important;
+}
+
+.filtre-action-archives, .filtre-action-mes-doss {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: left;
+    margin-top: 2rem;
+    gap: 10px;
+    font-size: 1.1rem;
+}
+
+
+
+
 
 .label-filtre {
   cursor: pointer;
@@ -43,7 +73,7 @@ h2 {
 .refresh-doss {
     text-align: left;
     margin-top: 1rem;
-    margin-left: 8vw;
+    width: 85%;
     padding-top: 1rem ;
 }
 
@@ -88,7 +118,8 @@ h2 {
 /* Dossiers archivés */
 
 .zone-archives {
-    margin: 25vh 8vw;
+    width: 85%;
+    margin: 20vh auto;
 }
 
 .form-annee-archives {
