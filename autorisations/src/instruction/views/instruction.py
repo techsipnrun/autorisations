@@ -1,5 +1,5 @@
 import ast
-from datetime import date
+from datetime import date, timedelta
 import json
 import logging
 import os
@@ -219,7 +219,7 @@ def mesdossiers(request):
                 role = "Inconnu"
 
         # Structurer les infos
-        dossiers_par_demarche.setdefault(dossier.id_demarche.titre, []).append({
+        dossiers_par_demarche.setdefault(dossier.id_demarche.type, []).append({
             "nom_dossier": dossier.nom_dossier,
             "numero": dossier.numero,
             "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
@@ -612,11 +612,11 @@ def instruction_dossier(request, num_dossier):
         "Envoyé pour relecture qualité": "envoye.png",
         "Avis demandé": "acte-envoye.png",
 
-        "Validant.e changé.e": "changer_validant.png",
-        "Relecteur.rice changé.e": "changer_validant.png",
-        "Intermédiaire signature changé.e": "changer_validant.png",
-        "Envoyeur.se d'acte changé.e": "changer_validant.png",
-        "Publieur.se RAA changé.e": "changer_validant.png",
+        "Validant.e changé.e": "changer_valideur.png",
+        "Relecteur.rice changé.e": "changer_relecteur.png",
+        "Intermédiaire signature changé.e": "changer_intermédiaire.png",
+        "Envoyeur.se d'acte changé.e": "changer_envoyeur.png",
+        "Publieur.se RAA changé.e": "changer_publieurRAA.png",
         # "Réceptionniste changé.e": "changer_validant.png",
     }
 
@@ -1344,10 +1344,10 @@ def ajouter_relecteur_dossier(request):
         template_name = "demande_relecture"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:

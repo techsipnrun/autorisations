@@ -7,6 +7,8 @@ from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_
 from ..utils.model_helpers import update_fields
 from ..utils.fichiers import write_pj
 import logging
+from django.utils import timezone
+from datetime import timedelta
 
 logger = logging.getLogger("SYNCHRONISATION")
 
@@ -120,10 +122,10 @@ def sync_messages(messages, id_dossier):
             template_name = "nouveau_message_petitionnaire"
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-            # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+            # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
             existe_deja = EmailOutbox.objects.filter(
                 dedupe_key=dedupe,
-                date_creation__date=date.today()
+                date_creation__date= timezone.now() - timedelta(hours=2)
             ).exists()
 
             if not existe_deja:

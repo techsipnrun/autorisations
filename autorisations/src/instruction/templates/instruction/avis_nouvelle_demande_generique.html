@@ -97,13 +97,17 @@
                     <select id="expert_interne" name="expert_interne">
                         <option value="">-- Sélectionner --</option>
                         {% for i in instructeurs %}
-                            <option value="{{ i.id }}">
-                                {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}
-                                    {{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {{ i.email }}
-                                {% else %}
-                                    {{ i.email }}
-                                {% endif %}
-                            </option>
+                            {% if i.email != request.user.email %}
+
+                                <option value="{{ i.id }}">
+                                    {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}
+                                        {{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {{ i.email }}
+                                    {% else %}
+                                        {{ i.email }}
+                                    {% endif %}
+                                </option>
+                                
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>

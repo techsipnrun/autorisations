@@ -1186,7 +1186,7 @@
                             <h2>{{ champ.titre }}</h2>
 
                             <!-- Nom et prénom du bénéficiare -->
-                            {% if champ.titre|slice:":36" == "Identification du bénéficiaire de la" %}
+                            {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
                                 {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
                                     {% if beneficiaire.nom %}
                                         <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
@@ -1217,7 +1217,17 @@
 
                         <!-- Champs classiques -->
                         {% elif champ.type == 'champ' %}
-                            <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+                            {% if champ.nom|contains:"atteste que" and champ.valeur == 'true' %}
+                                <p><i>{{ champ.nom }}</i></p>
+                            {% else %}
+                                {% if champ.valeur == 'true' %}
+                                    <p><strong>{{ champ.nom }}</strong> : Oui</p>
+                                {% elif champ.valeur == 'false' %}
+                                    <p><strong>{{ champ.nom }}</strong> : Non</p>
+                                {% else %}
+                                    <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+                                {% endif %}
+                            {% endif %}
                         
                         <!-- Champs bloc répété -->
                         {% elif champ.type == 'repetition' %}
@@ -1879,7 +1889,7 @@
                                     </div>
                              
                                     <div class="relecture-details hidden">
-                                        <p><strong>Demande :</strong> {{ rj.demande_relecture }}</p>
+                                        <p><strong>Demande :</strong> <br> {{ rj.demande_relecture|safe|linebreaksbr }}</p>
                                         {% with docs=rj.dossierrelecteurdocument_set.all %}
                                             {% if docs %}
                                                 <ul>
@@ -1908,7 +1918,7 @@
                                                 </button>
                                             </form>
                                         {% elif request.user.email == rj.id_instructeur.email and rj.relu %}
-                                            <p><strong>Réponse :</strong> {{ rj.reponse_relecture }}</p>
+                                            <br><p><strong>Réponse :</strong> <br> {{ rj.reponse_relecture|safe|linebreaksbr }}</p>
                                         {% endif %}
                                     </div>
                                 </li>

@@ -1,6 +1,7 @@
 {% load static %}
 {% load breadcrumb_tags %}
 {% load group_tags %}
+{% load custom_filters %}
 
 
 <!DOCTYPE html>
@@ -147,7 +148,7 @@
                             <h2>{{ champ.titre }}</h2>
 
                             <!-- Nom et prénom du bénéficiare -->
-                            {% if champ.titre|slice:":36" == "Identification du bénéficiaire de la" %}
+                            {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
                                 {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
                                     {% if beneficiaire.nom %}
                                         <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
@@ -177,9 +178,21 @@
                                 {% endif %}
                             {% endif %}
 
-
+                        <!-- Champs classiques -->
                         {% elif champ.type == 'champ' %}
-                            <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+                            {% if champ.nom|contains:"atteste que" and champ.valeur == 'true' %}
+                                <p><i>{{ champ.nom }}</i></p>
+                            {% else %}
+                                {% if champ.valeur == 'true' %}
+                                    <p><strong>{{ champ.nom }}</strong> : Oui</p>
+                                {% elif champ.valeur == 'false' %}
+                                    <p><strong>{{ champ.nom }}</strong> : Non</p>
+                                {% else %}
+                                    <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
+                                {% endif %}
+                            {% endif %}
+
+
 
                         {% elif champ.type == 'carte' %}
                             <div class="titre-carte-avec-bouton">

@@ -146,10 +146,10 @@ def se_declarer_instructeur(request):
             template_name = "ajouter_a_instruction" 
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-            # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+            # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
             existe_deja = EmailOutbox.objects.filter(
                 dedupe_key=dedupe,
-                date_creation__date=date.today()
+                date_creation__date= timezone.now() - timedelta(hours=2)
             ).exists()
 
             if not existe_deja:
@@ -241,10 +241,10 @@ def retirer_instructeur(request):
     template_name = "retirer_de_instruction"
     dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-    # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+    # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
     existe_deja = EmailOutbox.objects.filter(
         dedupe_key=dedupe,
-        date_creation__date=date.today()
+        date_creation__date= timezone.now() - timedelta(hours=2)
     ).exists()
 
     if not existe_deja:
@@ -326,10 +326,10 @@ def changer_valideur(request):
         template_name = "changer_validant"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -411,10 +411,10 @@ def changer_relecteur(request):
         template_name = "changer_relecteur"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -498,10 +498,10 @@ def changer_intermediaire_signature(request):
         template_name = "changer_intermediaire"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -584,10 +584,10 @@ def changer_envoyeur_acte(request):
         template_name = "changer_envoyeur"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -673,10 +673,10 @@ def changer_publieur_raa(request):
         template_name = "changer_publieur"
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -878,6 +878,7 @@ def mes_avis_action_a_faire(request):
     if not request.user.is_authenticated:
         return {}
 
+    liste_avis_avec_action_a_faire = []
     email_user = request.user.email
     nb_avis_action = 0
 
@@ -899,7 +900,9 @@ def mes_avis_action_a_faire(request):
         # (a) Avis à rendre → favorable is null
         nb_avis_a_rendre = Avis.objects.filter(
             id_expert=expert, favorable__isnull=True
-        ).count()
+        )
+
+        liste_avis_avec_action_a_faire.extend(nb_avis_a_rendre)
 
         # (b) Avis rendus avec messages non lus dont il n’est pas l’émetteur
         avis_rendus = Avis.objects.filter(
@@ -911,8 +914,10 @@ def mes_avis_action_a_faire(request):
             ).exclude(email_emetteur=email_user).count()
             if nb_non_lus > 0:
                 nb_avis_action += 1
+                if avis not in liste_avis_avec_action_a_faire:
+                    liste_avis_avec_action_a_faire.append(avis)
 
-        nb_avis_action += nb_avis_a_rendre
+        nb_avis_action += nb_avis_a_rendre.count()
 
     # ----------------------------------------------------------
     # 3️⃣ Cas où l’utilisateur est DEMANDEUR d’avis
@@ -932,8 +937,30 @@ def mes_avis_action_a_faire(request):
 
             if nb_non_lus > 0:
                 nb_avis_action += 1
+                if avis not in liste_avis_avec_action_a_faire:
+                    liste_avis_avec_action_a_faire.append(avis)
 
-    return {"nb_avis_action_a_faire": nb_avis_action}
+    # -----------------------------------------------------------------------
+    # 4 Cas où l’utilisateur est CHARGÉ DE PUBLIER LES AVIS INSTANCES AU RAA
+    # -----------------------------------------------------------------------
+    if instructeur and request.user.groups.filter(name="Publication RAA Avis CS").exists():
+
+        avis_en_attente_de_publi_RAA = (
+            Avis.objects.filter(favorable=True,)
+            .exclude(publie_au_raa=True)
+            .filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance")
+            .distinct()
+        )
+        ############################
+        # On filtrera sur expert = CS
+        ############################
+
+        for avis in avis_en_attente_de_publi_RAA :
+            if avis not in liste_avis_avec_action_a_faire:
+                liste_avis_avec_action_a_faire.append(avis)
+
+    return {"nb_avis_action_a_faire": len(liste_avis_avec_action_a_faire)}
+    # return {"nb_avis_action_a_faire": nb_avis_action}
 
 
 

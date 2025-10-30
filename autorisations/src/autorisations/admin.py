@@ -744,10 +744,39 @@ admin.site.register(DossierManifestationLiaison)
 
 admin.site.register(SynchronisationEtat)
 
+
+
+class EnvoyeAFilter(admin.SimpleListFilter):
+    title = "Envoyé à"  # Titre du filtre dans l’admin
+    parameter_name = "to_email"
+
+    def lookups(self, request, model_admin):
+        """Retourne les choix proposés dans la colonne de filtre"""
+        emails = (
+            EmailOutbox.objects.exclude(to__isnull=True)
+            .values_list("to", flat=True)
+        )
+
+        # ⚙️ `to` est une liste d’adresses (ArrayField), donc on doit aplatir :
+        unique_emails = set()
+        for email_list in emails:
+            if isinstance(email_list, list):
+                unique_emails.update(email_list)
+        
+        # Trie alphabétique pour lisibilité
+        return [(email, email) for email in sorted(unique_emails, key=str.lower)]
+
+    def queryset(self, request, queryset):
+        """Filtre le queryset selon la valeur choisie"""
+        if self.value():
+            return queryset.filter(to__icontains=self.value())
+        return queryset
+    
+
 @admin.register(EmailOutbox)
 class EmailOutboxAdmin(admin.ModelAdmin):
-    list_display = ("sujet", "statut", "type_mail", "email_from", "date_creation")
-    list_filter = ("statut", "type_mail")
+    list_display = ("sujet", "statut", "type_mail", "to", "date_creation")
+    list_filter = ("statut", "type_mail", EnvoyeAFilter)
     search_fields = ("sujet", "email_from", "to")
     ordering = ("-date_creation",)
 

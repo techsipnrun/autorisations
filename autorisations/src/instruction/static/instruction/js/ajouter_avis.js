@@ -95,6 +95,12 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+         // 💬 Confirmation avant envoi pour les boutons "confirmer"
+        if (buttonType === "confirmer") {
+            const ok = confirm("Voulez-vous vraiment envoyer la demande d'avis ?");
+            if (!ok) return; // annule l'envoi si l'utilisateur clique sur Annuler
+        }
+
         const action = e.target.getAttribute("formaction") || form.getAttribute("action");
         form.setAttribute("action", action);
         form.submit();

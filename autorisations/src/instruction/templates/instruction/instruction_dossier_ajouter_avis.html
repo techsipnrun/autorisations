@@ -17,7 +17,8 @@
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
 
     <!-- JS Formulaire Avis -->
-    <script src="{% static 'instruction/js/ajouter_avis.js' %}"></script>
+    <script src="{% static 'instruction/js/ajouter_avis.js' %}?v=2"></script>
+    <!-- <script src="{% static 'instruction/js/ajouter_avis.js' %}"></script> -->
 
 </head>
 <body>
@@ -203,7 +204,7 @@
 
                     <div class="btn-dropdown">
                         <!-- Bouton principal -->
-                        <button type="submit" class="main-btn"
+                        <button type="button" class="main-btn"
                             formaction="{% if avis %}
                                             {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}
                                         {% else %}
@@ -217,7 +218,7 @@
 
                         <!-- Menu déroulant -->
                         <div class="dropdown-content">
-                            <button type="submit" class="btn-confirmer-envoi"
+                            <button type="button" class="btn-confirmer-envoi"
                                 formaction="{% if avis %}
                                                 {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}
                                             {% else %}
@@ -227,7 +228,7 @@
                             </button>
 
 
-                            <button type="submit" class="btn-brouillon"
+                            <button type="button" class="btn-brouillon"
                                 formaction="{% if avis %}
                                                 {% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}
                                             {% else %}
@@ -278,7 +279,6 @@
             </div>
         </div>
     </div>
-
 
 
 </body>

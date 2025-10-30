@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import logging
 import os
 from django.http import HttpResponseBadRequest
@@ -1447,10 +1447,10 @@ def envoyer_message_avis(request):
     dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
     
-    # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+    # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
     existe_deja = EmailOutbox.objects.filter(
         dedupe_key=dedupe,
-        date_creation__date=date.today()
+        date_creation__date= timezone.now() - timedelta(hours=2)
     ).exists()
 
     if not existe_deja:
@@ -1551,10 +1551,10 @@ def envoyer_message_avis_vision_expert(request):
         template_name = "nouveau_message_expert" 
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -1592,10 +1592,10 @@ def envoyer_message_avis_vision_expert(request):
         template_name = "nouveau_message_demandeur" 
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-        # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date=date.today()
+            date_creation__date= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:

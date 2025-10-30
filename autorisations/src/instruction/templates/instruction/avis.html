@@ -80,7 +80,13 @@
                                         {% else %}etat-defavorable{% endif %}
                                     ">
                                         {% if avis.date_reponse_avis and avis.favorable is not null %}
-                                            {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
+                                            {% if avis.favorable and not avis.sous_reserve %}
+                                                ✅ Favorable
+                                            {% elif avis.favorable and avis.sous_reserve %}
+                                                ✅ Favorable sous réserve
+                                            {% else %}
+                                                ❌ Défavorable
+                                            {% endif %}
                                         {% else %}
                                             ⏳ En attente
                                         {% endif %}
@@ -300,7 +306,13 @@
                                     <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
                                     <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
                                     <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
-                                        {% if avis.favorable %}✅ Favorable{% else %}❌ Défavorable{% endif %}
+                                        {% if avis.favorable and not avis.sous_reserve %}
+                                                ✅ Favorable
+                                            {% elif avis.favorable and avis.sous_reserve %}
+                                                ✅ Favorable sous réserve
+                                            {% else %}
+                                                ❌ Défavorable
+                                            {% endif %}
                                     </td>
                                 </tr>
                             {% empty %}
@@ -309,6 +321,66 @@
                         </tbody>
                     </table>
                 </div>
+
+
+                {% if request.user|has_group:"Publication RAA Avis CS" %}
+                    <div class="avis-demandes-a-publier-RAA">
+                        <h1>Les demandes à publier au RAA</h1>
+
+                        <table class="table_archive">
+                            <thead class="thead_demandeur">
+                                <tr>
+                                    <th>Démarche</th>
+                                    <th title="Numéro de la demande d'avis">N° Avis</th>
+                                    <th title="Nature de la demande d'avis">Nature</th>
+                                    <th>Expert</th>
+                                    <th title="Date de la demande d'avis">Demande</th>
+                                    <th title="Date de la réponse de l'expert">Réponse</th>
+                                    <th title="État de la demande d'avis">État</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for avis in demandes_avis_a_publier_au_RAA %}
+                                    <tr class="clickable-row ligne-non-lue" data-href="{% url 'avis_expert' avis.id %}">
+                                        <td>
+                                            {% if avis.demarche_effective %}
+                                                {{ avis.demarche_effective.type }}
+                                            {% else %}
+                                                Non renseignée
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ avis.id }}</td>
+                                        <td>{{ avis.id_avis_nature.nature }}</td>
+                                        <td>
+                                            {{ avis.id_expert }}
+
+                                            {% if avis.nb_messages_non_lus > 0 %}
+                                                <div class="nouv_mess_wrapper">
+                                                    <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
+                                                    <div class="pastille_nouv_mess">{{avis.nb_messages_non_lus}}</div>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
+                                        <td>{{ avis.date_reponse_avis|date:"d/m/Y" }}</td>
+                                        <td class="{% if avis.favorable %}etat-favorable{% else %}etat-defavorable{% endif %}">
+                                            {% if avis.favorable and not avis.sous_reserve %}
+                                                    ✅ Favorable
+                                                {% elif avis.favorable and avis.sous_reserve %}
+                                                    ✅ Favorable sous réserve
+                                                {% else %}
+                                                    ❌ Défavorable
+                                                {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="7" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
             </div>
         {% endif %}
     </div>

@@ -79,6 +79,18 @@ def avis(request):
                             ).select_related(
                                 "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
                             ).order_by("-date_reponse_avis")
+        
+        # Demandes à publier au RAA
+        demandes_avis_a_publier_au_RAA = Avis.objects.filter(favorable=True
+                                        ).exclude(publie_au_raa=True
+                                        ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
+                                        ).distinct()
+        ############################
+        # On filtrera sur expert = CS
+        ############################
+
+
+        
 
         # Années disponibles
         annees_disponibles_demandeur = Avis.objects.filter(
@@ -119,6 +131,7 @@ def avis(request):
             # Demandeur
             "demandes_en_cours": demandes_en_cours,
             "demandes_traitees": demandes_traitees,
+            "demandes_avis_a_publier_au_RAA": demandes_avis_a_publier_au_RAA,
             "annees_disponibles_demandeur": annees_disponibles_demandeur,
         },
     )
@@ -517,10 +530,10 @@ def remplacer_avis_signe(request):
             template_name = "avis_remplace" 
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-            # Vérifie si un mail identique a déjà été créé aujourd’hui (pour éviter le spam)
+            # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
             existe_deja = EmailOutbox.objects.filter(
                 dedupe_key=dedupe,
-                date_creation__date=datetime.date.today()
+                date_creation__date= timezone.now() - datetime.timedelta(hours=2)
             ).exists()
 
             if not existe_deja:

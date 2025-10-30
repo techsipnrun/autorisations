@@ -92,20 +92,22 @@
                 {% if request.user|est_concerne_par_avis:avis %}
                     <!-- Publication RAA faite ? -->
                     {% if avis.favorable and avis_signes and not avis.publie_au_raa %}
-                        <div class="publication_raa">
-                            <form id="form-publier-raa-{{ avis.id }}" 
-                                action="{% url 'publier_avis_raa' avis.id %}" 
-                                method="post" 
-                                style="display:none;">
-                                {% csrf_token %}
-                            </form>
+                        {% if not est_expert or request.user|has_group:"Publication RAA Avis CS" %}
+                            <div class="publication_raa">
+                                <form id="form-publier-raa-{{ avis.id }}" 
+                                    action="{% url 'publier_avis_raa' avis.id %}" 
+                                    method="post" 
+                                    style="display:none;">
+                                    {% csrf_token %}
+                                </form>
 
-                            <button type="button" 
-                                    class="btn-publier-raa" 
-                                    onclick="confirmerPublicationRAA('{{ avis.id }}')">
-                                Valider la publication au RAA
-                            </button>
-                        </div>
+                                <button type="button" 
+                                        class="btn-publier-raa" 
+                                        onclick="confirmerPublicationRAA('{{ avis.id }}')">
+                                    Valider la publication au RAA
+                                </button>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             </div>

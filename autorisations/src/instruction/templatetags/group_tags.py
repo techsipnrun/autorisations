@@ -91,6 +91,10 @@ def est_concerne_par_demande_avis(user, avis):
     # 2️⃣ superuser → toujours concerné
     if user.is_superuser:
         return True
+    
+    # 2️⃣bis membre du groupe Publication RAA Avis CS → concerné
+    if user.groups.filter(name="Publication RAA Avis CS").exists():
+        return True
 
     # 3️⃣ recherche d’un Instructeur correspondant à l’utilisateur
     instructeur = Instructeur.objects.filter(email__iexact=user.email).first()
