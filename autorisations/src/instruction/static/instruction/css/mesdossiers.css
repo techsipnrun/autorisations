@@ -37,13 +37,94 @@
     font-weight: bold;
 }
 
+/* ---------------------------------------------- */
+/* ----------- Filtre "Action à faire" ----------- */
+/* ---------------------------------------------- */
+
+/* Filtre : Afficher mes dossiers */
+.page_mes_dossiers .filtre-au-dessus {
+    display: flex;
+    margin: 1rem auto;
+    width: 95%;
+    max-width: 1550px;
+    align-items: center;
+    justify-content: left;
+    font-weight: bold;
+}
+
+
+.page_mes_dossiers .filtre-action-mes-doss {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: left;
+    /* margin: 1rem auto; */
+    gap: 10px;
+    font-size: 1.1rem;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+/* Quand activé */
+input:checked + .slider {
+    background-color: #006131;
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+.switch-label {
+    color: #333;
+    font-weight: 500;
+}
+
+
+
+
+
 
 /* ================================
    Section d'une démarche
 ================================ */
 .mademarche {
     margin: 40px auto;
-    padding: 20px;
+    padding: 20px 20px 20px 30px;
     width: 95%;
     max-width: 1500px;
     border-radius: 12px;
@@ -111,40 +192,79 @@
 
 
 /* Dossier en cours : action à faire */
-.row-action {
-    background-color: #fff3cd !important; /* jaune */
+/* .row-action {
+    background-color: #fff3cd !important;
 }
 .row-action:hover {
     background-color: #ffe69c !important;
+} */
+
+/* Petit rond à gauche des lignes avec messages non lus */
+tbody tr.row-action {
+    position: relative;
 }
-.dot-action {
+
+tbody tr.row-action::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -18px; /* plus loin pour vraiment être à l’extérieur du tableau */
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+    box-shadow: 0 0 6px rgba(255, 65, 108, 0.6);
+    z-index: 10;
+}
+/* .dot-action {
     display: inline-block;
     width: 10px;
     height: 10px;
     margin-right: 6px;
     background: linear-gradient(135deg, #ff4b2b, #ff416c);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 50%;
     vertical-align: middle;
-}
+} */
 
 /* Dossier archivé : action à faire */
-.row-action-archive {
-    background-color: #cce5ff !important; /* bleu clair */
+/* .row-action-archive {
+    background-color: #cce5ff !important;
 }
 .row-action-archive:hover {
-    background-color: #99ccff !important; /* bleu un peu plus soutenu */
+    background-color: #99ccff !important;
+} */
+
+/* Petit rond à gauche des lignes avec messages non lus */
+tbody tr.row-action-archive {
+    position: relative;
 }
-.dot-action-archive {
+
+tbody tr.row-action-archive::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -18px; /* plus loin pour vraiment être à l’extérieur du tableau */
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #0056b3;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+/* .dot-action-archive {
     display: inline-block;
     width: 10px;
     height: 10px;
     margin-right: 6px;
-    background-color: #0056b3; /* bleu foncé */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    background-color: #0056b3;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 50%;
     vertical-align: middle;
-}
+} */
 
 
 

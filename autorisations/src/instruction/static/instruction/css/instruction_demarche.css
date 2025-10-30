@@ -187,29 +187,49 @@ h2 {
 
 /* Notif Dossier 'action à faire' */
 
-.ligne_en_gras td{
+/* .ligne_en_gras td{
+    font-weight: bold;
+} */
+
+
+/* Petit rond à gauche des lignes avec messages non lus */
+tbody tr.ligne_en_gras {
+    position: relative;
     font-weight: bold;
 }
 
-.dot-action {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin-right: 6px;
-    /* background-color: #e67e22; */
-    background: linear-gradient(135deg, #ff4b2b, #ff416c);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+tbody tr.ligne_en_gras::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -18px; /* plus loin pour vraiment être à l’extérieur du tableau */
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    vertical-align: middle;
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+    box-shadow: 0 0 6px rgba(255, 65, 108, 0.6);
+    z-index: 10;
 }
 
-.dot-action-archive {
+/* .dot-action {
     display: inline-block;
     width: 10px;
     height: 10px;
     margin-right: 6px;
-    background-color: #0056b3; /* bleu foncé */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* petit relief */
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 50%;
     vertical-align: middle;
-}
+} */
+
+/* .dot-action-archive {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    background-color: #0056b3;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    vertical-align: middle;
+} */

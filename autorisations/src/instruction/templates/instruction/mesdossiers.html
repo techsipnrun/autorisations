@@ -51,6 +51,18 @@
                 {% endfor %}
             </div>
         {% endif %}
+
+        {% if instructeur %}
+            <div class="filtre-au-dessus">
+                <div class="filtre-action-mes-doss">
+                    <label class="switch">
+                        <input type="checkbox" id="filtre-mes-dossiers">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Afficher uniquement les dossiers où j'ai une action à réaliser</span>
+                </div>
+            </div>
+        {% endif %}
         
         {% for demarche, dossiers in dossiers_par_demarche.items %}
             <div class="mademarche">
@@ -70,7 +82,8 @@
                     </thead>
                     <tbody>
                         {% for d in dossiers %}
-                            <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}">
+                            <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}"
+                            {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}title="Nouveau message sur le dossier archivé"{% elif d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
                                 <td>
                                     {% if d.nb_messages_non_lus > 0 %}
                                         <div class="nouv_mess_wrapper">
@@ -87,15 +100,7 @@
                                 <td>{{ d.beneficiaire }}</td>
                                 <td>{{ d.date_depot|date:"d/m/Y" }}</td>
                                 <td>{{ d.mon_role }}</td>
-                                <td 
-                                    {% if d.action_a_faire %}
-                                        {% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}
-                                            title="Nouveau message sur le dossier archivé"
-                                        {% else %}
-                                            title="Vous avez une action à faire"
-                                        {% endif %}
-                                    {% endif %}
-                                >
+                                <td>
                                     {% if d.action_a_faire %}
                                         <span class="{% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}dot-action-archive{% else %}dot-action{% endif %}"></span>
                                     {% endif %}
@@ -147,5 +152,57 @@
         });
     });
 </script>
+
+
+
+<!-- Bouton toggle pour afficher Mes dossiers avec action à faire-->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleMesDossiers = document.getElementById("filtre-mes-dossiers");
+        const lignes = document.querySelectorAll(".table_demarche_instru tbody tr.clickable-row");
+
+        toggleMesDossiers.addEventListener("change", function () {
+            const filtreActif = this.checked;
+            lignes.forEach(ligne => {
+                const estMonDossier = ligne.classList.contains("row-action") || ligne.classList.contains("row-action-archive");
+                // Quand le filtre est actif → afficher seulement mes dossiers
+                // Quand il est inactif → tout afficher
+                ligne.style.display = filtreActif && !estMonDossier ? "none" : "";
+            });
+        });
+    });
+</script>
+
+
+<!-- Masquer les démarches sans dossiers visibles -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleMesDossiers = document.getElementById("filtre-mes-dossiers");
+
+        function majVisibiliteDemarches() {
+            document.querySelectorAll(".mademarche").forEach(section => {
+                const lignesVisibles = section.querySelectorAll("tbody tr.clickable-row:not([style*='display: none'])");
+                section.style.display = lignesVisibles.length > 0 ? "" : "none";
+            });
+        }
+
+        // Sur changement du toggle
+        toggleMesDossiers.addEventListener("change", function () {
+            const filtreActif = this.checked;
+            const lignes = document.querySelectorAll(".table_demarche_instru tbody tr.clickable-row");
+
+            lignes.forEach(ligne => {
+                const estMonDossier = ligne.classList.contains("row-action") || ligne.classList.contains("row-action-archive");
+                ligne.style.display = filtreActif && !estMonDossier ? "none" : "";
+            });
+
+            majVisibiliteDemarches();
+        });
+
+        // Vérifie à l'initialisation
+        majVisibiliteDemarches();
+    });
+</script>
+
 
 </html>

@@ -19,16 +19,16 @@ def sync_groupeinstructeurs_demarches(gi_demarche_list):
                 obj.save()
                 logger.info(f"[SAVE] GroupeinstructeurDemarche {obj.id} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
     
-    for i in gi_demarche_list["i"]:
+    # for i in gi_demarche_list["i"]:
         
-        obj, created = Instructeur.objects.get_or_create(
-            email=i["email"],
-            defaults={"id_ds": i["id_instructeur_ds"]}
-        )
-        if created:
-            logger.info(f"[CREATE] Instructeur {obj} créé.")
-        else:
-            updated_fields = update_fields(obj, {"id_ds": i["id_instructeur_ds"]})
-            if updated_fields:
-                obj.save()
-                logger.info(f"[SAVE] Instructeur {obj.id} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+    #     obj, created = Instructeur.objects.get_or_create(
+    #         email=i["email"],
+    #         defaults={"id_ds": i["id_instructeur_ds"]}
+    #     )
+    #     if created:
+    #         logger.info(f"[CREATE] Instructeur {obj} créé.")
+    #     else:
+    #         updated_fields = update_fields(obj, {"id_ds": i["id_instructeur_ds"]})
+    #         if updated_fields:
+    #             obj.save()
+    #             logger.info(f"[SAVE] Instructeur {obj.id} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
