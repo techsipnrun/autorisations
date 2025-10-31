@@ -104,7 +104,7 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
                     if i and i != user_faisant_le_changement
                 ]
 
-                # print(f"Mails ayant une action à faire (après retirage du user ayant fait le changement d'étape) : {emails_norm2}")
+                print(f"Mails ayant une action à faire (après retirage du user ayant fait le changement d'étape) : {emails_norm2}")
 
                 emails_norm = ["louis.calu@reunion-parcnational.fr"]
                 sujet = f"Dossier {dossier.numero} - Action à faire"

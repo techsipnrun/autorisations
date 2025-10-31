@@ -108,6 +108,26 @@ def etat_actualisation(request):
 })
 
 
+@login_required
+def rediriger_vers_dossier_precedent(request, num_dossier_precedent):
+    """
+    Redirige vers le dossier précédent si celui-ci existe,
+    sinon affiche un message d’erreur et revient sur la page d’origine.
+    """
+    try:
+        numero = int(num_dossier_precedent)
+    except ValueError:
+        messages.error(request, f"Le numéro '{num_dossier_precedent}' n’est pas valide.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier_prec = Dossier.objects.filter(numero=numero).first()
+    if dossier_prec:
+        return redirect("instruction_dossier", num_dossier=dossier_prec.numero)
+    else:
+        messages.error(request, f"Aucun dossier trouvé avec le numéro {numero}.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
 @require_POST
 @login_required
 def se_declarer_instructeur(request):
@@ -134,38 +154,39 @@ def se_declarer_instructeur(request):
             # NOTIFICATION PAR MAIL 
             #######################
 
-            # emails_norm = [instructeur.email]
-            emails_norm = ["louis.calu@reunion-parcnational.fr"]
-            sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
-            # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-            context = {
-                "dossier_numero": dossier.numero,
-                "demarche_type": dossier.id_demarche.type,
-                "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
-            }
-            template_name = "ajouter_a_instruction" 
-            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+            if request.user.email != instructeur.email :
+                # emails_norm = [instructeur.email]
+                emails_norm = ["louis.calu@reunion-parcnational.fr"]
+                sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
+                # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+                context = {
+                    "dossier_numero": dossier.numero,
+                    "demarche_type": dossier.id_demarche.type,
+                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+                }
+                template_name = "ajouter_a_instruction" 
+                dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-            # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
-            existe_deja = EmailOutbox.objects.filter(
-                dedupe_key=dedupe,
-                date_creation__date= timezone.now() - timedelta(hours=2)
-            ).exists()
+                # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
+                existe_deja = EmailOutbox.objects.filter(
+                    dedupe_key=dedupe,
+                    date_creation__date= timezone.now() - timedelta(hours=2)
+                ).exists()
 
-            if not existe_deja:
-                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+                if not existe_deja:
+                    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
 
-                if outbox :
-                    ok, err = envoi_mail(outbox.id)
-                else :
-                    logger.error(f"[DOSSIER {dossier.numero}] Instruteur ajouté : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
-                    messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                    if outbox :
+                        ok, err = envoi_mail(outbox.id)
+                    else :
+                        logger.error(f"[DOSSIER {dossier.numero}] Instruteur ajouté : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
+                        messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-                if ok:
-                    logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Ajout instructeur) envoyée à {', '.join(outbox.to)} ")
-                else:
-                    logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
-                    messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                    if ok:
+                        logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Ajout instructeur) envoyée à {', '.join(outbox.to)} ")
+                    else:
+                        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
+                        messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
 
         else :
@@ -229,38 +250,40 @@ def retirer_instructeur(request):
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    # emails_norm = [instructeur.email]
-    emails_norm = ["louis.calu@reunion-parcnational.fr"]
-    sujet = f"Dossier {dossier.numero} - Vous avez été retiré.e de l'instruction"
-    # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-    context = {
-        "dossier_numero": dossier.numero,
-        "demarche_type": dossier.id_demarche.type,
-        "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
-    }
-    template_name = "retirer_de_instruction"
-    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-    # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
-    existe_deja = EmailOutbox.objects.filter(
-        dedupe_key=dedupe,
-        date_creation__date= timezone.now() - timedelta(hours=2)
-    ).exists()
+    if request.user.email != instructeur.email :
+        # emails_norm = [instructeur.email]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        sujet = f"Dossier {dossier.numero} - Vous avez été retiré.e de l'instruction"
+        # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+        context = {
+            "dossier_numero": dossier.numero,
+            "demarche_type": dossier.id_demarche.type,
+            "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+        }
+        template_name = "retirer_de_instruction"
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
-    if not existe_deja:
-        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
+        existe_deja = EmailOutbox.objects.filter(
+            dedupe_key=dedupe,
+            date_creation__date= timezone.now() - timedelta(hours=2)
+        ).exists()
 
-        if outbox :
-            ok, err = envoi_mail(outbox.id)
-        else :
-            logger.error(f"[DOSSIER {dossier.numero}] Instruteur retiré : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
-            messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-            
-        if ok:
-            logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Instructeur retiré) envoyée à {', '.join(outbox.to)} ")
-        else:
-            logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur retiré) à {', '.join(outbox.to)} : {err}")
-            messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        if not existe_deja:
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Instruteur retiré : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Instructeur retiré) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur retiré) à {', '.join(outbox.to)} : {err}")
+                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -839,7 +862,7 @@ def mes_dossiers_a_traiter_count(request):
             Q(dossierpublicationraa__id_instructeur=instructeur) |
             Q(dossierenvoiacte__id_instructeur=instructeur)
         )
-        .exclude(id_etape_dossier__etape__in=["À affecter", "Accepté", "Refusé", "Non soumis à autorisation"])
+        .exclude(id_etape_dossier__etape__in=["À affecter"])
         .distinct()
     )
 

@@ -80,6 +80,11 @@
     width: 80%;
 }
 
+.identite_demandeur {
+    padding-left: 1rem;
+    border-left: #006131 solid 4px;
+}
+
 .champs p {
     margin-bottom: 0.4rem;
     font-size: 1rem;

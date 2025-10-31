@@ -142,13 +142,59 @@
                     </form>
                 </div>
 
+                <!-- Identité bénéficiaire -->
+                {% if beneficiaire %}
+                    <div class="identite_demandeur">
+                        <h2> Identité du bénéficaire </h2>
+                        {% if beneficiaire.nom %}
+                            <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
+                        {% endif %}
+                        {% if beneficiaire.prenom %}
+                            <p><strong>Prénom</strong> : {{ beneficiaire.prenom|capfirst }}</p>
+                        {% endif %}
+                        {% if beneficiaire.email %}
+                            <p><strong>Email</strong> : {{ beneficiaire.email }}</p>
+                        {% endif %}
+                        {% if beneficiaire.siret %}
+                            <p><strong>N° SIRET</strong> : {{ beneficiaire.siret }}</p>
+                        {% endif %}
+                        {% if beneficiaire.raison_sociale %}
+                            <p><strong>Raison Sociale</strong> : {{ beneficiaire.raison_sociale|capfirst }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- Identité demandeur intermédiaire -->
+                {% if demandeur_intermediaire %}
+                    <div class="identite_demandeur">
+                        <h2> Identité du demandeur intermédiaire</h2>
+                        {% if demandeur_intermediaire.nom %}
+                            <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
+                        {% endif %}
+                        {% if demandeur_intermediaire.prenom %}
+                            <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
+                        {% endif %}
+                        {% if demandeur_intermediaire.email %}
+                            <p><strong>Email</strong> : {{ demandeur_intermediaire.email }}</p>
+                        {% endif %}
+                        {% if demandeur_intermediaire.siret %}
+                            <p><strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}</p>
+                        {% endif %}
+                        {% if demandeur_intermediaire.raison_sociale %}
+                            <p><strong>Raison Sociale</strong> : {{ demandeur_intermediaire.raison_sociale|capfirst }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 <div class="champs">
                     {% for champ in champs %}
                         {% if champ.type == 'header' %}
-                            <h2>{{ champ.titre }}</h2>
+                            {% if champ.titre != 'MODIFICATION DU PROJET' and champ.titre != 'RENOUVELLEMENT DU PROJET' %}
+                                <h2>{{ champ.titre }}</h2>
+                            {% endif %}
 
                             <!-- Nom et prénom du bénéficiare -->
-                            {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
+                            <!-- {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
                                 {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
                                     {% if beneficiaire.nom %}
                                         <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
@@ -158,12 +204,12 @@
                                     {% endif %}
                                 {% endif %}
                             {% endif %}
-                            
+                             -->
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
                                 
                             
-                                {% if demandeur_intermediaire %}
+                                <!-- {% if demandeur_intermediaire %}
                                     {% if demandeur_intermediaire.nom %}
                                         <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
                                     {% endif %}
@@ -171,17 +217,30 @@
                                         <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
                                     {% endif %}
 
-                                {% else %}
-                                    <p style="color: rgb(158, 11, 0);">Le prénom et le nom du demandeur intermédiaire n’apparaissent pas, 
-                                        car la personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.
+                                {% else %} {% endif %} -->
+
+                                {% if not demandeur_intermediaire %}
+                                    <p style="color: rgb(158, 11, 0);" title="La personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.">
+                                        Le prénom et le nom du demandeur intermédiaire n’ont pas été fournis.
                                     </p>
                                 {% endif %}
                             {% endif %}
 
                         <!-- Champs classiques -->
                         {% elif champ.type == 'champ' %}
+                            <!-- Champs J'atteste que ... -->
                             {% if champ.nom|contains:"atteste que" and champ.valeur == 'true' %}
                                 <p><i>{{ champ.nom }}</i></p>
+                            
+                            <!-- Lien avec autre dossier -->
+                            {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur %}
+                                <p>
+                                    <strong>{{ champ.nom }}</strong> :
+                                    <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
+                                        Voir le dossier n°{{ champ.valeur }}
+                                    </a>
+                                </p>
+                                
                             {% else %}
                                 {% if champ.valeur == 'true' %}
                                     <p><strong>{{ champ.nom }}</strong> : Oui</p>

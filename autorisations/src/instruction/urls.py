@@ -58,6 +58,7 @@ urlpatterns = [
     path('changer_intermediaire_signature/', views.changer_intermediaire_signature, name='changer_intermediaire_signature'),
     path('changer_envoyeur_acte/', views.changer_envoyeur_acte, name='changer_envoyeur_acte'),
     path('changer_publieur_raa/', views.changer_publieur_raa, name='changer_publieur_raa'),
+    path("instruction/dossier-precedent/<int:num_dossier_precedent>/", views.rediriger_vers_dossier_precedent, name="rediriger_vers_dossier_precedent"),
 
     
     
@@ -114,9 +115,14 @@ urlpatterns = [
     
     # REQUÊTES
     path('requetes/', requete.requete_dossiers, name='requetes_view'),
+    path('requetes/dossiers/', requete.requete_dossiers, name='requetes_dossiers'),
+    path('requetes/avis/', requete.requete_avis, name='requetes_avis'),
+
     path('autocomplete/numero/', requete.autocomplete_numero_dossier, name='autocomplete_numero_dossier'),
     path("autocomplete/nom/", requete.autocomplete_nom_beneficiaire, name="autocomplete_nom_beneficiaire"),
     path("autocomplete/instructeur/", requete.autocomplete_instructeur, name="autocomplete_instructeur"),
+    path("autocomplete/demandeur/", requete.autocomplete_demandeur, name="autocomplete_demandeur"),
+    path("autocomplete/expert/", requete.autocomplete_expert, name="autocomplete_expert"),
 
 
     # CHANGEMENT ÉTAPE

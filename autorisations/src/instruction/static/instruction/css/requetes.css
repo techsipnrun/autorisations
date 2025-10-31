@@ -8,14 +8,23 @@
 /*              RECHERCHE FILTRÉE             */
 /* ------------------------------------------ */
 
+.retrouver_mon_dossier {
+    margin-top: 14rem;
+}
+
+.retrouver_mon_avis {
+    margin-top: 20rem;
+    margin-bottom: 10rem;
+}
+
 /* Titre principal */
 #titre_requete {
     text-align: center;
     font-size: 2.5rem;
-    margin-top: 14rem;
     color: #2c3e50;
     font-weight: 600;
 }
+
 
 .recherche_filtre{
     display: flex;

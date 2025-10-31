@@ -16,64 +16,179 @@
 <body>
     {% include 'navbar.html' %}
 
-    <h1 id="titre_requete">Retrouver mon dossier</h1>
 
-    <div class="recherche_filtre">
-        <form method="get" class="recherche-form" id="recherche-form" id="recherche-form">
+    <!-- ======================================================= -->
+    <!--                RETROUVER MON DOSSIER                    -->
+    <!-- ======================================================= -->
+    <div class="retrouver_mon_dossier">
+        <h1 id="titre_requete">Retrouver mon dossier</h1>
 
-            <div class="form-field">
-                <label for="numero">N° Dossier :</label>
-                <input type="text" name="numero" id="numero" list="suggestions-numero" autocomplete="off" value="{{ request.GET.numero }}">
-                <datalist id="suggestions-numero"></datalist>
+        <div class="recherche_filtre">
+            <form method="get" action="{% url 'requetes_dossiers' %}" class="recherche-form" id="recherche-form">
+
+                <div class="form-field">
+                    <label for="numero">N° Dossier :</label>
+                    <input type="text" name="numero" id="numero" list="suggestions-numero" autocomplete="off" value="{{ request.GET.numero }}">
+                    <datalist id="suggestions-numero"></datalist>
+                </div>
+
+
+                <div class="form-field">
+                    <label for="date_depot">Date de dépôt :</label>
+                    <input type="date" name="date_depot" id="date_depot" value="{{ request.GET.date_depot }}">
+                </div>
+
+                <div class="form-field">
+                    <label for="etape">Étape dossier :</label>
+                    <select name="etape" id="etape">
+                        <option value="" {% if not request.GET.etape %}selected{% endif %}> - - - </option>
+                        {% for etape in etapes_dossier %}
+                            <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+                <div class="form-field">
+                    <label for="nom">Bénéficiaire :</label>
+                    <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ request.GET.nom }}">
+                    <datalist id="suggestions-nom"></datalist>
+                </div>
+
+                <div class="form-field">
+                    <label for="groupe">Groupe Instructeur :</label>
+                    <select name="groupe" id="groupe">
+                        <option value="" {% if not request.GET.groupe %}selected{% endif %}> - - - </option>
+                        {% for g in groupes %}
+                            <option value="{{ g.nom }}" {% if request.GET.groupe == g.nom %}selected{% endif %}>{{ g.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="type_demarche">Type de démarche :</label>
+                <select name="type_demarche" id="type_demarche">
+                        <option value="" {% if not request.GET.type_demarche %}selected{% endif %}> - - - </option>
+                        {% for d in demarches %}
+                            <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="annee">Année :</label>
+                    <select name="annee" id="annee">
+                        <option value="" {% if not request.GET.annee %}selected{% endif %}> - - - </option>
+                        {% for an in annees %}
+                            <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="instructeur">Instructeur :</label>
+                    <input type="text" name="instructeur" id="instructeur" list="suggestions-instructeur" autocomplete="off" value="{{ request.GET.instructeur }}">
+                    <datalist id="suggestions-instructeur"></datalist>
+                </div>
+
+            </form>
+
+            <div class="form-button-bottom">
+                <button type="submit" form="recherche-form">Rechercher</button>
             </div>
 
+        </div>
+
+        {% if recherche_dossier_effectuee %}
+            <div class="resultat">
+
+                {% if dossiers %}
+                    <p class="result-count">{{ dossiers|length }} dossier{{ dossiers|length|pluralize:"s" }} trouvé{{ dossiers|length|pluralize:"s" }} :</p>
+                {% else %}
+                    <p class="result-count">Aucun dossier trouvé.</p>
+                {% endif %}
+
+
+                <table class="table-resultats">
+                    <thead>
+                        <tr>
+                            <th>N°</th>
+                            <th>Nom dossier</th>
+                            <th>Démarche</th>
+                            <th>Étape</th>
+                            <th>Date dépôt</th>
+                            <th>Groupe Instructeur</th>
+                            <th>Bénéficiaire</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dossier in dossiers %}
+                        <tr onclick="window.location.href='/instruction/{{ dossier.numero}}'" class="clickable-row">
+                        <tr onclick="window.location.href='{{ dossier.lien }}'" class="clickable-row">
+
+                            <td>{{ dossier.numero }}</td>
+                            <td>{{ dossier.nom_dossier }}</td>
+                            <td>{{ dossier.id_demarche.type }}</td>
+                            <td>{{ dossier.id_etape_dossier.etape }}</td>
+                            <td>{{ dossier.date_depot|date:"d/m/Y" }}</td>
+                            <td>{{ dossier.id_groupeinstructeur.nom }}</td>
+                            <td>
+                                {% with dossier.dossierinterlocuteur_set.first as interlocuteur %}
+                                    {% if interlocuteur %}
+                                        {% with interlocuteur.dossierbeneficiaire_set.first.id_beneficiaire as b %}
+                                            {% if b %}
+                                                {% if b.raison_sociale %}
+                                                    {{ b.raison_sociale }}
+                                                {% elif b.nom and b.prenom %}
+                                                    {{ b.nom }} {{ b.prenom }}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7">Aucun résultat</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+
+
+    <!-- ======================================================= -->
+    <!--                RETROUVER MON AVIS                       -->
+    <!-- ======================================================= -->
+    <div class="retrouver_mon_avis">
+    
+        <h1 id="titre_requete">Retrouver mon avis</h1>
+
+        <div class="recherche_filtre">
+        <form method="get" action="{% url 'requetes_avis' %}" class="recherche-form" id="recherche-avis-form">
+
 
             <div class="form-field">
-                <label for="date_depot">Date de dépôt :</label>
-                <input type="date" name="date_depot" id="date_depot" value="{{ request.GET.date_depot }}">
+                <label for="num_avis">N° Avis :</label>
+                <input type="text" name="num_avis" id="num_avis" value="{{ request.GET.num_avis }}">
             </div>
 
             <div class="form-field">
-                <label for="etape">Étape dossier :</label>
-                <select name="etape" id="etape">
-                    <option value="" {% if not request.GET.etape %}selected{% endif %}> - - - </option>
-                    {% for etape in etapes_dossier %}
-                        <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
+                <label for="mois">Mois (de la demande) :</label>
+                <select name="mois" id="mois">
+                    <option value=""> - - - </option>
+                    {% for m in mois_list %}
+                        <option value="{{ m }}" {% if request.GET.mois == m|stringformat:"s" %}selected{% endif %}>{{ m }}</option>
                     {% endfor %}
                 </select>
-
             </div>
 
             <div class="form-field">
-                <label for="nom">Bénéficiaire :</label>
-                <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ request.GET.nom }}">
-                <datalist id="suggestions-nom"></datalist>
-            </div>
-
-            <div class="form-field">
-                <label for="groupe">Groupe Instructeur :</label>
-                <select name="groupe" id="groupe">
-                    <option value="" {% if not request.GET.groupe %}selected{% endif %}> - - - </option>
-                    {% for g in groupes %}
-                        <option value="{{ g.nom }}" {% if request.GET.groupe == g.nom %}selected{% endif %}>{{ g.nom }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-field">
-                <label for="type_demarche">Type de démarche :</label>
-               <select name="type_demarche" id="type_demarche">
-                    <option value="" {% if not request.GET.type_demarche %}selected{% endif %}> - - - </option>
-                    {% for d in demarches %}
-                        <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-field">
-                <label for="annee">Année :</label>
+                <label for="annee">Année (de la demande) :</label>
                 <select name="annee" id="annee">
-                    <option value="" {% if not request.GET.annee %}selected{% endif %}> - - - </option>
+                    <option value=""> - - - </option>
                     {% for an in annees %}
                         <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
                     {% endfor %}
@@ -81,146 +196,187 @@
             </div>
 
             <div class="form-field">
-                <label for="instructeur">Instructeur :</label>
-                <input type="text" name="instructeur" id="instructeur" list="suggestions-instructeur" autocomplete="off" value="{{ request.GET.instructeur }}">
-                <datalist id="suggestions-instructeur"></datalist>
+                <label for="reponse">Réponse :</label>
+                <select name="reponse" id="reponse">
+                    <option value=""> - - - </option>
+                    <option value="En attente" {% if request.GET.reponse == "En attente" %}selected{% endif %}>En attente</option>
+                    <option value="Favorable" {% if request.GET.reponse == "Favorable" %}selected{% endif %}>Favorable</option>
+                    <option value="Favorable sous réserve" {% if request.GET.reponse == "Favorable sous réserve" %}selected{% endif %}>Favorable sous réserve</option>
+                    <option value="Défavorable" {% if request.GET.reponse == "Défavorable" %}selected{% endif %}>Défavorable</option>
+                </select>
             </div>
 
+            <div class="form-field">
+                <label for="demandeur">Demandeur :</label>
+                <input type="text" name="demandeur" id="demandeur" list="suggestions-demandeur" autocomplete="off" value="{{ request.GET.demandeur }}">
+                <datalist id="suggestions-demandeur"></datalist>
+            </div>
 
+            <div class="form-field">
+                <label for="expert">Expert :</label>
+                <input type="text" name="expert" id="expert" list="suggestions-expert" autocomplete="off" value="{{ request.GET.expert }}">
+                <datalist id="suggestions-expert"></datalist>
+            </div>
 
+            <div class="form-field">
+                <label for="num_dossier">N° d’un dossier lié :</label>
+                <input type="text" name="num_dossier" id="num_dossier" value="{{ request.GET.num_dossier }}">
+            </div>
+
+            <div class="form-field">
+                <label for="type_demarche">Type de démarche :</label>
+                <select name="type_demarche" id="type_demarche">
+                    <option value=""> - - - </option>
+                    {% for d in demarches %}
+                        <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="publie_raa">Publié au RAA :</label>
+                <select name="publie_raa" id="publie_raa">
+                    <option value=""> - - - </option>
+                    <option value="Oui" {% if request.GET.publie_raa == "Oui" %}selected{% endif %}>Oui</option>
+                    <option value="Non" {% if request.GET.publie_raa == "Non" %}selected{% endif %}>Non</option>
+                </select>
+            </div>
         </form>
 
         <div class="form-button-bottom">
-            <button type="submit" form="recherche-form">Rechercher</button>
+            <button type="submit" form="recherche-avis-form">Rechercher</button>
+        </div>
         </div>
 
+        {% if recherche_avis_effectuee %}
+            <div class="resultat">
+                {% if avis_list %}
+                    <p class="result-count">{{ avis_list|length }} avis trouvé{{ avis_list|length|pluralize:"s" }} :</p>
+                {% else %}
+                    <p class="result-count">Aucun avis trouvé.</p>
+                {% endif %}
+
+                <table class="table-resultats">
+                    <thead>
+                        <tr>
+                            <th>N° Avis</th>
+                            <th>Date demande</th>
+                            <th>Démarche</th>
+                            <th>Expert</th>
+                            <th>Demandeur</th>
+                            <th>Réponse</th>
+                            <th>Publié au RAA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in avis_list %}
+                            <tr onclick="window.location.href='/reception_avis/{{ a.id }}'" class="clickable-row"> 
+                                <td>{{ a.id }}</td>
+                                <td>{{ a.date_demande_avis|date:"d/m/Y" }}</td>
+                                <td>{{ a.id_dossier.id_demarche.type }}</td>
+                                <td>{{ a.id_expert }}</td>
+                                <td>{{ a.id_instructeur }}</td>
+                                <td>
+                                    {% if a.favorable == True and not a.sous_reserve %}
+                                        Favorable
+                                    {% elif a.favorable == True and a.sous_reserve %}
+                                        Favorable sous réserve
+                                    {% elif a.favorable == False %}
+                                        Défavorable
+                                    {% else %}
+                                        En attente
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if a.publie_au_raa %}
+                                        Oui
+                                    {% else %}
+                                        Non
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="7">Aucun résultat</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
     </div>
 
-    {% if recherche_effectuee %}
-        <div class="resultat">
-
-            {% if dossiers %}
-                <p class="result-count">{{ dossiers|length }} dossier{{ dossiers|length|pluralize:"s" }} trouvé{{ dossiers|length|pluralize:"s" }} :</p>
-            {% else %}
-                <p class="result-count">Aucun dossier trouvé.</p>
-            {% endif %}
 
 
-            <table class="table-resultats">
-                <thead>
-                    <tr>
-                        <th>N°</th>
-                        <th>Nom dossier</th>
-                        <th>Démarche</th>
-                        <th>Étape</th>
-                        <th>Date dépôt</th>
-                        <th>Groupe Instructeur</th>
-                        <th>Bénéficiaire</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for dossier in dossiers %}
-                    <tr onclick="window.location.href='/instruction/{{ dossier.numero}}'" class="clickable-row">
-                    <tr onclick="window.location.href='{{ dossier.lien }}'" class="clickable-row">
 
-                        <td>{{ dossier.numero }}</td>
-                        <td>{{ dossier.nom_dossier }}</td>
-                        <td>{{ dossier.id_demarche.type }}</td>
-                        <td>{{ dossier.id_etape_dossier.etape }}</td>
-                        <td>{{ dossier.date_depot|date:"d/m/Y" }}</td>
-                        <td>{{ dossier.id_groupeinstructeur.nom }}</td>
-                        <td>
-                            {% with dossier.dossierinterlocuteur_set.first as interlocuteur %}
-                                {% if interlocuteur %}
-                                    {% with interlocuteur.dossierbeneficiaire_set.first.id_beneficiaire as b %}
-                                        {% if b %}
-                                            {% if b.raison_sociale %}
-                                                {{ b.raison_sociale }}
-                                            {% elif b.nom and b.prenom %}
-                                                {{ b.nom }} {{ b.prenom }}
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endwith %}
-                                {% endif %}
-                            {% endwith %}
-                        </td>
 
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="7">Aucun résultat</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-        </div>
-    {% endif %}
     
 </body>
 
-
+<!-- ======================================================= -->
+<!--               AUTOCOMPLETION JS                         -->
+<!-- ======================================================= -->
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const input = document.getElementById("numero");
-    const datalist = document.getElementById("suggestions-numero");
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("numero");
+        const datalist = document.getElementById("suggestions-numero");
 
-    input.addEventListener("input", function () {
-        const query = input.value;
-        if (!query) return;
+        input.addEventListener("input", function () {
+            const query = input.value;
+            if (!query) return;
 
-        fetch(`/autocomplete/numero/?term=${query}`)
-            .then(response => response.json())
-            .then(data => {
-                datalist.innerHTML = "";
-                data
-                    .filter(item => item.value !== input.value)
-                    .forEach(item => {
-                        const option = document.createElement("option");
-                        option.value = item.value;
-                        datalist.appendChild(option);
-                    });
+            fetch(`/autocomplete/numero/?term=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    datalist.innerHTML = "";
+                    data
+                        .filter(item => item.value !== input.value)
+                        .forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = item.value;
+                            datalist.appendChild(option);
+                        });
+                });
+            
+            input.addEventListener("change", function () {
+                setTimeout(() => {
+                    datalist.innerHTML = "";
+                    input.blur();  // 👈 enlève le focus
+                }, 100);
             });
-        
-        input.addEventListener("change", function () {
-            setTimeout(() => {
-                datalist.innerHTML = "";
-                input.blur();  // 👈 enlève le focus
-            }, 100);
-        });
 
+        });
     });
-});
 </script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const nomInput = document.getElementById("nom");
-    const nomDatalist = document.getElementById("suggestions-nom");
+    document.addEventListener("DOMContentLoaded", function () {
+        const nomInput = document.getElementById("nom");
+        const nomDatalist = document.getElementById("suggestions-nom");
 
-    nomInput.addEventListener("input", function () {
-        const query = nomInput.value;
-        if (!query) return;
+        nomInput.addEventListener("input", function () {
+            const query = nomInput.value;
+            if (!query) return;
 
-        fetch(`/autocomplete/nom/?term=${query}`)
-            .then(response => response.json())
-            .then(data => {
+            fetch(`/autocomplete/nom/?term=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    nomDatalist.innerHTML = "";
+                    data
+                        .filter(item => item.value !== nomInput.value)
+                        .forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = item.value;
+                            nomDatalist.appendChild(option);
+                        });
+                });
+        });
+
+        nomInput.addEventListener("change", function () {
+            setTimeout(() => {
                 nomDatalist.innerHTML = "";
-                data
-                    .filter(item => item.value !== nomInput.value)
-                    .forEach(item => {
-                        const option = document.createElement("option");
-                        option.value = item.value;
-                        nomDatalist.appendChild(option);
-                    });
-            });
+                nomInput.blur(); // retire le focus pour fermer datalist
+            }, 100);
+        });
     });
-
-    nomInput.addEventListener("change", function () {
-        setTimeout(() => {
-            nomDatalist.innerHTML = "";
-            nomInput.blur(); // retire le focus pour fermer datalist
-        }, 100);
-    });
-});
 </script>
 
 <script>
@@ -254,10 +410,77 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 100);
         });
     });
-
-
 </script>
 
+
+<!-- --- Demandeur (Instructeur) --- -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        
+        const demandeurInput = document.getElementById("demandeur");
+        const demandeurList = document.getElementById("suggestions-demandeur");
+
+        demandeurInput.addEventListener("input", function () {
+            const query = demandeurInput.value;
+            if (!query) return;
+
+            fetch(`/autocomplete/demandeur/?term=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    demandeurList.innerHTML = "";
+                    data
+                        .filter(item => item.value !== demandeurInput.value)
+                        .forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = item.value;
+                            demandeurList.appendChild(option);
+                        });
+                });
+        });
+
+        demandeurInput.addEventListener("change", function () {
+            setTimeout(() => {
+                demandeurList.innerHTML = "";
+                demandeurInput.blur();
+            }, 100);
+        });
+    });
+</script>
+
+
+<!-- --- Expert (Interne ou Externe) --- -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        
+        const expertInput = document.getElementById("expert");
+        const expertList = document.getElementById("suggestions-expert");
+
+        expertInput.addEventListener("input", function () {
+            const query = expertInput.value;
+            if (!query) return;
+
+            fetch(`/autocomplete/expert/?term=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    expertList.innerHTML = "";
+                    data
+                        .filter(item => item.value !== expertInput.value)
+                        .forEach(item => {
+                            const option = document.createElement("option");
+                            option.value = item.value;
+                            expertList.appendChild(option);
+                        });
+                });
+        });
+
+        expertInput.addEventListener("change", function () {
+            setTimeout(() => {
+                expertList.innerHTML = "";
+                expertInput.blur();
+            }, 100);
+        });
+    });
+</script>
 
 
 </html>

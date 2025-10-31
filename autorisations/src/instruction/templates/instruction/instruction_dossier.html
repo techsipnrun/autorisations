@@ -1181,12 +1181,59 @@
                 ####################################################################
                 -->
                 <div class="champs">
+
+                    <!-- Identité bénéficiaire -->
+                    {% if beneficiaire %}
+                        <div class="identite_demandeur">
+                            <h2> Identité du bénéficaire </h2>
+                            {% if beneficiaire.nom %}
+                                <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
+                            {% endif %}
+                            {% if beneficiaire.prenom %}
+                                <p><strong>Prénom</strong> : {{ beneficiaire.prenom|capfirst }}</p>
+                            {% endif %}
+                            {% if beneficiaire.email %}
+                                <p><strong>Email</strong> : {{ beneficiaire.email }}</p>
+                            {% endif %}
+                            {% if beneficiaire.siret %}
+                                <p><strong>N° SIRET</strong> : {{ beneficiaire.siret }}</p>
+                            {% endif %}
+                            {% if beneficiaire.raison_sociale %}
+                                <p><strong>Raison Sociale</strong> : {{ beneficiaire.raison_sociale|capfirst }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Identité demandeur intermédiaire -->
+                    {% if demandeur_intermediaire %}
+                        <div class="identite_demandeur">
+                            <h2> Identité du demandeur intermédiaire</h2>
+                            {% if demandeur_intermediaire.nom %}
+                                <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
+                            {% endif %}
+                            {% if demandeur_intermediaire.prenom %}
+                                <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
+                            {% endif %}
+                            {% if demandeur_intermediaire.email %}
+                                <p><strong>Email</strong> : {{ demandeur_intermediaire.email }}</p>
+                            {% endif %}
+                            {% if demandeur_intermediaire.siret %}
+                                <p><strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}</p>
+                            {% endif %}
+                            {% if demandeur_intermediaire.raison_sociale %}
+                                <p><strong>Raison Sociale</strong> : {{ demandeur_intermediaire.raison_sociale|capfirst }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
                     {% for champ in champs %}
                         {% if champ.type == 'header' %}
-                            <h2>{{ champ.titre }}</h2>
+                            {% if champ.titre != 'MODIFICATION DU PROJET' and champ.titre != 'RENOUVELLEMENT DU PROJET' %}
+                                <h2>{{ champ.titre }}</h2>
+                            {% endif %}
 
                             <!-- Nom et prénom du bénéficiare -->
-                            {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
+                            <!-- {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
                                 {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
                                     {% if beneficiaire.nom %}
                                         <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
@@ -1195,12 +1242,12 @@
                                         <p><strong>Prénom</strong> : {{ beneficiaire.prenom|capfirst }}</p>
                                     {% endif %}
                                 {% endif %}
-                            {% endif %}
+                            {% endif %} -->
 
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
                          
-                                {% if demandeur_intermediaire %}
+                                <!-- {% if demandeur_intermediaire %}
                                     {% if demandeur_intermediaire.nom %}
                                         <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
                                     {% endif %}
@@ -1208,7 +1255,8 @@
                                         <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
                                     {% endif %}
 
-                                {% else %}
+                                {% else %}  {% endif %} -->
+                                {% if not demandeur_intermediaire %}
                                     <p style="color: rgb(158, 11, 0);" title="La personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.">
                                         Le prénom et le nom du demandeur intermédiaire n’ont pas été fournis.
                                     </p>
@@ -1217,8 +1265,19 @@
 
                         <!-- Champs classiques -->
                         {% elif champ.type == 'champ' %}
+                            <!-- Champs J'atteste que ... -->
                             {% if champ.nom|contains:"atteste que" and champ.valeur == 'true' %}
                                 <p><i>{{ champ.nom }}</i></p>
+                            
+                            <!-- Lien avec autre dossier -->
+                            {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur %}
+                                <p>
+                                    <strong>{{ champ.nom }}</strong> :
+                                    <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
+                                        Voir le dossier n°{{ champ.valeur }}
+                                    </a>
+                                </p>
+                                
                             {% else %}
                                 {% if champ.valeur == 'true' %}
                                     <p><strong>{{ champ.nom }}</strong> : Oui</p>
@@ -1228,6 +1287,10 @@
                                     <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
                                 {% endif %}
                             {% endif %}
+
+                           
+
+
                         
                         <!-- Champs bloc répété -->
                         {% elif champ.type == 'repetition' %}
@@ -1641,7 +1704,7 @@
                             <!-- SAADD -->
                             {% else %}
                                 {% for p in publieurs_RAA_saadd_et_instructeurs %}
-                                    {% if p in envoyeurs_actes_du_dossier %}
+                                    {% if p in publieurs_RAA_du_dossier %}
                                         <li class="instructeur_du_dossier">
                                             {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom|capfirst }}
                                             <img src="{% static 'instruction/img/instructeur.png' %}" alt="Chargé.e de publier l'acte au RAA" title="Chargé.e de publier l'acte au RAA" class="logo_instructeur logo_relecteur_qualite">  
@@ -2338,7 +2401,17 @@
         function confirmerRetourInstruction() {
             const confirmation = confirm("Vous avez bien informé l'instructeur des modifications à mettre en place ?");
             if (confirmation) {
-                document.getElementById("form-retour-instruction").submit();
+                const form = document.getElementById("form-retour-instruction");
+                const button = form.querySelector("button[type='button']");
+
+                // Désactivation visuelle et fonctionnelle du bouton
+                button.disabled = true;
+                button.textContent = "Traitement...";
+                button.style.opacity = "0.6";
+                button.style.cursor = "not-allowed";
+
+                // Envoi du formulaire
+                form.submit();
             }
         }
 
@@ -2647,6 +2720,52 @@
             });
         });
     </script>
+
+
+<!-- Rendre Disable les boutons Submit des Zones manquées après clic -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Sélectionne toutes les zones contenant des boutons d'envoi
+        const zones = document.querySelectorAll(".zone-envoyer-pour-validation form");
+
+        zones.forEach(form => {
+            form.addEventListener("submit", function (e) {
+                const btn = form.querySelector("button[type='submit'], button.btn-envoyer-complement");
+                if (btn) {
+                    // Désactive le bouton immédiatement
+                    btn.disabled = true;
+                    btn.textContent = "Envoi en cours...";
+                    btn.style.opacity = "0.6";
+                    btn.style.cursor = "not-allowed";
+                }
+            });
+        });
+
+        // Couvre aussi les boutons de type="button" qui déclenchent un submit() JS
+        const boutonsConfirm = document.querySelectorAll(
+            ".btn-envoyer-complement[onclick*='confirmer']"
+        );
+
+        boutonsConfirm.forEach(bouton => {
+            bouton.addEventListener("click", function () {
+                // On désactive le bouton après le clic pour éviter les doubles confirmations
+                bouton.disabled = true;
+                bouton.textContent = "Traitement...";
+                bouton.style.opacity = "0.6";
+                bouton.style.cursor = "not-allowed";
+
+                // Réactivation automatique au bout de 6 secondes (sécurité)
+                setTimeout(() => {
+                    bouton.disabled = false;
+                    bouton.textContent = "Confirmer";
+                    bouton.style.opacity = "1";
+                    bouton.style.cursor = "pointer";
+                }, 6000);
+            });
+        });
+    });
+</script>
+
 
 
 </body>

@@ -1535,7 +1535,6 @@ def envoyer_message_avis_vision_expert(request):
         ####################################
         # NOTIFICATION PAR MAIL AU DEMANDEUR
         ####################################
-        # TO DO  (Si plusieurs nouveaux mess dans la journée on envoi un seul mail (pour éviter le spam))
 
         # emails_norm = [avis.id_instructeur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
