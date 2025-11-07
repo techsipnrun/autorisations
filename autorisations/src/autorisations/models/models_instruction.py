@@ -426,7 +426,13 @@ class DossierManifestationLiaison(models.Model):
 class SynchronisationEtat(models.Model):
     id = models.IntegerField(primary_key=True)
     en_cours = models.BooleanField(default=False)
-    date_maj = models.DateTimeField(default=timezone.now)
+    date_maj = models.DateTimeField(null=True, blank=True)  # Dernier succès
+    date_derniere_tentative = models.DateTimeField(null=True, blank=True)  # Dernier lancement
+    dernier_statut = models.CharField(
+        max_length=20,
+        choices=[("ok", "Succès"), ("erreur", "Erreur"), ("inconnu", "Inconnu")],
+        default="inconnu",
+    )
 
     class Meta:
         db_table = '"instruction"."synchronisation_etat"'

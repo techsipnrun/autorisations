@@ -4,72 +4,91 @@ import os
 import re
 from typing import Optional
 import unicodedata
+import smbclient
+from smbprotocol import exceptions as smb_exceptions
 
 import requests
+from django.core.files.uploadedfile import SimpleUploadedFile
 
+from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, donner_droits_ecriture_groupe, ecrire_file_sur_nas
 from synchronisation.src.utils.conversion import formater_nom_personne_morale, parse_datetime_with_tz
 
 
 loggerORM = logging.getLogger("ORM_DJANGO")
-loggerFile = logging.getLogger("APP")
+loggerApp = logging.getLogger("APP")
 loggerDS = logging.getLogger("API_DS")
 
-# Vérification de la présence de ROOT_FOLDER
-if not os.environ.get("ROOT_FOLDER"):
-    raise RuntimeError("La variable d'environnement ROOT_FOLDER est requise.")
+# Vérification de la présence de NAS_ROOT
+if not os.environ.get("NAS_ROOT"):
+    raise RuntimeError("La variable d'environnement NAS_ROOT est requise.")
 
 
 def ensure_dossier_root(emplacement: str) -> Optional[str]:
     """
-    Crée le dossier racine basé sur la variable d’environnement ROOT_FOLDER et retourne son chemin complet.
+    Crée le dossier racine basé sur la variable d’environnement NAS_ROOT et retourne son chemin complet.
 
     Args:
-        emplacement (str): Chemin relatif à la racine ROOT_FOLDER.
+        emplacement (str): Chemin relatif à la racine NAS_ROOT.
 
     Returns:
-        Optional[str]: Chemin absolu du dossier créé ou existant, ou None si ROOT_FOLDER est manquant.
+        Optional[str]: Chemin absolu du dossier créé ou existant, ou None si NAS_ROOT est manquant.
     """
-    racine = os.environ.get("ROOT_FOLDER")
+    # racine = os.environ.get("NAS_ROOT")
+    racine = os.environ.get("NAS_ROOT")
 
     if not racine:
-        loggerFile.error("[ROOT] Variable ROOT_FOLDER manquante.")
+        loggerApp.error("[ACCÈS NAS] Variable NAS_ROOT manquante.")
         return None
     
     chemin = os.path.join(racine, emplacement)
-    os.makedirs(chemin, exist_ok=True)
+    creer_dossier_sur_nas(chemin)
     return chemin
+
+
 
 
 
 def write_resume_pdf(emplacement, name, url_du_pdf):
     """
-    Télécharge un PDF depuis une URL et l’enregistre localement dans le dossier spécifié.
+    Télécharge un PDF depuis une URL et l’enregistre sur le NAS dans le dossier spécifié.
 
     Args:
-        emplacement (str): Chemin relatif à ROOT_FOLDER.
+        emplacement (str): Chemin relatif à NAS_ROOT (ex: "Dossiers/12345/").
         name (str): Nom du fichier PDF (avec extension).
         url_du_pdf (str): URL publique du fichier PDF à télécharger.
 
     Returns:
-        Optional[str]: Chemin absolu du fichier créé, ou None en cas d’échec.
+        Optional[str]: Chemin complet sur le NAS du fichier créé, ou None en cas d’échec.
     """
+
+    # Construction du chemin complet SMB
+    nas_root = os.getenv("NAS_ROOT")
+    if not nas_root:
+        loggerApp.error("[NAS] ❌ Variable d'environnement NAS_ROOT non définie.")
+        return None
     chemin_fichier = ensure_dossier_root(emplacement)
     chemin_complet = os.path.join(chemin_fichier, name)
 
     try:
-
-        response = requests.get(url_du_pdf, timeout=15)
+        # --- Téléchargement du PDF ---
+        response = requests.get(url_du_pdf, timeout=20)
         response.raise_for_status()
 
-        with open(chemin_complet, "wb") as f:
-            f.write(response.content)
+        # Écriture
+        fichier_temp = SimpleUploadedFile(name=name, content=response.content, content_type="application/pdf")
+        if ecrire_file_sur_nas(fichier_temp, chemin_complet):
+            return chemin_complet
+        else:
+            loggerORM.error(f"[NAS] ❌ Échec lors de l’écriture du PDF '{name}' sur le NAS.")
+            return None
 
     except requests.exceptions.RequestException as e:
-        loggerFile.error(f"[ERREUR] Impossible de télécharger le RÉSUMÉ PDF : {e}")
+        loggerORM.error(f"[HTTP ERROR] Erreur lors du téléchargement du PDF '{name}' depuis {url_du_pdf} : {e}")
     except Exception as e:
-        loggerFile.error(f"[ERREUR] Impossible d’écrire le RÉSUMÉ PDF {chemin_complet} : {e}")
+        loggerORM.exception(f"[ECRITURE RÉSUMÉ PDF] ⚠️ Erreur inattendue lors du téléchargement ou de l’écriture du PDF '{name}' : {e}")
 
-    return chemin_complet
+    return None
+
 
 
 
@@ -78,13 +97,16 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
     Écrit un fichier GeoJSON (.geojson) dans un dossier spécifique. Le fichier est écrasé s’il existe.
 
     Args:
-        emplacement (str): Chemin relatif à ROOT_FOLDER.
+        emplacement (str): Chemin relatif à NAS_ROOT.
         nom_geojson (str): Nom du fichier GeoJSON.
         contenu_geojson (dict): Données au format dict ou JSON serialisable.
 
     Returns:
         Optional[str]: Chemin absolu du fichier écrit, ou None en cas d’échec.
     """
+
+    
+
     chemin_fichier = ensure_dossier_root(emplacement)
     chemin_complet = os.path.join(chemin_fichier, nom_geojson)
 
@@ -92,9 +114,9 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
         with open(chemin_complet, "w", encoding="utf-8") as f:
             json.dump(contenu_geojson, f, ensure_ascii=False, indent=2)
             
-        loggerFile.info(f"[GEOJSON] Fichier écrit : {nom_geojson}")
+        loggerApp.info(f"[GEOJSON] Fichier écrit : {nom_geojson}")
     except Exception as e:
-        loggerFile.error(f"[ERREUR] Impossible d’écrire le fichier GeoJSON {chemin_complet} : {e}")
+        loggerApp.error(f"[GEOJSON] Erreur lors de l'écriture du fichier GeoJSON {chemin_complet} : {e}")
 
     return chemin_fichier
 
@@ -105,7 +127,7 @@ def write_pj(emplacement, name, url_pj):
     Télécharge une pièce jointe depuis une URL et l’enregistre dans le dossier demandé.
 
     Args:
-        emplacement (str): Chemin relatif à ROOT_FOLDER (ex: "Activites/2025/123456_NOM/Annexes/").
+        emplacement (str): Chemin relatif à NAS_ROOT (ex: "Activites/2025/123456_NOM/Annexes/").
         name (str): Nom du fichier avec extension (ex: "photo.jpg").
         url_pj (str): URL publique de la pièce jointe à télécharger.
 
@@ -118,25 +140,30 @@ def write_pj(emplacement, name, url_pj):
     chemin_fichier = os.path.join(chemin_dossier, safe_name)
 
     # chemin_final = get_nom_disponible(chemin_dossier, safe_name)
-    loggerFile.info(f"chemin_fichier : {chemin_fichier}")
+    # loggerApp.info(f"chemin_fichier : {chemin_fichier}")
 
     try:
-        if os.path.exists(chemin_fichier):
-            loggerFile.warning(f"safe_name : {safe_name}  --- chemin_fichier : {chemin_fichier}")
-            loggerFile.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucun téléchargement effectué.")
+        if smbclient.path.exists(chemin_fichier):
+            # loggerApp.warning(f"safe_name : {safe_name}  --- chemin_fichier : {chemin_fichier}")
+            loggerApp.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucun téléchargement effectué.")
             return
 
         response = requests.get(url_pj, timeout=15)
         response.raise_for_status()
 
-        with open(chemin_fichier, "wb") as f:
-            f.write(response.content)
+        # Écriture
+        fichier_temp = SimpleUploadedFile(name=name, content=response.content)
+        if ecrire_file_sur_nas(fichier_temp, chemin_fichier):
+            # loggerApp.info(f"[PJ] Pièce jointe téléchargée et écrite : {chemin_fichier}")
+            return chemin_fichier
+        else:
+            loggerORM.error(f"[NAS] ❌ Échec lors de l’écriture de la pièce jointe '{name}' sur le NAS.")
+            return None
 
-        loggerFile.info(f"[PJ] Pièce jointe téléchargée et écrite : {chemin_fichier}")
     except requests.exceptions.RequestException as e:
-        loggerFile.error(f"[HTTP ERROR] Impossible de télécharger la pièce jointe ({name}) : {e}")
+        loggerORM.error(f"[HTTP ERROR] Erreur lors du téléchargement de la pièce jointe ({name}) : {e}")
     except Exception as e:
-        loggerFile.error(f"[FILE ERROR] Impossible d’écrire la pièce jointe {chemin_fichier} : {e}")
+        loggerORM.error(f"[ECRITURE PJ] Erreur inattendue lors du téléchargement ou de l’écriture de la pièce jointe {chemin_fichier} : {e}")
     
     return chemin_fichier
 
@@ -146,9 +173,9 @@ def get_nom_disponible(dossier_path, nom_fichier):
     nom_base, ext = os.path.splitext(nom_fichier)
     nom_final = nom_base
     i = 2
-    racine = os.environ.get("ROOT_FOLDER")
+    racine = os.environ.get("NAS_ROOT")
     chemin_complet = os.path.join(racine, dossier_path, nom_fichier)
-    while os.path.exists(chemin_complet):
+    while smbclient.path.exists(chemin_complet):
         nom_final = f"{nom_base}_{i}"
         chemin_complet = os.path.join(racine, dossier_path, nom_final + ext)
         i += 1
@@ -162,7 +189,7 @@ def create_emplacement(emplacement_dossier):
     Crée un dossier principal et les sous-dossiers standards s’il n’existe pas déjà.
 
     Args:
-        emplacement_dossier (str): Chemin relatif à ROOT_FOLDER (ex: "Travaux/2025/123456_DUPONT_Jean").
+        emplacement_dossier (str): Chemin relatif à NAS_ROOT (ex: "Travaux/2025/123456_DUPONT_Jean").
 
     Returns:
         bool: True si les dossiers ont été créés ou existent déjà, False en cas d’erreur.
@@ -170,26 +197,29 @@ def create_emplacement(emplacement_dossier):
     chemin_complet = ensure_dossier_root(emplacement_dossier)
 
     try:
-        if not os.path.exists(chemin_complet):
-            os.makedirs(chemin_complet)
-            loggerFile.info(f"[INFO] Dossier principal créé : {chemin_complet}")
-        else:
-            loggerFile.info(f"[INFO] Dossier déjà existant : {chemin_complet}")
+
+        if not creer_dossier_sur_nas(chemin_complet) :
+            loggerORM.error(f"[CREATION FOLDER] Erreur lors de la création des folders sur le NAS : {chemin_complet}")
+            return False
+
 
         # Sous-dossiers standards
         sous_dossiers = ["Annexes", "Actes", "Avis", "Carto", "Work"]
         for nom in sous_dossiers:
             chemin_sous_dossier = os.path.join(chemin_complet, nom)
 
-            if not os.path.exists(chemin_sous_dossier):
-                os.makedirs(chemin_sous_dossier)
-                loggerFile.info(f"    → Création : {chemin_sous_dossier}")
-            else:
-                loggerFile.info(f"    → Déjà présent : {chemin_sous_dossier}")
+            if not creer_dossier_sur_nas(chemin_sous_dossier) :
+                loggerORM.error(f"[CREATION FOLDER] Erreur lors de la création des folders sur le NAS : {chemin_complet}")
+                return False
+            
+            if nom == 'Work' : 
+                # Test attribution des droits
+                donner_droits_ecriture_groupe(chemin_sous_dossier)
+                
         return True
     
     except Exception as e:
-        loggerFile.error(f"Impossible de créer les sous-dossiers pour {emplacement_dossier} : {e}")
+        loggerApp.error(f"Impossible de créer les sous-dossiers pour {emplacement_dossier} : {e}")
         return False
 
 
@@ -339,14 +369,11 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
 
 def create_emplacement_sport(obj, logger):
 
-    racine = os.environ.get("ROOT_FOLDER")
+    racine = os.environ.get("NAS_ROOT")
     chemin_complet = os.path.join(racine, obj.emplacement)
 
-    if not os.path.exists(chemin_complet):
-        os.makedirs(chemin_complet)
-        logger.info(f"[CREATE] Dossier créé : {obj.emplacement}")
-    else:
-        logger.info(f"[CREATE] Dossier temporaire déjà existant : {obj.emplacement}")
+    if not creer_dossier_sur_nas(chemin_complet) :
+        loggerORM.error(f"[CREATION FOLDER] Erreur lors de la création des folders sur le NAS : {chemin_complet}")
 
     return chemin_complet
 

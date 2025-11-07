@@ -21,11 +21,13 @@ logger = logging.getLogger("SYNCHRONISATION")
 # Lancement du traitement
 try:
     from synchronisation.src.main import lancer_normalisation_et_synchronisation
-    lancer_normalisation_et_synchronisation()
-    
+    ok = lancer_normalisation_et_synchronisation()
+    sys.exit(0 if ok else 1)
 except Exception as e:
     from autorisations.models.models_instruction import SynchronisationEtat
     import traceback
     err_msg = traceback.format_exc()
     logger.error("Une erreur est survenue lors de la synchronisation :\n" + err_msg)
-    SynchronisationEtat.objects.get(id=1).update(en_cours=False)
+    SynchronisationEtat.objects.filter(id=1).update(en_cours=False, dernier_statut="erreur")
+    sys.exit(1)
+

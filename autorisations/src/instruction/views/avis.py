@@ -10,11 +10,13 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.db import models
 from django.db.models import Exists, OuterRef
+import smbclient
 
 from autorisations.models.models_instruction import Demarche, Dossier, Message
 from autorisations.models.models_avis import Avis, AvisDocument, AvisNature, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, EmailOutbox, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
+from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils import create_message_avis_bdd
 from synchronisation.src.utils.model_helpers import update_fields
@@ -105,7 +107,7 @@ def instruction_dossier_consultation(request, num_dossier):
     ).count()
 
     return render(request, "instruction/instruction_dossier_consultation.html", {
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "dossier": dossier,
         "est_instructeur": instructeur,
         "is_formulaire_active": False,
@@ -216,7 +218,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "nb_avis_envoyes": nb_avis_envoyes,
         "nb_messages_non_lus": nb_messages_non_lus,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
     })
 
 
@@ -367,7 +369,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         # "nb_avis_envoyes": nb_avis_envoyes,
         "nb_messages_non_lus": nb_messages_non_lus,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "avis_list": avis_list,
     })
 
@@ -525,8 +527,8 @@ def ajouter_avis_hors_appli(request, num_dossier):
             # 4. Gestion des pièces jointes
             fichiers = request.FILES.getlist("pj_lie_avis")
             if fichiers :
-                chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
-                os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+                chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
+                creer_dossier_sur_nas(chemin_complet)
                 
                 # on parcourt les fichiers et on les écrit physiquement
                 for pj in fichiers :
@@ -714,8 +716,9 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
         if pj_projet_avis or pj_projet_acte or pj_rapport_cs :
             
-            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
-            os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+            chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
+            creer_dossier_sur_nas(chemin_complet)
+            
 
             if pj_projet_avis :
                 extension = Path(pj_projet_avis.name).suffix.lower()
@@ -893,8 +896,9 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
             # Ajout des autres pièces jointes si présentes 
             if liste_autres_pj :
-                chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
-                os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+                chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
+                creer_dossier_sur_nas(chemin_complet)
+                
                 
                 # on parcourt les fichiers et on les écrit physiquement
                 for pj in liste_autres_pj :
@@ -1075,8 +1079,8 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
             else :
                 emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
             
-            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}Annexes/"
-            os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+            chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
+            creer_dossier_sur_nas(chemin_complet)
 
             if pj_projet_avis :
                 extension = Path(pj_projet_avis.name).suffix.lower()
@@ -1344,7 +1348,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
 
     return render(request, 'instruction/instruction_dossier_avis.html', {
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "dossier": dossier,
         "avis": avis,
         "avis_documents": avis_documents,
@@ -1643,7 +1647,7 @@ def enregistrer_document(fichier, nature_str, description, request, emplacement_
     else :
         emplacement_annexes = emplacement_avis
 
-    chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement_annexes}"
+    chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_annexes}"
 
     # Maj de l'ancien doc s’il existe
     doc = Document.objects.filter(emplacement=emplacement_annexes, titre=fichier.name).first()
@@ -1669,12 +1673,10 @@ def enregistrer_document(fichier, nature_str, description, request, emplacement_
 
     # Sauvegarde physique
     filepath = os.path.join(chemin_complet, fichier.name)
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        
-    with open(filepath, 'wb+') as destination:
-        for chunk in fichier.chunks():
-            destination.write(chunk)
 
+    if not ecrire_file_sur_nas(fichier, filepath) :
+        logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+    
     return doc
 
 
@@ -1736,7 +1738,7 @@ def nouvelle_demande_avis_generique(request):
         "instructeurs": instructeurs,
         "contacts_externes": contacts_externes,
         "demarches": demarches,
-        # "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        # "NAS_ROOT": os.getenv('NAS_ROOT'),
     })
 
 
@@ -1841,8 +1843,8 @@ def avis_confirmer_nouvelle_demande_generique(request):
         if pj_projet_avis or pj_projet_acte or pj_rapport_cs or pjs_avis :
             jour_mois_annee = date.today().strftime("%d/%m/%Y")
             
-            chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement_avis}Annexes/"
-            os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+            chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_avis}Annexes/"
+            creer_dossier_sur_nas(chemin_complet)
 
             if pj_projet_avis :
                 extension = Path(pj_projet_avis.name).suffix.lower()
@@ -2035,8 +2037,8 @@ def remplacer_document_avis(request):
         messages.error(request, f"❌ Format '{ext}' introuvable en base.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    root = os.environ.get("ROOT_FOLDER", "")
-    os.makedirs(os.path.join(root, document.emplacement), exist_ok=True)
+    root = os.environ.get("NAS_ROOT", "")
+    creer_dossier_sur_nas(os.path.join(root, document.emplacement))
 
     # --- Vérification si le Document est partagé entre plusieurs avis ---
     utilisations = Avis.objects.filter(
@@ -2059,7 +2061,7 @@ def remplacer_document_avis(request):
             # Boucle pour éviter doublons (fichier + enregistrement)
             while True:
                 chemin_candidat = os.path.join(repertoire_absolu, f"{titre_final}{ext}")
-                existe_fichier = os.path.exists(chemin_candidat)
+                existe_fichier = smbclient.path.exists(chemin_candidat)
                 existe_enregistrement = Document.objects.filter(
                     emplacement=document.emplacement,
                     titre=f"{titre_final}{ext}"
@@ -2071,10 +2073,11 @@ def remplacer_document_avis(request):
                 i += 1
                 titre_final = f"{nom_base}_{i}"
 
-            # Écriture du fichier sur disque
-            with open(chemin_candidat, "wb+") as dest:
-                for chunk in fichier.chunks():
-                    dest.write(chunk)
+            # Écriture du fichier sur le NAS
+            if not ecrire_file_sur_nas(fichier, chemin_candidat): 
+                logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {chemin_candidat}")
+                raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {chemin_candidat}")
+
             logger.info(f"[AVIS {avis.id}] Nouveau fichier créé : {chemin_candidat}")
 
             # Création du nouvel enregistrement Document
@@ -2113,13 +2116,18 @@ def remplacer_document_avis(request):
                 i += 1
             nouveau_chemin = os.path.join(root, document.emplacement, f"{titre_final}{ext}")
 
-            if os.path.exists(ancien_chemin):
-                os.remove(ancien_chemin)
-                logger.info(f"[AVIS {avis.id}] Ancien fichier supprimé : {ancien_chemin}")
+            if not supprimer_file_sur_nas(ancien_chemin):
+                logger.error(f"[NAS] ❌ Erreur lors de la suppression de l'ancien fichier {fichier.name} sur {ancien_chemin}")
+                raise Exception(f"[NAS] ❌ Erreur lors de la suppression de l'ancien fichier {fichier.name} sur {ancien_chemin}")
 
-            with open(nouveau_chemin, "wb+") as dest:
-                for chunk in fichier.chunks():
-                    dest.write(chunk)
+
+            logger.info(f"[AVIS {avis.id}] Ancien fichier supprimé : {ancien_chemin}")
+
+            # Écriture du fichier sur le NAS
+            if not ecrire_file_sur_nas(fichier, nouveau_chemin): 
+                logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {nouveau_chemin}")
+                raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {nouveau_chemin}")
+            
             logger.info(f"[AVIS {avis.id}] Nouveau fichier enregistré : {nouveau_chemin}")
 
             document.titre = f"{titre_final}{ext}"

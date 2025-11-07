@@ -6,11 +6,13 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpRespo
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+import smbclient
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
+from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
 from notifications.service import compute_dedupe_key, envoi_mail
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
@@ -309,12 +311,12 @@ def faire_valider_une_demande_d_avis(request):
         
         # Définir le chemin de destination
         dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
-        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
-        os.makedirs(full_path, exist_ok=True)
+        full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
+        creer_dossier_sur_nas(full_path)
         filepath = os.path.join(full_path, fichier.name)
 
         # Vérification que le file sélectionné est bien dans le sous dossier Work
-        if not os.path.exists(filepath):
+        if not smbclient.path.exists(filepath):
             messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -338,11 +340,7 @@ def faire_valider_une_demande_d_avis(request):
 
 
         try:
-            # # Enregistrement physique ??
-            # with open(filepath, 'wb+') as destination:
-            #     for chunk in fichier.chunks():
-            #         destination.write(chunk)
-
+            
             # Récupérer la nature, le format et le statut
             nature_obj = get_object_or_404(DocumentNature, nature=nature)
             extension = os.path.splitext(fichier.name)[1].lower().lstrip('.')
@@ -430,8 +428,8 @@ def faire_valider_le_projet_d_acte(request):
         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
         # Définir le chemin de destination
         dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
-        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
-        os.makedirs(full_path, exist_ok=True)
+        full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
+        creer_dossier_sur_nas(full_path)
 
 
         #################### 
@@ -439,15 +437,16 @@ def faire_valider_le_projet_d_acte(request):
         ####################
         filepath = os.path.join(full_path, fichier.name)
         # Vérification que le projet d'acte est bien dans le sous dossier Work
-        if not os.path.exists(filepath):
+        if not smbclient.path.exists(filepath):
             messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         try:
-            # Enregistrement physique ??
-            with open(filepath, 'wb+') as destination:
-                for chunk in fichier.chunks():
-                    destination.write(chunk)
+            # Écriture du fichier sur le NAS
+            if not ecrire_file_sur_nas(fichier, filepath): 
+                logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+                raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+            
 
             # Récupérer la nature, le format et le statut
             nature_obj = get_object_or_404(DocumentNature, nature=nature)
@@ -488,16 +487,16 @@ def faire_valider_le_projet_d_acte(request):
         if fichier_rapport_CA :
             filepath_rapport = os.path.join(full_path, fichier_rapport_CA.name)
             # Vérification que le projet Rapport CA est bien dans le sous dossier Work
-            if not os.path.exists(filepath_rapport):
+            if not smbclient.path.exists(filepath_rapport):
                 messages.error(request, "❌ Le projet de rapport du CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
         
 
             try:
-                # Enregistrement physique ??
-                with open(filepath_rapport, 'wb+') as destination:
-                    for chunk in fichier.chunks():
-                        destination.write(chunk)
+                # Écriture du fichier sur le NAS
+                if not ecrire_file_sur_nas(fichier, filepath_rapport): 
+                    logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
+                    raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
 
                 # Récupérer la nature, le format et le statut
                 nature_obj = get_object_or_404(DocumentNature, nature="Projet Rapport CA")
@@ -947,16 +946,18 @@ def acte_pret_a_etre_envoye(request):
         
         # Chemin du dossier Work
         dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
-        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_path)
-        os.makedirs(full_path, exist_ok=True)
+        full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
+        creer_dossier_sur_nas(full_path)
         filepath = os.path.join(full_path, fichier.name)
 
         # Si le fichier n’existe pas déjà, on le crée à partir de l’upload
-        if not os.path.exists(filepath):
+        if not smbclient.path.exists(filepath):
             try:
-                with open(filepath, "wb+") as destination:
-                    for chunk in fichier.chunks():
-                        destination.write(chunk)
+                # Écriture du fichier sur le NAS
+                if not ecrire_file_sur_nas(fichier, filepath): 
+                    logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+                    raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+
                 logger.info(f"[DOSSIER {dossier.numero}] Fichier {fichier.name} créé dans {dossier_path}")
             except Exception as e:
                 messages.error(request, f"❌ Impossible d’enregistrer le fichier dans {dossier_path} : {e}")
@@ -965,9 +966,6 @@ def acte_pret_a_etre_envoye(request):
         else:
             logger.info(f"[DOSSIER {dossier.numero}] Fichier {fichier.name} déjà présent dans {dossier_path}")
 
-        # if not os.path.exists(filepath):
-        #     messages.error(request, "❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
-        #     return redirect(request.META.get("HTTP_REFERER", "/"))
         
         # RAPPORT CA
         if fichier_rapportCA :
@@ -978,15 +976,18 @@ def acte_pret_a_etre_envoye(request):
             
             filepath_rapportCA = os.path.join(full_path, fichier_rapportCA.name)
 
-            # if not os.path.exists(filepath_rapportCA):
+            # if not smbclient.path.exists(filepath_rapportCA):
             #     messages.error(request, "❌ Le rapport au CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
             #     return redirect(request.META.get("HTTP_REFERER", "/"))
 
-            if not os.path.exists(filepath_rapportCA):
+            if not smbclient.path.exists(filepath_rapportCA):
                 try:
-                    with open(filepath_rapportCA, "wb+") as destination:
-                        for chunk in fichier_rapportCA.chunks():
-                            destination.write(chunk)
+
+                    # Écriture du fichier_rapportCA sur le NAS
+                    if not ecrire_file_sur_nas(fichier_rapportCA, filepath_rapportCA): 
+                        logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier_rapportCA.name} sur {filepath_rapportCA}")
+                        raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier_rapportCA.name} sur {filepath_rapportCA}")
+                            
                     logger.info(f"[DOSSIER {dossier.numero}] Rapport CA {fichier_rapportCA.name} enregistré dans {dossier_path}")
                 except Exception as e:
                     messages.error(request, f"❌ Impossible d’enregistrer le rapport CA : {e}")
@@ -1218,12 +1219,12 @@ def envoyer_l_acte(request):
                       
         document = Document.objects.get(id=document_id)
         emplacement_doc = os.path.join(dossier_path, 'Actes/', f"{document.titre}")
-        full_path = os.path.join(os.environ.get("ROOT_FOLDER"), emplacement_doc)
+        full_path = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc)
 
         # Chercher si un document existe déjà avec même emplacement + titre
         doc_existant = Document.objects.filter(emplacement=os.path.join(dossier_path, 'Actes/'), titre=document.titre).first()
 
-        chemin = os.path.join(os.getenv("ROOT_FOLDER"), document.emplacement, document.titre)
+        chemin = os.path.join(os.getenv("NAS_ROOT"), document.emplacement, document.titre)
         format_str = document.id_format.format.lower()
 
         if format_str in ['jpg', 'jpeg']:
@@ -1257,11 +1258,11 @@ def envoyer_l_acte(request):
                 i = 1
                 
                 #  Boucle jusqu'à trouver un nom de fichier et d'enregistrement non existant
-                repertoire_absolu = os.path.join(os.environ.get("ROOT_FOLDER"), nouv_emplacement)
+                repertoire_absolu = os.path.join(os.environ.get("NAS_ROOT"), nouv_emplacement)
                 while True:
                     emplacement = os.path.join(repertoire_absolu, f"{titre_final}{ext}")
 
-                    fichier_existe = os.path.exists(emplacement)
+                    fichier_existe = smbclient.path.exists(emplacement)
                     enregistrement_existe = Document.objects.filter(emplacement=nouv_emplacement, titre=f"{titre_final}{ext}").exists()
 
                     if not fichier_existe and not enregistrement_existe:
@@ -1272,11 +1273,14 @@ def envoyer_l_acte(request):
 
 
                 # Écrire le file dans ./actes
-                os.makedirs(os.path.dirname(repertoire_absolu), exist_ok=True)
+
                 # Copie du fichier sur disque
-                emplacement_ancien_rapportCA =  os.path.join(os.environ.get("ROOT_FOLDER"), docRapportCA.emplacement, docRapportCA.titre)
-                with open(emplacement_ancien_rapportCA, 'rb') as src, open(emplacement, 'wb') as dest:
-                    dest.write(src.read())
+                emplacement_ancien_rapportCA =  os.path.join(os.environ.get("NAS_ROOT"), docRapportCA.emplacement, docRapportCA.titre) 
+
+                if not ecrire_file_sur_nas(emplacement_ancien_rapportCA, emplacement): 
+                    logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {docRapportCA.titre} sur {emplacement}")
+                    raise Exception(f"Échec de l’écriture du fichier {docRapportCA.titre} sur {emplacement}")
+
 
                 logger.info(f"[DOSSIER {dossier_numero}] Rapport CA ({fichier.name}) copié du dossier Work au dossier Actes.")
                 # Changer l'emplacement /Work par /Actes
@@ -1349,13 +1353,16 @@ def envoyer_l_acte(request):
                     logger.warning(f"[DOSSIER {dossier_numero}] Suppression de l'ancien Document et DossierDocument {emplacement_doc}")
                 
                 # Logger l'écrasement du fichier
-                if os.path.exists(full_path):
+                if smbclient.path.exists(full_path):
                     logger.warning(f"[DOSSIER {dossier_numero}] Écrasement de {full_path}")
 
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, 'wb+') as dest:
-                    for chunk in fichier.chunks():
-                        dest.write(chunk)
+
+
+                if not ecrire_file_sur_nas(fichier, full_path): 
+                    logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {emplacement}")
+                    raise Exception(f"Échec de l’écriture du fichier {fichier.name} sur {emplacement}")
+                
+
                 logger.info(f"[DOSSIER {dossier_numero}] {nature_document} ({fichier.name}) écrit : {full_path}")
 
                 # Récupérer l'objet statut "Envoyé"

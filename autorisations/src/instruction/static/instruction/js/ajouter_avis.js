@@ -131,10 +131,31 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // ---- Fonctions utilitaires ----
+// function copierChemin(chemin) {
+//     navigator.clipboard.writeText(chemin)
+//         .then(() => alert("Chemin copié dans le presse-papiers :\n" + chemin))
+//         .catch(err => alert("Impossible de copier le chemin : " + err));
+// }
+
 function copierChemin(chemin) {
-    navigator.clipboard.writeText(chemin)
-        .then(() => alert("Chemin copié dans le presse-papiers :\n" + chemin))
-        .catch(err => alert("Impossible de copier le chemin : " + err));
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(chemin)
+            .then(() => alert("Chemin copié dans le presse-papiers :\n" + chemin))
+            .catch(err => alert("Erreur de copie : " + err));
+    } else {
+        // Fallback : création d’un input caché
+        const input = document.createElement("textarea");
+        input.value = chemin;
+        document.body.appendChild(input);
+        input.select();
+        try {
+            document.execCommand("copy");
+            alert("Chemin copié dans le presse-papiers :\n" + chemin);
+        } catch (err) {
+            alert("Impossible de copier le chemin : " + err);
+        }
+        document.body.removeChild(input);
+    }
 }
 
 function supprimerDoc(avisId, champ) {

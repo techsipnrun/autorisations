@@ -1273,9 +1273,16 @@
                             {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur %}
                                 <p>
                                     <strong>{{ champ.nom }}</strong> :
-                                    <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
-                                        Voir le dossier n°{{ champ.valeur }}
-                                    </a>
+
+
+                                    {% if champ.valeur|default_if_none:"" and champ.valeur != "Non renseigné" %}
+                                        <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
+                                            Voir le dossier précédent
+                                        </a>
+                                    {% else %}
+                                        Non renseigné
+                                    {% endif %}
+
                                 </p>
                                 
                             {% else %}
@@ -1405,7 +1412,7 @@
                     
                     <!-- Lien dossier à droite -->
                     <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
-                        <a href="#" onclick="copierChemin('{{ROOT_FOLDER}}{{ dossier.emplacement }}')">
+                        <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>
                     </div>
@@ -2063,7 +2070,7 @@
                                     
                                     <!-- Copier path annexe instructeur -->
                                     <button type="button" class="btn-copier-chemin"
-                                            onclick="copierPath(this, '{{ ROOT_FOLDER }}{{ annexe.emplacement }}')"
+                                            onclick="copierPath(this, '{{ NAS_ROOT }}{{ annexe.emplacement }}')"
                                             title="Copier le chemin">📋</button>
                                     
                                     <span class="copie-feedback">Copié !</span>

@@ -12,6 +12,7 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.template import TemplateDoesNotExist
 from django.utils.html import strip_tags
+import smbclient
 from autorisations.models.models_utilisateurs import EmailOutbox, Instructeur
 from psycopg2.errors import UniqueViolation
 
@@ -71,8 +72,8 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
 
                 if item.id_document:
                     doc = item.id_document
-                    chemin_fichier = os.path.join(os.getenv('ROOT_FOLDER'), doc.emplacement, doc.titre)
-                    if os.path.exists(chemin_fichier):
+                    chemin_fichier = os.path.join(os.getenv('NAS_ROOT'), doc.emplacement, doc.titre)
+                    if smbclient.path.exists(chemin_fichier):
                         msg.attach_file(chemin_fichier)
                     else :
                         # Échec

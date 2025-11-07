@@ -28,11 +28,15 @@ def sync_doss(dossier, dico_notifs):
         defaults=defaults
     )
 
+    # Création des folders
+    create_emplacement(defaults["emplacement"])
+
+    
     if created:
         logger.info(f"[CREATE] Dossier {obj.numero} (id_ds: {obj.id_ds}) créé.")
 
-        # Création des folders
-        create_emplacement(defaults["emplacement"])
+        # # Création des folders
+        # create_emplacement(defaults["emplacement"])
 
         # Write geojson
         write_geojson(f"{obj.emplacement}/Carto", f"{obj.numero}.geojson",obj.geometrie)

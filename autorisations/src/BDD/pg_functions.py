@@ -5,10 +5,13 @@ from django.db import connection
 import requests
 from typing import List, Type, Tuple, Optional
 
+import smbclient
+
 from autorisations.models.models_instruction import Demarche
 from autorisations.models.models_instruction import Message
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from django.utils import timezone
+from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -94,8 +97,8 @@ def create_message_bdd(
                 doc_nature, _ = DocumentNature.objects.get_or_create(nature=document_nature_str)
 
                 # Répertoire cible
-                repertoire_annexes = os.path.join(os.environ.get("ROOT_FOLDER"), dossier_obj.emplacement, "Annexes")
-                os.makedirs(repertoire_annexes, exist_ok=True)
+                repertoire_annexes = os.path.join(os.environ.get("NAS_ROOT"), dossier_obj.emplacement, "Annexes")
+                creer_dossier_sur_nas(repertoire_annexes)
 
                 # Séparation du nom et extension
                 nom_base, ext = os.path.splitext(document_title)
@@ -107,7 +110,7 @@ def create_message_bdd(
                 while True:
                     emplacement = os.path.join(repertoire_annexes, f"{titre_final}{ext}")
                     
-                    fichier_existe = os.path.exists(emplacement)
+                    fichier_existe = smbclient.path.exists(emplacement)
                     enregistrement_existe = Document.objects.filter(emplacement=rel_emplacement, titre=f"{titre_final}{ext}").exists()
 
                     if not fichier_existe and not enregistrement_existe:
@@ -116,10 +119,11 @@ def create_message_bdd(
                     i += 1
                     titre_final = f"{nom_base}_{i}"
 
-                # Écriture du fichier sur disque
-                with open(emplacement, 'wb+') as dest:
-                    for chunk in document_file.chunks():
-                        dest.write(chunk)
+                # Écriture du fichier sur le NAS
+                if not ecrire_file_sur_nas(document_file, emplacement):
+                    logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {document_file.name} sur {emplacement}")
+
+
 
                 # Création du document en base
                 doc = Document.objects.create(

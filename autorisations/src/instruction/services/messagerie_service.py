@@ -18,7 +18,8 @@ loggerFiles = logging.getLogger("APP")
 
 def prepare_temp_file(fichier):
     """
-    Sauvegarde un fichier Django temporairement sur disque et retourne le chemin.
+    Sauvegarde un fichier Django temporairement sur disque local et retourne le chemin.
+    Sert pour un traitement intermédiaire avant écriture sur NAS.
     """
     try:
         ext = os.path.splitext(fichier.name)[1] if fichier.name else ''

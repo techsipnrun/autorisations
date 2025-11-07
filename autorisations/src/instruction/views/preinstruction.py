@@ -210,7 +210,7 @@ def preinstruction_dossier(request, numero):
 
             if champ.id_document :
                 emplacement_doc= champ.id_document.emplacement
-                # emplacement_doc = os.path.join(os.environ.get("ROOT_FOLDER"), champ.id_document.emplacement, champ.id_document.titre)
+                # emplacement_doc = os.path.join(os.environ.get("NAS_ROOT"), champ.id_document.emplacement, champ.id_document.titre)
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
             else :
 
@@ -387,7 +387,7 @@ def preinstruction_dossier(request, numero):
         "membres_groupe": membres_groupe,
         "instructeurs_dossier_ids": instructeurs_dossier_ids,
         "instructeur_connecte": instructeur_connecte,
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "emplacements_documents": emplacements_documents,
         "annexes_instructeur": annexes_instructeur,
         "beneficiaire": beneficiaire,

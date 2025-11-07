@@ -8,10 +8,13 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.http import FileResponse, Http404, JsonResponse
 import urllib
+
+import smbclient
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
+from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -49,7 +52,7 @@ def lancer_en_arriere_plan2():
     # Tentative atomique: on passe en True seulement si c'est actuellement False
     rows = (SynchronisationEtat.objects
             .filter(id=1, en_cours=False)
-            .update(en_cours=True, date_maj=timezone.now()))
+            .update(en_cours=True, date_derniere_tentative=timezone.now()))
     if rows == 0:
         logger.warning("Synchro déjà en cours – nouvelle tentative ignorée (BDD).")
         return False
@@ -64,13 +67,22 @@ def lancer_en_arriere_plan2():
                     stdout=f,
                     stderr=f,
                 )
-                process.wait()
+                ret_code = process.wait()
+                statut = "ok" if ret_code == 0 else "erreur"
+
         except Exception:
             logger.exception("Erreur lors du sous-processus de synchronisation.")
+            statut = "erreur"
         finally:
-            # Toujours remettre à False, même en cas d'erreur ou kill
             try:
-                SynchronisationEtat.objects.filter(id=1).update(en_cours=False, date_maj=timezone.now())
+                update_data = {
+                    "en_cours": False,
+                    "dernier_statut": statut,
+                }
+                if statut == "ok":
+                    update_data["date_maj"] = timezone.now()
+
+                SynchronisationEtat.objects.filter(id=1).update(**update_data)
             finally:
                 close_old_connections()
 
@@ -93,19 +105,26 @@ def actualiser_donnees(request):
 
 @login_required
 def etat_actualisation(request):
-    etat, _ = SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
+    # etat, _ = SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
 
-    # Timeout de sécurité : si ça dépasse 2 heures, on force en_cours=False
-    if etat.en_cours and etat.date_maj and etat.date_maj < timezone.now() - timedelta(hours=2):
-        logger.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout dépassé) – dernière MAJ : {etat.date_maj}")
-        etat.en_cours = False
-        # etat.date_maj = timezone.now()
-        etat.save(update_fields=["en_cours", "date_maj"])
+    # # Timeout de sécurité : si ça dépasse 2 heures, on force en_cours=False
+    # if etat.en_cours and etat.date_maj and etat.date_maj < timezone.now() - timedelta(hours=2):
+    #     logger.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout dépassé) – dernière MAJ : {etat.date_maj}")
+    #     etat.en_cours = False
+    #     # etat.date_maj = timezone.now()
+    #     etat.save(update_fields=["en_cours", "date_maj"])
+
+    etat = SynchronisationEtat.objects.filter(id=1).first()
+    if not etat:
+        return JsonResponse({"en_cours": False, "dernier_statut": "inconnu", "date_maj": None})
 
     return JsonResponse({
-    "en_cours": etat.en_cours,
-    "date_maj": etat.date_maj.isoformat() if etat.date_maj else None
-})
+        "en_cours": etat.en_cours,
+        "dernier_statut": etat.dernier_statut,
+        "date_maj": etat.date_maj.isoformat() if etat.date_maj else None,
+        "date_derniere_tentative": etat.date_derniere_tentative.isoformat() if etat.date_derniere_tentative else None,
+    })
+
 
 
 @login_required
@@ -884,7 +903,6 @@ def mes_dossiers_a_receptionner_count(request):
     dossiers = Dossier.objects.filter(id_etape_dossier__etape="À affecter")
 
     dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
-
     return {"nb_dossiers_reception": len(dossiers_actions)}
 
 
@@ -999,7 +1017,7 @@ def ajouter_annexe_dossier(request, dossier_id):
         if fichier.size > 20 * 1024 * 1024:
             logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
             messages.error(request, f"Annexe refusée ({request.user}) Taille > 20 Mo pour {fichier.name}")
-            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Extension du fichier
         nom, extension = os.path.splitext(fichier.name)
@@ -1009,20 +1027,21 @@ def ajouter_annexe_dossier(request, dossier_id):
         format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
         if not format_obj:
             logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) car le format n'est pas reconnu : {fichier.name}.{extension}")
-            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
         # Nature "Annexe instructeur"
         nature_obj = DocumentNature.objects.filter(nature__iexact="Annexe instructeur").first()
         if not nature_obj:
             logger.error(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) La nature 'Annexe instructeur' est introuvable en BDD.")
-            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
         
         # Création du Document
         dossier = get_object_or_404(Dossier, pk=dossier_id)
         emplacement = f"{dossier.emplacement}Annexes/{fichier.name}"
-        chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
+        # chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
+        chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
 
         # Vérification si un Document avec le même emplacement existe déjà en base, si on est ici c'est qu'on a confirmé l'écrasement dans le pop up JS
         if Document.objects.filter(emplacement=f"{dossier.emplacement}Annexes/", titre=fichier.name).exists():
@@ -1051,29 +1070,50 @@ def ajouter_annexe_dossier(request, dossier_id):
         DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
 
         # Enregistrement physique
-        os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+        # os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
 
 
         # Si un fichier du même nom existe déjà, on le supprime
-        if os.path.exists(chemin_complet):
-            os.remove(chemin_complet)
+        # if os.path.exists(chemin_complet):
+        #     os.remove(chemin_complet)
 
+        # 1) Supprimer si un fichier du même nom existe déjà
         try:
-            with open(chemin_complet, 'wb+') as destination:
-                for chunk in fichier.chunks():
-                    destination.write(chunk)
-
-            logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} ajoutée avec succès par {request.user}")
-            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
-
+            if smbclient.path.exists(chemin_complet):
+                if not supprimer_file_sur_nas(chemin_complet):
+                    messages.error(request, f"Erreur lors du remplacement de l'ancien fichier {fichier.name} sur le NAS.")
+                    return redirect(request.META.get("HTTP_REFERER", "/"))
         except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'écriture de l'annexe instructeur (Note) : {e}")
-            messages.error(request, "Une erreur est survenue lors de l’enregistrement du fichier. Veuillez réessayer.")
-            return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+            logger.error(f"[NAS] Erreur en vérifiant/supprimant l'existant : {e}")
+            messages.error(request, "Erreur lors de la vérification du fichier existant sur le NAS.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+        # TEST ECRITURE NAS
+        # 2) Écrire l’upload directement sur le NAS
+        if not ecrire_file_sur_nas(fichier, chemin_complet):
+            logger.error(f"[NAS] Erreur lors de l'écriture de l'annexe sur le NAS : {e}")
+            messages.error(request, "Erreur lors de l'écriture de l'annexe sur le NAS.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+        # try:
+        #     with open(chemin_complet, 'wb+') as destination:
+        #         for chunk in fichier.chunks():
+        #             destination.write(chunk)
+
+        #     logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} ajoutée avec succès par {request.user}")
+        #     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        # except Exception as e:
+        #     logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'écriture de l'annexe instructeur (Note) : {e}")
+        #     messages.error(request, "Une erreur est survenue lors de l’enregistrement du fichier. Veuillez réessayer.")
+        #     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
     logger.warning(f"[DOSSIER {dossier.numero}] Annexe non ajoutée par {request.user} : Aucune pièce jointe reçue.")
-    return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 
@@ -1101,11 +1141,11 @@ def synchroniser_demarche_depuis_reception(request, num_demarche):
 def afficher_annexe(request, chemin, titre=None):
     try:
         if titre :
-            chemin_entier = os.path.join(os.environ.get("ROOT_FOLDER"), chemin, titre)
+            chemin_entier = os.path.join(os.environ.get("NAS_ROOT"), chemin, titre)
         else :
-            chemin_entier = os.path.join(os.environ.get("ROOT_FOLDER"), chemin)
+            chemin_entier = os.path.join(os.environ.get("NAS_ROOT"), chemin)
 
-        if not os.path.exists(chemin_entier):
+        if not smbclient.path.exists(chemin_entier):
             raise Http404("Fichier introuvable")
 
         content_type, _ = guess_type(chemin_entier)
@@ -1134,9 +1174,11 @@ def supprimer_annexe_instructeur(request):
         DossierDocument.objects.filter(id_dossier=dossier, id_document=doc).delete()
 
         # Supprimer le fichier physique
-        chemin_fichier = os.path.join(os.getenv("ROOT_FOLDER"), doc.emplacement, doc.titre)
-        if os.path.exists(chemin_fichier):
-            os.remove(chemin_fichier)
+        chemin_fichier = os.path.join(os.getenv("NAS_ROOT"), doc.emplacement, doc.titre)
+        if smbclient.path.exists(chemin_fichier):
+            if not supprimer_file_sur_nas(chemin_fichier):
+                logger.error(f"[NAS] ❌ Erreur lors de la suppression de l'ancien fichier {doc.titre} sur {chemin_fichier}")
+                raise Exception(f"[NAS] ❌ Erreur lors de la suppression de l'ancien fichier {doc.titre} sur {chemin_fichier}")
 
         # Supprimer le document
         doc.delete()

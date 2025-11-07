@@ -304,10 +304,6 @@
         {% endif %}
     </div>
 
-
-
-
-
     
 </body>
 
@@ -481,6 +477,24 @@
         });
     });
 </script>
+
+
+<script>
+    // Sauvegarde la position du scroll avant de recharger la page
+    window.addEventListener("beforeunload", function () {
+        localStorage.setItem("scrollPosition", window.scrollY);
+    });
+
+    // Restaure la position du scroll après le rechargement
+    window.addEventListener("load", function () {
+        const scrollPosition = localStorage.getItem("scrollPosition");
+        if (scrollPosition !== null) {
+            window.scrollTo(0, parseInt(scrollPosition, 10));
+            localStorage.removeItem("scrollPosition"); // facultatif : nettoie après usage
+        }
+    });
+</script>
+
 
 
 </html>

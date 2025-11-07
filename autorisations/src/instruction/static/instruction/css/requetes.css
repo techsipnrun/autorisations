@@ -25,26 +25,38 @@
     font-weight: 600;
 }
 
-
 .recherche_filtre{
     display: flex;
+    width: 90%;
+    max-width: 1600px;
     justify-content: center;
     align-items: center;
     border: solid #0e4c27;
-    margin: 4rem 10% 2rem 10%;
+    margin: 4rem auto 2rem auto;
+    padding: 1rem 2rem;
     flex-direction: column;
 }
 
-.recherche-form {
+/* .recherche-form {
     display: flex;
     flex-wrap: wrap;
     gap: 3rem 5rem;
     justify-content: flex-start;
     margin: 3rem 3rem 1rem 3rem;
     align-items: center;
+} */
+
+.recherche-form {
+    display: grid;
+    width: 96%;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 3rem 5rem;
+    justify-content: center;
+    align-items: start;
+    margin: 3rem;
 }
 
-.form-field {
+/* .form-field {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,10 +66,30 @@
 .form-field label {
     font-weight: bold;
     margin-bottom: 0.3rem;
+} */
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
+
+.form-field label {
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+}
+
+/* .recherche-form input,
+.recherche-form select {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+} */
 
 .recherche-form input,
 .recherche-form select {
+    width: 100%; /* prend toute la largeur */
     padding: 0.5rem;
     font-size: 1rem;
     border: 1px solid #aaa;
@@ -74,7 +106,7 @@
     width: 100%;
     display: flex;
     justify-content: flex-end;
-    margin: 0 4rem 1rem 0;
+    margin: 1rem 4rem 1rem 0;
 }
 
 .form-button-bottom button {

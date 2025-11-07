@@ -16,6 +16,7 @@ from autorisations.models.models_utilisateurs import GroupeinstructeurDemarche, 
 
 # Spécifie le fichier de logs
 loggerDS = logging.getLogger("API_DS")
+loggerSynchro = logging.getLogger("SYNCHRONISATION")
 logger = logging.getLogger("ORM_DJANGO")
 
 
@@ -77,6 +78,10 @@ def recup_data_DS(number):
         response = client.execute_query(query_file, {"number": number})
     except Exception as e:
         loggerDS.error(f"Erreur lors de la récupération de la démarche {number} sur DS (get_all.graphql) : {e}")
+        loggerSynchro.error(f"Erreur lors de la récupération de la démarche {number} sur DS (get_all.graphql) : {e}")
+        
+        # erreur : modif le dernier_statut
+        return False
     
     return response["data"]
 

@@ -105,7 +105,7 @@ def preinstruction_dossier_messagerie(request, numero):
         "beneficiaire": beneficiaire,
         "demandeur": demandeur,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "est_receptionniste": est_receptionniste,
         "nb_messages_non_lus": nb_messages_non_lus,
@@ -208,7 +208,7 @@ def instruction_dossier_messagerie(request, num_dossier):
 
 
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "dossier": dossier,
         "messages_doss": messages_fmt,
         "is_formulaire_active": False,

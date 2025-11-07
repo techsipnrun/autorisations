@@ -37,8 +37,25 @@ def get_access_token():
     headers = {"Content-Type": "application/json"}
     response = requests.post(TOKEN_URL, json=data, headers=headers)
     if response.status_code != 200:
-        loggerDM.error(f"[{response.status_code}] Erreur lors de la récupération du token : {response.text}")
+
+        # Extraction d’un message clair
+        content_type = response.headers.get("Content-Type", "")
+        if "application/json" in content_type:
+            try:
+                err = response.json()
+                msg = err.get("error_description") or err.get("error") or err
+            except Exception:
+                msg = "Réponse JSON invalide"
+        else:
+            msg = (
+                response.text[:200].replace("\n", " ") + "..."
+                if response.text else "Aucune réponse renvoyée"
+            )
+
+        # loggerDM.error(f"[{response.status_code}] Erreur lors de la récupération du token : {response.text}")
+        loggerDM.error(f"[{response.status_code}] Erreur lors de la récupération du token : {msg}")
         response.raise_for_status()
+        
     loggerDM.info("")
     loggerDM.info("Token récupéré")
     return response.json()['access_token']

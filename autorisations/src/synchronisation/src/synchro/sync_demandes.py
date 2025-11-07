@@ -31,6 +31,6 @@ def sync_demandes(demandes, id_dossier):
             if updated_fields:
                 obj.save()
                 champs = ", ".join(updated_fields)
-                logger.info(f"[SAVE] Demande {obj.id} pour Dossier {id_dossier} mise à jour. Champs modifiés : {champs}.")
+                # logger.info(f"[SAVE] Demande {obj.id} pour Dossier {id_dossier} mise à jour. Champs modifiés : {champs}.")
             # else:
             #     logger.info(f"[NO CHANGE] Demande {obj.id} pour Dossier {id_dossier} inchangée.")

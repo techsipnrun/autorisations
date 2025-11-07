@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const bouton = document.getElementById("btn-actualiser");
     const message = document.getElementById("message-actualisation");
-
     if (!bouton) return;
 
     const urlEtat = "/etat-actualisation/";
@@ -10,79 +9,129 @@ document.addEventListener("DOMContentLoaded", function () {
     // --- helpers ---
     function setBouton(disabled, texte) {
         bouton.disabled = !!disabled;
-        if (texte) message.textContent = texte;
+        if (texte) message.innerHTML = texte;
     }
 
     function lireEtatBDD() {
         return fetch(urlEtat).then(r => r.json());
     }
 
-    // ✅ Affichage basé uniquement sur l’état retourné par le backend
+    // Convertit une date ISO ou SQL en timestamp
+    function toMs(s) {
+        if (!s) return null;
+        const str = s.includes("T") ? s : s.replace(" ", "T");
+        const t = Date.parse(str);
+        return Number.isNaN(t) ? null : t;
+    }
+
+    // 🕓 Format abrégé : ven. 08/11 à 15h19
+    function formatDateAbregee(s) {
+        const t = toMs(s);
+        if (t === null) return null;
+        const d = new Date(t);
+
+        const jours = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+        const jourNom = jours[d.getDay()];
+        const jour = String(d.getDate()).padStart(2, "0");
+        const mois = String(d.getMonth() + 1).padStart(2, "0");
+        const heure = String(d.getHours()).padStart(2, "0");
+        const minute = String(d.getMinutes()).padStart(2, "0");
+
+        return `${jourNom} ${jour}/${mois} à ${heure}h${minute}`;
+    }
+
+    // --- affichage principal ---
     function afficherDerniereHeure() {
         lireEtatBDD()
-            .then(({ date_maj }) => {
-                if (date_maj) {
-                    message.textContent = `✅ Dernière actualisation à ${date_maj}`;
-                } else {
-                    message.textContent = `ℹ️ Aucune actualisation encore réalisée`;
+            .then(({ en_cours, date_maj, date_derniere_tentative, dernier_statut }) => {
+                // Si synchro en cours → message et bouton désactivé
+                if (en_cours) {
+                    setBouton(true, "⏳ Actualisation déjà en cours...");
+                    return;
                 }
+
+                const tMaj = toMs(date_maj);
+                const tTent = toMs(date_derniere_tentative);
+                const hMaj = formatDateAbregee(date_maj);
+                const hTent = formatDateAbregee(date_derniere_tentative);
+
+                if (tMaj === null && tTent === null) {
+                    setBouton(false, "Aucune actualisation encore réalisée");
+                    return;
+                }
+
+                // 🔹 Priorité au statut "erreur"
+                if (dernier_statut === "erreur") {
+                    if (tMaj !== null && tTent !== null && tTent >= tMaj) {
+                        setBouton(false, `🟢 Dernière synchronisation : ${hMaj}<br>🔴 Dernière tentative échouée : ${hTent}`);
+                    } else if (tMaj === null && tTent !== null) {
+                        setBouton(false, `🔴 Dernière synchronisation échouée : ${hTent}`);
+                    } else {
+                        setBouton(false, `🔴 Dernière tentative échouée`);
+                    }
+                    return;
+                }
+
+                // 🔹 Succès
+                if (tMaj !== null) {
+                    const prefix = (dernier_statut === "ok") ? "🟢 " : "";
+                    setBouton(false, `${prefix}Dernière synchronisation : ${hMaj}`);
+                    return;
+                }
+
+                setBouton(false, "⚠️ Aucune synchronisation disponible.");
             })
             .catch(() => {
-                message.textContent = `⚠️ Impossible de récupérer la dernière actualisation.`;
+                setBouton(false, "⚠️ Impossible de récupérer la dernière actualisation.");
             });
     }
 
-    // ✅ Décision d’auto-lancement basée uniquement sur date_maj de la BDD
-    function peutEtreLancerAuto() {
-        return lireEtatBDD()
-            .then(({ date_maj, en_cours }) => {
-                if (en_cours) return false;
+    // --- auto-lancement si >4h, basé sur la DERNIÈRE TENTATIVE ---
+function peutEtreLancerAuto() {
+    return lireEtatBDD()
+        .then(({ en_cours, date_derniere_tentative, date_maj, dernier_statut }) => {
 
-                if (!date_maj) {
-                    message.textContent = `ℹ️ Aucune actualisation encore réalisée`;
-                    return false;
-                }
+            // 🚫 Si synchro en cours → on ne lance pas
+            if (en_cours) return false;
 
-                const [hh, mm] = date_maj.split("h").map(Number);
-                const date = new Date(date_maj);
-                const minutesDepuis = Math.floor((Date.now() - date.getTime()) / 60000);
+            // On prend la dernière tentative si elle existe,
+            // sinon on se rabat sur la dernière synchro réussie
+            const refDate = date_derniere_tentative || date_maj;
+            if (!refDate) return false;
 
-                console.log("minutesDepuis =", minutesDepuis);
-                const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
+            const t = Date.parse(refDate.includes("T") ? refDate : refDate.replace(" ", "T"));
+            if (Number.isNaN(t)) return false;
 
-                if (minutesDepuis >= 240) {
-                    lancerActualisation();
-                    return true;
-                } else {
-                    // message.textContent = `✅ Dernière actualisation à ${date_maj}`;
-                    message.textContent = `✅ Dernière actualisation à ${date_affichage}`;
-                    return false;
-                }
-            })
-            .catch(() => {
-                message.textContent = `⚠️ Erreur lors de la vérification de l'état.`;
-                return false;
-            });
-    }
+            const minutesDepuis = Math.floor((Date.now() - t) / 60000);
 
+            // 🕓 Si plus de 4 heures depuis la dernière tentative → on relance
+            if (minutesDepuis >= 240) {
+                lancerActualisation();
+                return true;
+            }
+
+            return false;
+        })
+        .catch(() => false);
+}
+
+
+    // --- polling ---
     function demarrerPolling() {
         if (pollTimer) return;
         pollTimer = setInterval(() => {
             lireEtatBDD()
-                .then(({ en_cours, date_maj }) => {
+                .then(({ en_cours }) => {
                     if (!en_cours) {
+                        // 🔒 On garde le bouton désactivé tant qu'on ne recharge pas
                         arreterPolling();
-                        const date = new Date(date_maj);
-                        const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
-                        setBouton(false, `✅ Dernière actualisation à ${date_affichage}`);
-                        setTimeout(() => location.reload(), 100);
+                        setBouton(true, "Actualisation terminée, rafraîchissement...");
+                        setTimeout(() => location.reload(), 1000);
                     } else {
                         setBouton(true, "⏳ Actualisation en cours...");
                     }
                 })
-                .catch(() => {
-                    console.warn("Impossible de lire l'état de synchro.");
-                });
+                .catch(() => console.warn("Impossible de lire l'état de synchro."));
         }, 10000);
     }
 
@@ -93,78 +142,92 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // --- Chargement initial ---
+    // --- initialisation au chargement ---
     lireEtatBDD()
-        .then(({ en_cours, date_maj }) => {
+        .then(({ en_cours, dernier_statut }) => {
             if (en_cours) {
+                // 🔒 Garde-fou si synchro déjà active (même ouverte ailleurs)
                 setBouton(true, "⏳ Actualisation déjà en cours...");
                 demarrerPolling();
             } else {
                 setBouton(false);
-                if (!date_maj) {
-                    message.textContent = "ℹ️ Aucune actualisation encore réalisée";
-                } else {
-                    const date = new Date(date_maj);
-                    const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
-                    message.textContent = `✅ Dernière actualisation à ${date_affichage}`;
-
+                afficherDerniereHeure();
+                if (dernier_statut !== "erreur") {
                     peutEtreLancerAuto();
                 }
             }
         })
         .catch(() => {
             setBouton(false, "⚠️ Impossible de vérifier l'état.");
-            afficherDerniereHeure();
         });
 
-    bouton.addEventListener("click", function (e) {
+    // --- lancer une actualisation manuelle ---
+    bouton.addEventListener("click", async function (e) {
         e.preventDefault();
-        lancerActualisation();
+
+        // 🔒 Empêche les doubles clics immédiats
+        if (bouton.disabled) return;
+
+        setBouton(true, "⏳ Vérification de l'état...");
+
+        try {
+            const etat = await lireEtatBDD();
+
+            // Si une synchro est déjà en cours → on bloque
+            if (etat.en_cours) {
+                setBouton(true, "⏳ Synchronisation déjà en cours...");
+                return;
+            }
+
+            // 🔸 Lancement sécurisé
+            const url = bouton.dataset.url;
+            const csrf = bouton.dataset.csrf;
+
+            setBouton(true, "⏳ Lancement de la synchronisation...");
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrf,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (!resp.ok) throw new Error("Erreur réseau");
+            const data = await resp.json();
+
+            if (data.status === "already_running") {
+                setBouton(true, "⏳ Synchronisation déjà en cours...");
+                return;
+            }
+
+            // 🌀 Synchro lancée avec succès → on démarre le polling
+            setBouton(true, "⏳ Synchronisation en cours...");
+            demarrerPolling();
+
+        } catch (err) {
+            console.error("Erreur lors du lancement :", err);
+            setBouton(false, "❌ Échec du lancement de l'actualisation.");
+        }
     });
 
-    function lancerActualisation() {
-        const url = bouton.dataset.url;
-        const csrf = bouton.dataset.csrf;
 
-        setBouton(true, "⏳ Actualisation en cours...");
-
-        fetch(url, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrf,
-                "Content-Type": "application/json"
-            }
-        })
-        .then(r => r.json())
-        .then(() => {
-            demarrerPolling();
-        })
-        .catch(err => {
-            console.error("Erreur lors du lancement d'actualisation :", err);
-            setBouton(false, "❌ Échec de l'actualisation.");
-        });
-    }
-
-    // --- Re-check si onglet devient actif ---
+    // --- recheck quand on revient sur l'onglet ---
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             lireEtatBDD()
-                .then(({ en_cours, date_maj }) => {
+                .then(({ en_cours, dernier_statut }) => {
                     if (en_cours) {
                         setBouton(true, "⏳ Actualisation en cours...");
                         demarrerPolling();
                     } else {
                         arreterPolling();
-                        const date = new Date(date_maj);
-                        const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
-                        setBouton(false, `✅ Dernière actualisation à ${date_affichage}`);
-
-                        peutEtreLancerAuto();
+                        afficherDerniereHeure();
+                        if (dernier_statut !== "erreur") {
+                            peutEtreLancerAuto();
+                        }
                     }
                 })
                 .catch(() => { /* noop */ });
         }
     });
-
-    // --- Inter-onglets : inutile désormais, on peut le retirer ---
 });

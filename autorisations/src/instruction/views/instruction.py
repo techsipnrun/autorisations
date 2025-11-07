@@ -8,12 +8,14 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+import smbclient
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur, TypeContactExterne
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
 from autorisations.models.models_avis import AvisDocument, DossierAvis
+from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from declaration_manifestations.call_api_dm import recup_un_seul_dossier
 from synchronisation.src.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
@@ -120,7 +122,7 @@ def mesdossiers(request):
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     if not instructeur:
-        messages.error(request, f"❌ Aucun profil 'Instructeur.rice' existant pour l'utilsateur.rice {request.user} : Contactez l'administrateur.rice si besoin.")
+        messages.error(request, f"❌ Aucun profil 'Instructeur.rice' existant pour l'utilisateur.rice {request.user} : Contactez l'administrateur.rice si besoin.")
         return render(request, "instruction/mesdossiers.html", { "dossiers_par_demarche": [] })
         # return redirect(request.META.get("HTTP_REFERER", "/"))
     
@@ -428,7 +430,7 @@ def instruction_dossier(request, num_dossier):
         elif ct == "piece_justificative":
             if champ.id_document :
                 emplacement_doc= champ.id_document.emplacement
-                # emplacement_doc = os.path.join(os.environ.get("ROOT_FOLDER"), champ.id_document.emplacement, champ.id_document.titre)
+                # emplacement_doc = os.path.join(os.environ.get("NAS_ROOT"), champ.id_document.emplacement, champ.id_document.titre)
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
             else : 
                 champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
@@ -1028,7 +1030,7 @@ def instruction_dossier(request, num_dossier):
         "instructeurs_du_dossier": instructeurs_du_dossier,
         "peut_se_declarer": peut_se_declarer,
         "instructeur_connecte": instructeur_connecte,
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "emplacements_documents": emplacements_documents,
         "annexes_instructeur": annexes_instructeur,
         "demarche": demarche,
@@ -1287,23 +1289,25 @@ def ajouter_relecteur_dossier(request):
                 
                 # Ecriture du fichier
                 emplacement = f"{dossier.emplacement}Annexes/Relecture/{f.name}"
-                chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
-                os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+                chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
+                creer_dossier_sur_nas(chemin_complet)
 
                 # Évite les doublons → incrémente _2, _3...
                 base_nom, ext = os.path.splitext(f.name)
                 compteur = 1
-                while os.path.exists(chemin_complet):
+                while smbclient.path.exists(chemin_complet):
                     compteur += 1
                     nouveau_nom = f"{base_nom}_{compteur}{ext}"
                     emplacement = emplacement = f"{dossier.emplacement}Annexes/Relecture/{nouveau_nom}"
                     f.name = nouveau_nom
-                    chemin_complet = os.path.join(os.getenv("ROOT_FOLDER"), emplacement)
+                    chemin_complet = os.path.join(os.getenv("NAS_ROOT"), emplacement)
 
                 try:
-                    with open(chemin_complet, 'wb+') as destination:
-                        for chunk in f.chunks():
-                            destination.write(chunk)
+
+                    if not ecrire_file_sur_nas(f, chemin_complet): 
+                        logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {nouveau_nom} sur {chemin_complet}")
+                        raise Exception(f"Échec de l’écriture du fichier {nouveau_nom} sur {chemin_complet}")
+                    
 
                     logger.info(f"[DOSSIER {dossier.numero}] Demande de relecture : PJ {f.name} ajoutée avec succès par {request.user}")
 

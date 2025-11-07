@@ -15,6 +15,7 @@ from autorisations.models.models_avis import Avis, AvisDocument, DossierAvis, Ex
 from django.contrib import messages
 import logging
 
+from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.views.avis import enregistrer_document
 
@@ -285,7 +286,7 @@ def avis_expert(request, avis_id):
     )
 
     return render(request, 'instruction/avis_expert.html', {
-        "ROOT_FOLDER": os.getenv('ROOT_FOLDER'),
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
         "avis": avis,
         "avis_documents": avis_documents,
         "liste_avis_documents": liste_avis_documents,
@@ -351,8 +352,8 @@ def donner_son_avis(request, avis_id):
             messages.error(request, f"❌ L'avis n'a aucun emplacement de renseigné")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
-        chemin_complet = f"{os.getenv('ROOT_FOLDER')}{emplacement}"
-        os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+        chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
+        creer_dossier_sur_nas(chemin_complet)
 
         # --- Vérifie si un avis signé existait déjà ---
         avis_signe_existant = AvisDocument.objects.filter(

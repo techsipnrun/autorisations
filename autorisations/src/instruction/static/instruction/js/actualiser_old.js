@@ -1,9 +1,10 @@
 document.addEventListener("DOMContentLoaded", function () {
     const bouton = document.getElementById("btn-actualiser");
     const message = document.getElementById("message-actualisation");
+
     if (!bouton) return;
 
-    const urlEtat = "/etat-actualisation/"; // lit SynchronisationEtat en BDD
+    const urlEtat = "/etat-actualisation/";
     let pollTimer = null;
 
     // --- helpers ---
@@ -11,66 +12,101 @@ document.addEventListener("DOMContentLoaded", function () {
         bouton.disabled = !!disabled;
         if (texte) message.textContent = texte;
     }
+
     function lireEtatBDD() {
         return fetch(urlEtat).then(r => r.json());
     }
+
+    // Affichage basé uniquement sur l’état retourné par le backend
     function afficherDerniereHeure() {
-        const saved = localStorage.getItem("derniere_actualisation");
-        const savedTs = localStorage.getItem("derniere_actualisation_timestamp");
-        if (saved && savedTs) {
-            message.textContent = `✅ Dernière actualisation à ${saved}`;
-        } else {
-            message.textContent = `ℹ️ Aucune actualisation encore réalisée`;
-        }
+        lireEtatBDD()
+            .then(({ date_maj, dernier_statut, date_derniere_tentative }) => {
+
+                if (!date_maj) {
+                    message.textContent = "Aucune actualisation encore réalisée";
+                    return;
+                }
+
+                const date = new Date(date_maj);
+                const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
+
+                if (dernier_statut === "erreur") {
+
+                    if (date_derniere_tentative) {
+                        message.textContent = `Échec de la dernière synchronisation à (${formatDate(date_derniere_tentative)})`;
+                    }
+
+                    else {
+                        message.textContent = `Échec de la dernière synchronisation (${date_affichage})`;
+                    }
+                } 
+                
+                else {
+                    message.textContent = `Dernière synchronisation : ${date_affichage}`;
+                }
+
+
+            })
+            .catch(() => {
+                message.textContent = `⚠️ Impossible de récupérer la dernière actualisation.`;
+            });
     }
+
+    // Décision d’auto-lancement basée uniquement sur date_maj de la BDD
     function peutEtreLancerAuto() {
-        // Ne s’appuie que sur localStorage pour la décision d’auto-lancement
-        const saved = localStorage.getItem("derniere_actualisation");
-        const savedTs = localStorage.getItem("derniere_actualisation_timestamp");
-        if (saved && savedTs) {
-            const minutes = Math.floor((Date.now() - parseInt(savedTs, 10)) / 60000);
-            if (minutes >= 240) {
-                lancerActualisation(); // va re-vérifier la BDD et désactiver le bouton
-                return true;
-            } else {
-                message.textContent = `✅ Dernière actualisation à ${saved}`;
+        return lireEtatBDD()
+            .then(({ date_maj, en_cours }) => {
+                if (en_cours) return false;
+
+                if (!date_maj) {
+                    message.textContent = `Dernière synchronisation : Aucune actualisation encore réalisée`;
+                    return false;
+                }
+
+                const [hh, mm] = date_maj.split("h").map(Number);
+                const date = new Date(date_maj);
+                const minutesDepuis = Math.floor((Date.now() - date.getTime()) / 60000);
+
+                console.log("minutesDepuis =", minutesDepuis);
+                const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
+                
+                // Si dernière synchro date depuis + de 4h
+                if (minutesDepuis >= 240) {
+                    lancerActualisation();
+                    return true;
+                } else {
+                    // message.textContent = `Dernière synchronisation : ${date_maj}`;
+                    message.textContent = `Dernière synchronisation : ${date_affichage}`;
+                    return false;
+                }
+            })
+            .catch(() => {
+                message.textContent = `⚠️ Erreur lors de la vérification de l'état.`;
                 return false;
-            }
-        } else {
-            message.textContent = `ℹ️ Aucune actualisation encore réalisée`;
-            return false;
-        }
+            });
     }
+
     function demarrerPolling() {
         if (pollTimer) return;
         pollTimer = setInterval(() => {
             lireEtatBDD()
-                .then(({ en_cours }) => {
+                .then(({ en_cours, date_maj, dernier_statut }) => {
                     if (!en_cours) {
                         arreterPolling();
-
-                        const now = new Date();
-                        const hh = now.getHours().toString().padStart(2, '0');
-                        const mm = now.getMinutes().toString().padStart(2, '0');
-                        const heureFinale = `${hh}h${mm}`;
-
-                        localStorage.setItem("derniere_actualisation", heureFinale);
-                        localStorage.setItem("derniere_actualisation_timestamp", now.getTime().toString());
-
-                        setBouton(false, `✅ Dernière actualisation à ${heureFinale}`);
-
-                        // Recharger pour refléter les nouvelles données
+                        const date = new Date(date_maj);
+                        const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
+                        setBouton(false, `Dernière synchronisation : ${date_affichage}`);
                         setTimeout(() => location.reload(), 100);
                     } else {
                         setBouton(true, "⏳ Actualisation en cours...");
                     }
                 })
                 .catch(() => {
-                    // problème réseau -> ne pas réactiver le bouton
                     console.warn("Impossible de lire l'état de synchro.");
                 });
         }, 10000);
     }
+
     function arreterPolling() {
         if (pollTimer) {
             clearInterval(pollTimer);
@@ -78,28 +114,31 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // --- Au chargement : source de vérité = BDD ---
+    // --- Chargement initial ---
     lireEtatBDD()
-        .then(({ en_cours }) => {
+        .then(({ en_cours, date_maj, dernier_statut }) => {
             if (en_cours) {
                 setBouton(true, "⏳ Actualisation déjà en cours...");
                 demarrerPolling();
             } else {
-                // Pas en cours : décider si on auto-lance (si > 240 min) ou juste afficher l'heure
                 setBouton(false);
-                const autoLance = peutEtreLancerAuto();
-                if (!autoLance) {
-                    // rien à faire de plus
+                if (!date_maj) {
+                    message.textContent = "Dernière synchronisation : Aucune actualisation encore réalisée";
+                } else {
+                    
+                    const date = new Date(date_maj);
+                    const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
+                    message.textContent = `Dernière synchronisation : ${date_affichage}`;
+
+                    peutEtreLancerAuto();
                 }
             }
         })
         .catch(() => {
-            // si on ne peut pas vérifier, on n’auto-lance pas à l’aveugle
             setBouton(false, "⚠️ Impossible de vérifier l'état.");
             afficherDerniereHeure();
         });
 
-    // --- Clic utilisateur ---
     bouton.addEventListener("click", function (e) {
         e.preventDefault();
         lancerActualisation();
@@ -128,33 +167,25 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // --- Si l’onglet redevient visible, re-vérifier immédiatement la BDD ---
+    // --- Re-check si onglet devient actif ---
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             lireEtatBDD()
-                .then(({ en_cours }) => {
+                .then(({ en_cours, date_maj, dernier_statut }) => {
                     if (en_cours) {
                         setBouton(true, "⏳ Actualisation en cours...");
                         demarrerPolling();
                     } else {
                         arreterPolling();
-                        setBouton(false);
-                        // On peut relancer auto si > 240 min (ex: onglet ouvert depuis longtemps)
+                        const date = new Date(date_maj);
+                        const date_affichage = `${date.getHours().toString().padStart(2, '0')}h${date.getMinutes().toString().padStart(2, '0')}`;
+                        setBouton(false, `Dernière synchronisation : ${date_affichage}`);
+
                         peutEtreLancerAuto();
                     }
                 })
-                .catch(() => {/* noop */});
+                .catch(() => { /* noop */ });
         }
     });
 
-    // --- Synchronisation visuelle inter-onglets (affichage uniquement) ---
-    window.addEventListener("storage", function (e) {
-        if (e.key === "derniere_actualisation") {
-            const nouvelleHeure = e.newValue;
-            if (nouvelleHeure) {
-                message.textContent = `✅ Dernière actualisation à ${nouvelleHeure}`;
-                // ne touche pas au disabled !
-            }
-        }
-    });
 });

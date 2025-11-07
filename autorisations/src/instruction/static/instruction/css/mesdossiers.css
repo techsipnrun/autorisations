@@ -150,7 +150,7 @@ input:checked + .slider:before {
 }
 
 .table_demarche_instru thead {
-    background: #00994d;;
+    background: #006131;
     color: #fff;
 }
 
@@ -313,5 +313,3 @@ tbody tr.row-action-archive::after {
         opacity: 1;
     }
 }
-
-
