@@ -11,6 +11,7 @@ loggerApp = logging.getLogger("APP")
 
 # Configuration
 GROUPE_NAS = "autorisations"
+GROUPE_NAS_LINUX = "PNRUN\\autorisations"
 NAS_UNC_PREFIX = r"\\orangers\autodev_data"
 NAS_MOUNT_POINT = "/mnt/nas_autorisations"  # point de montage sur Linux
 
@@ -172,7 +173,7 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
                 os.makedirs(dossier_work, exist_ok=True)
                 loggerApp.info(f"[ACL][Linux] 📁 Dossier créé localement : {dossier_work}")
 
-        else :
+        if system == "Windows" :
             if not creer_dossier_sur_nas(dossier_work):
             # if not creer_dossier_sur_nas("\\\\orangers\\autodev_data\\Travaux/2025/Aire_adhesion/24314203_commune_de_saint_paul_20-05/Work") :
                 loggerApp.error(f"[ACL] ❌ Le dossier {dossier_work} n'existe pas.")
@@ -203,8 +204,8 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
                 return False
 
             cmds = [
-                ["setfacl", "-m", f"g:{GROUPE_NAS}:rwx", dossier_work],
-                ["setfacl", "-d", "-m", f"g:{GROUPE_NAS}:rwx", dossier_work]
+                ["setfacl", "-m", f"g:{GROUPE_NAS_LINUX}:rwx", dossier_work],
+                ["setfacl", "-d", "-m", f"g:{GROUPE_NAS_LINUX}:rwx", dossier_work]
             ]
 
             for cmd in cmds:
@@ -213,7 +214,7 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
                     loggerApp.error(f"[ACL][Linux] ❌ Erreur setfacl : {result.stderr or result.stdout}")
                     return False
 
-            loggerApp.info(f"[ACL][Linux] ✅ Droits 'rwx' accordés à '{GROUPE_NAS}' sur {dossier_work}")
+            loggerApp.info(f"[ACL][Linux] ✅ Droits 'rwx' accordés à '{GROUPE_NAS_LINUX}' sur {dossier_work}")
             return True
 
         else:

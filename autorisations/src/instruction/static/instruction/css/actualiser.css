@@ -10,7 +10,8 @@
 }
 
 #btn-actualiser {
-    background: #006131;
+    /* background: #006131; */
+    background: #cdcdcd;
     border: none;
     border-radius: 50%;
     width: 48px;  
@@ -18,15 +19,14 @@
     cursor: pointer;
     transition: transform 0.2s, background 0.3s;
     box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-
-
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 #btn-actualiser:hover {
-    background: #006130c6;
+    /* background: #006130c6; */
+    background: #cdcdcdcb;
     transform: rotate(90deg);
 }
 

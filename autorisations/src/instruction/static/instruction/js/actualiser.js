@@ -86,7 +86,47 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // --- auto-lancement si >4h, basé sur la DERNIÈRE TENTATIVE ---
+
+async function lancerActualisation() {
+    const url = bouton.dataset.url;
+    const csrf = bouton.dataset.csrf;
+
+    setBouton(true, "⏳ Lancement de la synchronisation...");
+
+    try {
+        const resp = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrf,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (!resp.ok) {
+            throw new Error(`Erreur HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+
+        if (data.status === "already_running") {
+            setBouton(true, "⏳ Synchronisation déjà en cours...");
+        } else {
+            setBouton(true, "⏳ Synchronisation en cours...");
+        }
+
+        // 🌀 On démarre le polling
+        demarrerPolling();
+        return true;
+
+    } catch (err) {
+        console.error("Erreur lors du lancement d'actualisation :", err);
+        setBouton(false, "❌ Échec de l'actualisation.");
+        return false;
+    }
+}
+
+
+    // --- auto-lancement si >2h, basé sur la DERNIÈRE TENTATIVE ---
 function peutEtreLancerAuto() {
     return lireEtatBDD()
         .then(({ en_cours, date_derniere_tentative, date_maj, dernier_statut }) => {
@@ -104,8 +144,8 @@ function peutEtreLancerAuto() {
 
             const minutesDepuis = Math.floor((Date.now() - t) / 60000);
 
-            // 🕓 Si plus de 4 heures depuis la dernière tentative → on relance
-            if (minutesDepuis >= 240) {
+            // 🕓 Si plus de 2 heures depuis la dernière tentative → on relance
+            if (minutesDepuis >= 120) {
                 lancerActualisation();
                 return true;
             }

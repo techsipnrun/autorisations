@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import time
 from django.utils import timezone
 import json
 import os
@@ -32,6 +33,7 @@ from django.db import close_old_connections
 from django.contrib.auth.models import Group, User
 
 logger = logging.getLogger("ORM_DJANGO")
+loggerSynchro = logging.getLogger("SYNCHRONISATION")
 loggerDS = logging.getLogger("API_DS")  
 
 
@@ -70,6 +72,11 @@ def lancer_en_arriere_plan2():
                 ret_code = process.wait()
                 statut = "ok" if ret_code == 0 else "erreur"
 
+            # print('sleep start')
+            # time.sleep(30)
+            # print('sleep stop')
+            # statut = "ok"
+
         except Exception:
             logger.exception("Erreur lors du sous-processus de synchronisation.")
             statut = "erreur"
@@ -105,18 +112,17 @@ def actualiser_donnees(request):
 
 @login_required
 def etat_actualisation(request):
-    # etat, _ = SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
-
-    # # Timeout de sécurité : si ça dépasse 2 heures, on force en_cours=False
-    # if etat.en_cours and etat.date_maj and etat.date_maj < timezone.now() - timedelta(hours=2):
-    #     logger.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout dépassé) – dernière MAJ : {etat.date_maj}")
-    #     etat.en_cours = False
-    #     # etat.date_maj = timezone.now()
-    #     etat.save(update_fields=["en_cours", "date_maj"])
-
     etat = SynchronisationEtat.objects.filter(id=1).first()
+
+    # Timeout de sécurité : si ça dépasse 1h, on force en_cours=False
+    if ( etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=60)):
+        loggerSynchro.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout dépassé) – dernière tentative : {timezone.localtime(etat.date_derniere_tentative)}")
+        etat.en_cours = False
+        # etat.date_maj = timezone.now()
+        etat.save(update_fields=["en_cours"])
+
     if not etat:
-        return JsonResponse({"en_cours": False, "dernier_statut": "inconnu", "date_maj": None})
+        return JsonResponse({"en_cours": False, "dernier_statut": "inconnu", "date_maj": None, "date_derniere_tentative": None})
 
     return JsonResponse({
         "en_cours": etat.en_cours,
@@ -1121,9 +1127,9 @@ def ajouter_annexe_dossier(request, dossier_id):
 def synchroniser_demarche(request, num_demarche):
     if request.method == "POST":
         try:
-            lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+            l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
         except Exception as e:
-            logger.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+            loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
     return redirect("instruction_demarche", num_demarche=num_demarche)
 
 
@@ -1131,9 +1137,9 @@ def synchroniser_demarche(request, num_demarche):
 def synchroniser_demarche_depuis_reception(request, num_demarche):
     if request.method == "POST":
         try:
-            lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+            l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
         except Exception as e:
-            logger.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+            loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
     return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
 

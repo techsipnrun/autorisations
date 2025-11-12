@@ -23,6 +23,11 @@ try:
     from synchronisation.src.main import lancer_normalisation_et_synchronisation
     ok = lancer_normalisation_et_synchronisation()
     sys.exit(0 if ok else 1)
+
+except KeyboardInterrupt:
+        logger.warning("Interruption manuelle (Ctrl+C). Fin propre du script.")
+        sys.exit(130)
+        
 except Exception as e:
     from autorisations.models.models_instruction import SynchronisationEtat
     import traceback
