@@ -42,84 +42,90 @@
 
         <h1 id="titre_mes_dossiers">Mes dossiers en cours</h1>
 
-        {% if messages %}
-            <div class="django-messages">
-                {% for message in messages %}
-                    <div class="message {{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        {% if instructeur %}
-            <div class="filtre-au-dessus">
-                <div class="filtre-action-mes-doss">
-                    <label class="switch">
-                        <input type="checkbox" id="filtre-mes-dossiers">
-                        <span class="slider round"></span>
-                    </label>
-                    <span class="switch-label">Afficher uniquement les dossiers où j'ai une action à réaliser</span>
+        <div class="mesdemarches">
+            
+            {% if messages %}
+                <div class="django-messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
                 </div>
-            </div>
-        {% endif %}
+            {% endif %}
+
+            {% if instructeur %}
+                <div class="filtre-au-dessus">
+                    <div class="filtre-action-mes-doss">
+                        <label class="switch">
+                            <input type="checkbox" id="filtre-mes-dossiers">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Afficher uniquement les dossiers où j'ai une action à réaliser</span>
+                    </div>
+                </div>
+            {% endif %}
         
-        {% for demarche, dossiers in dossiers_par_demarche.items %}
-            <div class="mademarche">
+        
 
-                <h2>{{ demarche }}</h2>
+            {% for demarche, dossiers in dossiers_par_demarche.items %}
+                <div class="mademarche">
 
-                <table class="table_demarche_instru">
-                    <thead>
-                        <tr>
-                            <th>Dossier</th>
-                            <th>Numéro</th>
-                            <th>Bénéficiaire</th>
-                            <th>Reçu le</th>
-                            <th>Mon rôle</th>
-                            <th>Étape</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for d in dossiers %}
-                            <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}"
-                            {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}title="Nouveau message sur le dossier archivé"{% elif d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
-                                <td>
-                                    {% if d.nb_messages_non_lus > 0 %}
-                                        <div class="nouv_mess_wrapper">
-                                            <img src="{% static 'instruction/img/nouveau_mess.png' %}" 
-                                                alt="Nouveaux messages"
-                                                title="Nouveaux messages"
-                                                class="nouv_mess_icon">
-                                            <div class="pastille_nouv_mess">{{ d.nb_messages_non_lus }}</div>
-                                        </div>
-                                    {% endif %}
-                                    {{ d.nom_dossier }}
-                                </td>
-                                <td>{{ d.numero }}</td>
-                                <td>{{ d.beneficiaire }}</td>
-                                <td>{{ d.date_depot|date:"d/m/Y" }}</td>
-                                <td>{{ d.mon_role }}</td>
-                                <td>
-                                    {% if d.action_a_faire %}
-                                        <span class="{% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}dot-action-archive{% else %}dot-action{% endif %}"></span>
-                                    {% endif %}
-                                    {{ d.etape }}
-                                </td>
-                            </tr>
-                        {% empty %}
+                    <h2>{{ demarche }}</h2>
+
+                    <table class="table_demarche_instru">
+                        <thead>
                             <tr>
-                                <td colspan="6" class="aucun_doss">Aucun dossier trouvé pour cette démarche.</td>
+                                <th>Dossier</th>
+                                <th>Numéro</th>
+                                <th>Bénéficiaire</th>
+                                <th>Reçu le</th>
+                                <th>Mon rôle</th>
+                                <th>Étape</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% empty %}
-            <div class="aucun_dossier">
-                <p>Vous n'êtes concerné.e par aucun dossier.</p>
-            </div>
-        {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for d in dossiers %}
+                                <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}"
+                                {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}title="Nouveau message sur le dossier archivé"{% elif d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
+                                    <td>
+                                        {% if d.nb_messages_non_lus > 0 %}
+                                            <div class="nouv_mess_wrapper">
+                                                <img src="{% static 'instruction/img/nouveau_mess.png' %}" 
+                                                    alt="Nouveaux messages"
+                                                    title="Nouveaux messages"
+                                                    class="nouv_mess_icon">
+                                                <div class="pastille_nouv_mess">{{ d.nb_messages_non_lus }}</div>
+                                            </div>
+                                        {% endif %}
+                                        {{ d.nom_dossier }}
+                                    </td>
+                                    <td>{{ d.numero }}</td>
+                                    <td>{{ d.beneficiaire }}</td>
+                                    <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                                    <td>{{ d.mon_role }}</td>
+                                    <td>
+                                        {% if d.action_a_faire %}
+                                            <span class="{% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}dot-action-archive{% else %}dot-action{% endif %}"></span>
+                                        {% endif %}
+                                        {{ d.etape }}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="aucun_doss">Aucun dossier trouvé pour cette démarche.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% empty %}
+                <div class="aucun_dossier">
+                    <p>Vous n'êtes concerné.e par aucun dossier.</p>
+                </div>
+            {% endfor %}
+
+        </div>
 
         
     </div>

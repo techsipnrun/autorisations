@@ -1,0 +1,325 @@
+/* ================================
+   PAGE GLOBALE
+   ================================ */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0 0 2rem 0;
+}
+
+.logs-title {
+    margin: 12rem 4rem 3rem 4rem;
+    color: #006131;
+    font-size: 1.8rem;
+}
+
+/* ================================
+   LAYOUT GLOBAL
+   ================================ */
+
+.logs-container {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 0 4rem;
+    width: 90%;
+    gap: 2rem;
+}
+
+/* ================================
+   SIDEBAR (types de logs)
+   ================================ */
+
+.logs-sidebar {
+    width: 220px;
+    padding: 1rem 0.5rem 1rem 0;
+    border-right: 1px solid #ccc;
+}
+
+.logs-sidebar-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.logs-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.logs-sidebar-link {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    text-decoration: none;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.logs-sidebar-link:hover {
+    background-color: #e0e0e0;
+}
+
+.logs-sidebar-link-active {
+    background-color: #006131;
+    color: #ffffff;
+}
+
+.logs-sidebar-link-active:hover {
+    background-color: #006130de;
+}
+
+
+/* Badge rond dans la sidebar */
+.log-badge {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    cursor: help;
+}
+
+.log-badge-error {
+    background-color: #d93030; /* rouge */
+}
+
+.log-badge-warning {
+    background-color: #ff9900; /* orange */
+}
+
+
+
+
+/* ================================
+   CONTENU PRINCIPAL
+   ================================ */
+
+.logs-main {
+    flex: 1;
+    padding: 1rem 0 2rem 0;
+}
+
+/* Filtres */
+
+.logs-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.logs-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.logs-filter-label {
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.logs-input-text,
+.logs-input-date {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    min-width: 220px;
+}
+
+.logs-button {
+    padding: 0.5rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #006131;
+    color: #ffffff;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.logs-button:hover {
+    background-color: #0e4c27;
+}
+
+
+/* ==================================== */
+/*     Dropdown multiple type de logs   */
+/* ==================================== */
+.dropdown-multi {
+    position: relative;
+    width: 220px;
+    font-family: inherit;
+}
+
+.dropdown-multi-toggle {
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 0.45rem 0.6rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-multi-toggle:hover {
+    border-color: #006131;
+}
+
+.dropdown-arrow {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.dropdown-multi-menu {
+    position: absolute;
+    width: 100%;
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 0.4rem;
+    margin-top: 0.2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 10;
+}
+
+.dropdown-multi-menu label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0;
+    cursor: pointer;
+}
+
+.dropdown-multi-menu input[type="checkbox"] {
+    transform: scale(1.1);
+}
+
+.dropdown-multi.open .dropdown-multi-menu {
+    display: block;
+}
+
+
+
+/* Titre contenu */
+
+.logs-main-title {
+    margin-bottom: 0.8rem;
+    font-size: 1.3rem;
+    color: #222;
+}
+
+/* ================================
+   LISTE DES LOGS
+   ================================ */
+
+.logs-list {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.log-line {
+    white-space: pre-wrap;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #eee;
+    padding: 0.2rem 0;
+}
+
+/* Optionnel : un tout petit peu de coloration brute par mot-clé */
+/* (tu peux supprimer si tu préfères 100% brut) */
+.log-line:contains("ERROR") {
+    color: #a00000;
+}
+.log-line:contains("WARNING") {
+    color: #b36b00;
+}
+.log-line:contains("INFO") {
+    color: #004080;
+}
+
+.logs-empty {
+    padding: 0.5rem;
+    font-style: italic;
+    color: #666;
+}
+
+/* ================================
+   PAGINATION
+   ================================ */
+
+.logs-pagination {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.95rem;
+}
+
+.logs-page-link {
+    text-decoration: none;
+    color: #006131;
+    font-weight: bold;
+}
+
+.logs-page-link:hover {
+    text-decoration: underline;
+}
+
+.logs-page-info {
+    color: #444;
+}
+
+
+
+/* =============================== */
+/*        BADGES DES LOGS          */
+/* =============================== */
+
+.log-line {
+    white-space: pre-wrap;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+    border-bottom: 1px solid #eee;
+}
+
+.log-line.INFO {
+    border-left: 4px solid #0057b7;
+    color: #0a3f6c;
+}
+
+.log-line.WARNING {
+    border-left: 4px solid #d98f00;
+    color: #7a5100;
+}
+
+.log-line.ERROR {
+    border-left: 4px solid #d93030;
+    color: #8b0000;
+    font-weight: bold;
+}
+
+.log-line.EXCEPTION {
+    border-left: 4px solid #990000;
+    color: #5a0000;
+    font-weight: bold;
+}
+
+.log-line.OTHER {
+    border-left: 4px solid #888;
+    color: #444;
+}
+
+
+

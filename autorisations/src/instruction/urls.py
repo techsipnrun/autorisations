@@ -8,6 +8,8 @@ urlpatterns = [
     # GESTION
     path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
+    path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
+
     
 
     # AVIS

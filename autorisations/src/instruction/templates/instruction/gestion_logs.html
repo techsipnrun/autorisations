@@ -1,0 +1,195 @@
+{% load static %}
+{% load log_tags %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Interface de gestion des logs</title>
+    <!-- Icon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'instruction/css/gestion_logs.css' %}">
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    <h1 class="logs-title">📄 Interface d'administration des logs</h1>
+
+    <div class="logs-container">
+
+        <aside class="logs-sidebar">
+            <h2 class="logs-sidebar-title">Types de logs</h2>
+            <nav class="logs-sidebar-nav">
+                {% for key in log_files %}
+                    <a href="?type={{ key }}"
+                       class="logs-sidebar-link {% if key == log_type %}logs-sidebar-link-active{% endif %}">
+                        {{ key }}
+
+                        {% with stats=activity|get_item:key %}
+
+                            {% if stats.error > 0 %}
+                                <span class="log-badge log-badge-error"
+                                    title="{{ stats.error }} erreur{{ stats.error|pluralize:'s' }} dans les 5 derniers jours">
+                                </span>
+                            {% endif %}
+
+                            {% if stats.warning > 0 %}
+                                <span class="log-badge log-badge-warning"
+                                    title="{{ stats.warning }} avertissement{{ stats.warning|pluralize:'s' }} dans les 5 derniers jours">
+                                </span>
+                            {% endif %}
+
+                        {% endwith %}
+
+
+
+                    </a>
+                {% endfor %}
+            </nav>
+        </aside>
+
+        <main class="logs-main">
+            <form method="get" class="logs-filters">
+                <input type="hidden" name="type" value="{{ log_type }}">
+
+                <div class="logs-filter-group">
+                    <label for="search" class="logs-filter-label">Recherche texte :</label>
+                    <input type="text"
+                           id="search"
+                           name="search"
+                           class="logs-input-text"
+                           placeholder="Erreur, dossier, utilisateur..."
+                           value="{{ search }}">
+                </div>
+
+                <div class="logs-filter-group">
+                    <label for="date" class="logs-filter-label">Date :</label>
+                    <input type="date"
+                           id="date"
+                           name="date"
+                           class="logs-input-date"
+                           value="{{ date_filter }}">
+                </div>
+
+                <div class="dropdown-multi">
+
+                    <div class="dropdown-multi-toggle" id="dropdownToggle">
+                        <span id="dropdownSelected">Niveaux...</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+
+                    <div class="dropdown-multi-menu" id="dropdownMenu">
+                        <label><input type="checkbox" value="INFO"> INFO</label>
+                        <label><input type="checkbox" value="WARNING"> WARNING</label>
+                        <label><input type="checkbox" value="ERROR"> ERROR</label>
+                        <label><input type="checkbox" value="EXCEPTION"> EXCEPTION</label>
+                    </div>
+
+                    <!-- input caché utilisé pour envoyer la liste au serveur -->
+                    <input type="hidden" name="level" id="dropdownHiddenInput">
+                </div>
+
+
+                <button type="submit" class="logs-button">Filtrer</button>
+            </form>
+
+            <h2 class="logs-main-title">Logs : {{ log_type }}</h2>
+
+            <section class="logs-list">
+                {% for line in logs %}
+                    <div class="log-line {{ line|log_level }}">{{ line }}</div>
+                {% empty %}
+                    <p class="logs-empty">Aucune entrée de log trouvée.</p>
+                {% endfor %}
+            </section>
+
+            <div class="logs-pagination">
+                {% if page_obj.has_previous %}
+                    <a class="logs-page-link"
+                       href="?type={{ log_type }}&page={{ page_obj.previous_page_number }}&search={{ search }}&date={{ date_filter }}&level={{ selected_levels|join:',' }}">
+                        ⬅ Précédent
+                    </a>
+                {% endif %}
+
+                <span class="logs-page-info">
+                    Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a class="logs-page-link"
+                       href="?type={{ log_type }}&page={{ page_obj.next_page_number }}&search={{ search }}&date={{ date_filter }}&level={{ selected_levels|join:',' }}">
+                        Suivant ➡
+                    </a>
+                {% endif %}
+            </div>
+        </main>
+
+    </div>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const dropdown = document.querySelector(".dropdown-multi");
+            const toggle = document.getElementById("dropdownToggle");
+            const menu = document.getElementById("dropdownMenu");
+            const hiddenInput = document.getElementById("dropdownHiddenInput");
+            const selectedLabel = document.getElementById("dropdownSelected");
+
+            const selectedLevels = new Set({{ selected_levels|safe }}.map(x => x.trim()));
+
+
+            // --- ouvrir / fermer ---
+            toggle.addEventListener("click", () => {
+                dropdown.classList.toggle("open");
+            });
+
+            // --- fermeture en cliquant ailleurs ---
+            document.addEventListener("click", (e) => {
+                if (!dropdown.contains(e.target)) {
+                    dropdown.classList.remove("open");
+                }
+            });
+
+            // --- mise à jour des cases cochées ---
+            menu.querySelectorAll("input[type=checkbox]").forEach(cb => {
+
+                // initialisation selon backend
+                if (selectedLevels.has(cb.value)) {
+                    cb.checked = true;
+                }
+
+                cb.addEventListener("change", () => {
+                    if (cb.checked) {
+                        selectedLevels.add(cb.value);
+                    } else {
+                        selectedLevels.delete(cb.value);
+                    }
+
+                    // mise à jour champ caché envoyé au backend
+                    hiddenInput.value = Array.from(selectedLevels).join(",");
+
+                    // mise à jour du texte affiché
+                    selectedLabel.innerText = selectedLevels.size > 0
+                        ? Array.from(selectedLevels).join(", ")
+                        : "Niveaux...";
+                });
+            });
+
+            // initialisation du label
+            selectedLabel.innerText =
+                selectedLevels.size > 0
+                    ? Array.from(selectedLevels).join(", ")
+                    : "Niveaux...";
+
+            // initialise correctement hiddenInput à partir de selectedLevels
+            hiddenInput.value = Array.from(selectedLevels).join(",");
+
+        });
+    </script>
+
+
+</body>
+</html>

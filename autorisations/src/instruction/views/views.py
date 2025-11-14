@@ -81,17 +81,19 @@ def lancer_en_arriere_plan2():
             logger.exception("Erreur lors du sous-processus de synchronisation.")
             statut = "erreur"
         finally:
-            try:
-                update_data = {
-                    "en_cours": False,
-                    "dernier_statut": statut,
-                }
-                if statut == "ok":
-                    update_data["date_maj"] = timezone.now()
+            close_old_connections()
+            # try:
+            #     update_data = {
+            #         "en_cours": False,
+            #         "dernier_statut": statut,
+            #     }
+            #     if statut == "ok":
+            #         loggerSynchro.info(" ############## STATUT OK lancement_et_suivi --> DATE_MAJ mise à jour ################ ")
+            #         update_data["date_maj"] = timezone.now()
 
-                SynchronisationEtat.objects.filter(id=1).update(**update_data)
-            finally:
-                close_old_connections()
+            #     SynchronisationEtat.objects.filter(id=1).update(**update_data)
+            # finally:
+                # close_old_connections()
 
     threading.Thread(target=lancement_et_suivi).start()
     return True
@@ -1361,4 +1363,196 @@ def gestion_contacts(request):
     return render(request, "instruction/gestion_contacts.html", {
         "instructeurs": instructeurs,
         "contacts": contacts,
+    })
+
+
+
+from datetime import datetime, timedelta
+
+# def recent_log_activity(file_path):
+#     """Retourne ('error', 'warning', None) en fonction des logs des 5 derniers jours."""
+#     if not os.path.exists(file_path):
+#         return None
+
+#     now = datetime.now()
+#     threshold = now - timedelta(days=5)
+
+#     with open(file_path, encoding="utf-8", errors="replace") as f:
+#         for line in f.readlines()[-5000:]:  # Limite de perf, largement suffisant
+#             # Format attendu : 2025-11-14 10:33:00,854 INFO Message...
+#             try:
+#                 date_str = line.split(" ")[0] + " " + line.split(" ")[1]
+#                 timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S,%f")
+#             except:
+#                 continue  # si format inattendu
+
+#             if timestamp < threshold:
+#                 continue
+
+#             if "ERROR" in line or "Exception" in line or "Traceback" in line:
+#                 return "error"
+#             if "WARNING" in line:
+#                 return "warning"
+
+#     return None
+
+
+# def recent_log_activity(file_path):
+#     """
+#     Analyse les 5000 dernières lignes et retourne :
+#     {
+#         "type": "error" / "warning" / None,
+#         "count": int
+#     }
+#     """
+#     if not os.path.exists(file_path):
+#         return {"type": None, "count": 0}
+
+#     now = datetime.now()
+#     threshold = now - timedelta(days=5)
+
+#     error_count = 0
+#     warning_count = 0
+
+#     with open(file_path, encoding="utf-8", errors="replace") as f:
+#         for line in f.readlines()[-5000:]:
+
+#             try:
+#                 date_str = line.split(" ")[0] + " " + line.split(" ")[1]
+#                 timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S,%f")
+#             except:
+#                 continue
+
+#             if timestamp < threshold:
+#                 continue
+
+#             if "ERROR" in line or "Exception" in line or "Traceback" in line:
+#                 error_count += 1
+#             elif "WARNING" in line:
+#                 warning_count += 1
+
+#     if error_count > 0:
+#         return {"type": "error", "count": error_count}
+
+#     if warning_count > 0:
+#         return {"type": "warning", "count": warning_count}
+
+#     return {"type": None, "count": 0}
+
+def recent_log_activity(file_path):
+    """
+    Retourne :
+    {
+        "error": int,
+        "warning": int
+    }
+    """
+    if not os.path.exists(file_path):
+        return {"error": 0, "warning": 0}
+
+    now = datetime.now()
+    threshold = now - timedelta(days=5)
+
+    error_count = 0
+    warning_count = 0
+
+    with open(file_path, encoding="utf-8", errors="replace") as f:
+        for line in f.readlines()[-5000:]:
+            try:
+                date_str = line.split(" ")[0] + " " + line.split(" ")[1]
+                timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S,%f")
+            except:
+                continue
+
+            if timestamp < threshold:
+                continue
+
+            if "ERROR" in line or "Exception" in line or "Traceback" in line:
+                error_count += 1
+            elif "WARNING" in line:
+                warning_count += 1
+
+    return {"error": error_count, "warning": warning_count}
+
+
+
+
+from django.core.paginator import Paginator
+
+LOG_FILES = {
+    "LDAP_LOGS": "logs/active_directory.log",
+    "APP": "logs/app.log",
+    "API_DS": "logs/apiDS.log",
+    "API_PG": "logs/apiPG.log",
+    "API_DM": "logs/apiDM.log",
+    "MAIL": "logs/mails.log",
+    "INSTRUCTION": "logs/instruction.log",
+    "SYNCHRONISATION": "logs/synchronisation.log",
+}
+
+
+def gestion_logs(request):
+    log_type = request.GET.get("type", "APP")
+    search = request.GET.get("search", "")
+    page = request.GET.get("page", 1)
+
+    date_filter = request.GET.get("date")
+    if date_filter in (None, "", "None"):
+        date_filter = ""
+
+    
+    raw_levels = request.GET.getlist("level")
+    if len(raw_levels) == 1 and "," in raw_levels[0]:
+        raw_levels = raw_levels[0].split(",")
+
+    selected_levels = [lvl.upper() for lvl in raw_levels if lvl]
+
+
+    print(f"search= {search}, date= {date_filter}, page= {page}, log_type= {log_type}, selected_levels= {selected_levels}")
+
+
+    file_path = LOG_FILES.get(log_type)
+    lines = []
+
+    if file_path and os.path.exists(file_path):
+
+        # Sécurisation UTF-8
+        with open(file_path, encoding="utf-8", errors="replace") as f:
+            raw_lines = f.readlines()
+
+        # Inverser pour afficher les plus récentes d'abord
+        raw_lines.reverse()
+
+        # Filtrage
+        for line in raw_lines:
+
+            if search.lower() not in line.lower():
+                continue
+            if date_filter and not line.startswith(date_filter):
+                continue
+            if selected_levels:
+                if not any(level in line for level in selected_levels):
+                    continue
+
+            lines.append(line)
+
+    # Pagination (max 400 lignes par page)
+    paginator = Paginator(lines, 400)
+    page_obj = paginator.get_page(page)
+
+    # Générer les indicateurs pour chaque fichier
+    activity = {}
+    for key, path in LOG_FILES.items():
+        activity[key] = recent_log_activity(path)
+
+
+    return render(request, "gestion_logs.html", {
+        "logs": page_obj,
+        "activity": activity,
+        "page_obj": page_obj,
+        "log_type": log_type,
+        "search": search,
+        "date_filter": date_filter,
+        "selected_levels": selected_levels,
+        "log_files": LOG_FILES.keys(),
     })

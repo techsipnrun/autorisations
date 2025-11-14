@@ -50,3 +50,37 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+
+/* ================================== */
+/* =========== RESPONSIVE =========== */
+/* ================================== */
+
+@media (max-width: 1750px) {
+
+    /* Réduire taille du bouton  */
+    #btn-actualiser{
+        width: 36px;  
+        height: 36px;
+    }
+
+    /* Réduire taille du bouton  */
+    #btn-actualiser img {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Réduire message actualisation  */
+    #message-actualisation {
+        font-size: 0.9rem;
+    }
+
+
+}
+
+
+
+
+
+
+

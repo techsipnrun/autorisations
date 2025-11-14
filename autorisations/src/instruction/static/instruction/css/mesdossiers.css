@@ -122,6 +122,15 @@ input:checked + .slider:before {
 /* ================================
    Section d'une démarche
 ================================ */
+
+.mesdemarches {
+    display: flex;
+    padding: 2rem;
+    flex-direction: column;
+    justify-content: center;
+    margin: auto;
+}
+
 .mademarche {
     margin: 40px auto;
     padding: 20px 20px 20px 30px;
@@ -312,4 +321,64 @@ tbody tr.row-action-archive::after {
         transform: scale(1.1);
         opacity: 1;
     }
+}
+
+
+
+/* ================================== */
+/* =========== RESPONSIVE =========== */
+/* ================================== */
+
+
+@media (max-width: 1550px) {
+
+  .table_demarche_instru {
+    font-size: 80%;
+  }
+
+  .page_mes_dossiers .filtre-action-mes-doss {
+    font-size: 90%;
+  }
+}
+
+
+@media (max-width: 1300px) {
+    .nouv_mess_icon {
+        width: 26px;
+    }
+
+    .pastille_nouv_mess {
+        font-size: 0.8rem;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        top: -10px;
+        right: -10px;
+    }
+}
+
+
+
+@media (max-width: 1100px) {
+
+  .table_demarche_instru {
+    font-size: 70%;
+  }
+
+  .page_mes_dossiers .filtre-action-mes-doss {
+    font-size: 80%;
+  }
+}
+
+
+@media (max-width: 900px) {
+
+  .table_demarche_instru {
+    font-size: 60%;
+  }
+
+  .nouv_mess_icon {
+        width: 22px;
+    }
+
 }

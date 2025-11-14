@@ -1126,8 +1126,8 @@ def actualiser_dossier(request, num_dossier):
         if liaison:
             doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
             doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
-            loggerSynchro.info("")
-            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ------")
+            loggerSynchro.info("\n\n")
+            loggerSynchro.info(f"###### SYNCHRONISATION {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ######")
 
             for ddm in doss_dm_norma :
                 sync_declaration_manifestations(ddm, loggerSynchro)
@@ -1146,11 +1146,11 @@ def actualiser_dossier(request, num_dossier):
 
         # 3. Synchronisation en base
         if liaison:
-            loggerSynchro.info(f"------ DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarches Simplifiées) ------")
+            loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarches Simplifiées) ######")
         else:
-            loggerSynchro.info(f"------ DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarches Simplifiées) ------")
+            loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarches Simplifiées) ######")
 
-        dico_notifs = {}  #Est ce que on onvoi vraiment une notifs pour l'actualisation d'un dossier ? je ne pense pas
+        dico_notifs = {}  #Est ce que on envoi vraiment une notif pour l'actualisation d'un dossier ? je ne pense pas
         sync_dossiers([dico_dossier], demarche.numero, True, dico_notifs)
         
         return redirect(request.META.get("HTTP_REFERER", "/"))

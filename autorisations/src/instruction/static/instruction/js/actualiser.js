@@ -63,11 +63,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 // 🔹 Priorité au statut "erreur"
                 if (dernier_statut === "erreur") {
                     if (tMaj !== null && tTent !== null && tTent >= tMaj) {
-                        setBouton(false, `🟢 Dernière synchronisation : ${hMaj}<br>🔴 Dernière tentative échouée : ${hTent}`);
+                        setBouton(false, `🟢 Dernière synchronisation : ${hMaj}<br>🔴 Dernière tentative échouée : ${hTent}<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
                     } else if (tMaj === null && tTent !== null) {
-                        setBouton(false, `🔴 Dernière synchronisation échouée : ${hTent}`);
+                        setBouton(false, `🔴 Dernière synchronisation échouée : ${hTent}<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
                     } else {
-                        setBouton(false, `🔴 Dernière tentative échouée`);
+                        setBouton(false, `🔴 Dernière tentative échouée<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
                     }
                     return;
                 }
@@ -79,10 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
-                setBouton(false, "⚠️ Aucune synchronisation disponible.");
+                setBouton(false, `⚠️ Aucune synchronisation disponible.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
             })
             .catch(() => {
-                setBouton(false, "⚠️ Impossible de récupérer la dernière actualisation.");
+                setBouton(false, `⚠️ Impossible de récupérer la dernière actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
             });
     }
 
@@ -120,7 +120,7 @@ async function lancerActualisation() {
 
     } catch (err) {
         console.error("Erreur lors du lancement d'actualisation :", err);
-        setBouton(false, "❌ Échec de l'actualisation.");
+        setBouton(false, `🔴 Échec de l'actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
         return false;
     }
 }
@@ -198,7 +198,7 @@ function peutEtreLancerAuto() {
             }
         })
         .catch(() => {
-            setBouton(false, "⚠️ Impossible de vérifier l'état.");
+            setBouton(false, `⚠️ Impossible de vérifier l'état de la synchronisation en base.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i`);
         });
 
     // --- lancer une actualisation manuelle ---
@@ -246,7 +246,7 @@ function peutEtreLancerAuto() {
 
         } catch (err) {
             console.error("Erreur lors du lancement :", err);
-            setBouton(false, "❌ Échec du lancement de l'actualisation.");
+            setBouton(false, `🔴 Échec du lancement de l'actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
         }
     });
 

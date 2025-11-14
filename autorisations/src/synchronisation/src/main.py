@@ -90,6 +90,7 @@ def lancer_normalisation_et_synchronisation():
 
     # --- Mise à jour du statut global ---
     if success:
+        # logger.info(" ############## STATUT OK lancer_normalisation_et_synchronisation --> DATE_MAJ mise à jour ################ ")
         SynchronisationEtat.objects.filter(id=1).update(en_cours=False, dernier_statut="ok", date_maj=timezone.now())
     else:
         logger.error("-- Plantage lors de la synchronisation --")
@@ -110,9 +111,7 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
     """
     success = True
     dico_notifs = {}
-
     logger.info("\n\n")
-    logger.info(f"###### SYNCHRONISATION DÉMARCHE N°{num_demarche} ######")
 
     try:
         # --- Récupération de la démarche ---
@@ -124,8 +123,10 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
         except Exception as e:
             logger.exception(f"Erreur lors de la récupération de la démarche {demarche.type} en base : {e}")
             return False
-    
-        
+
+
+
+        logger.info(f"###### SYNCHRONISATION DÉMARCHE {demarche.type} ######")
 
         # --- Récupération des données DS ---
         try:
@@ -150,7 +151,6 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
             if not resultats or not resultats.get("statut") :
                 logger.error(f"Erreur lors de la normalisation ({demarche.type}) Démarches Simplifiées - Déclaration Manifestations")
                 return False
-
 
             else :
                 s = synchro_process(resultats, dico_notifs, demarche)

@@ -20,12 +20,21 @@ logger = logging.getLogger("SYNCHRONISATION")
 
 # Lancement du traitement
 try:
+    from autorisations.models.models_instruction import SynchronisationEtat
     from synchronisation.src.main import lancer_normalisation_et_synchronisation
+    
+    etat = SynchronisationEtat.objects.filter(id=1).first()
+    if etat and not etat.en_cours:
+        etat.en_cours = True
+        etat.save()
+
+
     ok = lancer_normalisation_et_synchronisation()
     sys.exit(0 if ok else 1)
 
 except KeyboardInterrupt:
         logger.warning("Interruption manuelle (Ctrl+C). Fin propre du script.")
+        SynchronisationEtat.objects.filter(id=1).update(en_cours=False, dernier_statut="erreur")
         sys.exit(130)
         
 except Exception as e:
