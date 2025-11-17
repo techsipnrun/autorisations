@@ -73,11 +73,11 @@ def lancer_normalisation_et_synchronisation():
                 success = False
                 logger.error("Erreur lors de la normalisation des données Démarches Simplifiées - Déclaration Manifestations")
             else :
-                t1 = time.perf_counter()
+                # t1 = time.perf_counter()
                 s = synchro_process(resultats, dico_notifs, demarche_obj)
                 if not s :
                     success = False
-                t_synchro = time.perf_counter() - t1
+                # t_synchro = time.perf_counter() - t1
 
                 logger.info("------------------------------------------------")
 

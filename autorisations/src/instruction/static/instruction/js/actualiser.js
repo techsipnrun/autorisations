@@ -63,11 +63,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 // 🔹 Priorité au statut "erreur"
                 if (dernier_statut === "erreur") {
                     if (tMaj !== null && tTent !== null && tTent >= tMaj) {
-                        setBouton(false, `🟢 Dernière synchronisation : ${hMaj}<br>🔴 Dernière tentative échouée : ${hTent}<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+                        setBouton(false, `🟢 Dernière synchronisation : ${hMaj}<br>🔴 Dernière tentative échouée : ${hTent}<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
                     } else if (tMaj === null && tTent !== null) {
-                        setBouton(false, `🔴 Dernière synchronisation échouée : ${hTent}<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+                        setBouton(false, `🔴 Dernière synchronisation échouée : ${hTent}<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
                     } else {
-                        setBouton(false, `🔴 Dernière tentative échouée<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+                        setBouton(false, `🔴 Dernière tentative échouée<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
                     }
                     return;
                 }
@@ -79,10 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
-                setBouton(false, `⚠️ Aucune synchronisation disponible.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+                setBouton(false, `⚠️ Aucune synchronisation disponible.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
             })
             .catch(() => {
-                setBouton(false, `⚠️ Impossible de récupérer la dernière actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+                setBouton(false, `⚠️ Impossible de récupérer la dernière actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
             });
     }
 
@@ -120,7 +120,7 @@ async function lancerActualisation() {
 
     } catch (err) {
         console.error("Erreur lors du lancement d'actualisation :", err);
-        setBouton(false, `🔴 Échec de l'actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+        setBouton(false, `🔴 Échec de l'actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
         return false;
     }
 }
@@ -143,6 +143,7 @@ function peutEtreLancerAuto() {
             if (Number.isNaN(t)) return false;
 
             const minutesDepuis = Math.floor((Date.now() - t) / 60000);
+            console.log("Minutes écoulées depuis la derniere synchro = ", minutesDepuis);
 
             // 🕓 Si plus de 2 heures depuis la dernière tentative → on relance
             if (minutesDepuis >= 120) {
@@ -192,13 +193,13 @@ function peutEtreLancerAuto() {
             } else {
                 setBouton(false);
                 afficherDerniereHeure();
-                if (dernier_statut !== "erreur") {
-                    peutEtreLancerAuto();
-                }
+                // if (dernier_statut !== "erreur") {
+                peutEtreLancerAuto();
+                // }
             }
         })
         .catch(() => {
-            setBouton(false, `⚠️ Impossible de vérifier l'état de la synchronisation en base.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i`);
+            setBouton(false, `⚠️ Impossible de vérifier l'état de la synchronisation en base.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i`);
         });
 
     // --- lancer une actualisation manuelle ---
@@ -246,7 +247,7 @@ function peutEtreLancerAuto() {
 
         } catch (err) {
             console.error("Erreur lors du lancement :", err);
-            setBouton(false, `🔴 Échec du lancement de l'actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer l'administration.</i>`);
+            setBouton(false, `🔴 Échec du lancement de l'actualisation.<br><i style="color:#8B0000; display:block; text-align:center;">Vous pouvez en informer le support technique.</i>`);
         }
     });
 
@@ -262,9 +263,9 @@ function peutEtreLancerAuto() {
                     } else {
                         arreterPolling();
                         afficherDerniereHeure();
-                        if (dernier_statut !== "erreur") {
-                            peutEtreLancerAuto();
-                        }
+                        // if (dernier_statut !== "erreur") {
+                        peutEtreLancerAuto();
+                        // }
                     }
                 })
                 .catch(() => { /* noop */ });

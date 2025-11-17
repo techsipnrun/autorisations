@@ -15,10 +15,14 @@ def normalize_process(d, demarche_obj):
     Normalise toutes les structures de données d'une démarche.
     """
     statut = True
+
+    
     manif_sportives = None
     avis_manif_sportives = None
     
     try :
+        """
+        ##### MANIF SPORTIVE #####
         if "Manifestations sportives" in d["title"] :
             logger.info("Récupération des données sur Déclaration Manifestations...")
             
@@ -47,7 +51,7 @@ def normalize_process(d, demarche_obj):
                 manif_sportives = None
                 avis_manif_sportives = None
                 statut = False
-
+        """
 
         try:
             demarche_norm = demarche_normalize(d)

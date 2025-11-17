@@ -2,7 +2,7 @@ from django import template
 
 from autorisations.models.models_avis import DossierAvis
 
-from autorisations.models.models_utilisateurs import DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
 from django.db.models import Q
 
 
@@ -125,3 +125,31 @@ def est_concerne_par_demande_avis(user, avis):
 
     # 7️⃣ sinon → non concerné
     return False
+
+
+@register.filter(name="afficher_user")
+def user_display(user):
+    """
+    Retourne la représentation textuelle la plus pertinente pour un user :
+    - Instructeur associé → str(Instructeur)
+    - ContactExterne associé → str(ContactExterne)
+    - Sinon → user.email
+    """
+
+    if not user or not user.email:
+        return ""
+
+    email = user.email.strip().lower()
+
+    # 1. Essayer de trouver un instructeur
+    instructeur = Instructeur.objects.filter(email__iexact=email).first()
+    if instructeur:
+        return str(instructeur)
+
+    # 2. Essayer de trouver un contact externe
+    contact = ContactExterne.objects.filter(email__iexact=email).first()
+    if contact:
+        return str(contact)
+
+    # 3. Default → user.email
+    return user.email

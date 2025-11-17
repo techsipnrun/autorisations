@@ -1,4 +1,5 @@
 {% load static %}
+{% load group_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -73,7 +74,9 @@
             <div class="user_information">
                 <div class="user_dropdown">
                     <button class="user_toggle">
-                        <strong>{{ user.email }}</strong>
+                        <!-- <strong>{{ user.email }}</strong> -->
+                        <strong>{{ user|afficher_user }}</strong>
+                        <!-- afficher_user -->
                         <img src="{% static 'instruction/img/chevron-down.svg' %}" class="chevron" alt="Menu">
                     </button>
 
@@ -81,7 +84,7 @@
                         <form method="post" action="{% url 'logout' %}">
                             {% csrf_token %}
                             <button type="submit" class="logout-item">
-                                <img src="{% static 'instruction/img/log-out.svg' %}" class="icon"> Se déconnecter
+                                <img src="{% static 'instruction/img/log-out.svg' %}" class="icon"> Déconnexion
                             </button>
                         </form>
                     </div>

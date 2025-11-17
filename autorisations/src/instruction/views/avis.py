@@ -25,86 +25,101 @@ from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label,get_reponse_label,count_avis_with_unread_messages_for_dossier)
+from instruction.utils.dossier_utils import count_unread_messages_for_dossier
+
 from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
 
 logger = logging.getLogger('ORM_DJANGO')
 
 
 @login_required
-def instruction_dossier_consultation(request, num_dossier):
+def instruction_dossier_consultation(request, num_dossier) :
 
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
-    dossiers_avis = (DossierAvis.objects.filter(id_dossier=dossier))
+    # --- Récupération du dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[CONSULTATION] Dossier {num_dossier} introuvable en base — user={request.user}")
+        messages.error(request, f"Le dossier {num_dossier} est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # --- Récupération de l'instructeur.rice ---
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        logger.warning(f"[CONSULTATION DOSSIER] Utilisateur {request.user.email} sans profil instructeur")
+        messages.warning(request,"Vous n'avez pas de profil 'Instructeur.trice'. Contactez le support.")
+
+    dossiers_avis = DossierAvis.objects.filter(id_dossier=dossier).select_related(
+        "id_avis",
+        "id_avis__id_instructeur",
+        "id_avis__id_expert",
+        "id_avis__id_expert__id_instructeur",
+        "id_avis__id_expert__id_contact_externe",
+        "id_avis__id_avis_nature"
+    )
+
     liste_avis = []
     nb_avis_avec_nouveau_mess = 0
 
-    if not instructeur:
-        messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     for da in dossiers_avis:
         avis = da.id_avis
 
-        # Déterminer l'expert
-        expert = "N/A"
-        if avis.id_avis_nature.nature == "Demande à une instance":
-            if avis.id_expert and avis.id_expert.id_contact_externe:
-                expert = str(avis.id_expert.id_contact_externe)
-        elif avis.id_avis_nature.nature == "Consultation en interne":
-            if avis.id_expert and avis.id_expert.id_instructeur:
-                expert = f"{avis.id_expert.id_instructeur} (Interne)"
+        if not avis:
+            logger.error(f"[CONSULTATION] Dossier {num_dossier} - DossierAvis {da.id} : Avis manquant")
+            continue
 
-        reponse = ""
-        if avis.favorable :
-            reponse = "Favorable"
-        elif avis.favorable == False :
-            reponse = "Défavorable"
-        elif avis.statut == "Envoyé" :
-            reponse = "En attente"
 
-        # Messages non lus envoyés par l'expert
-        if avis.id_expert.est_interne :
-            email_expert = avis.id_expert.id_instructeur.email
-        else :
-            email_expert = avis.id_expert.id_contact_externe.email
+        # EXPERT
+        expert = get_expert_label(avis, num_dossier)
+       
+        # RÉPONSE AVIS
+        reponse = get_reponse_label(avis)
 
-        nb_messages_non_lus_avis = Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert).count()
-
-        # Compteur d'avis avec des nouveaux messages
+        # EMAIL DE L’EXPERT
+        email_expert = get_email_expert(avis, num_dossier)
+       
+        # MESSAGES (DE L'EXPERT) NON LUS
+        nb_messages_non_lus_avis = count_unread_messages_for_avis(avis, email_expert, num_dossier)
         if nb_messages_non_lus_avis > 0:
             nb_avis_avec_nouveau_mess += 1
+
+        # DEMANDEUR
+        demandeur = get_demandeur_label(avis, num_dossier)
+        
 
         # Construire le dictionnaire
         liste_avis.append({
             "statut": avis.statut,
             "expert": expert or "N/A",
             "numero": avis.id,
-            "demandeur": f"{avis.id_instructeur.id_agent_autorisations.nom} {avis.id_instructeur.id_agent_autorisations.prenom}" if avis.id_instructeur else "N/A",
+            "demandeur": demandeur,
             "date_demande": avis.date_demande_avis,
             "date_reponse": avis.date_reponse_avis,
             "favorable": reponse,
             "avis_nb_messages_non_lus": nb_messages_non_lus_avis,
         })
 
-    liste_avis = sorted(
-        liste_avis,
-        key=lambda x: (x["statut"] == "Envoyé",
-                    x["date_demande"]),
-        reverse=True  # Pour mettre la date en décroissant
-    )
+
+    # TRI DES AVIS
+    try:
+        liste_avis = sorted(
+            liste_avis,
+            key=lambda x: (x["statut"] == "Envoyé", x["date_demande"]),
+            reverse=True
+        )
+    except Exception as e:
+        logger.error(f"[CONSULTATION DOSSIER {dossier.numero}] Erreur lors du tri de la liste des avis : {e}")
+
+
 
     # Nombre d'avis envoyés
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
 
-    # Messages non lus
-    nb_messages_non_lus = Message.objects.filter(
-        id_dossier=dossier,
-        lu=False
-    ).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
-    ).exclude(
-        email_emetteur__endswith='reunion-parcnational.fr'
-    ).count()
+    # Messages non lus DOSSIER
+    nb_messages_non_lus = count_unread_messages_for_dossier(dossier, num_dossier)
+
+
 
     return render(request, "instruction/instruction_dossier_consultation.html", {
         "NAS_ROOT": os.getenv('NAS_ROOT'),
@@ -122,18 +137,35 @@ def instruction_dossier_consultation(request, num_dossier):
 
 @login_required
 def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
+    
+    # --- Récupération du dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[AJOUTER AVIS] Dossier {num_dossier} introuvable en base — user={request.user}")
+        messages.error(request, f"Le dossier {num_dossier} est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
+
+    # --- Récupération éventuelle de l'avis (édition) ---
     avis = None
-    if avis_id:
-        avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+    if avis_id is not None:
+        avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+        if not avis:
+            logger.error(f"[AJOUT AVIS] Dossier {num_dossier} — Avis {avis_id} introuvable ou non lié au dossier.")
+            messages.error(request, f"L'avis {avis_id} est introuvable pour ce dossier. Contactez le support.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
 
     # Récupérer toutes les natures et thématiques
     natures = AvisNature.objects.all().order_by("nature")
     thematiques = AvisThematique.objects.all().order_by("thematique")
 
-    # Instructeur courant (user connecté)
+    # --- Instructeur courant (user connecté) ---
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur_connecte:
+        logger.warning(f"[AJOUT AVIS] Utilisateur {request.user.email} sans profil instructeur")
+        messages.warning(request, "Vous n'avez pas de profil 'Instructeur.trice'. Contactez le support.")
+
 
     # Tous les avis déjà envoyés pour ce dossier
     avis_existants = Avis.objects.filter(id_dossier=dossier, statut="Envoyé")
@@ -174,35 +206,31 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
 
     # Messages non lus
-    nb_messages_non_lus = Message.objects.filter(
-        id_dossier=dossier,
-        lu=False
-    ).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
-    ).exclude(
-        email_emetteur__endswith='reunion-parcnational.fr'
-    ).count()
+    nb_messages_non_lus = count_unread_messages_for_dossier(dossier, num_dossier)
 
-    # Nombre d'avis avec au moins un message non lu de l'expert
-    nb_avis_avec_nouveau_mess = 0
-    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
-        avis_item = da.id_avis
-        if not avis_item or not avis_item.id_expert:
-            continue
 
-        if avis_item.id_expert.est_interne:
-            email_expert = avis_item.id_expert.id_instructeur.email
-        else:
-            email_expert = avis_item.id_expert.id_contact_externe.email
+    # --- Nombre d'avis avec au moins un message non lu de l'expert ---
+    nb_avis_avec_nouveau_mess = count_avis_with_unread_messages_for_dossier(dossier, num_dossier)
 
-        nb_non_lus_avis = Message.objects.filter(
-            id_avis=avis_item,
-            lu=False,
-            email_emetteur=email_expert
-        ).count()
+    # nb_avis_avec_nouveau_mess = 0
+    # for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
+    #     avis_item = da.id_avis
+    #     if not avis_item or not avis_item.id_expert:
+    #         continue
 
-        if nb_non_lus_avis > 0:
-            nb_avis_avec_nouveau_mess += 1
+    #     if avis_item.id_expert.est_interne:
+    #         email_expert = avis_item.id_expert.id_instructeur.email
+    #     else:
+    #         email_expert = avis_item.id_expert.id_contact_externe.email
+
+    #     nb_non_lus_avis = Message.objects.filter(
+    #         id_avis=avis_item,
+    #         lu=False,
+    #         email_emetteur=email_expert
+    #     ).count()
+
+    #     if nb_non_lus_avis > 0:
+    #         nb_avis_avec_nouveau_mess += 1
 
 
     return render(request, "instruction/instruction_dossier_ajouter_avis.html", {
@@ -224,7 +252,13 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
 
 @login_required
 def instruction_dossier_ajouter_avis_existant(request, num_dossier):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
+    
+    # --- Récupération du dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[AJOUTER AVIS EXISTANT] Dossier {num_dossier} introuvable en base — user={request.user}")
+        messages.error(request, f"Le dossier {num_dossier} est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # Récupérer toutes les natures et thématiques
     natures = AvisNature.objects.all().order_by("nature")
@@ -233,8 +267,11 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     # Tous les instructeurs
     tous_les_instructeurs = Instructeur.objects.all()
 
-    # Instructeur courant (user connecté)
+    # --- Instructeur courant (user connecté) ---
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur_connecte:
+        logger.warning(f"[AJOUTER AVIS EXISTANT] Utilisateur {request.user.email} sans profil instructeur")
+        messages.warning(request, "Vous n'avez pas de profil 'Instructeur.trice'. Contactez le support.")
 
     # Tous les avis déjà envoyés pour ce dossier
     avis_existants = Avis.objects.filter(id_dossier=dossier, statut="Envoyé")
@@ -242,9 +279,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     # Extraire les instructeurs et contacts déjà utilisés
     instructeurs_utilises = avis_existants.filter(id_expert__id_instructeur__isnull=False) \
                                           .values_list("id_expert__id_instructeur__email", flat=True)
-    # contacts_utilises = avis_existants.filter(id_expert__id_contact_externe__isnull=False) \
-    #                                   .values_list("id_expert__id_contact_externe__email", flat=True)
-
+    
     # Instructeurs candidats
     instructeurs_qs = (
         Instructeur.objects
@@ -270,91 +305,70 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     instructeurs = {i.email: i for i in instructeurs_qs}.values()
     contacts_externes = {c.email: c for c in contacts_qs}.values()
 
-    # Nombre d'avis envoyés
-    # nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+    # --- Messages non lus DOSSIER ---
+    nb_messages_non_lus = count_unread_messages_for_dossier(dossier, num_dossier)
 
-    # Messages non lus
-    nb_messages_non_lus = Message.objects.filter(
-        id_dossier=dossier,
-        lu=False
-    ).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
-    ).exclude(
-        email_emetteur__endswith='reunion-parcnational.fr'
-    ).count()
+    # --- Avis avec au moins un message non lu ---
+    nb_avis_avec_nouveau_mess = count_avis_with_unread_messages_for_dossier(dossier, num_dossier)
 
-    # Nombre d'avis avec au moins un message non lu de l'expert
-    nb_avis_avec_nouveau_mess = 0
-    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
-        avis_item = da.id_avis
-        if not avis_item or not avis_item.id_expert:
-            continue
 
-        if avis_item.id_expert.est_interne:
-            email_expert = avis_item.id_expert.id_instructeur.email
-        else:
-            email_expert = avis_item.id_expert.id_contact_externe.email
-
-        nb_non_lus_avis = Message.objects.filter(
-            id_avis=avis_item,
-            lu=False,
-            email_emetteur=email_expert
-        ).count()
-
-        if nb_non_lus_avis > 0:
-            nb_avis_avec_nouveau_mess += 1
-
-    
     # ----------------------------
     # PARTIE RECHERCHE D’AVIS
     # ----------------------------
     avis_list = None
-    if request.GET:  # seulement si une recherche est soumise
-        avis_list = Avis.objects.all().select_related("id_avis_nature", "id_avis_thematique", "id_expert", "id_instructeur")
 
-        numero = request.GET.get("numero")
-        expert = request.GET.get("expert")
-        demandeur = request.GET.get("demandeur")
-        date_demande = request.GET.get("date_demande")
-        date_reponse = request.GET.get("date_reponse")
-        favorable = request.GET.get("favorable")
-        thematique = request.GET.get("thematique")
-        nature = request.GET.get("nature")
-        deja_lie = request.GET.get("deja_lie")
-        statut = request.GET.get("statut")
+    try :
+        if request.GET:  # seulement si une recherche est soumise
+            avis_list = Avis.objects.all().select_related("id_avis_nature", "id_avis_thematique", "id_expert", "id_instructeur")
 
-        if numero:
-            avis_list = avis_list.filter(id=numero)
-        if expert:
-            avis_list = avis_list.filter(id_expert=expert)
-        if demandeur:
-            avis_list = avis_list.filter(id_instructeur=demandeur)
-        if date_demande:
-            avis_list = avis_list.filter(date_demande_avis__date=date_demande)
-        if date_reponse:
-            avis_list = avis_list.filter(date_reponse_avis__date=date_reponse)
-        if favorable in ["true", "false"]:
-            avis_list = avis_list.filter(favorable=(favorable == "true"))
-        if thematique:
-            avis_list = avis_list.filter(id_avis_thematique=thematique)
-        if nature:
-            avis_list = avis_list.filter(id_avis_nature=nature)
-        if statut:
-            avis_list = avis_list.filter(statut=statut)
-        
-        # Sous-requête : avis liés à CE dossier -> exclusion
-        subquery_dossier = DossierAvis.objects.filter(id_avis=OuterRef("pk"), id_dossier=dossier)
-        avis_list = avis_list.annotate(deja_lie_ce_dossier=Exists(subquery_dossier)).filter(deja_lie_ce_dossier=False)
+            numero = request.GET.get("numero")
+            expert = request.GET.get("expert")
+            demandeur = request.GET.get("demandeur")
+            date_demande = request.GET.get("date_demande")
+            date_reponse = request.GET.get("date_reponse")
+            favorable = request.GET.get("favorable")
+            thematique = request.GET.get("thematique")
+            nature = request.GET.get("nature")
+            deja_lie = request.GET.get("deja_lie")
+            statut = request.GET.get("statut")
 
-        # Sous-requête pour vérifier l’existence d’un lien DossierAvis
-        subquery = DossierAvis.objects.filter(id_avis=OuterRef("pk"))
-        if deja_lie == "1":
-            avis_list = avis_list.annotate(deja_lie=Exists(subquery)).filter(deja_lie=True)
-        elif deja_lie == "0":
-            avis_list = avis_list.annotate(deja_lie=Exists(subquery)).filter(deja_lie=False)
+            if numero:
+                avis_list = avis_list.filter(id=numero)
+            if expert:
+                avis_list = avis_list.filter(id_expert=expert)
+            if demandeur:
+                avis_list = avis_list.filter(id_instructeur=demandeur)
+            if date_demande:
+                avis_list = avis_list.filter(date_demande_avis__date=date_demande)
+            if date_reponse:
+                avis_list = avis_list.filter(date_reponse_avis__date=date_reponse)
+            if favorable in ["true", "false"]:
+                avis_list = avis_list.filter(favorable=(favorable == "true"))
+            if thematique:
+                avis_list = avis_list.filter(id_avis_thematique=thematique)
+            if nature:
+                avis_list = avis_list.filter(id_avis_nature=nature)
+            if statut:
+                avis_list = avis_list.filter(statut=statut)
+            
+            # Sous-requête : avis liés à CE dossier -> exclusion
+            subquery_dossier = DossierAvis.objects.filter(id_avis=OuterRef("pk"), id_dossier=dossier)
+            avis_list = avis_list.annotate(deja_lie_ce_dossier=Exists(subquery_dossier)).filter(deja_lie_ce_dossier=False)
 
-        # tri + limitation à 20 avis
-        avis_list = avis_list.order_by("-date_demande_avis")[:20]
+            # Sous-requête pour vérifier l’existence d’un lien DossierAvis
+            subquery = DossierAvis.objects.filter(id_avis=OuterRef("pk"))
+            if deja_lie == "1":
+                avis_list = avis_list.annotate(deja_lie=Exists(subquery)).filter(deja_lie=True)
+            elif deja_lie == "0":
+                avis_list = avis_list.annotate(deja_lie=Exists(subquery)).filter(deja_lie=False)
+
+            # tri + limitation à 20 avis
+            avis_list = avis_list.order_by("-date_demande_avis")[:20]
+
+    except Exception as e:
+        logger.error(f"[AJOUTER AVIS EXISTANT] Dossier {num_dossier} Erreur lors de la recherche d'avis — user={request.user} : {e}")
+        messages.error(request, f"Une erreur est survenue au cours de la recherche de la demande d'avis existante. Contactez le support.")
+    
 
     return render(request, "instruction/instruction_dossier_ajouter_avis_existant.html", {
         "dossier": dossier,
@@ -366,7 +380,6 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         "is_formulaire_active": False,
         "is_messagerie_active": False,
         "is_consultation_active": True,
-        # "nb_avis_envoyes": nb_avis_envoyes,
         "nb_messages_non_lus": nb_messages_non_lus,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "NAS_ROOT": os.getenv('NAS_ROOT'),
@@ -374,10 +387,25 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     })
 
 
+
 @login_required
 def lier_dossier_avis(request, num_dossier, avis_id):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
-    avis = get_object_or_404(Avis, id=avis_id)
+
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[LIER AVIS À DOSSIER] Dossier {num_dossier} introuvable — user={request.user.email}")
+        messages.error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # --- Récupération avis ---
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[LIER AVIS À DOSSIER] Avis {avis_id} introuvable — dossier={num_dossier}")
+        messages.error(request, f"L'avis {avis_id} est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
 
     if request.method == "POST":
         try:
@@ -389,7 +417,8 @@ def lier_dossier_avis(request, num_dossier, avis_id):
                 messages.warning(request, f"L'avis {avis.id} est déjà lié à ce dossier.")
 
         except Exception as e:
-            messages.error(request, f"Une erreur est survenue lors de l’association de l’avis : {str(e)}")
+            logger.error(f"[LIER AVIS À DOSSIER] Erreur lors de l’association de l'Avis {avis_id} au Dossier {num_dossier} : {e}")
+            messages.error(request, f"Une erreur est survenue lors de l’association de l’avis au dossier. Contactez le support.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Redirection vers la consultation
@@ -401,8 +430,12 @@ def lier_dossier_avis(request, num_dossier, avis_id):
 
 @login_required
 def ajouter_avis_hors_appli(request, num_dossier):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
-    # instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[AJOUT AVIS HORS APPLI] Dossier {num_dossier} introuvable")
+        messages.error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     if request.method == "POST":
         try:
@@ -434,7 +467,8 @@ def ajouter_avis_hors_appli(request, num_dossier):
                         nom_prenom_expert = f""
 
                 except Exception as e:
-                    messages.error(request, f"Erreur lors de la récupération de l'expert externe : {e}")
+                    logger.error(f"[DOSSIER {dossier.numero}] Ajout Avis hors application : Erreur lors de la récupération de l'expert externe : {e}")
+                    messages.error(request, f"Erreur lors de la récupération de l'expert externe. Contactez le support.")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
                 
                 expert, created = Expert.objects.get_or_create(
@@ -452,7 +486,8 @@ def ajouter_avis_hors_appli(request, num_dossier):
                     nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
 
                 except Exception as e:
-                    messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
+                    logger.error(f"[DOSSIER {dossier.numero}] Ajout Avis hors application : Erreur lors de la récupération de l'expert interne : {e}")
+                    messages.error(request, f"Erreur lors de la récupération de l'expert interne. Contactez le support.")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
                 
                 expert, created = Expert.objects.get_or_create(
@@ -526,68 +561,70 @@ def ajouter_avis_hors_appli(request, num_dossier):
 
             # 4. Gestion des pièces jointes
             fichiers = request.FILES.getlist("pj_lie_avis")
-            if fichiers :
-                chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
-                creer_dossier_sur_nas(chemin_complet)
-                
-                # on parcourt les fichiers et on les écrit physiquement
-                for pj in fichiers :
-                    
-                    doc_pj = enregistrer_document(
-                        fichier=pj,
-                        nature_str="Annexe avis",
-                        description=f"Pièce jointe pour la demande d'avis {avis.id} effectuée en dehors de l'application",
-                        request=request,
-                        emplacement_avis = emplacement,
-                    )
 
-                    # Création AvisDocument
-                    if doc_pj:
-                        AvisDocument.objects.create(
-                            id_avis=avis,
-                            id_document=doc_pj
-                        )
+            attach_pj_to_avis(avis, fichiers, emplacement, request, dossier.numero)
+
+            # if fichiers :
+            #     chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
+            #     creer_dossier_sur_nas(chemin_complet)
+                
+            #     # on parcourt les fichiers et on les écrit physiquement
+            #     for pj in fichiers :
+                    
+            #         doc_pj = enregistrer_document(
+            #             fichier=pj,
+            #             nature_str="Annexe avis",
+            #             description=f"Pièce jointe pour la demande d'avis {avis.id} effectuée en dehors de l'application",
+            #             request=request,
+            #             emplacement_avis = emplacement,
+            #         )
+
+            #         # Création AvisDocument
+            #         if doc_pj:
+            #             AvisDocument.objects.create(
+            #                 id_avis=avis,
+            #                 id_document=doc_pj
+            #             )
 
             return redirect("instruction_dossier_consultation", num_dossier=dossier.numero)
 
         except Exception as e:
-            messages.error(request, f"Erreur lors de l'ajout de l'avis : {e}")
-            
+            logger.error(f"[AJOUT AVIS HORS APPLI] Dossier {num_dossier} : {e}")
+            messages.error(request, f"Erreur lors de l'ajout de l'avis. Contactez le support.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 
 @login_required
 def ajouter_pj_avis(request, avis_id):
-    # dossier = get_object_or_404(Dossier, numero=num_dossier)
-    avis = get_object_or_404(Avis, id=avis_id)
-    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[AJOUT PJ AVIS] Avis {avis_id} introuvable")
+        messages.error(request, "L'avis demandé est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
     if request.method == "POST":
+        fichiers = request.FILES.getlist("pj_avis")
+        if not fichiers:
+            messages.warning(request, "⚠️ Aucun fichier sélectionné.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
         try:
-            fichiers = request.FILES.getlist("pj_avis")
-            if not fichiers:
-                messages.warning(request, "⚠️ Aucun fichier sélectionné.")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+           attach_pj_to_avis(
+                avis=avis,
+                fichiers=fichiers,
+                emplacement_avis=avis.emplacement,
+                request=request,
+                dossier_numero=None,
+            )
 
-            for pj in fichiers:
-                try:
-                    doc_pj = enregistrer_document(
-                        fichier=pj,
-                        nature_str="Annexe avis",
-                        description=f"Pièce jointe ajoutée à l'avis {avis.id} par {instructeur}",
-                        request=request,
-                        emplacement_avis=avis.emplacement,
-                    )
-                    if doc_pj:
-                        AvisDocument.objects.get_or_create(id_avis=avis, id_document=doc_pj)
-                    else:
-                        messages.error(request, f"❌ Erreur lors de l’enregistrement du document {pj.name}.")
-                except Exception as e:
-                    messages.error(request, f"❌ Erreur sur le fichier {pj.name} : {e}")
 
         except Exception as e:
-            messages.error(request, f"❌ Erreur inattendue lors de l'ajout des pièces jointes : {e}")
+            logger.error(f"[AJOUT PJ AVIS] Avis {avis_id} : {e}")
+            messages.error(request, f"Une erreur est survenue lors de l'ajout des pièces jointes. Contacter le support.")
 
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -595,16 +632,41 @@ def ajouter_pj_avis(request, avis_id):
 @require_POST
 @login_required
 def supprimer_pj_avis(request, avis_id, document_id):
-    avis_doc = get_object_or_404(AvisDocument, id_avis_id=avis_id, id_document_id=document_id)
+    
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[SUPPR PJ AVIS] Avis {avis_id} introuvable")
+        messages.error(request, "L'avis est introuvable en base. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    avis_doc = AvisDocument.objects.filter(id_avis=avis, id_document_id=document_id).first()
+    if not avis_doc:
+        logger.warning(f"[SUPPR PJ AVIS] Relation AvisDocument introuvable — Avis {avis_id}, Document {document_id}")
+        messages.warning(request, "La pièce jointe est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # Supprime le lien Avis ↔ Document
     doc = avis_doc.id_document
-    avis_doc.delete()
 
-    # Supprime physiquement le document (optionnel si tu veux garder une trace)
-    doc.delete()
+    # Suppression relation
+    try:
+        avis_doc.delete()
+    except Exception as e:
+        logger.error(f"[SUPPR_PJ_AVIS] Erreur lors de la suppression du lien AvisDocument — Avis {avis_id}, Document {doc.id} : {e}")
+        messages.error(request, f"Erreur lors de la suppression du document. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    logger.info(f"[AVIS {avis_id}] Pièce jointe {doc.titre} supprimée par {request.user}")
+
+    # Suppression document (On ne le supprime pas physiquement pour garder une trace)
+    try:
+        doc.delete()
+    except Exception as e:
+        logger.error(f"[SUPPR_PJ_AVIS] Liaison AvisDocument bien supprimée. Erreur lors de la suppression du Document {doc.id} (Avis {avis_id}) : {e}")
+        messages.error(request, f"Erreur lors de la suppression du document. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    logger.info(f"[AVIS {avis_id}] Pièce jointe {document_id} ({doc.titre}) supprimée par {request.user}")
+
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -613,17 +675,26 @@ def supprimer_pj_avis(request, avis_id, document_id):
 @login_required
 def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None):
     
-    try:
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        if not instructeur:
-            messages.error(request, f"Aucun instructeur.rice n'est associé.e à votre profil : {e}")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-    except Exception as e:
-        messages.error(request, f"Erreur lors de la récupération de l'instructeur : {e}")
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        messages.error(request, f"Aucun instructeur.rice n'est associé.e à votre profil. Contactez le support.")
+        logger.warning(request, f"Erreur lors de la récupération de l'instructeur pour le user {user} : {e}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {num_dossier} introuvable en base.")
+        messages.error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
-    # Récupérer le dossier
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
+
+    '''
+        NETOYAGE À FINIR
+    '''
+
 
     # Si on reçoit un brouillon d'avis existant
     brouillon_avis = None

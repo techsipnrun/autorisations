@@ -41,7 +41,8 @@ def synchro_process(dico, dico_notifs, demarche_obj):
     logger.info(f"-- Synchronisation DS faite en {t_synchro:.2f} sec --")
 
 
-    # Manif Sportive
+    """
+    ##### MANIF SPORTIVE #####
     t_dm = time.perf_counter()
     if demarche_obj.type.lower() == 'manifestations sportives':
 
@@ -74,5 +75,6 @@ def synchro_process(dico, dico_notifs, demarche_obj):
         t_API_dm = time.perf_counter() - t_dm
         logger.info(f"-- Synchronisation (DM) faite en {t_API_dm:.2f} sec --")
         logger.info("------------------------------------------------\n")
+    """
 
     return statut

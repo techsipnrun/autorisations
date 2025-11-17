@@ -51,10 +51,13 @@ def lancer_en_arriere_plan2():
     # S'assurer que la ligne existe
     SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
 
+    # print(f"date_derniere_tentative = {timezone.localtime(timezone.now())}")
+    # print(f"timezone.now = {timezone.now()}")
+
     # Tentative atomique: on passe en True seulement si c'est actuellement False
     rows = (SynchronisationEtat.objects
             .filter(id=1, en_cours=False)
-            .update(en_cours=True, date_derniere_tentative=timezone.now()))
+            .update(en_cours=True, date_derniere_tentative=timezone.localtime(timezone.now())))
     if rows == 0:
         logger.warning("Synchro déjà en cours – nouvelle tentative ignorée (BDD).")
         return False
@@ -117,8 +120,9 @@ def etat_actualisation(request):
     etat = SynchronisationEtat.objects.filter(id=1).first()
 
     # Timeout de sécurité : si ça dépasse 1h, on force en_cours=False
-    if ( etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=60)):
-        loggerSynchro.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout dépassé) – dernière tentative : {timezone.localtime(etat.date_derniere_tentative)}")
+    TIMEOUT_RESET_FLAG = 60  # minutes
+    if ( etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=TIMEOUT_RESET_FLAG)):
+        loggerSynchro.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout de {TIMEOUT_RESET_FLAG} minutes dépassé) – dernière tentative : {timezone.localtime(etat.date_derniere_tentative)}")
         etat.en_cours = False
         # etat.date_maj = timezone.now()
         etat.save(update_fields=["en_cours"])
