@@ -1,10 +1,13 @@
 # instruction/services/avis_utils.py
 import logging
 import os
+from pathlib import Path
 from autorisations.models.models_instruction import Message
-from autorisations.models.models_avis import AvisDocument, DossierAvis
+from autorisations.models.models_avis import AvisDocument, DossierAvis, Expert
+from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
-from instruction.views.avis import enregistrer_document  # à ajouter en haut
+from instruction.utils_instru import enregistrer_document
+from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -43,7 +46,7 @@ def get_expert_label(avis, num_dossier: int) -> str:
     return expert or "N/A"
 
 
-def get_email_expert(avis, num_dossier: int) -> str | None:
+def get_email_expert(avis, num_dossier = None) -> str | None:
     """
     Retourne l'email de l'expert (interne ou externe).
     Log en cas d’erreur et renvoie None si introuvable.
@@ -58,16 +61,17 @@ def get_email_expert(avis, num_dossier: int) -> str | None:
             email_expert = avis.id_expert.id_contact_externe.email
 
     except Exception as e:
-        logger.error(
-            f"[AVIS {avis.id}] Consultation Dossier {num_dossier} — "
-            f"Erreur lecture email expert : {e}"
-        )
+        if num_dossier :
+            logger.error(f"[AVIS {avis.id}] Dossier {num_dossier} — Erreur lecture email expert : {e}")
+        else :
+            logger.error(f"[AVIS {avis.id}] Erreur lecture email expert : {e}")
 
     if not email_expert:
-        logger.warning(
-            f"[AVIS {avis.id}] Consultation Dossier {num_dossier} — "
-            f"Email expert introuvable."
-        )
+        if num_dossier :
+            logger.warning(f"[AVIS {avis.id}] Dossier {num_dossier} — Email expert introuvable.")
+        else :
+            logger.warning(f"[AVIS {avis.id}] Email expert introuvable.")
+
 
     return email_expert
 
@@ -230,5 +234,60 @@ def delete_pj_from_avis(avis_document: AvisDocument, email_user: str):
         )
         raise
 
-    logger.info(f"[AVIS {avis_id}] Pièce jointe {doc.id} ({doc.titre}) supprimée par {request.user}")
+    logger.info(f"[AVIS {avis_id}] Pièce jointe {doc.id} ({doc.titre}) supprimée.")
+
+
+
+def get_or_create_expert_from_form(request):
+    """
+    Détermine l'expert (interne ou externe) et renvoie un tuple : (expert_obj, nom_expert_normalise)
+
+    Cette fonction :
+    - lit les champs POST : expert_interne / expert_externe
+    - récupère l'objet Instructeur ou ContactExterne correspondant
+    - crée un Expert si nécessaire (get_or_create)
+    - normalise un nom prédictible pour construire les chemins NAS
+    - renvoie l'expert et son nom normalisé
+
+    Lève :
+        ValueError — si aucun expert n'est fourni dans le formulaire.
+    """
+    expert_interne_id = request.POST.get("expert_interne")
+    expert_externe_id = request.POST.get("expert_externe")
+
+    if expert_interne_id:
+        instru = Instructeur.objects.get(id=expert_interne_id)
+        expert, created = Expert.objects.get_or_create(
+            id_instructeur=instru,
+            defaults={"est_interne": True},
+        )
+        if created:
+            logger.info(f"[EXPERT] Nouveau expert interne créé : {instru}")
+
+        # Normalisation nom/prénom pour l’arborescence NAS
+        nom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
+        # email_expert = instru.email
+        return expert, nom_expert
+
+    if expert_externe_id:
+        contact = ContactExterne.objects.get(id=expert_externe_id)
+        expert, created = Expert.objects.get_or_create(
+            id_contact_externe=contact,
+            defaults={"est_interne": False},
+        )
+        if created:
+            logger.info(f"[EXPERT] Nouvel expert externe créé : {contact}")
+
+        if contact.nom and contact.prenom:
+            nom = f"{contact.nom}_{contact.prenom}"
+        else:
+            nom = contact.raison_sociale or contact.organisation or "Expert"
+
+        # Normalisation nom/prénom pour l’arborescence NAS
+        nom_expert = nettoyer_nom_fichier(nom)
+        # email_expert = contact.email
+
+        return expert, nom_expert
+
+    raise ValueError("Aucun expert interne/externe fourni.")
 

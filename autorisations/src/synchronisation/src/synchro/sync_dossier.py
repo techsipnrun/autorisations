@@ -1,6 +1,6 @@
 from autorisations.models.models_instruction import Demarche, Dossier, EtapeDossier
 from autorisations.models.models_utilisateurs import Instructeur
-from instruction.utils import enregistrer_action, template_mail_name_from_etape
+from instruction.utils_instru import enregistrer_action, template_mail_name_from_etape
 from ..utils.model_helpers import update_fields, foreign_keys_add_suffixe_id
 from ..utils.fichiers import create_emplacement, write_geojson
 from django.db import models

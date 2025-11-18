@@ -10,7 +10,7 @@ from autorisations.models.models_instruction import Demarche, Dossier, DossierAc
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
-from instruction.utils import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
+from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
 import ast

@@ -23,12 +23,21 @@ def compute_dedupe_key(to, sujet, template, context) -> str:
     """
     Construit une clé de déduplication stable.
     """
-    payload = json.dumps(
-        {"to": to, "sujet": sujet, "template": template, "context": context},
-        sort_keys=True,
-        cls=DjangoJSONEncoder,
-    )
-    return salted_hmac("email-outbox", payload).hexdigest()
+
+    try :
+
+        payload = json.dumps(
+            {"to": to, "sujet": sujet, "template": template, "context": context},
+            sort_keys=True,
+            cls=DjangoJSONEncoder,
+        )
+        result = salted_hmac("email-outbox", payload).hexdigest()
+
+    except Exception as e :
+        logger.error(f"[compute_dedupe_key] Erreur lors de la création de la clé de hashage unique (to = {to}, sujet = {sujet}, template = {template}, context = {context}) : {e}")
+        raise
+    
+    return result
 
 
 

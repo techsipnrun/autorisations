@@ -11,7 +11,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierInst
 from autorisations.models.models_avis import DossierAvis
 from notifications.service import _render_message, envoi_mail
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
-from instruction.utils import format_etat_dossier
+from instruction.utils_instru import format_etat_dossier
 from DS.call_DS import suppr_msg_DS, get_msg_DS
 from DS.graphql_client import GraphQLClient
 from synchronisation.src.normalisation.norma_messages import message_normalize

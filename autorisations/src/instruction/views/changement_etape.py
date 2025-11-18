@@ -15,7 +15,7 @@ from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
 from notifications.service import compute_dedupe_key, envoi_mail
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
-from instruction.utils import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
+from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
@@ -1457,7 +1457,7 @@ def envoyer_l_acte(request):
                 emails_norm.append(e_norm)
 
             if not emails_norm:
-                logger.warning(request, "Aucun email valide sélectionné pour l’envoi en copie.")
+                logger.warning("Aucun email valide sélectionné pour l’envoi en copie.")
             else:
 
                 sujet = f"{nature_document} – Dossier {dossier.numero}"

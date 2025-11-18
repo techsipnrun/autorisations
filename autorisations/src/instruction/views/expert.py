@@ -17,7 +17,7 @@ import logging
 
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
-from instruction.views.avis import enregistrer_document
+from instruction.utils_instru import enregistrer_document
 
 logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")  

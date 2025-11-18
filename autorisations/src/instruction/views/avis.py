@@ -18,14 +18,14 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierInst
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
-from instruction.utils import create_message_avis_bdd
+from instruction.utils_instru import create_message_avis_bdd, enregistrer_document
 from synchronisation.src.utils.model_helpers import update_fields
 from pathlib import Path
 from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label,get_reponse_label,count_avis_with_unread_messages_for_dossier)
+from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier
 
 from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
@@ -667,7 +667,6 @@ def supprimer_pj_avis(request, avis_id, document_id):
 
     logger.info(f"[AVIS {avis_id}] Pièce jointe {document_id} ({doc.titre}) supprimée par {request.user}")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -679,7 +678,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
         messages.error(request, f"Aucun instructeur.rice n'est associé.e à votre profil. Contactez le support.")
-        logger.warning(request, f"Erreur lors de la récupération de l'instructeur pour le user {user} : {e}")
+        logger.warning(f"Erreur lors de la récupération de l'instructeur pour le user {request.user} : {e}")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     
@@ -691,15 +690,25 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
 
-    '''
-        NETOYAGE À FINIR
-    '''
-
-
-    # Si on reçoit un brouillon d'avis existant
+    # --- Récupération brouillon éventuel ---
     brouillon_avis = None
     if avis_id:
-        brouillon_avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+        brouillon_avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+        if not brouillon_avis:
+            logger.error(f"[CONFIRMER AJOUT AVIS] Brouillon avis {avis_id} introuvable pour dossier {num_dossier}.")
+            messages.error(request, "Le brouillon de l'avis est introuvable. Contactez le support.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
+    # ---- Extraction expert interne/externe ---- #
+    try :
+        expert, nom_prenom_expert = get_or_create_expert_from_form(request)
+
+    except Exception as e:
+        logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {num_dossier}, {avis_id} : Erreur lors de la récupération de l'expert (get_or_create_expert_from_form) : {e}")
+        messages.error(request, f"Erreur lors de la récupération de l’expert. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
     if request.method == "POST":
         # Champs du formulaire
@@ -708,74 +717,31 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         note = request.POST.get("note_demandeur", "").strip()
         mode_contact = request.POST.get("mode_contact")
         formulation_avis = request.POST.get("formulation_avis")
-        expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
-        expert_externe_id = request.POST.get("expert_externe") # contact externe ici
         pj_projet_avis = request.FILES.get("pj_demande_avis")
         pj_projet_acte = request.FILES.get("pj_projet_acte")
         pj_rapport_cs = request.FILES.get("pj_rapport_cs")
         liste_autres_pj = request.FILES.getlist("pj_lie_avis")
 
+
+        # --- Récupération nature ---
         try:
             nature = AvisNature.objects.get(id=nature_id)
         except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la nature d'avis : {e}")
+            logger.error(f"Erreur lors de la récupération de la nature d'avis {nature_id} : {e}")
+            messages.error(request, f"Erreur lors de la récupération de la nature d'avis. Contactez le support.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
+
+        # --- Récupération thématique ---
         try:
             thematique = AvisThematique.objects.get(id=thematique_id)
         except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la thématique de l'avis : {e}")
+            logger.error(f"Erreur lors de la récupération de la thématique de l'avis {thematique_id} : {e}")
+            messages.error(request, f"Erreur lors de la récupération de la thématique de l'avis. Contactez le support.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        email_expert = ""
-        if expert_interne_id:
-            try:
-                instru = Instructeur.objects.get(id=expert_interne_id)
-                expert, created = Expert.objects.get_or_create(
-                    id_instructeur=instru,
-                    defaults={"est_interne": True}
-                )
-                if created:
-                    logger.info(f"[EXPERT] Nouvel expert interne créé : {instru}")
-                
-                nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
-                email_expert = instru.email
-
-            except Exception as e:
-                messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
         
-            
-        elif expert_externe_id:
-            try:
-                contact = ContactExterne.objects.get(id=expert_externe_id)
-                expert, created = Expert.objects.get_or_create(
-                    id_contact_externe=contact,
-                    defaults={"est_interne": False}
-                )
-                if created:
-                    logger.info(f"[EXPERT] Nouvel expert externe créé : {contact}")
-
-                if contact.nom and contact.prenom :
-                    nom_prenom_expert = nettoyer_nom_fichier(f"{contact.nom}_{contact.prenom}")
-                elif contact.raison_sociale :
-                    nom_prenom_expert = nettoyer_nom_fichier(f"{contact.raison_sociale}")
-                elif contact.organisation :
-                    nom_prenom_expert = nettoyer_nom_fichier(f"{contact.organisation}")
-                else :
-                    nom_prenom_expert = f"Avis_{avis_id}"
-
-                email_expert = contact.email
-
-
-            except Exception as e:
-                messages.error(request, f"Erreur lors de la récupération de l'expert externe : {e}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
-        
-
-        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
-
-        # On récupère l'emplacement physique de l'avis
+        # ---- On récupère l'emplacement physique de l'avis ----
         if brouillon_avis :
             if not brouillon_avis.emplacement :
                 emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
@@ -784,56 +750,96 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         else :
             emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
         
-        # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
-        if pj_projet_avis or pj_projet_acte or pj_rapport_cs :
-            
+        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
+
+
+        # ---- Création des folders
+        if pj_projet_avis or pj_projet_acte or pj_rapport_cs or liste_autres_pj :
             chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
             creer_dossier_sur_nas(chemin_complet)
-            
 
-            if pj_projet_avis :
-                extension = Path(pj_projet_avis.name).suffix.lower()
-                if extension not in {".doc", ".docx", ".odt"} :
-                    messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_projet_avis = enregistrer_document(
-                    fichier=pj_projet_avis,
-                    nature_str="Annexe avis",
-                    description=f"Projet de demande pour l'avis {avis_id}",
-                    request=request,
-                    emplacement_avis = emplacement,
-                )
-            
-            if pj_projet_acte :
-                extension = Path(pj_projet_acte.name).suffix.lower()
-                if extension != ".pdf" :
-                    messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_projet_acte = enregistrer_document(
-                    fichier=pj_projet_acte,
-                    nature_str="Annexe avis",
-                    description=f"Projet d’acte pour l'avis {avis_id}",
-                    request=request,
-                    emplacement_avis = emplacement,
-                )
-            
-            if pj_rapport_cs :
-                extension = Path(pj_rapport_cs.name).suffix.lower()
-                if extension != ".pdf" :
-                    messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_rapport_instance = enregistrer_document(
-                    fichier=pj_rapport_cs,
-                    nature_str="Annexe avis",
-                    description=f"Rapport Instance pour l'avis {avis_id}",
-                    request=request,
-                    emplacement_avis = emplacement,
-                )
 
-        # Brouillon deja existant
+
+        #############################
+        # ---- ÉCRITURE DES PJ ---- #
+        #############################
+        # Projet d'avis
+        if pj_projet_avis :
+            extension = Path(pj_projet_avis.name).suffix.lower()
+            if extension not in {".doc", ".docx", ".odt"} :
+                logger.warning(f"[CONFIRMER AJOUT AVIS] Le projet de demande d'avis a tenté d'être déposé au format {extension} par {request.user}. Formats autorisés : .doc, .docx, .odt")
+                messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+            doc_projet_avis = enregistrer_document(
+                fichier=pj_projet_avis,
+                nature_str="Annexe avis",
+                description=f"Projet de demande pour l'avis {avis_id}",
+                request=request,
+                emplacement_avis = emplacement,
+            )
+        
+        # Projet d'acte
+        if pj_projet_acte :
+            extension = Path(pj_projet_acte.name).suffix.lower()
+            if extension != ".pdf" :
+                logger.warning(f"[CONFIRMER AJOUT AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
+                messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+            doc_projet_acte = enregistrer_document(
+                fichier=pj_projet_acte,
+                nature_str="Annexe avis",
+                description=f"Projet d’acte pour l'avis {avis_id}",
+                request=request,
+                emplacement_avis = emplacement,
+            )
+        
+        # Rapport CS
+        if pj_rapport_cs :
+            extension = Path(pj_rapport_cs.name).suffix.lower()
+            if extension != ".pdf" :
+                logger.warning(f"[CONFIRMER AJOUT AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
+                messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+            doc_rapport_instance = enregistrer_document(
+                fichier=pj_rapport_cs,
+                nature_str="Annexe avis",
+                description=f"Rapport Instance pour l'avis {avis_id}",
+                request=request,
+                emplacement_avis = emplacement,
+            )
+
+            # Autres PJ
+            if liste_autres_pj :
+                try :
+                
+                    # Ecriture physique
+                    for pj in liste_autres_pj :
+                        
+                        doc_pj = enregistrer_document(
+                            fichier=pj,
+                            nature_str="Annexe avis",
+                            description=f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis.id}",
+                            request=request,
+                            emplacement_avis = emplacement,
+                        )
+
+                        # Création AvisDocument
+                        if doc_pj:
+                            AvisDocument.objects.create(id_avis=avis, id_document=doc_pj)
+
+                except Exception as e:
+                        messages.error(request, f"Erreur lors du rattachement des pièces jointes annexes à la demande d'avis. Contactez le support.")
+                        logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Echec du rattachement des autres pièces jointes à la demande d'avis par {request.user} : {e}")
+                        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+        ####################################################
+        # ---- CAS 1 : BROUILLON D'AVIS DÉJÀ EXISTANT ---- #
+        ####################################################
         if brouillon_avis :
 
             fields_to_update = {
@@ -860,20 +866,17 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             try:
 
                 updated_fields = update_fields(brouillon_avis, fields_to_update)
-
                 if updated_fields:
                     brouillon_avis.save(update_fields=updated_fields)
                     avis = brouillon_avis
-                    logger.info(
-                        f"[DOSSIER {dossier.numero}] Brouillon d'avis ({brouillon_avis}) mis à jour. "
-                        f"Changements: {', '.join(updated_fields)}"
-                    )
+                    logger.info(f"[DOSSIER {dossier.numero}] Brouillon d'avis ({brouillon_avis}) mis à jour. Changements: {', '.join(updated_fields)}")
 
             except Exception as e:
-                logger.error(f"[DOSSIER {dossier.numero}] Avis {brouillon_avis.id} : Message supprimé car il y a eu une erreur lors de l'envoi de l'avis")
-                messages.error(request, f"[ENVOI AVIS DOSSIER {dossier.numero}] Erreur lors de la mise à jour de l'avis {brouillon_avis} : {e}")
+                logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Erreur lors de la mise à jour de l'avis : {e}")
+                messages.error(request, f"Une erreur est survenue lors de la mise à jour de l'avis. Contactez le support.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
             
+
             # Create message (formulation) + projet demande d'avis en PJ si il existe
             try:
                 msg = Message.objects.create(
@@ -887,20 +890,22 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
                 # Joindre le projet de demande d'avis au message
                 if doc_projet_avis :
-                    MessageDocument.objects.create(
-                        id_message=msg,
-                        id_document=doc_projet_avis
-                    )
+                    MessageDocument.objects.create(id_message=msg, id_document=doc_projet_avis)
 
-                logger.info(f"[DOSSIER {dossier.numero}] Avis {brouillon_avis.id} : message envoyé à {brouillon_avis.id_expert}")
+                logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : message par défaut envoyé à {brouillon_avis.id_expert} par {request.user}")
 
             except Exception as e:
                 brouillon_avis.statut = "Brouillon"
                 brouillon_avis.save()
+                logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Demande d'avis de {request.user} non transmise à {brouillon_avis.id_expert} - Erreur lors de la création du message par défaut (formulation avis) : {e}")
                 messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        # Pas de Brouillon existant
+        
+        
+        #############################################################
+        # ---- CAS 2 : NOUVEL AVIS (PAS DE BROUILLON EXISTANT) ---- #
+        #############################################################
         else :
             try:
 
@@ -922,19 +927,21 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                         emplacement = emplacement,
                 )
 
-                logger.info(f"[DOSSIER {dossier.numero}] Brouillon de demande d'avis créé : {avis}")
+                logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero} : Avis {avis.id} créé par {request.user}")
+
             except Exception as e:
-                messages.error(request, f"Erreur lors de la création de l'avis : {e}")
+                logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero} : Erreur lors de la création de l'avis par {request.user} : {e} ")
+                messages.error(request, f"Erreur lors de la création de l'avis. Contactez le support.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
         
             try:
-                avis_dossier = DossierAvis.objects.create(
-                    id_avis=avis,
-                    id_dossier=dossier,
-                )
+                DossierAvis.objects.create(id_avis=avis,id_dossier=dossier)
+
             except Exception as e:
-                messages.error(request, f"Erreur lors de la création du lien entre le dossier {dossier.numero} et {avis} : {e}")
+                logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création du DossierAvis par {request.user} : {e} ")
+                messages.error(request, f"Erreur lors de la création du lien entre le dossier et l'avis. Contactez le support.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
             # Create message (formulation)
             if avis.formulation :
@@ -950,56 +957,22 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
                     # Joindre le projet de demande d'avis au message
                     if doc_projet_avis :
-                        MessageDocument.objects.create(
-                            id_message=msg,
-                            id_document=doc_projet_avis
-                        )
+                        MessageDocument.objects.create(id_message=msg, id_document=doc_projet_avis)
 
-                    logger.info(f"[DOSSIER {dossier.numero}] Avis {avis.id} : message envoyé à {avis.id_expert}")
+                    logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : message par défaut envoyé à {brouillon_avis.id_expert} par {request.user}")
+
 
                 except Exception as e:
                     avis.statut = "Brouillon"
                     avis.save()
+                    logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Demande d'avis de {request.user} non transmise à {brouillon_avis.id_expert} - Erreur lors de la création du message par défaut (formulation avis) : {e}")
                     messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        try :
-
-            # Ajout des autres pièces jointes si présentes 
-            if liste_autres_pj :
-                chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
-                creer_dossier_sur_nas(chemin_complet)
-                
-                
-                # on parcourt les fichiers et on les écrit physiquement
-                for pj in liste_autres_pj :
-                    
-                    doc_pj = enregistrer_document(
-                        fichier=pj,
-                        nature_str="Annexe avis",
-                        description=f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis.id}",
-                        request=request,
-                        emplacement_avis = emplacement,
-                    )
-
-                    # Création AvisDocument
-                    if doc_pj:
-                        AvisDocument.objects.create(
-                            id_avis=avis,
-                            id_document=doc_pj
-                        )
-        except Exception as e:
-
-                messages.error(request, f"Erreur lors du rattachement des autres pièces jointes à la demande d'avis : {e}")
-                logger.error(request, f"[DOSSIER {dossier.numero}] Avis {avis.id} : Echec du rattachement des autres pièces jointes à la demande d'avis : {e}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
         #################################
         # NOTIFICATION PAR MAIL à l'expert
         #################################
-        # Nouvel avis recu
-
         # emails_norm = [email_expert]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
@@ -1016,28 +989,36 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/",
         }
         template_name = "nouvelle_demande_avis_dossier" 
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
+        
         outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
 
         if outbox :
             ok, err = envoi_mail(outbox.id)
         else :
-            logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande d'avis : Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
+            logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
             messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
         if ok:
-            logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
+            logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Notification Email {outbox.id} envoyée à {', '.join(outbox.to)} ")
         else:
-            logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
+            logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Échec envoi notification email {outbox.id} à {', '.join(outbox.to)} : {err}")
             messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
-
     else :
-        messages.error(request, f"Erreur lors de la transmission du formulaire : POST method required")
+        messages.error(request, f"Erreur lors de la transmission du formulaire : méthode POST requise. Contactez le support.")
+        logger.error(f"[CONFIRMER AJOUT AVIS] Erreur lors de la transmission du formulaire par {request.user} : méthode POST requise.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
     return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
+
 
 
 
@@ -1048,19 +1029,28 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
     try:
         instructeur = Instructeur.objects.filter(email=request.user.email).first()
         if not instructeur:
-            messages.error(request, f"Aucun instructeur.rice n'est associé.e à votre profil : {e}")
+            messages.error(request, f"Aucun instructeur.rice n'est associé.e à votre profil. Contactez le support")
             return redirect(request.META.get("HTTP_REFERER", "/"))
     except Exception as e:
         messages.error(request, f"Erreur lors de la récupération de l'instructeur : {e}")
         return redirect(request.META.get("HTTP_REFERER", "/"))
-    
-    # Récupérer le dossier
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
+
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[SAVE BROUILLON AVIS] Dossier {num_dossier} introuvable")
+        messages.error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # Si on reçoit un brouillon d'avis existant
     brouillon_avis = None
     if avis_id:
-        brouillon_avis = get_object_or_404(Avis, id=avis_id, id_dossier=dossier)
+        brouillon_avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+        if not brouillon_avis:
+            logger.error(f"[SAVE BROUILLON AVIS] Brouillon d'avis {avis_id} introuvable en base pour dossier {num_dossier}")
+            messages.error(request, "Avis introuvable en base. Contactez le support.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
 
     if request.method == "POST":
         # Champs du formulaire
@@ -1074,25 +1064,21 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
         pj_projet_avis = request.FILES.get("pj_demande_avis")
         pj_projet_acte = request.FILES.get("pj_projet_acte")
         pj_rapport_cs = request.FILES.get("pj_rapport_cs")  
-
-        # fichiers a reprendre
-        fichier = request.FILES.get("pj_avis")
-        if fichier :
-            extension = Path(fichier.name).suffix.lower()
-            if extension not in {".pdf", ".doc", ".docx", ".odt"} :
-                messages.error(request, f"❌ Le fichier joint doit etre .pdf ou .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
+        liste_autres_pj = request.FILES.getlist("pj_lie_avis")
+   
 
         try:
             nature = AvisNature.objects.get(id=nature_id)
         except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la nature d'avis : {e}")
+            messages.error(request, f"Erreur lors de la récupération de la nature de l'avis. Contactez le suppport.")
+            logger.error(f"[SAVE BROUILLON AVIS] Nature {nature_id} introuvable : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         try:
             thematique = AvisThematique.objects.get(id=thematique_id)
         except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la thématique de l'avis : {e}")
+            messages.error(request, f"Erreur lors de la récupération de la thématique de l'avis. Contactez le suppport.")
+            logger.error(f"[SAVE BROUILLON AVIS] Thématique {thematique_id} introuvable : {e}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
     
         if expert_interne_id:
@@ -1108,7 +1094,8 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
 
             except Exception as e:
-                messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
+                messages.error(request, f"Erreur lors de la récupération de l'expert interne. Contactez le suppport.")
+                logger.error(f"[SAVE BROUILLON AVIS] Expert interne {expert_interne_id} introuvable : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
         
             
@@ -1132,71 +1119,86 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                     nom_prenom_expert = f"Avis_{avis_id}"
 
             except Exception as e:
-                messages.error(request, f"Erreur lors de la récupération de l'expert externe : {e}")
+                messages.error(request, f"Erreur lors de la récupération de l'expert externe. Contactez le suppport.")
+                logger.error(f"[SAVE BROUILLON AVIS] Expert externe {expert_externe_id} introuvable : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
-            
 
-        emplacement = ""
-        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
-        # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
-        if pj_projet_avis or pj_projet_acte or pj_rapport_cs :
-            
-            # On récupère l'emplacement physique de l'avis
-            if brouillon_avis :
-                if not brouillon_avis.emplacement :
-                    emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
-                else :
-                    emplacement = brouillon_avis.emplacement
-            else :
+        # ---- On récupère l'emplacement physique de l'avis ----
+        if brouillon_avis :
+            if not brouillon_avis.emplacement :
                 emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
-            
+            else :
+                emplacement = brouillon_avis.emplacement
+        else :
+            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+
+
+        # ---- Création des folders
+        if pj_projet_avis or pj_projet_acte or pj_rapport_cs or liste_autres_pj :
             chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}Annexes/"
             creer_dossier_sur_nas(chemin_complet)
 
-            if pj_projet_avis :
-                extension = Path(pj_projet_avis.name).suffix.lower()
-                if extension not in {".doc", ".docx", ".odt"} :
-                    messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_projet_avis = enregistrer_document(
-                    fichier=pj_projet_avis,
-                    nature_str="Annexe avis",
-                    description=f"Projet de demande pour l'avis {avis_id}",
-                    request=request,
-                    emplacement_avis = emplacement,
-                )
             
-            if pj_projet_acte :
-                extension = Path(pj_projet_acte.name).suffix.lower()
-                if extension != ".pdf" :
-                    messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_projet_acte = enregistrer_document(
-                    fichier=pj_projet_acte,
-                    nature_str="Annexe avis",
-                    description=f"Projet d’acte pour l'avis {avis_id}",
-                    request=request,
-                    emplacement_avis = emplacement,
-                )
-            
-            if pj_rapport_cs :
-                extension = Path(pj_rapport_cs.name).suffix.lower()
-                if extension != ".pdf" :
-                    messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_rapport_instance = enregistrer_document(
-                    fichier=pj_rapport_cs,
-                    nature_str="Annexe avis",
-                    description=f"Rapport Instance pour l'avis {avis_id}",
-                    request=request,
-                    emplacement_avis = emplacement,
-                )
-                
         
-        # Brouillon deja existant
+
+        #############################
+        # ---- ÉCRITURE DES PJ ---- #
+        #############################
+        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
+
+        # Projet d'avis
+        if pj_projet_avis :
+            extension = Path(pj_projet_avis.name).suffix.lower()
+            if extension not in {".doc", ".docx", ".odt"} :
+                logger.warning(f"[SAVE BROUILLON AVIS] Le projet de demande d'avis a tenté d'être déposé au format {extension} par {request.user}. Formats autorisés : .doc, .docx, .odt")
+                messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+            doc_projet_avis = enregistrer_document(
+                fichier=pj_projet_avis,
+                nature_str="Annexe avis",
+                description=f"Projet de demande pour l'avis {avis_id}",
+                request=request,
+                emplacement_avis = emplacement,
+            )
+        
+        # Projet d'acte
+        if pj_projet_acte :
+            extension = Path(pj_projet_acte.name).suffix.lower()
+            if extension != ".pdf" :
+                logger.warning(f"[SAVE BROUILLON AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
+                messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+            doc_projet_acte = enregistrer_document(
+                fichier=pj_projet_acte,
+                nature_str="Annexe avis",
+                description=f"Projet d’acte pour l'avis {avis_id}",
+                request=request,
+                emplacement_avis = emplacement,
+            )
+        
+        # Rapport CS
+        if pj_rapport_cs :
+            extension = Path(pj_rapport_cs.name).suffix.lower()
+            if extension != ".pdf" :
+                logger.warning(f"[SAVE BROUILLON AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
+                messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            
+            doc_rapport_instance = enregistrer_document(
+                fichier=pj_rapport_cs,
+                nature_str="Annexe avis",
+                description=f"Rapport Instance pour l'avis {avis_id}",
+                request=request,
+                emplacement_avis = emplacement,
+            )
+                
+        # Pour le moment : On ne sauvegarde pas les autres pj (liste_autres_pj) pour les brouillon d'avis.
+        
+        ####################################################
+        # ---- CAS 1 : BROUILLON D'AVIS DÉJÀ EXISTANT ---- #
+        ####################################################
         if brouillon_avis :
             fields_to_update = {
                 "id_avis_nature": nature,
@@ -1227,10 +1229,15 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                         f"Changements: {', '.join(updated_fields)}"
                     )
             except Exception as e:
-                messages.error(request, f"[ENVOI AVIS DOSSIER {dossier.numero}] Erreur lors de la mise à jour de l'avis {brouillon_avis} : {e}")
+                logger.error(f"[SAVE BROUILLON AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Erreur lors de la mise à jour de l'avis : {e}")
+                messages.error(request, f"Erreur lors de la sauvegarde de l'avis. Contactez le support.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
         
-        # Création du Brouillon
+
+
+        ###################################################################
+        # ---- CAS 2 : NOUVEAU BROUILLON (PAS DE BROUILLON EXISTANT) ---- #
+        ###################################################################
         else:
             try:
                 avis = Avis.objects.create(
@@ -1254,19 +1261,21 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
 
                         
             except Exception as e:
-                messages.error(request, f"Erreur lors de la création de l'avis : {e}")
+                logger.error(f"[SAVE BROUILLON AVIS] Dossier {dossier.numero} : Erreur lors de la création de l'avis par {request.user} : {e} ")
+                messages.error(request, f"Erreur lors de la création de l'avis. Contactez le support.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
             
             try:
                 DossierAvis.objects.create(id_avis=avis, id_dossier=dossier)
 
             except Exception as e:
-                messages.error(request, f"Erreur lors de la création du lien entre le dossier {dossier.numero} et {avis} : {e}")
+                logger.error(f"[SAVE BROUILLON AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création du DossierAvis par {request.user} : {e} ")
+                messages.error(request, f"Erreur lors de la création du lien entre le dossier et l'avis. Contactez le support.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
-            
-            
+              
     else :
-        messages.error(request, f"Erreur lors de la transmission du formulaire : POST method required")
+        messages.error(request, f"Erreur lors de la transmission du formulaire : méthode POST requise. Contactez le support.")
+        logger.error(f"[SAVE BROUILLON AVIS] Erreur lors de la transmission du formulaire par {request.user} : méthode POST requise.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
@@ -1278,13 +1287,29 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
 def supprimer_avis(request):
 
     avis_id = request.POST.get("avis_id")
-    avis = get_object_or_404(Avis, id=avis_id)
+
+    # Récupération AVIS
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        messages.error(request, f"L'avis {avis_id} est introuvable en base. Contactez le support.")
+        logger.error(f"[SUPPRESSION AVIS] Avis {avis_id} introuvable en base (user : {request.user}).")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # L'utilisateur doit être instructeur
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        messages.warning(request, "Vous n'avez pas de profil 'Instructeur.trice'. Contactez le support.")
+        logger.warning(f"[SUPPRESSION AVIS] User {request.user.email} sans profil instructeur a tenté de supprimer l'avis {avis_id}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
     try:
         avis.delete()
-        logger.info(f"Suppression de l'avis ({avis_id}) : {avis}")
+        logger.info(f"Suppression de l'avis ({avis_id}) par {instructeur}")
+
     except Exception as e:
-        messages.error(request, f"Erreur lors de la suppression de l'avis {avis} : {e}")
+        logger.error(f"[SUPPRESSION AVIS] Erreur lors de la suppression de l'avis {avis_id} par {instructeur} : {e}")
+        messages.error(request, f"Erreur lors de la suppression de l'avis. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1292,41 +1317,62 @@ def supprimer_avis(request):
 
 @login_required
 def instruction_dossier_avis(request, num_dossier, avis_id):
+    """
+    Affiche la page de l'avis lié au dossier (Vision instructeur)
+    """
 
-    # Récupérer le dossier et l'avis
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
-    avis = get_object_or_404(Avis, id=avis_id)
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[INSTRUCTION AVIS] Dossier {num_dossier} introuvable par {request.user}")
+        messages.error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+    # --- Récupération avis ---
+    avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+    if not avis:
+        logger.error(f"[INSTRUCTION AVIS] Avis {avis_id} introuvable par {request.user} pour le dossier {num_dossier}")
+        messages.error(request, f"L'avis demandé est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-    # Liste des emails des instructeurs du dossier
-    # liste_email_instructeurs = [
-    #     i.email for i in Instructeur.objects.filter(dossierinstructeur__id_dossier=dossier)
-    # ]
+    # --- Instructeur du dossier ? ---
+    est_instructeur_du_dossier = False
+    if instructeur:
+        est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
 
-    est_instructeur_du_dossier = DossierInstructeur.objects.filter(
-        id_dossier=dossier,
-        id_instructeur=instructeur
-    ).exists()
 
-    # Messages non lus envoyés par l'expert
-    if avis.id_expert.est_interne :
-        email_expert = avis.id_expert.id_instructeur.email
-    else :
-        email_expert = avis.id_expert.id_contact_externe.email
+    # --- Email expert ---
+    email_expert = None
+    if avis.id_expert:
+        if avis.id_expert.est_interne and avis.id_expert.id_instructeur:
+            email_expert = avis.id_expert.id_instructeur.email
+        elif avis.id_expert.id_contact_externe:
+            email_expert = avis.id_expert.id_contact_externe.email
 
+    if not email_expert:
+        logger.error(f"[AVIS {avis.id}] Pas d'email expert trouvé")
+        messages.error(request, f"Erreur lors de la récupération de l'email de l'expert. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+    # --- Messages non lus envoyés par l'expert ---
     messages_non_lus = (Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert))
     ids_non_lus = list(messages_non_lus.values_list("id", flat=True))
-
-    # Affichage messages
-    raw_messages = Message.objects.filter(id_avis=avis).order_by("date_envoi")
-    messages_fmt = []
-
+    
     # Mise à jour des mesages non lus --> lus
-    if est_instructeur_du_dossier:
+    if est_instructeur_du_dossier and messages_non_lus :
         nb = messages_non_lus.update(lu=True)
         if nb > 0:
             logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
-    
+
+
+    raw_messages = Message.objects.filter(id_avis=avis).order_by("date_envoi")
+    messages_fmt = []
+
     for msg in raw_messages:  
         nouv_mess = 'non'
         if ids_non_lus != []:
@@ -1336,7 +1382,6 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         emetteur = msg.email_emetteur.lower().strip()
         instru = Instructeur.objects.filter(email=emetteur).first()
         contact = ContactExterne.objects.filter(email=emetteur).first()
-
 
         # left = Message expert, right = Message émis par instructeur
         align = "right" if emetteur != email_expert.lower().strip() else "left"
@@ -1352,59 +1397,26 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
         messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
 
-    # Nombre d'avis envoyés
-    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
 
-    # Messages non lus
-    nb_messages_non_lus = Message.objects.filter(
-        id_dossier=dossier,
-        lu=False
-    ).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
-    ).exclude(
-        email_emetteur__endswith='reunion-parcnational.fr'
-    ).count()
+    # Avis Document
+    avis_documents = (
+        AvisDocument.objects.filter(id_avis=avis)
+        .select_related("id_document", "id_document__id_nature")
+        .exclude(id_document__id_nature__nature="Avis instance") #pour ne pas prendre l'avis signé
+    )
 
-    resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
-    # Nombre d'avis avec au moins un message non lu de l'expert
-    nb_avis_avec_nouveau_mess = 0
-    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
-        avis_item = da.id_avis
-        if not avis_item or not avis_item.id_expert:
-            continue
+    # Liste avis_documents
+    liste_avis_documents = [
+        {
+            "titre": ad.id_document.titre,
+            "emplacement": ad.id_document.emplacement,
+            "format": ad.id_document.id_format.format,
+            "nature": ad.id_document.id_nature.nature,
+        }
+        for ad in avis_documents
+    ]
 
-        if avis_item.id_expert.est_interne:
-            email_expert_item = avis_item.id_expert.id_instructeur.email
-        else:
-            email_expert_item = avis_item.id_expert.id_contact_externe.email
-
-        nb_non_lus_avis = Message.objects.filter(
-            id_avis=avis_item,
-            lu=False,
-            email_emetteur=email_expert_item
-        ).count()
-
-        if nb_non_lus_avis > 0:
-            nb_avis_avec_nouveau_mess += 1
-
-        # Avis Document
-        avis_documents = (
-            AvisDocument.objects.filter(id_avis=avis)
-            .select_related("id_document", "id_document__id_nature")
-            .exclude(id_document__id_nature__nature="Avis instance") #pour ne pas prendre l'avis signé
-        )
-
-        # Liste avis_documents
-        liste_avis_documents = [
-            {
-                "titre": ad.id_document.titre,
-                "emplacement": ad.id_document.emplacement,
-                "format": ad.id_document.id_format.format,
-                "nature": ad.id_document.id_nature.nature,
-            }
-            for ad in avis_documents
-        ]
     
     # Avis signés
     avis_signes = (
@@ -1416,6 +1428,14 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         )
     )
 
+    resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
+
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
+    # Messages du pétitionnaire non lus pour le dossier
+    nb_messages_non_lus = count_unread_messages_for_dossier(dossier, num_dossier)
+    # Nombre d'avis avec au moins un message non lu de l'expert
+    nb_avis_avec_nouveau_mess = count_avis_with_unread_messages_for_dossier(dossier, num_dossier)
 
 
     return render(request, 'instruction/instruction_dossier_avis.html', {
@@ -1441,7 +1461,11 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 @require_POST
 @csrf_exempt
 def envoyer_message_avis(request):
-
+    """
+    Envoi d’un message dans la messagerie d’un avis.
+    Gère texte, PJ, log, notifications expert.
+    """
+    
     # Récupération message et PJ de l'instructeur
     avis_id = request.POST.get("avis_id")
     dossier_numero = request.POST.get("dossier_numero")
@@ -1457,19 +1481,35 @@ def envoyer_message_avis(request):
         messages.error(request, "Fichier trop volumineux. Taille maximale : 20 Mo.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
-    # Récupérer le dossier
-    avis = get_object_or_404(Avis, id=avis_id)
-    dossier = get_object_or_404(Dossier, numero=dossier_numero)
+
+
+    # --- Récupération Avis ---
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[ENVOI MSG AVIS] Avis {avis_id} introuvable par {request.user}")
+        messages.error(request, "L'avis demandé est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # --- Récupération Dossier ---
+    dossier = Dossier.objects.filter(numero=dossier_numero).first()
+    if not dossier:
+        logger.error(f"[ENVOI MSG AVIS] Avis {avis_id} : Dossier {dossier_numero} introuvable par {request.user}")
+        messages.error(request, "Le dossier est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
     # Récupérer l'instructeur
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     if not instructeur :
-        logger.error(f"[DOSSIER {dossier_numero} ] {avis} - Erreur lors de l'envoi du message : L'instructeur ({request.user}) n'existe pas")
-        messages.error(request, f"Echec de l'envoi du message : Votre profil 'Instructeur' n'existe pas")
+        logger.warning(f"[ENVOI MSG AVIS] User {request.user.email} sans profil instructeur a tenté d'envoyer un message sur l'avis {avis.id} (Dossier {dossier_numero})")
+        messages.error(request, f"Echec de l'envoi du message : Vous n'avez pas de profil 'Instructeur'. Contatez l'administration")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
- 
+    # f"[ENVOI MSG AVIS] Dossier {dossier_numero}, Avis {avis.id} :
+    
+
+    # --- Création message ---
     try: 
         if fichier:
 
@@ -1498,14 +1538,22 @@ def envoyer_message_avis(request):
 
         
     except Exception as e:
-
-        logger.error(f"[DOSSIER {dossier_numero} ] {avis} - Erreur lors de l'envoi du message : {e}")
-        messages.error(request, f"Erreur lors de l'envoi du message : {e}")
+        logger.error(f"[ENVOI MSG AVIS] Dossier {dossier_numero}, Avis {avis.id} : Erreur lors de l'envoi du message : {e}")
+        messages.error(request, f"Erreur lors de l'envoi du message. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
+
+
     
     ####################################
     # NOTIFICATION PAR MAIL A L'EXPERT
     ####################################
+    email_expert = get_email_expert(avis, dossier_numero)
+    if not email_expert:
+        logger.error(f"[ENVOI MSG AVIS] Dossier {dossier_numero}, Avis {avis.id} : L'expert {avis.id_expert} n'a pas été notifié car son adresse mail n'a pas été trouvée.")
+        messages.warning(request, "Message envoyé, mais l’expert n’a pas pu être notifié par mail. Contactez le support pouren savoir plus.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # emails_norm = [email_expert]
     emails_norm = ["louis.calu@reunion-parcnational.fr"]
@@ -1519,7 +1567,14 @@ def envoyer_message_avis(request):
         "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
     }
     template_name = "nouveau_message_demandeur" 
-    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+    try :
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+    except Exception as e:
+        messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[ENVOI MSG AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     
     # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
@@ -1553,14 +1608,18 @@ def envoyer_message_avis_vision_expert(request):
     #Cette vue peut etre appelée par l'expert ou le demandeur
 
     avis_id = request.POST.get("avis_id")
-    avis = get_object_or_404(Avis, id=avis_id)
-
-    # Récupération message et PJ de l'envoyeur
     body = request.POST.get("body")
     fichier = request.FILES.get("piece_jointe")
 
+    # --- Avis ---
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis_id} introuvable par {request.user}")
+        messages.error(request, "L'avis demandé est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
     if not body:
-        messages.error(request, "Message vide")
+        messages.error(request, "Message vide.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
     # Vérification taille fichier (20 Mo max)
@@ -1596,22 +1655,22 @@ def envoyer_message_avis_vision_expert(request):
 
         
     except Exception as e:
-        logger.error(f"[AVIS {avis_id}] Erreur lors de l'envoi du message : {e}")
-        messages.error(request, f"Erreur lors de l'envoi du message : {e}")
+        logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis_id} : Erreur lors de l'envoi du message : {e}")
+        messages.error(request, f"Erreur lors de l'envoi du message. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
 
-    if avis.id_expert.est_interne :
-        email_expert = avis.id_expert.id_instructeur.email
-    else :
-        email_expert = avis.id_expert.id_contact_externe.email
+
+    email_expert = get_email_expert(avis, None)
+    email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
+
 
     if email_expert == request.user.email :
         ####################################
         # NOTIFICATION PAR MAIL AU DEMANDEUR
         ####################################
 
-        # emails_norm = [avis.id_instructeur.email]
+        # emails_norm = [email_demandeur]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
         sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : Nouveaux messages de l'expert.e"
@@ -1625,6 +1684,14 @@ def envoyer_message_avis_vision_expert(request):
         template_name = "nouveau_message_expert" 
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
@@ -1637,13 +1704,13 @@ def envoyer_message_avis_vision_expert(request):
             if outbox :
                 ok, err = envoi_mail(outbox.id)
             else :
-                logger.error(f"[AVIS {avis.id}] Nouveau message expert : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
+                logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} (demandeur) n'a pas été notifié par mail.")
                 messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
             if ok:
-                logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Nouveau message expert) envoyée à {', '.join(outbox.to)} ")
+                logger.info(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Notification Email {outbox.id} (Nouveau message de l'expert) envoyée à {', '.join(outbox.to)} ")
             else:
-                logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Nouveau message expert) à {', '.join(outbox.to)} : {err}")
+                logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Échec envoi notification email {outbox.id} (Nouveau message de l'expert) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
 
@@ -1664,7 +1731,15 @@ def envoyer_message_avis_vision_expert(request):
             "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
         }
         template_name = "nouveau_message_demandeur" 
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
@@ -1678,103 +1753,71 @@ def envoyer_message_avis_vision_expert(request):
             if outbox :
                 ok, err = envoi_mail(outbox.id)
             else :
-                logger.error(f"[AVIS {avis.id}] Nouveau message demandeur : Erreur lors de la création de l'EmailOutbox, {avis.id_expert} n'a pas été notifié par mail.")
+                logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Erreur lors de la création de l'EmailOutbox, {avis.id_expert} n'a pas été notifié par mail.")
                 messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
             if ok:
-                logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Nouveau message demandeur) envoyée à {', '.join(outbox.to)} ")
+                logger.info(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Notification Email {outbox.id} (Nouveau message du demandeur) envoyée à {', '.join(outbox.to)} ")
             else:
-                logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Nouveau message demandeur) à {', '.join(outbox.to)} : {err}")
+                logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis.id} : Échec envoi notification email {outbox.id} (Nouveau message du demandeur) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 
-def enregistrer_document(fichier, nature_str, description, request, emplacement_avis, annexe=True):
-    if not fichier:
-        return None
 
-    # Extension du fichier
-    nom, extension = os.path.splitext(fichier.name)
-    extension = extension.lstrip('.').lower()
+# @require_POST
+# def supprimer_document_avis(request, avis_id, champ):
+#     """
+#     Supprime une pièce jointe d’un avis
+#     """
 
-    # Récupération du format
-    format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
-    if not format_obj:
-        messages.error(request, f"Format {extension} non reconnu.")
-        return None
-
-    # Récupération de la nature
-    nature_obj = DocumentNature.objects.filter(nature__iexact=nature_str).first()
-    if not nature_obj:
-        messages.error(request, f"Nature '{nature_str}' introuvable.")
-        return None
-
-    # Emplacement et chemin
-    if annexe :
-        emplacement_annexes = f"{emplacement_avis}Annexes/"
-    else :
-        emplacement_annexes = emplacement_avis
-
-    chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_annexes}"
-
-    # Maj de l'ancien doc s’il existe
-    doc = Document.objects.filter(emplacement=emplacement_annexes, titre=fichier.name).first()
-    if doc:
-        # Mise à jour plutôt que suppression
-        doc.id_format = format_obj
-        doc.id_nature = nature_obj
-        doc.description = description
-        doc.save(update_fields=["id_format", "id_nature", "description"])
-    else:
-        # Création
-        doc = Document.objects.create(
-            id_format=format_obj,
-            id_nature=nature_obj,
-            emplacement=emplacement_annexes,
-            titre=fichier.name,
-            description=description,
-        )
-
-    if not doc :
-        messages.error(request, f"Erreur lors de la création du document {fichier.name} en base.")
-        return None
-
-    # Sauvegarde physique
-    filepath = os.path.join(chemin_complet, fichier.name)
-
-    if not ecrire_file_sur_nas(fichier, filepath) :
-        logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+#     # --- Récupération Avis ---
+#     avis = Avis.objects.filter(id=avis_id).first()
+#     if not avis:
+#         logger.error(f"[SUPPRESSION DOC AVIS] Avis {avis_id} introuvable par {request.user}")
+#         messages.error(request, "L'avis est introuvable. Contactez le support.")
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
     
-    return doc
 
 
+#     if champ not in ["id_projet_acte", "id_rapport_instance", "id_projet_avis"]:
+#         messages.error(request, "Champ de document invalide")
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-@require_POST
-def supprimer_document_avis(request, avis_id, champ):
+#     setattr(avis, champ, None)
+#     avis.save(update_fields=[champ])
 
-    avis = get_object_or_404(Avis, id=avis_id)
-
-    if champ not in ["id_projet_acte", "id_rapport_instance", "id_projet_avis"]:
-        messages.error(request, "Champ de document invalide")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    setattr(avis, champ, None)
-    avis.save(update_fields=[champ])
-
-    return redirect(request.META.get("HTTP_REFERER", "/"))
+#     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 @require_POST
 @login_required
 def mettre_a_jour_note_avis(request, avis_id):
-    avis = get_object_or_404(Avis, id=avis_id)
 
-    note = request.POST.get("note", "").strip()
-    avis.note = note
-    avis.save()
+    # --- Récupération avis ---
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[MAJ NOTE AVIS] Avis {avis_id} introuvable par {request.user}")
+        messages.error(request, "L'avis est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    # --- Validation instructeur ---
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        logger.warning(f"[MAJ NOTE AVIS] User {request.user} sans profil instructeur a tenté de modifier la note de l'avis {avis_id}")
+        messages.error(request, "Vous devez disposer d'un profil instructeur pour modifier cette note. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    try :
+        note = request.POST.get("note", "").strip()
+        avis.note = note
+        avis.save()
+
+    except Exception as e:
+        logger.error(f"[MAJ NOTE AVIS] Erreur lors de la mise à jour de la note de l'avis {avis_id} par {request.user} : {e}")
+        messages.error(request, "Erreur lors de la mise à jour de la note. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -1783,24 +1826,35 @@ def mettre_a_jour_note_avis(request, avis_id):
 @login_required
 def nouvelle_demande_avis_generique(request):
     
-    # Récupérer toutes les natures et thématiques
-    natures = AvisNature.objects.all().order_by("nature")
-    thematiques = AvisThematique.objects.all().order_by("thematique")
-    demarches = Demarche.objects.all().order_by("type")
+    try :
 
-    # Instructeur courant (user connecté)
-    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+        # Récupérer toutes les natures et thématiques
+        natures = AvisNature.objects.all().order_by("nature")
+        thematiques = AvisThematique.objects.all().order_by("thematique")
+        demarches = Demarche.objects.all().order_by("type")
 
-    # Instructeurs candidats
-    instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").order_by("email")
+        # Instructeur courant (user connecté)
+        instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+        if not instructeur_connecte:
+            logger.warning(f"[NOUVELLE DEMANDE AVIS GÉNÉRIQUE] User {request.user} a tenté une demande d'avis sans profil instructeur.")
+            messages.error(request, "Vous devez disposer d'un profil instructeur pour créer une demande d’avis. Contactez le support.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # Contacts externes candidats
-    contacts_ = ContactExterne.objects.filter(email__isnull=False).exclude(email__exact="").exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"]).order_by("nom", "email")
+        # Instructeurs candidats
+        instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").order_by("email")
 
-    # Supprimer les doublons d'email (si jamais)
-    instructeurs = {i.email: i for i in instructeurs_}.values()
-    contacts_externes = {c.email: c for c in contacts_}.values()
+        # Contacts externes candidats
+        contacts_ = ContactExterne.objects.filter(email__isnull=False).exclude(email__exact="").exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"]).order_by("nom", "email")
 
+        # Supprimer les doublons d'email (si jamais)
+        instructeurs = {i.email: i for i in instructeurs_}.values()
+        contacts_externes = {c.email: c for c in contacts_}.values()
+
+    except Exception as e:
+        logger.error(f"[NOUVELLE DEMANDE GENERIQUE] Erreur inattendue (user {request.user}) : {e}")
+        messages.error(request, "Erreur lors du chargement des données. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
     # return redirect(request.META.get("HTTP_REFERER", "/"))
     return render(request, "instruction/avis_nouvelle_demande_generique.html", {
@@ -1809,266 +1863,255 @@ def nouvelle_demande_avis_generique(request):
         "instructeurs": instructeurs,
         "contacts_externes": contacts_externes,
         "demarches": demarches,
-        # "NAS_ROOT": os.getenv('NAS_ROOT'),
     })
+
 
 
 @require_POST
 @login_required
 def avis_confirmer_nouvelle_demande_generique(request):
     
+
+    # --- Récupération instructeur ---
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        logger.warning(f"[CONFIRMER AVIS GENERIQUE] Le user {request.user} a tenté de confirmer une nouvelle demande d'avis générique sans profil Instructeur.")
+        messages.error(request, "Vous devez disposer d'un profil instructeur pour créer une demande d’avis. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    
+    # Champs du formulaire
+    nature_id = request.POST.get("nature")
+    demarche_id = request.POST.get("demarche")
+    thematique_id = request.POST.get("thematique")
+    note = request.POST.get("note_demandeur", "").strip()
+    formulation_avis = request.POST.get("formulation_avis")
+    expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
+    expert_externe_id = request.POST.get("expert_externe") # contact externe ici
+    pj_projet_avis = request.FILES.get("pj_demande_avis")
+    pj_projet_acte = request.FILES.get("pj_projet_acte")
+    pj_rapport_cs = request.FILES.get("pj_rapport_cs")
+    pjs_avis = request.FILES.getlist("pj_lie_avis")
+
+    
+    # --- Récupération nature ---
     try:
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        if not instructeur:
-            messages.error(request, f"Aucun instructeur.rice n'est associé.e à {request.user.email} : {e}")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+        nature = AvisNature.objects.get(id=nature_id)
     except Exception as e:
-        messages.error(request, f"Erreur lors de la récupération de l'instructeur {request.user} : {e}")
+        logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la récupération de la nature d'avis {nature_id} (User {request.user}) : {e}")
+        messages.error(request, "Erreur lors de la récupération de la nature d'avis. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
 
-    if request.method == "POST":
-        # Champs du formulaire
-        nature_id = request.POST.get("nature")
-        demarche_id = request.POST.get("demarche")
-        thematique_id = request.POST.get("thematique")
-        note = request.POST.get("note_demandeur", "").strip()
-        formulation_avis = request.POST.get("formulation_avis")
-        expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
-        expert_externe_id = request.POST.get("expert_externe") # contact externe ici
-        pj_projet_avis = request.FILES.get("pj_demande_avis")
-        pj_projet_acte = request.FILES.get("pj_projet_acte")
-        pj_rapport_cs = request.FILES.get("pj_rapport_cs")
-        pjs_avis = request.FILES.getlist("pj_lie_avis")
+    # --- Récupération thématique ---
+    try:
+        thematique = AvisThematique.objects.get(id=thematique_id)
+    except Exception as e:
+        logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la récupération de la thématique {thematique_id} (User {request.user}) : {e}")
+        messages.error(request, "Erreur lors de la récupération de la thématique. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        try:
-            nature = AvisNature.objects.get(id=nature_id)
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la nature d'avis : {e}")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        try:
-            thematique = AvisThematique.objects.get(id=thematique_id)
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la thématique de l'avis : {e}")
+    # --- Récupération démarche ---
+    try:
+        demarche = Demarche.objects.get(id=demarche_id)
+    except Exception as e:
+        logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la récupération de la démarche {demarche_id} (User {request.user}) : {e}")
+        messages.error(request, "Erreur lors de la récupération de la démarche. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+    # --- EXPERT ---
+    try:
+        expert, nom_prenom_expert = get_or_create_expert_from_form(request)
+
+    except Exception as e:
+        logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la récupération de l'expert : {e}")
+        messages.error(request, "Erreur lors de la récupération de l'expert. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+    
+    # --- Emplacement ---
+    emplacement_avis = f"Avis/{nettoyer_nom_fichier(demarche.type)}/{date.today().year}/{nom_prenom_expert}_{date.today().strftime('%d_%m')}/"
+    doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
+    jour_mois_annee = date.today().strftime("%d/%m/%Y")
+    
+    if pj_projet_avis or pj_projet_acte or pj_rapport_cs or pjs_avis :
+        chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_avis}Annexes/"
+        creer_dossier_sur_nas(chemin_complet)
+
+
+    # --- Écriture fichiers ---
+    if pj_projet_avis :
+        extension = Path(pj_projet_avis.name).suffix.lower()
+        if extension not in {".doc", ".docx", ".odt"} :
+            messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
         
-        try:
-            demarche = Demarche.objects.get(id=demarche_id)
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la récupération de la démarche {demarche_id} : {e}")
+        doc_projet_avis = enregistrer_document(
+            fichier=pj_projet_avis,
+            nature_str="Annexe avis",
+            description=f"Projet de demande pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
+            request=request,
+            emplacement_avis = emplacement_avis,
+        )
+    
+    if pj_projet_acte :
+        extension = Path(pj_projet_acte.name).suffix.lower()
+        if extension != ".pdf" :
+            messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        doc_projet_acte = enregistrer_document(
+            fichier=pj_projet_acte,
+            nature_str="Annexe avis",
+            description=f"Projet d’acte pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
+            request=request,
+            emplacement_avis = emplacement_avis,
+        )
+    
+    if pj_rapport_cs :
+        extension = Path(pj_rapport_cs.name).suffix.lower()
+        if extension != ".pdf" :
+            messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+        doc_rapport_instance = enregistrer_document(
+            fichier=pj_rapport_cs,
+            nature_str="Annexe avis",
+            description=f"Rapport Instance pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
+            request=request,
+            emplacement_avis = emplacement_avis,
+        )
 
-        email_expert = ""
-        if expert_interne_id:
-            try:
-                instru = Instructeur.objects.get(id=expert_interne_id)
-                expert, created = Expert.objects.get_or_create(
-                    id_instructeur=instru,
-                    defaults={"est_interne": True}
+
+
+    # --- Création Avis ---
+    try:
+
+        avis = Avis.objects.create(
+                id_avis_nature=nature,
+                id_avis_thematique=thematique,
+                date_demande_avis=timezone.now(),
+                statut="Envoyé",
+                note=note,
+                formulation= formulation_avis,
+                mode_contact="Application",
+                id_demarche = demarche,
+                id_expert=expert,
+                id_instructeur=instructeur,
+                id_projet_acte=doc_projet_acte,
+                id_rapport_instance=doc_rapport_instance,
+                id_projet_avis=doc_projet_avis,
+                emplacement = emplacement_avis,
+        )
+
+        logger.info(f"[AVIS GENERIQUE {avis.id}] Avis créé par {request.user}")
+    
+    except Exception as e:
+        logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la création de l'avis : {e}")
+        messages.error(request, "Erreur lors de la création de l'avis. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
+    # Pièces jointes annexes
+    if pjs_avis :
+        for pj in pjs_avis :
+            # extension = Path(pj.name).suffix.lower()
+            try :
+                doc_pj_avis = enregistrer_document(
+                    fichier=pj,
+                    nature_str="Annexe avis",
+                    description=f"Pièce jointe du demandeur pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
+                    request=request,
+                    emplacement_avis = emplacement_avis,
                 )
-                if created:
-                    logger.info(f"[EXPERT] Nouvel expert interne créé : {instru}")
                 
-                nom_prenom_expert = nettoyer_nom_fichier(f"{instru.id_agent_autorisations.nom}_{instru.id_agent_autorisations.prenom}")
-                email_expert = instru.email
-
+                AvisDocument.objects.get_or_create(id_avis=avis, id_document=doc_pj_avis)
+                
             except Exception as e:
-                messages.error(request, f"Erreur lors de la récupération de l'expert interne : {e}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
-        
-            
-        elif expert_externe_id:
-            try:
-                contact = ContactExterne.objects.get(id=expert_externe_id)
-                expert, created = Expert.objects.get_or_create(
-                    id_contact_externe=contact,
-                    defaults={"est_interne": False}
-                )
-                if created:
-                    logger.info(f"[EXPERT] Nouvel expert externe créé : {contact}")
-
-                if contact.nom and contact.prenom :
-                    nom_prenom_expert = nettoyer_nom_fichier(f"{contact.nom}_{contact.prenom}")
-                elif contact.raison_sociale :
-                    nom_prenom_expert = nettoyer_nom_fichier(f"{contact.raison_sociale}")
-                elif contact.organisation :
-                    nom_prenom_expert = nettoyer_nom_fichier(f"{contact.organisation}")
-                else :
-                    nom_prenom_expert = f"Expert_Inconnu"
-
-                email_expert = contact.email
+                logger.error(f"[AVIS GENERIQUE {avis.id}] Erreur lors de l'enregistrement d'une pièce jointe : {e}")
+                messages.error(request, "Erreur lors de l'enregistrement d'une pièce jointe. Contactez le support.")
+                return redirect('avis_expert', avis_id=avis.id)
 
 
-            except Exception as e:
-                messages.error(request, f"Erreur lors de la récupération de l'expert externe : {e}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
-        
-
-        doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
-
-        # On créé l'emplacement physique de l'avis
-        emplacement_avis = f"Avis/{nettoyer_nom_fichier(demarche.type)}/{date.today().year}/{nom_prenom_expert}_{date.today().strftime('%d_%m')}/"
-        
-        # Si 1 des 3 fichiers est non null (on va pas créer d'emplacements pour les consult' internes sans docs par exemple)
-        if pj_projet_avis or pj_projet_acte or pj_rapport_cs or pjs_avis :
-            jour_mois_annee = date.today().strftime("%d/%m/%Y")
-            
-            chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_avis}Annexes/"
-            creer_dossier_sur_nas(chemin_complet)
-
-            if pj_projet_avis :
-                extension = Path(pj_projet_avis.name).suffix.lower()
-                if extension not in {".doc", ".docx", ".odt"} :
-                    messages.error(request, f"❌ Le projet de demande d'avis doit etre au format .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_projet_avis = enregistrer_document(
-                    fichier=pj_projet_avis,
-                    nature_str="Annexe avis",
-                    description=f"Projet de demande pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
-                    request=request,
-                    emplacement_avis = emplacement_avis,
-                )
-            
-            if pj_projet_acte :
-                extension = Path(pj_projet_acte.name).suffix.lower()
-                if extension != ".pdf" :
-                    messages.error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_projet_acte = enregistrer_document(
-                    fichier=pj_projet_acte,
-                    nature_str="Annexe avis",
-                    description=f"Projet d’acte pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
-                    request=request,
-                    emplacement_avis = emplacement_avis,
-                )
-            
-            if pj_rapport_cs :
-                extension = Path(pj_rapport_cs.name).suffix.lower()
-                if extension != ".pdf" :
-                    messages.error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-                
-                doc_rapport_instance = enregistrer_document(
-                    fichier=pj_rapport_cs,
-                    nature_str="Annexe avis",
-                    description=f"Rapport Instance pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
-                    request=request,
-                    emplacement_avis = emplacement_avis,
-                )
-
-
-        # Création Avis
+    # Create message (formulation)
+    if avis.formulation :
         try:
-
-            avis = Avis.objects.create(
-                    id_avis_nature=nature,
-                    id_avis_thematique=thematique,
-                    date_demande_avis=timezone.now(),
-                    statut="Envoyé",
-                    note=note,
-                    formulation= formulation_avis,
-                    mode_contact="Application",
-                    id_demarche = demarche,
-                    id_expert=expert,
-                    id_instructeur=instructeur,
-                    id_projet_acte=doc_projet_acte,
-                    id_rapport_instance=doc_rapport_instance,
-                    id_projet_avis=doc_projet_avis,
-                    emplacement = emplacement_avis,
+            msg = Message.objects.create(
+                body=avis.formulation,
+                date_envoi=timezone.now(),
+                piece_jointe=True if doc_projet_avis else False,
+                email_emetteur=request.user.email,
+                id_avis=avis,
+                lu=False,
             )
 
-            logger.info(f"[AVIS GENERIQUE {avis.id}] Avis créé")
+            # Joindre le projet de demande d'avis au message
+            if doc_projet_avis :
+                MessageDocument.objects.create(id_message=msg, id_document=doc_projet_avis)
 
-            if pjs_avis :
-                for pj in pjs_avis :
-                    extension = Path(pj.name).suffix.lower()
-                    
-                    doc_pj_avis = enregistrer_document(
-                        fichier=pj,
-                        nature_str="Annexe avis",
-                        description=f"Pièce jointe du demandeur pour la demande d'avis générique ({expert}) du {jour_mois_annee}",
-                        request=request,
-                        emplacement_avis = emplacement_avis,
-                    )
-                    
-                    AvisDocument.objects.get_or_create(id_avis=avis, id_document=doc_pj_avis)
+            logger.info(f"[AVIS GENERIQUE {avis.id}] : Message par défaut envoyé à {avis.id_expert}")
 
         except Exception as e:
-            messages.error(request, f"Erreur lors de la création de l'avis : {e}")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+            logger.error(f"[AVIS GENERIQUE {avis.id}] Erreur lors de la création du message initial : {e}")
+            messages.error(request, "Erreur lors de la création du message initial. Contactez le support.")
+            return redirect('avis_expert', avis_id=avis.id)
+
     
-        # Create message (formulation)
-        if avis.formulation :
-            try:
-                msg = Message.objects.create(
-                    body=avis.formulation,
-                    date_envoi=timezone.now(),
-                    piece_jointe=True if doc_projet_avis else False,
-                    email_emetteur=request.user.email,
-                    id_avis=avis,
-                    lu=False,
-                )
+    #################################
+    # NOTIFICATION PAR MAIL À L'EXPERT
+    #################################
 
-                # Joindre le projet de demande d'avis au message
-                if doc_projet_avis :
-                    MessageDocument.objects.create(
-                        id_message=msg,
-                        id_document=doc_projet_avis
-                    )
+    # emails_norm = [email_expert]
+    emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
-                logger.info(f"[AVIS GENERIQUE {avis.id}] : Message par défaut envoyé à {avis.id_expert}")
-
-            except Exception as e:
-                messages.error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
-        
-        #################################
-        # NOTIFICATION PAR MAIL À L'EXPERT
-        #################################
-
-        # emails_norm = [email_expert]
-        emails_norm = ["louis.calu@reunion-parcnational.fr"]
-
-        # Demande générique non liée à un dossier
-        if avis.id_demarche.type :
-            sujet = f"{avis.id_instructeur} vous demande votre avis ({avis.id_demarche.type})"
-        else :
-            sujet = f"{avis.id_instructeur} vous demande votre avis"
-
-
-        context = {
-            "avis_numero": avis.id,
-            "demarche_type": avis.id_demarche.type,
-            "demandeur": str(avis.id_instructeur),
-            "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
-        }
-        template_name = "nouvelle_demande_avis_generique" 
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
-
-        if outbox :
-            ok, err = envoi_mail(outbox.id)
-        else :
-            logger.error(f"[NOUVELLE DEMANDE D'AVIS] Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
-            messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-        if ok:
-            logger.info(f"[NOUVELLE DEMANDE D'AVIS] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
-        else:
-            logger.error(f"[NOUVELLE DEMANDE D'AVIS] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
-            messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-
-
+    # Demande générique non liée à un dossier
+    if avis.id_demarche.type :
+        sujet = f"{avis.id_instructeur} vous demande votre avis ({avis.id_demarche.type})"
     else :
-        messages.error(request, f"Erreur lors de la transmission du formulaire : POST method required")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        sujet = f"{avis.id_instructeur} vous demande votre avis"
+
+
+    context = {
+        "avis_numero": avis.id,
+        "demarche_type": avis.id_demarche.type,
+        "demandeur": str(avis.id_instructeur),
+        "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
+    }
+    template_name = "nouvelle_demande_avis_generique" 
+
+
+    try :
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+    except Exception as e:
+        messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[AVIS GENERIQUE {avis.id}] Nouvelle demande : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+        return redirect('avis_expert', avis_id=avis.id)
+
+    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
+
+    if outbox :
+        ok, err = envoi_mail(outbox.id)
+    else :
+        logger.error(f"[NOUVELLE DEMANDE D'AVIS] Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
+        messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+    if ok:
+        logger.info(f"[NOUVELLE DEMANDE D'AVIS] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
+    else:
+        logger.error(f"[NOUVELLE DEMANDE D'AVIS] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
+        messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
     
     return redirect('avis_expert', avis_id=avis.id)
 
+
+
+"""
+CLEAN A FINIR
+"""
 
 
 @login_required

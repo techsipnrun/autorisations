@@ -30,7 +30,7 @@ urlpatterns = [
     path("instruction/supprimer_avis", avis.supprimer_avis, name="supprimer_avis"),
     path("instruction/envoyer_message_avis/", avis.envoyer_message_avis, name="envoyer_message_avis"),
     path('message/<int:id>/supprimer_message_avis/', messagerie.supprimer_message_avis, name='supprimer_message_avis'),
-    path("avis/<int:avis_id>/supprimer-doc/<str:champ>/", avis.supprimer_document_avis, name="supprimer_document_avis"),
+    # path("avis/<int:avis_id>/supprimer-doc/<str:champ>/", avis.supprimer_document_avis, name="supprimer_document_avis"),
     path("avis/remplacer_document_avis/", avis.remplacer_document_avis, name="remplacer_document_avis"),
 
 

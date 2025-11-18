@@ -423,7 +423,7 @@ def create_message_avis_bdd(body, email_emetteur, avis_obj,
     
 
     except Exception as e:
-        logger.exception(f"[AVIS {avis_obj.id}] {avis_obj} - Échec de création du message")
+        logger.error(f"[AVIS {avis_obj.id}] {avis_obj} - Échec de création du message : {e}")
         raise
 
 
@@ -525,3 +525,64 @@ def get_instructeurs_a_actionner(dossier):
 
     # On retourne la liste des objets `Instructeur` correspondants
     return list(Instructeur.objects.filter(id__in=instructeurs))
+
+
+
+
+def enregistrer_document(fichier, nature_str, description, request, emplacement_avis, annexe=True):
+    if not fichier:
+        return None
+
+    # Extension du fichier
+    nom, extension = os.path.splitext(fichier.name)
+    extension = extension.lstrip('.').lower()
+
+    # Récupération du format
+    format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
+    if not format_obj:
+        messages.error(request, f"Format {extension} non reconnu.")
+        return None
+
+    # Récupération de la nature
+    nature_obj = DocumentNature.objects.filter(nature__iexact=nature_str).first()
+    if not nature_obj:
+        messages.error(request, f"Nature '{nature_str}' introuvable.")
+        return None
+
+    # Emplacement et chemin
+    if annexe :
+        emplacement_annexes = f"{emplacement_avis}Annexes/"
+    else :
+        emplacement_annexes = emplacement_avis
+
+    chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_annexes}"
+
+    # Maj de l'ancien doc s’il existe
+    doc = Document.objects.filter(emplacement=emplacement_annexes, titre=fichier.name).first()
+    if doc:
+        # Mise à jour plutôt que suppression
+        doc.id_format = format_obj
+        doc.id_nature = nature_obj
+        doc.description = description
+        doc.save(update_fields=["id_format", "id_nature", "description"])
+    else:
+        # Création
+        doc = Document.objects.create(
+            id_format=format_obj,
+            id_nature=nature_obj,
+            emplacement=emplacement_annexes,
+            titre=fichier.name,
+            description=description,
+        )
+
+    if not doc :
+        messages.error(request, f"Erreur lors de la création du document {fichier.name} en base.")
+        return None
+
+    # Sauvegarde physique
+    filepath = os.path.join(chemin_complet, fichier.name)
+
+    if not ecrire_file_sur_nas(fichier, filepath) :
+        logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+    
+    return doc

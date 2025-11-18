@@ -17,7 +17,7 @@ from autorisations.models.models_documents import Document, DocumentFormat, Docu
 from autorisations.models.models_avis import Avis, Expert
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
-from instruction.utils import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
+from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
 from threading import Lock
 import threading

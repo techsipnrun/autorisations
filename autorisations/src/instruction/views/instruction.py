@@ -29,7 +29,7 @@ from synchronisation.src.normalisation.norma_messages import message_normalize
 from synchronisation.src.synchro.sync_dossiers import sync_dossiers
 from synchronisation.src.utils.fichiers import construire_emplacement_dossier
 from synchronisation.src.normalisation.norma_dossier import dossier_normalize
-from instruction.utils import dossiers_action_a_faire, enregistrer_action, format_etat_dossier
+from instruction.utils_instru import dossiers_action_a_faire, enregistrer_action, format_etat_dossier
 from autorisations.models.models_instruction import DossierNote
 from django.utils import timezone
 from datetime import datetime
