@@ -50,149 +50,154 @@ def template_mail_name_from_etape(label):
     return label
 
 
+
 def changer_etape_si_differente(dossier, nom_etape, user, request):
-
     """
-    Met à jour l'étape du dossier uniquement si elle est différente de l'étape actuelle.
-    Envoi un mail de notification aux concerné.e.s selon le changement d'étape
-
-    Args:
-        dossier (Dossier): instance Django du dossier à modifier.
-        nom_etape (str): nom exact de l'étape cible (champ `etape` de EtapeDossier).
-
-    Returns:
-        bool: True si modification effectuée, False sinon.
+    Change l'étape du dossier si elle est différente.
+    Envoie aussi une notification mail si nécessaire.
+    Lève des exceptions en cas d'erreur.
     """
+
+    # --- Récupération étape cible ---
     nouvelle_etape = EtapeDossier.objects.filter(etape=nom_etape).first()
-
     if not nouvelle_etape:
-        logger.error(f"[DOSSIER {dossier.numero}] Étape '{nom_etape}' introuvable en base.")
-        return False
+        raise ValueError(f"[DOSSIER {dossier.numero}] Étape '{nom_etape}' introuvable en base.")
 
-    if dossier.id_etape_dossier != nouvelle_etape:
+    # --- Déjà à la bonne étape → rien à faire ---
+    if dossier.id_etape_dossier == nouvelle_etape:
+        logger.warning(f"[DOSSIER {dossier.numero}] Étape inchangée par {user}. Le dossier est déjà à l'étape '{nom_etape}'.")
+        return
 
+
+    # --- Tentative de changement d'étape ---
+    try :
         dossier.id_etape_dossier = nouvelle_etape
 
-        # Si on archive le dossier, on met à jour l'attribut 'date_fin_instruction'
+        # Si acceptation/refus → date de fin d'instruction
         if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
             dossier.date_fin_instruction = timezone.now()
             
         dossier.save()
-        logger.info(f"[DOSSIER {dossier.numero}] Passe à l'étape --> '{nom_etape}' par {user}")
+        logger.info(f"[DOSSIER {dossier.numero}] Passage à l'étape --> '{nom_etape}' par {user}")
+
+    except Exception as e:
+        raise Exception(f"[DOSSIER {dossier.numero}] Erreur lors du changement d'étape vers '{nom_etape}' par {user} : {e}")
 
 
-        #######################
-        # NOTIFICATION PAR MAIL 
-        #######################
-        if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
-            # Skip pour le moment, si besoin on peut faire un email notif aussi.
-            return True
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+
+    # --- Étapes finales → pas de notification mail pour le moment ---
+    if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
+        return
+    
+    
+    # --- Notification mail pour les autres étapes ---
+    user_faisant_le_changement = Instructeur.objects.filter(email=user.email).first()
+    users_ayant_une_action_a_faire = get_instructeurs_a_actionner(dossier)
+    
+
+    # Aucun user désigné pour faire la prochaine action
+    if not users_ayant_une_action_a_faire :
+        logger.error(f"[DOSSIER {dossier.numero}] Passage à l'étape --> '{nom_etape}' par {user}. Aucun user désigné pour réaliser la prochaine action.")
+        return
+
+    # print(f"Users ayant une action à faire sur le dossier : {users_ayant_une_action_a_faire}")
+
+    # On ne notifie pas le user ayant fait le changement d'étape
+    if not (len(users_ayant_une_action_a_faire) == 1 and user_faisant_le_changement in users_ayant_une_action_a_faire) :
+
+        # On recup les mails des users avec une action à faire
+        emails_norm2 = [i.email for i in users_ayant_une_action_a_faire if i and i != user_faisant_le_changement]
+        print(f"Mails des users ayant une action à faire suite au changement d'étape : {emails_norm2}")
+
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+
+        if not emails_norm:
+            messages.error(request, f"L'email de notification à {users_ayant_une_action_a_faire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            logger.error(f"[DOSSIER {dossier.numero}] Passage à l'étape --> '{nom_etape}' par {user}. Aucun user notifié parmi {users_ayant_une_action_a_faire} : Email introuvable")
+            return
+
+        sujet = f"Dossier {dossier.numero} - Action à faire"
+        context = {
+            "dossier_numero": dossier.numero,
+            "demarche_type": dossier.id_demarche.type,
+            "dossier_etape": dossier.id_etape_dossier.etape,
+            "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+        }
+        template_name = "changement_etape"
+
+
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            logger.error(f"[DOSSIER {dossier.numero}] Échec de la notification par mail suite au passage à l'étape '{nom_etape}' par {user} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return
+
+        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
         
-        # elif nouvelle_etape.etape == 'À valider avant signature' or nouvelle_etape.etape == "À valider avant demande d'avis" :
+        if outbox :
+            ok, err = envoi_mail(outbox.id)
         else :
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la création de l'EmailOutbox, personne n'a été notifié du changement d'étape à '{nouvelle_etape.etape}'")
+            messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
+            return
 
-            user_faisant_le_changement = Instructeur.objects.filter(email=user.email).first()
-            users_ayant_une_action_a_faire = get_instructeurs_a_actionner(dossier)
-            
-            # Aucun user désigné pour faire la prochaine action
-            if not users_ayant_une_action_a_faire :
-                return True
+        if ok:
+            logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} ({outbox.sujet}) envoyée à {', '.join(outbox.to)} ")
+        else:
+            logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
+            messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
 
-            # print(f"Users ayant une action à faire sur le dossier : {users_ayant_une_action_a_faire}")
+    return
 
-            # Le user ayant fait le changement d'étape n'a pas d'action à faire (ou du moins n'est pas le seul à en avoir)
-            if not (len(users_ayant_une_action_a_faire) == 1 and user_faisant_le_changement in users_ayant_une_action_a_faire) :
-
-                # On recup les mails des users avec une action à faire
-                emails_norm2 = [
-                    i.email
-                    for i in users_ayant_une_action_a_faire
-                    if i and i != user_faisant_le_changement
-                ]
-
-                print(f"Mails ayant une action à faire (après retirage du user ayant fait le changement d'étape) : {emails_norm2}")
-
-                emails_norm = ["louis.calu@reunion-parcnational.fr"]
-                sujet = f"Dossier {dossier.numero} - Action à faire"
-                context = {
-                    "dossier_numero": dossier.numero,
-                    "demarche_type": dossier.id_demarche.type,
-                    "dossier_etape": dossier.id_etape_dossier.etape,
-                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
-                }
-                template_name = "changement_etape"
-                dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-
-                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
-               
-                if outbox :
-                    ok, err = envoi_mail(outbox.id)
-                else :
-                    logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la création de l'EmailOutbox, personne n'a été notifié du changement d'étape à '{nouvelle_etape.etape}'")
-                    messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
-                    return True
-
-                if ok:
-                    logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} ({outbox.sujet}) envoyée à {', '.join(outbox.to)} ")
-                else:
-                    logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
-                    messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
-            # else :
-                # print("Le user ayant fait le changement d'étape est le seul à avoir une action à faire sur cette nouvelle étape")
-
-        return True
-
-    logger.warning(f"[DOSSIER {dossier.numero}] Déjà à l'étape '{nom_etape}' : pas de changement d'étape donc.")
-    return False
 
 
 
 def changer_etat_si_different(dossier, nom_etat, user):
     """
-    Met à jour l'état du dossier uniquement si différent de l'état actuel.
-
-    Args:
-        dossier (Dossier): instance Django du dossier à modifier.
-        nom_etat (str): nom (insensible à la casse) de l'état cible.
-        user (User, optional): utilisateur Django à l'origine du changement.
-
-    Returns:
-        bool: True si modification effectuée, False sinon.
+    Met à jour l'état du dossier uniquement si différent.
+    Lève toujours une exception en cas d'erreur.
     """
     nouvel_etat = EtatDossier.objects.filter(nom__iexact=nom_etat).first()
 
     if not nouvel_etat:
-        logger.error(f"[DOSSIER {dossier.numero}] Échec de changement d'état : '{nom_etat}' introuvable.")
-        return False
+        raise ValueError(f"[DOSSIER {dossier.numero}] Échec de changement d'état : Etat '{nom_etat}' introuvable en base.")
 
+    # --- Mise à jour état ---
     if dossier.id_etat_dossier != nouvel_etat:
-        dossier.id_etat_dossier = nouvel_etat
-        dossier.save()
- 
-        logger.info(f"[DOSSIER {dossier.numero}] Passage à l'état --> '{nouvel_etat.nom.capitalize()}' par {user}")
-        return True
+        try:
+            dossier.id_etat_dossier = nouvel_etat
+            dossier.save()
+            logger.info(f"[DOSSIER {dossier.numero}] Passage à l'état --> '{nouvel_etat.nom.capitalize()}' par {user}")
 
-    logger.debug(f"[DOSSIER {dossier.numero}] État inchangé (déjà '{dossier.id_etat_dossier.nom}').")
-    return False
+        except Exception as e:
+            raise Exception(f"[DOSSIER {dossier.numero}] Erreur lors de la modification de l'état '{dossier.id_etat_dossier}' → '{nom_etat}' par {user} : {e}")
+    # logger.debug(f"[DOSSIER {dossier.numero}] État inchangé (déjà '{dossier.id_etat_dossier.nom}').")
+
 
 
 def enregistrer_action(dossier, instructeur, nom_action, description=None, date=None):
+
     action_obj = Action.objects.filter(action=nom_action).first()
-    if action_obj and instructeur and not date:
-        DossierAction.objects.create(
-            id_dossier=dossier,
-            id_instructeur=instructeur,
-            id_action=action_obj,
-            description=description
-        )
-    elif date :
-        DossierAction.objects.create(
-            id_dossier=dossier,
-            id_instructeur=instructeur,
-            id_action=action_obj,
-            description=description,
-            date=date
-        )
+    if not action_obj:
+        raise ValueError(f"Action '{nom_action}' introuvable en base.")
+    
+    if action_obj and instructeur :
+        try:
+            DossierAction.objects.create(
+                id_dossier=dossier,
+                id_instructeur=instructeur,
+                id_action=action_obj,
+                description=description,
+                date=date
+            )
+
+        except Exception as e:
+            raise Exception(f"Erreur lors de la création du DossierAction ({action_obj}) : {e}")
 
 
 

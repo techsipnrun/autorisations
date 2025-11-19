@@ -2109,52 +2109,54 @@ def avis_confirmer_nouvelle_demande_generique(request):
 
 
 
-"""
-CLEAN A FINIR
-"""
-
-
 @login_required
 def remplacer_document_avis(request):
     """
-    Remplace un document lié à un avis :
-    - Projet d'avis
-    - Projet d'acte
-    - Rapport du conseil
-
-    Si le document est partagé avec d'autres champs d'avis,
-    un nouveau Document est créé au lieu de remplacer le fichier existant.
+    Remplacement sécurisé d'un document (Projet d'avis, Projet d'acte, Rapport du conseil) lié à un avis.
+    - Si le document est partagé par plusieurs avis → création d’un nouveau Document.
+    - Sinon → remplacement du fichier + mise à jour de l’objet Document.
     """
-    if request.method != "POST":
-        messages.error(request, "Méthode non autorisée.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     avis_id = request.POST.get("avis_id")
     document_id = request.POST.get("document_id")
     fichier = request.FILES.get("fichier")
 
     if not avis_id or not document_id or not fichier:
-        messages.error(request, "❌ Données manquantes (avis_id, document_id ou fichier).")
+        logger.warning(f"[REMPLACER DOC AVIS] Tentative de remplacement de document lié à un avis par {request.user}. Information manquante.")
+        messages.error(request, "❌ Données manquantes.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    avis = get_object_or_404(Avis, id=avis_id)
-    document = get_object_or_404(Document, id=document_id)
+    # --- Récupération Avis ---
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[REMPLACER DOC] Avis {avis_id} introuvable.")
+        messages.error(request, "Avis introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # Vérification extension
+    # --- Récupération Document ---
+    document = Document.objects.filter(id=document_id).first()
+    if not document:
+        logger.error(f"[REMPLACER DOC] Avis {avis_id} : Document {document_id} introuvable.")
+        messages.error(request, "Document introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # --- Vérification extension ---
     ext = Path(fichier.name).suffix.lower()
     if ext not in [".pdf", ".doc", ".docx", ".odt"]:
         messages.error(request, f"❌ Format non autorisé ({ext}). Formats acceptés : .pdf, .doc, .docx, .odt")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
+    # --- Récupération Format ---
     format_obj = DocumentFormat.objects.filter(format__iexact=ext.lstrip(".")).first()
     if not format_obj:
-        messages.error(request, f"❌ Format '{ext}' introuvable en base.")
+        messages.error(request, f"❌ Format '{ext}' introuvable en base. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
     root = os.environ.get("NAS_ROOT", "")
     creer_dossier_sur_nas(os.path.join(root, document.emplacement))
 
-    # --- Vérification si le Document est partagé entre plusieurs avis ---
+    # --- DOCUMENT PARTAGÉ ?
     utilisations = Avis.objects.filter(
         models.Q(id_projet_avis=document) |
         models.Q(id_projet_acte=document) |
@@ -2162,10 +2164,13 @@ def remplacer_document_avis(request):
     ).distinct()
 
     est_partage = utilisations.count() > 1
-    logger.info(f"[AVIS {avis.id}] Document {document.id} partagé : {est_partage}")
+
 
     try:
-        # === CAS 1 : document partagé → création d’un nouveau ===
+        # =====================================================
+        #  CAS 1 : DOCUMENT PARTAGÉ → création d’un nouveau doc
+        # =====================================================
+
         if est_partage:
             nom_base, ext = os.path.splitext(fichier.name)
             titre_final = nom_base
@@ -2189,10 +2194,10 @@ def remplacer_document_avis(request):
 
             # Écriture du fichier sur le NAS
             if not ecrire_file_sur_nas(fichier, chemin_candidat): 
-                logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {chemin_candidat}")
+                # logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {chemin_candidat}")
                 raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {chemin_candidat}")
 
-            logger.info(f"[AVIS {avis.id}] Nouveau fichier créé : {chemin_candidat}")
+            logger.info(f"[AVIS {avis.id}] Nouveau fichier créé par {request.user} : {chemin_candidat}")
 
             # Création du nouvel enregistrement Document
             nouveau_doc = Document.objects.create(
@@ -2216,7 +2221,10 @@ def remplacer_document_avis(request):
 
             avis.save()
 
-        # === CAS 2 : document non partagé → on écrase directement ===
+
+        # =====================================================
+        #  CAS 2 : DOCUMENT NON PARTAGÉ → on écrase l'ancien doc
+        # ======================================================
         else:
             ancien_chemin = os.path.join(root, document.emplacement, document.titre)
             nouveau_chemin = os.path.join(root, document.emplacement, fichier.name)
@@ -2225,32 +2233,32 @@ def remplacer_document_avis(request):
             nom_base, ext = os.path.splitext(fichier.name)
             titre_final = nom_base
             i = 1
+
             while Document.objects.filter(emplacement=document.emplacement, titre=f"{titre_final}{ext}").exclude(id=document.id).exists():
                 titre_final = f"{nom_base}_{i}"
                 i += 1
+
             nouveau_chemin = os.path.join(root, document.emplacement, f"{titre_final}{ext}")
 
-            if not supprimer_file_sur_nas(ancien_chemin):
-                logger.error(f"[NAS] ❌ Erreur lors de la suppression de l'ancien fichier {fichier.name} sur {ancien_chemin}")
-                raise Exception(f"[NAS] ❌ Erreur lors de la suppression de l'ancien fichier {fichier.name} sur {ancien_chemin}")
-
-
-            logger.info(f"[AVIS {avis.id}] Ancien fichier supprimé : {ancien_chemin}")
-
-            # Écriture du fichier sur le NAS
+            # Étape 1 : Écriture du nouveau fichier
             if not ecrire_file_sur_nas(fichier, nouveau_chemin): 
-                logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {nouveau_chemin}")
+                # logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {nouveau_chemin}")
                 raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {nouveau_chemin}")
             
-            logger.info(f"[AVIS {avis.id}] Nouveau fichier enregistré : {nouveau_chemin}")
+            # Étape 2 : Supprimer l’ancien fichier
+            if not supprimer_file_sur_nas(ancien_chemin):
+                logger.error(f"[AVIS {avis.id}] ❌ Erreur lors de la suppression de l'ancien fichier {ancien_chemin} par {request.user}")
 
+            # Mise à jour document
             document.titre = f"{titre_final}{ext}"
             document.id_format = format_obj
             document.description = f"Remplacement du {document.id_nature.nature} pour l'avis {avis.id}"
             document.save()
 
+            logger.info(f"[AVIS {avis.id}] Document remplacé par {request.user} : {nouveau_chemin}")
+
     except Exception as e:
         logger.error(f"[AVIS {avis.id}] Erreur lors du remplacement du document : {e}")
-        messages.error(request, f"❌ Erreur lors du remplacement du document : {e}")
+        messages.error(request, f"❌ Erreur lors du remplacement du document. Contatez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))

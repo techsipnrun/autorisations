@@ -30,31 +30,31 @@ from psycopg2.errors import UniqueViolation
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
 
-# @login_required
-# def passer_en_pre_instruction(request):
-#     if request.method == "POST":
-#         dossier_id_ds = request.POST.get("dossierId")
-#         dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-
-#         changer_etape_si_differente(dossier,"En pré-instruction", request.user, request)
-
-#         instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        
-#         # Enregistrer Dossier Action
-#         enregistrer_action(dossier, instructeur, "Passage en pré-instruction")
-
-
-#     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
-
-
 
 @login_required
 def passer_en_pre_instruction(request):
-    if request.method != "POST":
-        return redirect("/")
 
+    if request.method != "POST":
+        logger.warning(f"[PASSAGE PRE-INSTRUCTION] Appel non-POST par {request.user}. Redirection.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    
     dossier_id_ds = request.POST.get("dossierId")
-    dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+    if not dossier:
+        logger.error(f"[PASSAGE PRE-INSTRUCTION] Dossier id_ds={dossier_id_ds} introuvable (user={request.user}).")
+        messages.error(request, "Dossier introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    
+    # --- Vérification Instructeur ---
+    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur_connecte:
+        logger.error(f"[DOSSIER {dossier.numero}] Le user {request.user} a voulu passer le dossier en pré instruction sans profil instructeur.")
+        messages.error(request, "Vous n'avez pas de profil 'Instructeur.trice'. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
     # IDs des instructeurs affectés à ce dossier
     instructeurs_dossier_ids_qs = DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
@@ -65,113 +65,234 @@ def passer_en_pre_instruction(request):
 
     instructeurs_dossier_ids = set(instructeurs_dossier_ids_qs)
 
+    # --- Vérification du groupe instructeur ---
     groupe = dossier.id_groupeinstructeur
     if not groupe:
-        request.session["preinstruction_message"] = "Aucun groupe instructeur n’est défini pour ce dossier."
+        request.session["preinstruction_message"] = "Aucun groupe instructeur n’est défini pour ce dossier. Contactez le support."
         return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
 
     instructeurs_groupe_ids = set(
         GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe)
         .values_list("id_instructeur", flat=True)
     )
-    intersection = instructeurs_dossier_ids & instructeurs_groupe_ids
 
+    # --- Vérification instructeur du groupe en cours associé au dossier ---
+    intersection = instructeurs_dossier_ids & instructeurs_groupe_ids
     if not intersection:
-        request.session["preinstruction_message"] = (
-            "Le dossier n’est associé à aucun instructeur appartenant au groupe instructeur."
-        )
+        request.session["preinstruction_message"] = ("Le dossier n’est associé à aucun instructeur appartenant au groupe instructeur.")
         return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
 
-    # Passage autorisé
-    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
-    changer_etape_si_differente(dossier, "En pré-instruction", request.user, request)
-    enregistrer_action(dossier, instructeur_connecte, "Passage en pré-instruction")
+    # --- Passage autorisé ---
+    try:
+        changer_etape_si_differente(dossier, "En pré-instruction", request.user, request)
+        enregistrer_action(dossier, instructeur_connecte, "Passage en pré-instruction")
+    except Exception as e :
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du passage en pré-instruction par {request.user} : {e}")
+        messages.error(request, "Erreur lors du passage en pré-instruction. Contactez le support.")
+        return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier.numero}))
 
     request.session.pop("preinstruction_message", None)
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
 
-
 @login_required
 def demander_des_complements(request):
-    if request.method == "POST":
-        numero = request.POST.get("numero_dossier")
-        body = request.POST.get("body")
-        fichier = request.FILES.get("piece_jointe")
 
-        dossier = get_object_or_404(Dossier, numero=numero)
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if request.method != "POST":
+        logger.warning(f"[DEMANDE DE COMPLÉMENTS] Appel non-POST par {request.user}. Redirection.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
-        if not (dossier.id_ds and instructeur and body):
-            return HttpResponseBadRequest("Echec de la demande de compléments : Informations manquantes")
+    numero = request.POST.get("numero_dossier")
+    body = request.POST.get("body")
+    fichier = request.FILES.get("piece_jointe")
 
-        tmp_file_path = None
-        try:
-            if fichier:
-                tmp_file_path = prepare_temp_file(fichier)
-                result = envoyer_message_ds(dossier.id_ds, instructeur, body, fichier, fichier.content_type, tmp_file_path, numero, correction=True)
-            else:
-                result = envoyer_message_ds(dossier.id_ds, instructeur, body, num_dossier=numero, correction=True)
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(numero=numero).first()
+    if not dossier:
+        logger.error(f"[DEMANDE DE COMPLÉMENTS] Dossier {numero} introuvable par user {request.user}.")
+        messages.error(request, "Dossier introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-            if result.get("data"):
-                id_ds_msg = result["data"]["dossierEnvoyerMessage"]["message"]["id"]
+
+    # --- Récupération instructeur ---
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        logger.warning(f"[DOSSIER {numero}] Le user {request.user} a voulu demander des compléments sans profil instructeur.")
+        messages.error(request, "Vous devez disposer d’un profil instructeur pour envoyer une demande de compléments.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+    # --- Vérification données obligatoires ---
+    if not body:
+        logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} : body manquant ")
+        messages.error(request, "Vous devez préciser votre demande de compléments.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    if not dossier.id_ds :
+        logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} : Le dossier n'a pas de id_ds. (id_ds = {dossier.id_ds})")
+        messages.error(request, "L'ID du dossier Démarches Simplifiées est introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
+    tmp_file_path = None
+    try:
+        if fichier:
+            tmp_file_path = prepare_temp_file(fichier)
+            result = envoyer_message_ds(dossier.id_ds, instructeur, body, fichier, fichier.content_type, tmp_file_path, numero, correction=True)
+        else:
+            result = envoyer_message_ds(dossier.id_ds, instructeur, body, num_dossier=numero, correction=True)
+
+        # --- Vérification réponse DS ---
+        if not result or "data" not in result or "dossierEnvoyerMessage" not in result["data"] :
+            logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} : Echec demande complément sur DS — Réponse API : {result}")
+            messages.error(request, "Échec de la demande de compléments sur Démarches Simplifiées. Contactez le support.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+        
+
+        if result.get("data"):
+            id_ds_msg = result["data"]["dossierEnvoyerMessage"]["message"]["id"]
+            try:
                 url_ds = get_msg_DS(int(numero), id_ds_msg) if fichier else None
+            except Exception as e:
+                logger.warning(f"[DOSSIER {numero}] Demande de compléments par {request.user} : Impossible de récupérer l’URL DS du message {id_ds_msg} (on continue quand même) : {e}")
+
+
+             # --- Enregistrement du message en BDD ---
+            try:
                 enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=id_ds_msg, url_ds=url_ds)
+            except Exception as e:
+                logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} : Erreur lors de l’enregistrement du message en base : {e}")
+                messages.error(request, "Erreur lors de l’enregistrement du message en base. Contactez le support.")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
 
-                # Mettre à jour étape + état si besoin
+
+            # --- Mise à jour Étape ---
+            try:
                 changer_etape_si_differente(dossier, "En attente de compléments", request.user, request)
-                changer_etat_si_different(dossier, "en_construction", request.user)
 
-                # Dossiers Actions
+            except Exception as e:
+                logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} - Erreur MAJ étape 'En attente de compléments' (Fait sur DS par contre) : {e}")
+                messages.error(request, "Erreur lors de la mise à jour de l'étape du dossier. Contactez le support.")
+
+
+            # --- Mise à jour État ---
+            try:
+                changer_etat_si_different(dossier, "en_construction", request.user) 
+
+            except Exception as e:
+                logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} - Erreur MAJ état 'en_construction' (Fait sur DS par contre) : {e}")
+                messages.error(request, "Erreur lors de la mise à jour de l'état du dossier. Contactez le support.")
+
+
+            # --- Enregistrer Action ---
+            try:
                 enregistrer_action(dossier, instructeur, "Demande de compléments")
+            except Exception as e:
+                logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} - Erreur lors de l’enregistrement de l’action : {e}")
+                messages.error(request, "Erreur lors de l’enregistrement de l’action. Contactez le support.")
 
-          
-        finally:
-            if tmp_file_path and os.path.exists(tmp_file_path):
-                os.remove(tmp_file_path)
+    finally:
+        # --- Nettoyage fichier temporaire ---
+        if tmp_file_path and os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
 
     return redirect(reverse('instruction_dossier_messagerie', args=[dossier.numero]))
 
 
 
+
 @login_required
 def dossier_non_soumis_a_autorisation(request):
-    if request.method == "POST":
-        dossier_id_ds = request.POST.get("dossierId")
-        motivation = request.POST.get("motivation", "").strip()
+    """
+    Classe un Dossier comme 'Non soumis à autorisation'
+    """
 
-        if not motivation:
-            return HttpResponseBadRequest("Une justification est requise pour classer sans suite.")
+    if request.method != "POST":
+        logger.warning(f"[Classer Non soumis à autorisation] Appel non-POST par {request.user}. Redirection.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        dossier = get_object_or_404(Dossier, id_ds=dossier_id_ds)
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    dossier_id_ds = request.POST.get("dossierId")
+    motivation = request.POST.get("motivation", "").strip()
 
-        if not instructeur :
-            logger.error(f"[DOSSIER {dossier.numero}] Echec classement 'Non soumis à autorisation' : Instructeur introuvable.")
-            return HttpResponseBadRequest("Instructeur introuvable.")
 
-        if dossier.present_sur_ds :
-            # Si l'étape est 'En pré-instruction' ou 'À affecter' et l'état 'en_construction' --> passer l'état à en_instruction
-            if dossier.id_etat_dossier.nom == 'en_construction' and (dossier.id_etape_dossier.etape == 'En pré-instruction' or dossier.id_etape_dossier.etape == 'À affecter') :
-                passer_en_instruction_ds(dossier.id_ds, instructeur)
+    # --- Récupération dossier ---
+    dossier = Dossier.objects.filter(id_ds=dossier_id_ds).first()
+    if not dossier:
+        logger.error(f"[Classer Non soumis à autorisation] Dossier id_ds={dossier_id_ds} introuvable par le user {request.user}.")
+        messages.error(request, "Dossier introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
-            # Appel API GraphQL
-            result = classer_sans_suite_ds(dossier.id_ds, instructeur, motivation)
+    # --- Motivation requise ---
+    if not motivation:
+        logger.warning(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} : Justification manquante.")
+        messages.error(request, "Une justification est requise pour classer le dossier comme 'Non soumis à autorisation'.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+
+    # --- Récupération instructeur ---
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        logger.warning(f"[DOSSIER {dossier.numero}] Le user {request.user} a tenté de classer le dossier comme 'Non soumis à autorisation' sans profil instructeur.")
+        messages.error(request, "Vous devez disposer d’un profil instructeur pour classer le dossier comme 'Non soumis à autorisation'. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+    if dossier.present_sur_ds :
+
+        # --- PASSAGE EN INSTRUCTION SUR DS ---
+        # Si Etat Dossier en construction + Etape Dossier en pré-instruction ou à affecter
+        if dossier.id_etat_dossier.nom == "en_construction" and dossier.id_etape_dossier.etape in ["En pré-instruction", "À affecter"]:
+            result = passer_en_instruction_ds(dossier.id_ds, instructeur)
             if not result.get("success"):
-                logger.error(f"[DOSSIER {dossier.numero}] Classement sans suite DS échoué : {result.get('message')}")
-                return HttpResponseBadRequest("Erreur DS : classement sans suite échoué.")
+                logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du passage en instruction DS par {request.user} : {result.get('message')}")
+                messages.error(request, "Erreur lors du passage en instruction sur Démarches Simplifiées. Contactez le support.")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        # Mettre à jour étape + état si besoin
+
+        # --- CLASSEMENT SANS SUITE SUR DS ---
+        result = classer_sans_suite_ds(dossier.id_ds, instructeur, motivation)
+        if not result.get("success"):
+            logger.error(f"[DOSSIER {dossier.numero}] Échec du classement sans suite DS par {request.user} : {result.get('message')}")
+            messages.error(request, "Erreur lors du classement sans suite sur Démarches Simplifiées. Contactez le support.")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+    # --- Mise à jour Étape ---
+    try:
         changer_etape_si_differente(dossier, "Non soumis à autorisation", request.user, request)
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} - Erreur MAJ étape 'Non soumis à autorisation' (Fait sur DS par contre) : {e}")
+        messages.error(request, "Erreur lors de la mise à jour de l’étape du dossier. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    
+    # --- Mise à jour État ---
+    try:
         changer_etat_si_different(dossier, "sans_suite", request.user)
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} - Erreur MAJ état 'sans_suite' : {e}")
+        messages.error(request, "Erreur lors de la mise à jour de l’état du dossier. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
-        # Maj Date Fin Instruction
+    # Maj Date Fin Instruction
+    try:
         dossier.date_fin_instruction = timezone.now()
         dossier.save()
+    except Exception as e:
+        logger.warning(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} - Erreur MAJ date_fin_instruction à {timezone.now()} : {e}")
+        # on continue quand même
 
-        # Dossiers Actions
+
+    try:
         enregistrer_action(dossier, instructeur, "Classé sans suite")
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} - Erreur lors de l’enregistrement de l’action (date = {timezone.now()}) : {e}")
+        messages.error(request, "Erreur lors de l’enregistrement de l’action. Contactez le support.")
 
 
     return redirect(reverse('instruction_dossier', kwargs={'num_dossier': dossier.numero}))

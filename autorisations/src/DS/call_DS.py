@@ -379,6 +379,8 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur):
 
 
 
+
+"""ON GARDE LE RETOUR {"success", "message"}"""
 def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
     """
     Classe un dossier comme "sans suite" via l'API Démarches Simplifiées.
