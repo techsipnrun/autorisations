@@ -16,6 +16,8 @@ from django.contrib import messages
 import logging
 
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
+from instruction.utils.avis_utils import get_email_expert, get_expert_from_user
+from instruction.utils.dossier_utils import redirect_error
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import enregistrer_document
 
@@ -25,26 +27,29 @@ loggerDS = logging.getLogger("API_DS")
 
 @login_required(login_url='/login/')
 def avis(request):
-    # Expert connecté ?
-    expert = Expert.objects.filter(id_instructeur__email=request.user.email).first()
-    if not expert:
-        expert = Expert.objects.filter(id_contact_externe__email=request.user.email).first()
 
-    # Instructeur connecté ?
+    # --- Profils associés au user ---
+    expert = get_expert_from_user(request.user)
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
-    avis_list = []
-    demandes_avis = []
+    if not expert and not instructeur :
+        messages.error(request, f"❌ Vous n'avez ni un profil 'Expert.e', ni un profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
+        return render(request, "instruction/avis.html")
+    
+    # --- Année sélectionnée ---
     current_year = datetime.date.today().year
     selected_year = int(request.GET.get("annee", current_year))
 
-    # nb_messages_non_lus_avis = Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert).count()
 
-    ###################################
-    # Avis à rendre/rendu (en tant qu’expert)
-    ###################################
-    avis_a_rendre = avis_rendus = annees_disponibles_expert = []
+    # =============================
+    # ========== EXPERT ===========
+    # =============================
+    avis_a_rendre = []
+    avis_rendus = []
+    annees_disponibles_expert = []
+
     if expert :
+        # Avis à rendre
         avis_a_rendre = (
             Avis.objects.filter(id_expert=expert, favorable__isnull=True)
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
@@ -64,13 +69,21 @@ def avis(request):
         ).dates("date_reponse_avis", "year", order="DESC")
 
 
-    ##############################################################
-    # Mes demandes d’avis en cours/traitées (en tant que demandeur)
-    ##############################################################
-    demandes_en_cours = demandes_traitees = annees_disponibles_demandeur = []
+        # Messages non lus en tant qu'expert
+        for liste_avis in [avis_a_rendre, avis_rendus]:
+            for a in liste_avis:
+                a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False).exclude(email_emetteur=request.user.email).count()
+
+
+    # ================================
+    # ========== DEMANDEUR ===========
+    # ================================
+    demandes_en_cours = []
+    demandes_traitees = []
+    demandes_avis_a_publier_au_RAA = []
+    annees_disponibles_demandeur = []
 
     if instructeur:
-
         # Demandes en cours
         demandes_en_cours = Avis.objects.filter(id_instructeur=instructeur, favorable__isnull=True
                             ).select_related("id_demarche", "id_dossier", "id_expert", "id_avis_nature").order_by("-date_demande_avis")
@@ -86,39 +99,27 @@ def avis(request):
                                         ).exclude(publie_au_raa=True
                                         ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
                                         ).distinct()
+        """
         ############################
         # On filtrera sur expert = CS
         ############################
-
-
-        
+        """
 
         # Années disponibles
         annees_disponibles_demandeur = Avis.objects.filter(
             id_instructeur=instructeur, date_reponse_avis__isnull=False
         ).dates("date_reponse_avis", "year", order="DESC")
 
-    
-    ##############################################################
-    # Le nombre de message non lu pour chaque avis
-    ##############################################################
-    # Messages non lus en tant qu'expert
-    for liste_avis in [avis_a_rendre, avis_rendus]:
-        for a in liste_avis:
-           
-            a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False).exclude(email_emetteur=request.user.email).count()
 
-    # Messages non lus en tant que demandeur
-    for liste_avis in [demandes_en_cours, demandes_traitees]:
-        for a in liste_avis:
-            if a.id_expert.est_interne :
-                email_expert = a.id_expert.id_instructeur.email
-            else :
-                email_expert = a.id_expert.id_contact_externe.email
-            a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False, email_emetteur=email_expert).count()
+        # Messages non lus en tant que demandeur
+        for liste_avis in [demandes_en_cours, demandes_traitees]:
+            for a in liste_avis:
+                if a.id_expert.est_interne :
+                    email_expert = a.id_expert.id_instructeur.email
+                else :
+                    email_expert = a.id_expert.id_contact_externe.email
+                a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False, email_emetteur=email_expert).count()
 
-    if not expert and not instructeur :
-        messages.error(request, f"❌ Vous n'avez ni un profil 'Expert.e', ni un profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
 
     return render(
         request,
@@ -138,16 +139,23 @@ def avis(request):
     )
 
 
+
 @login_required
 def avis_expert(request, avis_id):
 
     email_user = request.user.email
-    avis = get_object_or_404(Avis, id=avis_id)
+
+    avis = Avis.objects.filter(id=avis_id).select_related("id_instructeur","id_expert","id_demarche",).first()
+    if not avis:
+        logger.error(f"[AVIS EXPERT] Avis {avis_id} introuvable — User {request.user}")
+        return redirect_error(request, "L'avis demandé est introuvable. Contactez le support.")
+
     instructeur = Instructeur.objects.filter(email=email_user).first()
 
-    est_un_instructeur = False
+    est_un_instructeur = bool(instructeur)
     est_demandeur = False
     est_expert = False
+
 
     ##############################################################
     # AvisDossier
@@ -166,44 +174,51 @@ def avis_expert(request, avis_id):
     for dossier in dossiers_lies:
         dossier.resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
+
     ##############################################################
     # Identification Demandeur et Expert
     ##############################################################
     # Est-ce le demandeur ?
-    if avis.id_instructeur.email == email_user :
-        est_demandeur = True
-    elif instructeur and instructeurs_dossiers.filter(id=instructeur.id).exists():
-        est_demandeur = True
-
-    # Est-ce un instructeur ?
-    elif instructeur :
-        est_un_instructeur = True
+    if avis.id_instructeur and avis.id_instructeur.email:
+        if avis.id_instructeur.email == email_user:
+            est_demandeur = True
+  
+    if not est_demandeur and instructeur:
+        # Instructeur associé à au moins un dossier lié à cet avis
+        if instructeurs_dossiers.filter(id=instructeur.id).exists():
+            est_demandeur = True
 
     # Est-ce l'expert ?
-    est_expert = None
-    if avis.id_expert.est_interne :
-        email_expert = avis.id_expert.id_instructeur.email
-        if avis.id_expert.id_instructeur.email == email_user :
-            est_expert = True      
-    else :
-        email_expert = avis.id_expert.id_contact_externe.email
-        if avis.id_expert.id_contact_externe.email == email_user :
-            est_expert = True
+    email_expert = get_email_expert(avis, None)
+    if not email_expert :
+        logger.error(f"[AVIS {avis.id}] L'expert {avis.id_expert} n'a pas d'email en BDD.")
+
+
+    if email_expert and email_user == email_expert:
+        est_expert = True
+        est_demandeur = False
+
 
     ##############################################################
     # Messages
     ##############################################################
     # Messages non lus envoyés par l'expert
-    messages_de_expert_non_lus = (Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert))
+    if email_expert:
+        messages_de_expert_non_lus = (Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert))
+    else:
+        messages_de_expert_non_lus = Message.objects.none()
+
     ids_msg_de_expert_non_lus = list(messages_de_expert_non_lus.values_list("id", flat=True))
 
     # Messages non lus envoyés par demandeur
-    messages_de_demandeur_non_lus = (Message.objects.filter(id_avis=avis, lu=False).exclude(email_emetteur=email_expert))
+    if email_expert:
+        messages_de_demandeur_non_lus = (Message.objects.filter(id_avis=avis, lu=False).exclude(email_emetteur=email_expert))
+    else:
+        # Si on ne connaît pas l'email de l'expert, on considère tous les non-lus comme "demandeur"
+        messages_de_demandeur_non_lus = Message.objects.filter(id_avis=avis, lu=False)
+
     ids_msg_de_demandeur_non_lus = list(messages_de_demandeur_non_lus.values_list("id", flat=True))
 
-    # Affichage messages
-    raw_messages = Message.objects.filter(id_avis=avis).order_by("date_envoi")
-    messages_fmt = []
 
     # Mise à jour des messages non lus --> lus
     if est_expert :
@@ -216,6 +231,11 @@ def avis_expert(request, avis_id):
         if nb_msg_de_expert_non_lus > 0:
             logger.info(f"[AVIS {avis.id}] {nb_msg_de_expert_non_lus} message(s) non lus ont été marqués comme lus par {request.user}.")
     
+
+    # Récupération et formatage des messages
+    raw_messages = Message.objects.filter(id_avis=avis).order_by("date_envoi")
+    messages_fmt = []
+
     for msg in raw_messages:
         emetteur = msg.email_emetteur.lower().strip()
         instru = Instructeur.objects.filter(email=emetteur).first()
@@ -241,10 +261,7 @@ def avis_expert(request, avis_id):
             align = "right" if emetteur != email_expert.lower().strip() else "left"
             
 
-        
-
-
-        # Recherche de la pièce jointe liée au message
+        # Recherche de la pièce jointe éventuelle liée au message
         pj_title = pj_emplacement = None
         if msg.piece_jointe:
 
@@ -253,6 +270,7 @@ def avis_expert(request, avis_id):
                 pj_title, pj_emplacement = message_doc.id_document.titre, message_doc.id_document.emplacement
 
         messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
+
 
     ##############################################################
     # Documents
@@ -273,6 +291,7 @@ def avis_expert(request, avis_id):
             "nature": ad.id_document.id_nature.nature,
         }
         for ad in avis_documents
+        if ad.id_document
     ]
 
     # Avis signés
@@ -303,63 +322,83 @@ def avis_expert(request, avis_id):
 
 
 
+
+
+"""
+#############################################
+CLEAN A FINIR
+#############################################
+"""
+
 @login_required
 @require_POST
 def donner_son_avis(request, avis_id):
 
-    avis = get_object_or_404(Avis, id=avis_id)
+    avis = Avis.objects.filter(id=avis_id).select_related("id_instructeur","id_expert","id_demarche",).first()
+    if not avis:
+        logger.error(f"[DONNER SON AVIS] Avis {avis_id} introuvable — User {request.user}")
+        return redirect_error(request, "L'avis demandé est introuvable. Contactez le support.")
 
     # favorable = request.POST.get("favorable") == "true"
     pj_avis_signe = request.FILES.get("avis_signe")
     reponse = request.POST.get("reponse_expert")
 
-    # Mise à jour de l'avis
-    if reponse == "Favorable" or reponse == "Favorable sous réserve" :
-        avis.favorable = True
-        if reponse == "Favorable sous réserve" :
-            avis.sous_reserve = True
-        else :
-            avis.sous_reserve = False
+
+
+    # ============================
+    #  MAJ AVIS (Favorable / Défavorable)
+    # ============================
+    try :
+        avis.favorable = reponse != "Défavorable"
+        avis.sous_reserve = (reponse == "Favorable sous réserve")
+        avis.date_reponse_avis = timezone.now()
         avis.save()
 
-    elif reponse == "Défavorable" :
-        avis.favorable = False
-        avis.sous_reserve = False
-        avis.save()
-
-    else :
-        messages.error(request, f"❌ Erreur lors de la réponse à la demande d'avis : Vous devez choisir entre Favorable, Favorable sous réserve et Défavorable.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+    except Exception as e:
+        logger.error(f"[AVIS {avis.id}] Erreur pour Donner son avis (User {request.user}) : Erreur lors de la mise à jour de l'Avis : {e}  ")
+        return redirect_error(request, f"❌ Erreur lors de la mise à jour de l'Avis en base. Contactez le support.")
 
 
-    avis.date_reponse_avis = timezone.now()
 
-    # Enregistrer l'avis signé si présent
+    # ===================================
+    #  ENREGISTRER AVIS SIGNÉ (si présent)
+    # ===================================
+    doc_avis_signe = None
+    avis_signe_existant = None
+
     if pj_avis_signe:
-       
+
+        # Vérification extension
         extension = Path(pj_avis_signe.name).suffix.lower()
         if extension != ".pdf" :
-            messages.error(request, f"❌ L'avis signé doit être au format PDF --> Type de fichier non autorisé : {extension}")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+            return redirect_error(request, f"❌ L'avis signé doit être au format PDF --> Type de fichier non autorisé : {extension}")
         
+        # Vérification nature
         nature_annexe_avis = DocumentNature.objects.filter(nature__iexact="Annexe avis").first()
         if not nature_annexe_avis:
-            messages.error(request, "⚠️ La nature 'Annexe avis' n'existe pas en base, reclassification impossible. Contactez l'administrateur.")
-
-        # Sauvegarder le fichier physiquement  
+            return redirect_error(request, "❌ La nature 'Annexe avis' n'existe pas en base. Contactez le support.")
+          
+        # Vérification de l’emplacement de l’avis
         emplacement = avis.emplacement
         if not emplacement :
-            messages.error(request, f"❌ L'avis n'a aucun emplacement de renseigné")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+            return redirect_error(request, f"❌ L'avis n'a aucun emplacement de renseigné")
         
-        chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
-        creer_dossier_sur_nas(chemin_complet)
+
+        # Création du répertoire NAS si nécessaire
+        try:
+            chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
+            creer_dossier_sur_nas(chemin_complet)
+        except Exception as e:
+            logger.error(f"[AVIS {avis.id}] Erreur pour Donner son avis (User {request.user}) : Erreur lors de la création du dossier '{chemin_complet}' : {e}")
+            return redirect_error(request, f"❌ Erreur lors de la création du dossier '{chemin_complet}'. Contactez le support.")
+
 
         # --- Vérifie si un avis signé existait déjà ---
         avis_signe_existant = AvisDocument.objects.filter(
             id_avis=avis,
             id_document__id_nature__nature__iexact="Avis instance"
         ).select_related("id_document").first()
+
 
         # Les vérifs sur la Nature et le Format du doc sont faits dans la fonction ci-dessous
         doc_avis_signe = enregistrer_document(
@@ -370,18 +409,28 @@ def donner_son_avis(request, avis_id):
                 emplacement_avis = emplacement,
                 annexe=False
             )
-
-        if doc_avis_signe :
-            # Créer AvisDocument
-            AvisDocument.objects.get_or_create(
-                id_avis=avis,
-                id_document=doc_avis_signe,
-            )
-
-        else :
-            # On revient sur la page pour afficher les messages d'erreurs
-            return redirect(request.META.get("HTTP_REFERER", "/"))
         
+        if not doc_avis_signe :
+            logger.error(f"[AVIS {avis.id}] Erreur pour Donner son avis (User {request.user}) - Erreur lors de l'enregistrement ou de l'écriture de l'avis signé.")
+            # On revient sur la page pour afficher les messages d'erreurs (spécifiés dans enregistrer_document)
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        try :
+            AvisDocument.objects.get_or_create(id_avis=avis,id_document=doc_avis_signe)
+
+        except Exception as e:
+            logger.error(f"[AVIS {avis.id}] Erreur pour Donner son avis (User {request.user}) - Erreur lors de la création de l'AvisDocument : {e}")
+            return redirect_error(request, "❌ Erreur lors de la liaision entre le document et l'avis. Contactez le support.")
+        
+
+
+
+    """
+    #############################################
+    FINIR DE CLEAN
+    #############################################
+    
+    """
 
     # Message automatique Acceptation/Refus + Avis signé
     try:
@@ -413,10 +462,7 @@ def donner_son_avis(request, avis_id):
                 )
 
                 # Joindre l'avis signé au message
-                MessageDocument.objects.create(
-                    id_message=msg,
-                    id_document=doc_avis_signe
-                )
+                MessageDocument.objects.create(id_message=msg,id_document=doc_avis_signe)
 
         elif (reponse == "Défavorable") :
             msg_reponse_expert = "La demande d'avis a reçu une réponse défavorable."

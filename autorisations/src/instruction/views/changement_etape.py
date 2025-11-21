@@ -1795,7 +1795,7 @@ def envoyer_l_acte(request):
 
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email}: {str(e)}")
-        messages.error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
+        return redirect_error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
     return redirect(request.META.get("HTTP_REFERER", "/")
 )

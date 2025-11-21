@@ -291,3 +291,12 @@ def get_or_create_expert_from_form(request):
 
     raise ValueError("Aucun expert interne/externe fourni.")
 
+
+
+def get_expert_from_user(user):
+    """Retourne l’expert interne ou externe correspondant au user."""
+
+    expert = Expert.objects.filter(id_instructeur__email=user.email).first()
+    if not expert:
+        expert = Expert.objects.filter(id_contact_externe__email=user.email).first()
+    return expert

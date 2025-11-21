@@ -545,13 +545,13 @@ def enregistrer_document(fichier, nature_str, description, request, emplacement_
     # Récupération du format
     format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
     if not format_obj:
-        messages.error(request, f"Format {extension} non reconnu.")
+        messages.error(request, f"Format {extension} non reconnu. Contactez le support.")
         return None
 
     # Récupération de la nature
     nature_obj = DocumentNature.objects.filter(nature__iexact=nature_str).first()
     if not nature_obj:
-        messages.error(request, f"Nature '{nature_str}' introuvable.")
+        messages.error(request, f"Nature '{nature_str}' introuvable. Contactez le support.")
         return None
 
     # Emplacement et chemin
@@ -561,33 +561,47 @@ def enregistrer_document(fichier, nature_str, description, request, emplacement_
         emplacement_annexes = emplacement_avis
 
     chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_annexes}"
+    filepath = os.path.join(chemin_complet, fichier.name)
 
     # Maj de l'ancien doc s’il existe
     doc = Document.objects.filter(emplacement=emplacement_annexes, titre=fichier.name).first()
     if doc:
-        # Mise à jour plutôt que suppression
-        doc.id_format = format_obj
-        doc.id_nature = nature_obj
-        doc.description = description
-        doc.save(update_fields=["id_format", "id_nature", "description"])
+        try :
+
+            # Mise à jour plutôt que suppression
+            doc.id_format = format_obj
+            doc.id_nature = nature_obj
+            doc.description = description
+            doc.save(update_fields=["id_format", "id_nature", "description"])
+        except Exception as e:
+            logger.error(f"[MAJ DOCUMENT] Erreur lors de la mise à jour du document {filepath} : {e}")
+            messages.error(request, f"Erreur lors de la mise à jour du document {fichier.name}. Contactez le support.")
+            return None
     else:
-        # Création
-        doc = Document.objects.create(
-            id_format=format_obj,
-            id_nature=nature_obj,
-            emplacement=emplacement_annexes,
-            titre=fichier.name,
-            description=description,
-        )
+        try :
+            # Création
+            doc = Document.objects.create(
+                id_format=format_obj,
+                id_nature=nature_obj,
+                emplacement=emplacement_annexes,
+                titre=fichier.name,
+                description=description,
+            )
+        except Exception as e:
+            logger.error(f"[CREATE DOCUMENT] Erreur lors de la création du document {filepath} : {e}")
+            messages.error(request, f"Erreur lors de la création du document {fichier.name}. Contactez le support.")
+            return None
 
     if not doc :
-        messages.error(request, f"Erreur lors de la création du document {fichier.name} en base.")
+        messages.error(request, f"Erreur lors de la création du document {fichier.name} en base. Contactez le support.")
         return None
 
     # Sauvegarde physique
-    filepath = os.path.join(chemin_complet, fichier.name)
+    
 
     if not ecrire_file_sur_nas(fichier, filepath) :
-        logger.error(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+        # logger.error(f"❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+        messages.error(request, f"Erreur lors de l’écriture du fichier {fichier.name}. Contactez le support.")
+        return None
     
     return doc
