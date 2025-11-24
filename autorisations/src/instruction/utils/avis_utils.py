@@ -300,3 +300,68 @@ def get_expert_from_user(user):
     if not expert:
         expert = Expert.objects.filter(id_contact_externe__email=user.email).first()
     return expert
+
+
+
+
+def build_avis_for_dossier(dossier):
+    """Retourne toutes les infos relatives aux avis d'un dossier."""
+
+    # Querysets principaux
+    avis_du_dossier = DossierAvis.objects.filter(id_dossier=dossier).select_related(
+        "id_avis__id_avis_nature",
+        "id_avis__id_expert",
+    )
+
+    avis_a_valider = avis_du_dossier.filter(id_avis__statut="À valider")
+    avis_a_envoyer = avis_du_dossier.filter(id_avis__statut="À envoyer")
+    avis_statut_brouillon = avis_du_dossier.filter(id_avis__statut="Brouillon")
+    avis_envoye = avis_du_dossier.filter(id_avis__statut="Envoyé")
+
+    # Nombre d'avis envoyés
+    nb_avis_envoyes = avis_envoye.count()
+
+    # Ajouter les documents "Avis instance" aux avis envoyés
+    for da in avis_envoye:
+        da.id_avis.documents = [
+            ad.id_document
+            for ad in AvisDocument.objects
+                .select_related("id_document__id_nature")
+                .filter(id_avis=da.id_avis,
+                        id_document__id_nature__nature="Avis instance")
+        ]
+
+    # Messages non lus envoyés par les experts
+    nb_avis_avec_nouveau_mess = 0
+
+    for da in avis_du_dossier:
+        avis = da.id_avis
+        if not avis or not avis.id_expert:
+            continue
+
+        # Déterminer l'email de l’expert ou instructeur interne
+        if avis.id_expert.est_interne:
+            email_expert = avis.id_expert.id_instructeur.email
+        else:
+            email_expert = avis.id_expert.id_contact_externe.email
+
+        # Nombre de messages non lus associés à cet avis
+        nb_non_lus = Message.objects.filter(
+            id_avis=avis,
+            lu=False,
+            email_emetteur=email_expert,
+        ).count()
+
+        if nb_non_lus > 0:
+            nb_avis_avec_nouveau_mess += 1
+
+    # Objet final retourné
+    return {
+        "avis_du_dossier": avis_du_dossier,
+        "avis_a_valider": avis_a_valider,
+        "avis_a_envoyer": avis_a_envoyer,
+        "avis_statut_brouillon": avis_statut_brouillon,
+        "avis_envoye": avis_envoye,
+        "nb_avis_envoyes": nb_avis_envoyes,
+        "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
+    }

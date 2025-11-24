@@ -1,9 +1,11 @@
+import json
 import logging
 import os
 import smbclient
 from django.shortcuts import redirect
 from django.contrib import messages
 
+from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas
 from instruction.utils.dossier_utils import redirect_error
@@ -126,3 +128,17 @@ def save_and_update_document(request, dossier, fichier, document, format_obj, na
         return redirect_error(request, "❌ Erreur lors de la mise à jour du Document {document.titre} en base. Contactez le support.")
 
     return None
+
+
+def load_geojson(rel_path: str):
+    """
+    Charge un fichier GeoJSON depuis le dossier static.
+    Ne lève pas d'exception : log en cas d'erreur et renvoie {}.
+    """
+    try:
+        abs_path = os.path.join(settings.BASE_DIR, rel_path)
+        with open(abs_path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"[GEOJSON] Impossible de charger le fichier {rel_path} : {e}")
+        return {}

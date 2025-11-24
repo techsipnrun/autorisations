@@ -279,7 +279,7 @@
                             <label for="choix_intermediaire_ca">Choisir qui fera l’intermédiaire avec le CA :</label>
                             <select name="intermediaireCA" id="choix_intermediaire_ca" required>
                                 <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
-                                {% for ica in intermédiaires_CA %}
+                                {% for ica in intermediaires_CA %}
                                     <option value="{{ ica.id }}">
                                         {{ ica }}
                                     </option>
@@ -308,14 +308,14 @@
                                 <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
                                 <!-- SPPN -->
                                 {% if "mission scientifique" in demarche.type|lower %}
-                                    {% for idir in intermédiaires_dir_sppn %}
+                                    {% for idir in intermediaires_dir_sppn %}
                                         <option value="{{ idir.id }}">
                                             {{ idir }}
                                         </option>
                                     {% endfor %}
 
                                     {% for i in instructeurs_du_dossier %}
-                                        {% if i not in intermédiaires_dir_sppn %}
+                                        {% if i not in intermediaires_dir_sppn %}
                                             <option value="{{ i.id }}">
                                                 {{ i }}
                                             </option>
@@ -324,14 +324,14 @@
 
                                 <!-- SAADD -->
                                 {% else %}
-                                    {% for idir in intermédiaires_dir_saadd %}
+                                    {% for idir in intermediaires_dir_saadd %}
                                         <option value="{{ idir.id }}">
                                             {{ idir }}
                                         </option>
                                     {% endfor %}
 
                                     {% for i in instructeurs_du_dossier %}
-                                        {% if i not in intermédiaires_dir_saadd %}
+                                        {% if i not in intermediaires_dir_saadd %}
                                             <option value="{{ i.id }}">
                                                 {{ i }}
                                             </option>
@@ -410,7 +410,7 @@
                                     {% endfor %}
 
                                     <!-- {% if delibCA %}
-                                        {% for i in intermédiaires_CA %}
+                                        {% for i in intermediaires_CA %}
                                             {% if i not in instructeurs_du_dossier and i not in envoyeurs_acte_sppn %}
                                                 <option value="{{ i.id }}">
                                                     {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
@@ -435,7 +435,7 @@
                                     {% endfor %}
 
                                     <!-- {% if delibCA %}
-                                        {% for i in intermédiaires_CA %}
+                                        {% for i in intermediaires_CA %}
                                             {% if i not in instructeurs_du_dossier and i not in envoyeurs_acte_saadd %}
                                                 <option value="{{ i.id }}">
                                                     {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
@@ -523,7 +523,7 @@
                                     {% endfor %}
 
                                     {% if delibCA %}
-                                        {% for i in intermédiaires_CA %}
+                                        {% for i in intermediaires_CA %}
                                             {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_sppn %}
                                                 <option value="{{ i.id }}">
                                                     {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
@@ -550,7 +550,7 @@
                                     {% endfor %}
 
                                     {% if delibCA %}
-                                        {% for i in intermédiaires_CA %}
+                                        {% for i in intermediaires_CA %}
                                             {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_saadd %}
                                                 <option value="{{ i.id }}">
                                                     {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
@@ -1204,7 +1204,7 @@
                         </div>
                     {% endif %}
                     
-                    <!-- Identité demandeur intermédiaire -->
+                    <!-- Identité demandeur intermediaire -->
                     {% if demandeur_intermediaire %}
                         <div class="identite_demandeur">
                             <h2> Identité du demandeur intermédiaire</h2>
@@ -1514,7 +1514,7 @@
                         <h3>Intermédiaire pour la signature</h3>
                         <ul class="groupe-instructeur-liste">
         
-                            {% for inter in intermédiaires_CA %}
+                            {% for inter in intermediaires_CA %}
                                 {% if inter in intermediaires_signature_du_dossier %}
                                     <li class="instructeur_du_dossier">
                                         {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
@@ -1551,7 +1551,7 @@
                             
                             <!-- SPPN -->
                             {% if "mission scientifique" in demarche.type|lower %}
-                                {% for inter in intermédiaires_dir_sppn_et_instructeurs %}
+                                {% for inter in intermediaires_dir_sppn_et_instructeurs %}
                                     {% if inter in intermediaires_signature_du_dossier %}
                                         <li class="instructeur_du_dossier">
                                             {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}
@@ -1578,7 +1578,7 @@
                             
                             <!-- SAADD -->
                             {% else %}
-                                {% for inter in intermédiaires_dir_saadd_et_instructeurs %}
+                                {% for inter in intermediaires_dir_saadd_et_instructeurs %}
                                     {% if inter in intermediaires_signature_du_dossier %}
                                         <li class="instructeur_du_dossier">
                                             {{ inter.id_agent_autorisations.nom|upper }} {{ inter.id_agent_autorisations.prenom|capfirst }}

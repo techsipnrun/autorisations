@@ -142,9 +142,6 @@ def supprimer_file_sur_nas(chemin_fichier):
 
 
 
-
-
-
 def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
     """
     Donne les droits d'écriture (modification) au groupe défini sur un dossier 'Work'.

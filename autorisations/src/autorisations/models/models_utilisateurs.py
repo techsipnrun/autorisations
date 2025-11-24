@@ -154,7 +154,7 @@ class Instructeur(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
     email = models.CharField(unique=True)
-    id_agent_autorisations = models.ForeignKey(AgentAutorisations, models.RESTRICT, db_column='id_agent_autorisations')
+    id_agent_autorisations = models.ForeignKey(AgentAutorisations, models.RESTRICT, db_column='id_agent_autorisations', null=True)
 
     class Meta:
         managed = False

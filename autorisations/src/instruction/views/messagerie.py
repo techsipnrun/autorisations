@@ -9,6 +9,8 @@ from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_documents import MessageDocument
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
 from autorisations.models.models_avis import DossierAvis
+from instruction.utils.avis_utils import count_avis_with_unread_messages_for_dossier
+from instruction.utils.dossier_utils import redirect_error
 from notifications.service import _render_message, envoi_mail
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils_instru import format_etat_dossier
@@ -26,21 +28,29 @@ from autorisations.models.models_utilisateurs import EmailOutbox
 logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")
 
+
 @login_required
 def preinstruction_dossier_messagerie(request, numero):
-    dossier = get_object_or_404(Dossier, numero=numero)
 
-    # Mise à jour des mesages non lus --> lus
+    dossier = Dossier.objects.filter(numero=numero).first()
+    if not dossier:
+        logger.error(f"[PRE-INSTRUCTION MESSAGERIE] Dossier {numero} introuvable — User : {request.user}")
+        return redirect_error(request, "❌ Le dossier est introuvable. Contactez le support.")
+
+    # -----------------------------------
+    # 1. Instructeur & autorisations
+    # -----------------------------------
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
-    ids_non_lus = []
 
-    est_instructeur_du_dossier = DossierInstructeur.objects.filter(
-        id_dossier=dossier,
-        id_instructeur=instructeur
-    ).exists()
+    est_instructeur_du_dossier = False
+    if instructeur:
+        est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier,id_instructeur=instructeur).exists()
 
     est_receptionniste = request.user.groups.filter(name__in=["Réception SAADD", "Réception SPPN"]).exists()
 
+    # -----------------------------------
+    # 2. Messages non lus
+    # -----------------------------------
     messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
         email_emetteur='contact@demarches-simplifiees.fr'
     ).exclude(
@@ -48,54 +58,73 @@ def preinstruction_dossier_messagerie(request, numero):
     )
 
     nb_messages_non_lus = messages_non_lus.count()
-
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
     if est_instructeur_du_dossier:
-        nb = messages_non_lus.update(lu=True)
-        if nb > 0:
-            logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
+        try:
+            nb = messages_non_lus.update(lu=True)
+            if nb > 0:
+                logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
 
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Pré-Instruction Messagerie, Échec mise à jour en 'lus' des messages 'non lus' par {request.user} : {e}")
+
+    # -----------------------------------
+    # 3. Liste des messages
+    # -----------------------------------
     raw_messages = Message.objects.filter(id_dossier=dossier).order_by("date_envoi")
     messages_fmt = []
 
     for msg in raw_messages:
 
-        nouv_mess = 'non'
-        if ids_non_lus != []:
-            if msg.id in ids_non_lus :
-                nouv_mess = 'oui'
-
-        emetteur = msg.email_emetteur.lower().strip()
-
-        instru = Instructeur.objects.filter(email=emetteur).first()
-        contact = ContactExterne.objects.filter(email=emetteur).first()
-
-        # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
-        align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
+        est_nouveau = msg.id in ids_non_lus
+        emetteur = (msg.email_emetteur or "").lower().strip()
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
 
+        # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
+        align = (
+            "right"
+            if emetteur == "contact@demarches-simplifiees.fr" or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr")
+            else "left"
+        )
+
+        # Déterminer si émetteur est un instructeur ou un contact externe
+        instru = Instructeur.objects.filter(email=emetteur).first()
+        contact = ContactExterne.objects.filter(email=emetteur).first()
+        emetteur_obj = instru if instru else contact
+
+
         # Recherche de la pièce jointe liée au message
-        pj_url = pj_title = pj_emplacement = None
+        pj = None
         if msg.piece_jointe:
 
             message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
 
             if message_doc and message_doc.id_document:
+                pj = {
+                    "url": message_doc.id_document.url_ds,
+                    "titre": message_doc.id_document.titre,
+                    "emplacement": message_doc.id_document.emplacement,
+                }
                 
-                pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
-        
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, 
+                            "pj_url": pj["url"] if pj else None, "pj_title": pj["titre"] if pj else None, "pj_emplacement": pj["emplacement"] if pj else None, 
+                            "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
+    
+    # -----------------------------------
+    # 4. Bénéficiaire & demandeur
+    # -----------------------------------
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
 
     beneficiaire = None 
-    benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-    if benef :
-        beneficiaire = benef.id_beneficiaire
-    else:
-        logger.warning(f"[DOSSIER {dossier.numero}] Affichage messagerie : Le dossier n'a pas de bénéficaire de renseigné")
+    if interlocuteur:
+        benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+        if benef :
+            beneficiaire = benef.id_beneficiaire
+        else:
+            logger.warning(f"[DOSSIER {dossier.numero}] Affichage Pré-Instruction Messagerie : Bénéficaire non renseigné")
 
     return render(request, 'instruction/preinstruction_dossier_messagerie.html', {
         "dossier": dossier,
@@ -115,17 +144,25 @@ def preinstruction_dossier_messagerie(request, numero):
 
 @login_required
 def instruction_dossier_messagerie(request, num_dossier):
-    dossier = get_object_or_404(Dossier, numero=num_dossier)
 
-    # Mise à jour des mesages non lus --> lus
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    if not dossier:
+        logger.error(f"[INSTRUCTION MESSAGERIE] Dossier {num_dossier} introuvable — User : {request.user}")
+        return redirect_error(request, "❌ Le dossier est introuvable. Contactez le support.")
+    
+    # -----------------------------------
+    # 1. Instructeur & autorisations
+    # -----------------------------------
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
-    ids_non_lus = []
 
-    est_instructeur_du_dossier = DossierInstructeur.objects.filter(
-        id_dossier=dossier,
-        id_instructeur=instructeur
-    ).exists()
+    est_instructeur_du_dossier = False
+    if instructeur:
+        est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier,id_instructeur=instructeur).exists()
 
+
+    # -----------------------------------
+    # 2. Messages non lus
+    # -----------------------------------
     messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
         email_emetteur='contact@demarches-simplifiees.fr'
     ).exclude(
@@ -133,44 +170,65 @@ def instruction_dossier_messagerie(request, num_dossier):
     )
 
     nb_messages_non_lus = messages_non_lus.count()
-
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
     if est_instructeur_du_dossier:
-        nb = messages_non_lus.update(lu=True)
-        if nb > 0:
-            logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
+        try:
+            nb = messages_non_lus.update(lu=True)
+            if nb > 0:
+                logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
 
-    # Affichage messages
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Instruction Messagerie, Échec mise à jour en 'lus' des messages 'non lus' par {request.user} : {e}")
+
+
+    # -----------------------------------
+    # 3. Liste des messages
+    # -----------------------------------
     raw_messages = Message.objects.filter(id_dossier=dossier).order_by("date_envoi")
     messages_fmt = []
     
     for msg in raw_messages:
+
+        est_nouveau = msg.id in ids_non_lus
+        emetteur = (msg.email_emetteur or "").lower().strip()
+        date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
         
-        nouv_mess = 'non'
-        if ids_non_lus != []:
-            if msg.id in ids_non_lus :
-                nouv_mess = 'oui'
+        # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
+        align = (
+            "right"
+            if emetteur == "contact@demarches-simplifiees.fr" or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr")
+            else "left"
+        )
 
-        emetteur = msg.email_emetteur.lower().strip()
-
+        # Déterminer si émetteur est un instructeur ou un contact externe
         instru = Instructeur.objects.filter(email=emetteur).first()
         contact = ContactExterne.objects.filter(email=emetteur).first()
-
-        # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
-        align = "right" if emetteur == 'contact@demarches-simplifiees.fr' or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr") else "left"
-        date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
+        emetteur_obj = instru if instru else contact
 
         # Recherche de la pièce jointe liée au message
-        pj_url = pj_title = pj_emplacement = None
+        pj = None
         if msg.piece_jointe:
+
             message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
 
             if message_doc and message_doc.id_document:
-                pj_url, pj_title, pj_emplacement = message_doc.id_document.url_ds, message_doc.id_document.titre, message_doc.id_document.emplacement
+                pj = {
+                    "url": message_doc.id_document.url_ds,
+                    "titre": message_doc.id_document.titre,
+                    "emplacement": message_doc.id_document.emplacement,
+                }
+                
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, "pj_url": pj_url, "pj_title": pj_title, "pj_emplacement": pj_emplacement, "nouv_mess": nouv_mess, "emetteur": instru if instru else contact})
-        
+        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, 
+                            "pj_url": pj["url"] if pj else None, "pj_title": pj["titre"] if pj else None, "pj_emplacement": pj["emplacement"] if pj else None, 
+                            "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
+
+
+
+    # -----------------------------------
+    # 4. Bénéficiaire & demandeur
+    # -----------------------------------
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
     demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
     
@@ -179,32 +237,17 @@ def instruction_dossier_messagerie(request, num_dossier):
     if benef :
         beneficiaire = benef.id_beneficiaire if interlocuteur else None
     else:
-        logger.warning(f"[DOSSIER {dossier.numero}] Affichage messagerie : Le dossier n'a pas de bénéficaire de renseigné")
+        logger.warning(f"[DOSSIER {dossier.numero}] Affichage Instruction Messagerie : Le dossier n'a pas de bénéficaire de renseigné")
 
-    # Nombre d'avis envoyés
+
+    # -----------------------------------
+    # 5. Avis : nouveaux messages experts
+    # -----------------------------------
+
+    # Nombre d'avis envoyés pour le dossier
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
-
-
-    # Compter le nombre d'avis avec au moins un message non lu de l'expert
-    nb_avis_avec_nouveau_mess = 0
-    for da in DossierAvis.objects.filter(id_dossier=dossier).select_related("id_avis__id_expert"):
-        avis = da.id_avis
-        if not avis or not avis.id_expert:
-            continue
-
-        if avis.id_expert.est_interne:
-            email_expert = avis.id_expert.id_instructeur.email
-        else:
-            email_expert = avis.id_expert.id_contact_externe.email
-
-        nb_non_lus_avis = Message.objects.filter(
-            id_avis=avis,
-            lu=False,
-            email_emetteur=email_expert
-        ).count()
-
-        if nb_non_lus_avis > 0:
-            nb_avis_avec_nouveau_mess += 1
+    # Nombre d'avis avec nouveaux messages
+    nb_avis_avec_nouveau_mess = count_avis_with_unread_messages_for_dossier(dossier)
 
 
     return render(request, 'instruction/instruction_dossier_messagerie.html', {

@@ -94,16 +94,12 @@ def avis(request):
                                 "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
                             ).order_by("-date_reponse_avis")
         
-        # Demandes à publier au RAA
-        demandes_avis_a_publier_au_RAA = Avis.objects.filter(favorable=True
+        # Demandes à publier au RAA (CONSEIL SCIENTIFIQUE)
+        demandes_avis_a_publier_au_RAA = Avis.objects.filter(favorable=True, id_expert__est_interne=False, id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique"
                                         ).exclude(publie_au_raa=True
                                         ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
                                         ).distinct()
-        """
-        ############################
-        # On filtrera sur expert = CS
-        ############################
-        """
+
 
         # Années disponibles
         annees_disponibles_demandeur = Avis.objects.filter(
@@ -322,14 +318,6 @@ def avis_expert(request, avis_id):
 
 
 
-
-
-"""
-#############################################
-CLEAN A FINIR
-#############################################
-"""
-
 @login_required
 @require_POST
 def donner_son_avis(request, avis_id):
@@ -423,18 +411,12 @@ def donner_son_avis(request, avis_id):
             return redirect_error(request, "❌ Erreur lors de la liaision entre le document et l'avis. Contactez le support.")
         
 
-
-
-    """
-    #############################################
-    FINIR DE CLEAN
-    #############################################
-    
-    """
-
     # Message automatique Acceptation/Refus + Avis signé
     try:
-        if (reponse == "Favorable" or reponse == "Favorable sous réserve") and doc_avis_signe :
+        # --- Cas favorable ---
+        if reponse in ["Favorable", "Favorable sous réserve"]:
+
+            if doc_avis_signe:
             
                 # Compte le nombre de documents "Avis instance" associés à cet avis
                 nb_avis_instance = AvisDocument.objects.filter(
@@ -464,7 +446,8 @@ def donner_son_avis(request, avis_id):
                 # Joindre l'avis signé au message
                 MessageDocument.objects.create(id_message=msg,id_document=doc_avis_signe)
 
-        elif (reponse == "Défavorable") :
+        # --- Cas défavorable ---
+        else:
             msg_reponse_expert = "La demande d'avis a reçu une réponse défavorable."
             # Message automatique pour le refus
             msg = Message.objects.create(
@@ -476,13 +459,9 @@ def donner_son_avis(request, avis_id):
                 lu=False,
             )
 
-
-
-
     except Exception as e:
         logger.warning(f"[AVIS {avis.id}] : Echec lors de l'envoi du message automatique (Acceptation/Refus de l'expert) : {e}")
 
-    avis.save()
 
     ####################################
     # NOTIFICATION PAR MAIL AU DEMANDEUR
@@ -502,38 +481,56 @@ def donner_son_avis(request, avis_id):
         }
 
     template_name = "avis_rendu" 
-    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+    try :
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+    except Exception as e:
+        messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[AVIS {avis.id}] : L'expert vient de donner son avis. L'email de notification à {emails_norm} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+        return redirect("avis_expert", avis_id=avis.id)
+    
+
     outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
 
     if outbox :
         ok, err = envoi_mail(outbox.id)
     else :
-        logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
-        messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié par mail.")
+        messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     if ok:
         logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis rendu) envoyée à {', '.join(outbox.to)} ")
     else:
         logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
-        messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     return redirect("avis_expert", avis_id=avis.id)
 
 
 
-
 @require_POST
 def remplacer_avis_signe(request):
+
     avis_id = request.POST.get("avis_id")
     document_id = request.POST.get("document_id")
     fichier = request.FILES.get("fichier")
 
-    avis_doc = get_object_or_404(AvisDocument, id_avis=avis_id, id_document=document_id)
+    avis_doc = AvisDocument.objects.filter(id_avis=avis_id, id_document=document_id).select_related("id_avis","id_document").first()
+    if not avis_doc:
+        logger.error(f"[REMPLACER AVIS SIGNÉ] AvisDocument (id_avis={avis_id}, id_document={document_id},) introuvable — User {request.user}")
+        return redirect_error(request, "Le document demandé est introuvable en base. Contactez le support.")
+    
     avis = avis_doc.id_avis
 
     try:
         # L'ancien document devient Annexe instance
-        nature_annexe = DocumentNature.objects.get(nature="Annexe avis")
+        nature_annexe = DocumentNature.objects.filter(nature__iexact="Annexe avis").first()
+
+        if not nature_annexe:
+            return redirect_error(request, "❌ La nature 'Annexe avis' n'existe pas en base. Contactez le support.")
+
+
         ancien_doc = avis_doc.id_document
         ancien_doc.id_nature = nature_annexe
         ancien_doc.save()
@@ -548,14 +545,19 @@ def remplacer_avis_signe(request):
                 annexe=False
             )
         
-        if doc_avis_signe :
+        if not doc_avis_signe :
+            logger.error(f"[AVIS {avis.id}] Erreur pour remplacer l'avis signé (User {request.user}).")
+            # On revient sur la page pour afficher les messages d'erreurs (spécifiés dans enregistrer_document)
+            return redirect(request.META.get("HTTP_REFERER", "/"))
+
+        
+        else :
             # Créer AvisDocument
-            AvisDocument.objects.get_or_create(
-                id_avis=avis,
-                id_document=doc_avis_signe,
-            )
+            AvisDocument.objects.get_or_create(id_avis=avis,id_document=doc_avis_signe)
+
             logger.info(f"[AVIS {avis.id}] : Avis signé remplacé avec succès par l'expert {request.user}")
             messages.success(request, "✅ Avis signé remplacé avec succès.")
+
 
             ####################################
             # NOTIFICATION PAR MAIL AU DEMANDEUR
@@ -575,7 +577,15 @@ def remplacer_avis_signe(request):
                 }
 
             template_name = "avis_remplace" 
-            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+            try :
+                dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+            except Exception as e:
+                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[AVIS {avis.id}] : Remplacement de l'avis signé par {request.user}. L'email de notification à {emails_norm} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+    
 
             # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
             existe_deja = EmailOutbox.objects.filter(
@@ -588,31 +598,34 @@ def remplacer_avis_signe(request):
                 if outbox :
                     ok, err = envoi_mail(outbox.id)
                 else :
-                    logger.error(f"[AVIS {avis.id}] Avis modifié par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
-                    messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                    logger.error(f"[AVIS {avis.id}] Avis modifié par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié par mail.")
+                    messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
                 if ok:
                     logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis modifié) envoyée à {', '.join(outbox.to)} ")
                 else:
                     logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis modifié) à {', '.join(outbox.to)} : {err}")
-                    messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                    messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-        else :
-            # On revient sur la page pour afficher les messages d'erreurs
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-        
     except Exception as e:
-        messages.error(request, f"❌ Erreur : {e}")
+        logger.error(f"[AVIS {avis.id}] Erreur lors du remplacement de l'avis signé par l'expert {request.user} : {e}")
+        messages.error(request, f"Erreur lors du remplacement de l'avis signé. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+
 @require_POST
 def deposer_avis_signe(request):
+
     avis_id = request.POST.get("avis_id")
     fichier = request.FILES.get("fichier")
 
-    avis = Avis.objects.get(id=avis_id)
+    avis = Avis.objects.filter(id=avis_id).select_related("id_instructeur","id_expert","id_demarche",).first()
+    if not avis:
+        logger.error(f"[DONNER SON AVIS] Avis {avis_id} introuvable — User {request.user}")
+        return redirect_error(request, "L'avis demandé est introuvable. Contactez le support.")
+    
     try:
        
         # Sauvegarde du nouvel avis signé 
@@ -624,15 +637,20 @@ def deposer_avis_signe(request):
                 emplacement_avis = avis.emplacement,
                 annexe=False
             )
+
+        if not doc_avis_signe :
+            logger.error(f"[AVIS {avis.id}] Erreur pour déposer l'avis signé (User {request.user}).")
+            # On revient sur la page pour afficher les messages d'erreurs (spécifiés dans enregistrer_document)
+            return redirect(request.META.get("HTTP_REFERER", "/"))
         
-        if doc_avis_signe :
+        
+        else :
             # Créer AvisDocument
-            AvisDocument.objects.get_or_create(
-                id_avis=avis,
-                id_document=doc_avis_signe,
-            )
+            AvisDocument.objects.get_or_create(id_avis=avis,id_document=doc_avis_signe)
             logger.info(f"[AVIS {avis.id}] : Avis signé déposé avec succès par l'expert {request.user}")
             messages.success(request, "✅ Avis signé déposé avec succès.")
+
+
 
             ####################################
             # NOTIFICATION PAR MAIL AU DEMANDEUR
@@ -652,33 +670,36 @@ def deposer_avis_signe(request):
                 }
 
             template_name = "avis_depose" 
-            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+            try :
+                dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+            except Exception as e:
+                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[AVIS {avis.id}] : Avis signé déposé par {request.user}. L'email de notification à {emails_norm} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+ 
+
             outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
 
             if outbox :
                 ok, err = envoi_mail(outbox.id)
             else :
-                logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {avis.id_instructeur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
             if ok:
                 logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis rendu) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {avis.id_instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
             return redirect("avis_expert", avis_id=avis.id)
 
 
-
-
-
-        else :
-            # On revient sur la page pour afficher les messages d'erreurs
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-        
     except Exception as e:
-        messages.error(request, f"❌ Erreur : {e}")
+        logger.error(f"[AVIS {avis.id}] Erreur lors du dépôt de l'avis signé par l'expert {request.user} : {e}")
+        messages.error(request, f"Erreur lors du dépôt de l'avis signé. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -688,7 +709,11 @@ def deposer_avis_signe(request):
 @login_required
 def enregistrer_date_transmission_cs(request, avis_id):
 
-    avis = get_object_or_404(Avis, id=avis_id)
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[SAVE DATE TRAMISSION CS] Avis {avis_id} introuvable — User {request.user}")
+        return redirect_error(request, "L'avis concerné est introuvable. Contactez le support.")
+
     date_str = request.POST.get("date_transmission_cs")
 
     if not date_str:
@@ -699,24 +724,29 @@ def enregistrer_date_transmission_cs(request, avis_id):
         avis.date_transmission_cs = timezone.datetime.strptime(date_str, "%Y-%m-%d")
         avis.save()
     except Exception as e:
-        logger.error(f"[AVIS {avis.id}] Erreur enregistrement date_transmission_cs : {e}")
-        messages.error(request, "Erreur lors de l'enregistrement de la date.")
+        logger.error(f"[AVIS {avis.id}] Erreur enregistrement date_transmission_cs par {request.user} : {e}")
+        messages.error(request, "Erreur lors de l'enregistrement de la date. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 
 @require_POST
 @login_required
 def publier_avis_raa(request, avis_id):
 
-    avis = get_object_or_404(Avis, id=avis_id)
-
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        logger.error(f"[PUBLICATION AVIS RAA] Avis {avis_id} introuvable — User {request.user}")
+        return redirect_error(request, "L'avis concerné est introuvable. Contactez le support.")
+    
     try:
         avis.publie_au_raa = True
         avis.save()
         logger.info(f"[AVIS {avis.id}] Publication au RAA validée par {request.user}.")
+
     except Exception as e:
-        messages.error(request, f"❌ Erreur lors de la validation de la publication au RAA : {e}")
-        logger.error(f"[AVIS {avis.id}] Erreur mise à jour publie_au_raa : {e}")
+        messages.error(request, f"Erreur lors de la validation de la publication au RAA. Contactez le support.")
+        logger.error(f"[AVIS {avis.id}] Erreur lors de la validation de la publication au RAA par {request.user} : {e}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
