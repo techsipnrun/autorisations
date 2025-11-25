@@ -1,7 +1,8 @@
-from django.db.models import Q
+from django.db.models import Q, Value
 from django.http import JsonResponse
 from django.shortcuts import render
 from autorisations.models.models_instruction import Dossier, EtapeDossier, Demarche
+from autorisations.models.models_avis import Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import ExtractYear, Coalesce
@@ -85,7 +86,6 @@ def requete_dossiers(request):
     groupes = Groupeinstructeur.objects.all().order_by('nom')
     annees = Dossier.objects.annotate(annee=ExtractYear("date_depot")) \
                         .values_list("annee", flat=True).distinct().order_by("-annee")
-
 
 
     context = {
@@ -216,13 +216,6 @@ def requete_avis(request):
 
 
 
-
-
-
-
-
-
-
 @login_required
 def autocomplete_numero_dossier(request):
     query = request.GET.get("term", "").strip()
@@ -254,10 +247,7 @@ def autocomplete_numero_dossier(request):
 #     data = [{"value": nom} for nom in beneficiaires]
 #     return JsonResponse(data, safe=False)
 
-from django.db.models import Value
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from autorisations.models.models_utilisateurs import ContactExterne
+
 
 @login_required
 def autocomplete_nom_beneficiaire(request):
@@ -320,8 +310,6 @@ def autocomplete_demandeur(request):
     """
     term = request.GET.get("term", "").strip()
 
-    from autorisations.models.models_utilisateurs import Instructeur
-
     results = (
         Instructeur.objects.filter(
             avis__statut="Envoyé",  # instructeurs liés à des avis envoyés
@@ -353,7 +341,6 @@ def autocomplete_expert(request):
     Retourne la liste des experts (internes et externes) liés à des avis envoyés.
     """
     term = request.GET.get("term", "").strip()
-    from autorisations.models.models_avis import Expert
 
     results = (
         Expert.objects.filter(avis__statut="Envoyé")

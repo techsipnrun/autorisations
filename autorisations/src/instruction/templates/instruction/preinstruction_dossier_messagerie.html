@@ -15,6 +15,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
+
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -168,16 +169,28 @@
             if (chatContainer) {
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
-    
+            
+            // Bouton Envoi
             const messageForm = document.querySelector('.message-form');
             const sendButton = messageForm.querySelector('button[type="submit"]');
-    
+
             messageForm.addEventListener('submit', function() {
                 sendButton.disabled = true;
                 sendButton.innerText = 'Envoi...';
             });
+
+            // Bouton Suppression
+            const deleteForm = document.querySelector('.delete-form');
+            const deleteButton = deleteForm.querySelector('button[type="submit"]');
+    
+            deleteForm.addEventListener('submit', function() {
+                deleteButton.disabled = true;
+                deleteButton.innerText = 'Suppression...';
+            });
+
         });
     </script>
+
     
     <!-- Bouton pour actualiser la messagerie -->
     <script>

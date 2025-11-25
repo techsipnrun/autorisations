@@ -53,7 +53,8 @@ def sync_messages(messages, id_dossier):
                 "body": message_data["body"],
                 "date_envoi": message_data["date_envoi"],
                 "piece_jointe": message_data["piece_jointe"],
-                "email_emetteur": message_data["email_emetteur"],
+                #si email_emetteur existe deja et != autorisations@reunion-parcnational.fr  alors on ecrase pas (sinon louis devient auto par ex...)
+                # "email_emetteur": message_data["email_emetteur"],  
             }, date_fields=["date_envoi"])
 
             if updated_fields:

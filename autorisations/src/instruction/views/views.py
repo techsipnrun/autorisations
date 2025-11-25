@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 import time
 from django.utils import timezone
 import json
@@ -31,6 +31,8 @@ from django.utils.timezone import now
 from autorisations import settings
 from django.db import close_old_connections
 from django.contrib.auth.models import Group, User
+from django.core.paginator import Paginator
+
 
 logger = logging.getLogger("ORM_DJANGO")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
@@ -1164,7 +1166,7 @@ def afficher_annexe(request, chemin, titre=None):
         if not content_type:
             content_type = 'application/octet-stream'  # type par défaut
         
-        response = FileResponse(open(chemin_entier, 'rb'), content_type=content_type)
+        response = FileResponse(smbclient.open_file(chemin_entier, 'rb'), content_type=content_type)
         return response
 
 
@@ -1371,77 +1373,9 @@ def gestion_contacts(request):
 
 
 
-from datetime import datetime, timedelta
-
-# def recent_log_activity(file_path):
-#     """Retourne ('error', 'warning', None) en fonction des logs des 5 derniers jours."""
-#     if not os.path.exists(file_path):
-#         return None
-
-#     now = datetime.now()
-#     threshold = now - timedelta(days=5)
-
-#     with open(file_path, encoding="utf-8", errors="replace") as f:
-#         for line in f.readlines()[-5000:]:  # Limite de perf, largement suffisant
-#             # Format attendu : 2025-11-14 10:33:00,854 INFO Message...
-#             try:
-#                 date_str = line.split(" ")[0] + " " + line.split(" ")[1]
-#                 timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S,%f")
-#             except:
-#                 continue  # si format inattendu
-
-#             if timestamp < threshold:
-#                 continue
-
-#             if "ERROR" in line or "Exception" in line or "Traceback" in line:
-#                 return "error"
-#             if "WARNING" in line:
-#                 return "warning"
-
-#     return None
 
 
-# def recent_log_activity(file_path):
-#     """
-#     Analyse les 5000 dernières lignes et retourne :
-#     {
-#         "type": "error" / "warning" / None,
-#         "count": int
-#     }
-#     """
-#     if not os.path.exists(file_path):
-#         return {"type": None, "count": 0}
 
-#     now = datetime.now()
-#     threshold = now - timedelta(days=5)
-
-#     error_count = 0
-#     warning_count = 0
-
-#     with open(file_path, encoding="utf-8", errors="replace") as f:
-#         for line in f.readlines()[-5000:]:
-
-#             try:
-#                 date_str = line.split(" ")[0] + " " + line.split(" ")[1]
-#                 timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S,%f")
-#             except:
-#                 continue
-
-#             if timestamp < threshold:
-#                 continue
-
-#             if "ERROR" in line or "Exception" in line or "Traceback" in line:
-#                 error_count += 1
-#             elif "WARNING" in line:
-#                 warning_count += 1
-
-#     if error_count > 0:
-#         return {"type": "error", "count": error_count}
-
-#     if warning_count > 0:
-#         return {"type": "warning", "count": warning_count}
-
-#     return {"type": None, "count": 0}
 
 def recent_log_activity(file_path):
     """
@@ -1481,7 +1415,6 @@ def recent_log_activity(file_path):
 
 
 
-from django.core.paginator import Paginator
 
 LOG_FILES = {
     "LDAP_LOGS": "logs/active_directory.log",

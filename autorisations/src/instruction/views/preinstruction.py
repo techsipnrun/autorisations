@@ -10,6 +10,8 @@ from autorisations.models.models_instruction import Demarche, Dossier, DossierAc
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
+from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, redirect_error, safe_enregistrer_action
+from instruction.utils.files_utils import load_geojson
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
@@ -22,87 +24,99 @@ logger = logging.getLogger("ORM_DJANGO")
 @login_required
 def preinstruction(request):
 
-    # Récupérer l'ID de l'état "en_construction"  ICI
-    # etat = EtatDossier.objects.filter(nom__iexact="en_construction").first()
-    # dossiers = Dossier.objects.filter(id_etat_dossier=etat).select_related("id_demarche").order_by("date_depot")
+    etape_affecter = EtapeDossier.objects.filter(etape="À affecter").first()
+    if not etape_affecter:
+        logger.error("[PREINSTRUCTION] Étape 'À affecter' introuvable.")
+        return redirect_error(request, "❌ Erreur interne : étape 'À affecter' introuvable.")
 
+    dossiers = Dossier.objects.filter(id_etape_dossier=etape_affecter).select_related("id_demarche").order_by("date_depot")
 
-    etape = EtapeDossier.objects.filter(etape="À affecter").first()
-    dossiers = Dossier.objects.filter(id_etape_dossier=etape).select_related("id_demarche").order_by("date_depot")
-
-    dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
-
-    dossier_infos = []
-
+    
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
-        messages.warning(request, f"⚠️ Attention, vous n'avez pas de profil 'Instructeur.rice' : Contactez l'administrateur.rice si besoin.")
+        logger.warning(f"[PREINSTRUCTION] User {request.user} sans profil Instructeur.")
+        messages.warning(request, "⚠️ Vous n’avez pas de profil 'Instructeur'. Contactez le support si besoin.")
 
+    dossiers_actions = set(dossiers_reception_action_a_faire(dossiers, request.user))
+    # dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
+
+    # Infos sur les dossiers
+    dossier_infos = []
     for dossier in dossiers:
-        if dossier.id_demarche.type != "Manifestations sportives" :
 
-            # Chercher le demandeur via DossierInterlocuteur
-            interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
-            demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
-            
-            # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés 
-            if not demandeur or not(demandeur.prenom and demandeur.nom):
-                benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-                demandeur = benef.id_beneficiaire if benef else None
+        if dossier.id_demarche.type == "Manifestations sportives":
+            # On ne les affiche pas dans cette première partie
+            continue
 
-            dossier_infos.append({
-                "demarche": dossier.id_demarche.type,
-                "date_depot": dossier.date_depot,
-                "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
-                "nom_projet": dossier.nom_dossier,
-                "numero": dossier.numero,
-                "action_a_faire": True if dossier in dossiers_actions else False
-            })
 
-    num_demarche_manif_sportive = Demarche.objects.get(type="Manifestations sportives").numero
+        # Chercher le demandeur via DossierInterlocuteur
+        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
+        demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
+        
+        # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés 
+        if not demandeur or not(demandeur.prenom and demandeur.nom):
+            benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+            demandeur = benef.id_beneficiaire if benef else None
 
-    # -----------------------------------------
-    # DossierManifSportive non liés à un Dossier
-    # -----------------------------------------
-    dossiers_manif_sportive_DM = DossierManifSportive.objects.exclude(
-        id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True)
-    ).exclude(
-        archive=True
+        dossier_infos.append({
+            "demarche": dossier.id_demarche.type,
+            "date_depot": dossier.date_depot,
+            "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
+            "nom_projet": dossier.nom_dossier,
+            "numero": dossier.numero,
+            "action_a_faire": True if dossier in dossiers_actions else False
+        })
+
+
+    # ==================================
+    # MANIFESTATIONS SPORTIVES 
+    # ==================================
+    demarche_manif = Demarche.objects.filter(type="Manifestations sportives").first()
+    if not demarche_manif:
+        logger.error("[PREINSTRUCTION] Démarche 'Manifestations sportives' introuvable.")
+        return redirect_error(request, "❌ Erreur interne : démarche Manif Sportive introuvable.")
+
+    num_demarche_manif_sportive = demarche_manif.numero
+
+
+    # ---------------------------------------------
+    # Dossier DM non liés à un Dossier DS
+    # ---------------------------------------------
+    dossiers_manif_sportive_DM = (
+        DossierManifSportive.objects.exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True))
+        .exclude(archive=True)
+        .order_by("-date_debut_evenement")
     )
-    # Trier par date décroissante
-    dossiers_manif_sportive_DM = dossiers_manif_sportive_DM.order_by("-date_debut_evenement")
 
 
-    # -----------------------------------------
-    # Dossiers (de type "Manifestations sportives") non liés à un DossierManifSportive
-    # -----------------------------------------
-    dossiers_manif_sportive_DS = Dossier.objects.filter(
-        id_demarche__type="Manifestations sportives"
-    ).exclude(
-        id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True)
+    # ----------------------------------------------
+    # Dossiers DS non liés à un Dossier DM
+    # ----------------------------------------------
+    dossiers_manif_sportive_DS = (
+        Dossier.objects.filter(id_demarche__type="Manifestations sportives")
+        .exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True))
+        .order_by("-date_depot")
     )
-
-    # Trier par date décroissante
-    dossiers_manif_sportive_DS = dossiers_manif_sportive_DS.order_by("-date_depot")
 
     dossiers_manif_sportive_DS_infos = []
     for dossier in dossiers_manif_sportive_DS:
-        # --- 1. Demandeur (bénéficiaire) ---
+
+        # --- 1. Bénéficiaire ---
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
         beneficiaire = None
         if interlocuteur:
             dossier_benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-            if dossier_benef:
-                beneficiaire = dossier_benef.id_beneficiaire
+            beneficiaire = dossier_benef.id_beneficiaire if dossier_benef else None
 
         nom_demandeur = f"{beneficiaire.nom} {beneficiaire.prenom}" if beneficiaire else "N/A"
 
-        # --- 2. Numéro de dossier sur déclaration-manifestations ---
+        # --- 2. Numéro de dossier DM ---
         champ_numero_dm = DossierChamp.objects.filter(
             id_dossier=dossier,
             id_champ__nom="Numéro du dossier sur la plateforme déclaration-manifestations"
         ).first()
         numero_dm = champ_numero_dm.valeur if champ_numero_dm and champ_numero_dm.valeur else "N/A"
+
 
         # --- 3. Nom de la manifestation ---
         champ_nom_manifestation = DossierChamp.objects.filter(
@@ -121,7 +135,7 @@ def preinstruction(request):
 
 
     # -----------------------------------------
-    # Dossiers (de type "Manifestations sportives") liés à au moins un DossierManifSportive
+    # Dossiers DS liés à au moins un Dossier DM
     # -----------------------------------------
     dossiers_manif_sportive_complet = Dossier.objects.filter(
         id_demarche__type="Manifestations sportives",
@@ -130,26 +144,29 @@ def preinstruction(request):
     )
 
     # Récupération des liaisons
-    liaisons = DossierManifestationLiaison.objects.filter(
-        id_dossier__in=dossiers_manif_sportive_complet
-    ).select_related("id_dossier_manif")
+    liaisons = DossierManifestationLiaison.objects.filter(id_dossier__in=dossiers_manif_sportive_complet).select_related("id_dossier_manif")
+
+
 
     # Création d’un dictionnaire : dossier → dossier_manif
-    dossiers_manif_sportive_complet_map = {
-        liaison.id_dossier: liaison.id_dossier_manif
-        for liaison in liaisons
-    }
+    dossiers_manif_sportive_complet_map = { liaison.id_dossier: liaison.id_dossier_manif for liaison in liaisons }
 
     # Conversion en liste de tuples pour itération dans le template
-    dossiers_manif_sportive_complet_list = list(dossiers_manif_sportive_complet_map.items())
-    # Trier par date de début de la course décroissante
-    dossiers_manif_sportive_complet_list = sorted(
-    dossiers_manif_sportive_complet_list,
-    key=lambda pair: pair[1].date_debut_evenement or timezone.datetime.min,
-    reverse=True
-)
+    # dossiers_manif_sportive_complet_list = list(dossiers_manif_sportive_complet_map.items())
+    # # Trier par date de début de la course décroissante
+    # dossiers_manif_sportive_complet_list = sorted(
+    #     dossiers_manif_sportive_complet_list,
+    #     key=lambda pair: pair[1].date_debut_evenement or timezone.datetime.min,
+    #     reverse=True
+    # )
 
-        
+    # Tri (date début de course décroissante)
+    dossiers_manif_sportive_complet_list = sorted(
+        dossiers_manif_sportive_complet_map.items(),
+        key=lambda pair: pair[1].date_debut_evenement or timezone.datetime.min,
+        reverse=True
+    )
+
     return render(request, 'instruction/preinstruction.html', {
         "dossier_infos": dossier_infos,
         "num_demarche_manif_sportive": num_demarche_manif_sportive,
@@ -164,181 +181,67 @@ def preinstruction(request):
 @login_required
 def preinstruction_dossier(request, numero):
 
-    dossier = get_object_or_404(Dossier, numero=numero)
+    dossier = Dossier.objects.filter(numero=numero).first()
+    if not dossier:
+        logger.error(f"[PREINSTRUCTION DOSSIER] Erreur lors de l'affichage de la page par {request.user} : Dossier {numero} introuvable.")
+        return redirect_error(request, f"❌ Le dossier {numero} est introuvable en base. Contactez le support")
 
-    # Charger le fond de carte GeoJSON (une seule fois)
-    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
-    with open(fond_coeur_de_parc, encoding="utf-8") as f:
-        fond_coeur_de_parc = json.load(f)
+ 
+    ####################################
+    # Charger les fonds de carte GeoJSON
+    ####################################
+    fond_coeur_de_parc = load_geojson("instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+    fond_aire_adhesion = load_geojson("instruction/static/instruction/carto/aire_adhesion.geojson")
+    fond_mafate = load_geojson("instruction/static/instruction/carto/COT_MAFATE.geojson")
 
-    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
-    with open(fond_aire_adhesion, encoding="utf-8") as f:
-        fond_aire_adhesion = json.load(f)
-
-    fond_mafate = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/COT_MAFATE.geojson")
-    with open(fond_mafate, encoding="utf-8") as f:
-        fond_mafate = json.load(f)
+    ####################################
+    # Champs du formulaire DS
+    ####################################
+    champs_prepares, nb_cartes = build_champs_prepares(dossier)
 
 
-    nb_cartes = 0
-    champs_prepares = []
-    for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type", "id_document").order_by("ordre"):
-
-        ct = champ.id_champ.id_champ_type.type
-        nom = champ.id_champ.nom
-
-        # Ignorer les champs de type explication
-        if ct == "explication": continue
-
-        # Exclure seulement les checkbox qui commencent par "Je certifie" ou "J'atteste"
-        if ct == "checkbox" and (nom.startswith("Je certifie") or nom.startswith("J'atteste")): continue
-
-        # Traduction spécifique pour les champs Oui/Non
-        if ct == "yes_no":
-            val = (champ.valeur or "").strip().lower()
-            champs_prepares.append({"type": "champ", "nom": nom, "valeur": "Oui" if val == "true" else "Non" if val == "false" else "Non renseigné"})
-
-        elif ct == "carte" and champ.geometrie:
-            nb_cartes += 1
-            geojson_source = champ.geometrie_modif or champ.geometrie
-            champs_prepares.append({"type": "carte", "nom": nom, "geojson": json.dumps(geojson_source), "id":champ.id})
-
-        elif ct == "header_section":
-            champs_prepares.append({"type": "header", "titre": nom})
-
-        elif ct == "piece_justificative":
-
-            if champ.id_document :
-                emplacement_doc= champ.id_document.emplacement
-                # emplacement_doc = os.path.join(os.environ.get("NAS_ROOT"), champ.id_document.emplacement, champ.id_document.titre)
-                champs_prepares.append({"type": "piece_justificative", "nom": nom, "url": champ.id_document.url_ds, "titre_doc": champ.id_document.titre, "emplacement_doc": emplacement_doc})
-            else :
-
-                champs_prepares.append({"type": "piece_justificative", "nom": nom, "titre_doc": "ERROR PARSING URL DS"})
-
-        elif ct == "drop_down_list":
-            
-            if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in champ.valeur :
-                geojson_source = champ.geometrie_modif or champ.geometrie
-
-                if not (geojson_source) :
-
-                    champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'oui', "geojson": json.dumps({}), "id":champ.id})
-                else :
-
-                    champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'non', "geojson": json.dumps(geojson_source), "id":champ.id})
-
-            else :
-                champs_prepares.append({"type": "drop_down_list", "nom": nom,"valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné'})
-                
-        elif ct == "repetition":
-            repetitions = []
-
-            try:
-                valeur = ast.literal_eval(champ.valeur) if isinstance(champ.valeur, str) else champ.valeur or {}
-            except Exception as e:
-                # print("Erreur lors de l’évaluation de la chaîne :", e)
-                valeur = {}
-
-            for liste in (valeur or {}).values():
-                bloc = []
-                for item in liste:
-                    bloc.append({"nom": item.get("nom"), "valeur": item.get("valeur")})
-                repetitions.append(bloc)
-            # print(repetitions)
-            # [[ {"nom": "Nom du ravitaillement", "valeur": "ravito1"}, {"nom": "...", "valeur": "..."} ],...]
-            champs_prepares.append({
-                "type": "repetition",
-                "nom": nom,
-                "valeur": repetitions or "Non renseigné"
-            })
-           
-        else:
-            champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"})
-
-    #Récupérer tous les noms de groupes instructeurs pour la démarche en question
+    ####################################
+    # Groupe Instructeurs
+    ####################################
+    # Groupes Instructeurs de la Démarche
     groupes_instructeurs = Groupeinstructeur.objects.filter(groupeinstructeurdemarche__id_demarche=dossier.id_demarche).order_by("nom")
 
+    # Instructeurs du Dossier
+    instructeurs_dossier = set(DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur_id", flat=True))
+
+    # Instructeur connecté
+    instructeur_connecte = (Instructeur.objects.filter(email=request.user.email).select_related("id_agent_autorisations").first())
+    
+    # Membres du groupe instructeur associé au Dossier
     membres_groupe = []
     if dossier.id_groupeinstructeur:
-        membres_groupe = dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations").values_list("id_instructeur", flat=False)
-        membres_groupe = [m.id_instructeur for m in dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.select_related("id_instructeur__id_agent_autorisations")]
+        membres_groupe = [
+            m.id_instructeur
+            for m in dossier.id_groupeinstructeur
+                .groupeinstructeurinstructeur_set
+                .select_related("id_instructeur__id_agent_autorisations")
+        ]
 
 
-    # Instructeurs déjà affectés au dossier
-    instructeurs_dossier_ids = set(
-        DossierInstructeur.objects.filter(id_dossier=dossier)
-        .values_list("id_instructeur_id", flat=True)
-    )
-
-    # Instructeur connecté (pour le bouton 'se déclarer instructeur')
-    instructeur_connecte = (
-        Instructeur.objects
-        .filter(email=request.user.email)
-        .select_related("id_agent_autorisations")
-        .first()
-    )
-
-    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
-    emplacements_documents = [doc.id_document.emplacement for doc in dossier_documents]
-
-    # Documents de nature "Annexe instructeur"
-    annexes_instructeur = [
-        doc.id_document for doc in dossier_documents
-        if doc.id_document.id_nature.nature.lower() == "annexe instructeur"
-    ]
-
-    # Recup des infos sur le bénéficiaire
-    beneficiaire = None
+    ###################################################
+    # Infos sur le bénéficiaire/demandeur intermediaire
+    ###################################################
+    beneficiaire = get_beneficiaire_for_dossier(dossier)
     demandeur_intermediaire = None
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
-
-    if interlocuteur:
-        dossier_benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-        if dossier_benef:
-            beneficiaire = dossier_benef.id_beneficiaire
-
-         # Demandeur intermédiaire
-        if interlocuteur.id_demandeur_intermediaire:
-            demandeur_intermediaire = interlocuteur.id_demandeur_intermediaire
+    if interlocuteur and interlocuteur.id_demandeur_intermediaire:
+        demandeur_intermediaire = interlocuteur.id_demandeur_intermediaire
 
 
-        # Mapping entre les actions et leurs logos
-    logo_mapping = {
-        "Dossier reçu": "recu.png",
-        "Instructeur.e retiré.e": "instructeur_retire.png",
-        "Instructeur.e ajouté.e": "instructeur_ajoute.png",
-        "Classé sans suite": "classe-sans-suite.png",
-        "Classé comme refusé": "refuse.png",
-        "Classé comme accepté": "accepte.png",
-        "Demande de compléments": "demande-de-complements.png",
-        "Avis reçu": "recu.png",
-        "Avis demandé": "acte-envoye.png",
-        "Acte signé": "acte-signe.png",
-        "Acte envoyé": "acte-envoye.png",
-        "Validé avant demande d'avis": "valide.png",
-        "Publié au RAA": "publie_au_raa.png",
-        "Prêt à la signature": "envoye.png",
-        "Envoyé pour signature": "envoye.png",
-        "Relecture qualité": "relecture-qualite.png",
-        "Validé avant signature": "valide.png",
-        "Relecture": "relecture-qualite.png",
-        "Passage en instruction": "envoye.png",
-        "Repassage en instruction": "envoye.png",
-        "Affectation au groupe": "groupe_instructeur.png",
-        "Passage en pré-instruction": "envoye.png",
-        "Envoyé pour validation": "envoye_pour_validation.png",
-        "Envoyé pour relecture qualité": "envoye.png",
-        "Avis demandé": "acte-envoye.png",
-    }
+    #####################################################
+    # TIMELINE : Mapping entre les actions et leurs logos
+    #####################################################
+    dossier_actions = build_timeline_for_dossier(dossier)
 
 
-    # Dossier Actions
-    dossier_actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date')
-
-    for action in dossier_actions:
-        action.logo = logo_mapping.get(action.id_action.action, "timeline.png")
-
+    ################################
+    #  Notes & Annexes Instructeur
+    ################################
     notes_queryset = DossierNote.objects.filter(id_dossier=dossier).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
 
     notes = [
@@ -347,58 +250,85 @@ def preinstruction_dossier(request, numero):
             "note": n.note,
             "date": n.date,
             "instructeur_id": n.id_instructeur.id,
-            "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" if n.id_instructeur.id_agent_autorisations else n.id_instructeur.email
+            "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" 
+                            if n.id_instructeur.id_agent_autorisations 
+                            else n.id_instructeur.email
         }
         for n in notes_queryset
     ]
 
+
+    # -----------------------------------
+    # Documents du dossier
+    # -----------------------------------
+    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
+    emplacements_documents = [doc.id_document.emplacement for doc in dossier_documents]
+
+    # Documents de nature "Annexe instructeur"
+    annexes_instructeur = [
+        dd.id_document
+        for dd in dossier_documents
+        if (dd.id_document.id_nature and (dd.id_document.id_nature.nature or "").lower() == "annexe instructeur")
+    ]
+
+    # Résumé PDF du dossier
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
+
+    ####################################
+    # Dossier Déclaration Manifestations
+    ####################################
     doss_manif_sportive = None
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
 
-    # Messages non lus
-    nb_messages_non_lus = Message.objects.filter(
-        id_dossier=dossier,
-        lu=False
-    ).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
-    ).exclude(
-        email_emetteur__endswith='reunion-parcnational.fr'
-    ).count()
 
+    ###############################
+    # Messages non lus
+    ###############################
+    nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
 
 
     return render(request, 'instruction/preinstruction_dossier.html', {
+        # Dossier
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
-        "etape_dossier": dossier.id_etape_dossier.etape,
+        "etape_dossier": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "N/A",
+        "dossier_actions": dossier_actions,
         "champs": champs_prepares,
+        "doss_manif_sportive": doss_manif_sportive,
+        "notes": notes,
+        "nb_messages_non_lus": nb_messages_non_lus,
+        
+        # Carto
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
         "mafateData": fond_mafate,
         "nb_cartes": nb_cartes,
-        "is_formulaire_active": True,
-        "is_messagerie_active": False,
+        
+        # Instructeurs
         "groupes_instructeurs": groupes_instructeurs,
         "membres_groupe": membres_groupe,
-        "instructeurs_dossier_ids": instructeurs_dossier_ids,
+        "instructeurs_dossier_ids": instructeurs_dossier,
         "instructeur_connecte": instructeur_connecte,
-        "NAS_ROOT": os.getenv('NAS_ROOT'),
+
+        # Documents
         "emplacements_documents": emplacements_documents,
         "annexes_instructeur": annexes_instructeur,
+        "resume_pdf_titre": resume_pdf_titre,
+
+        # Contacts
         "beneficiaire": beneficiaire,
         "demandeur_intermediaire": demandeur_intermediaire,
-        "dossier_actions": dossier_actions,
-        "notes": notes,
+        
+        # Settings
+        "NAS_ROOT": os.getenv('NAS_ROOT'),
+        "is_formulaire_active": True,
+        "is_messagerie_active": False,
         "preinstruction_message": request.session.pop("preinstruction_message", None),
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
-        "resume_pdf_titre": resume_pdf_titre,
-        "doss_manif_sportive": doss_manif_sportive,
-        "nb_messages_non_lus": nb_messages_non_lus,
     })
 
 
@@ -409,97 +339,126 @@ def changer_groupe_instructeur(request):
     dossier_id = request.POST.get("dossierId")
     groupe_id = request.POST.get("groupeInstructeurId")
 
-    nom_groupe = Groupeinstructeur.objects.filter(id=groupe_id).values_list("nom", flat=True).first()
-    groupe_id_ds = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur=groupe_id).values_list("id_groupeinstructeur_ds", flat=True).first()
+    # -----------------
+    # Vérifications
+    # -----------------
+    if not dossier_id :
+        logger.error(f"[CHANGER GROUPE INSTRUCTEUR] User {request.user} : groupe_id_ds={groupe_id}, dossier_id non transmis via le formulaire.")
+        return redirect_error(request, "❌ Paramètres manquants pour changer le groupe instructeur. Contactez le support.")
+
+    if not groupe_id_ds :
+        logger.error(f"[CHANGER GROUPE INSTRUCTEUR] User {request.user} : dossier_id_ds={dossier_id}, groupe_id_ds non transmis via le formulaire.")
+        return redirect_error(request, "❌ Paramètres manquants pour changer le groupe instructeur. Contactez le support.")
+
+
     dossier = Dossier.objects.filter(id_ds=dossier_id).first()
+    if not dossier:
+        logger.error(f"[CHANGER GROUPE INSTRUCTEUR] Dossier id_ds={dossier_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le dossier est introuvable en base. Contactez le support.")
+
     dossier_num = dossier.numero
 
-    if not dossier_id or not groupe_id_ds:
-        logger.error(f"[DOSSIER {dossier_num}] Changement groupe instructeur : paramètres manquants (dossier_id={dossier_id}, groupe_id_ds={groupe_id_ds})")
-        return redirect(request.META.get('HTTP_REFERER', '/'))
-    
-    result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
 
-    if result["success"]:
-        logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur changé avec succès sur DS par {request.user} --> Affecté au groupe {nom_groupe}.")
+    # --------------------------------------
+    # Récupération du groupe interne + DS
+    # --------------------------------------
+    nom_groupe = Groupeinstructeur.objects.filter(id=groupe_id).values_list("nom", flat=True).first()
+    if not nom_groupe:
+        logger.error(f"[DOSSIER {dossier_num}] Changement de Groupe Instructeur par {request.user} : Groupe id={groupe_id} introuvable.")
+        return redirect_error(request, "❌ Groupe instructeur introuvable.")
 
-        # mettre à jour le groupe instructeur en base
-        try:
-            dossier.id_groupeinstructeur_id = groupe_id
-            dossier.save()
-            logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur mis à jour dans Postgres par {request.user} --> Affecté au groupe {nom_groupe}.")
+    groupe_id_ds = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur=groupe_id).values_list("id_groupeinstructeur_ds", flat=True).first()
 
-            # Dossier Action
-            instructeur = Instructeur.objects.filter(email=request.user.email).first()
-            enregistrer_action(dossier, instructeur, "Affectation au groupe", nom_groupe)
+    if not groupe_id_ds:
+        logger.error(f"[DOSSIER {dossier_num}] Changement de Groupe Instructeur par {request.user} : Groupe instructeur {groupe_id} sans équivalent DS.")
+        return redirect_error(request, "❌ Groupe instructeur invalide pour DS. Contactez le support.")
 
-        except Exception as e:
-            logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur en BDD par {request.user} (groupe mis à jour sur DS) : {e}")
+    # ---------------
+    # Appel API DS
+    # ---------------
+    try:
+        result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier_num}] Erreur API DS lors du changement de groupe vers {nom_groupe} par {request.user} : {e}")
+        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarches Simplifiées. Contactez le support.")
 
-    else:
-        logger.error(f"[DOSSIER {dossier_num}] Echec du changement de Groupe Instructeur par {request.user} (Affectation souhaitée : {nom_groupe})")
 
+    if not result.get("success"):
+        logger.error(f"[DOSSIER {dossier_num}] Echec du changement de Groupe Instructeur vers {nom_groupe} par {request.user} : {result.get('message')}")
+        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarches Simplifiées. Contactez le support.")
+
+    logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur changé avec succès sur DS par {request.user} --> Affecté au groupe {nom_groupe}.")
+
+
+    # ---------------
+    # MAJ EN BDD
+    # ---------------
+    try:
+        dossier.id_groupeinstructeur_id = groupe_id
+        dossier.save()
+
+        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        safe_enregistrer_action(dossier, instructeur, "Affectation au groupe", request, description=nom_groupe)
+
+        logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur mis à jour dans Postgres par {request.user} --> Affecté au groupe {nom_groupe}.")
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur en BDD par {request.user} (groupe mis à jour sur DS) : {e}")
+        return redirect_error(request,"⚠️ Groupe modifié sur DS mais erreur interne lors de la mise à jour locale. Contactez le support.")
+   
     return redirect(request.META.get('HTTP_REFERER', '/'))
-
-
-@require_POST
-def passer_en_instruction(request):
-    dossier_id = request.POST.get("dossierId")
-    instructeur_email = request.user.email
-
-    instructeur = Instructeur.objects.filter(email=instructeur_email).first()
-    dossier = get_object_or_404(Dossier, id_ds=dossier_id)
-
-    # Vérifie qu'un groupe instructeur est affecté
-    if not dossier.id_groupeinstructeur:
-        logger.warning(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : aucun groupe instructeur affecté.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    if not instructeur :
-        logger.error(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : Mail de l'instructeur non reconnu en BDD.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    result = passer_en_instruction_ds(dossier_id, instructeur)
-
-    if result["success"]:
-        logger.info(f"[DOSSIER {dossier.numero}] Passage en instruction réussi sur DS par {instructeur_email}")
-
-        try:
-            etat_instruction = EtatDossier.objects.get(nom__iexact="en_instruction")
-            dossier.id_etat_dossier = etat_instruction
-            dossier.date_debut_instruction = timezone.now()
-            dossier.save()
-            logger.info(f"[DOSSIER {dossier.numero}] État du dossier mis à jour en 'en_instruction' par {instructeur_email}.")
-            
-            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
-
-        except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la mise à jour en 'en_instruction' par {instructeur_email}: {e}")
-
-    else:
-        logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS par {instructeur_email}: {result['message']}")
-
-    return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 
 # @require_POST
-# @login_required
-# def sauvegarder_note_dossier(request):
+# def passer_en_instruction(request):
+
 #     dossier_id = request.POST.get("dossierId")
-#     nouvelle_note = request.POST.get("note")
+#     instructeur_email = request.user.email
 
-#     dossier = get_object_or_404(Dossier, id_ds=dossier_id)
-#     dossier.note = nouvelle_note
-#     dossier.save()
+#     # -----------------
+#     # Vérifications
+#     # -----------------
+#     dossier = Dossier.objects.filter(id_ds=dossier_id).first()
+#     if not dossier:
+#         logger.error(f"[PASSAGE INSTRUCTION] Dossier id_ds={dossier_id} introuvable — User={request.user}")
+#         return redirect_error(request, "❌ Dossier introuvable. Contactez le support.")
 
-#     instructeur = Instructeur.objects.filter(email=request.user.email).select_related("id_agent_autorisations").first()
+#     instructeur = Instructeur.objects.filter(email=instructeur_email).first()
+#     if not instructeur:
+#         logger.error(f"[DOSSIER {dossier.numero}] {request.user} a tenté un passage en instruction sans profil instructeur.")
+#         return redirect_error(request, "❌ Vous n'avez pas de profil Instructeur. Contactez le support.")
 
-#     if instructeur and instructeur.id_agent_autorisations:
-#         nom = instructeur.id_agent_autorisations.nom
-#         prenom = instructeur.id_agent_autorisations.prenom
-#         logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {prenom} {nom} ({instructeur.email})")
+
+#     # Vérifie qu'un groupe instructeur est affecté
+#     if not dossier.id_groupeinstructeur:
+#         logger.warning(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : aucun groupe instructeur affecté.")
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
+
+#     if not instructeur :
+#         logger.error(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : Mail de l'instructeur non reconnu en BDD.")
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
+
+#     result = passer_en_instruction_ds(dossier_id, instructeur)
+
+#     if result["success"]:
+#         logger.info(f"[DOSSIER {dossier.numero}] Passage en instruction réussi sur DS par {instructeur_email}")
+
+#         try:
+#             etat_instruction = EtatDossier.objects.get(nom__iexact="en_instruction")
+#             dossier.id_etat_dossier = etat_instruction
+#             dossier.date_debut_instruction = timezone.now()
+#             dossier.save()
+#             logger.info(f"[DOSSIER {dossier.numero}] État du dossier mis à jour en 'en_instruction' par {instructeur_email}.")
+            
+#             return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+#         except Exception as e:
+#             logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la mise à jour en 'en_instruction' par {instructeur_email}: {e}")
+
 #     else:
-#         logger.warning(f"[DOSSIER {dossier.numero}] Note modifiée par {request.user.email} (utilisateur non identifié comme instructeur)")
+#         logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS par {instructeur_email}: {result['message']}")
 
 #     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+

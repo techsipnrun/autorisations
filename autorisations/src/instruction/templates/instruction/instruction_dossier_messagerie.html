@@ -188,6 +188,19 @@
                 sendButton.disabled = true;
                 sendButton.innerText = 'Envoi...';
             });
+
+            // Bouton Suppression
+            const deleteForms = document.querySelectorAll('.delete-form');
+
+            deleteForms.forEach(form => {
+                const deleteButton = form.querySelector("button[type='submit']");
+                
+                form.addEventListener("submit", function () {
+                    deleteButton.disabled = true;
+                    deleteButton.innerText = "Suppression...";
+                });
+            });
+
         });
     </script>
 

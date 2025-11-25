@@ -225,7 +225,6 @@ def instruction_dossier_messagerie(request, num_dossier):
                             "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
 
 
-
     # -----------------------------------
     # 4. Bénéficiaire & demandeur
     # -----------------------------------
@@ -264,8 +263,6 @@ def instruction_dossier_messagerie(request, num_dossier):
         "nb_messages_non_lus": nb_messages_non_lus,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
     })
-
-
 
 
 
@@ -349,10 +346,6 @@ def envoyer_message_dossier(request, numero):
 
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
-
-
 
 
 
@@ -455,7 +448,6 @@ def supprimer_message_avis(request, id):
 
 
  
-
 @login_required
 def supprimer_message_avis_vision_expert(request, id):
 
@@ -495,13 +487,6 @@ def supprimer_message_avis_vision_expert(request, id):
         return redirect_error(request, "❌ Erreur lors de la suppression du message. Contactez le support.")
 
     return redirect("avis_expert", avis_id=avis_id)
-
-
-
-
-
-
-
 
 
 

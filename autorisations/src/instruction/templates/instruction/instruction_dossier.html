@@ -219,7 +219,7 @@
 
                     <!-- Lien DS -->
                     {% if request.user|est_concerné_par_le_dossier:dossier %}
-                        <a class="icon_DS" href="https://www.demarches-simplifiees.fr/procedures/{{ demarche.numero }}{% if dossier.id_etat_dossier.nom in 'refuse,accepte,sans_suite' %}/traites{% else %}/suivis{% endif %}/dossiers/{{ dossier.numero }}" target="_blank">
+                        <a class="icon_DS" href="https://demarche.numerique.gouv.fr/procedures/{{ demarche.numero }}{% if dossier.id_etat_dossier.nom in 'refuse,accepte,sans_suite' %}/traites{% else %}/suivis{% endif %}/dossiers/{{ dossier.numero }}" target="_blank">
                             <img src="{% static 'instruction/img/icon_DS_32.png' %}"
                                 alt="Visualiser le dossier sur Démarches Simplifiées"
                                 title="Visualiser le dossier sur Démarches Simplifiées">

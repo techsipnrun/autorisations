@@ -162,6 +162,13 @@ h1 {
     margin-left: 0.5rem;
 }
 
+/* Disable bouton delete si cliqué */
+.disabled-delete {
+    opacity: 0.5;
+    cursor: wait !important;
+}
+
+
 .emetteur_message {
     margin-right: 1rem;
 }
