@@ -267,107 +267,150 @@ def instruction_dossier_messagerie(request, num_dossier):
 
 
 
+
+
 @require_POST
 @csrf_exempt
 def envoyer_message_dossier(request, numero):
 
-    if request.POST.get("correction") :
-        correction = request.POST.get("correction")
-    else:
-        correction = False
-
-    # Récupération message et PJ de l'instructeur
     body = request.POST.get("body")
     fichier = request.FILES.get("piece_jointe")
+    correction = request.POST.get("correction") or False
 
+    # ----------------------------
+    # Vérification
+    # ----------------------------
     if not body:
-        messages.error(request, "Message vide.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, "❌ Votre message est vide.")
+    
+    # Récupérer le dossier
+    dossier = Dossier.objects.filter(numero=numero).first()
+    if not dossier:
+        logger.error(f"[ENVOI MESSAGE] Dossier {numero} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le dossier est introuvable. Contactez le support.")
+    
+    if not dossier.id_ds :
+        logger.error(f"[DOSSIER {numero}] Erreur envoi du message par {request.user} : id_ds manquant — impossible d’envoyer le message DS.")
+        return redirect_error(request, "❌ Échec de l'envoi du message. L'id Démarches Simplifiées du dossier est introuvable. Contactez le support.")
     
     # Vérification taille fichier (20 Mo max)
     if fichier and fichier.size > 20 * 1024 * 1024:
-        messages.error(request, "Fichier trop volumineux. Taille maximale : 20 Mo.")
         logger.warning(f"[DOSSIER {dossier.numero}] {request.user} a voulu joindre un document > 20Mo à son message.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, "❌ Fichier trop volumineux. Taille maximale : 20 Mo.")
     
-    # Récupérer le dossier
-    dossier = get_object_or_404(Dossier, numero=numero)
-
+    
     # Récupérer l'instructeur
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur:
+        logger.warning(f"[DOSSIER {numero}] User {request.user} sans profil instructeur a tenté d’envoyer un message.")
+        return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
 
-    if not dossier.id_ds or not instructeur :
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas")
-        return HttpResponse(f"Session incomplète [DOSSIER {dossier.numero}] Erreur envoi du message : Soit l'id DS du dossier n'est pas renseignée soit l'instructeur ({request.user}) n'existe pas", status=401)
-    
+
+    # ----------------------------
+    # Envoi vers DS
+    # ----------------------------
     tmp_file_path = None
-    # PUT Message sur D-S
     try:
         if fichier:
-
             tmp_file_path = prepare_temp_file(fichier)
             result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur, body, fichier, fichier.content_type, tmp_file_path, numero, correction=correction)
 
         else:
             result_API_DS = envoyer_message_ds(dossier.id_ds, instructeur, body, num_dossier=numero, correction=correction)
 
-            
-        if result_API_DS.get("data"):
-            msg_ds = None
-            dossier_env_msg = result_API_DS["data"].get("dossierEnvoyerMessage")
+        # ----------------------------
+        # Vérification réponse DS
+        # ----------------------------
 
-            if dossier_env_msg is not None:
-                msg_ds = dossier_env_msg.get('message')
+        ds_data = result_API_DS.get("data", {})
+        dossier_env = ds_data.get("dossierEnvoyerMessage")
 
-        if msg_ds and msg_ds.get('id'):
-            url_ds = get_msg_DS(numero, msg_ds['id']) if fichier else None
-            enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=msg_ds['id'], url_ds=url_ds)
+        if not dossier_env or not dossier_env.get("message"):
+            logger.error(f"[DOSSIER {numero}] Erreur lors de l'envoi d'un message sur DS par {request.user}.")
+            return redirect_error(request, "❌ Erreur lors de l'envoi du message sur Démarches Simplifiées. Contactez le support")
 
-        else:
-            loggerDS.error(f"[DOSSIER {dossier.numero}] Erreur envoi message DS (le dossier n'a pas été trouvé sur DS)")
-            return HttpResponse(f"Dossier {numero} : Erreur lors de l'envoi du message sur Démarches Simplifiées (Le dossier n'a pas été trouvé)", status=500)
-        
+        msg_ds = dossier_env["message"]
+        msg_id_ds = msg_ds.get("id")
+
+        # Récupération URL DS si PJ
+        url_ds = get_msg_DS(numero, msg_id_ds) if fichier else None
+        enregistrer_message_bdd(dossier, request.user.email, body, fichier, id_ds=msg_ds['id'], url_ds=url_ds)
+
     except Exception as e:
-
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur envoi message sur DS : {e}")
-        return HttpResponse(f"Erreur : {e}", status=500)
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'envoi d'un message sur DS par {request.user} : {e}")
+        return redirect_error(request, "❌ Erreur lors de l'envoi du message sur Démarches Simplifiées. Contactez le support")
     
     finally:
-
         if tmp_file_path and os.path.exists(tmp_file_path):
-            os.remove(tmp_file_path)
+            try:
+                os.remove(tmp_file_path)
+            except Exception as e:
+                logger.warning(f"[DOSSIER {numero}] Impossible de supprimer tmp file {tmp_file_path} : {e}")
+
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
 
 
 
 @login_required
 def supprimer_message(request, id):
 
-    message = get_object_or_404(Message, id=id)
-
-    # Vérifie si l'utilisateur est bien l'émetteur
-    if message.email_emetteur.lower() != request.user.email.lower():
-        messages.error(request, f"❌ Vous n'êtes pas autorisé.e à supprimer ce message car vous n'en n'êtes pas l'auteur.rice")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-        # return HttpResponseForbidden("Vous n'êtes pas autorisé à supprimer ce message car vous n'en n'êtes pas l'auteur")
+    # -----------------
+    # Vérifications
+    # -----------------
+    message = Message.objects.filter(id=id).first()
+    if not message:
+        logger.error(f"[SUPPRESSION MESSAGE] Message {id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le message est introuvable. Contactez le support.")
     
+    dossier = message.id_dossier
+    if not dossier:
+        logger.error(f"[SUPPRESSION MESSAGE] Message {id} sans dossier lié — User {request.user}")
+        return redirect_error(request, "❌ Le dossier lié au message est introuvable. Contactez le support.")
+    
+    # Vérifie si l'utilisateur est bien l'émetteur
+    email_user = (request.user.email or "").lower().strip()
+    email_message = (message.email_emetteur or "").lower().strip()
+
+    if email_message != email_user:
+        logger.warning(f"[DOSSIER {dossier.numero}] Suppression message {id} refusée — User {request.user.email} n'est pas l'auteur.")
+        return redirect_error(request, "❌ Vous ne pouvez supprimer que vos propres messages.")
+
+   
+    # ------------------------
     # Suppression côté D-S
+    # ------------------------    
     try:
         suppr_msg_DS(message)
-        message.delete()
-        logger.info(f"[DOSSIER {message.id_dossier.numero}] Message {id} supprimé de la BDD")
-        referer = request.META.get("HTTP_REFERER", "")
-        if "preinstruction" in referer:
-            return redirect("preinstruction_dossier_messagerie", numero=message.id_dossier.numero)
-        else:
-            return redirect("instruction_dossier_messagerie", num_dossier=message.id_dossier.numero)
-    
+
     except Exception as e:
-        logger.error(f"[DOSSIER {message.id_dossier.numero}] Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        messages.error(request, f"❌ Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-        # return HttpResponse(f"Erreur : {e}", status=500)
+        logger.error(f"[DOSSIER {dossier.numero}] Échec suppression DS du message {id} par {request.user} : {e}")
+        return redirect_error(request, "❌ Erreur lors de la suppression du message sur Démarches Simplifiées. Contactez le support.")
+    
+
+    # ------------------------
+    # Suppression en BDD
+    # ------------------------  
+    try:
+        message.delete()
+        logger.info(f"[DOSSIER {message.id_dossier.numero}] Message {id} supprimé par {request.user}")
+        
+    except Exception as e:
+        logger.error(f"[DOSSIER {message.id_dossier.numero}] Erreur lors de la suppression du message {id} en BDD par {request.user} : {e}")
+        return redirect_error(request, f"❌ Erreur lors de la suppression du message {id} en base. Contactez le support.")
+       
+
+    # Redirection selon origine
+    referer = (request.META.get("HTTP_REFERER") or "").lower()
+    if "preinstruction" in referer:
+        return redirect("preinstruction_dossier_messagerie", numero=message.id_dossier.numero)
+
+    return redirect("instruction_dossier_messagerie", num_dossier=message.id_dossier.numero)
+
     
     
 @login_required
@@ -375,130 +418,233 @@ def supprimer_message_avis(request, id):
 
     dossier_numero = request.POST.get("dossier_numero")
     avis_id = request.POST.get("avis_id")
-    message = get_object_or_404(Message, id=id)
+
+    # -----------------
+    # Vérifications
+    # -----------------
+    message = Message.objects.filter(id=id).first()
+    if not message:
+        logger.error(f"[SUPPRESSION MESSAGE AVIS] Message {id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le message est introuvable. Contactez le support.")
+
+    if not dossier_numero or not avis_id:
+        logger.error(f"[SUPPRESSION MESSAGE AVIS] Paramètres manquants : dossier={dossier_numero}, avis={avis_id} — User {request.user}")
+        return redirect_error(request, "❌ Paramètres manquants pour supprimer le message. Contactez le support.")
 
     # Vérifie si l'utilisateur est bien l'émetteur
-    if message.email_emetteur.lower() != request.user.email.lower():
-        messages.error(request, "Vous n'êtes pas autorisé à supprimer ce message car vous n'en n'êtes pas l'auteur.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-        
+    email_user = (request.user.email or "").lower().strip()
+    email_message = (message.email_emetteur or "").lower().strip()
+
+    if email_message != email_user:
+        logger.warning(f"[DOSSIER {dossier_numero}] Avis {avis_id} : Suppression message {id} refusée — User {request.user.email} n'est pas l'auteur.")
+        return redirect_error(request, "❌ Vous ne pouvez supprimer que vos propres messages.")
+
+
+    # --------------------
+    # Suppression message
+    # --------------------
     try:
         message.delete()
-        logger.info(f"[DOSSIER {dossier_numero}] Avis {avis_id} : Message {id} supprimé.")
-        return redirect("instruction_dossier_avis", num_dossier=dossier_numero, avis_id=avis_id)
-    
+        logger.info(f"[DOSSIER {dossier_numero}] Avis {avis_id} : Message {id} supprimé par {request.user}.")
+
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_numero}] Avis {avis_id} : Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        messages.error(request, f"Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, "❌ Erreur lors de la suppression du message. Contactez le support.")
     
+    return redirect("instruction_dossier_avis", num_dossier=dossier_numero, avis_id=avis_id)
+
+
+ 
 
 @login_required
 def supprimer_message_avis_vision_expert(request, id):
 
-    # dossier_numero = request.POST.get("dossier_numero")
     avis_id = request.POST.get("avis_id")
-    message = get_object_or_404(Message, id=id)
+
+    # -----------------
+    # Vérifications
+    # -----------------
+    if not avis_id:
+        logger.error(f"[SUPPRESSION MESSAGE AVIS EXPERT] Paramètre avis_id manquant pour message {id} — User {request.user}")
+        return redirect_error(request, "❌ Erreur lors de l'identification de l'avis. Contactez le support.")
+
+    message = Message.objects.filter(id=id).first()
+    if not message:
+        logger.error(f"[SUPPRESSION MESSAGE AVIS] Message {id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le message est introuvable. Contactez le support.")
+
 
     # Vérifie si l'utilisateur est bien l'émetteur
-    if message.email_emetteur.lower() != request.user.email.lower():
-        messages.error(request, "Vous n'êtes pas autorisé à supprimer ce message car vous n'en n'êtes pas l'auteur.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-        
+    email_user = (request.user.email or "").lower().strip()
+    email_message = (message.email_emetteur or "").lower().strip()
+
+    if email_message != email_user:
+        logger.warning(f"[AVIS {avis_id}] : Suppression message {id} refusée — User {request.user.email} n'est pas l'auteur.")
+        return redirect_error(request, "❌ Vous ne pouvez supprimer que vos propres messages.")
+
+
+    # --------------------
+    # Suppression message
+    # --------------------
     try:
         message.delete()
-        logger.info(f"[AVIS {avis_id}] Message {id} supprimé.")
-        return redirect("avis_expert", avis_id=avis_id)
-    
+        logger.info(f"[AVIS {avis_id}] : Message {id} supprimé par {request.user}.")
+
     except Exception as e:
-        logger.error(f"[AVIS {avis_id}] Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        messages.error(request, f"Erreur lors de la suppression du message {id} par {request.user}: {e}")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        logger.error(f"[AVIS {avis_id}] : Erreur lors de la suppression du message {id} par {request.user}: {e}")
+        return redirect_error(request, "❌ Erreur lors de la suppression du message. Contactez le support.")
+
+    return redirect("avis_expert", avis_id=avis_id)
+
+
+
+
+
+
+
 
 
 
 @login_required
 def actualiser_messages(request, numero):
-    dossier = get_object_or_404(Dossier, numero=numero)
+
+    dossier = Dossier.objects.filter(numero=numero).first()
+    if not dossier:
+        logger.error(f"[ACTUALISATION MESSAGES] Dossier {numero} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Échec de l'actualisation de la messagerie. Le dossier associé est introuvable. Contactez le support.")
+
     client = GraphQLClient()
 
+    # Appel API DS pour récupérer les messages
     try:
-        # Appel API DS pour récupérer les messages
         result = client.execute_query("DS/queries/get_message.graphql", {"number": dossier.numero})
 
-        if "errors" in result and result["errors"]:
-            raise Exception(f"Erreur(s) GraphQL (Actualisation de la messagerie pour le dossier {numero}): {result['errors']}")
+        if result.get("errors"):
+            raise Exception(f"Erreur(s) GraphQL (Actualisation de la messagerie pour le dossier {numero}) : {result['errors']}")
 
-        # Normalisation
-        messages_norm = message_normalize({"messages": result["data"]["dossier"]["messages"], "number": dossier.numero, "usager": {}, "demandeur": {}}, dossier.emplacement)
-        
-        # Synchronisation en base
-        sync_messages(messages_norm, dossier.id)
-
-        logger.info(f"[DOSSIER {numero}] Actualisation des messages réussie par {request.user}.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-    
     except Exception as e:
-        logger.exception(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user}: {e}")
-        return HttpResponse(f"Erreur lors de l'actualisation des messages du dossier {numero} par {request.user} : {e}", status=500)
+        logger.error(f"[DOSSIER {numero}] Échec requête DS pour actualisation messages — User {request.user} : {e}")
+        return redirect_error(request,"❌ Erreur lors de la récupération des messages sur Démarches Simplifiées. Contactez le support.")
+       
+    # Normalisation
+    try :
+        data_ds = result.get("data", {}).get("dossier", {})
+        messages_bruts = data_ds.get("messages", [])
+        messages_norm = message_normalize({"messages": messages_bruts, "number": dossier.numero, "usager": {}, "demandeur": {}}, dossier.emplacement)
+        
+    except Exception as e:
+        logger.error(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user} - Erreur lors de normalisation des messages récupérés sur DS : {e}")
+        return redirect_error(request,"❌ Erreur lors de la normalisation des messages récupérés sur Démarches Simplifiées. Contactez le support.")
+    
+
+    # Synchronisation
+    try:
+        sync_messages(messages_norm, dossier.id)
+        logger.info(f"[DOSSIER {numero}] Actualisation des messages effectuée par {request.user}.")
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {numero}] Actualisation de la messagerie par {request.user} : Erreur lors de la synchronisation des messages : {e}")
+        return redirect_error(request, "❌ Échec lors de la synchronisation des messages. Contactez le support.")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
     
     
 
 @login_required
 def previsualiser_email(request, email_id):
-    email = get_object_or_404(EmailOutbox, pk=email_id)
 
+    # email = get_object_or_404(EmailOutbox, pk=email_id)
+    email = EmailOutbox.objects.filter(id=email_id).first()
+    if not email:
+        logger.error(f"[PREVIEW EMAIL] EmailOutbox {email_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ L’email demandé est introuvable. Contactez le support.")
+    
     try:
         text, html = _render_message(email)
 
     except Exception as e:
+        logger.error(f"[PREVIEW EMAIL] Erreur lors dela visualisation de l'email {email_id} par {request.user} : {e}")
         html = f"<p style='color:red;'>Erreur lors du rendu du template : {e}</p>"
 
-    return render(request, "instruction/email_preview.html", {
-        "email": email,
-        "corps_html": html,
-    })
+    return render(request, "instruction/email_preview.html", {"email": email, "corps_html": html})
 
 
 
 @login_required
 @require_POST
 def envoyer_mail_en_copie(request, email_id):
-    email = get_object_or_404(EmailOutbox, pk=email_id)
-    if email.type_mail != "Envoi de l'acte":
-        email.update(type_mail = "Envoi de l'acte")
-        email.save()
 
-    dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
+    # email = get_object_or_404(EmailOutbox, pk=email_id)
+    email = EmailOutbox.objects.filter(id=email_id).first()
+    if not email:
+        logger.error(f"[ENVOI MAIL COPIE] EmailOutbox {email_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Email introuvable en base. Contactez le support.")
+
+    # dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
+    dossier = Dossier.objects.filter(id=email.id_dossier_id).first()
+    if not dossier:
+        logger.error(f"[ENVOI MAIL COPIE] Email {email_id} : dossier {email.id_dossier_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le dossier lié à cet email introuvable. Contactez le support.")
+    
+    
+
+    if email.type_mail != "Envoi de l'acte":
+        try:
+            email.type_mail = "Envoi de l'acte"
+            email.save()
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Envoi mail en copie par {request.user} - Email {email.id} impossible de mettre à jour (type_mail) : {e}")
+            return redirect_error(request, "❌ Échec de l'envoi du mail. Contactez le support.")
+
 
     # Tentative >=3 et dernière tentative date de moins de 2h
-    if email.try_count >= 3 and (timezone.now() - email.derniere_tentative_envoi) < timedelta(hours=2) :
+    limite_temps = timedelta(hours=2)
+
+    if email.try_count >= 3 and (timezone.now() - email.derniere_tentative_envoi) < limite_temps :
 
         logger.error(f"[DOSSIER {dossier.numero}] {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}.")
-        messages.error(request, f"Déjà {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}. Contactez l'administrateur.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, f"Déjà {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}. Contactez le support.")
 
     ok, err = envoi_mail(email_id)
 
     if ok:
-        logger.info(f"[DOSSIER {dossier.numero}] Email ({email.sujet}) envoyé à {', '.join(email.to)} ")
+        logger.info(f"[DOSSIER {dossier.numero}] Email ({email.id}) envoyé par {request.user} à {', '.join(email.to)} ")
     else:
-        logger.error(f"[DOSSIER {dossier.numero}] Tentative {email.try_count} : Échec envoi email à {', '.join(email.to)} : {err}")
+        logger.error(f"[DOSSIER {dossier.numero}] Tentative {email.try_count} : Échec envoi email par {request.user} à {', '.join(email.to)} : {err}")
 
         if email.try_count < 3 :
-            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez l'administrateur.")
+            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez le support.")
         else :
-            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez l'administrateur.")
+            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
 
 
 @login_required
 @require_POST
 def supprimer_mail(request, email_id):
-    email = get_object_or_404(EmailOutbox, pk=email_id)
-    dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
-    email.delete()
+
+    # email = get_object_or_404(EmailOutbox, pk=email_id)
+    email = EmailOutbox.objects.filter(id=email_id).first()
+    if not email:
+        logger.error(f"[SUPPRESSION EMAIL] EmailOutbox {email_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ L’email est introuvable. Contactez le support.")
+
+    # dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
+    dossier = Dossier.objects.filter(id=email.id_dossier_id).first()
+    if not dossier:
+        logger.error(f"[SUPPRESSION EMAIL] Email {email_id} : Dossier {email.id_dossier_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le dossier associé à cet email est introuvable. Contactez le support.")
     
-    logger.info(f"[DOSSIER {dossier.numero}] Email ({email.statut}) supprimé avec succès : ({email.sujet}) à destination de {', '.join(email.to)} ")
+    try :
+        email.delete()
+        logger.info(f"[DOSSIER {dossier.numero}] Email ({email.id}) supprimé avec succès par {request.user}.")
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la suppression de l’email {email_id} par {request.user} : {e}")
+        return redirect_error(request,"❌ Une erreur s’est produite lors de la suppression de l’email. Contactez le support.")
+
     return redirect(request.META.get("HTTP_REFERER", "/"))

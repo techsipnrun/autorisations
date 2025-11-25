@@ -47,26 +47,31 @@ def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_t
         return {"success": False, "message": "Paramètres requis manquants."}
 
     if fichier and chemin_fichier:
-        
         loggerDS.info(f"[DOSSIER {num_dossier}] Tentative envoi du message avec PJ par {email_instructeur}")
 
-        if not correction :
-            return ds_envoyer_message_avec_pj(
-                dossier_id_ds=dossier_id_ds,
-                instructeur=instructeur,
-                chemin_fichier_original=chemin_fichier,
-                content_type=content_type,
-                body=body,
-            )
-        else:
-            return ds_envoyer_message_avec_pj(
-                dossier_id_ds=dossier_id_ds,
-                instructeur=instructeur,
-                chemin_fichier_original=chemin_fichier,
-                content_type=content_type,
-                body=body,
-                correction=True
-            )
+        try:
+            if not correction :
+                return ds_envoyer_message_avec_pj(
+                    dossier_id_ds=dossier_id_ds,
+                    instructeur=instructeur,
+                    chemin_fichier_original=chemin_fichier,
+                    content_type=content_type,
+                    body=body,
+                )
+            
+            else:
+                return ds_envoyer_message_avec_pj(
+                    dossier_id_ds=dossier_id_ds,
+                    instructeur=instructeur,
+                    chemin_fichier_original=chemin_fichier,
+                    content_type=content_type,
+                    body=body,
+                    correction=True
+                )
+            
+        except Exception as e:
+            loggerDS.error (f"[DOSSIER {num_dossier}] Échec envoi message avec PJ sur DS : {e}")
+            raise
 
     else:
         loggerDS.info(f"[DOSSIER {num_dossier}] Tentative d'envoi du message sans PJ par {email_instructeur}")
@@ -90,19 +95,18 @@ def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_t
             }
 
 
-        msgerror = f"[DOSSIER {num_dossier}] Échec envoi message sans PJ (peut être que le dossier n'existe pas sur Démarches Simplifiées)"
-
         try:
             result = client.execute_query("DS/mutations/send_message.graphql", variables)
             
             if not result["data"] and result["errors"] :
-                loggerDS.error(msgerror)
-                return HttpResponse(msgerror, status=500)
-            
+                loggerDS.error(f"[DOSSIER {num_dossier}] Échec envoi message sans PJ sur DS : {result["errors"]}")
+                return {"success": False, "message": "Échec envoi message sans PJ."}
+    
             return result
+        
         except Exception as e:
-            loggerDS.error (f"[DOSSIER {num_dossier}] Échec envoi message sans PJ.")
-            return HttpResponse(msgerror, status=500)
+            loggerDS.error (f"[DOSSIER {num_dossier}] Échec envoi message sans PJ sur DS : {e}")
+            raise
 
 
 def enregistrer_message_bdd(dossier, user_email, body, fichier=None, id_ds=None, url_ds = None):
