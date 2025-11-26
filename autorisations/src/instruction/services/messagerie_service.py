@@ -99,7 +99,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_t
             result = client.execute_query("DS/mutations/send_message.graphql", variables)
             
             if not result["data"] and result["errors"] :
-                loggerDS.error(f"[DOSSIER {num_dossier}] Échec envoi message sans PJ sur DS : {result["errors"]}")
+                loggerDS.error(f"[DOSSIER {num_dossier}] Échec envoi message sans PJ sur DS : {result['errors']}")
                 return {"success": False, "message": "Échec envoi message sans PJ."}
     
             return result

@@ -59,24 +59,21 @@
             {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
                 <div class="mini_timeline">
                 
-                    {% if etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "En attente réponse d'avis" or etape_actuelle.etape == "En attente de compléments " %}
-                        <img src="{% static 'instruction/img/timeline/2.svg' %}" alt="Timeline" class="mini_timeline">
-                    {% endif %}
 
                     {% if etape_actuelle.etape == "À affecter" or etape_actuelle.etape == "En pré-instruction" %}
                         <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
-                    {% endif %}
 
-                    {% if etape_actuelle.etape == "En attente de signature" %}
+                    {% elif etape_actuelle.etape == "En attente de signature" %}
                         <img src="{% static 'instruction/img/timeline/3.svg' %}" alt="Timeline" class="mini_timeline">
-                    {% endif %}
-
-                    {% if etape_actuelle.etape == "Acte à envoyer" %}
+ 
+                    {% elif etape_actuelle.etape == "Acte à envoyer" %}
                         <img src="{% static 'instruction/img/timeline/4.svg' %}" alt="Timeline" class="mini_timeline">
-                    {% endif %}
 
-                    {% if etape_actuelle.etape == "À publier au RAA" %}
+                    {% elif etape_actuelle.etape == "À publier au RAA" %}
                         <img src="{% static 'instruction/img/timeline/5.svg' %}" alt="Timeline" class="mini_timeline">
+
+                    {% else %}
+                        <img src="{% static 'instruction/img/timeline/2.svg' %}" alt="Timeline" class="mini_timeline">
                     {% endif %}
                 </div>
             {% endif %}
