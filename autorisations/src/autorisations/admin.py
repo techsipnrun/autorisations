@@ -31,6 +31,7 @@ class AvisAdmin(admin.ModelAdmin):
     )
     list_filter = ('id_avis_nature', 'id_avis_thematique', 'favorable', 'statut')
     search_fields = (
+        'id',
         'id_dossier__nom_dossier',
         'id_expert__id_instructeur__id_agent_autorisations__nom',
         'id_expert__id_contact_externe__nom',

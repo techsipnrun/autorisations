@@ -11,13 +11,27 @@ from django.db.models.functions import Concat
 from autorisations.models.models_avis import Avis
 from django.db.models.functions import ExtractYear, ExtractMonth
 
-
+def clean_int(value):
+    return value if value and value.isdigit() else None
 
 @login_required
 def requete_dossiers(request):
     dossiers = Dossier.objects.all().select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
 
-    numero = request.GET.get("numero")
+    # Menus déroulant
+    etapes_dossier = EtapeDossier.objects.all().order_by('etape')
+    demarches = Demarche.objects.all().order_by('type')
+    groupes = Groupeinstructeur.objects.all().order_by('nom')
+    annees = Dossier.objects.annotate(annee=ExtractYear("date_depot")) \
+                        .values_list("annee", flat=True).distinct().order_by("-annee")
+    
+    annees_avis = Avis.objects.annotate(annee=ExtractYear("date_demande_avis")) \
+        .values_list("annee", flat=True).distinct().order_by("-annee")
+    mois_list = Avis.objects.annotate(mois=ExtractMonth("date_demande_avis")) \
+        .values_list("mois", flat=True).distinct().order_by("mois")
+    
+
+    numero = clean_int(request.GET.get("numero"))
     date_depot = request.GET.get("date_depot")
     type_demarche = request.GET.get("type_demarche")
     groupe = request.GET.get("groupe")
@@ -27,7 +41,8 @@ def requete_dossiers(request):
     instructeur = request.GET.get("instructeur")
 
 
-    if annee:
+
+    if annee :
         dossiers = dossiers.filter(date_depot__year=annee)
 
     if numero:
@@ -36,37 +51,74 @@ def requete_dossiers(request):
     if date_depot:
         dossiers = dossiers.filter(date_depot__date=date_depot)
 
-    if type_demarche:
+    if type_demarche :
         dossiers = dossiers.filter(id_demarche__type__icontains=type_demarche)
 
-    if groupe:
+    if groupe :
         dossiers = dossiers.filter(id_groupeinstructeur__nom__icontains=groupe)
 
-    if etape:
+    if etape :
         dossiers = dossiers.filter(id_etape_dossier__etape__icontains=etape)
 
     if instructeur:
-        dossiers = dossiers.annotate(
-            nom_complet_instructeur=Concat(
-                F("dossierinstructeur__id_instructeur__id_agent_autorisations__nom"),
+        exists_instructeur = Instructeur.objects.annotate(
+            nom_complet=Concat(
+                F("id_agent_autorisations__nom"),
                 Value(" "),
-                F("dossierinstructeur__id_instructeur__id_agent_autorisations__prenom")
+                F("id_agent_autorisations__prenom"),
             )
-        ).filter(
-            Q(nom_complet_instructeur__iexact=instructeur)
-        ).distinct()
+        ).filter(nom_complet__iexact=instructeur).exists()
+        
+        if exists_instructeur :
+            dossiers = dossiers.annotate(
+                nom_complet_instructeur=Concat(
+                    F("dossierinstructeur__id_instructeur__id_agent_autorisations__nom"),
+                    Value(" "),
+                    F("dossierinstructeur__id_instructeur__id_agent_autorisations__prenom")
+                )
+            ).filter(
+                Q(nom_complet_instructeur__iexact=instructeur)
+            ).distinct()
+
+        else:
+            instructeur = ""
 
     if nom:
-        dossiers = dossiers.annotate(
-            nom_complet_beneficiaire=Concat(
-                F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom"),
+        # Vérifier si le nom existe en tant que raison sociale
+        exists_raison = ContactExterne.objects.filter(
+            dossierbeneficiaire__isnull=False,
+            raison_sociale__iexact=nom
+        ).exists()
+
+        # Vérifier si le nom existe comme Nom Prénom
+        exists_nom_prenom = ContactExterne.objects.annotate(
+            nom_complet=Concat(
+                F("nom"),
                 Value(" "),
-                F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom")
+                F("prenom")
             )
         ).filter(
-            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
-            Q(nom_complet_beneficiaire__iexact=nom)
-        ).distinct()
+            dossierbeneficiaire__isnull=False,
+            nom_complet__iexact=nom
+        ).exists()
+
+        nom_valide = exists_raison or exists_nom_prenom
+        if nom_valide:
+            dossiers = dossiers.annotate(
+                nom_complet_beneficiaire=Concat(
+                    F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom"),
+                    Value(" "),
+                    F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom")
+                )
+            ).filter(
+                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
+                Q(nom_complet_beneficiaire__iexact=nom)
+            ).distinct()
+
+        else:
+            nom = ""
+            
+   
 
     dossiers = dossiers.order_by('-date_depot')
 
@@ -80,13 +132,6 @@ def requete_dossiers(request):
             d.lien = f"/instruction/{d.numero}/"
             
 
-    # Menus déroulant
-    etapes_dossier = EtapeDossier.objects.all().order_by('etape')
-    demarches = Demarche.objects.all().order_by('type')
-    groupes = Groupeinstructeur.objects.all().order_by('nom')
-    annees = Dossier.objects.annotate(annee=ExtractYear("date_depot")) \
-                        .values_list("annee", flat=True).distinct().order_by("-annee")
-
 
     context = {
         "dossiers": dossiers,
@@ -98,6 +143,14 @@ def requete_dossiers(request):
         "recherche_dossier_effectuee": bool(request.GET),
         "recherche_avis_effectuee": False,
         "annees": annees,
+        "annees_avis": annees_avis,
+        "mois_list": mois_list,
+
+
+        # Champs nettoyés pour pré-remplissage propre
+        "nom_rempli": nom,
+        "instructeur_rempli": instructeur,
+        "numero_rempli": numero or "",
     }
     return render(request, "instruction/requetes.html", context)
 
@@ -115,14 +168,30 @@ def requete_avis(request):
         "id_expert",
     ).filter(statut="Envoyé")
 
+
+    # Menus déroulants ---
+    etapes_dossier = EtapeDossier.objects.all().order_by('etape')
+    demarches = Demarche.objects.all().order_by('type')
+    groupes = Groupeinstructeur.objects.all().order_by('nom')
+    annees = Dossier.objects.annotate(annee=ExtractYear("date_depot")) \
+                        .values_list("annee", flat=True).distinct().order_by("-annee")
+    
+    annees_avis = Avis.objects.annotate(annee=ExtractYear("date_demande_avis")) \
+        .values_list("annee", flat=True).distinct().order_by("-annee")
+    mois_list = Avis.objects.annotate(mois=ExtractMonth("date_demande_avis")) \
+        .values_list("mois", flat=True).distinct().order_by("mois")
+
+    demarches = Demarche.objects.all().order_by("type")
+
+
     # --- Récupération des filtres GET ---
-    num_avis = request.GET.get("num_avis")
+    num_avis = clean_int(request.GET.get("num_avis"))
     mois = request.GET.get("mois")
     annee = request.GET.get("annee")
     reponse = request.GET.get("reponse")
     demandeur = request.GET.get("demandeur")
     expert = request.GET.get("expert")
-    num_dossier = request.GET.get("num_dossier")
+    num_dossier = clean_int(request.GET.get("num_dossier"))
     type_demarche = request.GET.get("type_demarche")
     publie_raa = request.GET.get("publie_raa")  # Nouveau filtre
 
@@ -154,39 +223,73 @@ def requete_avis(request):
             avis_list = avis_list.filter(Q(publie_au_raa=False) | Q(publie_au_raa__isnull=True))
 
     if demandeur:
-        avis_list = avis_list.annotate(
-            nom_complet_demandeur=Concat(
-                Coalesce(F("id_instructeur__id_agent_autorisations__prenom"), Value("")),
-                Value(" "),
-                Coalesce(F("id_instructeur__id_agent_autorisations__nom"), Value("")),
+        exists_demandeur = (
+            Instructeur.objects.annotate(
+                nom_complet=Concat(
+                    F("id_agent_autorisations__prenom"),
+                    Value(" "),
+                    F("id_agent_autorisations__nom"),
+                )
             )
-        ).filter(
-            Q(nom_complet_demandeur__icontains=demandeur)
-            | Q(id_instructeur__email__icontains=demandeur)  # si l'instructeur n’a pas d’agent_autorisations
-        ).distinct()
+            .filter(nom_complet__iexact=demandeur)
+            .exists()
+        )
+
+        if exists_demandeur:
+            avis_list = avis_list.annotate(
+                nom_complet_demandeur=Concat(
+                    Coalesce(F("id_instructeur__id_agent_autorisations__prenom"), Value("")),
+                    Value(" "),
+                    Coalesce(F("id_instructeur__id_agent_autorisations__nom"), Value("")),
+                )
+            ).filter(nom_complet_demandeur__iexact=demandeur)
+        else:
+            demandeur = ""
 
 
     if expert:
-        avis_list = avis_list.annotate(
-            nom_complet_expert=Concat(
-                Coalesce(F("id_expert__id_instructeur__id_agent_autorisations__prenom"), Value("")),
-                Value(" "),
-                Coalesce(F("id_expert__id_instructeur__id_agent_autorisations__nom"), Value("")),
-            ),
-            nom_complet_externe=Concat(
-                Coalesce(F("id_expert__id_contact_externe__prenom"), Value("")),
-                Value(" "),
-                Coalesce(F("id_expert__id_contact_externe__nom"), Value("")),
-            ),
-        ).filter(
-            Q(nom_complet_expert__icontains=expert)
-            | Q(nom_complet_externe__icontains=expert)
-        ).distinct()
+        # Vérifier existence
+        exists_expert = (
+            Expert.objects.annotate(
+                interne=Concat(
+                    Coalesce(F("id_instructeur__id_agent_autorisations__prenom"), Value("")),
+                    Value(" "),
+                    Coalesce(F("id_instructeur__id_agent_autorisations__nom"), Value(""))
+                ),
+                externe=Concat(
+                    Coalesce(F("id_contact_externe__prenom"), Value("")),
+                    Value(" "),
+                    Coalesce(F("id_contact_externe__nom"), Value(""))
+                )
+            )
+            .filter(Q(interne__iexact=expert) | Q(externe__iexact=expert))
+            .exists()
+        )
+
+        if exists_expert:
+            avis_list = avis_list.annotate(
+                nom_complet_expert=Concat(
+                    Coalesce(F("id_expert__id_instructeur__id_agent_autorisations__prenom"), Value("")),
+                    Value(" "),
+                    Coalesce(F("id_expert__id_instructeur__id_agent_autorisations__nom"), Value(""))
+                ),
+                nom_complet_externe=Concat(
+                    Coalesce(F("id_expert__id_contact_externe__prenom"), Value("")),
+                    Value(" "),
+                    Coalesce(F("id_expert__id_contact_externe__nom"), Value(""))
+                )
+            ).filter(
+                Q(nom_complet_expert__iexact=expert) |
+                Q(nom_complet_externe__iexact=expert)
+            )
+        else:
+            expert = ""
+
 
     if num_dossier:
         avis_list = avis_list.filter(
             Q(id_dossier__numero=num_dossier)
-            | Q(avisdossier__id_dossier__numero=num_dossier)
+            | Q(dossieravis__id_dossier__numero=num_dossier)
         ).distinct()
 
 
@@ -195,23 +298,28 @@ def requete_avis(request):
 
     avis_list = avis_list.order_by("-date_demande_avis")
 
-    # --- Données pour les menus déroulants ---
-    annees = Avis.objects.annotate(annee=ExtractYear("date_demande_avis")) \
-        .values_list("annee", flat=True).distinct().order_by("-annee")
-    mois_list = Avis.objects.annotate(mois=ExtractMonth("date_demande_avis")) \
-        .values_list("mois", flat=True).distinct().order_by("mois")
-    demarches = Demarche.objects.all().order_by("type")
 
     # --- Contexte pour le template ---
     context = {
         "avis_list": avis_list,
         "recherche_avis_effectuee": bool(request.GET),
         "recherche_dossier_effectuee": False,
+        "annees_avis": annees_avis,
+        "mois_list": mois_list,
         "annees": annees,
+        'etapes_dossier': etapes_dossier,
+        "groupes": groupes,
         "mois_list": mois_list,
         "demarches": demarches,
+
+        # Champs nettoyés pour pré-remplissage propre
+        "expert_rempli": expert,
+        "demandeur_rempli": demandeur,
+        "num_dossier_rempli": num_dossier or "",
+        "num_avis_rempli": num_avis or "",
     }
 
+ 
     return render(request, "instruction/requetes.html", context)
 
 
@@ -229,23 +337,6 @@ def autocomplete_numero_dossier(request):
     return JsonResponse(resultats, safe=False)
 
 
-# @login_required
-# def autocomplete_nom_beneficiaire(request):
-#     query = request.GET.get("term", "").strip()
-#     if not query:
-#         return JsonResponse([], safe=False)
-
-#     # Récupère les bénéficiaires dont nom ou raison sociale contient la requête
-#     beneficiaires = ContactExterne.objects.filter(
-#         dossierbeneficiaire__isnull=False
-#     ).annotate(
-#         nom_affiche=Coalesce("raison_sociale", "nom", "prenom")
-#     ).filter(
-#         nom_affiche__icontains=query
-#     ).values_list("nom_affiche", flat=True).distinct().order_by("nom_affiche")[:5]
-
-#     data = [{"value": nom} for nom in beneficiaires]
-#     return JsonResponse(data, safe=False)
 
 
 

@@ -89,7 +89,7 @@
                 {% endif %}
 
                 
-                {% if request.user|est_concerne_par_avis:avis %}
+                {% if request.user|est_concerne_par_avis:avis and expert_is_CS %}
                     <!-- Publication RAA faite ? -->
                     {% if avis.favorable and avis_signes and not avis.publie_au_raa %}
                         {% if not est_expert or request.user|has_group:"Publication RAA Avis CS" %}

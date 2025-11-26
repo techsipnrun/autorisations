@@ -126,7 +126,7 @@ def sync_messages(messages, id_dossier):
             # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
             existe_deja = EmailOutbox.objects.filter(
                 dedupe_key=dedupe,
-                date_creation__date= timezone.now() - timedelta(hours=2)
+                date_creation__gte= timezone.now() - timedelta(hours=2)
             ).exists()
 
             if not existe_deja:

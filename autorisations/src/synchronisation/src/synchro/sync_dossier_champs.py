@@ -39,7 +39,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                                     description=doc["description"]
                                 )
                     
-                    # logger.warning(document_obj)
+                    logger.warning(document_obj)
 
                 except Document.DoesNotExist:
                     # logger.warning("LE DOC N'A PAS ETE TROUVÉ : ")
@@ -104,9 +104,11 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                         "id_document_id": document_obj.id,
                         "ordre": ordre_number,
                     }, date_fields=["date_saisie"])
-                    if updated_fields and updated_fields != ['ordre']:
-                        champ_obj.save()
 
+                    champ_obj.save()
+
+                    if updated_fields and updated_fields not in (['ordre'], ['id_document_id', 'ordre']) :
+                        logger.warning(f"{updated_fields}")
                         if dossier.id_etape_dossier.etape == "En attente de compléments" :
                             notif_demande_de_compléments = True
 
@@ -181,9 +183,12 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     "geometrie": dossier_champ.get("geometrie"),
                     "ordre": ordre_number,
                 }, date_fields=["date_saisie"])
-                if updated_fields and updated_fields != ['ordre']:
-                    champ_obj.save()
 
+                champ_obj.save()
+
+                if updated_fields and updated_fields not in (['ordre'], ['id_document_id', 'ordre']) :
+                    logger.warning(f"{updated_fields}")
+                    
                     if dossier.id_etape_dossier.etape == "En attente de compléments" :
                         notif_demande_de_compléments = True
 

@@ -28,7 +28,7 @@
 
                 <div class="form-field">
                     <label for="numero">N° Dossier :</label>
-                    <input type="text" name="numero" id="numero" list="suggestions-numero" autocomplete="off" value="{{ request.GET.numero }}">
+                    <input type="text" name="numero" id="numero" list="suggestions-numero" autocomplete="off" value="{{ numero_rempli }}">
                     <datalist id="suggestions-numero"></datalist>
                 </div>
 
@@ -51,7 +51,7 @@
 
                 <div class="form-field">
                     <label for="nom">Bénéficiaire :</label>
-                    <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ request.GET.nom }}">
+                    <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ nom_rempli }}">
                     <datalist id="suggestions-nom"></datalist>
                 </div>
 
@@ -87,7 +87,7 @@
 
                 <div class="form-field">
                     <label for="instructeur">Instructeur :</label>
-                    <input type="text" name="instructeur" id="instructeur" list="suggestions-instructeur" autocomplete="off" value="{{ request.GET.instructeur }}">
+                    <input type="text" name="instructeur" id="instructeur" list="suggestions-instructeur" autocomplete="off" value="{{ instructeur_rempli }}">
                     <datalist id="suggestions-instructeur"></datalist>
                 </div>
 
@@ -172,7 +172,7 @@
 
             <div class="form-field">
                 <label for="num_avis">N° Avis :</label>
-                <input type="text" name="num_avis" id="num_avis" value="{{ request.GET.num_avis }}">
+                <input type="text" name="num_avis" id="num_avis" value="{{ num_avis_rempli }}">
             </div>
 
             <div class="form-field">
@@ -189,7 +189,7 @@
                 <label for="annee">Année (de la demande) :</label>
                 <select name="annee" id="annee">
                     <option value=""> - - - </option>
-                    {% for an in annees %}
+                    {% for an in annees_avis %}
                         <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
                     {% endfor %}
                 </select>
@@ -208,19 +208,19 @@
 
             <div class="form-field">
                 <label for="demandeur">Demandeur :</label>
-                <input type="text" name="demandeur" id="demandeur" list="suggestions-demandeur" autocomplete="off" value="{{ request.GET.demandeur }}">
+                <input type="text" name="demandeur" id="demandeur" list="suggestions-demandeur" autocomplete="off" value="{{ demandeur_rempli }}">
                 <datalist id="suggestions-demandeur"></datalist>
             </div>
 
             <div class="form-field">
                 <label for="expert">Expert :</label>
-                <input type="text" name="expert" id="expert" list="suggestions-expert" autocomplete="off" value="{{ request.GET.expert }}">
+                <input type="text" name="expert" id="expert" list="suggestions-expert" autocomplete="off" value="{{ expert_rempli }}">
                 <datalist id="suggestions-expert"></datalist>
             </div>
 
             <div class="form-field">
                 <label for="num_dossier">N° d’un dossier lié :</label>
-                <input type="text" name="num_dossier" id="num_dossier" value="{{ request.GET.num_dossier }}">
+                <input type="text" name="num_dossier" id="num_dossier" value="{{ num_dossier_rempli }}">
             </div>
 
             <div class="form-field">

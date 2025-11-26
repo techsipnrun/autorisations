@@ -1,6 +1,7 @@
 import ast
 import json
 import logging
+from django.utils import timezone
 
 from django.shortcuts import redirect
 from autorisations.models.models_instruction import Dossier, DossierAction, Message
@@ -95,7 +96,7 @@ def safe_update_etat(dossier, nouvel_etat, request, break_si_erreur):
             return None
 
 
-def safe_enregistrer_action(dossier, instructeur, action, request, description=None, date=None):
+def safe_enregistrer_action(dossier, instructeur, action, request, description=None, date=timezone.now()):
     """
     Enregistre une action sur un dossier avec gestion des erreurs.
     Pour rappel : enregistrer_action(dossier, instructeur, nom_action, description=None, date=None)

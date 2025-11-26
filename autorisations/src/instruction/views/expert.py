@@ -151,6 +151,7 @@ def avis_expert(request, avis_id):
     est_un_instructeur = bool(instructeur)
     est_demandeur = False
     est_expert = False
+    expert_is_CS = False
 
 
     ##############################################################
@@ -193,6 +194,10 @@ def avis_expert(request, avis_id):
     if email_expert and email_user == email_expert:
         est_expert = True
         est_demandeur = False
+
+    if avis.id_expert and avis.id_expert.id_contact_externe and avis.id_expert.id_contact_externe.raison_sociale :
+        if avis.id_expert.id_contact_externe.raison_sociale.lower() == "conseil scientifique" :
+            expert_is_CS = True
 
 
     ##############################################################
@@ -314,6 +319,7 @@ def avis_expert(request, avis_id):
         "est_demandeur": est_demandeur,
         "est_un_instructeur": est_un_instructeur,
         "dossiers_lies": dossiers_lies,
+        "expert_is_CS": expert_is_CS
     })
 
 
@@ -590,7 +596,7 @@ def remplacer_avis_signe(request):
             # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
             existe_deja = EmailOutbox.objects.filter(
                 dedupe_key=dedupe,
-                date_creation__date= timezone.now() - datetime.timedelta(hours=2)
+                date_creation__gte= timezone.now() - datetime.timedelta(hours=2)
             ).exists()
 
             if not existe_deja:

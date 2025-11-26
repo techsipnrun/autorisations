@@ -16,6 +16,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvo
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
+from instruction.utils.dossier_utils import redirect_error, safe_enregistrer_action
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -39,10 +40,9 @@ loggerSynchro = logging.getLogger("SYNCHRONISATION")
 loggerDS = logging.getLogger("API_DS")  
 
 
-@login_required(login_url='/login/')
-def requetes(request):
-    return render(request, 'instruction/requetes.html')
-
+# @login_required(login_url='/login/')
+# def requetes(request):
+#     return render(request, 'instruction/requetes.html')
 
 
 def lancer_en_arriere_plan2():
@@ -53,13 +53,11 @@ def lancer_en_arriere_plan2():
     # S'assurer que la ligne existe
     SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
 
-    # print(f"date_derniere_tentative = {timezone.localtime(timezone.now())}")
-    # print(f"timezone.now = {timezone.now()}")
-
     # Tentative atomique: on passe en True seulement si c'est actuellement False
     rows = (SynchronisationEtat.objects
             .filter(id=1, en_cours=False)
             .update(en_cours=True, date_derniere_tentative=timezone.localtime(timezone.now())))
+
     if rows == 0:
         logger.warning("Synchro déjà en cours – nouvelle tentative ignorée (BDD).")
         return False
@@ -71,37 +69,18 @@ def lancer_en_arriere_plan2():
             with open("logs/synchronisation.log", "a", buffering=1) as f:
                 process = subprocess.Popen(
                     [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
-                    stdout=f,
-                    stderr=f,
+                    stdout=f, stderr=f,
                 )
-                ret_code = process.wait()
-                statut = "ok" if ret_code == 0 else "erreur"
-
-            # print('sleep start')
-            # time.sleep(30)
-            # print('sleep stop')
-            # statut = "ok"
 
         except Exception:
             logger.exception("Erreur lors du sous-processus de synchronisation.")
-            statut = "erreur"
+
         finally:
             close_old_connections()
-            # try:
-            #     update_data = {
-            #         "en_cours": False,
-            #         "dernier_statut": statut,
-            #     }
-            #     if statut == "ok":
-            #         loggerSynchro.info(" ############## STATUT OK lancement_et_suivi --> DATE_MAJ mise à jour ################ ")
-            #         update_data["date_maj"] = timezone.now()
-
-            #     SynchronisationEtat.objects.filter(id=1).update(**update_data)
-            # finally:
-                # close_old_connections()
 
     threading.Thread(target=lancement_et_suivi).start()
     return True
+
 
 
 @login_required
@@ -117,16 +96,17 @@ def actualiser_donnees(request):
     return JsonResponse({"status": "error", "message": "Requête invalide"})
 
 
+
 @login_required
 def etat_actualisation(request):
     etat = SynchronisationEtat.objects.filter(id=1).first()
 
     # Timeout de sécurité : si ça dépasse 1h, on force en_cours=False
-    TIMEOUT_RESET_FLAG = 60  # minutes
+    TIMEOUT_RESET_FLAG = 60
     if ( etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=TIMEOUT_RESET_FLAG)):
+        
         loggerSynchro.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout de {TIMEOUT_RESET_FLAG} minutes dépassé) – dernière tentative : {timezone.localtime(etat.date_derniere_tentative)}")
         etat.en_cours = False
-        # etat.date_maj = timezone.now()
         etat.save(update_fields=["en_cours"])
 
     if not etat:
@@ -157,8 +137,9 @@ def rediriger_vers_dossier_precedent(request, num_dossier_precedent):
     if dossier_prec:
         return redirect("instruction_dossier", num_dossier=dossier_prec.numero)
     else:
-        messages.error(request, f"Aucun dossier trouvé avec le numéro {numero}.")
+        messages.error(request, f"Aucun dossier trouvé en base avec le numéro {numero}.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 
 @require_POST
@@ -166,85 +147,134 @@ def rediriger_vers_dossier_precedent(request, num_dossier_precedent):
 def se_declarer_instructeur(request):
     
     dossier_id = request.POST.get("dossier_id")
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-
-    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
     instructeur_id = request.POST.get("instructeur_id")
+    email_user = request.user.email or ""
+
+    # -----------------
+    # Vérifications
+    # -----------------
+    dossier = Dossier.objects.filter(id=dossier_id).first()
+    if not dossier:
+        logger.error(f"[AJOUT INSTRUCTEUR] Dossier id={dossier_id} introuvable — User : {email_user}")
+        return redirect_error(request, "❌ Dossier introuvable. Contactez le support.")
+    
+    instructeur_request = Instructeur.objects.filter(email=email_user).first()
+    if not instructeur_request:
+        logger.error(f"[DOSSIER {dossier.numero}] Le user {request.user} a voulu ajouter un instructeur au dossier, or il n'a pas de profil 'Instructeur'.")
+        return redirect_error(request, "❌ Vous n’avez pas de profil Instructeur. Contactez le support si besoin.")
+
     instructeur = Instructeur.objects.filter(id=instructeur_id).first()
+    if not instructeur:
+        logger.error(f"[DOSSIER {dossier.numero}] User : {email_user}, Ajout instructeur impossible — instructeur_id={instructeur_id} inexistant.")
+        return redirect_error(request, "❌ Instructeur introuvable. Contactez le support.")
 
-    if instructeur and dossier.id_groupeinstructeur:
-        instructeurs_du_groupe = dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.values_list("id_instructeur_id", flat=True)
-        if instructeur.id in instructeurs_du_groupe:
-            DossierInstructeur.objects.get_or_create(id_dossier=dossier, id_instructeur=instructeur)
-            logger.info(f"[DOSSIER {dossier.numero}] Affectation à l'instructeur {instructeur.email}")
+    if not dossier.id_groupeinstructeur:
+        logger.error(f"[DOSSIER {dossier.numero}] User : {email_user}, Ajout de l'instructeur {instructeur} impossible — aucun groupe instructeur affecté.")
+        return redirect_error(request, "❌ Aucun groupe instructeur n’est affecté au dossier. Contactez le support.")
 
-            nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
+    # L'instructeur doit appartenir au groupe instructeur
+    instructeurs_du_groupe = set(dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.values_list("id_instructeur_id", flat=True))
 
-            # Dossier Action
-            enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
-
-            #######################
-            # NOTIFICATION PAR MAIL 
-            #######################
-
-            if request.user.email != instructeur.email :
-                # emails_norm = [instructeur.email]
-                emails_norm = ["louis.calu@reunion-parcnational.fr"]
-                sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
-                # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
-                context = {
-                    "dossier_numero": dossier.numero,
-                    "demarche_type": dossier.id_demarche.type,
-                    "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
-                }
-                template_name = "ajouter_a_instruction" 
-                dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-
-                # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
-                existe_deja = EmailOutbox.objects.filter(
-                    dedupe_key=dedupe,
-                    date_creation__date= timezone.now() - timedelta(hours=2)
-                ).exists()
-
-                if not existe_deja:
-                    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
-
-                    if outbox :
-                        ok, err = envoi_mail(outbox.id)
-                    else :
-                        logger.error(f"[DOSSIER {dossier.numero}] Instruteur ajouté : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
-                        messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-                    if ok:
-                        logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Ajout instructeur) envoyée à {', '.join(outbox.to)} ")
-                    else:
-                        logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
-                        messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+    if instructeur.id not in instructeurs_du_groupe:
+        logger.error(f"[DOSSIER {dossier.numero}] Ajout instructeur refusé — {instructeur} n'appartient pas au groupe {dossier.id_groupeinstructeur.nom}")
+        return redirect_error(request,"❌ Vous ne pouvez pas ajouter cet instructeur : il n’appartient pas au groupe instructeur du dossier.")
 
 
-        else :
-            logger.error(f"[DOSSIER {dossier.numero}] Incohérence lors de l'affectation du dossier à l'instructeur {instructeur.email}. L'utilisateur n'est pas dans le groupe instructeur : {instructeurs_du_groupe}")
-    else :
-        logger.error(f"[DOSSIER {dossier.numero}] Problème lors de l'affectation du dossier à l'instructeur : {instructeur}.")
+    DossierInstructeur.objects.get_or_create(id_dossier=dossier, id_instructeur=instructeur)
+    logger.info(f"[DOSSIER {dossier.numero}] Instructeur {instructeur} ajouté par {request.user}.")
+
+    # nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
+    nom_prenom = (
+        f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
+        if instructeur.id_agent_autorisations
+        else instructeur.email
+    )
+    
+    # Dossier Action
+    # enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
+    safe_enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", request, description=nom_prenom)
+
+
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    if email_user != instructeur.email :
+        # emails_norm = [instructeur.email]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
+        
+        context = {
+            "dossier_numero": dossier.numero,
+            "demarche_type": dossier.id_demarche.type,
+            "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
+        }
+
+        template_name = "ajouter_a_instruction" 
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Ajout de l'instructeur {instructeur} par {request.user} : Erreur lors de la création de la clé unique (compute_dedupe_key), pas d'email de notification : {e}")
+            return redirect_error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+
+        # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
+        existe_deja = EmailOutbox.objects.filter(
+            dedupe_key=dedupe,
+            date_creation__gte= timezone.now() - timedelta(hours=2)
+        ).exists()
+
+        if not existe_deja:
+            outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+
+            if outbox :
+                ok, err = envoi_mail(outbox.id)
+            else :
+                logger.error(f"[DOSSIER {dossier.numero}] Instruteur ajouté : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+            if ok:
+                logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Ajout instructeur) envoyée à {', '.join(outbox.to)} ")
+            else:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
+                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+
+
 @require_POST
 @login_required
 def retirer_instructeur(request):
+
     dossier_id = request.POST.get("dossier_id")
     instructeur_id = request.POST.get("instructeur_id")
+    email_user = request.user.email or ""
 
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    instructeur = get_object_or_404(Instructeur, id=instructeur_id)
+    # ---------------------
+    # Vérifications
+    # ---------------------
+    dossier = Dossier.objects.filter(id=dossier_id).first()
+    if not dossier:
+        logger.error(f"[RETIRER INSTRUCTEUR] Dossier id={dossier_id} introuvable — User : {email_user}")
+        return redirect_error(request, "❌ Dossier introuvable. Contactez le support.")
 
-    # Tous les instructeurs affectés
-    instructeurs_ids = list(
-        DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
-    )
+    instructeur = Instructeur.objects.filter(id=instructeur_id).first()
+    if not instructeur:
+        logger.error(f"[DOSSIER {dossier_id}] Retrait instructeur impossible — instructeur_id={instructeur_id} inexistant.")
+        request.session["retirer_instructeur_message"] = "Instructeur introuvable."
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    
+    instructeur_en_cours = Instructeur.objects.filter(email=email_user).first()
+    if not instructeur_en_cours:
+        logger.error(f"[DOSSIER {dossier_id}] Le user {request.user} a tenté de retirer l'instructeur {instructeur} sans profil instructeur.")
+        request.session["retirer_instructeur_message"] = "Instructeur introuvable."
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
+    # L'instructeur visé est-il instructeur du dossier
+    instructeurs_ids = list(DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True))
     if instructeur.id not in instructeurs_ids:
         request.session["retirer_instructeur_message"] = "Cet instructeur n'est pas affecté à ce dossier."
         return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -258,49 +288,57 @@ def retirer_instructeur(request):
 
     groupe = dossier.id_groupeinstructeur
     if not groupe:
-        request.session["retirer_instructeur_message"] = "Aucun groupe instructeur n’est défini pour ce dossier."
+        request.session["retirer_instructeur_message"] = "Aucun groupe instructeur n’est défini pour ce dossier. Contactez le support."
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    instructeurs_groupe_ids = set(
-        GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe).values_list("id_instructeur", flat=True)
-    )
+    instructeurs_groupe_ids = set(GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe).values_list("id_instructeur", flat=True))
 
     if not (set(instructeurs_restants_ids) & instructeurs_groupe_ids):
-        request.session["retirer_instructeur_message"] = (
-            "Impossible de retirer l'instructeur : aucun instructeur restant n'appartient au groupe instructeur."
-        )
+        request.session["retirer_instructeur_message"] = ("Impossible de retirer l'instructeur : aucun instructeur restant n'appartient au groupe instructeur.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # Retrait autorisé
-    DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
-    user = Instructeur.objects.filter(email=request.user.email).first()
-    logger.info(f"[DOSSIER {dossier.numero}] {user} a retiré l'instructeur {instructeur} du dossier.")
 
-    nom_prenom = f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
-    enregistrer_action(dossier, user, "Instructeur.e retiré.e", nom_prenom)
+    # ---------------------
+    # Retrait autorisé
+    # ---------------------
+    DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
+    logger.info(f"[DOSSIER {dossier.numero}] {instructeur_en_cours} a retiré l'instructeur {instructeur}.")
+
+    nom_prenom = (
+        f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
+        if instructeur.id_agent_autorisations
+        else instructeur.email
+    )
+
+    # Dossier Action
+    safe_enregistrer_action(dossier, instructeur_en_cours, "Instructeur.e retiré.e", request, description=nom_prenom)
 
 
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-
-    if request.user.email != instructeur.email :
+    if email_user != instructeur.email :
         # emails_norm = [instructeur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous avez été retiré.e de l'instruction"
-        # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+
         context = {
             "dossier_numero": dossier.numero,
             "demarche_type": dossier.id_demarche.type,
             "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
         }
         template_name = "retirer_de_instruction"
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try:
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Retrait instructeur : {instructeur} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect_error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date= timezone.now() - timedelta(hours=2)
+            date_creation__gte= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -321,71 +359,101 @@ def retirer_instructeur(request):
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+
 @require_POST
 @login_required
 def changer_valideur(request):
     dossier_id = request.POST.get("dossier_id")
     new_valideur_id = request.POST.get("new_valideur_id")
 
-    if not dossier_id or not new_valideur_id:
-        request.session["changer_valideur_message"] = ("Données manquantes pour le changement de validant·e.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    new_valideur = get_object_or_404(Instructeur, id=new_valideur_id)
-    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
-
-    if not dossier:
-        request.session["changer_valideur_message"] = ("Dossier introuvable.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    if not new_valideur:
-        request.session["changer_valideur_message"] = ("Validant·e sélectionné·e invalide.")
+    # ---------------------
+    # Vérifications
+    # ---------------------
+    if not dossier_id:
+        logger.error(f"[CHANGER VALIDEUR] User={request.user} : ID du dossier manquant dans le formulaire.")
+        request.session["changer_valideur_message"] = ("L'id du dossier est manquant. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
+    if not new_valideur_id:
+        logger.error(f"[CHANGER VALIDEUR] User={request.user} : ID du valideur manquant dans le formulaire.")
+        request.session["changer_valideur_message"] = ("L'id du nouveau validant est manquant. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier = Dossier.objects.filter(id=dossier_id).first()
+    if not dossier:
+        logger.error(f"[CHANGER VALIDEUR] Dossier id={dossier_id} introuvable — User={request.user}")
+        request.session["changer_valideur_message"] = ("Dossier introuvable.  Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    instructeur_en_cours = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur_en_cours:
+        logger.error(f"[DOSSIER {dossier.numero}] Le user {request.user} sans profil instructeur a tenté de changer un validant.")
+        request.session["changer_valideur_message"] = ("Vous devez disposer d’un profil Instructeur. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    new_valideur = Instructeur.objects.filter(id=new_valideur_id).first()
+    if not new_valideur:
+        logger.error(f"[DOSSIER {dossier_id}] Changer de validant - User : {request.user}. Nouveau validant id={new_valideur_id} introuvable")
+        request.session["changer_valideur_message"] = ("Nouveau validant introuvable. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # Ancien valideur
     id_old_valideur = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
     old_valideur = Instructeur.objects.filter(id=id_old_valideur).first()
-
 
     # S'assurer que le nouveau valideur est différent
     if old_valideur and old_valideur.id == new_valideur.id:
         request.session["changer_valideur_message"] = ("Le/la validant·e sélectionné·e est déjà affecté·e à ce dossier.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # Suppression de l'ancien valideur (s'il existe)
-    if old_valideur:
-        DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=old_valideur).delete()
-    # Ajout du nouveau valideur
-    DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=new_valideur)
-    
-    # On enregistre l'action
-    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Validant.e changé.e", f"→ {new_valideur}")
 
-    logger.info(f"[DOSSIER {dossier.numero}] Changement de validant.e : {old_valideur} --> {new_valideur}")
+    # -----------------------
+    # Mise à jour BDD
+    # -----------------------
+    try :
+        # Suppression de l'ancien valideur
+        if old_valideur:
+            DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=old_valideur).delete()
+
+        # Ajout du nouveau valideur
+        DossierValideur.objects.get_or_create(id_dossier=dossier, id_instructeur=new_valideur)
+        logger.info(f"[DOSSIER {dossier.numero}] Validant changé : {old_valideur} → {new_valideur} (par {request.user})")
+    
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] User : {request.user}. Erreur lors du changement de validant ({old_valideur} → {new_valideur}) : {e}")
+        return redirect_error(request, "❌ Erreur lors du changement de validant. Contactez le support.")
+
+    # Dossier Action
+    safe_enregistrer_action(dossier, instructeur_en_cours, "Validant.e changé.e", request, description=f"→ {new_valideur}")
 
 
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    if user_faisant_le_changement != new_valideur :
+    if instructeur_en_cours != new_valideur :
 
         # emails_norm = [new_valideur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous êtes désormais le-la validant.e du dossier"
-        # Template (template_mail_name_from_etape(nouvelle_etape.etape)) à faire + Body à mettre
+
         context = {
                     "dossier_numero": dossier.numero,
                     "demarche_type": dossier.id_demarche.type,
                     "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
         template_name = "changer_validant"
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try:
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] User : {request.user} - Changer de validant. {new_valideur} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect_error(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date= timezone.now() - timedelta(hours=2)
+            date_creation__gte= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -406,54 +474,78 @@ def changer_valideur(request):
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
+
 @require_POST
 @login_required
 def changer_relecteur(request):
+
     dossier_id = request.POST.get("dossier_id")
     new_relecteur_id = request.POST.get("new_relecteur_id")
+    email_user = request.user.email or ""
 
-    if not dossier_id or not new_relecteur_id:
-        request.session["changer_relecteur_qualite_message"] = ("Données manquantes pour le changement de relecteur.rice")
+    # -----------------
+    # Vérifications 
+    # -----------------
+    if not dossier_id:
+        logger.error(f"[CHANGER RELECTEUR] User={request.user} : dossier_id manquant.")
+        request.session["changer_relecteur_qualite_message"] = ("Identifiant du dossier manquant. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    new_relecteur = get_object_or_404(Instructeur, id=new_relecteur_id)
-    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
+    if not new_relecteur_id:
+        logger.error(f"[CHANGER RELECTEUR] User={request.user} : new_relecteur_id manquant.")
+        request.session["changer_relecteur_qualite_message"] = ("Identifiant du nouveau relecteur manquant. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
+    dossier = Dossier.objects.filter(id=dossier_id).first()
     if not dossier:
-        request.session["changer_relecteur_qualite_message"] = ("Dossier introuvable.")
+        logger.error(f"[CHANGER RELECTEUR] Dossier id={dossier_id} introuvable — User : {email_user}")
+        request.session["changer_relecteur_qualite_message"] = ("Dossier introuvable. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
+    instructeur_en_cours = Instructeur.objects.filter(email=email_user).first()
+    if not instructeur_en_cours:
+        logger.error(f"[DOSSIER {dossier.numero}] User {request.user} sans profil instructeur a tenté de modifier un relecteur.")
+        request.session["changer_relecteur_qualite_message"] = ("Vous devez disposer d’un profil Instructeur. Contactez le support.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    new_relecteur = Instructeur.objects.filter(id=new_relecteur_id).first()
     if not new_relecteur:
-        request.session["changer_relecteur_qualite_message"] = ("Relecteur.rice sélectionné·e invalide.")
+        logger.error(f"[DOSSIER {dossier.numero}] Nouveau relecteur id={new_relecteur_id} introuvable — User : {instructeur_en_cours}")
+        request.session["changer_relecteur_qualite_message"] = ("Nouveau relecteur introuvable. Contactez le support.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
+    # Ancien relecteur
     id_old_relecteur = DossierRelecteurQualite.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
     old_relecteur = Instructeur.objects.filter(id=id_old_relecteur).first()
 
-
-    # S'assurer que le nouveau valideur est différent
+    # S'assurer que le nouveau relecteur est différent
     if old_relecteur and old_relecteur.id == new_relecteur.id:
         request.session["changer_relecteur_qualite_message"] = ("Le/la relecteur.rice sélectionné·e est déjà affecté·e à ce dossier.")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # Suppression de l'ancien valideur (s'il existe)
-    if old_relecteur:
-        DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=old_relecteur).delete()
-    # Ajout du nouveau valideur
-    DossierRelecteurQualite.objects.get_or_create(id_dossier=dossier, id_instructeur=new_relecteur)
+    # -------------------------
+    # Mise à jour BDD
+    # -------------------------
+    try :
+        # Suppression de l'ancien relecteur (s'il existe)
+        if old_relecteur:
+            DossierRelecteurQualite.objects.filter(id_dossier=dossier, id_instructeur=old_relecteur).delete()
+        # Ajout du nouveau valideur
+        DossierRelecteurQualite.objects.get_or_create(id_dossier=dossier, id_instructeur=new_relecteur)
+        logger.info(f"[DOSSIER {dossier.numero}] Relecteur Qualité changé par {instructeur_en_cours} : {old_relecteur} → {new_relecteur}")
     
-    # On enregistre l'action
-    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Relecteur.rice changé.e", f"→ {new_relecteur}")
-
-    logger.info(f"[DOSSIER {dossier.numero}] Changement de relecteur.rice : {old_relecteur} --> {new_relecteur}")
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur MAJ relecteur qualité en BDD ({old_relecteur} → {new_relecteur}) : {e}")
+        return redirect_error(request, "❌ Erreur lors du changement de relecteur. Contactez le support.")
+    
+    # Action dossier
+    safe_enregistrer_action(dossier, instructeur_en_cours, "Relecteur.rice changé.e", request, description=f"→ {new_relecteur}")
 
 
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    if user_faisant_le_changement != new_relecteur :
+    if instructeur_en_cours != new_relecteur :
 
         # emails_norm = [new_relecteur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
@@ -465,12 +557,19 @@ def changer_relecteur(request):
                     "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
         template_name = "changer_relecteur"
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
+        try:
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] User : {instructeur_en_cours} - Changer de relecteur. {new_relecteur} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect_error(request, f"L'email de notification à {new_relecteur} n'a pas été envoyé. Contactez le support.")
+        
+     
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date= timezone.now() - timedelta(hours=2)
+            date_creation__gte= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -488,7 +587,6 @@ def changer_relecteur(request):
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau relecteur) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {new_relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -496,51 +594,70 @@ def changer_relecteur(request):
 @require_POST
 @login_required
 def changer_intermediaire_signature(request):
+
     dossier_id = request.POST.get("dossier_id")
     new_intermediaire_id = request.POST.get("new_intermediaire_id")
+    email_user = request.user.email or ""
 
-    if not dossier_id or not new_intermediaire_id:
-        messages.error(request, f"Données manquantes pour le changement d'intermédiaire pour la signature.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+    # ----------------
+    # Vérifications
+    # ----------------
+    if not dossier_id:
+        logger.error(f"[CHANGER INTERMEDIAIRE SIGNATURE] User={request.user} : dossier_id manquant.")
+        return redirect_error(request, "Identifiant du dossier manquant. Contactez le support.")
 
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    new_intermediaire = get_object_or_404(Instructeur, id=new_intermediaire_id)
-    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
-
-    if not dossier:
-        messages.error(request, f"Dossier introuvable.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    if not new_intermediaire:
-        messages.error(request, f"Intermédiaire pour la signature sélectionné·e invalide.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+    if not new_intermediaire_id:
+        logger.error(f"[CHANGER INTERMEDIAIRE SIGNATURE] User={request.user} : new_intermediaire_id manquant.")
+        return redirect_error(request, "Identifiant du nouvel intermédiaire manquant. Contactez le support.")
     
+    dossier = Dossier.objects.filter(id=dossier_id).first()
+    if not dossier:
+        logger.error(f"[CHANGER INTERMEDIAIRE SIGNATURE] Dossier id={dossier_id} introuvable — User={request.user}")
+        return redirect_error(request, "Dossier introuvable. Contactez le support.")
+
+    instructeur_en_cours = Instructeur.objects.filter(email=email_user).first()
+    if not instructeur_en_cours:
+        logger.error(f"[DOSSIER {dossier.numero}] User {email_user} sans profil instructeur a tenté de changer l'intermédiaire signature.")
+        return redirect_error(request, "Vous devez disposer d’un profil Instructeur. Contactez le support si besoin.")
+
+    new_intermediaire = Instructeur.objects.filter(id=new_intermediaire_id).first()
+    if not new_intermediaire:
+        logger.error(f"[DOSSIER {dossier.numero}] Nouvel intermédiaire id={new_intermediaire_id} introuvable — User={instructeur_en_cours}")
+        return redirect_error(request, "Nouvel intermédiaire introuvable. Contactez le support.")
+
+    # Ancien intermédiaire
     id_old_intermediaire = DossierIntermediaireSignature.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
     old_intermediaire = Instructeur.objects.filter(id=id_old_intermediaire).first()
 
-
     # S'assurer que le nouveau intermédiaire est différent
     if old_intermediaire and old_intermediaire.id == new_intermediaire.id:
-        messages.error(request, f"L'intermédiaire sélectionné·e est déjà affecté·e à ce dossier.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, f"L'intermédiaire sélectionné·e est déjà affecté·e à ce dossier.")
 
-    # Suppression de l'ancien intermédiaire (s'il existe)
-    if old_intermediaire:
-        DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=old_intermediaire).delete()
-    # Ajout du nouveau intermédiaire
-    DossierIntermediaireSignature.objects.get_or_create(id_dossier=dossier, id_instructeur=new_intermediaire)
+
+    # -------------------------
+    # Mise à jour BDD
+    # -------------------------
+    try :
+        # Suppression de l'ancien intermédiaire (s'il existe)
+        if old_intermediaire:
+            DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=old_intermediaire).delete()
+
+        # Ajout du nouveau intermédiaire
+        DossierIntermediaireSignature.objects.get_or_create(id_dossier=dossier, id_instructeur=new_intermediaire)
+        logger.info(f"[DOSSIER {dossier.numero}] Changement d'intermédiaire pour la signature : {old_intermediaire} --> {new_intermediaire}")
     
-    # On enregistre l'action
-    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Intermédiaire signature changé.e", f"→ {new_intermediaire}")
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Changement d'intermédiaire pour la signature, User={instructeur_en_cours} - Erreur MAJ intermédiaire signature ({old_intermediaire} → {new_intermediaire}) : {e}")
+        return redirect_error(request, "❌ Erreur lors du changement de l’intermédiaire. Contactez le support.")
 
-    logger.info(f"[DOSSIER {dossier.numero}] Changement d'intermédiaire pour la signature : {old_intermediaire} --> {new_intermediaire}")
+    # Action dossier
+    safe_enregistrer_action(dossier, instructeur_en_cours, "Intermédiaire signature changé.e", request, description=f"→ {new_intermediaire}")
 
-
+    
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    if user_faisant_le_changement != new_intermediaire :
+    if instructeur_en_cours != new_intermediaire :
 
         # emails_norm = [new_intermediaire.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
@@ -552,12 +669,17 @@ def changer_intermediaire_signature(request):
                     "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
         template_name = "changer_intermediaire"
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try:
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] User : {instructeur_en_cours} - Changer d'intermédiaire signature. {new_intermediaire} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect_error(request,f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support.")
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date= timezone.now() - timedelta(hours=2)
+            date_creation__gte= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -575,58 +697,77 @@ def changer_intermediaire_signature(request):
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau intermédiaire pour la signature) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
 
 
 @require_POST
 @login_required
 def changer_envoyeur_acte(request):
+
     dossier_id = request.POST.get("dossier_id")
     new_envoyeur_id = request.POST.get("new_envoyeur_id")
+    email_user = request.user.email or ""
 
-    if not dossier_id or not new_envoyeur_id:
-        messages.error(request, f"Données manquantes pour le changement d'envoyeur.se d'acte.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+    # ----------------
+    # Vérifications
+    # ----------------
+    if not dossier_id:
+        logger.error(f"[CHANGER ENVOYEUR ACTE] User={request.user} : dossier_id manquant.")
+        return redirect_error(request, "Identifiant du dossier manquant. Contactez le support.")
 
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    new_envoyeur = get_object_or_404(Instructeur, id=new_envoyeur_id)
-    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
+    if not new_envoyeur_id:
+        logger.error(f"[CHANGER ENVOYEUR ACTE] User={request.user} : new_envoyeur_id manquant.")
+        return redirect_error(request, "Identifiant de l’envoyeur d’acte manquant. Contactez le support.")
 
+    dossier = Dossier.objects.filter(id=dossier_id).first()
     if not dossier:
-        messages.error(request, f"Dossier introuvable.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        logger.error(f"[CHANGER ENVOYEUR ACTE] Dossier id={dossier_id} introuvable — User={request.user}")
+        return redirect_error(request, "Dossier introuvable. Contactez le support.")
 
+    instructeur_en_cours = Instructeur.objects.filter(email=email_user).first()
+    if not instructeur_en_cours:
+        logger.error(f"[DOSSIER {dossier.numero}] User={request.user} sans profil instructeur a tenté de changer l'envoyeur d'acte.")
+        return redirect_error(request, "Vous devez disposer d’un profil Instructeur. Contactez le support si besoin.")
+
+    new_envoyeur = Instructeur.objects.filter(id=new_envoyeur_id).first()
     if not new_envoyeur:
-        messages.error(request, f"Envoyeur.se d'acte sélectionné·e invalide.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-    
+        logger.error(f"[DOSSIER {dossier.numero}] Nouvel envoyeur id={new_envoyeur_id} introuvable — User={instructeur_en_cours}")
+        return redirect_error(request, "Nouvel envoyeur d’acte introuvable. Contactez le support.")
+
+    # Ancien envoyeur
     id_old_envoyeur = DossierEnvoiActe.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
     old_envoyeur = Instructeur.objects.filter(id=id_old_envoyeur).first()
 
-
-    # S'assurer que le nouveau envoyeur d'acte est différent
     if old_envoyeur and old_envoyeur.id == new_envoyeur.id:
-        messages.error(request, f"L'envoyeur.se d'acte sélectionné·e est déjà affecté·e à ce dossier.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, "L'envoyeur.se d'acte sélectionné·e est déjà affecté·e à ce dossier.")
 
-    # Suppression de l'ancien envoyeur d'acte (s'il existe)
-    if old_envoyeur:
-        DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=old_envoyeur).delete()
-    # Ajout du nouveau envoyeur d'acte
-    DossierEnvoiActe.objects.get_or_create(id_dossier=dossier, id_instructeur=new_envoyeur)
+
+    # -------------------------
+    # Mise à jour BDD
+    # -------------------------
+    try :
+        # Suppression de l'ancien envoyeur d'acte (s'il existe)
+        if old_envoyeur:
+            DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=old_envoyeur).delete()
+
+        # Ajout du nouveau envoyeur d'acte
+        DossierEnvoiActe.objects.get_or_create(id_dossier=dossier, id_instructeur=new_envoyeur)
+        logger.info(f"[DOSSIER {dossier.numero}] Changement d'envoyeur.se d'acte par {instructeur_en_cours} : {old_envoyeur} --> {new_envoyeur}")
     
-    # On enregistre l'action
-    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Envoyeur.se d'acte changé.e", f"→ {new_envoyeur}")
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Changement d'envoyeur.se d'acte par {instructeur_en_cours} - MAJ envoyeur acte échouée ({old_envoyeur} → {new_envoyeur}) : {e}")
+        return redirect_error(request, "❌ Erreur lors du changement de l’envoyeur.se d’acte. Contactez le support.")
 
-    logger.info(f"[DOSSIER {dossier.numero}] Changement d'envoyeur.se d'acte : {old_envoyeur} --> {new_envoyeur}")
+    # Dossier Action
+    safe_enregistrer_action(dossier, instructeur_en_cours, "Envoyeur.se d'acte changé.e", request, description=f"→ {new_envoyeur}")
+    
 
 
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    if user_faisant_le_changement != new_envoyeur :
+    if instructeur_en_cours != new_envoyeur :
 
         # emails_norm = [new_envoyeur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
@@ -638,12 +779,19 @@ def changer_envoyeur_acte(request):
                     "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
         template_name = "changer_envoyeur"
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] User : {instructeur_en_cours} - Changer d'envoyeur d'acte. {new_envoyeur} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect_error(request,f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support.")
+
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date= timezone.now() - timedelta(hours=2)
+            date_creation__gte= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -661,61 +809,77 @@ def changer_envoyeur_acte(request):
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau envoyeur d'acte) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
 
 
 
 @require_POST
 @login_required
 def changer_publieur_raa(request):
-    dossier_id = request.POST.get("dossier_id")
-    new_publieur_raa_id = request.POST.get("new_publieur_raa_id")
-
-    if not dossier_id or not new_publieur_raa_id:
-        messages.error(request, f"Données manquantes pour le changement de publieur.se d'acte au RAA.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    dossier = get_object_or_404(Dossier, id=dossier_id)
-    new_publieur = get_object_or_404(Instructeur, id=new_publieur_raa_id)
-    user_faisant_le_changement = Instructeur.objects.filter(email=request.user.email).first()
-
-    if not dossier:
-        messages.error(request, f"Dossier introuvable.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
-
-    if not new_publieur:
-        messages.error(request, f"Publieur.se d'acte au RAA sélectionné·e invalide.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
     
+    dossier_id = request.POST.get("dossier_id")
+    new_publieur_id = request.POST.get("new_publieur_raa_id")
+    email_user = request.user.email or ""
+
+    # ----------------
+    # Vérifications
+    # ----------------
+    if not dossier_id:
+        logger.error(f"[CHANGER PUBLIEUR RAA] User={request.user} : dossier_id manquant.")
+        return redirect_error(request, "Identifiant du dossier manquant. Contactez le support.")
+
+    if not new_publieur_id:
+        logger.error(f"[CHANGER PUBLIEUR RAA] User={request.user} : new_publieur_raa_id manquant.")
+        return redirect_error(request, "Identifiant du nouveau publieur RAA manquant. Contactez le support.")
+
+    dossier = Dossier.objects.filter(id=dossier_id).first()
+    if not dossier:
+        logger.error(f"[CHANGER PUBLIEUR RAA] Dossier id={dossier_id} introuvable — User={request.user}")
+        return redirect_error(request, "Dossier introuvable. Contactez le support.")
+
+    instructeur_en_cours = Instructeur.objects.filter(email=email_user).first()
+    if not instructeur_en_cours:
+        logger.error(f"[DOSSIER {dossier_id}] User={request.user} sans profil instructeur a tenté de changer le publieur RAA.")
+        return redirect_error(request, "Vous devez disposer d’un profil Instructeur. Contactez le support.")
+
+    new_publieur = Instructeur.objects.filter(id=new_publieur_id).first()
+    if not new_publieur:
+        logger.error(f"[DOSSIER {dossier.numero}] Publieur id={new_publieur_id} introuvable — User={instructeur_en_cours}")
+        return redirect_error(request, "Nouveau publieur RAA introuvable. Contactez le support.")
+
+    # Ancien publieur
     id_old_publieur = DossierPublicationRAA.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True).first()
     old_publieur = Instructeur.objects.filter(id=id_old_publieur).first()
 
-
     # S'assurer que le nouveau publieur d'acte au RAA est différent
     if old_publieur and old_publieur.id == new_publieur.id:
-        messages.error(request, f"Le ou la publieur.se d'acte au RAA sélectionné·e est déjà affecté·e à ce dossier.")
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+        return redirect_error(request, f"Le ou la publieur.se d'acte au RAA sélectionné·e est déjà affecté·e à ce dossier.")
 
-    # Suppression de l'ancien publieur d'acte au RAA (s'il existe)
-    if old_publieur:
-        DossierPublicationRAA.objects.filter(id_dossier=dossier, id_instructeur=old_publieur).delete()
-    # Ajout du nouveau publieur d'acte au RAA
-    DossierPublicationRAA.objects.get_or_create(id_dossier=dossier, id_instructeur=new_publieur)
+
+    # -------------------------
+    # Mise à jour BDD
+    # -------------------------
+    try:
+
+        # Suppression de l'ancien publieur d'acte au RAA (s'il existe)
+        if old_publieur:
+            DossierPublicationRAA.objects.filter(id_dossier=dossier, id_instructeur=old_publieur).delete()
+        # Ajout du nouveau publieur d'acte au RAA
+        DossierPublicationRAA.objects.get_or_create(id_dossier=dossier, id_instructeur=new_publieur)
+        logger.info(f"[DOSSIER {dossier.numero}] Changement de publieur.se d'acte au RAA par {instructeur_en_cours} : {old_publieur} --> {new_publieur}")
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Changement de publieur RAA par {instructeur_en_cours} - MAJ publieur échouée ({old_envoyeur} → {new_envoyeur}) : {e}")
+        return redirect_error(request, "❌ Erreur lors du changement de publieur.se RAA. Contactez le support.")
+
+    # Action dossier
+    safe_enregistrer_action(dossier, instructeur_en_cours, "Publieur.se RAA changé.e", request, description=f"→ {new_publieur}")
     
-    # On enregistre l'action
-    instructeur_request = Instructeur.objects.filter(email=request.user.email).first()
-    enregistrer_action(dossier, instructeur_request, "Publieur.se RAA changé.e", f"→ {new_publieur}")
-
-    logger.info(f"[DOSSIER {dossier.numero}] Changement de publieur.se d'acte au RAA : {old_publieur} --> {new_publieur}")
-
 
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    if user_faisant_le_changement != new_publieur :
+    if instructeur_en_cours != new_publieur :
 
         # emails_norm = [new_publieur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
@@ -727,12 +891,18 @@ def changer_publieur_raa(request):
                     "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/"
                 }
         template_name = "changer_publieur"
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        try :
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+        
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] User : {instructeur_en_cours} - Changer de publieur RAA. {new_publieur} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+            return redirect_error(request,f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support.")
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
             dedupe_key=dedupe,
-            date_creation__date= timezone.now() - timedelta(hours=2)
+            date_creation__gte= timezone.now() - timedelta(hours=2)
         ).exists()
 
         if not existe_deja:
@@ -750,13 +920,17 @@ def changer_publieur_raa(request):
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau publieur.se d'acte au RAA) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 
 
 
+""" 
+##################################
+CLEAN A FINIR 
+##################################
+"""
 @require_POST
 @login_required
 def enregistrer_geom(request):
@@ -900,7 +1074,6 @@ def mes_dossiers_a_traiter_count(request):
     )
 
     dossiers_actions = dossiers_action_a_faire(dossiers, instructeur)
-
     return {"nb_dossiers_instruction": len(dossiers_actions)}
 
 

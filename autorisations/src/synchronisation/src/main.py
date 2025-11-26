@@ -10,27 +10,6 @@ import time
 
 logger = logging.getLogger('SYNCHRONISATION')
 
-# def lancer_normalisation_et_synchronisation():
-#     logger.info("\n\n")
-#     logger.info("LANCEMENT SYNCHRONISATION \n")
-    
-#     numeros_demarche = get_number_demarche_Postgres()
-#     dico_notifs = {}
-#     for num in numeros_demarche:
-#         datas_DS = recup_data_DS(num)
-#         if datas_DS :
-#             resultats = normalize_process(datas_DS["demarche"])
-#             synchro_process(resultats, dico_notifs)
-#         else :
-#             SynchronisationEtat.objects.filter(id=1).update(en_cours=False, dernier_statut="erreur")
-
-    
-#     if dico_notifs :
-#         envoi_notif_mails_nouveaux_dossiers(dico_notifs)
-    
-#     logger.info("")
-#     logger.info("FIN SYNCHRONISATION \n")
-
 
 def lancer_normalisation_et_synchronisation():
     logger.info("\n\n")
@@ -72,12 +51,11 @@ def lancer_normalisation_et_synchronisation():
             if not resultats or not resultats.get("statut") :
                 success = False
                 logger.error("Erreur lors de la normalisation des données Démarches Simplifiées - Déclaration Manifestations")
+                
             else :
-                # t1 = time.perf_counter()
                 s = synchro_process(resultats, dico_notifs, demarche_obj)
                 if not s :
                     success = False
-                # t_synchro = time.perf_counter() - t1
 
                 logger.info("------------------------------------------------")
 

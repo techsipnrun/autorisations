@@ -62,7 +62,7 @@
                     </a>
 
                     <a href="{% url 'requetes_view' %}">
-                        <li class="{% if request.path == '/requetes/' %}active{% endif %}">
+                        <li class="{% if request.path|slice:":10" == "/requetes/" %}active{% endif %}">
                             Requêtes
                         </li>
                     </a>
