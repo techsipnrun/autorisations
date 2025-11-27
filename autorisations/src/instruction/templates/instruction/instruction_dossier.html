@@ -1907,120 +1907,122 @@
                 {% endif %}
 
                 <!-- ############################# RELECTURE ############################# -->
-                <div class="groupe-instructeur-info demander-relecture_juridique">
-                    <h3>Relecture</h3>
+                {% if relecteurs_du_dossier or request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                    <div class="groupe-instructeur-info demander-relecture_juridique">
+                        <h3>Relecture</h3>
 
-                    {% if relecteur_message %}
-                        <div class="instruction-warning">
-                            {{ relecteur_message }}
-                        </div>
-                    {% endif %}
-                    {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
-                        <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
-                    {% elif not relecteurs_du_dossier and not request.user|est_concerné_par_le_dossier:dossier %}
-                        <p class="note-aucune">Aucune relecture demandée pour ce dossier</p>
-                    {% else %}
-                        <ul class="groupe-instructeur-liste">
-                            {% for rj in relecteurs_du_dossier %}
-                                <li class="instructeur_du_dossier_relecture" onclick="toggleRelecture(this)">
-                                    <div class="relecture-header">
+                        {% if relecteur_message %}
+                            <div class="instruction-warning">
+                                {{ relecteur_message }}
+                            </div>
+                        {% endif %}
+                        {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                            <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
+                        {% elif not relecteurs_du_dossier and not request.user|est_concerné_par_le_dossier:dossier %}
+                            <p class="note-aucune">Aucune relecture demandée pour ce dossier</p>
+                        {% else %}
+                            <ul class="groupe-instructeur-liste">
+                                {% for rj in relecteurs_du_dossier %}
+                                    <li class="instructeur_du_dossier_relecture" onclick="toggleRelecture(this)">
+                                        <div class="relecture-header">
 
-                                        <div class="bloc-gauche">
-                                            <span class="triangle">&#9654;</span>
-                                            <div class="nom_prenom_relecteur {% if request.user.email == rj.id_instructeur.email %}txt_en_gras{% endif %}">
-                                                {{ rj.id_instructeur.id_agent_autorisations.nom|upper }} {{ rj.id_instructeur.id_agent_autorisations.prenom|capfirst }}
-                                            </div>
-                                            
-                                            {% if rj.relu %}
-                                            <div class="relecture_faite">
-                                                Faite
-                                            </div>
-                                            
-                                            {% else %}
-                                                <div class="relecture_en_attente">
-                                                    En attente
+                                            <div class="bloc-gauche">
+                                                <span class="triangle">&#9654;</span>
+                                                <div class="nom_prenom_relecteur {% if request.user.email == rj.id_instructeur.email %}txt_en_gras{% endif %}">
+                                                    {{ rj.id_instructeur.id_agent_autorisations.nom|upper }} {{ rj.id_instructeur.id_agent_autorisations.prenom|capfirst }}
                                                 </div>
+                                                
+                                                {% if rj.relu %}
+                                                <div class="relecture_faite">
+                                                    Faite
+                                                </div>
+                                                
+                                                {% else %}
+                                                    <div class="relecture_en_attente">
+                                                        En attente
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                                <form method="post" action="{% url 'retirer_relecteur' %}" class="form-retirer-relecteur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice ?')">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossier_relecture_id" value="{{ rj.id }}">
+                                                    <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                    <button type="submit" class="btn-retirer-instructeur" title="Supprimer la demande de relecture">
+                                                        <span class="croix-retirer">✕</span>
+                                                    </button>
+                                                </form>
                                             {% endif %}
                                         </div>
-                                        
-                                        {% if request.user|est_concerné_par_le_dossier:dossier %}
-                                            <form method="post" action="{% url 'retirer_relecteur' %}" class="form-retirer-relecteur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice ?')">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="dossier_relecture_id" value="{{ rj.id }}">
-                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                                <button type="submit" class="btn-retirer-instructeur" title="Supprimer la demande de relecture">
-                                                    <span class="croix-retirer">✕</span>
-                                                </button>
-                                            </form>
-                                        {% endif %}
-                                    </div>
-                             
-                                    <div class="relecture-details hidden">
-                                        <p><strong>Demande :</strong> <br> {{ rj.demande_relecture|safe|linebreaksbr }}</p>
-                                        {% with docs=rj.dossierrelecteurdocument_set.all %}
-                                            {% if docs %}
-                                                <ul>
-                                                    {% for doc in docs %}
-                                                        <li> 
-                                                            <a href="{% url 'afficher_annexe' chemin=doc.id_document.emplacement titre=doc.id_document.titre %}" 
-                                                            target="_blank" rel="noopener noreferrer">
-                                                                📎 {{ doc.id_document.titre }}
-                                                            </a>
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
+                                
+                                        <div class="relecture-details hidden">
+                                            <p><strong>Demande :</strong> <br> {{ rj.demande_relecture|safe|linebreaksbr }}</p>
+                                            {% with docs=rj.dossierrelecteurdocument_set.all %}
+                                                {% if docs %}
+                                                    <ul>
+                                                        {% for doc in docs %}
+                                                            <li> 
+                                                                <a href="{% url 'afficher_annexe' chemin=doc.id_document.emplacement titre=doc.id_document.titre %}" 
+                                                                target="_blank" rel="noopener noreferrer">
+                                                                    📎 {{ doc.id_document.titre }}
+                                                                </a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endif %}
+                                            {% endwith %}
+
+                                            {% if request.user.email == rj.id_instructeur.email and not rj.relu %}
+
+                                                <form method="post" action="{% url 'relecture_faite' %}" class="form-relecture-faite" onsubmit="return confirmerRelectureFaite();">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="relecteur_id" value="{{ rj.id }}">
+                                                    <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                    <label>Votre réponse :</label>
+                                                    <textarea name="reponse_demande" rows="4" id="dmd_relecture" required>Relecture faite.</textarea>
+                                                    <button type="submit" class="btn-relecture-faite" title="Valider la relecture">
+                                                        Valider
+                                                    </button>
+                                                </form>
+                                            {% elif request.user.email == rj.id_instructeur.email and rj.relu %}
+                                                <br><p><strong>Réponse :</strong> <br> {{ rj.reponse_relecture|safe|linebreaksbr }}</p>
                                             {% endif %}
-                                        {% endwith %}
-
-                                        {% if request.user.email == rj.id_instructeur.email and not rj.relu %}
-
-                                            <form method="post" action="{% url 'relecture_faite' %}" class="form-relecture-faite" onsubmit="return confirmerRelectureFaite();">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="relecteur_id" value="{{ rj.id }}">
-                                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                                <label>Votre réponse :</label>
-                                                <textarea name="reponse_demande" rows="4" id="dmd_relecture" required>Relecture faite.</textarea>
-                                                <button type="submit" class="btn-relecture-faite" title="Valider la relecture">
-                                                    Valider
-                                                </button>
-                                            </form>
-                                        {% elif request.user.email == rj.id_instructeur.email and rj.relu %}
-                                            <br><p><strong>Réponse :</strong> <br> {{ rj.reponse_relecture|safe|linebreaksbr }}</p>
-                                        {% endif %}
-                                    </div>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% if request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
-                            <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
-                        {% endif %}
-                    {% endif %}
-
-                    <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
-                        <form method="post" action="{% url 'ajouter_relecteur_dossier' %}" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-
-                            <label id="first_label_form">Choisir le.la relecteur.trice :</label>
-                            <select name="relecteur_id" id="select-relecteur-juridique" required>
-                                <option value="" disabled selected>-- Choisir --</option>
-                                {% for user in instructeurs %}
-                                    <option value="{{ user.id }}">{{ user.id_agent_autorisations.nom|upper }} {{ user.id_agent_autorisations.prenom|capfirst }}</option>
+                                        </div>
+                                    </li>
                                 {% endfor %}
-                            </select>
-                            
-                            <label>Détaillez la demande de relecture :</label>
-                            <textarea name="objet_demande" rows="4" id="dmd_relecture" placeholder="Je souhaite une relecture de ..." required></textarea>
+                            </ul>
+                            {% if request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                                <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
+                            {% endif %}
+                        {% endif %}
 
-                            <label for="pj_relecture">Joindre un ou plusieurs documents (max 20Mo) :</label>
-                            <input type="file" name="pj_relecture" id="pj_relecture" multiple>
+                        <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
+                            <form method="post" action="{% url 'ajouter_relecteur_dossier' %}" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
 
-                            <div class="formulaire-relecture-actions">
-                                <button type="submit" class="btn-envoyer-complement">Valider</button>
-                            </div>
-                        </form>
+                                <label id="first_label_form">Choisir le.la relecteur.trice :</label>
+                                <select name="relecteur_id" id="select-relecteur-juridique" required>
+                                    <option value="" disabled selected>-- Choisir --</option>
+                                    {% for user in instructeurs %}
+                                        <option value="{{ user.id }}">{{ user.id_agent_autorisations.nom|upper }} {{ user.id_agent_autorisations.prenom|capfirst }}</option>
+                                    {% endfor %}
+                                </select>
+                                
+                                <label>Détaillez la demande de relecture :</label>
+                                <textarea name="objet_demande" rows="4" id="dmd_relecture" placeholder="Je souhaite une relecture de ..." required></textarea>
+
+                                <label for="pj_relecture">Joindre un ou plusieurs documents (max 20Mo) :</label>
+                                <input type="file" name="pj_relecture" id="pj_relecture" multiple>
+
+                                <div class="formulaire-relecture-actions">
+                                    <button type="submit" class="btn-envoyer-complement">Valider</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
+                {% endif %}
 
 
                 <!-- ############################# NOTES ############################# -->

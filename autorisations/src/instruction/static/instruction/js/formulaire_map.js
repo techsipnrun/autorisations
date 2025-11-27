@@ -65,19 +65,30 @@ document.addEventListener("DOMContentLoaded", () => {
         }).addTo(map);
 
 
-        // Fond satellite ESRI
-        // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        //     attribution: 'Tiles &copy; Esri & NASA',
-        //     maxZoom: 19
-        // }).addTo(map);
 
+        // Pour faire passer les fonds de carte derrière la géométrie du pétitionnaire
+        map.on("layeradd", (e) => {
+            const layer = e.layer;
+
+            // Cas 1 : geojson avec sous-couches
+            if (layer.eachLayer) {
+                layer.eachLayer(sub => {
+                    if (sub?.options?._isBackgroundLayer) {
+                        sub.bringToBack();
+                    }
+                });
+            }
+
+            // Cas 2 : couche simple
+            if (layer?.options?._isBackgroundLayer) {
+                layer.bringToBack();
+            }
+        });
 
 
         // ---------------------------------
         // Menu de sélection du fond de carte
         // ---------------------------------
-
-
 
         // Liste des fonds disponibles
         const fonds = {
@@ -108,28 +119,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (fond_coeur_de_Parc) {
             const fondLayer = L.geoJSON(fond_coeur_de_Parc, {
-                style: {
-                    color: "#3182bd",
-                    weight: 2,
-                    opacity: 1,
-                    fillColor: "#6baed6",
-                    fillOpacity: 0.3
-                }
+                style: { 
+                    color: "#2E7D32", 
+                    fillColor: "#4CAF50", 
+                    weight: 2, 
+                    fillOpacity: 0.4, 
+                    opacity: 1
+                },
             });
             overlayMaps["Cœur du Parc National"] = fondLayer;
             fondLayer.addTo(map); // visible par défaut
+
+            fondLayer.eachLayer(l => l.options._isBackgroundLayer = true);
         }
 
         if (window._adhesionData) {
             const adhesionLayer = L.geoJSON(window._adhesionData, {
                 style: {
                     color: "#388E3C",
-                    weight: 1.5,
+                    weight: 2,
                     fillColor: "#A5D6A7",
-                    fillOpacity: 0.4
-                }
+                    fillOpacity: 0.6,
+                    opacity: 1,
+                },
             });
             overlayMaps["Aire d’adhésion"] = adhesionLayer;
+
+            adhesionLayer.eachLayer(l => l.options._isBackgroundLayer = true);
         }
 
         if (window._mafateData) {
@@ -143,6 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             overlayMaps["COT Mafate"] = mafateLayer;
             // mafateLayer.addTo(map); 
+            mafateLayer.eachLayer(l => l.options._isBackgroundLayer = true);
         }
 
         L.control.layers(null, overlayMaps, {

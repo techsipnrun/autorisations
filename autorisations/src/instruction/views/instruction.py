@@ -653,8 +653,10 @@ def actualiser_dossier(request, num_dossier):
         # 3. Synchronisation en base
         try :
             if liaison:
+                loggerSynchro.info("\n")
                 loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarches Simplifiées) ######")
             else:
+                loggerSynchro.info("\n")
                 loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarches Simplifiées) ######")
 
             dico_notifs = {}  #Est ce que on envoi vraiment une notif pour l'actualisation d'un dossier ? je ne pense pas

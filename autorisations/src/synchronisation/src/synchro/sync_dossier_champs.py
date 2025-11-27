@@ -39,8 +39,6 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                                     description=doc["description"]
                                 )
                     
-                    logger.warning(document_obj)
-
                 except Document.DoesNotExist:
                     # logger.warning("LE DOC N'A PAS ETE TROUVÉ : ")
                     # logger.warning(f"emplacement= {doc['emplacement']}, titre__startswith= {doc['titre']}, id_nature_id= {doc['id_nature']}, description= {doc['description']}")
@@ -56,7 +54,6 @@ def sync_dossier_champs(dossier_champs, id_dossier):
 
                     # Si un autre document existe avec le meme nom et le meme emplacement --> On renomme avec _2 ou _3 ect..
                     titre_doc = get_nom_disponible(doc["emplacement"], doc["titre"])
-                    # logger.warning(titre_doc)
 
                     # Création du doc avec le bon titre
                     document_obj = Document.objects.create(
@@ -108,7 +105,7 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     champ_obj.save()
 
                     if updated_fields and updated_fields not in (['ordre'], ['id_document_id', 'ordre']) :
-                        logger.warning(f"{updated_fields}")
+
                         if dossier.id_etape_dossier.etape == "En attente de compléments" :
                             notif_demande_de_compléments = True
 
@@ -187,7 +184,6 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                 champ_obj.save()
 
                 if updated_fields and updated_fields not in (['ordre'], ['id_document_id', 'ordre']) :
-                    logger.warning(f"{updated_fields}")
                     
                     if dossier.id_etape_dossier.etape == "En attente de compléments" :
                         notif_demande_de_compléments = True

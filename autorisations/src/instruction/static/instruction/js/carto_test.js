@@ -3,13 +3,13 @@
 // ***
 
 
-// Fonction principale
-
 (function main() {
 
     console.log("✅ Début Script carto_test.js");
     
-    // Fond coeur de Parc et Aire d'adhésion
+    // ------------------------------------------------------------------------
+    // Récupération des données
+    // ------------------------------------------------------------------------
     const fondData = window._fondDeCarteData;
     const adhesionData = window._adhesionData;
     const mafateData = window._mafateData;
@@ -20,18 +20,87 @@
         return;
     }
 
+
+    // ------------------------------------------------------------------------
+    // On initialise une carte pour chaque div.carte
+    // ------------------------------------------------------------------------
     cartes.forEach((div) => {
 
-        // Parsing du geojson
+
+        // Parsing du GeoJSON pétitionnaire
         const geojson = parseGeoJSON(div.dataset.geojson);
+
+        // Mesure du poids du GeoJSON (KB)
+        let geoSizeKB = 0;
+        if (div.dataset.geojson) {
+            geoSizeKB = (div.dataset.geojson.length / 1024).toFixed(2);
+            console.log("📦 Taille GeoJSON pétitionnaire :", geoSizeKB, "KB");
+        }
+
 
         // Initialisation de notre map
         const map = initializeMap(div);
 
-        // Menu dynamique Fond coeur de Parc et Aire d'adhésion
+
+        // Ajout des fonds et overlays
         const overlayMaps = addBackgroundLayers(map, fondData, adhesionData, mafateData);
         addLayerControl(map, overlayMaps);
 
+
+
+        // Blocage des modes d’édition si GeoJSON > 100 KB
+        setTimeout(() => {
+            if (geoSizeKB <= 100) return; // OK, rien à bloquer
+
+            console.warn("⛔ Géométrie trop lourde, blocage des modes d'édition");
+
+            const buttons = [
+                ".leaflet-pm-icon-edit",   // Edit
+                // ".leaflet-pm-icon-drag",   // Drag
+                // ".leaflet-pm-icon-cut",    // Cut
+                // ".leaflet-pm-icon-delete"  // Remove
+            ];
+
+            buttons.forEach(selector => {
+                const btn = document.querySelector(selector);
+                if (!btn) return;
+
+                btn.addEventListener("click", (e) => {
+
+                    // Empêche Geoman de recevoir l’événement
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+
+                    alert("⚠️ La géométrie du pétitionnaire est trop volumineuse (> 100 KB).\nImpossible d'activer les outils d’édition.");
+
+                }, true); // CAPTURE=TRUE => intercepte AVANT Geoman
+            });
+
+        }, 50);
+
+
+
+        // On désactive les boutons d'édition en cours si on dé(coche) des fonds de carte
+        setTimeout(() => {
+            const layerControl = div.querySelector(".leaflet-control-layers");
+            if (!layerControl) return;
+
+            layerControl.addEventListener("click", (e) => {
+
+                // Ferme les modes immédiatement
+                map.pm.disableGlobalEditMode();
+                map.pm.disableGlobalDragMode();
+                map.pm.disableGlobalRemovalMode();
+                map.pm.disableGlobalCutMode();
+
+            }, true); // <-- CAPTURE TRUE
+        }, 0);
+
+
+
+        // --------------------------------------
+        // Rendu de la géométrie du pétitionnaire
+        // --------------------------------------
         const layer = geojson ? renderExistingGeometry(map, geojson) : null;
 
         if (layer && layer.getBounds().isValid()) {
@@ -43,7 +112,7 @@
             map.setView([-21.135, 55.526], 11);
         }
 
-
+        // Activation des outils de dessin
         enableDrawing(map);
     });
 
@@ -53,6 +122,7 @@
     //       Fonctions utilitaires      //
     // ---------------------------------//
 
+    // Parse JSON sécurisé
     function parseGeoJSON(raw) {
         if (!raw) return null;
         try {
@@ -63,7 +133,7 @@
         }
     }
 
-
+    // Initialisation carte
     function initializeMap(container) {
         const map = L.map(container);
 
@@ -73,7 +143,7 @@
             console.log("✅ Leaflet-Geoman initialisé");
         }
 
-        // Ajout du bouton impression PDF
+        // Bouton impression PDF
         L.control.browserPrint({
             title: "📥 Télécharger en PDF",
             position: "topleft",  // coin haut gauche comme zoom
@@ -81,7 +151,7 @@
             printModes: ["Landscape", "Portrait"] // propose les 2
         }).addTo(map);
 
-        // Menu d'édition
+        // Menu d'édition - Outils Geoman
         map.pm.addControls({
             position: 'topleft',
             drawCircleMarker: false,
@@ -94,7 +164,8 @@
             rotateMode: false,
             removalMode: true
         });
-
+        
+        // Log Geoman events (debug)
         [
             'pm:globaleditmodetoggled',
             'pm:edit',
@@ -102,6 +173,7 @@
             'pm:drawstart',
             'pm:drawend',
             'pm:create',
+            'pm:globaldragmodetoggled',
             'pm:globalremovalmodetoggled'
         ].forEach(evt => {
             map.on(evt, (e) => {
@@ -109,7 +181,10 @@
             });
         });
 
+        
+        
 
+        // On retire les fonds de carte trop lourds avant l'édition.
         setTimeout(() => {
             const editBtn = document.querySelector(".leaflet-pm-icon-edit");
 
@@ -131,45 +206,85 @@
         }, 0);
 
 
+
+
+        // ----------------------------------------------------//
+        //       Bloquer l'édition sur les fonds de carte      //
+        // ----------------------------------------------------//
+
         // Empêche l'édition pour les couches avec le filtre pmIgnore
         map.on('pm:globaleditmodetoggled', (e) => {
-            
             map.eachLayer((layer) => {
-
                 // Empêcher les couches protégées d'être éditables
                 if (layer.pm && layer.pmIgnore) {
                     layer.pm.disable();
                 }
             });
-
-
         });
 
-        // Ajout couche
+        // Empêcher tout DRAG sur les couches protégées
+        map.on('pm:globaldragmodetoggled', () => {
+            map.eachLayer(layer => {
+                if (layer.pmIgnore && layer.pm && layer.pm.disableLayerDrag) {
+                    layer.pm.disableLayerDrag();
+                }
+            });
+        });
+
+        // Empêcher toute SUPPRESSION sur les couches protégées
+        map.on('pm:remove', e => {
+            if (e.layer && e.layer.pmIgnore) {
+                console.warn("Remove interdit sur couche protégée");
+                // réinjecte la couche dans la map
+                map.addLayer(e.layer);
+            }
+        });
+
+        // Empêcher toute COUPE sur les couches protégées
+        map.on('pm:cut', e => {
+            if (e.layer && e.layer.pmIgnore) {
+                console.warn("Cut interdit sur couche protégée");
+
+                // restaure la couche originale
+                if (e.originalLayer) {
+                    map.addLayer(e.originalLayer);
+                }
+
+                // retire la couche coupée
+                map.removeLayer(e.layer);
+            }
+        });
+
+
+
+
+        // -------------------------------------
+        // Ajout d'une couche sur la carte
+        // -------------------------------------
         map.on('layeradd', (e) => {
             const layer = e.layer;
             
-            if (
-                layer instanceof L.GeoJSON &&
-                layer.options?.name === "COT Mafate" &&
-                map.pm.globalEditEnabled()
-            ) {
-                map.removeLayer(layer);
-                alert("Impossible d'ajouter la couche COT Mafate pendant l'édition.\nVeuillez désactiver le mode édition pour l'afficher.");
-                console.warn("⛔ COT Mafate bloquée pendant édition");
+            // if (
+            //     layer instanceof L.GeoJSON &&
+            //     layer.options?.name === "COT Mafate" &&
+            //     map.pm.globalEditEnabled()
+            // ) {
+            //     map.removeLayer(layer);
+            //     alert("Impossible d'ajouter la couche COT Mafate pendant l'édition.\nVeuillez désactiver le mode édition pour l'afficher.");
+            //     console.warn("⛔ COT Mafate bloquée pendant édition");
 
-                // Forcer le décochage visuel de la case COT Mafate
-                const checkboxLabels = document.querySelectorAll('.leaflet-control-layers-overlays label');
-                checkboxLabels.forEach(label => {
-                    if (label.textContent.includes("COT Mafate")) {
-                        const input = label.querySelector('input[type="checkbox"]');
-                        if (input && input.checked) {
-                            input.checked = false;
-                        }
-                    }
-                });
-                return; // on ne continue pas
-            }
+            //     // Forcer le décochage visuel de la case COT Mafate
+            //     const checkboxLabels = document.querySelectorAll('.leaflet-control-layers-overlays label');
+            //     checkboxLabels.forEach(label => {
+            //         if (label.textContent.includes("COT Mafate")) {
+            //             const input = label.querySelector('input[type="checkbox"]');
+            //             if (input && input.checked) {
+            //                 input.checked = false;
+            //             }
+            //         }
+            //     });
+            //     return; // on ne continue pas
+            // }
 
             // Si c'est un GeoJSON avec plusieurs couches
             if (layer.eachLayer) {
@@ -197,19 +312,27 @@
 
         container._leaflet_map = map;
         return map;
-
-        
-
     }
+    
 
-    // Fond Coeur de Parc et Aire d'adhésion
+
+
+    // ---------------------------------
+    // Paramétrage des Fonds de carte
+    // ---------------------------------
     function addBackgroundLayers(map, fond, adhesion, mafate_cot) {
         const overlays = {};
 
         // Coeur de Parc
         if (fond) {
             const fondLayer = L.geoJSON(fond, {
-                style: { color: "#2E7D32", fillColor: "#4CAF50", weight: 2, fillOpacity: 0.5, opacity: 0.1 },
+                style: { 
+                    color: "#2E7D32", 
+                    fillColor: "#4CAF50", 
+                    weight: 2, 
+                    fillOpacity: 0.4, 
+                    opacity: 1
+                },
                 onEachFeature: (feature, layer) => {
                     layer.bindPopup("<strong>Cœur du Parc national</strong>");
                     layer.pmIgnore = true;
@@ -223,6 +346,7 @@
             overlays["Cœur du Parc National"] = fondLayer;
             // Affichage du fond par défaut
             fondLayer.bringToBack();
+            fondLayer.pmIgnore = true;
         }
 
 
@@ -231,15 +355,11 @@
             const adhesionLayer = L.geoJSON(adhesion, {
                 style: {
                     color: "#388E3C",
-                    weight: 1.5,
+                    weight: 2,
                     fillColor: "#A5D6A7",
-                    fillOpacity: 0.6
+                    fillOpacity: 0.6,
+                    opacity: 1,
                 },
-                // onEachFeature: (feature, layer) => {
-                //     // const { Type = "N/A", Decret = "Non renseigné" } = feature.properties || {};
-                //     // layer.bindPopup(`<strong>${Type}</strong><br/><small>${Decret}</small>`);
-                //     layer.pmIgnore = true;
-                // } 
             });
 
             adhesionLayer.eachLayer(l => {
@@ -248,6 +368,7 @@
             });
 
             adhesionLayer.options._isBackgroundLayer = true;
+            adhesionLayer.pmIgnore = true;
             // Ajoute uniquement dans le panneau de calques, pas sur la carte
             overlays["Aire d’adhésion"] = adhesionLayer;
         }
@@ -256,10 +377,11 @@
         if (mafate_cot) {
             const mafateLayer = L.geoJSON(mafate_cot, {
                 style: {
-                    color: "#1900ffff",
+                    color: "#2614c5ff",
                     weight: 1.5,
-                    fillColor: "#1848ceff",
-                    fillOpacity: 0.7
+                    fillColor: "#4b6abeff",
+                    fillOpacity: 0.6,
+                    opacity: 1,
                 }
             });
 
@@ -271,9 +393,9 @@
             });
 
             mafateLayer.options._isBackgroundLayer = true;
+            mafateLayer.pmIgnore = true;
             // Ajoute uniquement dans le panneau de calques, pas sur la carte
             overlays["COT Mafate"] = mafateLayer;
-            // mafateLayer.addTo(map);
         }
 
         return overlays;
@@ -281,6 +403,10 @@
 
 
 
+
+    // ------------------------------------------------------------------------
+    // Ajout du panneau de couches
+    // ------------------------------------------------------------------------
     function addLayerControl(map, overlays) {
         // Menu de sélection des couches Coeur et Adhésion
         const control = L.control.layers(null, overlays, { collapsed: false, position: "topright" }).addTo(map);
@@ -338,7 +464,8 @@
     }
 
 
-    // Construction de la couche 
+
+    // Paramétrage Géométrie du pétitionnaire
     function renderExistingGeometry(map, geojson) {
 
         const layer = L.geoJSON(geojson, {
@@ -359,8 +486,12 @@
     }
 
 
-    function enableDrawing(map) {
 
+
+    // -----------------------------------
+    // Nouveau Dessin Geoman
+    // -----------------------------------
+    function enableDrawing(map) {
 
         map.on('pm:create', e => {
 
@@ -381,6 +512,10 @@
 
 
 
+
+// ========================================
+//  VALIDATION GEOJSON
+// ========================================
 function setupValidationButton() {
     const cartes = document.querySelectorAll(".carte");
 
