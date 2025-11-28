@@ -148,8 +148,8 @@ def requete_dossiers(request):
 
 
         # Champs nettoyés pour pré-remplissage propre
-        "nom_rempli": nom,
-        "instructeur_rempli": instructeur,
+        "nom_rempli": nom or "",
+        "instructeur_rempli": instructeur or "",
         "numero_rempli": numero or "",
     }
     return render(request, "instruction/requetes.html", context)

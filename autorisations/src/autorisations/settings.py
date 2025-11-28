@@ -152,6 +152,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'authent/static/'),
     os.path.join(BASE_DIR, 'instruction/static/'),
+    os.path.join(BASE_DIR.parent.parent, "docs/site"),
 ]
 
 # Default primary key field type
@@ -165,7 +166,6 @@ LOGIN_URL = '/login/'
 
 # Redirige vers la page de login après déconnexion
 LOGOUT_REDIRECT_URL = '/login/'
-
 
 
 LOGGING = {

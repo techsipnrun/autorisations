@@ -1,7 +1,10 @@
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import path
 from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert
 from django.contrib import admin
+from django.views.generic import RedirectView, TemplateView
+from django.templatetags.static import static
 
 urlpatterns = [
 
@@ -10,6 +13,9 @@ urlpatterns = [
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
 
+
+    # DOCUMENTATION
+    path("docs/", lambda request: redirect(static("index.html")), name="docs"),
     
 
     # AVIS

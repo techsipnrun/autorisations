@@ -40,7 +40,6 @@ def dossiers_normalize_process(d):
             "demandes": demande_normalize(id_demarche, titre_demarche, doss)
         }
 
-
         dossiers.append(dico_dossier)
 
     return dossiers

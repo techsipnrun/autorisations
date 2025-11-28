@@ -603,6 +603,7 @@ admin.site.register(Instructeur)
 class AgentAutorisationsAdmin(admin.ModelAdmin):
     list_display = ('nom', 'prenom', 'mail_1')
     list_filter = ('actif',)
+    search_fields = ('nom', 'prenom', 'mail_1')
 
 
 admin.site.register(Groupeinstructeur)

@@ -926,6 +926,10 @@ def changer_publieur_raa(request):
 
 
 
+
+
+
+
 """ 
 ##################################
 CLEAN A FINIR 
@@ -1449,8 +1453,11 @@ def gestion_groupes(request):
     user = request.user
     param = request.GET.get("mes_groupes")
     if param is None:
-        # Aucun paramètre → on coche par défaut
-        show_only_mine = True
+        if request.user.is_superuser :
+            show_only_mine = False
+        else :
+            # Aucun paramètre → on coche par défaut
+            show_only_mine = True
     else:
         # Si présent → on suit la valeur ("1" = coché, tout le reste = décoché)
         show_only_mine = (param == "1")

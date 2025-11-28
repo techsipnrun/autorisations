@@ -262,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 return L.circleMarker(latlng, {
-                    radius: 8,
+                    radius: 5,
                     fillColor: "#c27579ff",
                     color: "#ff000dff",
                     fillOpacity: 1,
