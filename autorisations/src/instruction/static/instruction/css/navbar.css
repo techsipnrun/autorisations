@@ -12,7 +12,7 @@
     position: fixed;
     background-color: whitesmoke;
     border-bottom: solid black 2px;
-    height: 110px;
+    height: 80px;
     top: 0;
     left: 0;
     right: 0;
@@ -22,6 +22,19 @@
 
 
 /* Logo */
+.logo_parc_navbar{
+  height: 100%;
+  display: flex;
+}
+
+.vert {
+  width: 32px;
+  height: 100%;
+  margin: 0;
+  margin-right: -2px;
+  background-color: #006131;
+}
+
 .logo-application {
     height: 100%;
     margin-right: 0.5rem;
@@ -50,7 +63,7 @@
 }
 
 .navigation_links li {
-    padding: 20px;
+    padding: 15px;
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -75,7 +88,7 @@
     display: flex; 
     color: rgb(17, 94, 49);
     font-weight: bold;
-    font-size: 1.5rem;
+    font-size: 1rem;
 }
 
 .navigation_links li.active a {
@@ -161,7 +174,7 @@
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   padding: 1rem;
 }
 
@@ -221,7 +234,7 @@
   padding: 0.6rem 1rem;
   text-decoration: none;
   color: black;
-  font-size: 1.2rem;
+  font-size: 1rem;
   border:none;
 }
 
@@ -270,7 +283,7 @@
 /* -------------------------------------- */
 .breadcrumb {
     font-size: 1.3rem;
-    margin: 1rem 0 0.5rem 4rem;
+    margin: 1rem 0 0.5rem 2rem;
     color: #666;
 }
 
@@ -295,30 +308,30 @@
 /* =========== RESPONSIVE =========== */
 /* ================================== */
 
-@media (max-width: 1900px) {
+/* @media (max-width: 1900px) { */
 
   /* Réduire la police des volets de la navbar */
-  .navigation_links a {
+  /* .navigation_links a {
       font-size: 1.3rem;
-  }
+  } */
 
   /* Réduire email */
-  .user_toggle {
+  /* .user_toggle {
     font-size: 1.1rem;
-  }
+  } */
 
   /* Réduire bouton Deconnexion */
-  .logout-item {
+  /* .logout-item {
     font-size: 1rem;
-  }
+  } */
 
-}
+/* } */
 
 @media (max-width: 1750px) {
 
-  .navigation_links a {
+  /* .navigation_links a {
       font-size: 1rem;
-  }
+  } */
 
   /* Réduire padding volets de la navbar */
   .navigation_links li {

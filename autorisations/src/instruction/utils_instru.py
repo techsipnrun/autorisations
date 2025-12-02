@@ -113,6 +113,7 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
         print(f"Mails des users ayant une action à faire suite au changement d'étape : {emails_norm2}")
 
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_txt = ", ".join(emails_norm)
 
         if not emails_norm:
             messages.error(request, f"L'email de notification à {users_ayant_une_action_a_faire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
@@ -133,7 +134,7 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
         except Exception as e:
-            messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
             logger.error(f"[DOSSIER {dossier.numero}] Échec de la notification par mail suite au passage à l'étape '{nom_etape}' par {user} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
             return
 
@@ -143,14 +144,14 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
             ok, err = envoi_mail(outbox.id)
         else :
             logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la création de l'EmailOutbox, personne n'a été notifié du changement d'étape à '{nouvelle_etape.etape}'")
-            messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
+            messages.error(request, f"{emails_txt} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
             return
 
         if ok:
             logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} ({outbox.sujet}) envoyée à {', '.join(outbox.to)} ")
         else:
             logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
-            messages.error(request, f"{emails_norm} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
+            messages.error(request, f"{emails_txt} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
 
     return
 
@@ -240,7 +241,10 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
                 id_dossier=dossier,
                 lu=False
             ).exclude(
-                email_emetteur='contact@demarches-simplifiees.fr'
+                email_emetteur__in=[
+                    "contact@demarches-simplifiees.fr",
+                    "contact@demarche.numerique.gouv.fr",
+                ]
             ).exclude(
                 email_emetteur__endswith='reunion-parcnational.fr'
             ).count()
@@ -518,13 +522,15 @@ def get_instructeurs_a_actionner(dossier):
         # Instructeurs
         instructeurs = (DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
         if instructeurs :
-            logger.warning(f"[DOSSIER {dossier.numero}] {instructeurs} désigné.s par défaut pour faire la prochaine action suite au changement d'étape ('{etape}')")
+            instructeurs_str = ", ".join(Instructeur.objects.filter(id=i).first() for i in instructeurs)
+            logger.warning(f"[DOSSIER {dossier.numero}] {instructeurs_str} désigné.s par défaut pour faire la prochaine action suite au changement d'étape ('{etape}')")
         else :
 
             # Relecteurs qualité
             instructeurs = (DossierRelecteurQualite.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur", flat=True))
             if instructeurs :
-                logger.warning(f"[DOSSIER {dossier.numero}] {instructeurs} désigné.s par défaut pour faire la prochaine action suite au changement d'étape ('{etape}')")
+                instructeurs_str = ", ".join(Instructeur.objects.filter(id=i).first() for i in instructeurs)
+                logger.warning(f"[DOSSIER {dossier.numero}] {instructeurs_str} désigné.s par défaut pour faire la prochaine action suite au changement d'étape ('{etape}')")
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Changement d'étape '{etape}' : Aucun user désigné pour faire la prochaine action (aucun instructeur et aucun relecteur qualité sur le dossier).")
 

@@ -346,8 +346,8 @@ def changer_groupe_instructeur(request):
         logger.error(f"[CHANGER GROUPE INSTRUCTEUR] User {request.user} : groupe_id_ds={groupe_id}, dossier_id non transmis via le formulaire.")
         return redirect_error(request, "❌ Paramètres manquants pour changer le groupe instructeur. Contactez le support.")
 
-    if not groupe_id_ds :
-        logger.error(f"[CHANGER GROUPE INSTRUCTEUR] User {request.user} : dossier_id_ds={dossier_id}, groupe_id_ds non transmis via le formulaire.")
+    if not groupe_id :
+        logger.error(f"[CHANGER GROUPE INSTRUCTEUR] User {request.user} : dossier_id_ds={dossier_id}, groupe_id non transmis via le formulaire.")
         return redirect_error(request, "❌ Paramètres manquants pour changer le groupe instructeur. Contactez le support.")
 
 

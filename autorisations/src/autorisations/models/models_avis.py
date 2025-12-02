@@ -19,6 +19,7 @@ class AvisNature(models.Model):
 class AvisThematique(models.Model):
     id = models.AutoField(primary_key=True)
     thematique = models.CharField(unique=True)
+    demarche = models.CharField(blank=True, null=True)
 
     class Meta:
         managed = False

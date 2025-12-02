@@ -312,7 +312,7 @@ def refuse_le_dossier(request):
         # on continue
 
     # --- Enregistrer Action ---
-    safe_enregistrer_action(dossier, instructeur, action="Demande de compléments", request=request)
+    safe_enregistrer_action(dossier, instructeur, action="Classé comme refusé", request=request)
     
 
     return redirect(reverse('instruction_dossier', kwargs={'num_dossier': dossier.numero}))
@@ -599,9 +599,9 @@ def faire_valider_le_projet_d_acte(request):
     # Sauvegarde du Projet d'acte
     ##############################
     try:
-        # Écriture du fichier sur le NAS
-        if not ecrire_file_sur_nas(fichier, filepath): 
-            raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+        # Écriture du fichier sur le NAS ?
+        # if not ecrire_file_sur_nas(fichier, filepath): 
+        #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
         
         # Enregistrer en BDD
         doc, created = Document.objects.get_or_create(
@@ -645,8 +645,8 @@ def faire_valider_le_projet_d_acte(request):
 
         try:
             # Écriture du fichier sur le NAS
-            if not ecrire_file_sur_nas(fichier, filepath_rapport): 
-                raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
+            # if not ecrire_file_sur_nas(fichier, filepath_rapport): 
+            #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
 
             nature_obj = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
             if not nature_obj:
@@ -1255,7 +1255,7 @@ def acte_pret_a_etre_envoye(request):
         return redirect_error(request, f"❌ L'acte joint doit etre au format PDF --> Type de fichier non autorisé : {extension}")
     
     # Vérification dossier Work
-    dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
+    dossier_path = os.path.join(dossier.emplacement, "Actes/").replace("\\", "/")
     full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
     creer_dossier_sur_nas(full_path)
 
@@ -1369,10 +1369,6 @@ def acte_pret_a_etre_envoye(request):
     if err:
         return err
     
-    # DossierEnvoiActe.objects.filter(id_dossier=dossier).delete()
-    # DossierEnvoiActe.objects.create(id_dossier=dossier, id_instructeur=envoyeur)
-    # logger.info(f"[DOSSIER {dossier.numero}] Envoyeur d'acte {envoyeur} ajouté au dossier.")
-
 
     # --- Mise à jour Étape ---
     err = safe_update_etape(dossier, "Acte à envoyer", request, break_si_erreur=True)
@@ -1563,8 +1559,12 @@ def envoyer_l_acte(request):
             content_type = 'application/octet-stream'
 
         try:
-            with open(full_path_doc, 'rb') as f:
-                fichier = SimpleUploadedFile(name=f"{document.titre}", content=f.read(), content_type=content_type)
+            with smbclient.open_file(full_path_doc, mode="rb") as f:
+                fichier = SimpleUploadedFile(name=document.titre, content=f.read(), content_type=content_type)
+
+
+            # with open(full_path_doc, 'rb') as f:
+            #     fichier = SimpleUploadedFile(name=f"{document.titre}", content=f.read(), content_type=content_type)
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) : Impossible de lire le fichier {full_path_doc} : {e}")
@@ -1638,6 +1638,14 @@ def envoyer_l_acte(request):
                 return redirect_error(request, f"Erreur lors de l'acceptation du dossier sur Démarches Simplifiées. Contactez le support.")
 
 
+        # -------------------------------------------------------
+        # Ajout de la personne chargée de publier l'acte au RAA
+        # ------------------------------------------------------
+        err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
+        if err:
+            return err
+        
+
         # ============================================
         #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
         # ============================================
@@ -1650,14 +1658,6 @@ def envoyer_l_acte(request):
 
         # --- Enregistrer Action ---
         safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
-
-
-        # -------------------------------------------------------
-        # Ajout de la personne chargée de publier l'acte au RAA
-        # ------------------------------------------------------
-        err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
-        if err:
-            return err
 
 
         # ===============================================
@@ -1767,14 +1767,15 @@ def envoyer_l_acte(request):
                 # =========================
                 sujet = f"{nature_document} – Dossier {dossier.numero}"
                 context = {"body": motivation}
-                template_name = "libre" 
+                template_name = "libre"
+                emails_txt = ", ".join(emails_norm)
 
                 try :
                     dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
                 except Exception as e:
                     logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec de l'envoi de l'acte en copie par mail - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-                    return redirect_error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support.")
+                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
 
                 # return None si Erreur 
                 outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Envoi de l'acte")
@@ -1783,8 +1784,8 @@ def envoyer_l_acte(request):
                     ok, err = envoi_mail(outbox.id)
 
                 else :
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Erreur lors de la création de l'EmailOutbox, Les users qui n'ont pas été notifiés par mail : {emails_norm}")
-                    return redirect_error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support.")
+                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Erreur lors de la création de l'EmailOutbox, Les users qui n'ont pas été notifiés par mail : {emails_txt}")
+                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
 
                 if ok:
                     logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Envoi en copie de l'acte par Mail ({outbox.id}) envoyée à {', '.join(outbox.to)} ")

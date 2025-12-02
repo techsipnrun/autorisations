@@ -80,7 +80,6 @@ def build_documents_for_dossier(dossier):
     delibCA = any(
         dd.id_document.id_nature.nature.lower() == "déliberation ca"
         and dd.id_document.id_statut
-        and dd.id_document.id_statut.statut.lower() in ["à relire", "à signer", "à envoyer"]
         for dd in docs_du_dossier
     )
 

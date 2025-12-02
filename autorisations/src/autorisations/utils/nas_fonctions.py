@@ -188,10 +188,10 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
-                loggerApp.error(f"[ACL][Windows] ❌ Erreur icacls : {result.stderr or result.stdout}")
+                loggerApp.error(f"[ACL][Windows] ❌ Droits 'Modify' non accordés à '{GROUPE_NAS}' sur {dossier_work}. Erreur icacls : {result.stderr or result.stdout}")
                 return False
 
-            loggerApp.info(f"[ACL][Windows] ✅ Droits 'Modify' accordés à '{GROUPE_NAS}' sur {dossier_work}")
+            # loggerApp.info(f"[ACL][Windows] ✅ Droits 'Modify' accordés à '{GROUPE_NAS}' sur {dossier_work}")
             return True
 
         elif system == "Linux":

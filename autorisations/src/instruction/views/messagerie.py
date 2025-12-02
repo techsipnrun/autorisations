@@ -52,7 +52,10 @@ def preinstruction_dossier_messagerie(request, numero):
     # 2. Messages non lus
     # -----------------------------------
     messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
+        email_emetteur__in=[
+                    "contact@demarches-simplifiees.fr",
+                    "contact@demarche.numerique.gouv.fr",
+                ]
     ).exclude(
         email_emetteur__endswith='reunion-parcnational.fr'
     )
@@ -84,7 +87,7 @@ def preinstruction_dossier_messagerie(request, numero):
         # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
         align = (
             "right"
-            if emetteur == "contact@demarches-simplifiees.fr" or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr")
+            if emetteur in [ "contact@demarches-simplifiees.fr", "contact@demarche.numerique.gouv.fr", request.user.email.lower()] or emetteur.endswith("reunion-parcnational.fr")
             else "left"
         )
 
@@ -164,7 +167,10 @@ def instruction_dossier_messagerie(request, num_dossier):
     # 2. Messages non lus
     # -----------------------------------
     messages_non_lus = Message.objects.filter(id_dossier=dossier, lu=False).exclude(
-        email_emetteur='contact@demarches-simplifiees.fr'
+        email_emetteur__in=[
+                    "contact@demarches-simplifiees.fr",
+                    "contact@demarche.numerique.gouv.fr",
+                ]
     ).exclude(
         email_emetteur__endswith='reunion-parcnational.fr'
     )
@@ -197,7 +203,7 @@ def instruction_dossier_messagerie(request, num_dossier):
         # left = Message reçu du demandeur, right = Message émis par instructeur ou DS
         align = (
             "right"
-            if emetteur == "contact@demarches-simplifiees.fr" or emetteur == request.user.email.lower() or emetteur.endswith("reunion-parcnational.fr")
+            if emetteur in [ "contact@demarches-simplifiees.fr", "contact@demarche.numerique.gouv.fr", request.user.email.lower()] or emetteur.endswith("reunion-parcnational.fr")
             else "left"
         )
 

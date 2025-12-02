@@ -475,6 +475,7 @@ def donner_son_avis(request, avis_id):
 
     # emails_norm = [avis.id_instructeur.email]
     emails_norm = ["louis.calu@reunion-parcnational.fr"]
+    emails_txt = ", ".join(emails_norm)
 
     # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
     sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
@@ -492,8 +493,8 @@ def donner_son_avis(request, avis_id):
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
     except Exception as e:
-        messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-        logger.error(f"[AVIS {avis.id}] : L'expert vient de donner son avis. L'email de notification à {emails_norm} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+        messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[AVIS {avis.id}] : L'expert vient de donner son avis. L'email de notification à {emails_txt} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
         return redirect("avis_expert", avis_id=avis.id)
     
 
@@ -502,14 +503,14 @@ def donner_son_avis(request, avis_id):
     if outbox :
         ok, err = envoi_mail(outbox.id)
     else :
-        logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié par mail.")
-        messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_txt} n'a pas été notifié par mail.")
+        messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     if ok:
         logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis rendu) envoyée à {', '.join(outbox.to)} ")
     else:
         logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
-        messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     return redirect("avis_expert", avis_id=avis.id)
 
@@ -571,7 +572,7 @@ def remplacer_avis_signe(request):
 
             # emails_norm = [avis.id_instructeur.email]
             emails_norm = ["louis.calu@reunion-parcnational.fr"]
-
+            emails_txt = ", ".join(emails_norm)
             # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
             sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a remplacé son avis signé"
             
@@ -588,8 +589,8 @@ def remplacer_avis_signe(request):
                 dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
             except Exception as e:
-                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-                logger.error(f"[AVIS {avis.id}] : Remplacement de l'avis signé par {request.user}. L'email de notification à {emails_norm} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+                messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[AVIS {avis.id}] : Remplacement de l'avis signé par {request.user}. L'email de notification à {emails_txt} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
     
 
@@ -604,14 +605,14 @@ def remplacer_avis_signe(request):
                 if outbox :
                     ok, err = envoi_mail(outbox.id)
                 else :
-                    logger.error(f"[AVIS {avis.id}] Avis modifié par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié par mail.")
-                    messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                    logger.error(f"[AVIS {avis.id}] Avis modifié par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_txt} n'a pas été notifié par mail.")
+                    messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
                 if ok:
                     logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis modifié) envoyée à {', '.join(outbox.to)} ")
                 else:
                     logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis modifié) à {', '.join(outbox.to)} : {err}")
-                    messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                    messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
     except Exception as e:
         logger.error(f"[AVIS {avis.id}] Erreur lors du remplacement de l'avis signé par l'expert {request.user} : {e}")
@@ -664,7 +665,7 @@ def deposer_avis_signe(request):
 
             # emails_norm = [avis.id_instructeur.email]
             emails_norm = ["louis.calu@reunion-parcnational.fr"]
-
+            emails_txt = ", ".join(emails_norm)
             # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
             sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a déposé son avis signé"
             
@@ -681,8 +682,8 @@ def deposer_avis_signe(request):
                 dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
             except Exception as e:
-                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-                logger.error(f"[AVIS {avis.id}] : Avis signé déposé par {request.user}. L'email de notification à {emails_norm} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+                messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[AVIS {avis.id}] : Avis signé déposé par {request.user}. L'email de notification à {emails_txt} n'a pas été envoyé - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
  
 
@@ -691,14 +692,14 @@ def deposer_avis_signe(request):
             if outbox :
                 ok, err = envoi_mail(outbox.id)
             else :
-                logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[AVIS {avis.id}] Avis rendu par {avis.id_expert} : Erreur lors de la création de l'EmailOutbox, {emails_txt} n'a pas été notifié par mail.")
+                messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
             if ok:
                 logger.info(f"[AVIS {avis.id}] Notification Email {outbox.id} (Avis rendu) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
             return redirect("avis_expert", avis_id=avis.id)
 

@@ -107,8 +107,8 @@
                     </div>
 
                     <div class="attribut_avis" id="bloc_pj_projet_acte">
-                        <label for="pj_avis">Joindre le projet d'acte (PDF)* :</label>
-                        <input type="file" id="pj_projet_acte" name="pj_projet_acte"accept=".pdf"
+                        <label for="pj_avis">Joindre le projet d'acte (Word, PDF)* :</label>
+                        <input type="file" id="pj_projet_acte" name="pj_projet_acte"accept=".odt,.doc,.docx,.pdf"
                                data-exists="{% if avis.id_projet_acte %}true{% else %}false{% endif %}">
                         {% if avis.id_projet_acte %}
                             <p class="pj-existante">

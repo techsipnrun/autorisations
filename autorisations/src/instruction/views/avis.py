@@ -775,9 +775,9 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         # Projet d'acte
         if pj_projet_acte :
             extension = Path(pj_projet_acte.name).suffix.lower()
-            if extension != ".pdf" :
-                logger.warning(f"[CONFIRMER AJOUT AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
-                return redirect_error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+            if extension not in {".doc", ".docx", ".odt", ".pdf"} :
+                logger.warning(f"[CONFIRMER AJOUT AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .doc, .docx, .odt, .pdf")
+                return redirect_error(request, f"❌ Le projet d'acte doit etre au format .doc, .docx, .odt ou .pdf --> Type de fichier non autorisé : {extension}")
                 
             
             doc_projet_acte = enregistrer_document(
@@ -948,13 +948,13 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     if doc_projet_avis :
                         MessageDocument.objects.create(id_message=msg, id_document=doc_projet_avis)
 
-                    logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : message par défaut envoyé à {brouillon_avis.id_expert} par {request.user}")
+                    logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : message par défaut envoyé à {avis.id_expert} par {request.user}")
 
 
                 except Exception as e:
                     avis.statut = "Brouillon"
                     avis.save()
-                    logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Demande d'avis de {request.user} non transmise à {brouillon_avis.id_expert} - Erreur lors de la création du message par défaut (formulation avis) : {e}")
+                    logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Demande d'avis de {request.user} non transmise à {avis.id_expert} - Erreur lors de la création du message par défaut (formulation avis) : {e}")
                     return redirect_error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
 
 
@@ -1152,9 +1152,9 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
         # Projet d'acte
         if pj_projet_acte :
             extension = Path(pj_projet_acte.name).suffix.lower()
-            if extension != ".pdf" :
-                logger.warning(f"[SAVE BROUILLON AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
-                return redirect_error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+            if extension not in {".doc", ".docx", ".odt", ".pdf"} :
+                logger.warning(f"[SAVE BROUILLON AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .doc, .docx, .odt ou .pdf")
+                return redirect_error(request, f"❌ Le projet d'acte doit etre au format .doc, .docx, .odt ou .pdf --> Type de fichier non autorisé : {extension}")
                 
             
             doc_projet_acte = enregistrer_document(
@@ -1911,8 +1911,9 @@ def avis_confirmer_nouvelle_demande_generique(request):
     
     if pj_projet_acte :
         extension = Path(pj_projet_acte.name).suffix.lower()
-        if extension != ".pdf" :
-            return redirect_error(request, f"❌ Le projet d'acte doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
+        if extension not in {".doc", ".docx", ".odt", ".pdf"} :
+            logger.error(f"[CONFIRMER AVIS GENERIQUE] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .doc, .docx, .odt, .pdf")
+            return redirect_error(request, f"❌ Le projet d'acte doit etre au format .doc, .docx, .odt ou .pdf --> Type de fichier non autorisé : {extension}")
         
         doc_projet_acte = enregistrer_document(
             fichier=pj_projet_acte,

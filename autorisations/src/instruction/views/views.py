@@ -1130,9 +1130,7 @@ def mes_avis_action_a_faire(request):
     # ----------------------------------------------------------
     if expert:
         # (a) Avis à rendre → favorable is null
-        nb_avis_a_rendre = Avis.objects.filter(
-            id_expert=expert, favorable__isnull=True
-        )
+        nb_avis_a_rendre = Avis.objects.filter(id_expert=expert, favorable__isnull=True)
 
         liste_avis_avec_action_a_faire.extend(nb_avis_a_rendre)
 
@@ -1171,14 +1169,16 @@ def mes_avis_action_a_faire(request):
                 nb_avis_action += 1
                 if avis not in liste_avis_avec_action_a_faire:
                     liste_avis_avec_action_a_faire.append(avis)
+                    
 
     # -----------------------------------------------------------------------
     # 4 Cas où l’utilisateur est CHARGÉ DE PUBLIER LES AVIS INSTANCES AU RAA
     # -----------------------------------------------------------------------
     if instructeur and request.user.groups.filter(name="Publication RAA Avis CS").exists():
 
+        # On filtre sur les avis du CS uniquement
         avis_en_attente_de_publi_RAA = (
-            Avis.objects.filter(favorable=True,)
+            Avis.objects.filter(favorable=True, id_expert__est_interne=False, id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique")
             .exclude(publie_au_raa=True)
             .filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance")
             .distinct()
@@ -1186,10 +1186,12 @@ def mes_avis_action_a_faire(request):
         ############################
         # On filtrera sur expert = CS
         ############################
+   
 
         for avis in avis_en_attente_de_publi_RAA :
             if avis not in liste_avis_avec_action_a_faire:
                 liste_avis_avec_action_a_faire.append(avis)
+    
 
     return {"nb_avis_action_a_faire": len(liste_avis_avec_action_a_faire)}
     # return {"nb_avis_action_a_faire": nb_avis_action}
@@ -1229,7 +1231,6 @@ def ajouter_annexe_dossier(request, dossier_id):
 
         
         # Création du Document
-        dossier = get_object_or_404(Dossier, pk=dossier_id)
         emplacement = f"{dossier.emplacement}Annexes/{fichier.name}"
         # chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
         chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"

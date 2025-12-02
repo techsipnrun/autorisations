@@ -18,7 +18,7 @@ def redirect_error(request, msg):
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
-EXCLUDED_EMAILS = ["contact@demarches-simplifiees.fr",]
+EXCLUDED_EMAILS = ["contact@demarches-simplifiees.fr", "contact@demarche.numerique.gouv.fr"]
 EXCLUDED_SUFFIXES = ["reunion-parcnational.fr"]
 
 
@@ -371,7 +371,7 @@ LOGO_MAPPING = {
 
 
 def build_timeline_for_dossier(dossier):
-    actions = DossierAction.objects.filter(id_dossier=dossier).order_by("-date")
+    actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date', '-id')
 
     for a in actions:
         a.logo = LOGO_MAPPING.get(a.id_action.action, "timeline.png")

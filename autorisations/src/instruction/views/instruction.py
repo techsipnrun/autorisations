@@ -884,6 +884,8 @@ def ajouter_relecteur_dossier(request):
     if request.user.email != relecteur.email :
         # emails_norm = [relecteur.email]
         emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_txt = ", ".join(emails_norm)
+
         sujet = f"Dossier {dossier.numero} - Relecture demandée"
 
         context = {
@@ -898,7 +900,7 @@ def ajouter_relecteur_dossier(request):
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande de relecture faite par {request.user} - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-            return redirect_error(request, f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
@@ -913,15 +915,15 @@ def ajouter_relecteur_dossier(request):
             if outbox :
                 ok, err = envoi_mail(outbox.id)
             else :
-                logger.error(f"[DOSSIER {dossier.numero}] Demande de relecture faite par {request.user} : Erreur lors de la création de l'EmailOutbox, {emails_norm} n'a pas été notifié de la demande de relecture par mail.")
-                request.session["relecteur_message"] = (f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                logger.error(f"[DOSSIER {dossier.numero}] Demande de relecture faite par {request.user} : Erreur lors de la création de l'EmailOutbox, {emails_txt} n'a pas été notifié de la demande de relecture par mail.")
+                request.session["relecteur_message"] = (f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
                 return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Demande de relecture faite par {request.user}) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Demande de relecture faite par {request.user}) à {', '.join(outbox.to)} : {err}")
-                request.session["relecteur_message"] = (f"L'email de notification à {emails_norm} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                request.session["relecteur_message"] = (f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
                 return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
     

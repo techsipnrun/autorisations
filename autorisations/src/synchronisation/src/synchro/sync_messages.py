@@ -42,7 +42,7 @@ def sync_messages(messages, id_dossier):
 
         if created:
             logger.info(f"[CREATE] Message {msg_obj.id_ds} pour Dossier {id_dossier} créé.")
-            if message_data["email_emetteur"] == 'contact@demarches-simplifiees.fr' or 'reunion-parcnational.fr' in message_data["email_emetteur"] :
+            if message_data["email_emetteur"] == 'contact@demarches-simplifiees.fr' or message_data["email_emetteur"] == 'contact@demarche.numerique.gouv.fr' or 'reunion-parcnational.fr' in message_data["email_emetteur"] :
                 lu = True
             else :
                 lu = False
