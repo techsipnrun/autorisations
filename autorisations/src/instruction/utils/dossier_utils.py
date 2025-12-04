@@ -96,13 +96,17 @@ def safe_update_etat(dossier, nouvel_etat, request, break_si_erreur):
             return None
 
 
-def safe_enregistrer_action(dossier, instructeur, action, request, description=None, date=timezone.now()):
+def safe_enregistrer_action(dossier, instructeur, action, request, description=None, date=None):
     """
     Enregistre une action sur un dossier avec gestion des erreurs.
     Pour rappel : enregistrer_action(dossier, instructeur, nom_action, description=None, date=None)
     """
 
+    if date is None:
+        date = timezone.now()
+
     try:
+        print(date)
         enregistrer_action(dossier, instructeur, action, description, date)
         return None
     except Exception as e:

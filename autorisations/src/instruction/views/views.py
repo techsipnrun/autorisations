@@ -1006,7 +1006,7 @@ def enregistrer_geom(request):
         return redirect(f"{reverse('edit_carto', kwargs={'numero_dossier': dossier.numero, 'id_champ': id_champ})}?status=ok&msg={urllib.parse.quote(msg)}")
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'nregistrement de la géométrie par {request.user} : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'enregistrement de la géométrie par {request.user} : {e}")
         return redirect(f"/instruction/{request.POST.get('dossier_numero')}/edit_carto/{request.POST.get('id_champ')}?status=error&msg={urllib.parse.quote(str(e))}")
 
 

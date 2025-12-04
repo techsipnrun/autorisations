@@ -194,7 +194,7 @@
                     </div>
 
                     <!-- Bouton Se déclarer comme instructeur.trice du dossier -->
-                    {% if peut_se_declarer %}
+                    <!-- {% if peut_se_declarer %}
                         <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-declarer-instructeur">
                             {% csrf_token %}
                             <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
@@ -204,7 +204,7 @@
                                 Se déclarer comme instructeur.trice du dossier
                             </button>
                         </form>
-                    {% endif %}
+                    {% endif %} -->
 
                     <!-- Téléchargement PDF -->
                     <a class="download-pdf"
@@ -2748,27 +2748,46 @@
         });
 
         // Couvre aussi les boutons de type="button" qui déclenchent un submit() JS
-        const boutonsConfirm = document.querySelectorAll(
-            ".btn-envoyer-complement[onclick*='confirmer']"
-        );
+        // const boutonsConfirm = document.querySelectorAll(
+        //     ".btn-envoyer-complement[onclick*='confirmer']"
+        // );
 
-        boutonsConfirm.forEach(bouton => {
-            bouton.addEventListener("click", function () {
-                // On désactive le bouton après le clic pour éviter les doubles confirmations
-                bouton.disabled = true;
-                bouton.textContent = "Traitement...";
-                bouton.style.opacity = "0.6";
-                bouton.style.cursor = "not-allowed";
+        // boutonsConfirm.forEach(bouton => {
+        //     bouton.addEventListener("click", function () {
+        //         // On désactive le bouton après le clic pour éviter les doubles confirmations
+        //         bouton.disabled = true;
+        //         bouton.textContent = "Traitement...";
+        //         bouton.style.opacity = "0.6";
+        //         bouton.style.cursor = "not-allowed";
 
-                // Réactivation automatique au bout de 6 secondes (sécurité)
-                setTimeout(() => {
-                    bouton.disabled = false;
-                    bouton.textContent = "Confirmer";
-                    bouton.style.opacity = "1";
-                    bouton.style.cursor = "pointer";
-                }, 6000);
+        //         // Réactivation automatique au bout de 6 secondes (sécurité)
+        //         setTimeout(() => {
+        //             bouton.disabled = false;
+        //             bouton.textContent = "Confirmer";
+        //             bouton.style.opacity = "1";
+        //             bouton.style.cursor = "pointer";
+        //         }, 6000);
+        //     });
+        // });
+
+        // Désactiver définitivement les boutons Confirm (type=button)
+        document.addEventListener("DOMContentLoaded", function () {
+            const boutonsConfirm = document.querySelectorAll(
+                ".btn-envoyer-complement[onclick*='confirmer']"
+            );
+
+            boutonsConfirm.forEach(bouton => {
+                bouton.addEventListener("click", function () {
+                    bouton.disabled = true;
+                    bouton.textContent = "Traitement...";
+                    bouton.style.opacity = "0.6";
+                    bouton.style.cursor = "not-allowed";
+                });
             });
         });
+
+
+
     });
 </script>
 

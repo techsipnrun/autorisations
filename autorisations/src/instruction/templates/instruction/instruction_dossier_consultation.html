@@ -26,6 +26,13 @@
         <div class="avis">
 
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
+
+            {% if not dossier.present_sur_ds %}
+                <div class="pas_sur_ds">
+                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
+                </div>
+            {% endif %}
+            
             <div class="etat-badge-menu">
                 {{ dossier.id_etape_dossier }}
             </div> 

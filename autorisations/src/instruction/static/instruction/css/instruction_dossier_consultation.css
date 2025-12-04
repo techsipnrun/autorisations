@@ -30,6 +30,10 @@
     gap: 1rem;
 }
 
+/* Message si le dossier n'est plus sur DS */
+.pas_sur_ds {
+    margin-bottom: 1rem;
+}
 
 .btn-nouvel-avis {
   text-decoration: none;

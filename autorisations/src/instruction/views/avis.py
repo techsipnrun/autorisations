@@ -182,6 +182,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         Instructeur.objects
         .filter(email__isnull=False)
         .exclude(email__exact="")
+        .exclude(email__exact="autorisations@reunion-parcnational.fr")
         .exclude(email=request.user.email)  # pas soi-même
         .exclude(email__in=instructeurs_utilises)  # pas déjà utilisé
         .order_by("email")
@@ -190,11 +191,10 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
     # Contacts externes candidats
     contacts_qs = (
         ContactExterne.objects
-        .filter(email__isnull=False)
+        .filter(email__isnull=False, id_type__type="Instance")
         .exclude(email__exact="")
         .exclude(email=request.user.email)  # pas soi-même
         .exclude(email__in=contacts_utilises)  # pas déjà utilisé
-        .exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"])  # on ne veut pas les demandeurs, juste les potentiels experts
         .order_by("nom", "email")
     )
 
@@ -285,6 +285,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         Instructeur.objects
         .filter(email__isnull=False)
         .exclude(email__exact="")
+        .exclude(email__exact="autorisations@reunion-parcnational.fr")
         .exclude(email=request.user.email)  # pas soi-même
         .exclude(email__in=instructeurs_utilises)  # pas déjà utilisé
         .order_by("email")
@@ -293,7 +294,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     # Contacts externes candidats
     contacts_qs = (
         ContactExterne.objects
-        .filter(email__isnull=False)
+        .filter(email__isnull=False, id_type__type="Instance")
         .exclude(email__exact="")
         .exclude(email=request.user.email)  # pas soi-même
         # .exclude(email__in=contacts_utilises)  # pas déjà utilisé
@@ -1326,6 +1327,9 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
     if instructeur:
         est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
 
+    est_demandeur = False
+    if avis.id_instructeur == instructeur :
+        est_demandeur = True
 
     # --- Email expert ---
     email_expert = None
@@ -1345,7 +1349,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
     ids_non_lus = list(messages_non_lus.values_list("id", flat=True))
     
     # Mise à jour des mesages non lus --> lus
-    if est_instructeur_du_dossier and messages_non_lus :
+    if est_demandeur and messages_non_lus :
         nb = messages_non_lus.update(lu=True)
         if nb > 0:
             logger.info(f"[DOSSIER {dossier.numero}] {nb} message(s) non lus ont été marqués comme lus par {request.user}.")
@@ -1803,10 +1807,10 @@ def nouvelle_demande_avis_generique(request):
             return redirect_error(request, "Vous devez disposer d'un profil instructeur pour créer une demande d’avis. Contactez le support.")
 
         # Instructeurs candidats
-        instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").order_by("email")
+        instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").exclude(email__exact="autorisations@reunion-parcnational.fr").order_by("email")
 
         # Contacts externes candidats
-        contacts_ = ContactExterne.objects.filter(email__isnull=False).exclude(email__exact="").exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"]).order_by("nom", "email")
+        contacts_ = ContactExterne.objects.filter(email__isnull=False, id_type__type="Instance").exclude(email__exact="").order_by("nom", "email")
 
         # Supprimer les doublons d'email (si jamais)
         instructeurs = {i.email: i for i in instructeurs_}.values()

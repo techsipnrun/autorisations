@@ -111,7 +111,8 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
     chemin_complet = os.path.join(chemin_fichier, nom_geojson)
 
     try:
-        with open(chemin_complet, "w", encoding="utf-8") as f:
+        # with open(chemin_complet, "w", encoding="utf-8") as f:
+        with smbclient.open_file(chemin_complet, mode="w", encoding="utf-8") as f:
             json.dump(contenu_geojson, f, ensure_ascii=False, indent=2)
             
         loggerApp.info(f"[GEOJSON] Fichier écrit : {nom_geojson}")
@@ -315,17 +316,17 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
     # 2. Type démarche (si applicable)
     type_demarche = ""
     if type_autorisation == "Travaux":
-        if "soumis à autorisation d'urbanisme" in titre:
+        if "et soumis à autorisation d'urbanisme" in titre:
             type_demarche = "Soumis_urbanisme"
-        elif "non soumis" in titre:
+        elif "non soumis à autorisation d'urbanisme" in titre:
             type_demarche = "Non_soumis_urbanisme"
         elif "aire d’adhésion" in titre or "aire d'adhésion" in titre:
             type_demarche = "Aire_adhesion"
     elif type_autorisation == "Missions_scientifiques":
         if "cœur du parc" in titre or "coeur du parc" in titre:
             type_demarche = "Coeur_de_parc"
-        elif "espace protégé" in titre:
-            type_demarche = "Espace_protege"
+        elif "espèces protégées" in titre:
+            type_demarche = "Especes_protegees"
 
     # 3. Année
     try:

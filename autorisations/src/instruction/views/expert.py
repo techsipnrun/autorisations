@@ -176,8 +176,8 @@ def avis_expert(request, avis_id):
     # Identification Demandeur et Expert
     ##############################################################
     # Est-ce le demandeur ?
-    if avis.id_instructeur and avis.id_instructeur.email:
-        if avis.id_instructeur.email == email_user:
+    if avis.id_instructeur :
+        if avis.id_instructeur == instructeur:
             est_demandeur = True
   
     if not est_demandeur and instructeur:

@@ -230,7 +230,7 @@
                 </div>
             {% endif %}
         
-            {% if request.user|est_concerne_par_avis:avis %}
+            {% if request.user|est_concerne_par_avis:avis or est_expert %}
                 <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis_vision_expert' %}"> 
                     {% csrf_token %}
                     <input type="hidden" name="avis_id" value="{{ avis.id }}">

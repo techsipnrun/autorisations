@@ -253,7 +253,7 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
             if est_instructeur and nb_messages_non_lus > 0:
                 dossiers_a_traiter_ids.add(dossier.id)
 
-        elif etape in ["En instruction", "En Pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"]:
+        elif etape in ["En instruction", "En pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"]:
             # Rôle : Instructeur
             if est_instructeur:
                 dossiers_a_traiter_ids.add(dossier.id)
