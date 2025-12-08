@@ -962,8 +962,10 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         #################################
         # NOTIFICATION PAR MAIL à l'expert
         #################################
-        # emails_norm = [email_expert]
-        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = [get_email_expert(avis)]
+        # print(f"Expert à notifier : {emails_norm2}")
+
+        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
         if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier) and avis.id_demarche.type :
             sujet = f"{avis.id_instructeur} vous demande votre avis sur le dossier n° {dossier.numero} ({dossier.id_demarche.type})"
@@ -1527,8 +1529,10 @@ def envoyer_message_avis(request):
         logger.error(f"[ENVOI MSG AVIS] Dossier {dossier_numero}, Avis {avis.id} : L'expert {avis.id_expert} n'a pas été notifié car son adresse mail n'a pas été trouvée.")
         return redirect_error(request, "Message envoyé, mais l’expert n’a pas pu être notifié par mail. Contactez le support pouren savoir plus.")
 
-    # emails_norm = [email_expert]
-    emails_norm = ["louis.calu@reunion-parcnational.fr"]
+    emails_norm = [get_email_expert(avis)]
+    # print(f"Expert à notifier : {emails_norm2}")
+
+    # emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
     sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : Vous avez un nouveau message"
 
@@ -1641,8 +1645,9 @@ def envoyer_message_avis_vision_expert(request):
         # NOTIFICATION PAR MAIL AU DEMANDEUR
         ####################################
 
-        # emails_norm = [email_demandeur]
-        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = [email_demandeur]
+        # print(f"Demandeur à notifier : {emails_norm2}")
+        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
         sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : Nouveaux messages de l'expert.e"
         
@@ -1690,8 +1695,10 @@ def envoyer_message_avis_vision_expert(request):
         # NOTIFICATION PAR MAIL A L'EXPERT
         ####################################
 
-        # emails_norm = [email_expert]
-        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = [get_email_expert(avis)]
+        # print(f"Expert à notifier : {emails_norm2}")
+
+        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
         sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : Vous avez un nouveau message"
 
@@ -2018,8 +2025,10 @@ def avis_confirmer_nouvelle_demande_generique(request):
     # NOTIFICATION PAR MAIL À L'EXPERT
     #################################
 
-    # emails_norm = [email_expert]
-    emails_norm = ["louis.calu@reunion-parcnational.fr"]
+    emails_norm = [get_email_expert(avis)]
+    # print(f"Expert à notifier : {emails_norm2}")
+
+    # emails_norm = ["louis.calu@reunion-parcnational.fr"]
 
     # Demande générique non liée à un dossier
     if avis.id_demarche.type :

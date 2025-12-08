@@ -472,9 +472,11 @@ def donner_son_avis(request, avis_id):
     ####################################
     # NOTIFICATION PAR MAIL AU DEMANDEUR
     ####################################
+    email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
+    emails_norm = [email_demandeur]
+    # print(f"Demandeur à notifier : {emails_norm2}")
 
-    # emails_norm = [avis.id_instructeur.email]
-    emails_norm = ["louis.calu@reunion-parcnational.fr"]
+    # emails_norm = ["louis.calu@reunion-parcnational.fr"]
     emails_txt = ", ".join(emails_norm)
 
     # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
@@ -570,8 +572,11 @@ def remplacer_avis_signe(request):
             # NOTIFICATION PAR MAIL AU DEMANDEUR
             ####################################
 
-            # emails_norm = [avis.id_instructeur.email]
-            emails_norm = ["louis.calu@reunion-parcnational.fr"]
+            email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
+            emails_norm = [email_demandeur]
+            # print(f"Demandeur à notifier : {emails_norm2}")
+
+            # emails_norm = ["louis.calu@reunion-parcnational.fr"]
             emails_txt = ", ".join(emails_norm)
             # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
             sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a remplacé son avis signé"
@@ -663,8 +668,11 @@ def deposer_avis_signe(request):
             # NOTIFICATION PAR MAIL AU DEMANDEUR
             ####################################
 
-            # emails_norm = [avis.id_instructeur.email]
-            emails_norm = ["louis.calu@reunion-parcnational.fr"]
+            email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
+            emails_norm = [email_demandeur]
+            # print(f"Demandeur à notifier : {emails_norm2}")
+
+            # emails_norm = ["louis.calu@reunion-parcnational.fr"]
             emails_txt = ", ".join(emails_norm)
             # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
             sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a déposé son avis signé"

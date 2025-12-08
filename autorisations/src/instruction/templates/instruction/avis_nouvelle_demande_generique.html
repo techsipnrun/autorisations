@@ -136,7 +136,7 @@
 
                 <div class="attribut_avis texte_libre">
                     <label for="formulation_avis">Formulation de l'avis* :</label>
-                    <textarea id="formulation_avis" name="formulation_avis" rows="5" placeholder="Bonjour, vous trouverez ci-joint la demande d'avis..." required></textarea>
+                    <textarea id="formulation_avis" name="formulation_avis" rows="5">{{ avis.formulation|default:"" }}</textarea>
                 </div>
 
                 {% if messages %}

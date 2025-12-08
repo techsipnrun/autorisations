@@ -1,8 +1,10 @@
 from datetime import date
 import os
+
+from django.contrib.auth.models import User
 from autorisations.models.models_documents import Document, MessageDocument
 from autorisations.models.models_instruction import Dossier, Message
-from autorisations.models.models_utilisateurs import EmailOutbox
+from autorisations.models.models_utilisateurs import DossierInstructeur, EmailOutbox
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from ..utils.model_helpers import update_fields
 from ..utils.fichiers import write_pj
@@ -99,16 +101,17 @@ def sync_messages(messages, id_dossier):
     if nb_nouv_msg > 0 :
         dossier = Dossier.objects.filter(id=id_dossier).first()
         if dossier :
-            # si etape dossier != A affecter
-                # emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
-            # sinon
-                # si mission scientifique
-                    # emails_norm = liste des emails de Receptionneurs SPPN
-                # sinon
-                    # emails_norm = liste des emails de Receptionneurs SAADD
+            if dossier.id_etape_dossier.etape != "À affecter" :
+                emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+            else :
+                if "mission scientifique" in dossier.id_demarche.type :
+                    emails_norm = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
+                else :
+                    emails_norm = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
 
+            # print(f"Les Receptionneurs du dossier à notifier : {emails_norm2}")
 
-            emails_norm = ["louis.calu@reunion-parcnational.fr"]
+            # emails_norm = ["louis.calu@reunion-parcnational.fr"]
             if nb_nouv_msg == 1 :
                 sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveau message du pétitionnaire"
             else :

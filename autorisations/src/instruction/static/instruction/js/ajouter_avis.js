@@ -46,6 +46,39 @@ document.addEventListener("DOMContentLoaded", function () {
     nature.addEventListener("change", toggleExperts);
     toggleExperts(); // au chargement
 
+
+
+    // ########################
+    // Formulation de l'avis
+    // ########################
+    function mettreDefaultFormulationSiVide() {
+        // Ne jamais écraser un texte déjà écrit (avis existant ou saisi par l'utilisateur)
+
+        // if (formulation.value.trim() !== "") return;
+
+        const selected = nature.options[nature.selectedIndex]?.text.trim();
+        console.log({selected})
+        if (!selected || selected === "Consultation en interne") {
+            formulation.value = `Bonjour,
+
+Je vous consulte sur ce dossier car [raisons].
+
+Merci d’avance pour votre retour.`;
+        } else if (selected === "Demande à une instance") {
+            formulation.value = "Bonjour, vous trouverez ci-joint la demande d'avis associée au dossier.";
+        } else {
+            formulation.value = "";
+        }
+    }
+
+    // Déclenche le changement lorsqu'on sélectionne la nature
+    nature.addEventListener("change", mettreDefaultFormulationSiVide);
+
+    // Appel au chargement
+    mettreDefaultFormulationSiVide();
+
+
+
     // ---- Gestion des required selon bouton ----
     function resetRequired() {
         [nature, thematique, modeContact, formulation,
@@ -167,3 +200,7 @@ function supprimerDoc(avisId, champ) {
     .then(resp => resp.ok ? location.reload() : alert("Erreur suppression : " + resp.status))
     .catch(err => alert("Erreur réseau : " + err));
 }
+
+
+
+

@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page pour formuler une demande d'avis</title>
+    <title>Nouvelle demande d'avis</title>
 
     <!-- Icon -->
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
@@ -189,7 +189,7 @@
 
                     <div class="attribut_avis texte_libre">
                         <label for="formulation_avis">Formulation de l'avis* :</label>
-                        <textarea id="formulation_avis" name="formulation_avis" rows="5" placeholder="Bonjour, vous trouverez ci-joint la demande d'avis...">{{ avis.formulation|default_if_none:"" }}</textarea>
+                        <textarea id="formulation_avis" name="formulation_avis" rows="5">{{ avis.formulation|default:"" }}</textarea>
                     </div>
 
                     {% if messages %}

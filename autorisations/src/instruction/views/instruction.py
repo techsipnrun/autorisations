@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations import settings
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
@@ -42,7 +42,7 @@ from django.db.models import Min
 from django.views.decorators.http import require_POST
 from django.http import Http404
 from django.contrib import messages
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.contrib.auth import get_user_model
 
 
@@ -769,6 +769,12 @@ def ajouter_relecteur_dossier(request):
     objet_demande = request.POST.get("objet_demande")
     files = request.FILES.getlist("pj_relecture")
 
+    emails_SAADD = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
+    emails_SPPN = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
+
+    print(f"Mails reception sppn : {emails_SPPN}")
+    print(f"Mails reception saadd : {emails_SAADD}")
+
 
     dossier = Dossier.objects.filter(id=dossier_id).first()
     if not dossier:
@@ -882,8 +888,10 @@ def ajouter_relecteur_dossier(request):
     ####################################
 
     if request.user.email != relecteur.email :
-        # emails_norm = [relecteur.email]
-        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = [relecteur.email]
+        # print(f"Relecteur à notifier : {emails_norm2}")
+
+        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
         emails_txt = ", ".join(emails_norm)
 
         sujet = f"Dossier {dossier.numero} - Relecture demandée"
@@ -993,8 +1001,12 @@ def retirer_relecteur(request):
         return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
     
     # Vérification autorisation à supprimer
-    if instructeur.id != drj.id_instructeur.id :
+    instructeurs_du_dossier = DossierInstructeur.objects.filter(
+        id_dossier=dossier
+    ).values_list("id_instructeur_id", flat=True)
 
+    # Relecteur lui meme ou bien un des instructeurs du dossier
+    if instructeur.id != drj.id_instructeur.id and instructeur.id not in instructeurs_du_dossier :
         logger.warning(f"[DOSSIER {dossier.numero}] Retrait refusé : {request.user} n'est pas autorisé à retirer le relecteur {drj.id_instructeur.id}.")
         request.session["relecteur_message"] = "Vous n’êtes pas autorisé.e à retirer ce.ette relecteur.rice."
         return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
