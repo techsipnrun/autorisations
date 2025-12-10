@@ -20,9 +20,13 @@ venv.bak/
 .env.dev
 .env.prod
 
-#Project structure
-docs
+
+# MkDocs build
+docs/site/
 
 #Doc pas utiles
 *.json
+
+# Vscode
+.vscode
 

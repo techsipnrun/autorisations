@@ -969,7 +969,7 @@ def relecture_faite(request):
 
             # Dossier Action
             nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
-            safe_enregistrer_action(dossier, instructeur, "Relecture faite", request, description = nom_prenom)
+            safe_enregistrer_action(dossier, instructeur, "Relecture", request, description = nom_prenom)
 
         except Exception as e:
             logger.exception(f"[DOSSIER {dossier.numero}] Erreur lors de la validation de la relecture (entry={entry.id}) par {request.user} : {e}")
