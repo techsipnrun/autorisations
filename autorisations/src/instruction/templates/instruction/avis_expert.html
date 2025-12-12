@@ -280,7 +280,7 @@
 
                 {% if avis.date_transmission_cs %}
                     <p><strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
-                {% elif est_expert %}
+                {% elif expert_is_CS %}
                     <form method="post" action="{% url 'enregistrer_date_transmission_cs' avis.id %}" class="form-date-cs">
                         {% csrf_token %}
                         <label for="date_transmission_cs"><strong>Date de transmission aux membres du CS :</strong></label>

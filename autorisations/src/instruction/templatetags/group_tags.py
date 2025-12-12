@@ -38,20 +38,20 @@ def est_concerne_par_le_dossier(user, dossier):
     - signataire
     """
 
-    # 1️⃣ utilisateur non connecté → non concerné
+    # 1 utilisateur non connecté → non concerné
     if not user.is_authenticated:
         return False
 
-    # 2️⃣ superuser → toujours concerné
+    # 2 superuser → toujours concerné
     if user.is_superuser:
         return True
 
-    # 3️⃣ recherche d’un Instructeur par email exact (champ email du modèle Instructeur)
+    # 3 recherche d’un Instructeur par email exact (champ email du modèle Instructeur)
     instructeur = Instructeur.objects.filter(email__iexact=user.email).first()
     if not instructeur:
         return False  # aucun instructeur lié à cet utilisateur
 
-    # 4️⃣ Vérifie tous les liens directs avec le dossier
+    # 4 Vérifie tous les liens directs avec le dossier
     if (
         DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
         or DossierValideur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
@@ -63,13 +63,24 @@ def est_concerne_par_le_dossier(user, dossier):
         or DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
     ):
         return True
+    
 
-    # 5️⃣ Vérifie si l’instructeur appartient au groupe instructeur du dossier
+    # 5 Vérifie si l’instructeur appartient au groupe instructeur du dossier
     if ( dossier.id_groupeinstructeur and GroupeinstructeurInstructeur.objects
         .filter(id_instructeur=instructeur,id_groupeinstructeur=dossier.id_groupeinstructeur).exists()):
          return True
     
-    # 6️⃣ sinon → non concerné
+    # 6 Ajoute les receptionneurs selon le service SAADD ou SPPN
+    if "Mission scientifique" in dossier.id_demarche.type :
+        if user.groups.filter(name="Réception SPPN").exists():
+            return True
+    else :
+        if user.groups.filter(name="Réception SAADD").exists():
+            return True
+
+
+    # 7 sinon → non concerné
+
     return False
 
 

@@ -198,7 +198,7 @@ def se_declarer_instructeur(request):
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
-    if email_user != instructeur.email :
+    if email_user != instructeur.email and dossier.id_etape_dossier.etape != "À affecter":
         emails_norm = [instructeur.email]
         # print(f"Instructeur à notifier : {emails_norm2}")
 
@@ -1508,7 +1508,8 @@ def gestion_groupes(request):
         for g in groupes_instructeurs
     }
 
-    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
+    # instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
 
 
     return render(request, "instruction/gestion_groupes.html", {
@@ -1559,15 +1560,14 @@ def gestion_contacts(request):
 
         return redirect("gestion_contacts")
 
-    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all().order_by("id_agent_autorisations__nom")
+    # instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all().order_by("id_agent_autorisations__nom")
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
     contacts = ContactExterne.objects.select_related("id_type").all().order_by("nom", "prenom")
 
     return render(request, "instruction/gestion_contacts.html", {
         "instructeurs": instructeurs,
         "contacts": contacts,
     })
-
-
 
 
 

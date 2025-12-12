@@ -118,7 +118,7 @@ Exemple :
 /Survol_hélicoptere/2025/28073373_CALU_Louis_04-12/Avis/
 │
 ├── calu_louis/
-├── collin_gerard_27_11/
+├── collin_gerard/
 ├── ...
 ```
 

@@ -2,6 +2,10 @@
 
 Bienvenue dans la documentation de l'application **Autorisations**.  
 
+!!! info "Information"
+    Date de la dernière mise à jour : **12/12/2025**
+
+
 ---
 
 ## Prérequis
@@ -59,6 +63,9 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 
 ### Stockage
 - [Stockage physique](dossier/stockage.md)
+
+### Notifications
+- [Notifications](dossier/notifications.md)
 
 ---
 

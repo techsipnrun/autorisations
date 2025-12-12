@@ -56,21 +56,52 @@ def get_dossiers_instructeur(instructeur):
 
     if not instructeur:
         return Dossier.objects.none()
+    
+    User = get_user_model()
+    user = User.objects.filter(email__iexact=instructeur.email).first()
+
+
+    # Base : rôles instructeur
+    filtre = (
+        Q(dossierinstructeur__id_instructeur=instructeur) |
+        Q(dossierrelecteurqualite__id_instructeur=instructeur) |
+        Q(dossiervalideur__id_instructeur=instructeur) |
+        Q(dossierrelecteur__id_instructeur=instructeur) |
+        Q(dossiersignataire__id_instructeur=instructeur) |
+        Q(dossierintermediairesignature__id_instructeur=instructeur) |
+        Q(dossierpublicationraa__id_instructeur=instructeur) |
+        Q(dossierenvoiacte__id_instructeur=instructeur)
+    )
+
+    # ➕ Ajout des 2 conditions supplémentaires (même échantillon)
+    if user :
+        if user.groups.filter(name="Réception SPPN").exists():
+            filtre |= Q(id_demarche__type__icontains="Mission scientifique")
+
+        if user.groups.filter(name="Réception SAADD").exists():
+            filtre |= ~Q(id_demarche__type__icontains="Mission scientifique")
 
     return (
-        Dossier.objects.filter(
-            Q(dossierinstructeur__id_instructeur=instructeur) |
-            Q(dossierrelecteurqualite__id_instructeur=instructeur) |
-            Q(dossiervalideur__id_instructeur=instructeur) |
-            Q(dossierrelecteur__id_instructeur=instructeur) |
-            Q(dossiersignataire__id_instructeur=instructeur) |
-            Q(dossierintermediairesignature__id_instructeur=instructeur) |
-            Q(dossierpublicationraa__id_instructeur=instructeur) |
-            Q(dossierenvoiacte__id_instructeur=instructeur)
-        )
-        .exclude(id_etape_dossier__etape__in=["À affecter"])
+        Dossier.objects
+        .filter(filtre)
+        .exclude(id_etape_dossier__etape="À affecter")
         .distinct()
     )
+
+    # return (
+    #     Dossier.objects.filter(
+    #         Q(dossierinstructeur__id_instructeur=instructeur) |
+    #         Q(dossierrelecteurqualite__id_instructeur=instructeur) |
+    #         Q(dossiervalideur__id_instructeur=instructeur) |
+    #         Q(dossierrelecteur__id_instructeur=instructeur) |
+    #         Q(dossiersignataire__id_instructeur=instructeur) |
+    #         Q(dossierintermediairesignature__id_instructeur=instructeur) |
+    #         Q(dossierpublicationraa__id_instructeur=instructeur) |
+    #         Q(dossierenvoiacte__id_instructeur=instructeur)
+    #     )
+    #     .exclude(id_etape_dossier__etape__in=["À affecter"])
+    #     .distinct()
+    # )
 
 
 def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_termines, current_year, instructeur=None):
@@ -206,15 +237,12 @@ def mesdossiers(request):
         # Bénéficiaire
         beneficiaire = get_beneficiaire_for_dossier(dossier)
 
-
         # Messages non lus DOSSIER
         nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
-
 
         # Déterminer rôle
         action = dossier in dossier_action_a_faire
         role = get_role_sur_dossier(dossier, instructeur, action)
-
 
         # Structurer les infos
         dossiers_par_demarche.setdefault(dossier.id_demarche.type, []).append({
@@ -473,7 +501,7 @@ def instruction_dossier(request, num_dossier):
 
     # Relecteur du dossier 
     relecteurs_du_dossier = DossierRelecteur.objects.filter(id_dossier=dossier)
-    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
 
     roles = build_roles_for_dossier(dossier)
 
@@ -768,12 +796,6 @@ def ajouter_relecteur_dossier(request):
     relecteur_id = request.POST.get("relecteur_id")
     objet_demande = request.POST.get("objet_demande")
     files = request.FILES.getlist("pj_relecture")
-
-    emails_SAADD = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
-    emails_SPPN = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
-
-    print(f"Mails reception sppn : {emails_SPPN}")
-    print(f"Mails reception saadd : {emails_SAADD}")
 
 
     dossier = Dossier.objects.filter(id=dossier_id).first()

@@ -265,7 +265,8 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     thematiques = AvisThematique.objects.all().order_by("thematique")
 
     # Tous les instructeurs
-    tous_les_instructeurs = Instructeur.objects.all()
+    # tous_les_instructeurs = Instructeur.objects.all()
+    tous_les_instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
 
     # --- Instructeur courant (user connecté) ---
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()

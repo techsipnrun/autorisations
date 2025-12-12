@@ -65,6 +65,7 @@ nav:
       - Onglet Messagerie: dossier/messagerie.md
       - Onglet Consultation: dossier/consultation.md
       - Stockage physique: dossier/stockage.md
+      - Notifications: dossier/notifications.md
   - Administrateur:
       - Gestion des groupes: administrateur/gestion-groupes.md
       - Gestion des contacts: administrateur/gestion-contacts.md
