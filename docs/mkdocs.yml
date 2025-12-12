@@ -56,7 +56,12 @@ nav:
       - Acte prêt à être envoyé: etapes/acte-pret.md
       - Envoyer l'acte: etapes/envoyer-acte.md
   - Un dossier:
-      - Onglet Formulaire: dossier/formulaire.md
+      - Onglet Formulaire: 
+        - Raccourcis : dossier/formulaire/raccourcis.md
+        - Timeline: dossier/formulaire/timeline.md
+        - Pannel de droite: dossier/formulaire/pannel-droite.md
+        - Champs: dossier/formulaire/champs.md
+        - Carto: dossier/formulaire/carto.md
       - Onglet Messagerie: dossier/messagerie.md
       - Onglet Consultation: dossier/consultation.md
       - Stockage physique: dossier/stockage.md
@@ -85,3 +90,6 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.details
   - pymdownx.tabbed
+
+extra_css:
+  - styles/tables.css

@@ -5,8 +5,9 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 ---
 
 ## Prérequis
-- [L'authentification](prerequis/authentification.md)
-- [L'espace de stockage](prerequis/espace-stockage.md)
+- [Accès](prerequis/acces.md)
+- [Authentification](prerequis/authentification.md)
+- [Espace de stockage](prerequis/espace-stockage.md)
 - [Habilitations](prerequis/habilitations.md)
 
 ---
@@ -43,9 +44,20 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 ---
 
 ## Un dossier
-- [Onglet Formulaire](dossier/formulaire.md)
-- [Onglet Messagerie](dossier/messagerie.md)
-- [Onglet Consultation](dossier/consultation.md)
+### Onglet Formulaire
+- [Raccourcis](dossier/formulaire/raccourcis.md)
+- [Timeline](dossier/formulaire/timeline.md)
+- [Panneau de droite](dossier/formulaire/pannel-droite.md)
+- [Champs](dossier/formulaire/champs.md)
+- [Cartographie](dossier/formulaire/carto.md)
+
+### Onglet Messagerie
+- [Messagerie](dossier/messagerie.md)
+
+### Onglet Consultation
+- [Consultation](dossier/consultation.md)
+
+### Stockage
 - [Stockage physique](dossier/stockage.md)
 
 ---

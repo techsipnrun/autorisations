@@ -1,0 +1,11 @@
+/* 1. Centre verticalement les cellules de tableau*/
+.md-typeset table:not([class]) td {
+    vertical-align: middle;
+    margin: auto;
+    padding: auto;
+}
+
+.md-typeset table:not([class]) td img {
+  display: block;      /* enlève l’espace en bas */
+  margin: 0 auto;      /* recentre horizontalement */
+}
