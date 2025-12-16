@@ -1,12 +1,8 @@
-!!! info "Information"
-    Page en cours de rédaction
-
 # Les notifications
 
 ## Sur l'application
 
-
-| Icône | Lieu de présence | Signification
+| Icône | Zone de présence | Signification
 |:-----:|--------|--------|
 | <img src="../images/dossier/notifications/nouv_mess.png" width="30"> | Dans les tableaux, à gauche du nom du dossier ou de la demande d'avis | Nombre de messages non lus. Valable pour un dossier ou une demande d'avis |
 | <img src="../images/dossier/notifications/pastille_numero.png" width="30"> | Dans la barre de navigation | Elle indique le nombre de dossiers ou d’avis pour lesquels une action est requise de votre part |
@@ -38,30 +34,23 @@ Les notifications sont envoyées depuis l’adresse : **autorisations@reunion-pa
 
 ### Les différents cas de figures qui déclenchent une notification par courrier :
 
-| Objectif de la notification | Action qui déclenche l'envoi | Destinataire
-|:-----:|--------|--------|
-| xxxxx | xxx | xxxxx |
-| xxxxx | xxx | xxxxx |
-| xxxxx | xxx | xxxxx |
-| xxxxx | xxx | xxxxx |
-| xxxxx | xxx | xxxxx |
-| xxxxx | xxx | xxxxx |
+| Action qui déclenche l'envoi de la notification | Destinataire
+|:-----:|--------|
+| Nouveau dossier déposé par le pétitionnaire | Personne ayant le rôle *Réception SAADD* ou *Réception SPPN* |
+| Nouveau(x) message(s) du pétitionnaire | Les instructeur.rices affecté.e.s au dossier |
+| Modification du formulaire par le pétitionnaire suite à une demande de compléments | Les instructeur.rices affecté.e.s au dossier |
+| L'expert.e donne son avis | La personne ayant fait la demande d'avis |
+| L'expert.e dépose / modifie son avis signé | La personne ayant fait la demande d'avis |
+| Changement d'étape impliquant une action d'une autre personne | La nouvelle personne chargée de faire avancer l'instruction |
+| Nouvelle demande d'avis (générique ou liée à un dossier) | L'expert.e |
+| Nouveau message sur la demande d'avis | L'expert.e si le message vient du demandeur, et inversement. |
+| Demande de relecture à un.e autre instructeur.rice | L'instructeur.rice sollicité.e |
+| Ajouter un.e instructeur.rice sur un dossier **qui n'est plus en Réception** | L'instructeur.rice ajouté.e |
+| Retirer un.e instructeur.rice du dossier | L'instructeur.rice retiré.e |
+| Changer la personne chargée de valider l'acte ou l'avis | Le - La remplacant.e |
+| Changer la personne chargée de faire la relecture qualité | Le - La remplacant.e |
+| Changer la personne chargée de faire l'intermédiaire pour la signature | Le - La remplacant.e |
+| Changer la personne chargée d'envoyer l'acte signé au pétitionnaire | Le - La remplacant.e |
+| Changer la personne chargée de publier l'acte au RAA | Le - La remplacant.e |
 
-
-Changement d'étape
-Nouvelle demande d'avis (lié à un dossier ou générique)
-Nouveau message sur la demande d'avis
-L'expert rend son avis
-L'expert dépose son avis signé
-L'expert remplace son avis signé
-Demande de relecture
-Ajouter un instructeur (hors boite de reception)
-Retirer un instructeur du dossier 
-Changer la personne chargée de valider l'acte ou l'avis
-Changer la personne chargée de faire la relecture qualité
-Changer la personne chargée de faire l'intermédiaire pour la signature
-Changer la personne chargée d'envoyer l'acte signé au pétitionnaire
-Changer la personne chargée de publier l'acte au RAA
-Modification du formulaire par le pétitionnaire suite à une demande de compléments
-Nouveau(x) message(s) du pétitionnaire
-Nouveau(x) dossier(s) déposés par le(s) pétitionnaire(s)
+---

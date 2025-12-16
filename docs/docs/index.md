@@ -3,7 +3,7 @@
 Bienvenue dans la documentation de l'application **Autorisations**.  
 
 !!! info "Information"
-    Date de la dernière mise à jour : **12/12/2025**
+    Date de la dernière mise à jour : **16/12/2025**
 
 
 ---
@@ -27,6 +27,7 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 ---
 
 ## Les passages d'étape
+- [Déroulement de l'instruction](etapes/deroulement-instruction.md)
 - [Passer en pré-instruction](etapes/preinstruction.md)
 - [Passer en instruction](etapes/instruction.md)
 - [Demander des compléments](etapes/demander-complements.md)
@@ -59,7 +60,9 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 - [Messagerie](dossier/messagerie.md)
 
 ### Onglet Consultation
-- [Consultation](dossier/consultation.md)
+- [Consultation](dossier/consultation/consultation.md)
+- [Nouvelle demande d'avis](dossier/consultation/nouvelle-demande-avis.md)
+- [Ajouter un avis existant](dossier/consultation/ajouter-avis-existant.md)
 
 ### Stockage
 - [Stockage physique](dossier/stockage.md)

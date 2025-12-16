@@ -160,6 +160,7 @@
             drawCircle: false,
             drawRectangle: true,
             drawPolygon: true,
+            drawText: false,
             editMode: true,
             rotateMode: false,
             removalMode: true

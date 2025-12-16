@@ -1,7 +1,3 @@
-!!! info "Information"
-    Page en cours de rédaction
-
-
 # Onglet « Mes dossiers »
 
 ---
@@ -19,5 +15,4 @@ Il s’agit des dossiers pour lesquels j’interviens en tant que valideur·se, 
 
 **Le bouton switch** permet d’afficher uniquement les dossiers pour lesquels j’ai une action à effectuer, identifiables avec une pastille bleu ou rouge (voir la page [Notifications](../dossier/notifications.md)).
 
-**Le bouton Actualiser** affiche la date et l’heure de la dernière synchronisation effectuée et permet également d’en déclencher une nouvelle (voir l’onglet Actualisation de la page Réception).
-
+**Le bouton Actualiser** affiche la date et l’heure de la dernière synchronisation effectuée et permet également d’en déclencher une nouvelle. Pour plus d'informations sur cette synchronisation, consultez la page [Réception](../onglets/reception.md).

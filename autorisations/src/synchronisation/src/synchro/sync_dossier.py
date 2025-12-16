@@ -95,9 +95,10 @@ def sync_doss(dossier, dico_notifs):
         update_data = {}
 
         for field, new_value in dossier.items():
-            model_field = getattr(obj.__class__, field, None)
-            field_name = f"{field}_id" if isinstance(getattr(model_field, 'field', None), models.ForeignKey) else field
-            update_data[field_name] = new_value if isinstance(new_value, (date, datetime)) else new_value
+            if field != "id_groupeinstructeur" :
+                model_field = getattr(obj.__class__, field, None)
+                field_name = f"{field}_id" if isinstance(getattr(model_field, 'field', None), models.ForeignKey) else field
+                update_data[field_name] = new_value if isinstance(new_value, (date, datetime)) else new_value
 
         updated_fields = update_fields(
             obj,
@@ -105,6 +106,7 @@ def sync_doss(dossier, dico_notifs):
             date_fields=[k for k, v in dossier.items() if isinstance(v, (date, datetime))]
         )
 
+        # ICI ca reinitialise le groupe instructeur du dossier si on l'a changé auparavant
         if updated_fields:
             obj.save()
             logger.info(f"[SAVE] Dossier {obj.numero} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")

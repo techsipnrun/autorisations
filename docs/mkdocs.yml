@@ -38,6 +38,7 @@ nav:
           - Vision Demandeur: onglets/vision-demandeur.md
       - Requêtes: onglets/requetes.md
   - Les passages d'étape:
+      - Le déroulement de l'instruction: etapes/deroulement-instruction.md
       - Passer en pré-instruction: etapes/preinstruction.md
       - Passer en instruction: etapes/instruction.md
       - Demander des compléments: etapes/demander-complements.md
@@ -63,7 +64,10 @@ nav:
         - Champs: dossier/formulaire/champs.md
         - Carto: dossier/formulaire/carto.md
       - Onglet Messagerie: dossier/messagerie.md
-      - Onglet Consultation: dossier/consultation.md
+      - Onglet Consultation:
+        - Consultation : dossier/consultation/consultation.md
+        - Nouvelle demande d'avis: dossier/consultation/nouvelle-demande-avis.md
+        - Ajouter un avis existant: dossier/consultation/ajouter-avis-existant.md
       - Stockage physique: dossier/stockage.md
       - Notifications: dossier/notifications.md
   - Administrateur:
