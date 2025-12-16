@@ -66,21 +66,21 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="type_demarche">Type de démarche :</label>
-                <select name="type_demarche" id="type_demarche">
+                    <label for="d_type_demarche">Type de démarche :</label>
+                <select name="d_type_demarche" id="d_type_demarche">
                         <option value="" {% if not request.GET.type_demarche %}selected{% endif %}> - - - </option>
                         {% for d in demarches %}
-                            <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
+                            <option value="{{ d.type }}" {% if request.GET.d_type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="form-field">
-                    <label for="annee">Année :</label>
-                    <select name="annee" id="annee">
-                        <option value="" {% if not request.GET.annee %}selected{% endif %}> - - - </option>
+                    <label for="d_annee">Année :</label>
+                    <select name="d_annee" id="d_annee">
+                        <option value="" {% if not request.GET.d_annee %}selected{% endif %}> - - - </option>
                         {% for an in annees %}
-                            <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
+                            <option value="{{ an }}" {% if request.GET.d_annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -186,11 +186,11 @@
             </div>
 
             <div class="form-field">
-                <label for="annee">Année (de la demande) :</label>
-                <select name="annee" id="annee">
+                <label for="a_annee">Année (de la demande) :</label>
+                <select name="a_annee" id="a_annee">
                     <option value=""> - - - </option>
                     {% for an in annees_avis %}
-                        <option value="{{ an }}" {% if request.GET.annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
+                        <option value="{{ an }}" {% if request.GET.a_annee == an|stringformat:"s" %}selected{% endif %}>{{ an }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -224,11 +224,11 @@
             </div>
 
             <div class="form-field">
-                <label for="type_demarche">Type de démarche :</label>
-                <select name="type_demarche" id="type_demarche">
+                <label for="a_type_demarche">Type de démarche :</label>
+                <select name="a_type_demarche" id="a_type_demarche">
                     <option value=""> - - - </option>
                     {% for d in demarches %}
-                        <option value="{{ d.type }}" {% if request.GET.type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
+                        <option value="{{ d.type }}" {% if request.GET.a_type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
                     {% endfor %}
                 </select>
             </div>

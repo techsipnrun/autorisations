@@ -51,14 +51,14 @@ def avis(request):
     if expert :
         # Avis à rendre
         avis_a_rendre = (
-            Avis.objects.filter(id_expert=expert, favorable__isnull=True)
+            Avis.objects.filter(id_expert=expert, favorable__isnull=True, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
             .order_by("-date_demande_avis")
         )
 
         # Avis archivés de l’année
         avis_rendus = (
-            Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year)
+            Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
             .order_by("-date_reponse_avis")
         )
@@ -85,11 +85,11 @@ def avis(request):
 
     if instructeur:
         # Demandes en cours
-        demandes_en_cours = Avis.objects.filter(id_instructeur=instructeur, favorable__isnull=True
+        demandes_en_cours = Avis.objects.filter(id_instructeur=instructeur, favorable__isnull=True, statut="Envoyé"
                             ).select_related("id_demarche", "id_dossier", "id_expert", "id_avis_nature").order_by("-date_demande_avis")
 
         # Demandes traitées
-        demandes_traitees = Avis.objects.filter(id_instructeur=instructeur,favorable__isnull=False,date_reponse_avis__year=selected_year,
+        demandes_traitees = Avis.objects.filter(id_instructeur=instructeur,favorable__isnull=False,date_reponse_avis__year=selected_year, statut="Envoyé"
                             ).select_related(
                                 "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
                             ).order_by("-date_reponse_avis")

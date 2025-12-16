@@ -33,14 +33,12 @@ def requete_dossiers(request):
 
     numero = clean_int(request.GET.get("numero"))
     date_depot = request.GET.get("date_depot")
-    type_demarche = request.GET.get("type_demarche")
+    type_demarche = request.GET.get("d_type_demarche")
     groupe = request.GET.get("groupe")
     etape = request.GET.get("etape")
     nom = request.GET.get("nom")
-    annee = request.GET.get("annee")
+    annee = request.GET.get("d_annee")
     instructeur = request.GET.get("instructeur")
-
-
 
     if annee :
         dossiers = dossiers.filter(date_depot__year=annee)
@@ -187,12 +185,12 @@ def requete_avis(request):
     # --- Récupération des filtres GET ---
     num_avis = clean_int(request.GET.get("num_avis"))
     mois = request.GET.get("mois")
-    annee = request.GET.get("annee")
+    annee = request.GET.get("a_annee")
     reponse = request.GET.get("reponse")
     demandeur = request.GET.get("demandeur")
     expert = request.GET.get("expert")
     num_dossier = clean_int(request.GET.get("num_dossier"))
-    type_demarche = request.GET.get("type_demarche")
+    type_demarche = request.GET.get("a_type_demarche")
     publie_raa = request.GET.get("publie_raa")  # Nouveau filtre
 
     # --- Application des filtres ---
