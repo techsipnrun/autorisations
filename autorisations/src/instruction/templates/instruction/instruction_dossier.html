@@ -119,7 +119,7 @@
                             <span class="dropdown-arrow">&#9660;</span>
                         </div>
 
-                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                        {% if request.user.is_superuser or request.user|est_autorise_a_changer_etape:dossier %}
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
                                 {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
                                     {% if actions %}

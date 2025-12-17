@@ -47,6 +47,26 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleExperts(); // au chargement
 
 
+    // Mettre un astérisque au champ 'Joindre la demande d'avis (Word)'
+    const labelPJDemandeAvis = document.getElementById("label_pj_demande_avis");
+    function toggleAsteriskPJDemandeAvis() {
+        const selected = nature.options[nature.selectedIndex]?.text.trim();
+
+        if (selected === "Consultation en interne") {
+            // pas d’astérisque
+            labelPJDemandeAvis.textContent = "Joindre la demande d'avis (Word)";
+        } else {
+            // astérisque
+            labelPJDemandeAvis.textContent = "Joindre la demande d'avis (Word)*";
+        }
+    }
+
+    nature.addEventListener("change", toggleAsteriskPJDemandeAvis);
+    toggleAsteriskPJDemandeAvis(); // au chargement
+
+
+
+
 
     // ########################
     // Formulation de l'avis

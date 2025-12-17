@@ -1,4 +1,5 @@
 from django import template
+from django.contrib.auth.models import User
 
 from autorisations.models.models_avis import DossierAvis
 
@@ -126,11 +127,11 @@ def est_concerne_par_demande_avis(user, avis):
     if not dossier_ids:
         return False
 
-    # 6️⃣ instructeur, valideur ou relecteur qualité d’un dossier lié → concerné
+    # 6️⃣ instructeur, valideur d’un dossier lié → concerné
     if (
         DossierInstructeur.objects.filter(id_dossier_id__in=dossier_ids, id_instructeur=instructeur).exists()
         or DossierValideur.objects.filter(id_dossier_id__in=dossier_ids, id_instructeur=instructeur).exists()
-        or DossierRelecteurQualite.objects.filter(id_dossier_id__in=dossier_ids, id_instructeur=instructeur).exists()
+        # or DossierRelecteurQualite.objects.filter(id_dossier_id__in=dossier_ids, id_instructeur=instructeur).exists()
     ):
         return True
 
@@ -164,3 +165,56 @@ def user_display(user):
 
     # 3. Default → user.email
     return user.email
+
+
+
+@register.filter(name="est_autorise_a_changer_etape")
+def est_autorise_a_changer_etape(user, dossier):
+    """
+    Retourne True si le user appartient à la liste des Instructeurs autorisés à changer l'étape du dossier :
+ 
+    """
+    # Identification de l'instructeur connecté
+    if not user or not user.email:
+        return False
+
+    email = user.email.strip().lower()
+    instructeur_connecte = Instructeur.objects.filter(email__iexact=email).first()
+    if not instructeur_connecte:
+        return False
+
+
+    # On vérifie si l'instructeur connecté à le droit de changer l'étape du dossier
+    etape_du_doss = dossier.id_etape_dossier.etape
+
+    if etape_du_doss in ["Non soumis à autorisation", "Refusé", "Accepté", "En instruction", "En pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"] :
+        instructeurs = DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+
+    elif etape_du_doss in ["À valider avant signature", "À valider avant demande d'avis"] :
+        instructeurs = DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+
+    elif etape_du_doss == "En relecture qualité" :
+        instructeurs = DossierRelecteurQualite.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+
+    elif etape_du_doss == "En attente de signature" :
+        instructeurs = DossierIntermediaireSignature.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+
+    elif etape_du_doss == "À publier au RAA" :
+        instructeurs = DossierPublicationRAA.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+
+    elif etape_du_doss == "Acte à envoyer" :
+        instructeurs = DossierEnvoiActe.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
+
+    elif etape_du_doss == "À affecter" :
+
+        group_name = ("Réception SPPN" if "mission scientifique" in dossier.id_demarche.type.lower() else "Réception SAADD")
+        emails_reception = User.objects.filter(groups__name=group_name).values_list("email", flat=True)
+        instructeurs = Instructeur.objects.filter(email__in=emails_reception).values_list("id", flat=True)
+
+    else :
+        return False
+
+    return instructeur_connecte.id in instructeurs
+
+
+

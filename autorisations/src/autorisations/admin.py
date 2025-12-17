@@ -75,7 +75,11 @@ class AvisAdmin(admin.ModelAdmin):
 
 admin.site.register(AvisNature)
 
-admin.site.register(AvisThematique)
+@admin.register(AvisThematique)
+class AvisThematiqueAdmin(admin.ModelAdmin):
+    list_display = ("thematique", "demarche")
+    list_filter = ("demarche",)
+    search_fields = ("thematique", "demarche")
 
 
 @admin.register(Expert)

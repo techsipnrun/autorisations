@@ -211,14 +211,9 @@
                         
                         <select name="expert" class="select-filtre">
                             <option value="">-- Expert --</option>
-                            {% for e in instructeurs %}
+                            {% for e in tous_les_experts %}
                                 <option value="{{ e.id }}" {% if request.GET.expert == e.id|stringformat:"s" %}selected{% endif %}>
                                     {{ e }}
-                                </option>
-                            {% endfor %}
-                            {% for c in contacts_externes %}
-                                <option value="{{ c.id }}" {% if request.GET.expert == c.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ c }}
                                 </option>
                             {% endfor %}
                         </select>

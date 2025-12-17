@@ -89,7 +89,7 @@
                     </div>
 
                     <div class="attribut_avis" id="bloc_pj_demande_avis">
-                        <label for="pj_avis">Joindre la demande d'avis (Word)* :</label>
+                        <label id="label_pj_demande_avis" for="pj_avis">Joindre la demande d'avis (Word) :</label>
                         <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx"
                                data-exists="{% if avis.id_projet_avis %}true{% else %}false{% endif %}">
                         {% if avis.id_projet_avis %}

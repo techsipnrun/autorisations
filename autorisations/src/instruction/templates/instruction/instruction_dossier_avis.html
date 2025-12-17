@@ -111,7 +111,7 @@
                 </div>
             {% endif %}
         
-            {% if request.user|est_concerné_par_le_dossier:dossier %}
+            {% if est_demandeur or est_expert or est_instructeur_du_dossier or request.user.is_superuser %}
                 <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis' %}">
                     {% csrf_token %}
                     <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
@@ -231,7 +231,7 @@
                                 {{ avis.id_projet_avis.titre }}
                             </a>
 
-                            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                            {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                 <!-- Formulaire remplacement -->
                                 <form id="form-remplacer-projet-avis-{{ avis.id }}"
                                     action="{% url 'remplacer_document_avis' %}"
@@ -263,7 +263,7 @@
                                 {{ avis.id_projet_acte.titre }}
                             </a>
 
-                            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                            {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                 <!-- Formulaire remplacement -->
                                 <form id="form-remplacer-projet-acte-{{ avis.id }}"
                                     action="{% url 'remplacer_document_avis' %}"
@@ -295,7 +295,7 @@
                                 {{ avis.id_rapport_instance.titre }}
                             </a>
 
-                            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                            {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                 <!-- Formulaire remplacement -->
                                 <form id="form-remplacer-rapport-{{ avis.id }}"
                                     action="{% url 'remplacer_document_avis' %}"
@@ -347,7 +347,7 @@
                                         </a>
 
                                         <!-- Formulaire suppression PJ -->
-                                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                        {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                             <form method="post" action="{% url 'supprimer_pj_avis' avis.id ad.id_document.id %}" class="form-supprimer-pj">
                                                 {% csrf_token %}
                                                 <button type="button" class="btn-supprimer-pj" title="Supprimer la pièce jointe" onclick="confirmerSuppressionPJ(this)">✕</button>
@@ -359,7 +359,7 @@
                     {% endif %}
                 </ul>
 
-                {% if request.user|est_concerné_par_le_dossier:dossier %}
+                {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                     <div class="bouton_ajouter_pj">
                         <form id="form-ajout-pj" method="post" enctype="multipart/form-data"
                             action="{% url 'ajouter_pj_avis' avis_id=avis.id %}">
@@ -389,12 +389,12 @@
                         {% csrf_token %}
 
                         <textarea name="note" rows="5"
-                            {% if not request.user|est_concerné_par_le_dossier:dossier %}
+                            {% if not est_demandeur and not est_instructeur_du_dossier %}
                                 readonly
-                                title="Vous devez être concerné.e par le dossier pour modifier cette note"
+                                title="Vous devez être instructeur.rice du dossier ou le demandeur pour modifier cette note"
                             {% endif %}>{{ avis.note }}</textarea>
 
-                        {% if request.user|est_concerné_par_le_dossier:dossier %}
+                        {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                             <button type="submit" class="valider-btn">Mettre à jour</button>
                         {% endif %}
                     </form>

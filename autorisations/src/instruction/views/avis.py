@@ -25,7 +25,7 @@ from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier)
+from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, redirect_error
 
 from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
@@ -158,7 +158,9 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
 
     # Récupérer toutes les natures et thématiques
     natures = AvisNature.objects.all().order_by("nature")
-    thematiques = AvisThematique.objects.all().order_by("thematique")
+
+    # thematiques = AvisThematique.objects.all().order_by("thematique")
+    thematiques = thematiques_avis_liees_a_demarche(dossier.id_demarche)
 
     # --- Instructeur courant (user connecté) ---
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
@@ -185,7 +187,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         .exclude(email__exact="autorisations@reunion-parcnational.fr")
         .exclude(email=request.user.email)  # pas soi-même
         .exclude(email__in=instructeurs_utilises)  # pas déjà utilisé
-        .order_by("email")
+        .order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
     )
 
     # Contacts externes candidats
@@ -267,6 +269,8 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
     # Tous les instructeurs
     # tous_les_instructeurs = Instructeur.objects.all()
     tous_les_instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
+    tous_les_experts = Expert.objects.all()
+
 
     # --- Instructeur courant (user connecté) ---
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
@@ -287,9 +291,9 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         .filter(email__isnull=False)
         .exclude(email__exact="")
         .exclude(email__exact="autorisations@reunion-parcnational.fr")
-        .exclude(email=request.user.email)  # pas soi-même
+        # .exclude(email=request.user.email)  # pas soi-même
         .exclude(email__in=instructeurs_utilises)  # pas déjà utilisé
-        .order_by("email")
+        .order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
     )
 
     # Contacts externes candidats
@@ -386,6 +390,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "NAS_ROOT": os.getenv('NAS_ROOT'),
         "avis_list": avis_list,
+        "tous_les_experts": tous_les_experts,
     })
 
 
@@ -1345,7 +1350,10 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
     if not email_expert:
         logger.error(f"[AVIS {avis.id}] Pas d'email expert trouvé")
         return redirect_error(request, f"Erreur lors de la récupération de l'email de l'expert. Contactez le support.")
-
+    
+    est_expert = False
+    if email_expert == instructeur.email :
+        est_expert = True
 
     # --- Messages non lus envoyés par l'expert ---
     messages_non_lus = (Message.objects.filter(id_avis=avis, lu=False, email_emetteur=email_expert))
@@ -1372,7 +1380,10 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         contact = ContactExterne.objects.filter(email=emetteur).first()
 
         # left = Message expert, right = Message émis par instructeur
-        align = "right" if emetteur != email_expert.lower().strip() else "left"
+        if est_expert :
+            align = "left" if emetteur != email_expert.lower().strip() else "right"
+        else :
+            align = "right" if emetteur != email_expert.lower().strip() else "left"
         date_fmt = localtime(msg.date_envoi).strftime("%d/%m/%Y %H:%M") if msg.date_envoi else "Date inconnue"
 
         # Recherche de la pièce jointe liée au message
@@ -1442,6 +1453,8 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "nb_messages_non_lus": nb_messages_non_lus,
         "resume_pdf_titre": resume_pdf_titre,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
+        "est_demandeur": est_demandeur,
+        "est_expert": est_expert,
     })
 
 
@@ -1815,7 +1828,7 @@ def nouvelle_demande_avis_generique(request):
             return redirect_error(request, "Vous devez disposer d'un profil instructeur pour créer une demande d’avis. Contactez le support.")
 
         # Instructeurs candidats
-        instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").exclude(email__exact="autorisations@reunion-parcnational.fr").order_by("email")
+        instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").exclude(email__exact="autorisations@reunion-parcnational.fr").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
 
         # Contacts externes candidats
         contacts_ = ContactExterne.objects.filter(email__isnull=False, id_type__type="Instance").exclude(email__exact="").order_by("nom", "email")

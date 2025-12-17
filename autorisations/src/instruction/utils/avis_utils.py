@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 from autorisations.models.models_instruction import Message
-from autorisations.models.models_avis import AvisDocument, DossierAvis, Expert
+from autorisations.models.models_avis import AvisDocument, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils_instru import enregistrer_document
@@ -365,3 +365,43 @@ def build_avis_for_dossier(dossier):
         "nb_avis_envoyes": nb_avis_envoyes,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
     }
+
+
+
+def thematiques_avis_liees_a_demarche(demarche):
+    """
+    Retourne les thématiques d'avis liées à une démarche donnée.
+    Inclut toujours 'Tous' et 'Autre'.
+    """
+
+    if not demarche or not demarche.type:
+        return AvisThematique.objects.all().order_by("thematique")
+
+    type_demarche = demarche.type.lower()
+
+    # Mapping métier
+    mapping = {
+        "activités agricoles": "Activités agricoles",
+        "activités commerciales": "Activités commerciales",
+        "courses d'arêtes": "Courses d'arêtes",
+        "document": "Documents de planification et d'urbanisme",
+        "drone": "Drone - Prise de vue",
+        "manifestation publique": "Manifestations publiques",
+        "manifestation sportive": "Manifestations sportives",
+        "mission scientifique": "Mission scientifique",
+        "survol": "Survol hélicoptère",
+        "travaux": "Travaux",
+    }
+
+    demarche_cible = None
+    for key, value in mapping.items():
+        if key in type_demarche:
+            demarche_cible = value
+            break
+
+    valeurs = ["Autre"]
+
+    if demarche_cible:
+        valeurs.append(demarche_cible)
+
+    return AvisThematique.objects.filter(demarche__in=valeurs).order_by("thematique")
