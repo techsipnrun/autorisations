@@ -59,7 +59,7 @@
 }
 
 .textarea-complement {
-    width: 100%;
+    width: 90%;
     min-height: 120px;
     padding: 0.5rem;
     border: 1px solid #ccc;
@@ -109,6 +109,15 @@
 .msg_pour_peti label{
     display: block;
     margin-bottom: 1rem;
+}
+
+.mail_entier{
+    border: solid 1px rgb(88, 88, 88);
+    padding: 1rem;
+}
+
+.debut_fin_mail {
+    padding: 0.5rem;
 }
 
 #formulaire-acceptation {
