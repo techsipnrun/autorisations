@@ -233,8 +233,8 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
     #################################
     if has_other :
         
-        # emails_norm_saadd = ["louis.calu@reunion-parcnational.fr"]
-        emails_norm_saadd = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
+        emails_norm_saadd = ["louis.calu@reunion-parcnational.fr"]
+        # emails_norm_saadd = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
     
         context_saadd = {k: v for k, v in dico_notifs.items() if k not in keys_mission}
         dedupe_saadd = compute_dedupe_key(emails_norm_saadd, sujet, template_name, context_saadd)
@@ -257,8 +257,8 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
     ################################
     if (has_mission or has_mission_protege) :
 
-        # emails_norm_sppn = ["louis.calu@reunion-parcnational.fr"]
-        emails_norm_sppn = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
+        emails_norm_sppn = ["louis.calu@reunion-parcnational.fr"]
+        # emails_norm_sppn = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
         
         context_sppn = {k: v for k, v in dico_notifs.items() if k in keys_mission}
         dedupe_sppn = compute_dedupe_key(emails_norm_sppn, sujet, template_name, context_sppn)

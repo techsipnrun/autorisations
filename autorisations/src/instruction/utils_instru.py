@@ -109,10 +109,10 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
     if not (len(users_ayant_une_action_a_faire) == 1 and user_faisant_le_changement in users_ayant_une_action_a_faire) :
 
         # On recup les mails des users avec une action à faire
-        emails_norm = [i.email for i in users_ayant_une_action_a_faire if i and i != user_faisant_le_changement]
+        # emails_norm = [i.email for i in users_ayant_une_action_a_faire if i and i != user_faisant_le_changement]
         # print(f"Mails des users ayant une action à faire suite au changement d'étape : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         emails_txt = ", ".join(emails_norm)
 
         if not emails_norm:

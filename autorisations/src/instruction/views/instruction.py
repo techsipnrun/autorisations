@@ -910,10 +910,10 @@ def ajouter_relecteur_dossier(request):
     ####################################
 
     if request.user.email != relecteur.email :
-        emails_norm = [relecteur.email]
+        # emails_norm = [relecteur.email]
         # print(f"Relecteur à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         emails_txt = ", ".join(emails_norm)
 
         sujet = f"Dossier {dossier.numero} - Relecture demandée"

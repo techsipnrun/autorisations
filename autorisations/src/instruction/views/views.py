@@ -199,10 +199,10 @@ def se_declarer_instructeur(request):
     # NOTIFICATION PAR MAIL 
     #######################
     if email_user != instructeur.email and dossier.id_etape_dossier.etape != "À affecter":
-        emails_norm = [instructeur.email]
+        # emails_norm = [instructeur.email]
         # print(f"Instructeur à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous avez été ajouté.e comme instructeur.rice"
         
         context = {
@@ -320,10 +320,10 @@ def retirer_instructeur(request):
     # NOTIFICATION PAR MAIL 
     #######################
     if email_user != instructeur.email :
-        emails_norm = [instructeur.email]
+        # emails_norm = [instructeur.email]
         # print(f"Instructeur à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous avez été retiré.e de l'instruction"
 
         context = {
@@ -436,10 +436,10 @@ def changer_valideur(request):
     #######################
     if instructeur_en_cours != new_valideur :
 
-        emails_norm = [new_valideur.email]
+        # emails_norm = [new_valideur.email]
         # print(f"Valideur à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous êtes désormais le-la validant.e du dossier"
 
         context = {
@@ -553,10 +553,10 @@ def changer_relecteur(request):
     #######################
     if instructeur_en_cours != new_relecteur :
 
-        emails_norm = [new_relecteur.email]
+        # emails_norm = [new_relecteur.email]
         # print(f"Relecteur à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous êtes désormais le-la relecteur.rice du dossier"
 
         context = {
@@ -667,10 +667,10 @@ def changer_intermediaire_signature(request):
     #######################
     if instructeur_en_cours != new_intermediaire :
 
-        emails_norm = [new_intermediaire.email]
+        # emails_norm = [new_intermediaire.email]
         # print(f"Intermédiaire à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous faites désormais l'intermédiaire pour la signature"
 
         context = {
@@ -779,11 +779,11 @@ def changer_envoyeur_acte(request):
     #######################
     if instructeur_en_cours != new_envoyeur :
 
-        emails_norm = [new_envoyeur.email]
+        # emails_norm = [new_envoyeur.email]
         # print(f"Envoyeur à notifier : {emails_norm2}")
 
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous êtes désormais chargé.e d'envoyer l'acte"
 
         context = {
@@ -894,10 +894,10 @@ def changer_publieur_raa(request):
     #######################
     if instructeur_en_cours != new_publieur :
 
-        emails_norm = [new_publieur.email]
+        # emails_norm = [new_publieur.email]
         # print(f"Publieur à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        emails_norm = ["louis.calu@reunion-parcnational.fr"]
         sujet = f"Dossier {dossier.numero} - Vous êtes désormais chargé.e d'envoyer l'acte"
 
         context = {

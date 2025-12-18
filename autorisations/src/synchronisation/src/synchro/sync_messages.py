@@ -101,17 +101,17 @@ def sync_messages(messages, id_dossier):
     if nb_nouv_msg > 0 :
         dossier = Dossier.objects.filter(id=id_dossier).first()
         if dossier :
-            if dossier.id_etape_dossier.etape != "À affecter" :
-                emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
-            else :
-                if "mission scientifique" in dossier.id_demarche.type :
-                    emails_norm = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
-                else :
-                    emails_norm = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
+            # if dossier.id_etape_dossier.etape != "À affecter" :
+            #     emails_norm = list(DossierInstructeur.objects.filter(id_dossier=dossier).select_related("id_instructeur").values_list("id_instructeur__email", flat=True))
+            # else :
+            #     if "mission scientifique" in dossier.id_demarche.type :
+            #         emails_norm = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
+            #     else :
+            #         emails_norm = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
 
             # print(f"Les Receptionneurs du dossier à notifier : {emails_norm2}")
 
-            # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+            emails_norm = ["louis.calu@reunion-parcnational.fr"]
             if nb_nouv_msg == 1 :
                 sujet = f"Dossier {dossier.numero} - {nb_nouv_msg} nouveau message du pétitionnaire"
             else :
