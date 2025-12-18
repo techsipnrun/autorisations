@@ -1028,7 +1028,7 @@ def retirer_relecteur(request):
     ).values_list("id_instructeur_id", flat=True)
 
     # Relecteur lui meme ou bien un des instructeurs du dossier
-    if instructeur.id != drj.id_instructeur.id and instructeur.id not in instructeurs_du_dossier :
+    if instructeur.id != drj.id_instructeur.id and instructeur.id not in instructeurs_du_dossier and not request.user.is_superuser :
         logger.warning(f"[DOSSIER {dossier.numero}] Retrait refusé : {request.user} n'est pas autorisé à retirer le relecteur {drj.id_instructeur.id}.")
         request.session["relecteur_message"] = "Vous n’êtes pas autorisé.e à retirer ce.ette relecteur.rice."
         return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
