@@ -1,6 +1,3 @@
-!!! info "Information"
-    Page en cours de rédaction
-
 # Le déroulement de l'instruction
 
 ---
@@ -12,4 +9,8 @@
 
 ---
 
+Ce logigramme décrit **les différentes étapes de l'instruction** d'un dossier.
 
+L'application respecte cet enchaînement d'étapes. À chaque étape, **une personne est systématiquement chargée de faire avancer l’instruction**, en la faisant passer à l’étape suivante. Voir la page [Les rôles](../prerequis/habilitations.md#les-roles) pour plus de détails.
+
+---
