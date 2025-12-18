@@ -1767,7 +1767,7 @@ def envoyer_l_acte(request):
                 # =========================
                 sujet = f"{nature_document} – Dossier {dossier.numero}"
                 context = {"body": motivation}
-                template_name = "libre"
+                template_name = "mail_en_copie"
                 emails_txt = ", ".join(emails_norm)
 
                 try :

@@ -51,12 +51,12 @@ Cela garantit une communication claire pour le pétitionnaire, sans exposition d
 
 ---
 
-### Bouton Actualiser
+### Actualiser la messagerie
 
 Pour la messagerie liée aux **dossiers**, un bouton **Actualiser** est disponible en haut de l’interface.
 
 Ce bouton permet de synchroniser la messagerie de l’application avec celle de **Démarche Numérique**. Cela permet de récupérer les éventuels nouveaux messages ou pièces jointes déposés par le pétitionnaire depuis la dernière synchronisation. 
 
-Pour plus d'informations sur cette synchronisation, consultez la page [Réception](../onglets/reception.md#synchornisation-des-donnees).
+Pour plus d'informations sur cette synchronisation, consultez la page [Synchronisation des données](../onglets/reception.md#synchronisation-des-donnees).
 
 ---
