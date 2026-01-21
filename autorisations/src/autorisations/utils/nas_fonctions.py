@@ -5,27 +5,37 @@ from smbprotocol import exceptions as smb_exceptions
 from django.core.files.uploadedfile import UploadedFile
 import platform
 import subprocess
+import re
 
 
 loggerApp = logging.getLogger("APP")
 
+
+
+def _normalize_unc_path(p: str) -> str:
+    if not p:
+        return p
+
+    # 1) Unifier les séparateurs
+    p = p.strip().replace("/", "\\")
+
+    # 2) Forcer EXACTEMENT deux backslashes au début (UNC),
+    #    même si on en reçoit 1, 3, 4...
+    p = re.sub(r"^\\+", r"\\\\", p)
+
+    # 3) Réduire les backslashes multiples ailleurs à un seul,
+    #    en conservant le préfixe UNC "\\"
+    p = "\\\\" + re.sub(r"\\{2,}", r"\\", p[2:])
+
+    return p
+
+
 # Configuration
 GROUPE_NAS = "autorisations"
-GROUPE_NAS_LINUX = "PNRUN\\autorisations"
-NAS_UNC_PREFIX = r"\\orangers\autodev_data"
+GROUPE_NAS_LINUX = r"PNRUN\autorisations"
+GROUPE_NAS_SMB = "PNRUN\\autorisations"
+NAS_UNC_PREFIX = _normalize_unc_path(r"\\x-wing\autoprod_data")
 NAS_MOUNT_POINT = "/mnt/nas_autorisations"  # point de montage sur Linux
-
-
-def _is_unc(path: str) -> bool:
-    """Retourne True si le chemin est de type UNC."""
-    return path.startswith("\\\\") or path.startswith("smb://")
-
-
-def _to_local_if_needed(path: str) -> str:
-    """Convertit un chemin UNC en chemin local monté, sinon le renvoie inchangé."""
-    if _is_unc(path):
-        return path.replace(NAS_UNC_PREFIX, NAS_MOUNT_POINT).replace("\\", "/")
-    return path
 
 
 def ecrire_file_sur_nas(source, chemin_destination):
@@ -38,7 +48,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
     Nécessite que smbclient.ClientConfig() ait été exécuté au démarrage (voir apps.py).
 
     :param source: objet UploadedFile OU chemin complet local (str)
-    :param chemin_destination: chemin complet SMB distant (ex: //orangers/autodev_data\Annexes\doc.pdf)
+    :param chemin_destination: chemin complet SMB distant (ex: //x-wing/autoprod_data\Annexes\doc.pdf)
     :return: True si succès, False sinon
     """
 
@@ -111,7 +121,7 @@ def supprimer_file_sur_nas(chemin_fichier):
     Supprime un fichier sur le NAS via SMB.
     Nécessite que smbclient.ClientConfig() ait été exécuté au démarrage (voir apps.py).
 
-    :param chemin_fichier: chemin complet SMB distant (ex: \\orangers\autodev_data\Annexes\doc.pdf)
+    :param chemin_fichier: chemin complet SMB distant (ex: \\x-wing\autoprod_data\Annexes\doc.pdf)
     :return: True si succès, False sinon
     """
 
@@ -142,84 +152,130 @@ def supprimer_file_sur_nas(chemin_fichier):
 
 
 
+def _unc_to_mount_path(unc_path: str) -> str:
+    # \\x-wing\autoprod_data\foo\bar -> /mnt/nas_autorisations/foo/bar
+    p = _normalize_unc_path(unc_path)
+    if not p.startswith(NAS_UNC_PREFIX):
+        raise ValueError(f"UNC inattendu: {unc_path}")
+    suffix = p[len(NAS_UNC_PREFIX):].lstrip("\\/")
+    return os.path.join(NAS_MOUNT_POINT, suffix.replace("\\", "/"))
+
+
+def _unc_to_smb_share_and_relpath(unc_path: str) -> tuple[str, str]:
+    # \\x-wing\autoprod_data\foo\bar -> ("//x-wing/autoprod_data", "foo/bar")
+    p = _normalize_unc_path(unc_path)
+    parts = p.lstrip("\\").split("\\")
+    server, share = parts[0], parts[1]
+    rel = "/".join(parts[2:])
+    return f"//{server}/{share}", rel
+
+
+def _apply_ntfs_modify_for_group(unc_path: str, group_domain: str) -> bool:
+    smb_user = os.getenv("SMB_ACL_USER")
+    smb_pass = os.getenv("SMB_ACL_PASS")
+    smb_domain = os.getenv("SMB_ACL_DOMAIN", "PNRUN")
+
+    if not smb_user or not smb_pass:
+        loggerApp.error("[ACL][Linux][SMB] ❌ SMB_ACL_USER/SMB_ACL_PASS manquants.")
+        return False
+
+    smb_share, relpath = _unc_to_smb_share_and_relpath(unc_path)
+
+    # Auth Samba : DOMAIN\user%password
+    auth = f"{smb_domain}\\{smb_user}%{smb_pass}"
+
+    # ACE identique à ta commande OK
+    ace = f"ACL:{group_domain}:ALLOWED/3/CHANGE"
+
+    cmd = [
+        "smbcacls",
+        smb_share,
+        relpath,
+        "-U", auth,
+        "--add", ace,
+    ]
+
+    # (optionnel mais utile en debug) log sans le mot de passe
+    # loggerApp.info(f"[ACL][Linux][SMB] cmd=smbcacls {smb_share} {relpath} -U {smb_domain}\\{smb_user}%*** --add {ace}")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        loggerApp.error(
+            f"[ACL][Linux][SMB] ❌ smbcacls KO sur {smb_share}/{relpath}. "
+            f"stdout={result.stdout.strip()} stderr={result.stderr.strip()}"
+        )
+        return False
+
+    loggerApp.info(f"[ACL][Linux][SMB] ✅ Modify accordé à {group_domain} sur {smb_share}/{relpath}")
+    return True
+
+
+
 def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
     """
-    Donne les droits d'écriture (modification) au groupe défini sur un dossier 'Work'.
+    Donne les droits de modification au groupe AD sur le dossier Work.
 
-    - Windows : utilise icacls (droits Modify)
-    - Linux   : utilise setfacl (droits rwx)
-    Le dossier doit exister et le groupe est constant (défini en haut du fichier).
+    - Windows : icacls
+    - Linux   : crée le dossier via /mnt (CIFS) puis applique ACL NTFS via smbcacls
     """
     system = platform.system()
 
     try:
-        # On dédoublone les antislashs
-        dossier_work = dossier_work.replace('\\\\', '\\')
+        # normalisation antislashs
+        dossier_work_unc = _normalize_unc_path(dossier_work)
 
-        if system == "Linux":
-            # Convertir UNC vers chemin monté localement
-            if dossier_work.startswith(NAS_UNC_PREFIX):
-                dossier_work = dossier_work.replace(NAS_UNC_PREFIX, NAS_MOUNT_POINT).replace("\\", "/")
-                loggerApp.info(f"[ACL][Linux] 🔄 Conversion UNC → local : {dossier_work}")
-            elif not dossier_work.startswith("/mnt"):
-                loggerApp.warning(f"[ACL][Linux] Chemin non NAS : {dossier_work}")
-                return False
-            
-            # Créer localement si le dossier n'existe pas
-            if not os.path.exists(dossier_work):
-                os.makedirs(dossier_work, exist_ok=True)
-                loggerApp.info(f"[ACL][Linux] 📁 Dossier créé localement : {dossier_work}")
-
-        if system == "Windows" :
-            if not creer_dossier_sur_nas(dossier_work):
-            # if not creer_dossier_sur_nas("\\\\orangers\\autodev_data\\Travaux/2025/Aire_adhesion/24314203_commune_de_saint_paul_20-05/Work") :
-                loggerApp.error(f"[ACL] ❌ Le dossier {dossier_work} n'existe pas.")
-                return False
-            
 
         if system == "Windows":
+            # Ici on attend un UNC utilisable par icacls
+            if not creer_dossier_sur_nas(dossier_work_unc):
+                loggerApp.error(f"[ACL][Windows] ❌ Le dossier {dossier_work_unc} n'existe pas.")
+                return False
 
             cmd = [
                 "icacls",
-                dossier_work,
+                dossier_work_unc,
                 "/grant",
-                f"{GROUPE_NAS}:(OI)(CI)M"
+                f"{GROUPE_NAS_LINUX}:(OI)(CI)M"
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
-                loggerApp.error(f"[ACL][Windows] ❌ Droits 'Modify' non accordés à '{GROUPE_NAS}' sur {dossier_work}. Erreur icacls : {result.stderr or result.stdout}")
+                loggerApp.error(
+                    f"[ACL][Windows] ❌ Droits 'Modify' non accordés à '{GROUPE_NAS_LINUX}' sur {dossier_work_unc}. "
+                    f"Erreur icacls : {result.stderr or result.stdout}"
+                )
                 return False
 
-            # loggerApp.info(f"[ACL][Windows] ✅ Droits 'Modify' accordés à '{GROUPE_NAS}' sur {dossier_work}")
             return True
 
         elif system == "Linux":
-            # Linux nécessite que le partage soit monté localement
-            if dossier_work.startswith("\\\\"):
-                loggerApp.error(f"[ACL][Linux] ⚠️ Chemin UNC non supporté : {dossier_work}")
+            # 0) On attend un UNC pour pouvoir calculer le chemin monté + appliquer smbcacls
+            # if not dossier_work_unc.startswith(NAS_UNC_PREFIX):
+            if not (dossier_work_unc == NAS_UNC_PREFIX or dossier_work_unc.startswith(NAS_UNC_PREFIX + "\\")):
+                loggerApp.error(f"[ACL][Linux] ❌ UNC attendu (prefix {NAS_UNC_PREFIX}) : {dossier_work_unc}")
                 return False
 
-            cmds = [
-                ["setfacl", "-m", f"g:{GROUPE_NAS_LINUX}:rwx", dossier_work],
-                ["setfacl", "-d", "-m", f"g:{GROUPE_NAS_LINUX}:rwx", dossier_work]
-            ]
+            # 1) Sécurité : le NAS doit être monté, sinon on risquerait de créer localement
+            if not os.path.ismount(NAS_MOUNT_POINT):
+                loggerApp.error(f"[ACL][Linux] ❌ NAS non monté sur {NAS_MOUNT_POINT}")
+                return False
 
-            for cmd in cmds:
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                if result.returncode != 0:
-                    loggerApp.error(f"[ACL][Linux] ❌ Erreur setfacl : {result.stderr or result.stdout}")
-                    return False
+            # 2) Créer le dossier via le montage
+            dossier_work_mount = _unc_to_mount_path(dossier_work_unc)
+            os.makedirs(dossier_work_mount, exist_ok=True)
+            loggerApp.info(f"[ACL][Linux] 📁 Dossier créé via mount : {dossier_work_mount}")
 
-            loggerApp.info(f"[ACL][Linux] ✅ Droits 'rwx' accordés à '{GROUPE_NAS_LINUX}' sur {dossier_work}")
-            return True
+            # 3) Appliquer ACL NTFS (Modify) via SMB sur le UNC (pas setfacl)
+            ok = _apply_ntfs_modify_for_group(dossier_work_unc, GROUPE_NAS_SMB)
+            return ok
 
         else:
             loggerApp.error(f"[ACL] ⚠️ Système non supporté : {system}")
             return False
 
     except FileNotFoundError as e:
-        loggerApp.error(f"[ACL] ❌ Outil manquant ({'icacls' if system == 'Windows' else 'setfacl'}) : {e}")
+        loggerApp.error(f"[ACL] ❌ Outil manquant : {e}")
     except Exception as e:
         loggerApp.exception(f"[ACL] ⚠️ Erreur inattendue lors de l’attribution des droits : {e}")
 

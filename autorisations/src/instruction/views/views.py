@@ -1221,10 +1221,10 @@ def ajouter_annexe_dossier(request, dossier_id):
     if request.method == "POST" and request.FILES.get('annexe'):
         fichier = request.FILES['annexe']
 
-        # Vérification de la taille (max 20 Mo)
-        if fichier.size > 20 * 1024 * 1024:
+        # Vérification de la taille (max 50 Mo)
+        if fichier.size > 50 * 1024 * 1024:
             logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
-            messages.error(request, f"Annexe refusée ({request.user}) Taille > 20 Mo pour {fichier.name}")
+            messages.error(request, f"Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Extension du fichier
@@ -1296,13 +1296,11 @@ def ajouter_annexe_dossier(request, dossier_id):
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
-        # TEST ECRITURE NAS
         # 2) Écrire l’upload directement sur le NAS
         if not ecrire_file_sur_nas(fichier, chemin_complet):
             logger.error(f"[NAS] Erreur lors de l'écriture de l'annexe sur le NAS : {e}")
             messages.error(request, "Erreur lors de l'écriture de l'annexe sur le NAS.")
             return redirect(request.META.get("HTTP_REFERER", "/"))
-
 
 
         # try:

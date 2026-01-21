@@ -56,7 +56,7 @@ if __name__ == "__main__":
     chemin_local = r"C:\Users\lcalu\Desktop\Projet Autorisations\Carte_Coeur_De_Parc_Activités_Commerciales.pdf"
 
     # Fichier de destination sur le NAS
-    chemin_nas = r"\\orangers\autodev_data\Annexes\dfefefef\test_depuis_fonction.pdf"
+    chemin_nas = r"\\x-wing\autoprod_data\Annexes\dfefefef\test_depuis_fonction.pdf"
 
     fichier = FichierSimule(chemin_local)
     success = ecrire_uploadedfile_sur_nas(fichier, chemin_nas)
