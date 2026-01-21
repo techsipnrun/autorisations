@@ -19,7 +19,7 @@ En cas d’accès refusé au lecteur réseau, contactez le **support informatiqu
 
 ## Connexion au lecteur réseau
 
-Le stockage est accessible via le chemin réseau suivant : ```\\orangers\autodev_data```
+Le stockage est accessible via le chemin réseau suivant : ```\\x-wing\autodev_data```
 
 Il est recommandé de connecter cet emplacement comme **lecteur réseau** afin d’y accéder facilement.
 
@@ -36,10 +36,10 @@ Il est recommandé de connecter cet emplacement comme **lecteur réseau** afin d
 
 ### Étape 2 — Renseigner le chemin du stockage
 
-Dans le champ « Dossier », renseignez : ```\\orangers\autodev_data```
+Dans le champ « Dossier », renseignez : ```\\x-wing\autodev_data```
 
 <figure style="text-align: center;">
-  <img src="../images/prerequis/orangers_autodev_data.png" alt="Saisie du chemin réseau" width="500">
+  <img src="../images/prerequis/xwing_autodev_data.png" alt="Saisie du chemin réseau" width="500">
   <figcaption><em>Figure 2 — Saisie du chemin d'accès au NAS</em></figcaption>
 </figure>
 

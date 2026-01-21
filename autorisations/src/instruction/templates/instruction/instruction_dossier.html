@@ -2051,7 +2051,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                         {% if request.user|est_concerné_par_le_dossier:dossier %}
                             <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
                                 {% csrf_token %}
-                                <label for="file-upload" class="annexe-label" title="Ajouter une annexe depuis le dossier Work">
+                                <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
                                     <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
                                 </label>
                                 <input type="file" id="file-upload" name="annexe"

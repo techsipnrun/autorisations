@@ -7,7 +7,7 @@ Pour configurer l'accès au NAS, rendez-vous sur la page [Espace de stockage](..
 Le NAS est structuré de façon logique pour permettre un accès rapide aux dossiers.
 
 ### 1. La racine 
-À la racine de ```\\orangers\autodev_data```, on retrouve un découpage par type de dossier.
+À la racine de ```\\x-wing\autodev_data```, on retrouve un découpage par type de dossier.
 
 ```
 /Activites_agricoles

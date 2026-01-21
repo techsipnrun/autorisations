@@ -3,7 +3,7 @@
 ---
 
 <figure style="text-align: center;">
-  <img src="../images/etapes/logigramme_etapes.png" alt="Logigramme des étapes d'instruction" width="800">
+  <img src="../images/etapes/logigramme_etapes.png" alt="Logigramme des étapes d'instruction" width="600">
   <figcaption><em>Figure 1 — Le déroulement de l'instruction </em></figcaption>
 </figure>
 
