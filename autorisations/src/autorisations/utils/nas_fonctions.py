@@ -34,7 +34,7 @@ def _normalize_unc_path(p: str) -> str:
 GROUPE_NAS = "autorisations"
 GROUPE_NAS_LINUX = r"PNRUN\autorisations"
 GROUPE_NAS_SMB = "PNRUN\\autorisations"
-NAS_UNC_PREFIX = _normalize_unc_path(r"\\x-wing\autodev_data")
+NAS_UNC_PREFIX = _normalize_unc_path(r"\\x-wing\autoprod_data")
 NAS_MOUNT_POINT = "/mnt/nas_autorisations"  # point de montage sur Linux
 
 
@@ -48,7 +48,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
     Nécessite que smbclient.ClientConfig() ait été exécuté au démarrage (voir apps.py).
 
     :param source: objet UploadedFile OU chemin complet local (str)
-    :param chemin_destination: chemin complet SMB distant (ex: //x-wing/autodev_data\Annexes\doc.pdf)
+    :param chemin_destination: chemin complet SMB distant (ex: //x-wing/autoprod_data\Annexes\doc.pdf)
     :return: True si succès, False sinon
     """
 
@@ -121,7 +121,7 @@ def supprimer_file_sur_nas(chemin_fichier):
     Supprime un fichier sur le NAS via SMB.
     Nécessite que smbclient.ClientConfig() ait été exécuté au démarrage (voir apps.py).
 
-    :param chemin_fichier: chemin complet SMB distant (ex: \\x-wing\autodev_data\Annexes\doc.pdf)
+    :param chemin_fichier: chemin complet SMB distant (ex: \\x-wing\autoprod_data\Annexes\doc.pdf)
     :return: True si succès, False sinon
     """
 
@@ -153,7 +153,7 @@ def supprimer_file_sur_nas(chemin_fichier):
 
 
 def _unc_to_mount_path(unc_path: str) -> str:
-    # \\x-wing\autodev_data\foo\bar -> /mnt/nas_autorisations/foo/bar
+    # \\x-wing\autoprod_data\foo\bar -> /mnt/nas_autorisations/foo/bar
     p = _normalize_unc_path(unc_path)
     if not p.startswith(NAS_UNC_PREFIX):
         raise ValueError(f"UNC inattendu: {unc_path}")
@@ -162,7 +162,7 @@ def _unc_to_mount_path(unc_path: str) -> str:
 
 
 def _unc_to_smb_share_and_relpath(unc_path: str) -> tuple[str, str]:
-    # \\x-wing\autodev_data\foo\bar -> ("//x-wing/autodev_data", "foo/bar")
+    # \\x-wing\autoprod_data\foo\bar -> ("//x-wing/autoprod_data", "foo/bar")
     p = _normalize_unc_path(unc_path)
     parts = p.lstrip("\\").split("\\")
     server, share = parts[0], parts[1]
