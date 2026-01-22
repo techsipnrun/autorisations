@@ -12,4 +12,4 @@
 
 - Relecture
 
-- Notes
+- Notes (PJ 50Mo max)
