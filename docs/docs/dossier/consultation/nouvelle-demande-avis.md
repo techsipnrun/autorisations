@@ -1,6 +1,6 @@
 # Nouvelle demande d'avis
 
-## Les champs à renseigner
+## Les champs à renseigner dans le formulaire de création d'une demande d'avis
 
 🔴 : Pas concerné par ce champ   
 🟠 : Champ facultatif   
@@ -8,7 +8,7 @@
 
 ---
 
-| Nom du champ | Description | Interne | Instance |
+| Nom du champ | Description | En interne | À une instance |
 |:-----:|--------|--------|--------|
 | Nature de l'avis | *Consultation en interne* ou *Demande à une instance* | 🟢 | 🟢 |
 | Thématique de l'avis | xxx | 🟢 | 🟢 |

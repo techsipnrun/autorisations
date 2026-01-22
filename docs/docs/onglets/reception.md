@@ -85,9 +85,9 @@ En cas d’erreur, vous devez en **informer le support**.
 
 En complément de la synchronisation générale, des synchronisations plus **ciblées et rapides** peuvent être réalisées :
 
-- à l’échelle d’un **type de dossier** (voir la page [Actualiser les dossiers d'un même type](instruction.md#actualiser-les-dossiers-dun-meme-type)) ;
-- à l’échelle d’un **dossier spécifique** (voir la page xxx) ;
-- uniquement pour la **messagerie d’un dossier** (voir la page [Actualiser la messagerie](../dossier/messagerie.md#actualiser-la-messagerie)) .
+- à l’échelle d’un **type de dossier** (voir la page [Actualiser les dossiers d'un même type](instruction.md#actualiser-les-dossiers-dun-meme-type))
+- à l’échelle d’un **dossier spécifique** (voir la page [Actualiser un dossier](../dossier/formulaire/raccourcis.md#actualiser-un-dossier))
+- uniquement pour la **messagerie d’un dossier** (voir la page [Actualiser la messagerie](../dossier/messagerie.md#actualiser-la-messagerie))
 
 Ces synchronisations ciblées permettent de mettre à jour rapidement des éléments précis sans relancer une synchronisation globale.
 
