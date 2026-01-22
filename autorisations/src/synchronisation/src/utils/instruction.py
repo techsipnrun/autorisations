@@ -207,7 +207,8 @@ def type_demande_from_nom_demarche(nom_demarche: str, champs: list):
         "Activités agricoles": "Activités agricoles",
         "Documents de planification et d'urbanisme": "Documents de planification et d'urbanisme",
         "Manifestations publiques": "Manifestations publiques",
-        "Manifestations sportives": "Manifestations sportives"
+        "Manifestations sportives": "Manifestations sportives",
+        "Types Champ": "Test"
     }
 
     for mot_clef, type_ in correspondances.items():

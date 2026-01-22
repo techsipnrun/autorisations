@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Chemin du fichier .env en fonction de l'environnement
 ENVIRONMENT = os.getenv("DJANGO_ENV", "dev")  # dev par défaut, DJANGO_ENV=prod python manage.py runserver pour lancer en prod
+# ENVIRONMENT = 'prod'
 dotenv_path = BASE_DIR / f".env.{ENVIRONMENT}"
 load_dotenv(dotenv_path)
 
