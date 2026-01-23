@@ -1436,8 +1436,35 @@ def gestion_groupes(request):
         groupe_id = request.POST.get("groupe_id")
         user_id = request.POST.get("user_id")
 
+        is_admin = request.user.is_superuser
+
+        # Instructeur connecté
+        instructeur_connecte = (Instructeur.objects.filter(id_agent_autorisations__mail_1=request.user.email).first())
+
+        def forbid(msg: str):
+            messages.error(request, msg)
+            return redirect("gestion_groupes")
+        
+        if not instructeur_connecte:
+            return forbid("Votre compte n’est pas reconnu comme instructeur : action impossible.")
+        
         if type_objet == "groupe":  # Groupes Django classiques
             groupe = get_object_or_404(Group, id=groupe_id)
+            cible = get_object_or_404(User, id=user_id)
+
+            # ---- Règles NON superuser ----
+            if not is_admin:
+                if action == "remove":
+                    # ne peut retirer que lui-même
+                    if cible.id != request.user.id:
+                        return forbid("Vous ne pouvez retirer que vous-même d’un groupe.")
+                elif action == "add":
+                    # peut toujours s'ajouter lui-même
+                    if cible.id != request.user.id:
+                        # sinon: doit déjà être membre du groupe pour ajouter quelqu'un d'autre
+                        if not groupe.user_set.filter(id=request.user.id).exists():
+                            return forbid("Vous ne pouvez ajouter des utilisateurs que dans les groupes auxquels vous appartenez.")
+            #  Execution
             if action == "add":
                 user = get_object_or_404(User, id=user_id)
                 groupe.user_set.add(user)
@@ -1447,20 +1474,35 @@ def gestion_groupes(request):
                 groupe.user_set.remove(user)
                 messages.success(request, f"Utilisateur {user.username} retiré du groupe {groupe.name}.")
 
+
         elif type_objet == "groupe_instructeur":  # Groupes instructeurs
             groupe = get_object_or_404(Groupeinstructeur, id=groupe_id)
-            instructeur = get_object_or_404(Instructeur, id=user_id)
+            cible = get_object_or_404(Instructeur, id=user_id)
+
+            # ---- Règles NON superuser ----
+            if not is_admin:
+                if action == "remove":
+                    # ne peut retirer que lui-même
+                    if cible.id != instructeur_connecte.id:
+                        return forbid("Vous ne pouvez retirer que vous-même d’un groupe instructeur.")
+                elif action == "add":
+                    # peut toujours s'ajouter lui-même
+                    if cible.id != instructeur_connecte.id:
+                        # sinon: doit déjà être membre du groupe instructeur
+                        est_membre = GroupeinstructeurInstructeur.objects.filter(
+                            id_groupeinstructeur=groupe,
+                            id_instructeur=instructeur_connecte
+                        ).exists()
+                        if not est_membre:
+                            return forbid("Vous ne pouvez ajouter des instructeurs que dans les groupes instructeurs auxquels vous appartenez.")
+
 
             if action == "add":
-                GroupeinstructeurInstructeur.objects.get_or_create(
-                    id_groupeinstructeur=groupe, id_instructeur=instructeur
-                )
-                messages.success(request, f"Instructeur {instructeur} ajouté au groupe instructeur {groupe.nom}.")
+                GroupeinstructeurInstructeur.objects.get_or_create(id_groupeinstructeur=groupe, id_instructeur=cible)
+                messages.success(request, f"Instructeur {cible} ajouté au groupe instructeur {groupe.nom}.")
             elif action == "remove":
-                GroupeinstructeurInstructeur.objects.filter(
-                    id_groupeinstructeur=groupe, id_instructeur=instructeur
-                ).delete()
-                messages.success(request, f"Instructeur {instructeur} retiré du groupe instructeur {groupe.nom}.")
+                GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe, id_instructeur=cible).delete()
+                messages.success(request, f"Instructeur {cible} retiré du groupe instructeur {groupe.nom}.")
 
         return redirect("gestion_groupes")
     
