@@ -9,14 +9,17 @@
             <li>
                 {{ lien.id_instructeur.id_agent_autorisations.prenom }}
                 {{ lien.id_instructeur.id_agent_autorisations.nom }}
-                <form method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <input type="hidden" name="type" value="groupe_instructeur">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
-                    <input type="hidden" name="user_id" value="{{ lien.id_instructeur.id }}">
-                    <button type="submit" class="btn-remove" title="Retirer l'instructeur">✕</button>
-                </form>
+
+                {% if request.user.is_superuser or lien.id_instructeur.email == request.user.email %}
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="type" value="groupe_instructeur">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="groupe_id" value="{{ groupe.id }}">
+                        <input type="hidden" name="user_id" value="{{ lien.id_instructeur.id }}">
+                        <button type="submit" class="btn-remove" title="Retirer l'instructeur">✕</button>
+                    </form>
+                {% endif %}
             </li>
         {% empty %}
             <li class="empty">Aucun instructeur dans ce groupe</li>
@@ -47,3 +50,17 @@
         <button type="submit" class="btn-confirm" title="Confirmer l'ajout">✔</button>
     </form>
 </div>
+
+
+<script>
+    function toggleForm(button) {
+        const card = button.closest(".card");
+        const form = card.querySelector(".add-user-form");
+
+        // afficher le formulaire
+        form.classList.remove("hidden");
+
+        // masquer le bouton +
+        button.style.display = "none";
+    }
+</script>
