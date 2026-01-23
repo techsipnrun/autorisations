@@ -33,10 +33,50 @@
                 </div>
 
 
-                <div class="form-field">
+                <!-- <div class="form-field">
                     <label for="date_depot">Date de dépôt :</label>
                     <input type="date" name="date_depot" id="date_depot" value="{{ request.GET.date_depot }}">
+                </div> -->
+
+                <div class="form-field periode-reception">
+                    <label title="Date à laquelle le dossier a été déposé par le pétitionnaire">Période où le dossier a été reçu</label>
+
+                    <div class="periode-row">
+                        <div class="periode-item">
+                            <span>Du</span>
+                            <input type="date" name="date_debut_reception"
+                                value="{{ date_debut_reception_rempli }}">
+                        </div>
+
+                        <div class="periode-item">
+                            <span>Au</span>
+                            <input type="date" name="date_fin_reception"
+                                value="{{ date_fin_reception_rempli }}">
+                        </div>
+                    </div>
                 </div>
+
+
+                <div class="form-field periode-instruction">
+                    <label title="Date à laquelle le dossier a été classé comme 'Accepté' ou 'Refusé' ou 'Non soumis à autorisation'">Période où le dossier a été instruit</label>
+
+                    <div class="periode-row">
+                        <div class="periode-item">
+                            <span>Du</span>
+                            <input type="date" name="date_debut_instruction"
+                                value="{{ date_debut_instruction_rempli }}">
+                        </div>
+
+                        <div class="periode-item">
+                            <span>Au</span>
+                            <input type="date" name="date_fin_instruction"
+                                value="{{ date_fin_instruction_rempli }}">
+                        </div>
+                    </div>
+                </div>
+
+
+
 
                 <div class="form-field">
                     <label for="etape">Étape dossier :</label>
@@ -194,6 +234,25 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="form-field periode-avis-demande">
+                <label title="Date à laquelle la demande d'avis a été envoyée à l'expert">Période où l’avis a été demandé</label>
+
+                <div class="periode-row">
+                    <div class="periode-item">
+                    <span>Du</span>
+                    <input type="date" name="date_debut_demande_avis"
+                            value="{{ date_debut_demande_avis_rempli }}">
+                    </div>
+
+                    <div class="periode-item">
+                    <span>Au</span>
+                    <input type="date" name="date_fin_demande_avis"
+                            value="{{ date_fin_demande_avis_rempli }}">
+                    </div>
+                </div>
+            </div>
+
 
             <div class="form-field">
                 <label for="reponse">Réponse :</label>
