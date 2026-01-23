@@ -217,8 +217,10 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
     - Si succès : True, 
     - Si erreur : False,
     """
-    # 
-
+    #######################
+    # NOTIFICATION PAR MAIL 
+    #######################
+    
     keys_mission = {"Mission scientifique", "Mission scientifique en espace protégé"}
     has_mission = "Mission scientifique" in dico_notifs
     has_mission_protege = "Mission scientifique en espace protégé" in dico_notifs

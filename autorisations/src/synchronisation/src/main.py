@@ -80,7 +80,6 @@ def lancer_normalisation_et_synchronisation():
 
 
 
-#  A TESTER
 def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
     """
     Lance la synchronisation complète pour une seule démarche.
