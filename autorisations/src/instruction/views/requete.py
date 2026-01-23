@@ -1,3 +1,4 @@
+from datetime import date
 from django.db.models import Q, Value
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -32,7 +33,12 @@ def requete_dossiers(request):
     
 
     numero = clean_int(request.GET.get("numero"))
-    date_depot = request.GET.get("date_depot")
+    # date_depot = request.GET.get("date_depot")
+    date_debut_reception = request.GET.get("date_debut_reception")
+    date_fin_reception = request.GET.get("date_fin_reception")
+    date_debut_instruction = request.GET.get("date_debut_instruction")
+    date_fin_instruction = request.GET.get("date_fin_instruction")
+
     type_demarche = request.GET.get("d_type_demarche")
     groupe = request.GET.get("groupe")
     etape = request.GET.get("etape")
@@ -46,8 +52,49 @@ def requete_dossiers(request):
     if numero:
         dossiers = dossiers.filter(numero=numero)
 
-    if date_depot:
-        dossiers = dossiers.filter(date_depot__date=date_depot)
+    # Période ou le dossier a été recu
+    # Si une date de début est fournie sans date de fin → aujourd'hui
+    if date_debut_reception and not date_fin_reception:
+        date_fin_reception = date.today().isoformat()
+
+    # Si date debut > date fin : on inverse les dates
+    if date_debut_reception and date_fin_reception:
+        if date_debut_reception > date_fin_reception:
+            date_debut_reception, date_fin_reception = (
+                date_fin_reception, date_debut_reception
+            )
+
+    if date_debut_reception:
+        dossiers = dossiers.filter(
+            date_depot__date__gte=date_debut_reception
+        )
+
+    if date_fin_reception:
+        dossiers = dossiers.filter(
+            date_depot__date__lte=date_fin_reception
+        )
+
+
+    # Période ou le dossier a été instruit
+    if date_debut_instruction and not date_fin_instruction:
+        date_fin_instruction = date.today().isoformat()
+
+    if date_debut_instruction and date_fin_instruction:
+        if date_debut_instruction > date_fin_instruction:
+            date_debut_instruction, date_fin_instruction = (
+                date_fin_instruction, date_debut_instruction
+            )
+
+    if date_debut_instruction:
+        dossiers = dossiers.filter(
+            date_fin_instruction__date__gte=date_debut_instruction
+        )
+
+    if date_fin_instruction:
+        dossiers = dossiers.filter(
+            date_fin_instruction__date__lte=date_fin_instruction
+        )
+
 
     if type_demarche :
         dossiers = dossiers.filter(id_demarche__type__icontains=type_demarche)
@@ -115,10 +162,6 @@ def requete_dossiers(request):
 
         else:
             nom = ""
-            
-   
-
-    dossiers = dossiers.order_by('-date_depot')
 
     dossiers = dossiers.order_by('-date_depot')
 
@@ -129,7 +172,6 @@ def requete_dossiers(request):
         else:
             d.lien = f"/instruction/{d.numero}/"
             
-
 
     context = {
         "dossiers": dossiers,
@@ -149,6 +191,10 @@ def requete_dossiers(request):
         "nom_rempli": nom or "",
         "instructeur_rempli": instructeur or "",
         "numero_rempli": numero or "",
+        "date_debut_reception_rempli": date_debut_reception or "",
+        "date_fin_reception_rempli": date_fin_reception or "",
+        "date_debut_instruction_rempli": date_debut_instruction or "",
+        "date_fin_instruction_rempli": date_fin_instruction or "",
     }
     return render(request, "instruction/requetes.html", context)
 
@@ -179,6 +225,9 @@ def requete_avis(request):
     mois_list = Avis.objects.annotate(mois=ExtractMonth("date_demande_avis")) \
         .values_list("mois", flat=True).distinct().order_by("mois")
 
+    date_debut_demande_avis = request.GET.get("date_debut_demande_avis")
+    date_fin_demande_avis = request.GET.get("date_fin_demande_avis")
+
     demarches = Demarche.objects.all().order_by("type")
 
 
@@ -202,6 +251,28 @@ def requete_avis(request):
 
     if annee:
         avis_list = avis_list.filter(date_demande_avis__year=annee)
+
+    # Période ou l'avis a été demandé
+    # Si une date de début est fournie sans date de fin → aujourd'hui
+    if date_debut_demande_avis and not date_fin_demande_avis:
+        date_fin_demande_avis = date.today().isoformat()
+
+    # Si date debut > date fin : on inverse les dates
+    if date_debut_demande_avis and date_fin_demande_avis:
+        if date_debut_demande_avis > date_fin_demande_avis:
+            date_debut_demande_avis, date_fin_demande_avis = (
+                date_fin_demande_avis, date_debut_demande_avis
+            )
+
+    if date_debut_demande_avis:
+        avis_list = avis_list.filter(
+            date_demande_avis__date__gte=date_debut_demande_avis
+        )
+
+    if date_fin_demande_avis:
+        avis_list = avis_list.filter(
+            date_demande_avis__date__lte=date_fin_demande_avis
+        )
 
     if reponse:
         reponse = reponse.strip()
@@ -315,6 +386,9 @@ def requete_avis(request):
         "demandeur_rempli": demandeur,
         "num_dossier_rempli": num_dossier or "",
         "num_avis_rempli": num_avis or "",
+        "date_debut_demande_avis_rempli": date_debut_demande_avis or "",
+        "date_fin_demande_avis_rempli": date_fin_demande_avis or "",
+
     }
 
  
