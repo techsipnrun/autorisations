@@ -158,6 +158,10 @@
                                             {% elif label == "Prêt à la signature" and not delibCA %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionDirecteur()">Prêt à la signature</button>
 
+                                            <!-- SPPN : Passe direct de 'Instruction' à 'Acte prêt à la signature' -->
+                                            {% elif label == "Acte prêt à la signature" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretALaSignature()">Acte prêt à la signature</button>
+
 
                                             {% elif label == "Acte prêt à être envoyé" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
@@ -346,6 +350,153 @@
                         </div>
                     </form>
                 </div>
+
+
+
+                <!-- Zone masquée pour SPPN (étapes réduites) : Choisir qui enverra l'acte à la direction pour signature -->
+                <div id="formulaire-acte-pret-a-la-signature" class="zone-complement zone-envoyer-pour-validation" style="display: none;" >
+                    <form method="post" enctype="multipart/form-data" action="{% url 'acte_pret_a_la_signature_url' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        
+                        <div class="nature-acte">
+                            <label>Nature de l'acte :</label>
+                            <select name="nature_document" id="nature_validation" required>
+                                <option value="" disabled selected>Choisir une nature</option>
+                                <option value="Arrêté directeur">Arrêté directeur</option>
+                                <option value="Déliberation CA">Déliberation CA</option>
+                                <option value="Avis simple">Avis simple</option>
+                                <option value="Avis conforme">Avis conforme</option>
+                            </select>
+                        </div>
+
+                        <div class="choix-intermediaire-dir" id="bloc-intermediaire-dir">
+                            <label for="choix_intermediaire_dir-sppn">Choisir qui fera l’intermédiaire avec la direction :</label>
+                            <select name="intermediaire_dir" id="choix_intermediaire_dir-sppn">
+                                <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
+                                <!-- SPPN -->
+                                {% if "mission scientifique" in demarche.type|lower %}
+                                    {% for idir in intermediaires_dir_sppn %}
+                                        <option value="{{ idir.id }}">
+                                            {{ idir }}
+                                        </option>
+                                    {% endfor %}
+
+                                    {% for i in instructeurs_du_dossier %}
+                                        {% if i not in intermediaires_dir_sppn %}
+                                            <option value="{{ i.id }}">
+                                                {{ i }}
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+
+                         
+                        <div class="choix-intermediaire-ca" id="bloc-intermediaire-ca">
+                            <label for="choix_intermediaire_ca-sppn">Choisir qui fera l’intermédiaire avec le CA :</label>
+                            <select name="intermediaireCA" id="choix_intermediaire_ca-sppn">
+                                <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
+                                {% for ica in intermediaires_CA %}
+                                    <option value="{{ ica.id }}">
+                                        {{ ica }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        
+                        <div class="zone-pj-complement pj-validation-avant-signature">
+                            <div class="projet_acte_pj">
+                                <label for="pj_validation">Joindre le projet d’acte :</label>
+                                <input type="file" name="piece_jointe" id="pj_validation_acte_pret" accept=".odt,.doc,.docx" required>
+                            </div>
+
+                            <div id="zone-projet-rapport"></div>
+                            <p class="hint-text">📁 Merci de sélectionner des fichiers situés dans le dossier <strong>Work</strong>.</p>
+                        </div>
+
+
+                        <div class="envoi-pour-validation-avant-signature">
+                            <button type="button" class="btn-envoyer-complement" onclick="confirmerActePretALaSignature()">
+                                Confirmer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Affichage conditionnel si on choisit Délibération CA  -->
+                <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        const selectNature = document.getElementById("nature_validation");
+                        const zoneRapport = document.getElementById("zone-projet-rapport");
+
+                        const blocDir = document.getElementById("bloc-intermediaire-dir");
+                        const blocCA = document.getElementById("bloc-intermediaire-ca");
+
+                        const selectDir = document.getElementById("choix_intermediaire_dir-sppn");
+                        const selectCA = document.getElementById("choix_intermediaire_ca-sppn");
+
+                        function updateUI() {
+                            const isDelibCA = selectNature.value === "Déliberation CA";
+                            const hasNature = selectNature.value !== "";
+
+                            // --- (A) Champs intermédiaire : affichage + required ---
+                            if (!hasNature) {
+                                // Tant que l’utilisateur n’a pas choisi → je cache tout (option la plus safe)
+                                blocDir.style.display = "none";
+                                blocCA.style.display = "none";
+
+                                selectDir.required = false;
+                                selectCA.required = false;
+
+                                selectDir.value = "";
+                                selectCA.value = "";
+                            } else if (isDelibCA) {
+                                blocCA.style.display = "block";
+                                blocDir.style.display = "none";
+
+                                selectCA.required = true;
+                                selectDir.required = false;
+
+                                selectDir.value = "";
+                            } else {
+                                blocDir.style.display = "block";
+                                blocCA.style.display = "none";
+
+                                selectDir.required = true;
+                                selectCA.required = false;
+
+                                selectCA.value = "";
+                            }
+
+                            // --- (B) PJ Rapport CA : ajout/suppression ---
+                            const existing = document.getElementById("pj_rapport_ca");
+
+                            if (isDelibCA) {
+                                if (!existing) {
+                                    const div = document.createElement("div");
+                                    div.classList.add("projet_rapport_ca_pj");
+                                    div.innerHTML = `
+                                        <label for="pj_rapport_ca">Joindre le projet de Rapport du CA :</label>
+                                        <input type="file" name="piece_jointe_rapport_ca" id="pj_rapport_ca" accept=".odt,.doc,.docx" required>
+                                    `;
+                                    zoneRapport.appendChild(div);
+                                }
+                            } else {
+                                if (existing) existing.parentElement.remove();
+                            }
+                        }
+
+                        // init
+                        updateUI();
+
+                        // change
+                        selectNature.addEventListener("change", updateUI);
+                    });
+                </script>
+
 
 
                 <!-- Zone masquée pour transmettre doc signé -->
@@ -2400,6 +2551,17 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
         }
 
 
+        function afficherFormulaireActePretALaSignature() {
+            masquerToutesZonesComplementaires();
+            document.querySelectorAll('.zone-complement').forEach(el => el.style.display = 'none');
+            // Afficher la zone Transmission DIR
+            const zone = document.getElementById('formulaire-acte-pret-a-la-signature');
+            if (zone) zone.style.display = 'block';
+
+            fermerMenuEtape();
+        }
+
+
         
 
 
@@ -2504,6 +2666,33 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const confirmation = confirm("Confirmer la transmission du dossier à l’intermédiaire ?");
             if (confirmation) {
                 select.closest("form").submit();
+            }
+        }
+
+        // Pour confirmer la transmission du dossier à l'intermédiaire DIR
+        function confirmerActePretALaSignature() {
+            const form = document.querySelector('#formulaire-acte-pret-a-la-signature form');
+
+            const inter_dir = form.querySelector('#choix_intermediaire_dir-sppn');
+            const inter_ca  = form.querySelector('#choix_intermediaire_ca-sppn');
+
+            const nature = form.querySelector('#nature_validation');
+            const fichierInput = form.querySelector('input[name="piece_jointe"]');
+            const fichier = fichierInput?.files?.[0] || null;
+
+            const pj_rapport_ca = form.querySelector('#pj_rapport_ca');
+            const fichier_rapportCA = pj_rapport_ca?.files?.[0] || null;
+
+            const intermediaire_dir = inter_dir?.value || "";
+            const intermediaire_ca  = inter_ca?.value || "";
+
+            if (!nature.value) { alert("Veuillez sélectionner la nature du document."); return; }
+            if (!fichier) { alert("Veuillez joindre le projet d'acte."); return; }
+            if (!intermediaire_dir && !intermediaire_ca) { alert("Veuillez sélectionner l'intermédiaire."); return; }
+            if (intermediaire_ca && !fichier_rapportCA) { alert("Veuillez joindre le projet de rapport du CA."); return; }
+
+            if (confirm("Je confirme que l'acte est prêt pour la signature ?")) {
+                form.requestSubmit(); // ou form.submit();
             }
         }
 

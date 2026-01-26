@@ -1179,6 +1179,223 @@ def pret_a_la_signature(request):
 
 
 
+
+@require_POST
+@login_required
+def acte_pret_a_la_signature(request):
+
+    dossier_id_ds = request.POST.get("dossierId")
+    intermediaire_CA_id = request.POST.get("intermediaireCA") # ID instructeur
+    intermediaire_dir_id = request.POST.get("intermediaire_dir") # ID instructeur
+
+    nature = request.POST.get("nature_document")
+    fichier = request.FILES.get("piece_jointe")
+    fichier_rapport_CA = request.FILES.get("piece_jointe_rapport_ca")
+
+    # --- Vérification dossierId ---
+    if not dossier_id_ds:
+        logger.error(f"[PRÊT À LA SIGNATURE] User={request.user} : ID DS manquant dans le formulaire.")
+        return redirect_error(request, "❌ Échec : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+
+    # --- Récupération dossier ---
+    dossier, err = get_dossier_or_redirect(request, "PRÊT À LA SIGNATURE", id_ds=dossier_id_ds)
+    if err:
+        return err
+
+    # --- Récupération instructeur connecté ---
+    instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Prêt à la signature")
+    if err:
+        return err
+    
+    # --- Récupération statut 'À signer' ---
+    statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
+    if not statut_a_signer:
+        logger.error(f"[DOSSIER {dossier.numero}] Échec du changement d'étape à 'En attente de signature' par {request.user} : Statut 'À signer' introuvable en base.")
+        return redirect_error(request, "❌ Statut 'À signer' introuvable en base. Contactez le support.")
+
+    if not nature :
+        return redirect_error(request, "❌ La nature du projet d'acte est manquante. Contactez le support.")
+    
+    # Récup nature
+    nature_obj = DocumentNature.objects.filter(nature=nature).first()
+    if not nature_obj:
+        logger.error(f"[DOSSIER {dossier.numero}] Échec du changement d'étape à 'En attente de signature' par {request.user} : Nature '{nature}' introuvable en base (user={request.user})")
+        return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
+
+
+    # Fichier 
+    if not fichier:
+        return redirect_error(request, "❌ Le projet d'acte n'a pas été joint.")
+
+    # Vérification que l'extension du file est .doc, .docx, .pdf, .odt
+    extension = Path(fichier.name).suffix.lower()
+    if extension not in {".doc", ".docx", ".odt"} :
+        return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+    
+
+    format_obj = DocumentFormat.objects.filter(format=extension.lstrip('.')).first()
+    if not format_obj:
+        logger.error(f"[VALIDER PROJET ACTE] Format '{extension}' introuvable")
+        return redirect_error(request, f"❌ Format '{extension}' introuvable en base. Contactez le support.")
+
+
+    # Vérification que le file sélectionné est bien dans le sous dossier Work
+    dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
+    full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
+    creer_dossier_sur_nas(full_path)
+
+    filepath = os.path.join(full_path, fichier.name)
+    if not smbclient.path.exists(filepath):
+        return redirect_error(request, "❌ Le projet d’acte doit être dans le sous-dossier 'Work' du dossier concerné.")
+    
+
+
+    ############################## 
+    # Sauvegarde du Projet d'acte
+    ##############################
+    try:
+        # Écriture du fichier sur le NAS ?
+        # if not ecrire_file_sur_nas(fichier, filepath): 
+        #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
+        
+        # Enregistrer en BDD
+        doc, created = Document.objects.get_or_create(
+                        emplacement=dossier_path, titre=fichier.name, id_format=format_obj,
+                        defaults={
+                            "id_format": format_obj,
+                            "id_nature": nature_obj,
+                            "id_statut": statut_a_signer,
+                            "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                        }
+                    )
+
+        if created:
+            DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} créé dans le dossier Work")
+            
+        else:
+            doc.id_statut = statut_a_signer
+            doc.id_nature = nature_obj
+            doc.save()
+            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {fichier.name} en base : {e}")
+
+
+
+    ########################
+    # Projet rapport CA
+    ########################
+
+    if fichier_rapport_CA :
+
+        extension_rapport = Path(fichier_rapport_CA.name).suffix.lower()
+        if extension_rapport not in {".doc", ".docx", ".odt"} :
+            return redirect_error(request, f"❌ Le projet de rapport du CA joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension_rapport}")
+        
+        filepath_rapport = os.path.join(full_path, fichier_rapport_CA.name)
+        # Vérification que le projet Rapport CA est bien dans le sous dossier Work
+        if not smbclient.path.exists(filepath_rapport):
+            return redirect_error(request, "❌ Le projet de rapport du CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+
+        try:
+            # Écriture du fichier sur le NAS
+            # if not ecrire_file_sur_nas(fichier, filepath_rapport): 
+            #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
+
+            nature_obj = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
+            if not nature_obj:
+                return redirect_error(request, "❌ Nature 'Projet Rapport CA' introuvable en base. Contactez le support.")
+
+            format_obj = DocumentFormat.objects.filter(format=extension_rapport.lstrip('.')).first()
+            if not format_obj:
+                return redirect_error(request, f"❌ Format '{extension_rapport}' non trouvé en base. Contactez le support.")
+
+
+            # Enregistrer en BDD
+            doc, created = Document.objects.get_or_create(
+                                emplacement=dossier_path, titre=fichier_rapport_CA.name,
+                                defaults={
+                                    "id_format": format_obj,
+                                    "id_nature": nature_obj,
+                                    "id_statut": statut_a_signer,  # Récupéré précédemment
+                                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                                }
+                            )
+            if created:
+                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier_rapport_CA.name} créé dans le dossier Work")
+            else:
+                doc.id_statut = statut_a_signer
+                doc.save()
+                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {fichier.name} en base : {e}")
+
+
+
+    # ================================
+    #   INTERMÉDIAIRE SIGNATURE
+    # ================================
+    # Supprime les anciens intermédiaires associés au dossier
+    DossierIntermediaireSignature.objects.filter(id_dossier=dossier).delete()
+
+    # Intermédiaire CA
+    if intermediaire_CA_id:
+        intermediaire_CA = Instructeur.objects.filter(id=intermediaire_CA_id).first()
+
+        if intermediaire_CA:  
+            try:
+                DossierIntermediaireSignature.objects.create(id_dossier=dossier, id_instructeur=intermediaire_CA)
+                logger.info(f"[DOSSIER {dossier.numero}] Intermédiaire CA ajouté : {intermediaire_CA}")
+            except Exception as e:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec du changement d'étape à 'En attente de signature' par {request.user} : Erreur ajout intermédiaire CA : {e}")
+
+
+    # Intermédiaire Directeur
+    if intermediaire_dir_id:
+        intermediaire_dir = Instructeur.objects.filter(id=intermediaire_dir_id).first()
+
+        if intermediaire_dir:
+            try:
+                DossierIntermediaireSignature.objects.create(id_dossier=dossier, id_instructeur=intermediaire_dir)
+                logger.info(f"[DOSSIER {dossier.numero}] Intermédiaire Directeur ajouté : {intermediaire_dir}")
+            except Exception as e:
+                logger.error(f"[DOSSIER {dossier.numero}] Échec du changement d'étape à 'En attente de signature' par {request.user} : Erreur ajout intermédiaire Directeur : {e}")
+
+    
+    # --- Mise à jour Étape ---
+    err = safe_update_etape(dossier, "En attente de signature", request, break_si_erreur=True)
+    if err:
+        return err
+
+    # --- Enregistrer Action ---
+    safe_enregistrer_action(dossier, instructeur, "Prêt à la signature", request)
+
+
+    # --- Mise à jour Doc "À relire" --> "À signer"
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    for lien in documents_du_dossier:
+        doc = lien.id_document
+        statut = doc.id_statut.statut.lower() if doc.id_statut else ""
+
+        if statut == "à relire":
+            try:
+                doc.id_statut = statut_a_signer
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À signer.")
+
+            except Exception as e:
+                logger.error(f"[DOSSIER {dossier.numero}] Changement d'étape à 'En attente de signature' par {request.user} : Erreur MAJ statut document {doc.id} : {e}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+
+
 @require_POST
 @login_required
 def acte_pret_a_etre_envoye(request):

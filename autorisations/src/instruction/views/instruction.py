@@ -428,7 +428,7 @@ def instruction_dossier(request, num_dossier):
     # Bouton 'Se déclarer Instructeur'
     ####################################
     peut_se_declarer = False
-
+               
     if dossier.id_groupeinstructeur and instructeur_connecte:
         instructeurs_du_groupe = set(
             dossier.id_groupeinstructeur
@@ -458,8 +458,10 @@ def instruction_dossier(request, num_dossier):
     etapes_possibles = EtapeDossier.objects.all().order_by("etape")
     etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
 
+    dossier_sppn = "mission scientifique" in dossier.id_demarche.titre.lower()
     etapes_custom = get_etapes_custom(
         present_sur_ds=dossier.present_sur_ds,
+        dossier_sppn=dossier_sppn,
         etape_actuelle=etape_actuelle.etape if etape_actuelle else "",
         demarche_type=demarche.type
     )
