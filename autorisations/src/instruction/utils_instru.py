@@ -20,6 +20,7 @@ from django.contrib import messages
 
 from autorisations.models.models_utilisateurs import DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Instructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail, envoi_notification_par_mail
 from psycopg2.errors import UniqueViolation
@@ -92,27 +93,26 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
     if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
         return
     
-    
     # --- Notification mail pour les autres étapes ---
     user_faisant_le_changement = Instructeur.objects.filter(email=user.email).first()
     users_ayant_une_action_a_faire = get_instructeurs_a_actionner(dossier)
     
-
     # Aucun user désigné pour faire la prochaine action
     if not users_ayant_une_action_a_faire :
         logger.error(f"[DOSSIER {dossier.numero}] Passage à l'étape --> '{nom_etape}' par {user}. Aucun user désigné pour réaliser la prochaine action.")
         return
 
-    # print(f"Users ayant une action à faire sur le dossier : {users_ayant_une_action_a_faire}")
 
     # On ne notifie pas le user ayant fait le changement d'étape
     if not (len(users_ayant_une_action_a_faire) == 1 and user_faisant_le_changement in users_ayant_une_action_a_faire) :
 
-        # On recup les mails des users avec une action à faire
-        emails_norm = [i.email for i in users_ayant_une_action_a_faire if i and i != user_faisant_le_changement]
-        # print(f"Mails des users ayant une action à faire suite au changement d'étape : {emails_norm2}")
+        # On notifie les agents dans le cadre d'une vraie instruction
+        if NOTIFS_PROD :
+            emails_norm = [i.email for i in users_ayant_une_action_a_faire if i and i != user_faisant_le_changement]
+        # Test de notification par mail à EMAIL_NOTIF_TEST   
+        else :
+            emails_norm = [EMAIL_NOTIF_TEST]
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
         emails_txt = ", ".join(emails_norm)
 
         if not emails_norm:

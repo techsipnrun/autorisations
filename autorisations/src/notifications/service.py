@@ -16,6 +16,7 @@ from django.utils.html import strip_tags
 import smbclient
 from autorisations.models.models_utilisateurs import EmailOutbox, Instructeur
 from psycopg2.errors import UniqueViolation
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 logger = logging.getLogger("MAIL")
 
@@ -217,8 +218,10 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
     - Si succès : True, 
     - Si erreur : False,
     """
-    # 
-
+    ######################################
+    # NOTIFICATION PAR MAIL (SAAD ET SPPN)
+    ######################################
+    
     keys_mission = {"Mission scientifique", "Mission scientifique en espace protégé"}
     has_mission = "Mission scientifique" in dico_notifs
     has_mission_protege = "Mission scientifique en espace protégé" in dico_notifs
@@ -233,8 +236,14 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
     #################################
     if has_other :
         
-        # emails_norm_saadd = ["louis.calu@reunion-parcnational.fr"]
-        emails_norm_saadd = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
+        # On notifie les agents dans le cadre d'une vraie instruction
+        if NOTIFS_PROD :
+            emails_norm_saadd = list(User.objects.filter(groups__name="Réception SAADD").values_list("email", flat=True))
+        # Test de notification par mail à EMAIL_NOTIF_TEST   
+        else :
+            emails_norm_saadd = [EMAIL_NOTIF_TEST]
+
+
     
         context_saadd = {k: v for k, v in dico_notifs.items() if k not in keys_mission}
         dedupe_saadd = compute_dedupe_key(emails_norm_saadd, sujet, template_name, context_saadd)
@@ -257,8 +266,13 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
     ################################
     if (has_mission or has_mission_protege) :
 
-        # emails_norm_sppn = ["louis.calu@reunion-parcnational.fr"]
-        emails_norm_sppn = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
+        # On notifie les agents dans le cadre d'une vraie instruction
+        if NOTIFS_PROD :
+            emails_norm_sppn = list(User.objects.filter(groups__name="Réception SPPN").values_list("email", flat=True))
+        # Test de notification par mail à EMAIL_NOTIF_TEST   
+        else :
+            emails_norm_sppn = [EMAIL_NOTIF_TEST]
+
         
         context_sppn = {k: v for k, v in dico_notifs.items() if k in keys_mission}
         dedupe_sppn = compute_dedupe_key(emails_norm_sppn, sujet, template_name, context_sppn)

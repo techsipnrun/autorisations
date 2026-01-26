@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 import datetime
 from django.utils.timezone import localtime
 from pathlib import Path
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, EmailOutbox, Instructeur
@@ -473,13 +474,17 @@ def donner_son_avis(request, avis_id):
     # NOTIFICATION PAR MAIL AU DEMANDEUR
     ####################################
     email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
-    emails_norm = [email_demandeur]
-    # print(f"Demandeur à notifier : {emails_norm2}")
 
-    # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+    # On notifie les agents dans le cadre d'une vraie instruction
+    if NOTIFS_PROD :
+        emails_norm = [email_demandeur]
+    # Test de notification par mail à EMAIL_NOTIF_TEST   
+    else :
+        emails_norm = [EMAIL_NOTIF_TEST]
+
+
     emails_txt = ", ".join(emails_norm)
 
-    # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
     sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
     
     context = {
@@ -573,10 +578,15 @@ def remplacer_avis_signe(request):
             ####################################
 
             email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
-            emails_norm = [email_demandeur]
-            # print(f"Demandeur à notifier : {emails_norm2}")
 
-            # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+            # On notifie les agents dans le cadre d'une vraie instruction
+            if NOTIFS_PROD :
+                emails_norm = [email_demandeur]
+            # Test de notification par mail à EMAIL_NOTIF_TEST   
+            else :
+                emails_norm = [EMAIL_NOTIF_TEST]
+
+
             emails_txt = ", ".join(emails_norm)
             # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
             sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a remplacé son avis signé"
@@ -669,10 +679,15 @@ def deposer_avis_signe(request):
             ####################################
 
             email_demandeur = avis.id_instructeur.email if avis.id_instructeur else None
-            emails_norm = [email_demandeur]
-            # print(f"Demandeur à notifier : {emails_norm2}")
 
-            # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+            # On notifie les agents dans le cadre d'une vraie instruction
+            if NOTIFS_PROD :
+                emails_norm = [email_demandeur]
+            # Test de notification par mail à EMAIL_NOTIF_TEST   
+            else :
+                emails_norm = [EMAIL_NOTIF_TEST]
+
+
             emails_txt = ", ".join(emails_norm)
             # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
             sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a déposé son avis signé"

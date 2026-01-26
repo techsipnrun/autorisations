@@ -7,6 +7,7 @@ from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_
 from ..utils.model_helpers import get_first_id, update_fields, update_fields_dossier_champs
 from ..utils.fichiers import get_nom_disponible, write_geojson, write_pj
 import logging
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 logger = logging.getLogger("SYNCHRONISATION")
 loggerMail = logging.getLogger("MAIL")
@@ -310,11 +311,15 @@ def sync_dossier_champs(dossier_champs, id_dossier):
     #######################
     # Notifier les instructeurs que le pétitionnaire a modifié son dossier suite à la demande de compléments
     if notif_demande_de_compléments :
-        
-        emails_norm = (DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur__mail", flat=True))
-        # print(f"Les instructeurs du dossier à notifier : {emails_norm2}")
 
-        # emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        # On notifie les agents dans le cadre d'une vraie instruction
+        if NOTIFS_PROD :
+            emails_norm = (DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur__mail", flat=True))
+        # Test de notification par mail à EMAIL_NOTIF_TEST   
+        else :
+            emails_norm = [EMAIL_NOTIF_TEST]
+
+
 
         # if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier):
         sujet = f"Dossier n° {dossier.numero} - {dossier.id_demarche.type} : Dossier modifié suite à une demande de compléments"
