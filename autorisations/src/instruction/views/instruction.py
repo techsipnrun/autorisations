@@ -11,7 +11,7 @@ from django.urls import reverse
 import smbclient
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
-from autorisations import settings
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
 from autorisations.models.models_avis import AvisDocument, DossierAvis
@@ -910,10 +910,14 @@ def ajouter_relecteur_dossier(request):
     ####################################
 
     if request.user.email != relecteur.email :
-        # emails_norm = [relecteur.email]
-        # print(f"Relecteur à notifier : {emails_norm2}")
 
-        emails_norm = ["louis.calu@reunion-parcnational.fr"]
+        # On notifie les agents dans le cadre d'une vraie instruction
+        if NOTIFS_PROD :
+            emails_norm = [relecteur.email]
+        # Test de notification par mail à EMAIL_NOTIF_TEST   
+        else :
+            emails_norm = [EMAIL_NOTIF_TEST]
+
         emails_txt = ", ".join(emails_norm)
 
         sujet = f"Dossier {dossier.numero} - Relecture demandée"
