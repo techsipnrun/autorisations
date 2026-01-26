@@ -238,96 +238,122 @@ def build_champs_prepares(dossier):
 
 # instruction/services/etapes_service.py
 
-def get_etapes_custom(present_sur_ds: bool, etape_actuelle: str, demarche_type: str):
+def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: str, demarche_type: str):
     """Retourne les actions possibles pour chaque étape."""
 
-    etapes_ds_present = {
+    # DOSSIER PRESENT SUR DS
+    if present_sur_ds :
 
-        "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
+        etapes = {
+            "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
 
-        "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
-                               "Classer le dossier comme refusé", "Passer en instruction"],
+            "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
+                                "Classer le dossier comme refusé", "Passer en instruction"],
 
-        "En attente de compléments": ["Passer en instruction"],
+            "En attente de compléments": ["Passer en instruction"],
 
-        "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
-                           "Classer le dossier comme refusé", "Faire valider une demande d'avis",
-                           "Faire valider le projet d'acte"],
+            "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
+                            "Classer le dossier comme refusé", "Faire valider une demande d'avis",
+                            "Faire valider le projet d'acte"],
 
-        "À valider avant demande d'avis": ["Repasser en instruction",
-                                          "Valider le modèle de demande d'avis et le projet d'acte"],
+            "À valider avant demande d'avis": ["Repasser en instruction",
+                                            "Valider le modèle de demande d'avis et le projet d'acte"],
 
-        "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
+            "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
 
-        "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
+            "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
 
-        "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
-                                      "Acte inchangé, envoyer pour relecture qualité"],
+            "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
+                                        "Acte inchangé, envoyer pour relecture qualité"],
 
-        "Avis à envoyer": ["Avis envoyé"],
+            "Avis à envoyer": ["Avis envoyé"],
 
-        "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé",
-                                    "Classer le dossier comme non soumis à autorisation",
+            "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé",
+                                        "Classer le dossier comme non soumis à autorisation",
+                                        "Classer le dossier comme refusé"],
+
+            "Acte à envoyer": ["Envoyer l'acte"],
+
+            "À publier au RAA": ["Classer le dossier comme accepté"],
+
+            "Non soumis à autorisation": ["Repasser en instruction"],
+
+            "Accepté": ["Repasser en instruction"],
+
+            "Refusé": ["Repasser en instruction"],
+        }
+        # Etapes simplifiées pour le SPPN
+        if dossier_sppn:
+            # Retiré : "Faire valider une demande d'avis", "Faire valider le projet d'acte"
+            # Ajouté : "Acte prêt à la signature"
+            etapes["En instruction"] = [
+                "Demander des compléments",
+                "Classer le dossier comme non soumis à autorisation",
+                "Classer le dossier comme refusé",
+                "Acte prêt à la signature",
+            ]
+
+
+    # DOSSIER PLUS SUR DS
+    else :
+        etapes = {
+            "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
+
+            "En pré-instruction": ["Classer le dossier comme non soumis à autorisation",
+                                "Classer le dossier comme refusé", "Passer en instruction"],
+
+            "En attente de compléments": [],
+
+            "En instruction": ["Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé",
+                            "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
+
+            "À valider avant demande d'avis": ["Valider le modèle de demande d'avis et le projet d'acte"],
+
+            "À valider avant signature": ["Valider et envoyer pour relecture qualité",
+                                        "Classer le dossier comme non soumis à autorisation",
+                                        "Classer le dossier comme refusé"],
+
+            "En relecture qualité": ["Prêt à la signature", "Classer le dossier comme non soumis à autorisation",
                                     "Classer le dossier comme refusé"],
 
-        "Acte à envoyer": ["Envoyer l'acte"],
+            "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
+                                        "Acte inchangé, envoyer pour relecture qualité",
+                                        "Classer le dossier comme non soumis à autorisation",
+                                        "Classer le dossier comme refusé"],
 
-        "À publier au RAA": ["Classer le dossier comme accepté"],
+            "Avis à envoyer": ["Avis envoyé", "Classer le dossier comme non soumis à autorisation",
+                            "Classer le dossier comme refusé"],
 
-        "Non soumis à autorisation": ["Repasser en instruction"],
+            "En attente de signature": ["Acte prêt à être envoyé",
+                                        "Classer le dossier comme non soumis à autorisation",
+                                        "Classer le dossier comme refusé"],
 
-        "Accepté": ["Repasser en instruction"],
+            "Acte à envoyer": ["Envoyer l'acte", "Classer le dossier comme non soumis à autorisation",
+                            "Classer le dossier comme refusé"],
 
-        "Refusé": ["Repasser en instruction"],
-    }
+            "À publier au RAA": ["Classer le dossier comme accepté",
+                                "Classer le dossier comme non soumis à autorisation",
+                                "Classer le dossier comme refusé"],
 
-    etapes_ds_supprime = {
-        "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
+            "Non soumis à autorisation": [],
 
-        "En pré-instruction": ["Classer le dossier comme non soumis à autorisation",
-                               "Classer le dossier comme refusé", "Passer en instruction"],
+            "Accepté": [],
 
-        "En attente de compléments": [],
+            "Refusé": [],
+        }
 
-        "En instruction": ["Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé",
-                           "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
+        # Etapes simplifiées pour le SPPN
+        if dossier_sppn:
+            # Retiré : "Faire valider une demande d'avis", "Faire valider le projet d'acte"
+            # Ajouté : "Acte prêt à la signature"
+            etapes["En instruction"] = [
+                "Demander des compléments",
+                "Classer le dossier comme non soumis à autorisation",
+                "Classer le dossier comme refusé",
+                "Acte prêt à la signature",
+            ]
 
-        "À valider avant demande d'avis": ["Valider le modèle de demande d'avis et le projet d'acte"],
 
-        "À valider avant signature": ["Valider et envoyer pour relecture qualité",
-                                      "Classer le dossier comme non soumis à autorisation",
-                                      "Classer le dossier comme refusé"],
-
-        "En relecture qualité": ["Prêt à la signature", "Classer le dossier comme non soumis à autorisation",
-                                 "Classer le dossier comme refusé"],
-
-        "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
-                                      "Acte inchangé, envoyer pour relecture qualité",
-                                      "Classer le dossier comme non soumis à autorisation",
-                                      "Classer le dossier comme refusé"],
-
-        "Avis à envoyer": ["Avis envoyé", "Classer le dossier comme non soumis à autorisation",
-                           "Classer le dossier comme refusé"],
-
-        "En attente de signature": ["Acte prêt à être envoyé",
-                                    "Classer le dossier comme non soumis à autorisation",
-                                    "Classer le dossier comme refusé"],
-
-        "Acte à envoyer": ["Envoyer l'acte", "Classer le dossier comme non soumis à autorisation",
-                           "Classer le dossier comme refusé"],
-
-        "À publier au RAA": ["Classer le dossier comme accepté",
-                             "Classer le dossier comme non soumis à autorisation",
-                             "Classer le dossier comme refusé"],
-
-        "Non soumis à autorisation": [],
-
-        "Accepté": [],
-
-        "Refusé": [],
-    }
-
-    etapes = etapes_ds_present if present_sur_ds else etapes_ds_supprime
 
     # Cas spécial : manifestations sportives
     if etape_actuelle == "En instruction" and demarche_type == "Manifestations sportives":

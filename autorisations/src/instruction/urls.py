@@ -148,6 +148,7 @@ urlpatterns = [
     path("changer-etape/valider-relecture-qualite/", changement_etape.valider_et_envoyer_pour_relecture_qualite, name="valider_et_envoyer_pour_relecture_qualite_url"),
     path("changer-etape/modifs-pour-validation/", changement_etape.envoyer_les_modifications_de_l_acte_pour_validation, name="envoyer_les_modifications_de_l_acte_pour_validation_url"),
     path("changer-etape/signature/", changement_etape.pret_a_la_signature, name="pret_a_la_signature_url"),
+    path("changer-etape/signature_sppn/", changement_etape.acte_pret_a_la_signature, name="acte_pret_a_la_signature_url"),
     path("changer-etape/acte-envoye/", changement_etape.envoyer_l_acte, name="envoyer_l_acte_url"),
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
