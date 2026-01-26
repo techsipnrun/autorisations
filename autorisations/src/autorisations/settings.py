@@ -23,9 +23,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -345,3 +343,7 @@ EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 10))
 # EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_SSL_CONTEXT = os.environ.get("EMAIL_SSL_CONTEXT", "")
+
+# NOTIFICATIONS
+NOTIFS_PROD = os.getenv("NOTIFS_PROD", "false").lower() == "true"
+EMAIL_NOTIF_TEST = os.getenv("EMAIL_NOTIF_TEST")
