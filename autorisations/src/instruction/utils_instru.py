@@ -22,7 +22,7 @@ from autorisations.models.models_utilisateurs import DossierEnvoiActe, DossierIn
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, MessageDocument
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
-from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail, envoi_notification_par_mail
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from psycopg2.errors import UniqueViolation
 # import smbclient
 # from smbprotocol import exceptions as smb_exceptions

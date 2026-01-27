@@ -1662,13 +1662,6 @@ def classer_le_dossier_comme_accepte(request):
 
 
 
-
-
-
-
-
-
-
 """  
 ####################################################
 DERNIERE FONCTION A CLEAN
@@ -1907,6 +1900,7 @@ def envoyer_l_acte(request):
         prenoms = request.POST.getlist("prenom_contact[]")
         types = request.POST.getlist("type_contact[]")
         raisons = request.POST.getlist("raison_sociale[]")
+        motivation_copie_mail = request.POST.get("motivation_copie_mail")
 
         if partager_par_mail :
 
@@ -1983,7 +1977,7 @@ def envoyer_l_acte(request):
                 # 3) ENVOI DE L'EMAIL
                 # =========================
                 sujet = f"{nature_document} – Dossier {dossier.numero}"
-                context = {"body": motivation}
+                context = {"body": motivation_copie_mail}
                 template_name = "mail_en_copie"
                 emails_txt = ", ".join(emails_norm)
 
@@ -1995,7 +1989,7 @@ def envoyer_l_acte(request):
                     return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
 
                 # return None si Erreur 
-                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Envoi de l'acte")
+                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Envoi de l'acte", document=document)
                 
                 if outbox :
                     ok, err = envoi_mail(outbox.id)

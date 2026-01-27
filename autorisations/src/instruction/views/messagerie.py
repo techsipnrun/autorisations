@@ -575,7 +575,7 @@ def envoyer_mail_en_copie(request, email_id):
     dossier = Dossier.objects.filter(id=email.id_dossier_id).first()
     if not dossier:
         logger.error(f"[ENVOI MAIL COPIE] Email {email_id} : dossier {email.id_dossier_id} introuvable — User {request.user}")
-        return redirect_error(request, "❌ Le dossier lié à cet email introuvable. Contactez le support.")
+        return redirect_error(request, "❌ Le dossier lié à cet email est introuvable. Contactez le support.")
     
     
 
