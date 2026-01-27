@@ -621,6 +621,8 @@ def faire_valider_le_projet_d_acte(request):
         else:
             doc.id_statut = statut_obj
             doc.id_nature = nature_obj
+            # Force un nouveau numéro
+            doc.numero = None
             doc.save()
             logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
     except Exception as e:
