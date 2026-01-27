@@ -14,9 +14,11 @@ from django.template.loader import render_to_string
 from django.template import TemplateDoesNotExist
 from django.utils.html import strip_tags
 import smbclient
+import mimetypes
 from autorisations.models.models_utilisateurs import EmailOutbox, Instructeur
 from psycopg2.errors import UniqueViolation
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
+from pathlib import Path
 
 logger = logging.getLogger("MAIL")
 
@@ -83,16 +85,24 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
 
                 if item.id_document:
                     doc = item.id_document
-                    chemin_fichier = os.path.join(os.getenv('NAS_ROOT'), doc.emplacement, doc.titre)
+                    nas_root = os.getenv("NAS_ROOT", "").rstrip("\\/")
+                    chemin_fichier = f"{nas_root}\\{doc.emplacement}\\{doc.titre}"
+
+                    # chemin_fichier = Path(os.getenv('NAS_ROOT'), doc.emplacement, doc.titre)
+
                     if smbclient.path.exists(chemin_fichier):
-                        msg.attach_file(chemin_fichier)
+                        with smbclient.open_file(chemin_fichier, mode="rb") as f:
+                            content = f.read()
+
+                        mimetype, _ = mimetypes.guess_type(doc.titre)
+                        msg.attach(doc.titre, content, mimetype or "application/octet-stream")
                     else :
                         # Échec
                         EmailOutbox.objects.filter(id=item.id).update(
                             statut="Échec",
                             try_count=item.try_count + 1,
                             derniere_tentative_envoi=timezone.now(),
-                            derniere_erreur=str(e)[:1000],
+                            derniere_erreur=f"PJ introuvable: {chemin_fichier}"[:1000],
                         )
                         if item.id_dossier :
                             return False, f"Mail non envoyé (Dossier {item.id_dossier}): La pièce jointe (Document {doc.id}) n'a pas été trouvé à l'emplacement {chemin_fichier}"
@@ -126,34 +136,7 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
 
 
 
-''' 
-- 
-
-
-A METTRE DANS UNE VIEW HTML (QD ON VA CLIQUER SUR REESAYER L'ENVOI DU MAIL MANUELLEMENT)
-
-'''
-# Envoi_mail_en_copie
-def envoi_notification_par_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
-    """
-    Envoie l'email outbox donné.
-    - Si succès : 'Envoyé', 
-      Si erreur : try_count += 3, statut reste à Échec'
-    - Retourne (ok, error_message).
-    """
-
-    # verifie try count ect .. comme dans envoyer_mail_en_copie
-
-    # email = get_object_or_404(EmailOutbox, pk=item_id)
-    # dossier = email.id_dossier
-
-    # LOGGER ok, err   (les eventuelles erreurs = logger.error + messages.error)
-
-
-    return True, ""
-
-
-def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, dossier, type_mail) :
+def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, dossier, type_mail, document=None) :
 
     try:
         outbox = EmailOutbox.objects.create(
@@ -166,6 +149,7 @@ def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, doss
             dedupe_key=dedupe,
             context=context,
             id_dossier=dossier,
+            id_document=document,
         )
         
         return outbox

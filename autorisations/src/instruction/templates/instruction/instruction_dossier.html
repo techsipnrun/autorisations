@@ -647,19 +647,13 @@
                         <div class="msg_pour_peti">
                             <label>Message pour le pétitionnaire :</label>
                             <div class="mail_entier">
-
-                                <div class="debut_fin_mail">Madame, monsieur,</div> <br>
-                                <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation de votre demande.
+                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
+ 
+                                <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation de votre dossier {{ dossier.numero }}.
 
 Sauf demande de votre part, il n’y aura pas de notification postale.
 Bonne réception.</textarea>
-                                <div class="debut_fin_mail">
-                                    Cordialement, <br><br>
-                                    Le Parc national de La Réunion <br>
-                                    258 rue de la République 97431 La Plaine-des-Palmistes <br>
-                                    Tél : +262 (0)2 62 90 16 85 – Mobile : +262 (0)6 92 32 90 33 <br>
-                                    www.reunion-parcnational.fr
-                                </div>
+     
                             </div>
                         </div>
 
@@ -746,7 +740,7 @@ Bonne réception.</textarea>
 
                         <!-- Formulaire affiché uniquement si "Oui" -->
                         <div id="formulaire-partage-mails" class="zone-complement zone-partage-mails">
-                            <label for="emails_copie">Contacts externes à mettre en copie :</label>
+                            <label for="emails_copie">Destinataires du mail :</label>
 
                             <div class="search-wrapper">
                                 <input
@@ -804,6 +798,23 @@ Bonne réception.</textarea>
                                 {% endfor %}
                             </select>
                             <div id="selected-chips" class="selected-chips" aria-live="polite"></div>
+
+                            <div class="msg_pour_mail_copie">
+                                <label>Corps du mail (l'acte signé sera en pièce jointe) :</label>
+                                <div class="mail_entier">
+
+                                    <div class="debut_fin_mail">Madame, monsieur,</div> <br>
+                                    <textarea name="motivation_copie_mail" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation du dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
+Bonne réception.</textarea>
+                                    <div class="debut_fin_mail">
+                                        Cordialement, <br><br>
+                                        Le Parc national de La Réunion <br>
+                                        258 rue de la République 97431 La Plaine-des-Palmistes <br>
+                                        Tél : +262 (0)2 62 90 16 85 – Mobile : +262 (0)6 92 32 90 33 <br>
+                                        www.reunion-parcnational.fr
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="zone-pj-complement">
@@ -829,6 +840,7 @@ Bonne réception.</textarea>
                         {% csrf_token %}
                         <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
                         <input type="hidden" name="correction" value='True'>
+                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
                         <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required>Après analyse de la complétude de votre dossier, il s’avère que les pièces suivantes sont manquantes : [les lister]
 
 Or, ces pièces/éléments sont indispensables à la réalisation de l’instruction de votre dossier. Par conséquent, nous vous demandons de bien vouloir nous les faire suivre avant le [date].
@@ -847,6 +859,7 @@ Le délai d’instruction ne commencera qu’à la date de réception par le Par
                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
                         <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
 
 [Préciser les raisons].</textarea>
@@ -863,6 +876,7 @@ Le délai d’instruction ne commencera qu’à la date de réception par le Par
                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
                         <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre demande. 
 
 [Donner les motifs de refus].
@@ -884,7 +898,7 @@ En conséquence, la demande est refusée.</textarea>
 
                         <div class="nature-acte">
                             <label>Nature de l'acte :</label>
-                            <select name="nature_document" id="nature_validation" required>
+                            <select name="nature_document" id="nature_validation_avant_signa" required>
                                 <option value="" disabled selected>Choisir une nature</option>
                                 <option value="Arrêté directeur">Arrêté directeur</option>
                                 <option value="Déliberation CA">Déliberation CA</option>
@@ -2711,7 +2725,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
         // Pour confirmer l'envoi pour Validation avant signature
         function confirmerValidationAvantSignature() {
-            const select = document.getElementById("nature_validation");
+            const select = document.getElementById("nature_validation_avant_signa");
             const validant = document.getElementById("choix-validant");
             const fichierInput = document.getElementById("pj_validation");
             const fichier = fichierInput.files[0];
