@@ -135,7 +135,9 @@
                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required></textarea>
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
+
+[Préciser les raisons].</textarea>
                         <div class="zone-pj-complement">
                             <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
                         </div>

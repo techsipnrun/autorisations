@@ -649,7 +649,7 @@
                             <div class="mail_entier">
 
                                 <div class="debut_fin_mail">Madame, monsieur,</div> <br>
-                                <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie sa décision concernant la demande d'autorisation ...
+                                <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation de votre demande.
 
 Sauf demande de votre part, il n’y aura pas de notification postale.
 Bonne réception.</textarea>
@@ -829,7 +829,11 @@ Bonne réception.</textarea>
                         {% csrf_token %}
                         <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
                         <input type="hidden" name="correction" value='True'>
-                        <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required></textarea>
+                        <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required>Après analyse de la complétude de votre dossier, il s’avère que les pièces suivantes sont manquantes : [les lister]
+
+Or, ces pièces/éléments sont indispensables à la réalisation de l’instruction de votre dossier. Par conséquent, nous vous demandons de bien vouloir nous les faire suivre avant le [date].
+
+Le délai d’instruction ne commencera qu’à la date de réception par le Parc national de La Réunion du dossier complet.</textarea>
                         <div class="zone-pj-complement">
                             <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
                             <button type="submit" class="btn-envoyer-complement">Envoyer</button>
@@ -843,7 +847,10 @@ Bonne réception.</textarea>
                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required></textarea>
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
+
+[Préciser les raisons].</textarea>
+
                         <div class="zone-pj-complement">
                             <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
                         </div>
@@ -856,7 +863,11 @@ Bonne réception.</textarea>
                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required></textarea>
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre demande. 
+
+[Donner les motifs de refus].
+
+En conséquence, la demande est refusée.</textarea>
                         <div class="zone-pj-complement">
                             <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
                         </div>
@@ -2179,6 +2190,7 @@ Bonne réception.</textarea>
                                 <textarea name="objet_demande" rows="6" id="dmd_relecture" required>Bonjour,
 
 Je sollicite votre relecture concernant [objet de la relecture].
+
 N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessaire.
 </textarea>
 

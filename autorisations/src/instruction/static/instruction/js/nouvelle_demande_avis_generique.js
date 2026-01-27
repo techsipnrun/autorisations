@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!selected || selected === "Consultation en interne") {
             formulation.value = `Bonjour,
 
-Je vous consulte car [raisons].
+Je vous consulte car [saisir la raison].
 
 Merci d’avance pour votre retour.`;
 
