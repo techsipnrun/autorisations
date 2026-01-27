@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!selected || selected === "Consultation en interne") {
             formulation.value = `Bonjour,
 
-Je vous consulte sur ce dossier car [raisons].
+Je vous consulte sur ce dossier car [saisir la raison].
 
 Merci d’avance pour votre retour.`;
         } else if (selected === "Demande à une instance") {
