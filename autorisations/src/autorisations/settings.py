@@ -344,5 +344,5 @@ EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 10))
 # EMAIL_SSL_CONTEXT = os.environ.get("EMAIL_SSL_CONTEXT", "")
 
 # NOTIFICATIONS
-NOTIFS_PROD = os.getenv("NOTIFS_PROD", "false").lower() == "true"
+NOTIFS_PROD = os.getenv("NOTIF_PROD", "false").lower() == "true"
 EMAIL_NOTIF_TEST = os.getenv("EMAIL_NOTIF_TEST")
