@@ -299,7 +299,7 @@ def dossiers_reception_action_a_faire(dossiers, user):
         return set()
     
     # Exclure les démarches "Manifestations sportives"
-    dossiers = dossiers.exclude(id_demarche__type__icontains="manifestations sportives")
+    # dossiers = dossiers.exclude(id_demarche__type__icontains="manifestations sportives")
 
     dossiers_a_traiter_ids = set()
 

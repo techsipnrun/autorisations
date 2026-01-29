@@ -193,7 +193,7 @@ def accueil(request):
 
     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
     demarches = Demarche.objects.all().order_by("titre")
-    demarches = demarches.exclude(type__icontains="manifestations sportives")
+    # demarches = demarches.exclude(type__icontains="manifestations sportives")
 
     current_year = date.today().year
 
