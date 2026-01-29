@@ -12,7 +12,7 @@ USERNAME = os.getenv("DM_USERNAME")
 PASSWORD = os.getenv("DM_PASSWORD")
 CLIENT_ID = os.getenv("DM_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DM_CLIENT_SECRET")
-API_URL = os.getenv("DM_API_URL_PREPROD")  # URL de preprod pour les tests
+API_URL = os.getenv("DM_API_URL_PROD")  # URL de prod car pas d'autres env de dispos pour le moment..
 
 
 # ==== URLS ====

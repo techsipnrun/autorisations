@@ -25,6 +25,8 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
 
 </head>
 <body>
@@ -34,11 +36,22 @@
     <div class="page-container">
         <div class="formulaire formulaire_dm">
             <div class="en_attente_DS"><p> En attente d'un dossier Démarches Simpifiées </p></div>
-            <div class="titre-manif"><h1>{{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</h1></div>
-            
+            <div class="titre-manif">
+                <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
+                <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
+                    <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
+                        alt="Visualiser le dossier sur Déclaration manifestations"
+                        title="Visualiser le dossier sur Déclaration manifestations">
+                </a>
+            </div>
+
             <h2>Avis du Parc sur Déclaration Manifestations</h2>
             {% if avis_manif_sportive %}
                 <div class="champs">
+
+                    {% if avis_manif_sportive.id_avis_manif_sportive %}
+                        <p><strong>Numéro de l'avis sur déclaration manifestations :</strong> {{ avis_manif_sportive.id_avis_manif_sportive }}</p>
+                    {% endif %}
                     {% if avis_manif_sportive.service %}
                         <p><strong>Service :</strong> {{ avis_manif_sportive.service }}</p>
                     {% endif %}
@@ -75,8 +88,9 @@
             <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
             
             <h2>Tracé de la manifestation</h2>
-            <div class="carte-container">
+            <div class="carte-container-trail">
                 <div class="carte" data-geojson='{{ doss_manif_sportive.geometrie }}'></div>
+                <div class="course-panel"></div>
             </div>
 
             <h2>Caractéristiques</h2>
@@ -153,12 +167,15 @@
     <script> 
         window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
         window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
-        window._iconRavito = "{% static 'instruction/img/ravitaillement.png' %}";
-        window._iconSignaleur= "{% static 'instruction/img/signaleur-routier.png' %}";
     </script>
 
+    <!-- On charge les icon (=pois) pour la carto -->
+    {{ pois_json|json_script:"pois-data" }}
+    <script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
+
+
     <!-- 3. Script Leaflet personnalisé -->
-    <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=2"></script>
 
 </body>
 </html>

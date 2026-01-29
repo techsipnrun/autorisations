@@ -1,12 +1,19 @@
 /* .formulaire_dm {
-    width: 90%;
+    display: inline;
 } */
 
 .titre-manif{
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 20px;
+}
 
+.titre-manif h1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
 }
 
 
@@ -20,3 +27,215 @@
     font-size: 1.5rem;
     margin-bottom: 3rem;
 }
+
+.formulaire_dm .icon_DM{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+}
+
+.formulaire_dm .icon_DM img {
+    width: 40px;
+    height: 40px;
+    transition: transform 0.2s ease-in-out;
+
+}
+
+.formulaire_dm .icon_DM img:hover {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+
+
+/* ########################## */
+/* Carte - Pannel des courses */
+/* ########################## */
+
+
+/* Conteneur carte + panneau à droite */
+.carte-container-trail {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* La div leaflet (.carte) doit prendre la place dispo */
+.carte-container-trail .carte {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Panneau des courses */
+.course-panel {
+  width: 280px;
+  max-width: 35%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px;
+  overflow: auto;
+}
+
+/* UI panneau */
+.course-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+#titre_pannel_courses {
+    margin-top: 0;
+}
+.course-panel .course-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.course-panel button {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.course-panel button:hover {
+  background: #eee;
+}
+.course-panel .course-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.course-panel .course-item:last-child {
+  border-bottom: none;
+}
+.course-panel label {
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+
+/* Test pannel couches fond de carte */
+/* --- Control discret (2 icônes) --- */
+.leaflet-control.or-mini {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.or-mini .or-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.or-mini .or-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.or-mini .or-btn:hover {
+  background: rgba(255,255,255,1);
+}
+
+.or-mini .or-btn svg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+}
+
+/* --- Panneau popover --- */
+.or-popover {
+  position: absolute;
+  z-index: 999999;
+  min-width: 220px;
+  max-width: 280px;
+  background: rgba(255,255,255,0.97);
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  padding: 10px 10px;
+  backdrop-filter: blur(10px);
+}
+
+.or-popover h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.or-popover .or-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 10px;
+}
+
+.or-popover .or-row:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.or-row:hover, .or-popover:hover {
+    cursor: pointer;
+}
+
+.or-popover label {
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.or-popover .or-muted {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 6px;
+}
+
+
+/* Depart et arrivée */
+
+/* Base icône POI ronde */
+.or-poi {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #000;
+  background-color: #fff;
+  filter: drop-shadow(2px 2px 2px rgba(0,0,0,.5));
+  text-align: center;
+}
+
+/* Départ */
+.or-start {
+  background-color: #006c11;
+  color: white;
+}
+
+/* Arrivée */
+.or-end {
+  background-color: #dd4445;
+  color: white;
+}
+
+
+

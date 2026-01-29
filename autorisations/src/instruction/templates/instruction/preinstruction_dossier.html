@@ -17,6 +17,11 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
+
+    <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
 
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -27,6 +32,7 @@
 
     <!-- Leaflet.browser.print -->
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
+
 
 </head>
 
@@ -115,7 +121,7 @@
 
                     <!-- Lien DM -->
                     {% if dossier.id_demarche.type|lower == "manifestations sportives" %}
-                        <a class="icon_DM" href="https://manifestationsportive-preprod.menjes.ate.info/instructions/avis/778686/" target="_blank">
+                        <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/778686/" target="_blank">
                             <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                                 alt="Visualiser le dossier sur Déclaration manifestations"
                                 title="Visualiser le dossier sur Déclaration manifestations">
@@ -598,7 +604,11 @@
 </script>
 
 <!-- 3. Script Leaflet personnalisé -->
+{{ pois_json|json_script:"pois-data" }}
+<script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
+
 <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
+<script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
 
 
 <script>

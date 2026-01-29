@@ -28,9 +28,13 @@ def main():
         manif_id = avis["manif_id"]
         date_demande = avis.get("date_demande", "")
 
-        # Filtrer uniquement les avis de 2025
-        if not date_demande.startswith("2025-05-1"):
+        # Filtrer uniquement les avis 2026
+        if (not date_demande.startswith("2026")) :
             continue
+
+        # filtre sur un seul trail pour TEST
+        # if manif_id != 93165 :
+        #     continue
 
         avis_echantillon.append(avis)
 

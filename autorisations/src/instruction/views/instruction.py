@@ -393,6 +393,7 @@ def instruction_dossier(request, num_dossier):
     fond_coeur_de_parc = load_geojson("instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
     fond_aire_adhesion = load_geojson("instruction/static/instruction/carto/aire_adhesion.geojson")
     fond_mafate = load_geojson("instruction/static/instruction/carto/COT_MAFATE.geojson")
+    pois_json = load_geojson("instruction/static/instruction/carto/pois.json")
 
 
     ####################################
@@ -530,6 +531,12 @@ def instruction_dossier(request, num_dossier):
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
+
+     # Récupération de l'avis lié (OneToOne → un seul)
+    try:
+        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+    except Exception:
+        avis_manif_sportive = None  # Aucun avis encore associé
  
 
     ################
@@ -568,6 +575,7 @@ def instruction_dossier(request, num_dossier):
         "dossier_actions": dossier_actions,
         "notes": notes,
         "doss_manif_sportive": doss_manif_sportive,
+        "avis_manif_sportive": avis_manif_sportive,
         "emails_uniques": emails_uniques,
         "emails_dossiers": emails_dossiers,
         "nb_messages_non_lus": nb_messages_non_lus,
@@ -577,6 +585,7 @@ def instruction_dossier(request, num_dossier):
         "adhesionData": fond_aire_adhesion,
         "mafateData": fond_mafate,
         "nb_cartes": nb_cartes,
+        "pois_json": pois_json,
 
         # Instructeurs
         "groupes_instructeurs": groupes_instructeurs,

@@ -2,9 +2,200 @@
 // Script JS pour l'affichage carto dans le formulaire
 // ***
 
+function createMiniLayersControl(map, baseLayers, overlays) {
+            function svgIcon(type) {
+                if (type === "base") {
+                    return `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layers2-icon lucide-layers-2">
+                            <path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/>
+                            <path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"/>
+                        </svg>`;
+                }
+                return `
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layers-plus-icon lucide-layers-plus">
+                    <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 .83.18 2 2 0 0 0 .83-.18l8.58-3.9a1 1 0 0 0 0-1.831z"/><path d="M16 17h6"/><path d="M19 14v6"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 .825.178"/>
+                    <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l2.116-.962"/>
+                </svg>`;
+            }
+
+            function closeAllPopovers() {
+                document.querySelectorAll(".or-popover").forEach(p => p.remove());
+            }
+
+            // Ferme les popovers si la fenêtre est redimensionnée
+            window.addEventListener("resize", () => {
+            closeAllPopovers();
+            });
+
+
+            function makePopover(title, rowsHtml, anchorEl) {
+                closeAllPopovers();
+
+                const pop = document.createElement("div");
+                pop.className = "or-popover";
+                pop.innerHTML = `<h4>${title}</h4>${rowsHtml}`;
+
+                // Empêche Leaflet de capter les interactions quand on est dans le menu
+                L.DomEvent.disableClickPropagation(pop);
+                L.DomEvent.disableScrollPropagation(pop);
+
+                // // Et pour être sûr sur le drag (mouse/touch)
+                ["mousedown","mousemove","mouseup","touchstart","touchmove","touchend","wheel","dblclick","contextmenu"]
+                .forEach(evt => pop.addEventListener(evt, (e) => e.stopPropagation(), { passive: false }));
+
+
+                const anchorRect = anchorEl.getBoundingClientRect();
+                const mapRect = map.getContainer().getBoundingClientRect();
+                
+                // Ajoute d'abord au DOM pour mesurer sa vraie taille
+                map.getContainer().appendChild(pop);
+
+                const gap = 10;
+
+                // Mesure réelle (plus fiable que popWidth/popHeight “approx”)
+                const popRect = pop.getBoundingClientRect();
+                const popW = popRect.width;
+                const popH = popRect.height;
+
+                // Position préférée : à GAUCHE du bouton (donc jamais dessus)
+                let left = (anchorRect.left - mapRect.left) - popW - gap;
+                // Aligné en haut du bouton (ton bord haut est déjà OK)
+                let top = (anchorRect.top - mapRect.top);
+
+                // Si pas assez de place à gauche, on ouvre à droite du bouton
+                if (left < gap) {
+                left = (anchorRect.right - mapRect.left) + gap;
+                }
+
+                // Clamp dans la carte
+                left = Math.max(gap, Math.min(left, mapRect.width - popW - gap));
+                top  = Math.max(gap, Math.min(top,  mapRect.height - popH - gap));
+
+                pop.style.left = `${left}px`;
+                pop.style.top  = `${top}px`;
+
+                setTimeout(() => {
+                function onDocClick(e) {
+                    if (!pop.contains(e.target) && !anchorEl.contains(e.target)) {
+                    pop.remove();
+                    document.removeEventListener("mousedown", onDocClick);
+                    }
+                }
+                document.addEventListener("mousedown", onDocClick);
+                }, 0);
+
+                return pop;
+            }
+
+            function makeRowsClickable(pop) {
+                pop.querySelectorAll(".or-row").forEach((row) => {
+                    row.addEventListener("click", (e) => {
+
+                    // Si clic direct sur INPUT ou LABEL : on laisse le comportement natif
+                    if (e.target.closest("input") || e.target.closest("label")) return;
+
+
+                    const input = row.querySelector("input");
+                    if (!input) return;
+
+                    if (input.type === "checkbox") {
+                        input.checked = !input.checked;
+                    } else if (input.type === "radio") {
+                        input.checked = true;
+                    }
+
+                    // Déclenche ton code existant (addTo / removeLayer)
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                    });
+                });
+            }
+
+
+            const Mini = L.Control.extend({
+                options: { position: "topright" },
+                onAdd: function () {
+                const container = L.DomUtil.create("div", "leaflet-control or-mini");
+                const stack = L.DomUtil.create("div", "or-stack", container);
+
+                const btnBase = L.DomUtil.create("div", "or-btn", stack);
+                btnBase.innerHTML = svgIcon("base");
+                btnBase.title = "Fonds de carte";
+
+                const btnOver = L.DomUtil.create("div", "or-btn", stack);
+                btnOver.innerHTML = svgIcon("overlays");
+                btnOver.title = "Couches";
+
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.disableScrollPropagation(container);
+
+                btnBase.addEventListener("click", () => {
+
+                    const entries = Object.entries(baseLayers);
+
+                    const rows = entries.map(([name, layer], idx) => {
+                    const id = `base_${idx}_${Math.random().toString(16).slice(2)}`;
+                    const checked = map.hasLayer(layer) ? "checked" : "";
+                    return `
+                        <div class="or-row">
+                        <input type="radio" name="or-base" id="${id}" ${checked}>
+                        <label for="${id}">${name}</label>
+                        </div>
+                    `;
+                    }).join("");
+
+                    const pop = makePopover("Fonds de carte", rows, btnBase);
+                    makeRowsClickable(pop);
+
+
+                    entries.forEach(([name, layer], idx) => {
+                    const input = pop.querySelectorAll("input[type='radio']")[idx];
+                    input.addEventListener("change", () => {
+                        Object.values(baseLayers).forEach(l => map.removeLayer(l));
+                        layer.addTo(map);
+                    });
+                    });
+                });
+
+                btnOver.addEventListener("click", () => {
+                    const entries = Object.entries(overlays);
+
+                    const rows = entries.length
+                    ? entries.map(([name, layer], idx) => {
+                        const id = `ov_${idx}_${Math.random().toString(16).slice(2)}`;
+                        const checked = map.hasLayer(layer) ? "checked" : "";
+                        return `
+                            <div class="or-row">
+                            <input type="checkbox" id="${id}" ${checked}>
+                            <label for="${id}">${name}</label>
+                            </div>
+                        `;
+                        }).join("")
+                    : `<div class="or-muted">Aucune couche.</div>`;
+
+                    const pop = makePopover("Couches", rows, btnOver);
+                    makeRowsClickable(pop);
+
+
+                    entries.forEach(([name, layer], idx) => {
+                    const input = pop.querySelectorAll("input[type='checkbox']")[idx];
+                    input.addEventListener("change", () => {
+                        if (input.checked) layer.addTo(map);
+                        else map.removeLayer(layer);
+                    });
+                    });
+                });
+
+                return container;
+                }
+            });
+
+            return new Mini();
+        }
+
+
 document.addEventListener("DOMContentLoaded", () => {
     const fond_coeur_de_Parc = window._coeurData;
-    const cartes = document.querySelectorAll(".carte");
+    const cartes = document.querySelectorAll(".carte-container .carte");
 
     if (cartes.length === 0) {
         console.info("Aucune carte à afficher.");
@@ -161,66 +352,17 @@ document.addEventListener("DOMContentLoaded", () => {
             // mafateLayer.addTo(map); 
             mafateLayer.eachLayer(l => l.options._isBackgroundLayer = true);
         }
+        // ---------------------------------
+        // Menus "Fonds" et "Couches" (mini popovers en haut à droite)
+        // ---------------------------------
+        const baseLayers = {
+            "OpenStreetMap": fonds.osm,
+            "Satellite": fonds.satellite,
+            "OpenTopoMap": fonds.opentopomap,
+        };
+        const overlays = overlayMaps;
 
-        L.control.layers(null, overlayMaps, {
-            collapsed: false,
-            position: "topright"
-        }).addTo(map);
-
-
-
-
-        // Insérer fond de carte DANS le bon panneau Leaflet
-        setTimeout(() => {
-            const allPanels = div.closest(".carte-container")?.querySelectorAll(".leaflet-control-layers");
-            let leafletContainer = null;
-
-            allPanels?.forEach(p => {
-                if (map.getContainer().contains(p)) {
-                    leafletContainer = p;
-                }
-            });
-
-            if (!leafletContainer) return;
-
-            if (!leafletContainer.querySelector('.layer-title')) {
-                const title = document.createElement('div');
-                title.className = 'layer-title';
-                title.innerText = "Couches disponibles";
-                leafletContainer.insertBefore(title, leafletContainer.firstChild);
-            }
-
-            if (!leafletContainer.querySelector('.fond-control')) {
-                const fondMenu = document.createElement("div");
-                fondMenu.className = "fond-control";
-                fondMenu.innerHTML = `
-                    <label class="fond-label">Fond de carte :</label>
-                    <select class="fond-select">
-                        <option value="osm">OpenStreetMap</option>
-                        <option value="satellite">Satellite</option>
-                        <option value="opentopomap">OpenTopoMap</option>
-                    </select>
-                `;
-
-                const overlaySection = leafletContainer.querySelector(".leaflet-control-layers-overlays");
-                if (overlaySection) {
-                    overlaySection.insertAdjacentElement("afterend", fondMenu);
-                } else {
-                    leafletContainer.appendChild(fondMenu);
-                }
-
-                fondMenu.querySelector(".fond-select").addEventListener("change", (e) => {
-                    const valeur = e.target.value;
-                    if (fonds[valeur]) {
-                        map.removeLayer(fondActif);
-                        fondActif = fonds[valeur];
-                        fondActif.addTo(map);
-                    }
-                });
-            }
-        }, 100);
-
-
+        createMiniLayersControl(map, baseLayers, overlays).addTo(map);
 
         // -----------------------------------
         // Ajouter le geojson du pétitionnaire + pop up métadonnées 
@@ -345,20 +487,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-
-
-
-
-
-// Copier l'emplacement du Dossier
-// function copierChemin(chemin) {
-//     navigator.clipboard.writeText(chemin).then(() => {
-//         alert("Chemin copié dans le presse-papiers :\n" + chemin);
-//     }).catch(err => {
-//         console.error("Erreur copie chemin :", err);
-//         alert("Impossible de copier le chemin");
-//     });
-// }
 
 function copierChemin(chemin) {
     if (navigator.clipboard && window.isSecureContext) {
