@@ -359,7 +359,7 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
     if etape_actuelle == "En instruction" and demarche_type == "Manifestations sportives":
         etapes["En instruction"] = [
             a for a in etapes["En instruction"]
-            if a != "Envoyer pour validation avant demande d'avis"
+            if a != "Faire valider une demande d'avis"
         ]
 
     return etapes

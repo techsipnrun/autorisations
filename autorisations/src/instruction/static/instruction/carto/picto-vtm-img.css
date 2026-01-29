@@ -1,0 +1,105 @@
+.picto-vtm {
+    display: block;
+    width: 27px;
+    height: 27px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.picto-vtm.AES {
+    background-image: url('images/AES.png');
+}
+
+.picto-vtm.CH {
+    background-image: url('images/CH.png');
+}
+
+.picto-vtm.CSP {
+    background-image: url('images/CSP.png');
+}
+
+.picto-vtm.depan {
+    background-image: url('images/depan.png');
+}
+
+.picto-vtm.DES {
+    background-image: url('images/DES.png');
+}
+
+.picto-vtm.evac_sanitaire {
+    background-image: url('images/evac_sanitaire.png');
+}
+
+.picto-vtm.extincteur {
+    background-image: url('images/extincteur.png');
+}
+
+.picto-vtm.fin_zone {
+    background-image: url('images/fin_zone.png');
+}
+
+.picto-vtm.lignePTT {
+    background-image: url('images/Ligne PTT.jpg');
+}
+
+.picto-vtm.medecin {
+    background-image: url('images/medecin.png');
+}
+
+.picto-vtm.panneau-direct-ZP-D {
+    background-image: url('images/panneau_direct_ZP_D.png');
+}
+
+.picto-vtm.panneau-direct-ZP-G {
+    background-image: url('images/panneau_direct_ZP_G.png');
+}
+
+.picto-vtm.pietons_interdit {
+    background-image: url('images/pietons_interdit.png');
+}
+
+.picto-vtm.poste_commissaire {
+    background-image: url('images/poste_commissaire.png');
+}
+
+.picto-vtm.presignal_AES {
+    background-image: url('images/presignal_AES.png');
+}
+
+.picto-vtm.presignal_control_hor {
+    background-image: url('images/presignal_control_hor.png');
+}
+
+.picto-vtm.presignal_poste_commissaire {
+    background-image: url('images/presignal_poste_commissaire.png');
+}
+
+.picto-vtm.presignal_zebra {
+    background-image: url('images/presignal_zebra.png');
+}
+
+.picto-vtm.public_interdit {
+    background-image: url('images/Public_interdit.png');
+}
+
+.picto-vtm.zebra-chgt-dir {
+    background-image: url('images/zebra_chgt_dir.png');
+}
+
+.picto-vtm.zone_casque {
+    background-image: url('images/zone_casque.png');
+}
+
+.picto-vtm.ZP {
+    background-image: url('images/ZP.png');
+}
+
+.picto-vtm.ZP_interdit_ok {
+    background-image: url('images/ZP_interdit_ok.png');
+}
+.picto-vtm.regime_circulation{
+    background-image: url('images/icone_regime_circulation.png');
+}
+.picto-vtm.type_exploitation{
+    background-image: url('images/icone_type_exploitation.png');}

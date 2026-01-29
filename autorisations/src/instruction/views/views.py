@@ -905,7 +905,7 @@ def changer_publieur_raa(request):
         logger.info(f"[DOSSIER {dossier.numero}] Changement de publieur.se d'acte au RAA par {instructeur_en_cours} : {old_publieur} --> {new_publieur}")
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Changement de publieur RAA par {instructeur_en_cours} - MAJ publieur échouée ({old_envoyeur} → {new_envoyeur}) : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] Changement de publieur RAA par {instructeur_en_cours} - MAJ publieur échouée ({old_publieur} → {new_publieur}) : {e}")
         return redirect_error(request, "❌ Erreur lors du changement de publieur.se RAA. Contactez le support.")
 
     # Action dossier
@@ -1446,11 +1446,16 @@ def dossier_manif_sportive_sans_ds(request, numero):
     with open(fond_aire_adhesion, encoding="utf-8") as f:
         fond_aire_adhesion = json.load(f)
 
+    pois_json = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/pois.json")
+    with open(pois_json, encoding="utf-8") as f:
+        pois_json = json.load(f)
+
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
         "avis_manif_sportive": avis_manif_sportive,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
+        "pois_json": pois_json,
     })
 
 

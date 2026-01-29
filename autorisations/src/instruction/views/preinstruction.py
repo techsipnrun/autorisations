@@ -193,6 +193,8 @@ def preinstruction_dossier(request, numero):
     fond_coeur_de_parc = load_geojson("instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
     fond_aire_adhesion = load_geojson("instruction/static/instruction/carto/aire_adhesion.geojson")
     fond_mafate = load_geojson("instruction/static/instruction/carto/COT_MAFATE.geojson")
+    pois_json = load_geojson("instruction/static/instruction/carto/pois.json")
+
 
     ####################################
     # Champs du formulaire DS
@@ -307,6 +309,7 @@ def preinstruction_dossier(request, numero):
         "adhesionData": fond_aire_adhesion,
         "mafateData": fond_mafate,
         "nb_cartes": nb_cartes,
+        "pois_json": pois_json,
         
         # Instructeurs
         "groupes_instructeurs": groupes_instructeurs,

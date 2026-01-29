@@ -19,7 +19,11 @@
     <!-- <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}"> -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
-    <!-- <link rel="stylesheet" href="{% static 'instruction/css/carto_test.css' %}"> -->
+    <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
+
+    <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
 
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -197,18 +201,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- Bouton Se déclarer comme instructeur.trice du dossier -->
-                    <!-- {% if peut_se_declarer %}
-                        <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-declarer-instructeur">
-                            {% csrf_token %}
-                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                            <input type="hidden" name="instructeur_id" value="{{ instructeur_connecte.id }}">
-
-                            <button type="submit" class="btn-declarer">
-                                Se déclarer comme instructeur.trice du dossier
-                            </button>
-                        </form>
-                    {% endif %} -->
 
                     <!-- Téléchargement PDF -->
                     <a class="download-pdf"
@@ -229,7 +221,7 @@
 
                     <!-- Lien DM -->
                     {% if demarche.type|lower == "manifestations sportives" %}
-                        <a class="icon_DM" href="https://manifestationsportive-preprod.menjes.ate.info/instructions/avis/778686/" target="_blank">
+                        <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/778686/#parcours" target="_blank">
                             <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                                 alt="Visualiser le dossier sur Déclaration manifestations"
                                 title="Visualiser le dossier sur Déclaration manifestations">
@@ -496,7 +488,6 @@
                         selectNature.addEventListener("change", updateUI);
                     });
                 </script>
-
 
 
                 <!-- Zone masquée pour transmettre doc signé -->
@@ -2365,8 +2356,11 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
     </script>
 
     <!-- 3. Script Leaflet personnalisé -->
-    <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
+    {{ pois_json|json_script:"pois-data" }}
+    <script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
 
+    <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
 
 
     <!-- --------------------------------------------------------------------------->
