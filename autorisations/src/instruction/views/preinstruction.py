@@ -286,6 +286,12 @@ def preinstruction_dossier(request, numero):
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
 
+    # Récupération de l'avis lié (OneToOne → un seul)
+    try:
+        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+    except Exception:
+        avis_manif_sportive = None  # Aucun avis encore associé
+
 
     ###############################
     # Messages non lus
@@ -301,6 +307,7 @@ def preinstruction_dossier(request, numero):
         "dossier_actions": dossier_actions,
         "champs": champs_prepares,
         "doss_manif_sportive": doss_manif_sportive,
+        "avis_manif_sportive": avis_manif_sportive,
         "notes": notes,
         "nb_messages_non_lus": nb_messages_non_lus,
         
