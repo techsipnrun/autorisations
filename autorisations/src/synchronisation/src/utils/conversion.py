@@ -150,8 +150,8 @@ def formater_nom_personne_morale(data: Dict) -> str:
     nom_entreprise = ""
     raison = ""
     if entreprise :
-        raison = raison.get("raisonSociale", "")
-        nom_entreprise = data.get("entreprise", {}).get("nom", "")
+        raison = entreprise.get("raisonSociale", "")
+        nom_entreprise = entreprise.get("nom", "")
 
     titre = ""
     if data.get("association") :
