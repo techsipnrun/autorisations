@@ -22,7 +22,7 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
 
 
     if doss['demandeur']['__typename'] == 'PersonneMorale' :
-        nom_personne_morale = formater_nom_personne_morale(doss['demandeur'])
+        nom_personne_morale = formater_nom_personne_morale(doss['demandeur'], doss)
 
 
     return {

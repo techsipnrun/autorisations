@@ -42,6 +42,11 @@ query dossier($number: Int!) {
                     cityName
                 }
             }
+            ... on PersonneMoraleIncomplete {
+                id
+                siret
+            }
+
         }
         instructeurs {
             id

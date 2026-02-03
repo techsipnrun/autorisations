@@ -58,6 +58,10 @@ query demarche($number: Int!) {
                 cityName
               }
           }
+          ... on PersonneMoraleIncomplete {
+              id
+              siret
+          }
         }
         instructeurs {
           id
