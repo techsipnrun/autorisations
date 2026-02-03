@@ -17,6 +17,7 @@ from synchronisation.src.utils.conversion import formater_nom_personne_morale, p
 loggerORM = logging.getLogger("ORM_DJANGO")
 loggerApp = logging.getLogger("APP")
 loggerDS = logging.getLogger("API_DS")
+loggerSynchro = logging.getLogger("SYNCHRONISATION")
 
 # Vérification de la présence de NAS_ROOT
 if not os.environ.get("NAS_ROOT"):
@@ -342,7 +343,6 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
     else:
         numero = str(doss.get("number", "000000"))
 
-
     demandeur_type = doss.get("demandeur", {}).get("__typename")
 
     if demandeur_type == "PersonnePhysique":
@@ -352,7 +352,7 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
         dossier_part = f"{numero}_{nom}_{prenom}_{date_suffix}/"
 
     elif demandeur_type == "PersonneMorale":
-        nom_morale = formater_nom_personne_morale(doss.get("demandeur", {}))
+        nom_morale = formater_nom_personne_morale(doss.get("demandeur", {}), doss)
         date_suffix = date_depot.strftime("%d-%m") if date_depot else "XX-XX"
         dossier_part = f"{numero}_{nom_morale}_{date_suffix}/"
 

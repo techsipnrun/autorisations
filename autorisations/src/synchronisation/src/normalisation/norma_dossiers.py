@@ -1,3 +1,4 @@
+import logging
 from .norma_dossier import dossier_normalize
 from .norma_contacts_externes import contact_externe_normalize
 from .norma_dossier_interlocuteur import dossier_interlocuteur_normalize
@@ -9,6 +10,7 @@ from synchronisation.src.utils.model_helpers import get_first_id
 from synchronisation.src.utils.fichiers import construire_emplacement_dossier
 from autorisations.models.models_instruction import Demarche
 
+loggerSynchro = logging.getLogger("SYNCHRONISATION")
 
 def dossiers_normalize_process(d):
     """
@@ -21,6 +23,13 @@ def dossiers_normalize_process(d):
     dossiers = []
 
     for doss in d["dossiers"]["nodes"]:
+
+        # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
+        if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
+            type_demarche = Demarche.objects.get(id=id_demarche).type
+            loggerSynchro.warning(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
+            # print(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
+            continue
 
         contact_beneficiaire = doss["demandeur"]
         titre_demarche = d["title"]

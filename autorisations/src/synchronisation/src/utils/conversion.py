@@ -7,6 +7,7 @@ from dateutil.parser import parse
 from typing import Dict
 
 loggerApp = logging.getLogger("APP")
+loggerSynchro = logging.getLogger("SYNCHRONISATION")
 
 def parse_datetime_with_tz(dt_input):
     """
@@ -130,7 +131,7 @@ def extraire_nom_et_extension(filename):
 
 
 
-def formater_nom_personne_morale(data: Dict) -> str:
+def formater_nom_personne_morale(data: Dict, doss = None) -> str:
     """
     Extrait et formate le nom d'une personne morale (entreprise ou association) 
     en minuscules et avec des underscores à la place des espaces.
@@ -144,7 +145,7 @@ def formater_nom_personne_morale(data: Dict) -> str:
                      }
 
     Returns:
-        str: Nom formaté (ex: "sarl_toto"), ou chaîne vide si aucun nom trouvé.
+        str: Nom formaté (ex: "sarl_toto", "les_amis_du_parc"), ou chaîne vide si aucun nom trouvé.
     """
     entreprise = data.get("entreprise", {})
     nom_entreprise = ""
@@ -157,5 +158,7 @@ def formater_nom_personne_morale(data: Dict) -> str:
     if data.get("association") :
         titre = data.get("association", {}).get("titre", "")
 
-    nom = raison or nom_entreprise or titre or ""
+    nom = raison or nom_entreprise or titre
+    if not nom :
+        loggerSynchro.error(f"Impossible d'identifier la personne morale du dossier {doss['number']} : Pas de raison sociale, pas de nom d'entreprise, pas de titre d'association ")
     return nom.strip().lower().replace(" ", "_")
