@@ -633,8 +633,14 @@ def actualiser_dossier(request, num_dossier):
         if "errors" in result and result["errors"]:
             raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
         
+        
         # 2. Normalisation des données
         doss = result["data"].get("dossier")
+
+        # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
+        if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
+            logger.warning(f"Le dossier {doss['number']} ne peut pas être actualisé pour le moment : Les services de l’INSEE sont momentanément indisponibles, la personne morale ne peut pas être identifiée")
+            return redirect_error(request, "❌ Erreur lors de l'identification de la personne morale, les services de l’INSEE sont momentanément indisponibles. Réessayez dans quelques heures.")
 
         contact_beneficiaire = doss.get("demandeur")
 
