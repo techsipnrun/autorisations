@@ -405,7 +405,7 @@
                                 <input type="file" name="piece_jointe" id="pj_validation_acte_pret" accept=".odt,.doc,.docx" required>
                             </div>
 
-                            <div id="zone-projet-rapport"></div>
+                            <div id="zone-projet-rapport-sppn"></div>
                             <p class="hint-text">📁 Merci de sélectionner des fichiers situés dans le dossier <strong>Work</strong>.</p>
                         </div>
 
@@ -422,7 +422,7 @@
                 <script>
                     document.addEventListener("DOMContentLoaded", function () {
                         const selectNature = document.getElementById("nature_validation");
-                        const zoneRapport = document.getElementById("zone-projet-rapport");
+                        const zoneRapport = document.getElementById("zone-projet-rapport-sppn");
 
                         const blocDir = document.getElementById("bloc-intermediaire-dir");
                         const blocCA = document.getElementById("bloc-intermediaire-ca");
@@ -940,12 +940,17 @@ En conséquence, la demande est refusée.</textarea>
                 <!-- Affichage conditionnel si on choisit Délibération CA  -->
                 <script>
                     document.addEventListener("DOMContentLoaded", function() {
-                        const selectNature = document.getElementById("nature_validation");
+                        const selectNature = document.getElementById("nature_validation_avant_signa");
                         const zoneRapport = document.getElementById("zone-projet-rapport");
+
+                        
+
 
                         selectNature.addEventListener("change", function() {
                             // Si Délibération CA → ajouter un champ supplémentaire
+
                             if (this.value === "Déliberation CA") {
+                                
                                 if (!document.getElementById("pj_rapport_ca")) {
                                     const div = document.createElement("div");
                                     div.classList.add("projet_rapport_ca_pj");
