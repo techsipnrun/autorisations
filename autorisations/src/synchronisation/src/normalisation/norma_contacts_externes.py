@@ -62,7 +62,6 @@ def contact_externe_normalize(doss, contacts_externes):
             orga = doss['demandeur']['entreprise']['nom'] if doss['demandeur'].get('entreprise') else (doss['demandeur']['association']['titre'] if doss['demandeur'].get('association') else None)
 
             if raison_sociale :
-                print(contacts_externes)
                 contacts_externes['demandeur_pers_morale']["raison_sociale"] = raison_sociale
                 
             if orga :
