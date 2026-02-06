@@ -68,16 +68,9 @@ def synchro_process(dico, dico_notifs, demarche_obj):
                 statut = False
 
 
-<<<<<<< HEAD
-        t_API_dm = time.perf_counter() - t_dm
-        logger.info(f"-- Synchronisation (DM) faite en {t_API_dm:.2f} sec --")
-        logger.info("------------------------------------------------\n")
-    """
-=======
             t_API_dm = time.perf_counter() - t_dm
             logger.info(f"-- Synchronisation (DM) faite en {t_API_dm:.2f} sec --")
             logger.info("------------------------------------------------\n")
 
->>>>>>> 1e213ad (Correctifs bugs + Clarification des Contacts externes (bénéficaire / demandeur intermédiaire))
 
     return statut
