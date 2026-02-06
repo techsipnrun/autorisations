@@ -106,7 +106,6 @@ def safe_enregistrer_action(dossier, instructeur, action, request, description=N
         date = timezone.now()
 
     try:
-        print(date)
         enregistrer_action(dossier, instructeur, action, description, date)
         return None
     except Exception as e:

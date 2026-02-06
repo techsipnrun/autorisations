@@ -1713,9 +1713,6 @@ def gestion_logs(request):
     selected_levels = [lvl.upper() for lvl in raw_levels if lvl]
 
 
-    print(f"search= {search}, date= {date_filter}, page= {page}, log_type= {log_type}, selected_levels= {selected_levels}")
-
-
     file_path = LOG_FILES.get(log_type)
     lines = []
 
