@@ -28,7 +28,6 @@ def dossiers_normalize_process(d):
         if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
             type_demarche = Demarche.objects.get(id=id_demarche).type
             loggerSynchro.warning(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
-            # print(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
             continue
 
         contact_beneficiaire = doss["demandeur"]
@@ -38,10 +37,16 @@ def dossiers_normalize_process(d):
         emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
         c_e_n = contact_externe_normalize(doss, None)
         d_c_n, c_e_n_complete = dossiers_champs_normalize(doss, emplacement_dossier, c_e_n)
+        
+        # loggerSynchro.warning("Sortie de dossiers_champs_normalize : ")
+        # loggerSynchro.warning(c_e_n_complete)
+        c_e_n_complete.pop("demandeur_pers_morale", None)
+        # loggerSynchro.warning("Après le .pop : ")
+        # loggerSynchro.warning(c_e_n_complete)
 
         dico_dossier = {
             "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
-            "contacts_externes": contact_externe_normalize(doss, c_e_n_complete),
+            "contacts_externes": c_e_n_complete,
             "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
             "dossier_champs": d_c_n,
             "dossier_document": dossier_document_normalize(doss, emplacement_dossier),

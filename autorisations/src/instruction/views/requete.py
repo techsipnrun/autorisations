@@ -18,6 +18,10 @@ def clean_int(value):
 @login_required
 def requete_dossiers(request):
     dossiers = Dossier.objects.all().select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
+    
+    # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
+    dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
+
 
     # Menus déroulant
     etapes_dossier = EtapeDossier.objects.all().order_by('etape')
@@ -163,7 +167,18 @@ def requete_dossiers(request):
         else:
             nom = ""
 
-    dossiers = dossiers.order_by('-date_depot')
+    dossiers = dossiers.order_by("-date_depot").distinct()
+
+
+    # 1)On prend les ids uniques pour éviter des doublons
+    ids = dossiers.values("id").distinct()
+    dossiers = (
+        Dossier.objects
+        .filter(id__in=ids)
+        .select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
+        .order_by("-date_depot")
+    )
+
 
     # Ajout du champ 'lien' pour chaque dossier
     for d in dossiers:

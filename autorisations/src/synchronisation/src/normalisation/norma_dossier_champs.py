@@ -10,16 +10,16 @@ from synchronisation.src.utils.conversion import extraire_nom_et_extension
 logger = logging.getLogger('ORM_DJANGO')
 def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
 
-    # contacts[demandeur_intermediaire] et contacts[beneficiaire]
-    # logger.info(contacts['beneficiaire'])
-    # logger.info(contacts['demandeur_intermediaire'])
 
     liste_dossiers_champs = []
 
-    contacts_externes = {
-        'beneficiaire': {},
-        'demandeur_intermediaire': {}
-    }
+    PERSONNE_MORALE_AVEC_DEMANDEUR_INTER = False
+
+    # contacts_externes = {
+    #     'beneficiaire': {},
+    #     'demandeur_intermediaire': {},
+    #     'demandeur_pers_morale': {}
+    # }
 
     for ch in doss["champs"]:
 
@@ -123,38 +123,111 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                     "id_document": None,
                 }
 
-                # On ajoute des infos aux contact externes (Bénéficiaire et le cas échéant DemandeurIntermédiaire)
-                #Benefiaire
-                if ch['label'] == "Email du bénéficiaire" and ch["stringValue"] != None:
-                    contacts_externes["beneficiaire"]["email"] = ch["stringValue"]
-                if ch['label'] == "Adresse du bénéficiaire" and ch["stringValue"] != None:
-                    contacts_externes["beneficiaire"]["adresse"] = ch["stringValue"]
-                if ch['label'] == "Numéro de téléphone du bénéficiaire" and ch["stringValue"] != None:
-                    contacts_externes["beneficiaire"]["telephone"] = ch["stringValue"]
-                if ch['label'] == "Nom de l'organisation" and ch["stringValue"] != None:
-                    contacts_externes["beneficiaire"]["organisation"] = ch["stringValue"]
-                if ch['label'] == "Numéro de SIRET" and ch["stringValue"] != None:
-                    contacts_externes["beneficiaire"]["siret"] = ch["stringValue"]
 
-                #Demandeur Intermédiaire
-                if ch['label'] == "Numéro de téléphone du demandeur intermédiaire" and ch["stringValue"] != None:
-                    contacts_externes["demandeur_intermediaire"]["telephone"] = ch["stringValue"]
-                if ch['label'] == "Nom de l'organisation du demandeur intermédiaire" and ch["stringValue"] != None:
-                    contacts_externes["demandeur_intermediaire"]["organisation"] = ch["stringValue"]
-                    contacts_externes["demandeur_intermediaire"]["raison_sociale"] = ch["stringValue"]
-                if ch['label'] == "Adresse du demandeur intermédiaire" and ch["stringValue"] != None:
-                    contacts_externes["demandeur_intermediaire"]["adresse"] = ch["stringValue"]
-                if ch['label'] == "Email du demandeur intermédiaire" and ch["stringValue"] != None:
-                    contacts_externes["demandeur_intermediaire"]["email"] = ch["stringValue"]
-                    contacts_externes['demandeur_intermediaire']['id_type'] = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+                ############################################################################
+                ###    COMPLEMENT D'INFO SUR LE BENEFICIAIRE / DEMANDEUR INTERMEDIAIRE   ###
+                ############################################################################
 
-                # Attention si jamais le péti ne sélectionne pas 'Demandeur Intermédiaire' dans la page d'ouverture de Démarches Simplifiées, 
-                # mais qu'il coche Demandeur Intermédiaire dans le formulaire : On a une contradiction. Ici on fait le choix de le créer malgré tout (mais sans nom ni prénom)
+                # -------------------------------
+                # Remplisseur = Personne physique
+                # -------------------------------
+                if contacts.get('beneficiaire') :
                     
-      
+                    # if not contacts['demandeur_intermediaire'] :
+                    #Beneficiaire
+                    if ch['label'] == "Email du bénéficiaire" and ch["stringValue"] != None and not contacts["beneficiaire"].get("email"):
+                        contacts["beneficiaire"]["email"] = ch["stringValue"]
+                    if ch['label'] == "Adresse du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["adresse"] = ch["stringValue"]
+                    if ch['label'] == "Numéro de téléphone du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["telephone"] = ch["stringValue"]
+                    if ch['label'] == "Nom de l'organisation" and ch["stringValue"] != None:   # Nom de l'organisation (du bénéficiaire ?)
+                        contacts["beneficiaire"]["organisation"] = ch["stringValue"]
+                    if ch['label'] == "Numéro de SIRET" and ch["stringValue"] != None:  # Numéro de SIRET (du bénéficiaire ?)
+                        contacts["beneficiaire"]["siret"] = ch["stringValue"]
+
+                    # ----------------------------------------------------------------------------------
+                    # Remplisseur = Personne physique qui s'est déclaré comme un demandeur intermédiaire
+                    # ----------------------------------------------------------------------------------
+                    # Si la personne ne s'est pas déclaré comme intermédiaire à l'entrée du form : on ne créé pas le contact externe Demandeur Intermédiaire
+                    if contacts.get('demandeur_intermediaire') :
+                        if ch['label'] == "Numéro de téléphone du demandeur intermédiaire" and ch["stringValue"] != None:
+                            contacts["demandeur_intermediaire"]["telephone"] = ch["stringValue"]
+                        if ch['label'] == "Nom de l'organisation du demandeur intermédiaire" and ch["stringValue"] != None:
+                            contacts["demandeur_intermediaire"]["organisation"] = ch["stringValue"]
+                            contacts["demandeur_intermediaire"]["raison_sociale"] = ch["stringValue"]
+                        if ch['label'] == "Adresse du demandeur intermédiaire" and ch["stringValue"] != None:
+                            contacts["demandeur_intermediaire"]["adresse"] = ch["stringValue"]
+
+
+                # -----------------------------
+                # Remplisseur = Personne morale
+                # -----------------------------
+                elif contacts.get('demandeur_pers_morale') :
+                    if ch['label'] == "Votre administration agit en tant qu’intermédiaire pour un autre pétitionnaire" :
+                        if ch["stringValue"] == "true" :
+                            PERSONNE_MORALE_AVEC_DEMANDEUR_INTER = True
+                   
+                    # Complément d'information du remplisseur dans le form
+                    if ch['label'] == "Votre nom" and ch["stringValue"] != None :
+                        contacts['demandeur_pers_morale']["nom"] = ch["stringValue"]
+                    if ch['label'] == "Votre prénom" and ch["stringValue"] != None :
+                        contacts['demandeur_pers_morale']["prenom"] = ch["stringValue"]
+                    if ch['label'] == "Votre numéro de téléphone " and ch["stringValue"] != None :
+                        contacts['demandeur_pers_morale']["telephone"] = ch["stringValue"]
+                
+                    # Le remplisseur du form (Personne Morale) fait l'intermédiaire, le beneficiaire est déclaré dans le form
+                    if ch['label'] == "Nom du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["nom"] = ch["stringValue"]
+                    if ch['label'] == "Prénom du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["prenom"] = ch["stringValue"]
+                    if ch['label'] == "Email du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["email"] = ch["stringValue"]
+                        contacts['beneficiaire']['id_type'] = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+                    if ch['label'] == "Adresse du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["adresse"] = ch["stringValue"]
+                    if ch['label'] == "Numéro de téléphone du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["telephone"] = ch["stringValue"]
+                    if ch['label'] == "Nom de l'organisation du bénéficiaire" and ch["stringValue"] != None:
+                        contacts["beneficiaire"]["organisation"] = ch["stringValue"]
+                        contacts["beneficiaire"]["raison_sociale"] = ch["stringValue"]
+                    if ch['label'] == "Numéro de SIRET" and ch["stringValue"] != None:  # Numéro de SIRET (du bénéficiaire ?)
+                        contacts["beneficiaire"]["siret"] = ch["stringValue"]
+                    
+
+            if PERSONNE_MORALE_AVEC_DEMANDEUR_INTER :
+                remplisseur_type = 'demandeur_intermediaire'
+                type_contact = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+            else :
+                remplisseur_type = 'beneficiaire'
+                type_contact = get_first_id(TypeContactExterne, type="Bénéficiaire")
+
+            # On transfère contacts['demandeur_pers_morale'] --> contacts['demandeur_intermediaire']
+            if contacts.get('demandeur_pers_morale') :
+                source = contacts.get("demandeur_pers_morale", {})
+
+                if source.get("raison_sociale"):
+                    contacts[remplisseur_type]["raison_sociale"] = source["raison_sociale"]
+                if source.get("organisation"):
+                    contacts[remplisseur_type]["organisation"] = source["organisation"]
+                if source.get("email"):
+                    contacts[remplisseur_type]["email"] = source["email"]
+                contacts[remplisseur_type]["id_type"] = type_contact
+                if source.get("siret"):
+                    contacts[remplisseur_type]["siret"] = source["siret"]
+                if source.get("adresse"):
+                    contacts[remplisseur_type]["adresse"] = source["adresse"]
+                if source.get("nom"):
+                    contacts[remplisseur_type]["nom"] = source["nom"]
+                if source.get("prenom"):
+                    contacts[remplisseur_type]["prenom"] = source["prenom"]
+                if source.get("telephone"):
+                    contacts[remplisseur_type]["telephone"] = source["telephone"]
 
             liste_dossiers_champs.append({
                 "champ": dico_champ
             })
+        
 
-    return liste_dossiers_champs, contacts_externes
+
+    return liste_dossiers_champs, contacts

@@ -18,7 +18,7 @@ from autorisations.models.models_avis import AvisDocument, DossierAvis
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
 from instruction.utils.document_utils import build_documents_for_dossier
-from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_etapes_custom, redirect_error, safe_enregistrer_action
+from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etapes_custom, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -226,6 +226,11 @@ def mesdossiers(request):
     # Liste dossiers liés à instructeur. Exclusion étapes ["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"]
     dossiers = base_query.exclude(id_etape_dossier__in=etapes_termines_et_a_affecter)
 
+
+    # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
+    dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
+
+
     # Liste dossiers avec action à faire (Hors étape 'À affecter')
     dossier_action_a_faire = dossiers_action_a_faire(base_query, instructeur)
 
@@ -235,7 +240,10 @@ def mesdossiers(request):
     for dossier in dossiers:
 
         # Bénéficiaire
-        beneficiaire = get_beneficiaire_for_dossier(dossier)
+        # beneficiaire = get_beneficiaire_for_dossier(dossier)
+
+        # Demandeur
+        demandeur = get_demandeur_for_dossier(dossier)
 
         # Messages non lus DOSSIER
         nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
@@ -248,7 +256,8 @@ def mesdossiers(request):
         dossiers_par_demarche.setdefault(dossier.id_demarche.type, []).append({
             "nom_dossier": dossier.nom_dossier,
             "numero": dossier.numero,
-            "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            "demandeur": demandeur,
             "date_depot": dossier.date_depot,
             "mon_role": role,
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
@@ -302,7 +311,9 @@ def instruction_demarche(request, num_demarche):
     for dossier in dossiers:
 
         # Bénéficiaire
-        beneficiaire = get_beneficiaire_for_dossier(dossier)
+        # beneficiaire = get_beneficiaire_for_dossier(dossier)
+        #  Demandeur
+        demandeur = get_demandeur_for_dossier(dossier)
 
         # Messages non lus
         nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
@@ -311,7 +322,8 @@ def instruction_demarche(request, num_demarche):
             "nom_dossier": dossier.nom_dossier,
             "obj_doss": dossier,
             "numero": dossier.numero,
-            "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            "demandeur": demandeur,
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier.etape else "Non défini",
@@ -341,8 +353,10 @@ def instruction_demarche(request, num_demarche):
     for dossier in dossiers_archives:
 
         # Bénéficiaire
-        beneficiaire = get_beneficiaire_for_dossier(dossier)
+        # beneficiaire = get_beneficiaire_for_dossier(dossier)
 
+        #  Demandeur
+        demandeur = get_demandeur_for_dossier(dossier)
 
         # Messages non lus
         nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
@@ -351,7 +365,8 @@ def instruction_demarche(request, num_demarche):
             "nom_dossier": dossier.nom_dossier,
             "obj_doss": dossier,
             "numero": dossier.numero,
-            "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
+            "demandeur": demandeur,
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",

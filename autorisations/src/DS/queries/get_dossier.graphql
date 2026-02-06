@@ -38,6 +38,7 @@ query dossier($number: Int!) {
                     titre
                 }
                 siret
+                libelleNaf
                 address {
                     cityName
                 }

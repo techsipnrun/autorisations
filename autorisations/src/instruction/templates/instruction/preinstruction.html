@@ -74,7 +74,7 @@
                     <td class="td_demarche">{{ d.demarche }}</td>
                     <td>{{ d.date_depot }}</td>
                     <td>{{ d.demandeur }}</td>
-                    <td>{{ d.nom_projet }}</td>
+                    <td>{{ d.nom_projet|truncatechars:40 }}</td>
                     <td>{{ d.numero }}</td>
                 </tr>
             {% empty %}

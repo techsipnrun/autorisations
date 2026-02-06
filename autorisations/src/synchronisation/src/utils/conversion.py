@@ -158,7 +158,10 @@ def formater_nom_personne_morale(data: Dict, doss = None) -> str:
     if data.get("association") :
         titre = data.get("association", {}).get("titre", "")
 
-    nom = raison or nom_entreprise or titre
+    libelle_naf = data.get("libelleNaf")
+
+    nom = raison or nom_entreprise or titre or libelle_naf
+
     if not nom :
-        loggerSynchro.error(f"Impossible d'identifier la personne morale du dossier {doss['number']} : Pas de raison sociale, pas de nom d'entreprise, pas de titre d'association ")
+        loggerSynchro.error(f"Impossible d'identifier la personne morale du dossier {doss['number']} : Pas de raison sociale, pas de nom d'entreprise, pas de titre d'association, pas de libellé Naf")
     return nom.strip().lower().replace(" ", "_")
