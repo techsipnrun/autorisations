@@ -86,6 +86,7 @@
                         <tr>
                             <th>Nom</th>
                             <th>Prénom</th>
+                            <th>Type</th>
                             <th class="th_email2">Email</th>
                             <th>Organisation / Raison sociale</th>
                             <th>Téléphone</th>
@@ -102,6 +103,7 @@
                                 <input type="hidden" name="id" value="{{ c.id }}">
                                 <td><input type="text" name="nom" value="{{ c.nom }}"></td>
                                 <td><input type="text" name="prenom" value="{{ c.prenom }}"></td>
+                                <td><input type="text" name="type" value="{{ c.id_type.type }}"></td>
                                 <td class="td_email2"><input type="email" name="email" value="{{ c.email }}"></td>
                                 <td><input type="text" name="raison_sociale" value="{{ c.raison_sociale }}"></td>
                                 <td><input type="text" name="telephone" value="{{ c.telephone }}"></td>

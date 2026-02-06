@@ -77,7 +77,7 @@
             <tr>
                 <th>Dossier</th>
                 <th>Numéro</th>
-                <th>Bénéficiaire</th>
+                <th>Demandeur</th>
                 <th>Reçu le</th>
                 <th>Groupe Instructeur</th>
                 <th>Étape</th>
@@ -98,7 +98,7 @@
                     </td>
                     <!-- <td>{{ d.type }}</td> -->
                     <td>{{ d.numero }}</td>
-                    <td>{{ d.beneficiaire }}</td>
+                    <td>{{ d.demandeur }}</td>
                     <td>{{ d.date_depot|date:"d/m/Y" }}</td>
                     <td>{{ d.groupe }}</td>
                     <td {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
@@ -143,7 +143,7 @@
                     <tr>
                         <th>Dossier</th>
                         <th>Numéro</th>
-                        <th>Bénéficiaire</th>
+                        <th>Demandeur</th>
                         <th>Déposé le</th>
                         <th>Groupe Instructeur</th>
                         <th>Étape</th>
@@ -160,10 +160,10 @@
                                         <div class="pastille_nouv_mess">{{d.nb_messages_non_lus}}</div>
                                     </div>
                                 {% endif %}
-                                {{ d.nom_dossier }}
+                                {{ d.nom_dossier|truncatechars:40 }}
                             </td>
                             <td>{{ d.numero }}</td>
-                            <td>{{ d.beneficiaire }}</td>
+                            <td>{{ d.demandeur }}</td>
                             <td>{{ d.date_depot|date:"d/m/Y" }}</td>
                             <td>{{ d.groupe }}</td>
                             <td {% if d.action_a_faire %} title="Nouveau message sur le dossier archivé" {% endif %}>

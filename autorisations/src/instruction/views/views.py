@@ -1172,14 +1172,12 @@ def mes_avis_action_a_faire(request):
     # ----------------------------------------------------------
     if expert:
         # (a) Avis à rendre → favorable is null
-        nb_avis_a_rendre = Avis.objects.filter(id_expert=expert, favorable__isnull=True)
+        nb_avis_a_rendre = Avis.objects.filter(id_expert=expert, favorable__isnull=True, statut="Envoyé")
 
         liste_avis_avec_action_a_faire.extend(nb_avis_a_rendre)
 
         # (b) Avis rendus avec messages non lus dont il n’est pas l’émetteur
-        avis_rendus = Avis.objects.filter(
-            id_expert=expert, favorable__isnull=False
-        )
+        avis_rendus = Avis.objects.filter(id_expert=expert, favorable__isnull=False, statut="Envoyé")
         for avis in avis_rendus:
             nb_non_lus = Message.objects.filter(
                 id_avis=avis, lu=False
@@ -1195,7 +1193,7 @@ def mes_avis_action_a_faire(request):
     # 3️⃣ Cas où l’utilisateur est DEMANDEUR d’avis
     # ----------------------------------------------------------
     if instructeur:
-        avis_demandes = Avis.objects.filter(id_instructeur=instructeur)
+        avis_demandes = Avis.objects.filter(id_instructeur=instructeur, statut="Envoyé")
         for avis in avis_demandes:
             # récupérer l’adresse mail de l’expert associé
             if avis.id_expert.est_interne:

@@ -209,6 +209,9 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
     """
     dossiers_a_traiter_ids = set()
 
+    # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
+    dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
+
     for dossier in dossiers:
         etape = dossier.id_etape_dossier.etape if dossier.id_etape_dossier else None
 

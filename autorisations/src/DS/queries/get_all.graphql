@@ -53,6 +53,7 @@ query demarche($number: Int!) {
               association {
                 titre
               }
+              libelleNaf
               siret
               address {
                 cityName

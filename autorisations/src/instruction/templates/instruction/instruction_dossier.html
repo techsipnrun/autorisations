@@ -1374,7 +1374,14 @@ En conséquence, la demande est refusée.</textarea>
                                 <p><strong>Email</strong> : {{ beneficiaire.email }}</p>
                             {% endif %}
                             {% if beneficiaire.siret %}
-                                <p><strong>N° SIRET</strong> : {{ beneficiaire.siret }}</p>
+                               
+                            <div class="siret_insee">
+                                <strong>N° SIRET</strong> : {{ beneficiaire.siret }}
+                                <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{beneficiaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
+                                    <img src="{% static 'instruction/img/lien-externe.png' %}" alt="">
+                                </a>
+                            </div>
+        
                             {% endif %}
                             {% if beneficiaire.raison_sociale %}
                                 <p><strong>Raison Sociale</strong> : {{ beneficiaire.raison_sociale|capfirst }}</p>
@@ -1396,7 +1403,13 @@ En conséquence, la demande est refusée.</textarea>
                                 <p><strong>Email</strong> : {{ demandeur_intermediaire.email }}</p>
                             {% endif %}
                             {% if demandeur_intermediaire.siret %}
-                                <p><strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}</p>
+                                <!-- <p><strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}</p> -->
+                                <div class="siret_insee">
+                                    <strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}
+                                    <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{demandeur_intermediaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
+                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="">
+                                    </a>
+                                </div>
                             {% endif %}
                             {% if demandeur_intermediaire.raison_sociale %}
                                 <p><strong>Raison Sociale</strong> : {{ demandeur_intermediaire.raison_sociale|capfirst }}</p>

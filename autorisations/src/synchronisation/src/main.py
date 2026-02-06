@@ -16,7 +16,6 @@ def lancer_normalisation_et_synchronisation():
     logger.info("LANCEMENT SYNCHRONISATION \n")
     
     numeros_demarche = get_number_demarche_Postgres()
-    # numeros_demarche = [118640]
     dico_notifs = {}
     success = True  # <-- suivi du statut global
 
@@ -28,6 +27,8 @@ def lancer_normalisation_et_synchronisation():
                 logger.info('')
                 logger.info('')
                 if demarche_obj.type.lower() == 'manifestations sportives':
+                    # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
+                    continue
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} (Démarches Simplifiées) ######")
                 else:
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} ######")

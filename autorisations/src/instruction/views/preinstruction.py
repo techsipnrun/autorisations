@@ -10,7 +10,7 @@ from autorisations.models.models_instruction import Demarche, Dossier, DossierAc
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
-from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, redirect_error, safe_enregistrer_action
+from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
@@ -51,17 +51,20 @@ def preinstruction(request):
 
         # Chercher le demandeur via DossierInterlocuteur
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
-        demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
+        # demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
+
+        demandeur = get_demandeur_for_dossier(dossier)
         
-        # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés 
-        if not demandeur or not(demandeur.prenom and demandeur.nom):
-            benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-            demandeur = benef.id_beneficiaire if benef else None
+        # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés
+        # if not demandeur or not(demandeur.prenom and demandeur.nom):
+        #     benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
+        #     demandeur = benef.id_beneficiaire if benef else None
 
         dossier_infos.append({
             "demarche": dossier.id_demarche.type,
             "date_depot": dossier.date_depot,
-            "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
+            # "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
+            "demandeur": demandeur,
             "nom_projet": dossier.nom_dossier,
             "numero": dossier.numero,
             "action_a_faire": True if dossier in dossiers_actions else False

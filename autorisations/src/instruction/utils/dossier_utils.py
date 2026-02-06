@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 from autorisations.models.models_instruction import Dossier, DossierAction, Message
 from django.contrib import messages
 
-from autorisations.models.models_utilisateurs import DossierBeneficiaire
+from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur
 from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -156,6 +156,40 @@ def get_beneficiaire_for_dossier(dossier):
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la récupération du Bénéficiaire : {e}")
         return None
+    
+
+def get_demandeur_for_dossier(dossier):
+    """
+    Retourne l'objet ContactExterne demandeur d'un dossier (ou None).
+    Règle :
+      - si un demandeur intermédiaire existe → on le retourne
+      - sinon → le demandeur est le bénéficiaire
+    """
+    try:
+        interlocuteur = (
+            DossierInterlocuteur.objects
+            .select_related("id_demandeur_intermediaire")
+            .filter(id_dossier=dossier)
+            .first()
+        )
+
+        # 1) Demandeur intermédiaire prioritaire
+        if interlocuteur and interlocuteur.id_demandeur_intermediaire:
+            return interlocuteur.id_demandeur_intermediaire
+
+        # 2) Sinon : demandeur = bénéficiaire
+        benef = (
+            DossierBeneficiaire.objects
+            .select_related("id_beneficiaire", "id_dossier_interlocuteur")
+            .filter(id_dossier_interlocuteur__id_dossier=dossier)
+            .first()
+        )
+        return benef.id_beneficiaire if benef else None
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la récupération du Demandeur : {e}")
+        return None
+
 
 
 

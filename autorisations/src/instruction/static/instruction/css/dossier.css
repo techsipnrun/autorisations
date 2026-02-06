@@ -95,6 +95,24 @@
     color: #222;
 }
 
+.siret_insee {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.4rem 0;
+}
+
+.siret_insee img {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.siret_insee img:hover {
+    transform: scale(1.2);
+}
+
+
 h1 {
     color: #006131;
     text-align: center;

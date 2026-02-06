@@ -13,13 +13,10 @@ def sync_contacts_externes(contacts_externes):
     }
     """
 
-
     result_ids = {
         "beneficiaire": None,
         "demandeur_intermediaire": None
     }
-
-    
 
     for role, data in contacts_externes.items():
         if not data:

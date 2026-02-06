@@ -147,13 +147,22 @@ def formater_nom_personne_morale(data: Dict, doss = None) -> str:
     Returns:
         str: Nom formaté (ex: "sarl_toto", "les_amis_du_parc"), ou chaîne vide si aucun nom trouvé.
     """
-    raison = data.get("entreprise", {}).get("raisonSociale", "")
-    if data["entreprise"] :
-        nom_entreprise = data.get("entreprise", {}).get("nom", "")
-    if data["association"] :
+
+    entreprise = data.get("entreprise", {})
+    nom_entreprise = ""
+    raison = ""
+    if entreprise :
+        raison = entreprise.get("raisonSociale", "")
+        nom_entreprise = entreprise.get("nom", "")
+
+    titre = ""
+    if data.get("association") :
         titre = data.get("association", {}).get("titre", "")
 
-    nom = raison or nom_entreprise or titre
+    libelle_naf = data.get("libelleNaf")
+
+    nom = raison or nom_entreprise or titre or libelle_naf
+
     if not nom :
-        loggerSynchro.error(f"Impossible d'identifier la personne morale du dossier {doss['number']} : Pas de raison sociale, pas de nom d'entreprise, pas de titre d'association ")
+        loggerSynchro.error(f"Impossible d'identifier la personne morale du dossier {doss['number']} : Pas de raison sociale, pas de nom d'entreprise, pas de titre d'association, pas de libellé Naf")
     return nom.strip().lower().replace(" ", "_")
