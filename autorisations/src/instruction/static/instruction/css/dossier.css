@@ -279,6 +279,7 @@ h2 {
 /* ----------------------------------- */
 .carte-container {
     position: relative;
+    margin-bottom: 1.5rem;
 }
 
 .leaflet-container {
