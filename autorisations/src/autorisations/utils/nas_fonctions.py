@@ -66,17 +66,22 @@ def ecrire_file_sur_nas(source, chemin_destination):
                 for chunk in source.chunks():
                     dst.write(chunk)
             loggerApp.info(f"[NAS] ✅ Fichier {source.name} écrit sur {chemin_destination}")
+            src_label = source.name
 
         elif isinstance(source, str):
             # ✅ Cas 2 : Chemin local
+            src_label = os.path.basename(source)
+
             if not smbclient.path.exists(source):
                 loggerApp.error(f"[NAS] ❌ Le fichier local n'existe pas : {source}")
                 return False
-
-            with open(source, "rb") as src, smbclient.open_file(chemin_destination, mode="wb") as dst:
+            
+            with smbclient.open_file(source, "rb") as src, smbclient.open_file(chemin_destination, "wb") as dst:
                 for chunk in iter(lambda: src.read(4096), b""):
                     dst.write(chunk)
-            loggerApp.info(f"[NAS] ✅ Fichier {source.name} écrit sur {chemin_destination}")
+
+
+            loggerApp.info(f"[NAS] ✅ Fichier {src_label} écrit sur {chemin_destination}")
 
         else:
             loggerApp.error(f"[NAS] ⚠️ Type de source non supporté : {type(source)}. La fonction 'ecrire_file_sur_nas' n'accepte que des UploadedFile ou des String (= path complet du fichier)")
@@ -86,15 +91,15 @@ def ecrire_file_sur_nas(source, chemin_destination):
 
     # --- Gestion des erreurs spécifiques ---
     except smb_exceptions.LogonFailure as e:
-        loggerApp.error(f"[NAS] ❌ Échec d’authentification SMB (admin_auto) lors de l'écriture du fichier {source.name} : {e}")
+        loggerApp.error(f"[NAS] ❌ Échec d’authentification SMB (admin_auto) lors de l'écriture du fichier {src_label} : {e}")
     except smb_exceptions.SMBOSError as e:
-        loggerApp.error(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {source.name} : {e}")
+        loggerApp.error(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {src_label} : {e}")
     except PermissionError as e:
         loggerApp.error(f"[NAS] ⛔ Permission refusée sur {chemin_destination} : {e}")
     except FileNotFoundError as e:
-        loggerApp.error(f"[NAS] ❌ Fichier source {source.name} introuvable : {e}")
+        loggerApp.error(f"[NAS] ❌ Fichier source {src_label} introuvable : {e}")
     except Exception as e:
-        loggerApp.exception(f"[NAS] ⚠️ Erreur inattendue lors de l’écriture du fichier {source.name} : {e}")
+        loggerApp.exception(f"[NAS] ⚠️ Erreur inattendue lors de l’écriture du fichier {src_label} : {e}")
 
     return False
 
