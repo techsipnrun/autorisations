@@ -39,7 +39,10 @@ def avis(request):
     
     # --- Année sélectionnée ---
     current_year = datetime.date.today().year
-    selected_year = int(request.GET.get("annee", current_year))
+    # selected_year = int(request.GET.get("annee", current_year))
+
+    selected_year_expert = int(request.GET.get("annee", current_year))
+    selected_year_demandeur = int(request.GET.get("annee_demandeur", current_year))
 
 
     # =============================
@@ -59,7 +62,7 @@ def avis(request):
 
         # Avis archivés de l’année
         avis_rendus = (
-            Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year, statut="Envoyé")
+            Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year_expert, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
             .order_by("-date_reponse_avis")
         )
@@ -90,7 +93,7 @@ def avis(request):
                             ).select_related("id_demarche", "id_dossier", "id_expert", "id_avis_nature").order_by("-date_demande_avis")
 
         # Demandes traitées
-        demandes_traitees = Avis.objects.filter(id_instructeur=instructeur,favorable__isnull=False,date_reponse_avis__year=selected_year, statut="Envoyé"
+        demandes_traitees = Avis.objects.filter(id_instructeur=instructeur,favorable__isnull=False,date_reponse_avis__year=selected_year_demandeur, statut="Envoyé"
                             ).select_related(
                                 "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
                             ).order_by("-date_reponse_avis")
@@ -122,7 +125,8 @@ def avis(request):
         request,
         "instruction/avis.html",
         {
-            "annee_selectionnee": selected_year,
+            "annee_selectionnee": selected_year_expert,
+            "annee_selectionnee_demandeur": selected_year_demandeur,
             # Expert
             "avis_a_rendre": avis_a_rendre,
             "avis_rendus": avis_rendus,
