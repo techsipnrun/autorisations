@@ -42,6 +42,7 @@ def avis(request):
     # selected_year = int(request.GET.get("annee", current_year))
 
     selected_year_expert = int(request.GET.get("annee", current_year))
+    print(selected_year_expert)
     selected_year_demandeur = int(request.GET.get("annee_demandeur", current_year))
 
 
@@ -68,10 +69,14 @@ def avis(request):
         )
 
         # Années disponibles
-        annees_disponibles_expert = Avis.objects.filter(
-            id_expert=expert, date_reponse_avis__isnull=False
-        ).dates("date_reponse_avis", "year", order="DESC")
+        annees_disponibles_expert = list(
+            Avis.objects.filter(id_expert=expert, date_reponse_avis__isnull=False)
+            .dates("date_reponse_avis", "year", order="DESC")
+        )
 
+        # Ajoute l'année courante si absente
+        if not any(d.year == current_year for d in annees_disponibles_expert):
+            annees_disponibles_expert.insert(0, datetime.date(current_year, 1, 1))
 
         # Messages non lus en tant qu'expert
         for liste_avis in [avis_a_rendre, avis_rendus]:
@@ -106,9 +111,13 @@ def avis(request):
 
 
         # Années disponibles
-        annees_disponibles_demandeur = Avis.objects.filter(
-            id_instructeur=instructeur, date_reponse_avis__isnull=False
-        ).dates("date_reponse_avis", "year", order="DESC")
+        annees_disponibles_demandeur = list(
+            Avis.objects.filter(id_instructeur=instructeur, date_reponse_avis__isnull=False)
+            .dates("date_reponse_avis", "year", order="DESC")
+        )
+
+        if not any(d.year == current_year for d in annees_disponibles_demandeur):
+            annees_disponibles_demandeur.insert(0, datetime.date(current_year, 1, 1))
 
 
         # Messages non lus en tant que demandeur
