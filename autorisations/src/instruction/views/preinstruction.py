@@ -170,6 +170,8 @@ def preinstruction(request):
         reverse=True
     )
 
+    
+
     return render(request, 'instruction/preinstruction.html', {
         "dossier_infos": dossier_infos,
         "num_demarche_manif_sportive": num_demarche_manif_sportive,
@@ -177,6 +179,7 @@ def preinstruction(request):
         "dossiers_manif_sportive_DS_infos": dossiers_manif_sportive_DS_infos,
         "dossiers_manif_sportive_complet": dossiers_manif_sportive_complet_list,
         "instructeur": instructeur,
+        "django_env" : settings.ENVIRONMENT,
         })
 
 
