@@ -104,11 +104,13 @@
 
                     <form method="get" class="form-annee-archives">
                         <label for="annee-select">Année :</label>
-                        <select name="annee" id="annee-select" onchange="this.form.submit()">
+                        <select name="annee" id="annee-select" onchange="submitWithScroll(this.form)">
                             {% for annee in annees_disponibles_expert %}
-                                <option value="{{ annee }}" {% if annee == annee_selectionnee %}selected{% endif %}>
+                                <option value="{{ annee.year }}" {% if annee.year == annee_selectionnee %}selected{% endif %}>
                                     {{ annee.year }}
                                 </option>
+
+
                             {% endfor %}
                         </select>
                     </form>
@@ -256,7 +258,7 @@
 
                     <form method="get" class="form-annee-archives">
                         <label for="annee-demandeur">Année :</label>
-                        <select name="annee_demandeur" id="annee-demandeur" onchange="this.form.submit()">
+                        <select name="annee_demandeur" id="annee-demandeur" onchange="submitWithScroll(this.form)">
                             {% for annee in annees_disponibles_demandeur %}
                                 <option value="{{ annee.year }}" {% if annee.year == annee_selectionnee_demandeur %}selected{% endif %}>
                                     {{ annee.year }}
@@ -400,6 +402,23 @@
             });
         });
     </script>
+
+    <script>
+        function submitWithScroll(form) {
+            localStorage.setItem("scrollY", String(window.scrollY));
+            form.submit();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const scrollY = localStorage.getItem("scrollY");
+            if (scrollY !== null) {
+                window.scrollTo(0, parseInt(scrollY, 10));
+                localStorage.removeItem("scrollY");
+            }
+        });
+    </script>
+
+
 
 </body>
 </html>
