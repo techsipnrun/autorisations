@@ -488,7 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const pk = props.pk ?? props.parcours_pk ?? props.parcours_id ?? null;
         const name = props.name ?? props.parcours_name ?? props.parcours ?? null;
 
-        const key = (pk && name) ? `${name}` : (name ? String(name) : "Course inconnue");
+        const key = (pk && name) ? `${name}` : (name ? String(name) : "Course");
 
         if (!featuresByCourse.has(key)) featuresByCourse.set(key, []);
         featuresByCourse.get(key).push(f);

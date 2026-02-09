@@ -85,7 +85,7 @@
         </tbody>  
     </table>
 
-    {% if request.user.is_superuser %}
+    {% if request.user.is_superuser and django_env == "dev" %}
         <div class="manif-sportive">
 
             <h1>Les demandes de Manifestations Sportives</h1>
