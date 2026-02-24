@@ -309,7 +309,16 @@
                                     {% for bloc in champ.valeur %}
                                     <div class="un_bloc">
                                         {% for ligne in bloc %}
-                                            <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p>
+                                            <!-- <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p> -->
+
+                                            {% if ligne.valeur == 'true' %}
+                                                <p><strong>{{ ligne.nom }}</strong> : Oui</p>
+                                            {% elif ligne.valeur == 'false' %}
+                                                <p><strong>{{ ligne.nom }}</strong> : Non</p>
+                                            {% else %}
+                                                <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p>
+                                            {% endif %}
+
                                         {% endfor %}
                                     </div>
                                     {% endfor %}
