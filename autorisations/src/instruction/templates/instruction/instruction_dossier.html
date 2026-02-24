@@ -1504,11 +1504,21 @@ En conséquence, la demande est refusée.</textarea>
                             <h4>{{ champ.nom }}</h4>
                             {% if champ.valeur != "Non renseigné" %}
                                     {% for bloc in champ.valeur %}
-                                    <div class="un_bloc">
-                                        {% for ligne in bloc %}
-                                            <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p>
-                                        {% endfor %}
-                                    </div>
+                                        <div class="un_bloc">
+                                            {% for ligne in bloc %}
+                                                <!-- <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p> -->
+
+                                                {% if ligne.valeur == 'true' %}
+                                                    <p><strong>{{ ligne.nom }}</strong> : Oui</p>
+                                                {% elif ligne.valeur == 'false' %}
+                                                    <p><strong>{{ ligne.nom }}</strong> : Non</p>
+                                                {% else %}
+                                                    <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p>
+                                                {% endif %}
+
+
+                                            {% endfor %}
+                                        </div>
                                     {% endfor %}
                             {% else %}
                                 <p><em>Non renseigné</em></p>

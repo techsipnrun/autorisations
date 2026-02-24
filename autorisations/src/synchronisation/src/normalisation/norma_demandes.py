@@ -121,7 +121,7 @@ def demande_normalize(demarche_id, demarche_title, doss):
     '''
     La mission est réalisée dans le cadre de travaux, ou prévoit l'utilisation d'un drone ou d'un hélicoptère, ou prévoit la réalisation d'une prise de vue OUI/NON
         - La mission prévoit l’utilisation d’un drone
-        - Un survol motorisé (en hélicoptères, ULM, petits avions, etc.) en cœur de Parc national est-il prévu dans le cadre de la mission scientifique
+        - Un survol motorisé (en hélicoptères, ULM, petits avions, etc.) en cœur de parc national est-il prévu dans le cadre de la mission scientifique
         - La mission prévoit la réalisation de prises de vue ou de son
         - La mission implique la réalisation de travaux
     '''
@@ -140,7 +140,7 @@ def demande_normalize(demarche_id, demarche_title, doss):
                         "date_fin_instruction": parse_datetime_with_tz(doss["dateTraitement"]),
                     }) 
 
-            # Un survol motorisé (en hélicoptères, ULM, petits avions, etc.) en cœur de Parc national est-il prévu dans le cadre de la mission scientifique
+            # Un survol motorisé (en hélicoptères, ULM, petits avions, etc.) en cœur de parc national est-il prévu dans le cadre de la mission scientifique
             if c['id'] == 'Q2hhbXAtNTIwNjU4MA==' : 
                 if c['stringValue']=='true':
 
