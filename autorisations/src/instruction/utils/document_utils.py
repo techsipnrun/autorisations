@@ -79,7 +79,7 @@ def build_documents_for_dossier(dossier):
     # Indicateur "délibération CA en cours"
     delibCA = any(
         dd.id_document.id_nature.nature.lower() == "déliberation ca"
-        and dd.id_document.id_statut
+        and dd.id_document.id_statut and dd.id_document.id_statut.statut != "Envoyé"
         for dd in docs_du_dossier
     )
 

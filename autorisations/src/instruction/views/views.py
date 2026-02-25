@@ -1554,7 +1554,7 @@ def gestion_groupes(request):
         groupes = [g for g in groupes if user in g.user_set.all()]
 
 
-    users = User.objects.all()
+    users = User.objects.all().order_by('username')
 
     # Séparation des groupes
     groupes_saadd = [g for g in groupes if "SAADD" in g.name.upper()]
@@ -1579,7 +1579,7 @@ def gestion_groupes(request):
     }
 
     # instructeurs = Instructeur.objects.select_related("id_agent_autorisations").all()
-    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
+    instructeurs = Instructeur.objects.select_related("id_agent_autorisations").order_by("id_agent_autorisations__prenom", "id_agent_autorisations__nom")
 
 
     return render(request, "instruction/gestion_groupes.html", {

@@ -77,13 +77,13 @@
                         <textarea id="note_demandeur" name="note_demandeur" rows="2" placeholder="Note libre pour le demandeur...">{{ avis.note|default_if_none:"" }}</textarea>
                     </div>
 
-                    <div class="attribut_avis">
+                    <div class="attribut_avis" title="Si vous souhaitez ajouter une demande d'avis faite en dehors de l'application, vous devez aller dans la rubrique : + Ajouter un avis existant">
                         <label>Mode de contact* :</label>
                         <select id="mode_contact" name="mode_contact" required>
                             <option value="Application" {% if avis and avis.mode_contact == "Application" %}selected{% endif %}>Via l'application</option>
-                            <option value="Courrier papier" {% if avis and avis.mode_contact == "Courrier papier" %}selected{% endif %}>Courrier papier</option>
+                            <!-- <option value="Courrier papier" {% if avis and avis.mode_contact == "Courrier papier" %}selected{% endif %}>Courrier papier</option>
                             <option value="Téléphone" {% if avis and avis.mode_contact == "Téléphone" %}selected{% endif %}>Téléphone</option>
-                            <option value="Mail" {% if avis and avis.mode_contact == "Mail" %}selected{% endif %}>Mail</option>
+                            <option value="Mail" {% if avis and avis.mode_contact == "Mail" %}selected{% endif %}>Mail</option> -->
                         </select>
 
                     </div>
