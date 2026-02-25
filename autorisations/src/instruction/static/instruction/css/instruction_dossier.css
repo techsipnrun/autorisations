@@ -161,6 +161,11 @@
     margin-left: 0.8rem;
 }
 
+.nature_du_doc {
+    display: flex;
+    gap: 0.7rem;
+}
+
 
 
 /* ------------------------------------------------ */

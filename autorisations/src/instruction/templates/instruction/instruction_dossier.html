@@ -144,8 +144,8 @@
                                             {% elif label == "Faire valider le projet d'acte" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Faire valider le projet d'acte</button>
                                             
-                                            {% elif label == "Faire valider une demande d'avis" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider une demande d'avis</button>
+                                            {% elif label == "Faire valider avant l'envoi d'une demande d'avis à une instance" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider avant l'envoi d'une demande d'avis à une instance</button>
                                             
                                             {% elif label == "Valider et envoyer pour relecture qualité" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
@@ -500,7 +500,7 @@
                             <label>Nature du document :</label>
                             <select name="nature_document" id="nature_doc_signe" required>
                                 <option value="{{ doc_a_signer.0.id_nature.nature }}" selected>{{ doc_a_signer.0.id_nature.nature }}</option>
-                                {% if doc_a_signer.0.id_nature.nature !=  "Arrêté directeur" %}
+                                <!-- {% if doc_a_signer.0.id_nature.nature !=  "Arrêté directeur" %}
                                     <option value="Arrêté directeur">Arrêté directeur</option>
                                 {% endif %}
                                 {% if doc_a_signer.0.id_nature.nature !=  "Déliberation CA" %}
@@ -511,7 +511,7 @@
                                 {% endif %}
                                 {% if doc_a_signer.0.id_nature.nature !=  "Avis conforme" %}
                                     <option value="Avis conforme">Avis conforme</option>
-                                {% endif %}
+                                {% endif %} -->
                                 
                             </select>
                         </div>
@@ -611,7 +611,6 @@
                                 </div>
                             {% endif %}
 
-                            <!-- <p class="hint-text">📁 Merci de sélectionner un fichier <strong>PDF</strong> situé dans le dossier <strong>Work</strong>.</p> -->
                             <div class="envoi-pour-validation-avant-signature">
                                 <button type="button" class="btn-envoyer-complement" onclick="confirmerSignature()">Confirmer que l'acte signé est prêt à l'envoi</button>
                             </div>
@@ -627,14 +626,22 @@
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
 
-                        <label for="nature_document">Nature du document :</label>
-                        <select name="nature_document" id="nature_document" required>
+                        <div class="nature_du_doc">
+                            <label for="nature_document">Nature du document :</label>
+                            <p class="valeur-fixe">
+                                {{ doc_a_envoyer.0.id_nature.nature }}
+                            </p>
+                        </div>
+
+                        <input type="hidden" name="nature_document" value="{{ doc_a_envoyer.0.id_nature.nature }}">
+
+                        <!-- <select name="nature_document" id="nature_document" required>
                             <option value="Avis conforme" {% if doc_a_envoyer.0.id_nature.nature == "Avis conforme" %}selected{% endif %}>Avis conforme</option>
                             <option value="Avis simple" {% if doc_a_envoyer.0.id_nature.nature == "Avis simple" %}selected{% endif %}>Avis simple</option>
                             <option value="Déliberation CA" {% if doc_a_envoyer.0.id_nature.nature == "Déliberation CA" %}selected{% endif %}>Déliberation CA</option>
                             <option value="Arrêté directeur" {% if doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}selected{% endif %}>Arrêté directeur</option>
 
-                        </select>
+                        </select> -->
                         <div class="msg_pour_peti">
                             <label>Message pour le pétitionnaire :</label>
                             <div class="mail_entier">
@@ -804,7 +811,7 @@ Bonne réception.</textarea>
                                         Cordialement, <br><br>
                                         Le Parc national de La Réunion <br>
                                         258 rue de la République 97431 La Plaine-des-Palmistes <br>
-                                        Tél : +262 (0)2 62 90 16 85 – Mobile : +262 (0)6 92 32 90 33 <br>
+                                        Tél : +262 (0)2 62 90 11 35 <br>
                                         www.reunion-parcnational.fr
                                     </div>
                                 </div>
@@ -2666,10 +2673,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const confirmInput = document.getElementById("confirm-ecrasement");
             const documentTitre = "{{ doc_a_envoyer.0.titre }}";  // fourni côté template
 
-            if (!select.value) {
-                alert("Veuillez sélectionner une nature de document.");
-                return;
-            }
+            // if (!select.value) {
+            //     alert("Veuillez sélectionner une nature de document.");
+            //     return;
+            // }
 
             // Vérifie si le titre existe dans la liste injectée depuis Django
             const titresExistants = JSON.parse(document.getElementById("titres-docs-actes").textContent);
@@ -2814,6 +2821,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
         function confirmerSignature() {
 
             const select = document.getElementById("nature_doc_signe");
+            const rappCA = document.getElementById("pj_rapport_CA");
             const signataire = document.getElementById("choix-signataire");
             const fichierInput = document.getElementById("pj_signe");
             const fichier = fichierInput.files[0];
@@ -2845,8 +2853,17 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 return;
             }
 
-            if (confirm("Confirmez-vous que l'acte est bien signé ?")) {
-                document.querySelector('#formulaire-acte-pret form').submit();
+            if (rappCA) {
+                if (confirm("Confirmez-vous que l'acte est bien signé et qu'il a été publié au RAA ?")) {
+                    document.querySelector('#formulaire-acte-pret form').submit();
+                }
+            }
+
+            if (!rappCA) {
+
+                if (confirm("Confirmez-vous que l'acte est bien signé ?")) {
+                    document.querySelector('#formulaire-acte-pret form').submit();
+                }
             }
         }
 

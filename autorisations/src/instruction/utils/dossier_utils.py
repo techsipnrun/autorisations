@@ -287,7 +287,7 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
             "En attente de compléments": ["Passer en instruction"],
 
             "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
-                            "Classer le dossier comme refusé", "Faire valider une demande d'avis",
+                            "Classer le dossier comme refusé", "Faire valider avant l'envoi d'une demande d'avis à une instance",
                             "Faire valider le projet d'acte"],
 
             "À valider avant demande d'avis": ["Repasser en instruction",

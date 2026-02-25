@@ -106,7 +106,7 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="d_type_demarche">Type de démarche :</label>
+                    <label for="d_type_demarche">Type de dossier :</label>
                 <select name="d_type_demarche" id="d_type_demarche">
                         <option value="" {% if not request.GET.type_demarche %}selected{% endif %}> - - - </option>
                         {% for d in demarches %}
@@ -283,7 +283,7 @@
             </div>
 
             <div class="form-field">
-                <label for="a_type_demarche">Type de démarche :</label>
+                <label for="a_type_demarche">Type de dossier :</label>
                 <select name="a_type_demarche" id="a_type_demarche">
                     <option value=""> - - - </option>
                     {% for d in demarches %}
