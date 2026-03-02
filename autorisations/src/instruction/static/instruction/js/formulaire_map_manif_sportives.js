@@ -169,7 +169,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 {
                     maxZoom: 19,
                     tileSize: 256,
-                    attribution: "© IGN - Géoplateforme"
+                    attribution: "© IGN - Géoplateforme",
+                    // perf
+                    updateWhenZooming: false,
+                    updateWhenIdle: true,
+                    keepBuffer: 2,
                 }
             )
 
