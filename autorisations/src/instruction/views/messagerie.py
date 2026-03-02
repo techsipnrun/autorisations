@@ -294,7 +294,7 @@ def envoyer_message_dossier(request, numero):
     
     if not dossier.id_ds :
         logger.error(f"[DOSSIER {numero}] Erreur envoi du message par {request.user} : id_ds manquant — impossible d’envoyer le message DS.")
-        return redirect_error(request, "❌ Échec de l'envoi du message. L'id Démarches Simplifiées du dossier est introuvable. Contactez le support.")
+        return redirect_error(request, "❌ Échec de l'envoi du message. L'id Démarche Numérique du dossier est introuvable. Contactez le support.")
     
     # Vérification taille fichier (20 Mo max)
     if fichier and fichier.size > 20 * 1024 * 1024:
@@ -330,7 +330,7 @@ def envoyer_message_dossier(request, numero):
 
         if not dossier_env or not dossier_env.get("message"):
             logger.error(f"[DOSSIER {numero}] Erreur lors de l'envoi d'un message sur DS par {request.user}.")
-            return redirect_error(request, "❌ Erreur lors de l'envoi du message sur Démarches Simplifiées. Contactez le support")
+            return redirect_error(request, "❌ Erreur lors de l'envoi du message sur Démarche Numérique. Contactez le support")
 
         msg_ds = dossier_env["message"]
         msg_id_ds = msg_ds.get("id")
@@ -341,7 +341,7 @@ def envoyer_message_dossier(request, numero):
 
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'envoi d'un message sur DS par {request.user} : {e}")
-        return redirect_error(request, "❌ Erreur lors de l'envoi du message sur Démarches Simplifiées. Contactez le support")
+        return redirect_error(request, "❌ Erreur lors de l'envoi du message sur Démarche Numérique. Contactez le support")
     
     finally:
         if tmp_file_path and os.path.exists(tmp_file_path):
@@ -388,7 +388,7 @@ def supprimer_message(request, id):
 
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] Échec suppression DS du message {id} par {request.user} : {e}")
-        return redirect_error(request, "❌ Erreur lors de la suppression du message sur Démarches Simplifiées. Contactez le support.")
+        return redirect_error(request, "❌ Erreur lors de la suppression du message sur Démarche Numérique. Contactez le support.")
     
 
     # ------------------------
@@ -515,7 +515,7 @@ def actualiser_messages(request, numero):
 
     except Exception as e:
         logger.error(f"[DOSSIER {numero}] Échec requête DS pour actualisation messages — User {request.user} : {e}")
-        return redirect_error(request,"❌ Erreur lors de la récupération des messages sur Démarches Simplifiées. Contactez le support.")
+        return redirect_error(request,"❌ Erreur lors de la récupération des messages sur Démarche Numérique. Contactez le support.")
        
     # Normalisation
     try :
@@ -525,7 +525,7 @@ def actualiser_messages(request, numero):
         
     except Exception as e:
         logger.error(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user} - Erreur lors de normalisation des messages récupérés sur DS : {e}")
-        return redirect_error(request,"❌ Erreur lors de la normalisation des messages récupérés sur Démarches Simplifiées. Contactez le support.")
+        return redirect_error(request,"❌ Erreur lors de la normalisation des messages récupérés sur Démarche Numérique. Contactez le support.")
     
 
     # Synchronisation

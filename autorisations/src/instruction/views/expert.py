@@ -42,7 +42,6 @@ def avis(request):
     # selected_year = int(request.GET.get("annee", current_year))
 
     selected_year_expert = int(request.GET.get("annee", current_year))
-    print(selected_year_expert)
     selected_year_demandeur = int(request.GET.get("annee_demandeur", current_year))
 
 
@@ -213,6 +212,14 @@ def avis_expert(request, avis_id):
         if avis.id_expert.id_contact_externe.raison_sociale.lower() == "conseil scientifique" :
             expert_is_CS = True
 
+    # --- Instructeur des dossiers ? ---
+    est_instructeur_du_dossier = False
+    if instructeur:
+        for dossier in dossiers_lies:
+            est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
+            if est_instructeur_du_dossier :
+                break
+
 
     ##############################################################
     # Messages
@@ -331,6 +338,7 @@ def avis_expert(request, avis_id):
         "is_consultation_active": True,
         "est_expert": est_expert,
         "est_demandeur": est_demandeur,
+        "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "est_un_instructeur": est_un_instructeur,
         "dossiers_lies": dossiers_lies,
         "expert_is_CS": expert_is_CS

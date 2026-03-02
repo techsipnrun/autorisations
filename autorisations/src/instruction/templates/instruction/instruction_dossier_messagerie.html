@@ -15,6 +15,9 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
+
+    <!-- Copier chemin d'accès du dossier -->
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -28,7 +31,7 @@
 
             {% if not dossier.present_sur_ds %}
                 <div class="pas_sur_ds">
-                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
+                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarche Numérique</p>
                 </div>
             {% endif %}
         
@@ -151,11 +154,11 @@
                 
                 
                 <!-- Lien dossier à droite -->
-                <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
+                <!-- <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                     <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>
-                </div>
+                </div> -->
             </div>
 
             <div class="infos-dossier">

@@ -65,7 +65,7 @@
 *xxxxxxxxxxxxxxxxxxxxx*
 
 
-- **Le lien vers Démarches Simplifiées**
+- **Le lien vers Démarche Numérique**
 
 *xxxxxxxxxxxxxxxxxxxxx*
 

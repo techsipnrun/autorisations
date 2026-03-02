@@ -18,7 +18,9 @@
 
     <!-- JS Formulaire Avis -->
     <script src="{% static 'instruction/js/ajouter_avis.js' %}?v=2"></script>
-    <!-- <script src="{% static 'instruction/js/ajouter_avis.js' %}"></script> -->
+    
+    <!-- Copier chemin d'accès du dossier -->
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 
 </head>
 <body>
@@ -271,11 +273,11 @@
                 </div>
                 
                 <!-- Lien dossier à droite -->
-                <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
+                <!-- <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                     <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>

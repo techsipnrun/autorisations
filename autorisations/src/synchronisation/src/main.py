@@ -29,7 +29,7 @@ def lancer_normalisation_et_synchronisation():
                 if demarche_obj.type.lower() == 'manifestations sportives':
                     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
                     continue
-                    logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} (Démarches Simplifiées) ######")
+                    logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} (Démarche Numérique) ######")
                 else:
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} ######")
             except :
@@ -44,14 +44,14 @@ def lancer_normalisation_et_synchronisation():
             logger.info(f"-- Récupération des données (API DS) faite en {t_API_ds:.2f} sec --")
 
             if datas_DS == False:
-                logger.error("ERREUR LORS DE LA RÉCUPÉRATION DES DONNÉES SUR Démarches Simplifiées")
+                logger.error("ERREUR LORS DE LA RÉCUPÉRATION DES DONNÉES SUR Démarche Numérique")
                 success = False
                 continue  # ne pas lever d'erreur globale, on continue les autres démarches
             
             resultats = normalize_process(datas_DS["demarche"], demarche_obj)
             if not resultats or not resultats.get("statut") :
                 success = False
-                logger.error("Erreur lors de la normalisation des données Démarches Simplifiées - Déclaration Manifestations")
+                logger.error("Erreur lors de la normalisation des données Démarche Numérique - Déclaration Manifestations")
                 
             else :
                 s = synchro_process(resultats, dico_notifs, demarche_obj)
@@ -115,10 +115,10 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
             logger.info(f"-- Récupération des données (API DS) faite en {t_API_ds:.2f} sec --")
 
             if datas_DS == False:
-                logger.error(f"Erreur lors de la récupération des données sur Démarches Simplifiées ({demarche.type})")
+                logger.error(f"Erreur lors de la récupération des données sur Démarche Numérique ({demarche.type})")
                 
         except Exception as e:
-            logger.error(f"-- Erreur lors de la récupération des données sur Démarches Simplifiées ({demarche.type}) : {e} --")
+            logger.error(f"-- Erreur lors de la récupération des données sur Démarche Numérique ({demarche.type}) : {e} --")
             return False
 
 
@@ -128,7 +128,7 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
             resultats = normalize_process(datas_DS["demarche"], demarche)
 
             if not resultats or not resultats.get("statut") :
-                logger.error(f"Erreur lors de la normalisation ({demarche.type}) Démarches Simplifiées - Déclaration Manifestations")
+                logger.error(f"Erreur lors de la normalisation ({demarche.type}) Démarche Numérique - Déclaration Manifestations")
                 return False
 
             else :

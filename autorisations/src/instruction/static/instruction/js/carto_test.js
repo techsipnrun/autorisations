@@ -44,7 +44,7 @@
         const overlayMaps = addBackgroundLayers(map, fondData, adhesionData, mafateData);
         const baseLayers = buildBaseLayers();
         // Fond de carte par défaut
-        let activeBaseLayer = baseLayers.OSM.addTo(map);
+        let activeBaseLayer = baseLayers.IGN.addTo(map);
         // Mini menus "Fonds" + "Couches"
         createMiniLayersControl(map, baseLayers, overlayMaps).addTo(map);
 
@@ -392,6 +392,20 @@
     // ---------------------------------
     function buildBaseLayers() {
         return {
+            "IGN" : L.tileLayer(
+                "https://data.geopf.fr/wmts?" +
+                    "service=WMTS&request=GetTile&version=1.0.0" +
+                    "&layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2" +
+                    "&style=normal" +
+                    "&tilematrixset=PM" +
+                    "&format=image/png" +
+                    "&tilematrix={z}&tilerow={y}&tilecol={x}",
+                {
+                    maxZoom: 19,
+                    tileSize: 256,
+                    attribution: "© IGN - Géoplateforme"
+                }
+            ),
             "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap', maxZoom: 19
             }),

@@ -15,16 +15,17 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
 
     PERSONNE_MORALE_AVEC_DEMANDEUR_INTER = False
 
-    # contacts_externes = {
-    #     'beneficiaire': {},
-    #     'demandeur_intermediaire': {},
-    #     'demandeur_pers_morale': {}
-    # }
+    contacts_benef_a_créer = { 'beneficiaire': {}, }
+    # logger.info('\n')
+    # logger.info("contacts avant la normalisation :")
+    # logger.info(contacts)
 
     for ch in doss["champs"]:
 
+        # ----------------------------
+        #  Champs = Pièce Jointe
+        # ----------------------------
         liste_documents = []
-
         if ch["__typename"] == "PieceJustificativeChamp" :
             for f in ch["files"]:
                 
@@ -57,6 +58,11 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                     "documents": liste_documents,
                     "champ": dico_champ
                 })
+
+
+        # ----------------------------
+        #  Champs = Bloc répétable
+        # ----------------------------        
         elif ch["__typename"] == "RepetitionChamp" :
 
             dico_repet_champ = {}
@@ -83,15 +89,19 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
             liste_dossiers_champs.append({
                 "champ": dico_champ
             })
-            
+
+
+        # ----------------------------
+        #  Tous les autres champs
+        # ----------------------------
         else:
-            # geometrie_du_champ1 = fetch_geojson(doss["geojson"]["url"]) if ch["__typename"] == "CarteChamp" else None
+
             geometrie_du_champ = geoareas_to_geojson_text(ch["geoAreas"]) if ch["__typename"] == "CarteChamp" else None
             
             # Si le module carto n'a pas été rempli --> on met l'attribut 'geometrie_a_saisir' à True
             if ch["label"] == 'Choix de la méthode pour localiser le projet': 
                 if 'Remplir le module de cartographie' not in ch["stringValue"] :
-                    # Sont concernées : Missions scientifiques 5, Hélico  7, PDV son drone 8, Manifs publiques 11
+                    # Sont concernées : Missions scientifiques (5), Hélico (7), PDV son drone (8), Manifs publiques (11)
                     
                     dico_champ = {
                         "geometrie_a_saisir": True,
@@ -127,13 +137,12 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                 ############################################################################
                 ###    COMPLEMENT D'INFO SUR LE BENEFICIAIRE / DEMANDEUR INTERMEDIAIRE   ###
                 ############################################################################
-
-                # -------------------------------
+                
+                # ----------------------------------
                 # Remplisseur = Personne physique
-                # -------------------------------
+                # ----------------------------------
                 if contacts.get('beneficiaire') :
                     
-                    # if not contacts['demandeur_intermediaire'] :
                     #Beneficiaire
                     if ch['label'] == "Email du bénéficiaire" and ch["stringValue"] != None and not contacts["beneficiaire"].get("email"):
                         contacts["beneficiaire"]["email"] = ch["stringValue"]
@@ -141,9 +150,9 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                         contacts["beneficiaire"]["adresse"] = ch["stringValue"]
                     if ch['label'] == "Numéro de téléphone du bénéficiaire" and ch["stringValue"] != None:
                         contacts["beneficiaire"]["telephone"] = ch["stringValue"]
-                    if ch['label'] == "Nom de l'organisation" and ch["stringValue"] != None:   # Nom de l'organisation (du bénéficiaire ?)
+                    if ch['label'] == "Nom de l'organisation du bénéficiaire" and ch["stringValue"] != None:
                         contacts["beneficiaire"]["organisation"] = ch["stringValue"]
-                    if ch['label'] == "Numéro de SIRET" and ch["stringValue"] != None:  # Numéro de SIRET (du bénéficiaire ?)
+                    if ch['label'] == "Numéro de SIRET du bénéficiaire" and ch["stringValue"] != None:
                         contacts["beneficiaire"]["siret"] = ch["stringValue"]
 
                     # ----------------------------------------------------------------------------------
@@ -165,10 +174,11 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                 # -----------------------------
                 elif contacts.get('demandeur_pers_morale') :
                     if ch['label'] == "Votre administration agit en tant qu’intermédiaire pour un autre pétitionnaire" :
+                        # CAS où la personne morale agit comme un demandeur intermédiaire
                         if ch["stringValue"] == "true" :
                             PERSONNE_MORALE_AVEC_DEMANDEUR_INTER = True
                    
-                    # Complément d'information du remplisseur dans le form
+                    # Complément d'information sur la personne remplissant le form
                     if ch['label'] == "Votre nom" and ch["stringValue"] != None :
                         contacts['demandeur_pers_morale']["nom"] = ch["stringValue"]
                     if ch['label'] == "Votre prénom" and ch["stringValue"] != None :
@@ -178,56 +188,59 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                 
                     # Le remplisseur du form (Personne Morale) fait l'intermédiaire, le beneficiaire est déclaré dans le form
                     if ch['label'] == "Nom du bénéficiaire" and ch["stringValue"] != None:
-                        contacts["beneficiaire"]["nom"] = ch["stringValue"]
+                        contacts_benef_a_créer["beneficiaire"]["nom"] = ch["stringValue"]
                     if ch['label'] == "Prénom du bénéficiaire" and ch["stringValue"] != None:
-                        contacts["beneficiaire"]["prenom"] = ch["stringValue"]
+                        contacts_benef_a_créer["beneficiaire"]["prenom"] = ch["stringValue"]
                     if ch['label'] == "Email du bénéficiaire" and ch["stringValue"] != None:
-                        contacts["beneficiaire"]["email"] = ch["stringValue"]
-                        contacts['beneficiaire']['id_type'] = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+                        contacts_benef_a_créer["beneficiaire"]["email"] = ch["stringValue"]
+                        contacts_benef_a_créer['beneficiaire']['id_type'] = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
                     if ch['label'] == "Adresse du bénéficiaire" and ch["stringValue"] != None:
-                        contacts["beneficiaire"]["adresse"] = ch["stringValue"]
+                        contacts_benef_a_créer["beneficiaire"]["adresse"] = ch["stringValue"]
                     if ch['label'] == "Numéro de téléphone du bénéficiaire" and ch["stringValue"] != None:
-                        contacts["beneficiaire"]["telephone"] = ch["stringValue"]
+                        contacts_benef_a_créer["beneficiaire"]["telephone"] = ch["stringValue"]
                     if ch['label'] == "Nom de l'organisation du bénéficiaire" and ch["stringValue"] != None:
-                        contacts["beneficiaire"]["organisation"] = ch["stringValue"]
-                        contacts["beneficiaire"]["raison_sociale"] = ch["stringValue"]
+                        contacts_benef_a_créer["beneficiaire"]["organisation"] = ch["stringValue"]
+                        contacts_benef_a_créer["beneficiaire"]["raison_sociale"] = ch["stringValue"]
                     if ch['label'] == "Numéro de SIRET" and ch["stringValue"] != None:  # Numéro de SIRET (du bénéficiaire ?)
-                        contacts["beneficiaire"]["siret"] = ch["stringValue"]
-                    
-
-            if PERSONNE_MORALE_AVEC_DEMANDEUR_INTER :
-                remplisseur_type = 'demandeur_intermediaire'
-                type_contact = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
-            else :
-                remplisseur_type = 'beneficiaire'
-                type_contact = get_first_id(TypeContactExterne, type="Bénéficiaire")
-
-            # On transfère contacts['demandeur_pers_morale'] --> contacts['demandeur_intermediaire']
-            if contacts.get('demandeur_pers_morale') :
-                source = contacts.get("demandeur_pers_morale", {})
-
-                if source.get("raison_sociale"):
-                    contacts[remplisseur_type]["raison_sociale"] = source["raison_sociale"]
-                if source.get("organisation"):
-                    contacts[remplisseur_type]["organisation"] = source["organisation"]
-                if source.get("email"):
-                    contacts[remplisseur_type]["email"] = source["email"]
-                contacts[remplisseur_type]["id_type"] = type_contact
-                if source.get("siret"):
-                    contacts[remplisseur_type]["siret"] = source["siret"]
-                if source.get("adresse"):
-                    contacts[remplisseur_type]["adresse"] = source["adresse"]
-                if source.get("nom"):
-                    contacts[remplisseur_type]["nom"] = source["nom"]
-                if source.get("prenom"):
-                    contacts[remplisseur_type]["prenom"] = source["prenom"]
-                if source.get("telephone"):
-                    contacts[remplisseur_type]["telephone"] = source["telephone"]
+                        contacts_benef_a_créer["beneficiaire"]["siret"] = ch["stringValue"]
 
             liste_dossiers_champs.append({
                 "champ": dico_champ
             })
-        
 
+
+    if PERSONNE_MORALE_AVEC_DEMANDEUR_INTER :
+        remplisseur_type = 'demandeur_intermediaire'
+        type_contact = get_first_id(TypeContactExterne, type="Demandeur intermédiaire")
+        contacts["beneficiaire"] = contacts_benef_a_créer["beneficiaire"]
+    else :
+        remplisseur_type = 'beneficiaire'
+        type_contact = get_first_id(TypeContactExterne, type="Bénéficiaire")
+
+    # On transfère contacts['demandeur_pers_morale'] --> contacts['demandeur_intermediaire']
+    if contacts.get('demandeur_pers_morale') :
+        source = contacts.get("demandeur_pers_morale", {})
+
+        if source.get("raison_sociale"):
+            contacts[remplisseur_type]["raison_sociale"] = source["raison_sociale"]
+        if source.get("organisation"):
+            contacts[remplisseur_type]["organisation"] = source["organisation"]
+        if source.get("email"):
+            contacts[remplisseur_type]["email"] = source["email"]
+        contacts[remplisseur_type]["id_type"] = type_contact
+        if source.get("siret"):
+            contacts[remplisseur_type]["siret"] = source["siret"]
+        if source.get("adresse"):
+            contacts[remplisseur_type]["adresse"] = source["adresse"]
+        if source.get("nom"):
+            contacts[remplisseur_type]["nom"] = source["nom"]
+        if source.get("prenom"):
+            contacts[remplisseur_type]["prenom"] = source["prenom"]
+        if source.get("telephone"):
+            contacts[remplisseur_type]["telephone"] = source["telephone"]
+
+    # logger.info('\n')
+    # logger.info("contacts après la normalisation :")
+    # logger.info(contacts)
 
     return liste_dossiers_champs, contacts

@@ -28,12 +28,16 @@
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- <script src="https://unpkg.com/@alcalin/leaflet-tilelayer-wmts/dist/Leaflet.TileLayer.WMTS.js"></script> -->
 
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <!-- Leaflet.browser.print -->
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
+
+    <!-- Copier chemin d'accès du dossier -->
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 
     <!-- Envoi de l'acte final -->
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
@@ -49,15 +53,17 @@
         {% breadcrumb breadcrumb_items %}
 
         <div class="refresh_et_timeline">
-            <div class="refresh-doss">
-                <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
-                    {% csrf_token %}
-                    <button type="submit" class="refresh-button">
-                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                        Actualiser
-                    </button>
-                </form>
-            </div>
+            {% if dossier.present_sur_ds %}
+                <div class="refresh-doss">
+                    <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+                        {% csrf_token %}
+                        <button type="submit" class="refresh-button">
+                            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                            Actualiser
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
             
             <!-- Mini timeline -->
             {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
@@ -88,11 +94,18 @@
 
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
+                
+                <!-- Copier le chemin d'accès du dossier -->
+                <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+                    <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                    <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                    <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+                </button>
 
                 {% if dossier.id_demarche.type != "Manifestations sportives" %}
                     <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
                 {% else %}
-                    <h1>Dossier Démarches Simplifiées n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
+                    <h1>Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
                 {% endif %}
                 
                 {% if messages %}
@@ -107,7 +120,15 @@
 
                 {% if not dossier.present_sur_ds %}
                     <p class="info-message">
-                        ⚠️ Ce dossier n'est plus sur Démarches Simplifiées.
+                        ⚠️ Ce dossier n'est plus sur Démarche Numérique.
+                        
+
+                        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
+                            <br>
+                            Le dossier a été supprimé de Démarche Numérique par le demandeur alors que son instruction n'était pas terminée.
+                        {% endif %}
+
+
                         {% if etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "À publier au RAA" %}
                             Si un acte est à envoyer au pétitionnaire, vous devez lui transmettre en dehors de l'application.
                         {% endif %}    
@@ -183,6 +204,28 @@
                                                     <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                     <button type="button" class="btn_dropdown_instruction" onclick="confirmerPublicationRAA()">Classer le dossier comme accepté</button>
                                                 </form>
+                                            
+                                            {% elif label == "Archiver le dossier comme non soumis à autorisation" %}
+                                                <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
+                                                </form>
+                                            
+                                            {% elif label == "Archiver le dossier comme refusé" %}
+                                                <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeRefuse()">Archiver le dossier comme refusé</button>
+                                                </form>
+
+
+                                            {% elif label == "Archiver le dossier comme accepté" %}
+                                                <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
+                                                </form>
 
                                             {% else %}
                                                 <form method="post" action="{% url label|url_name_from_label %}">
@@ -214,8 +257,8 @@
                     {% if request.user|est_concerné_par_le_dossier:dossier %}
                         <a class="icon_DS" href="https://demarche.numerique.gouv.fr/procedures/{{ demarche.numero }}{% if dossier.id_etat_dossier.nom in 'refuse,accepte,sans_suite' %}/traites{% else %}/suivis{% endif %}/dossiers/{{ dossier.numero }}" target="_blank">
                             <img src="{% static 'instruction/img/icon_DS_32.png' %}"
-                                alt="Visualiser le dossier sur Démarches Simplifiées"
-                                title="Visualiser le dossier sur Démarches Simplifiées">
+                                alt="Visualiser le dossier sur Démarche Numérique"
+                                title="Visualiser le dossier sur Démarche Numérique">
                         </a>
                     {% endif %}
 
@@ -300,7 +343,7 @@
                             <select name="intermediaire_dir" id="choix_intermediaire_dir" required>
                                 <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
                                 <!-- SPPN -->
-                                {% if "mission scientifique" in demarche.type|lower %}
+                                {% if demarche.service == 'SPPN' %}
                                     {% for idir in intermediaires_dir_sppn %}
                                         <option value="{{ idir.id }}">
                                             {{ idir }}
@@ -367,7 +410,7 @@
                             <select name="intermediaire_dir" id="choix_intermediaire_dir-sppn">
                                 <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
                                 <!-- SPPN -->
-                                {% if "mission scientifique" in demarche.type|lower %}
+                                {% if demarche.service == 'SPPN' %}
                                     {% for idir in intermediaires_dir_sppn %}
                                         <option value="{{ idir.id }}">
                                             {{ idir }}
@@ -535,7 +578,7 @@
                             <select name="choix-envoi-acte-peti" id="choix-envoi-acte-peti" required>
                                 <option value="" disabled selected>Choisir</option>
                                 <!-- Liste envoyeurs acte SPPN -->
-                                {% if "mission scientifique" in demarche.type|lower %}
+                                {% if demarche.service == 'SPPN' %}
 
                                     <!-- {% for e in envoyeurs_acte_sppn %}
                                         <option value="{{ e.id }}">
@@ -656,67 +699,65 @@ Bonne réception.</textarea>
                             </div>
                         </div>
 
-                        <div class="validant">
-                            <label>Personne chargée de publier l'acte au RAA :</label>
-                            <select name="choix-publieur-raa" id="choix-publieur-raa" required>
-                                <option value="" disabled selected>Choisir</option>
-                                <!-- Liste publieurs acte RAA SPPN -->
-                                {% if "mission scientifique" in demarche.type|lower %}
+                            <div class="validant">
+                                <label>Personne chargée de publier l'acte au RAA :</label>
+                                <select name="choix-publieur-raa" id="choix-publieur-raa" required>
+                                    <option value="" disabled selected>Choisir</option>
+                                    <!-- Liste publieurs acte RAA SPPN -->
+                                    {% if demarche.service == 'SPPN' %}
 
-                                    {% for p in publieurs_RAA_sppn %}
+                                        {% for p in publieurs_RAA_sppn %}
+                                            <option value="{{ p.id }}">
+                                                {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
+                                            </option>
+                                        {% endfor %}
+
+                                        {% for i in publieurs_RAA_du_dossier %}
+                                            {% if i not in publieurs_RAA_sppn %}
+                                                <option value="{{ i.id }}">
+                                                    {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% if delibCA %}
+                                            {% for i in intermediaires_CA %}
+                                                {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_sppn %}
+                                                    <option value="{{ i.id }}">
+                                                        {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    
+                                    <!-- Liste publieurs acte RAA SAADD -->
+                                    {% else %}
+
+                                        {% for p in publieurs_RAA_saadd %}
                                         <option value="{{ p.id }}">
                                             {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
                                         </option>
-                                    {% endfor %}
+                                        {% endfor %}
 
-                                    {% for i in publieurs_RAA_du_dossier %}
-                                        {% if i not in publieurs_RAA_sppn %}
-                                            <option value="{{ i.id }}">
-                                                {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                            </option>
-                                        {% endif %}
-                                    {% endfor %}
-
-                                    {% if delibCA %}
-                                        {% for i in intermediaires_CA %}
-                                            {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_sppn %}
+                                        {% for i in instructeurs_du_dossier %}
+                                            {% if i not in publieurs_RAA_saadd %}
                                                 <option value="{{ i.id }}">
                                                     {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
                                                 </option>
                                             {% endif %}
                                         {% endfor %}
-                                    {% endif %}
-                                
-                                <!-- Liste publieurs acte RAA SAADD -->
-                                {% else %}
 
-                                    {% for p in publieurs_RAA_saadd %}
-                                    <option value="{{ p.id }}">
-                                        {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
-                                    </option>
-                                    {% endfor %}
-
-                                    {% for i in instructeurs_du_dossier %}
-                                        {% if i not in publieurs_RAA_saadd %}
-                                            <option value="{{ i.id }}">
-                                                {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                            </option>
+                                        {% if delibCA %}
+                                            {% for i in intermediaires_CA %}
+                                                {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_saadd %}
+                                                    <option value="{{ i.id }}">
+                                                        {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
                                         {% endif %}
-                                    {% endfor %}
 
-                                    {% if delibCA %}
-                                        {% for i in intermediaires_CA %}
-                                            {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_saadd %}
-                                                <option value="{{ i.id }}">
-                                                    {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                </option>
-                                            {% endif %}
-                                        {% endfor %}
                                     {% endif %}
-
-                                {% endif %}
-
-                                
                             </select>
                         </div>
 
@@ -911,7 +952,7 @@ En conséquence, la demande est refusée.</textarea>
                             <select name="choix-validant" id="choix-validant" required>
                                 <option value="" disabled selected>Choisir un.e validant.e</option>
                                 <!-- Validants SPPN -->
-                                {% if "mission scientifique" in demarche.type|lower %}
+                                {% if demarche.service == 'SPPN' %}
                                     {% for validant in validants_SPPN %}
                                         <option value="{{ validant.id }}">
                                             {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
@@ -1000,7 +1041,7 @@ En conséquence, la demande est refusée.</textarea>
                             <select name="choix-validant" id="choix-validant-avant-dmd-avis" required>
                                 <option value="" disabled selected>Choisir un.e validant.e</option>
                                 <!-- Validants SPPN -->
-                                {% if "mission scientifique" in demarche.type|lower %}
+                                {% if demarche.service == 'SPPN' %}
                                     {% for validant in validants_SPPN %}
                                         <option value="{{ validant.id }}">
                                             {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
@@ -1474,7 +1515,7 @@ En conséquence, la demande est refusée.</textarea>
                                 <p><i>{{ champ.nom }}</i></p>
                             
                             <!-- Lien avec autre dossier -->
-                            {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur %}
+                            {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur and champ.valeur|is_int %}
                                 <p>
                                     <strong>{{ champ.nom }}</strong> :
 
@@ -1625,11 +1666,11 @@ En conséquence, la demande est refusée.</textarea>
                     </div>
                     
                     <!-- Lien dossier à droite -->
-                    <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
+                    <!-- <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                         <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>
-                    </div>
+                    </div> -->
                 </div>
                 
 
@@ -1764,7 +1805,7 @@ En conséquence, la demande est refusée.</textarea>
                         <ul class="groupe-instructeur-liste">
                             
                             <!-- SPPN -->
-                            {% if "mission scientifique" in demarche.type|lower %}
+                            {% if demarche.service == 'SPPN' %}
                                 {% for inter in intermediaires_dir_sppn_et_instructeurs %}
                                     {% if inter in intermediaires_signature_du_dossier %}
                                         <li class="instructeur_du_dossier">
@@ -1830,7 +1871,7 @@ En conséquence, la demande est refusée.</textarea>
                         <ul class="groupe-instructeur-liste">
                             
                             <!-- SPPN -->
-                            {% if "mission scientifique" in demarche.type|lower %}
+                            {% if demarche.service == 'SPPN' %}
                                 {% for e in envoyeurs_sppn_et_instructeurs %}
                                     {% if e in envoyeurs_actes_du_dossier %}
                                         <li class="instructeur_du_dossier">
@@ -1896,7 +1937,7 @@ En conséquence, la demande est refusée.</textarea>
                         <ul class="groupe-instructeur-liste">
                             
                             <!-- SPPN -->
-                            {% if "mission scientifique" in demarche.type|lower %}
+                            {% if demarche.service == 'SPPN' %}
                                 {% for p in publieurs_RAA_sppn_et_instructeurs %}
                                     {% if p in publieurs_RAA_du_dossier %}
                                         <li class="instructeur_du_dossier">
@@ -2538,6 +2579,33 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             zones.forEach(zone => zone.classList.remove("show"));
         }
 
+        function confirmerClasserCommeNonSoumis() {
+            masquerToutesZonesComplementaires();
+            const confirmation = confirm("Confirmez-vous le classement du dossier comme non soumis à autorisation ?");
+            if (confirmation) {
+                document.getElementById("formulaire-classement").submit();
+            }
+            fermerMenuEtape();
+        }
+
+        function confirmerClasserCommeAccepte() {
+            masquerToutesZonesComplementaires();
+            const confirmation = confirm("Confirmez-vous le classement du dossier comme accepté ?");
+            if (confirmation) {
+                document.getElementById("form-retour-instruction-2").submit();
+            }
+            fermerMenuEtape();
+        }
+
+        function confirmerClasserCommeRefuse() {
+            masquerToutesZonesComplementaires();
+            const confirmation = confirm("Confirmez-vous le classement du dossier comme refusé ?");
+            if (confirmation) {
+                document.getElementById("formulaire-refus").submit();
+            }
+            fermerMenuEtape();
+        }
+
         function afficherFormulaireComplement() {
             masquerToutesZonesComplementaires();
             document.getElementById("formulaire-complement").classList.add("show");
@@ -2719,7 +2787,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 return;
             }
 
-            const confirmation = confirm("Confirmer la transmission du dossier à l’intermédiaire ?");
+            const confirmation = confirm("Avez-vous bien pensé à renseigner le numéro de l'acte ?");
             if (confirmation) {
                 select.closest("form").submit();
             }
@@ -3020,28 +3088,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             });
         });
 
-        // Couvre aussi les boutons de type="button" qui déclenchent un submit() JS
-        // const boutonsConfirm = document.querySelectorAll(
-        //     ".btn-envoyer-complement[onclick*='confirmer']"
-        // );
-
-        // boutonsConfirm.forEach(bouton => {
-        //     bouton.addEventListener("click", function () {
-        //         // On désactive le bouton après le clic pour éviter les doubles confirmations
-        //         bouton.disabled = true;
-        //         bouton.textContent = "Traitement...";
-        //         bouton.style.opacity = "0.6";
-        //         bouton.style.cursor = "not-allowed";
-
-        //         // Réactivation automatique au bout de 6 secondes (sécurité)
-        //         setTimeout(() => {
-        //             bouton.disabled = false;
-        //             bouton.textContent = "Confirmer";
-        //             bouton.style.opacity = "1";
-        //             bouton.style.cursor = "pointer";
-        //         }, 6000);
-        //     });
-        // });
 
         // Désactiver définitivement les boutons Confirm (type=button)
         document.addEventListener("DOMContentLoaded", function () {

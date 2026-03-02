@@ -53,23 +53,24 @@ document.addEventListener("DOMContentLoaded", () => {
         select.scrollTop = scrollTop;
     };
 
-    const createChip = (email, onRemove) => {
+    const createChip = (email, onRemove, source) => {
         const chip = document.createElement("span");
         chip.className = "chip";
         chip.dataset.email = email.toLowerCase();
+        chip.dataset.source = source || "unknown";
         chip.textContent = email;
 
         const btn = document.createElement("button");
         btn.type = "button";
         btn.textContent = "×";
-        btn.onclick = onRemove;
+        btn.addEventListener("click", onRemove);
         chip.appendChild(btn);
 
-        const hidden = document.createElement("input");
-        hidden.type = "hidden";
-        hidden.name = "emails_copie[]";
-        hidden.value = email;
-        chip.appendChild(hidden);
+        const hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.name = "emails_copie[]";
+        hiddenInput.value = email;
+        chip.appendChild(hiddenInput);
 
         return chip;
     };
@@ -87,16 +88,31 @@ document.addEventListener("DOMContentLoaded", () => {
             const chip = createChip(opt.emailRaw, () => {
                 selectedValues.delete(val);
                 renderChips();
-            });
+            }, "select");
             chips.appendChild(chip);
         });
 
         // 2. manuels
         manualEmails.forEach(email => {
             const chip = createChip(email, () => {
+                // a) enlever de manualEmails
                 manualEmails.delete(email);
+
+                // b) supprimer le form caché correspondant (sinon email_contact[] part au POST)
+                const container = document.getElementById("nouveaux-contacts-container");
+                const emailLower = email.toLowerCase();
+
+                container.querySelectorAll(".nouveau-contact-form").forEach(f => {
+                    const emailAff = (f.querySelector('input[name="email_affiche"]')?.value || "").toLowerCase();
+                    if (emailAff === emailLower) {
+                        f.remove();
+                    }
+                });
+
+                // c) refresh chips
                 renderChips();
-            });
+            }, "manual");
+
             chips.appendChild(chip);
         });
     }
@@ -121,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
         addBtn.style.display = filtered.length === 0 ? "inline-block" : "none";
     });
 
-    // Bouton + → insère seulement le formulaire
+        // Bouton + → insère seulement le formulaire
     addBtn.addEventListener("click", () => {
         const email = search.value.trim();
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -139,6 +155,19 @@ document.addEventListener("DOMContentLoaded", () => {
         clone.querySelector("input[name='email_contact[]']").value = email;
         clone.querySelector("input[name='email_affiche']").value = email;
 
+        // ✅ IMPORTANT : empêcher l'envoi au submit tant que pas validé
+        const formEl = clone.querySelector(".nouveau-contact-form");
+        formEl.dataset.pending = "1";
+
+        // On retire les "name" (sauf email_affiche) mais on laisse éditable !
+        formEl.querySelectorAll("input, select, textarea").forEach(el => {
+            if (el.name === "email_affiche") return; // reste disabled dans le template
+            if (el.name) {
+                el.dataset.name = el.name; // sauvegarde
+                el.removeAttribute("name"); // ne sera PAS envoyé au submit
+            }
+        });
+
         document.getElementById("nouveaux-contacts-container").appendChild(clone);
 
         search.value = "";
@@ -152,8 +181,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!form) return;
 
             const email = form.querySelector("input[name='email_affiche']").value;
-            const nom = form.querySelector("input[name='nom_contact[]']").value.trim();
-            const prenom = form.querySelector("input[name='prenom_contact[]']").value.trim();
+            // const nom = form.querySelector("input[name='nom_contact[]']").value.trim();
+            // const prenom = form.querySelector("input[name='prenom_contact[]']").value.trim();
+            const nom = (form.querySelector("input[data-name='nom_contact[]']")?.value || "").trim();
+            const prenom = (form.querySelector("input[data-name='prenom_contact[]']")?.value || "").trim();
 
             // ⚠️ Vérification Nom/Prénom
             if (!prenom || !nom) {
@@ -161,11 +192,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Ajoute dans manualEmails et affiche la chip
-            manualEmails.add(email.toLowerCase());
+            form.querySelectorAll("input, select, textarea").forEach(el => {
+                if (el.dataset.name) {
+                    el.name = el.dataset.name;
+                    delete el.dataset.name;
+                }
+            });
+            form.dataset.pending = "0";
+            manualEmails.add(email);
             renderChips();
 
             // Garde le form pour le POST (mais caché)
-            document.getElementById("nouveaux-contacts-container").appendChild(form);
+            // document.getElementById("nouveaux-contacts-container").appendChild(form);
             form.style.display = "none";
 
             search.value = "";

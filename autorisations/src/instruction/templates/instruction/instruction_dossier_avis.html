@@ -16,6 +16,9 @@
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_avis.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
+
+    <!-- Copier chemin d'accès du dossier -->
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
     
 </head>
 <body>
@@ -163,11 +166,11 @@
                 
                 
                 <!-- Lien dossier à droite -->
-                <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
+                <!-- <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                     <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
                         <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                     </a>
-                </div>
+                </div> -->
             </div>
 
             <div class="infos-avis">

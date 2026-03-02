@@ -69,9 +69,16 @@
     padding: 0.5rem 4rem 6rem 2rem;
 }
 
+.page-container > * {
+  min-width: 0;
+}
+
 .formulaire {
-    width: 70%;
-    padding: 3rem 2rem;
+    position: relative;
+    flex: 1 1 70%;
+    width: auto; /* on laisse flex gérer */
+    min-width: 300px;
+    padding: 4rem 2rem 3rem 2rem;
     background-color: rgb(239, 239, 239);
     border: solid 1px black;
 }
@@ -181,6 +188,83 @@ h2 {
     margin-left: 2rem;
     padding-left: 1rem;
     border-left: #000000 solid 1px;
+}
+
+
+/* ------------------------------------- */
+/*           Bouton copie dossier        */
+/* ------------------------------------- */
+.btn-copy-dossier{
+  position: absolute;
+  top: clamp(10px, 1vw, 18px);
+  right: clamp(10px, 1vw, 18px);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: clamp(34px, 2vw, 48px);
+  height: clamp(34px, 2vw, 48px);
+  padding: 0;
+  border: 1px solid #bbb;
+  border-radius: 10px;
+  background: #f7f7f7;
+  cursor: pointer;
+
+  /* évite que ça prenne de la place dans le flow */
+  z-index: 5;
+}
+
+.btn-copy-dossier:hover{
+  transform: scale(1.06);
+}
+
+/* Les 2 icônes superposées */
+.btn-copy-dossier img{
+  width: 60%;
+  height: 60%;
+  display: block;
+  position: absolute;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Etat par défaut */
+.icon-default{
+  opacity: 1;
+}
+
+.icon-hover{
+  opacity: 0;
+}
+
+/* Au survol : crossfade */
+.btn-copy-dossier:hover .icon-default{
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.btn-copy-dossier:hover .icon-hover{
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Feedback "Chemin copié" */
+.btn-copy-dossier .copy-feedback{
+  position: absolute;
+  right: calc(100% + 20px); /* à gauche du bouton */
+  transform: translateX(-50%);
+  color: black;
+  font-size: 0.9rem;
+  font-weight: bold;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  white-space: nowrap;
+}
+
+.btn-copy-dossier.show-feedback .copy-feedback{
+  opacity: 1;
+  transform: translateY(0);
 }
 
 
@@ -436,12 +520,15 @@ h2 {
 /*                        PARTIE DROITE                             */
 /* ---------------------------------------------------------------- */
 .nav_preinstruction {
-    width: 30%;
+    flex: 0 1 30%;
+    width: auto;
+    min-width: 260px;
 }
 
 .nav_top {
     display: flex;
     justify-content: space-between;
+    min-width: 0;
     gap: 2rem;
     margin-bottom: 2rem;
     align-items: center;
@@ -455,8 +542,15 @@ h2 {
 
 .form_messagerie {
     display: flex;
-    flex-direction: row;
+    min-width: 0;
+    flex: 1 1 auto;
+    /* flex-wrap: wrap; */
     gap: 8px;
+}
+
+.form_messagerie a {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .form_msg_box.active {
@@ -468,13 +562,49 @@ h2 {
     position: relative;
     background-color: #f1f1f1;
     border: 1px solid #585858;
-    padding: 1rem;
     text-align: center;
-    font-size: 1.2rem;
     cursor: pointer;
     border-radius: 6px;
+    min-width: 0;
+    padding: 1rem;
+    font-size: clamp(0.9rem, 0.8vw, 1.2rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     transition: background-color 0.3s ease;
 }
+
+
+@media (max-width: 1700px){
+    .form_msg_box{
+        padding: 1rem 0.6rem;
+    }
+}
+
+@media (max-width: 1400px){
+    .form_msg_box{
+        font-size: clamp(0.6rem, 1vw, 1rem);
+        padding: 1rem 0.5rem;
+    }
+}
+
+@media (max-width: 1000px) {
+  .form_messagerie{
+    flex-direction: column;
+  }
+
+  .form_messagerie a{
+    flex: 0 0 auto;
+  }
+
+  .form_msg_box{
+    white-space: normal;
+    text-overflow: clip;
+    padding: 1rem;
+  }
+}
+
+
 
 .form_msg_box:hover {
     transform: scale(1.05);
@@ -485,7 +615,8 @@ h2 {
 /* Nouveaux messages pastilles*/
 .msg-label-wrapper {
     position: relative;
-    display: inline-block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .pastille_nouv_mess {
@@ -548,23 +679,17 @@ h2 {
 }
 
 
-
-
 /* ====== Path du dossier ====== */
-
-
-.lien_dossier img {
-    width: 50px;
-    height: 50px;
+/* .lien_dossier img {
+    width: clamp(28px, 2.2vw, 50px);
+    height: clamp(28px, 2.2vw, 50px);
     cursor: pointer;
     transition: transform 0.2s ease;
 }
 
 .lien_dossier img:hover {
     transform: scale(1.1);
-}
-
-
+}  */
 
 
 /* ---------------------------------------*/
@@ -596,7 +721,7 @@ h2 {
 
 .groupe-instructeur-info h3 {
     margin-bottom: 1rem;
-    font-size: 1.4rem;
+    font-size: clamp(1.2rem, 1vw, 1.4em);
     color: #006131;
 }
 

@@ -25,7 +25,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
         sync_champs(dico["champs"])
         sync_dossiers(dico["dossiers"], demarche_obj.numero, False, dico_notifs)
     except Exception as e:
-        logger.error(f"Échec lors de la synchronisation Démarches Simplifiées ({demarche_obj.type}) : {e}")
+        logger.error(f"Échec lors de la synchronisation Démarche Numérique ({demarche_obj.type}) : {e}")
         # On ne bloque pas tout le process, mais on note l'erreur
         statut = False
 

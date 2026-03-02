@@ -207,7 +207,7 @@ def est_autorise_a_changer_etape(user, dossier):
 
     elif etape_du_doss == "À affecter" :
 
-        group_name = ("Réception SPPN" if "mission scientifique" in dossier.id_demarche.type.lower() else "Réception SAADD")
+        group_name = ("Réception SPPN" if dossier.id_demarche.service == 'SPPN' else "Réception SAADD")
         emails_reception = User.objects.filter(groups__name=group_name).values_list("email", flat=True)
         instructeurs = Instructeur.objects.filter(email__in=emails_reception).values_list("id", flat=True)
 

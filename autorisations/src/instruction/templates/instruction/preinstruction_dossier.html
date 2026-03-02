@@ -33,6 +33,8 @@
     <!-- Leaflet.browser.print -->
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
+    <!-- Copier chemin d'accès du dossier -->
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 
 </head>
 
@@ -45,19 +47,23 @@
         {% breadcrumb breadcrumb_items %}
 
         <div class="refresh_et_timeline">
-            <div class="refresh-doss">
-                <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
-                    {% csrf_token %}
-                    <button type="submit" class="refresh-button">
-                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                        Actualiser
-                    </button>
-                </form>
-            </div>
+            {% if dossier.present_sur_ds %}
+                <div class="refresh-doss">
+                    <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+                        {% csrf_token %}
+                        <button type="submit" class="refresh-button">
+                            <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
+                            Actualiser
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
             
-            <div class="mini_timeline">
-                <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
-            </div>
+            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                <div class="mini_timeline">
+                    <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
+                </div>
+            {% endif %}
         </div>
         
 
@@ -65,14 +71,30 @@
             
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
+
+                <!-- Copier le chemin d'accès du dossier -->
+                <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+                    <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                    <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                    <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+                </button>
+
+
                 {% if dossier.id_demarche.type != "Manifestations sportives" %}
                     <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
                 {% else %}
-                    <h1>Dossier Démarches Simplifiées n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
+                    <h1>Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
                 {% endif %}
 
                 {% if not dossier.present_sur_ds %}
-                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarches Simplifiées</p>
+                    <p class="info-message">⚠️ Ce dossier n'est plus sur Démarche Numérique
+
+                        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
+                            <br>
+                            Le dossier a été supprimé de Démarche Numérique par le demandeur alors que son instruction n'avait pas débuté.
+                        {% endif %}
+                    </p>
+
                 {% endif %}
 
                 <div class="etat-badge-container">
@@ -83,14 +105,14 @@
                         </div>
 
                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
-                            <div class="etat-badge-menu-content" id="etatMenuContent">
+                            <!-- <div class="etat-badge-menu-content" id="etatMenuContent">
                                 {% if dossier.id_groupeinstructeur %}
                                     <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
                                         {% csrf_token %}
                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                         <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
                                     </form>
-                                    <!-- Classer comme non soumis à autorisation -->
+                                    
                                     <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
                                             
                                 {% else %}
@@ -98,7 +120,50 @@
                                         Veuillez d’abord sélectionner un groupe instructeur.
                                     </div>
                                 {% endif %}
+                            </div> -->
+
+                            <div class="etat-badge-menu-content" id="etatMenuContent">
+                                {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
+                                        {% if actions %}
+                                            {% for label in actions %}
+
+                                                {% if label == "Archiver le dossier comme non soumis à autorisation" %}
+                                                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
+                                                    </form>
+                                                
+                                                {% elif label == "Archiver le dossier comme refusé" %}
+                                                    <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeRefuse()">Archiver le dossier comme refusé</button>
+                                                    </form>
+
+
+                                                {% elif label == "Archiver le dossier comme accepté" %}
+                                                    <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
+                                                    </form>
+
+                                                {% elif label == "Passer en pré-instruction" %}
+                                                    <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                        <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
+                                                    </form>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                        {% else %}
+                                            <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
+                                        {% endif %}
+                                {% endwith %}
                             </div>
+
                         {% endif %}
                     </div>
 
@@ -114,8 +179,8 @@
                     {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
                         <a class="icon_DS" href="https://demarche.numerique.gouv.fr/procedures/{{ dossier.id_demarche.numero }}/a-suivre/dossiers/{{ dossier.numero }}" target="_blank">
                             <img src="{% static 'instruction/img/icon_DS_32.png' %}"
-                                alt="Visualiser le dossier sur Démarches Simplifiées"
-                                title="Visualiser le dossier sur Démarches Simplifiées">
+                                alt="Visualiser le dossier sur Démarche Numérique"
+                                title="Visualiser le dossier sur Démarche Numérique">
                         </a>
                     {% endif %}
 
@@ -136,20 +201,6 @@
                     </div>
                 {% endif %}
 
-                <!-- Zone masquée : justification classement sans suite -->
-                <div id="formulaire-classement" class="zone-complement">
-                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
-
-[Préciser les raisons].</textarea>
-                        <div class="zone-pj-complement">
-                            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
-                        </div>
-                    </form>
-                </div>
 
                 <!-- Identité bénéficiaire -->
                 {% if beneficiaire %}
@@ -252,7 +303,7 @@
                                 <p><i>{{ champ.nom }}</i></p>
                             
                             <!-- Lien avec autre dossier -->
-                            {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur %}
+                            {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur and champ.valeur|is_int %}
                                 <p>
                                     <strong>{{ champ.nom }}</strong> :
                                     {% if champ.valeur|default_if_none:"" and champ.valeur != "Non renseigné" %}
@@ -385,11 +436,11 @@
                     </div>
 
                     <!-- Lien dossier à droite -->
-                    <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
+                    <!-- <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
                         <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
                             <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
                         </a>
-                    </div>
+                    </div> -->
                 </div>
 
                 {% if messages %}
@@ -785,11 +836,33 @@
         zones.forEach(zone => zone.classList.remove("show"));
     }
 
-    function afficherFormulaireClassement() {
+    function confirmerClasserCommeNonSoumis() {
         masquerToutesZonesComplementaires();
-        document.getElementById("formulaire-classement").classList.add("show");
+        const confirmation = confirm("Confirmez-vous le classement du dossier comme non soumis à autorisation ?");
+        if (confirmation) {
+            document.getElementById("formulaire-classement").submit();
+        }
         fermerMenuEtape();
     }
+
+    function confirmerClasserCommeAccepte() {
+        masquerToutesZonesComplementaires();
+        const confirmation = confirm("Confirmez-vous le classement du dossier comme accepté ?");
+        if (confirmation) {
+            document.getElementById("form-retour-instruction-2").submit();
+        }
+        fermerMenuEtape();
+    }
+
+    function confirmerClasserCommeRefuse() {
+            masquerToutesZonesComplementaires();
+            const confirmation = confirm("Confirmez-vous le classement du dossier comme refusé ?");
+            if (confirmation) {
+                document.getElementById("formulaire-refus").submit();
+            }
+            fermerMenuEtape();
+        }
+
 
     function fermerMenuEtape() {
         const menuContent = document.getElementById("etapeMenuContent");

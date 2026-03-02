@@ -318,7 +318,7 @@ def dossiers_reception_action_a_faire(dossiers, user):
 
     for dossier in dossiers:
         # SPPN
-        if dossier.id_demarche and dossier.id_demarche.type and "mission scientifique" in dossier.id_demarche.type.lower():
+        if dossier.id_demarche and dossier.id_demarche.service and dossier.id_demarche.service == 'SPPN':
             if est_receptionniste_SPPN :
                 dossiers_a_traiter_ids.add(dossier.id)
         # SAADD
