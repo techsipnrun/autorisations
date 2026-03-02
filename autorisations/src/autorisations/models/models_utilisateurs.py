@@ -47,7 +47,7 @@ class TypeContactExterne(models.Model):
 
 class ContactExterne(models.Model):
     id = models.AutoField(primary_key=True)
-    email = models.CharField(blank=True, null=True)
+    email = models.CharField(blank=False, null=False)
     id_type = models.ForeignKey(TypeContactExterne, models.RESTRICT, db_column='id_type')
     nom = models.CharField(blank=True, null=True)
     prenom = models.CharField(blank=True, null=True)
@@ -61,14 +61,15 @@ class ContactExterne(models.Model):
         managed = False
         db_table = '"utilisateurs"."contact_externe"'
         constraints = [
-            models.UniqueConstraint(fields=['email', 'id_type'], name='contact_externe_email_type_unique'),
+            models.UniqueConstraint(fields=['email', 'id_type', 'siret'], name='contact_externe_email_type_siret_unique'),
+            models.UniqueConstraint(fields=["email", "id_type"], condition=Q(siret__isnull=True) & ~Q(email="") & Q(email__isnull=False), name="contact_externe_unique_email_type_when_siret_null",),
             models.CheckConstraint(
-                check=(
-                    (Q(nom__isnull=False) & Q(prenom__isnull=False)) |
-                    Q(raison_sociale__isnull=False)
+                condition=(
+                    (Q(nom__isnull=False) & Q(prenom__isnull=False))
+                    | Q(raison_sociale__isnull=False)
                 ),
-                name='contact_externe_identite_check'
-            )
+                name="contact_externe_identite_check",
+            ),
         ]
     
     def get_display_name(self):

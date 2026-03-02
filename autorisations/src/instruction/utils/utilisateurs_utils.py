@@ -111,7 +111,7 @@ def build_roles_for_dossier(dossier):
     validants_dossier = Instructeur.objects.filter(dossiervalideur__id_dossier=dossier).select_related("id_agent_autorisations")
 
     # --- RELECTEURS ---
-    if "mission scientifique" in dossier.id_demarche.type.lower():
+    if dossier.id_demarche.service == 'SPPN':
         relecteurs_group = _get_group_instructeurs("Relecteur-rice qualité SPPN")
     else:
         relecteurs_group = _get_group_instructeurs("Relecteur-rice qualité SAADD")

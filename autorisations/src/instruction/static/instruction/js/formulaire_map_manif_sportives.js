@@ -156,12 +156,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 attribution: '© OpenTopoMap',
                 maxZoom: 18,
                 tileSize: 256
-            })
+            }),
+
+            planign: L.tileLayer(
+                "https://data.geopf.fr/wmts?" +
+                    "service=WMTS&request=GetTile&version=1.0.0" +
+                    "&layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2" +
+                    "&style=normal" +
+                    "&tilematrixset=PM" +
+                    "&format=image/png" +
+                    "&tilematrix={z}&tilerow={y}&tilecol={x}",
+                {
+                    maxZoom: 19,
+                    tileSize: 256,
+                    attribution: "© IGN - Géoplateforme"
+                }
+            )
 
         };
 
         // Fond par défaut
-        let fondActif = fonds.osm.addTo(map);
+        let fondActif = fonds.planign.addTo(map);
 
 
         // ---------------------------------
@@ -207,9 +222,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Base layers (fonds de carte)
         const baseLayers = {
-        "OpenStreetMap": fonds.osm,
-        "Satellite": fonds.satellite,
-        "OpenTopoMap": fonds.opentopomap,
+            "Plan IGN v2": fonds.planign,
+            "OpenStreetMap": fonds.osm,
+            "Satellite": fonds.satellite,
+            "OpenTopoMap": fonds.opentopomap,
         };
 
         // Overlays (couches)

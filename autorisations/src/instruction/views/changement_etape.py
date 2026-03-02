@@ -120,7 +120,7 @@ def demander_des_complements(request):
     
     if not dossier.id_ds :
         logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} : Le dossier n'a pas de id_ds. (id_ds = {dossier.id_ds})")
-        return redirect_error(request, f"L'ID du dossier Démarches Simplifiées est introuvable. Contactez le support.")
+        return redirect_error(request, f"L'ID du dossier Démarche Numérique est introuvable. Contactez le support.")
     
 
     tmp_file_path = None
@@ -134,7 +134,7 @@ def demander_des_complements(request):
         # --- Vérification réponse DS ---
         if not result or "data" not in result or "dossierEnvoyerMessage" not in result["data"] :
             logger.error(f"[DOSSIER {numero}] Demande de compléments par {request.user} : Echec demande complément sur DS — Réponse API : {result}")
-            return redirect_error(request, f"Échec de la demande de compléments sur Démarches Simplifiées. Contactez le support.")
+            return redirect_error(request, f"Échec de la demande de compléments sur Démarche Numérique. Contactez le support.")
         
 
         if result.get("data"):
@@ -189,7 +189,7 @@ def dossier_non_soumis_a_autorisation(request):
     
 
     # --- Motivation requise ---
-    if not motivation:
+    if not motivation and dossier.present_sur_ds :
         logger.warning(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} : Justification manquante.")
         return redirect_error(request, f"Une justification est requise pour classer le dossier comme 'Non soumis à autorisation'.")
     
@@ -202,7 +202,7 @@ def dossier_non_soumis_a_autorisation(request):
 
 
     # ==========================================
-    # --- Actions côté Démarches Simplifiées ---
+    # --- Actions côté Démarche Numérique ---
     # ==========================================
     if dossier.present_sur_ds :
 
@@ -212,14 +212,14 @@ def dossier_non_soumis_a_autorisation(request):
             result = passer_en_instruction_ds(dossier.id_ds, instructeur)
             if not result.get("success"):
                 logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du passage en instruction DS par {request.user} : {result.get('message')}")
-                return redirect_error(request, f"Erreur lors du passage en instruction sur Démarches Simplifiées. Contactez le support.")
+                return redirect_error(request, f"Erreur lors du passage en instruction sur Démarche Numérique. Contactez le support.")
 
 
         # --- CLASSEMENT SANS SUITE SUR DS ---
         result = classer_sans_suite_ds(dossier.id_ds, instructeur, motivation)
         if not result.get("success"):
             logger.error(f"[DOSSIER {dossier.numero}] Échec du classement sans suite DS par {request.user} : {result.get('message')}")
-            return redirect_error(request, f"Erreur lors du classement sans suite sur Démarches Simplifiées. Contactez le support.")
+            return redirect_error(request, f"Erreur lors du classement sans suite sur Démarche Numérique. Contactez le support.")
 
 
     # ========================
@@ -230,7 +230,8 @@ def dossier_non_soumis_a_autorisation(request):
     safe_update_etape(dossier, "Non soumis à autorisation", request, break_si_erreur=False) # On continue si Erreur
     
     # --- Mise à jour État ---
-    safe_update_etat(dossier, "sans_suite", request, break_si_erreur=False) # On continue si Erreur
+    if dossier.present_sur_ds :
+        safe_update_etat(dossier, "sans_suite", request, break_si_erreur=False) # On continue si Erreur
 
     # Maj Date Fin Instruction
     try:
@@ -267,13 +268,13 @@ def refuse_le_dossier(request):
     
     
     # --- Vérification justification ---
-    if not motivation:
+    if not motivation and dossier.present_sur_ds:
         logger.warning(f"[DOSSIER {dossier.numero}] User {request.user} a tenté de refuser le dossier sans justification.")
         return redirect_error(request, f"Une justification est requise pour refuser le dossier.")
     
 
     # ==========================================
-    # --- Actions côté Démarches Simplifiées ---
+    # --- Actions côté Démarche Numérique ---
     # ==========================================
     if dossier.present_sur_ds :
 
@@ -284,13 +285,13 @@ def refuse_le_dossier(request):
             result = passer_en_instruction_ds(dossier.id_ds, instructeur)
             if not result.get("success"):
                 logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du passage en instruction DS par {request.user} : {result.get('message')}")
-                return redirect_error(request, f"Erreur lors du passage en instruction sur Démarches Simplifiées. Contactez le support.")
+                return redirect_error(request, f"Erreur lors du passage en instruction sur Démarche Numérique. Contactez le support.")
 
         # Refus du dossier sur DS
         result = refuser_dossier_ds(dossier.id_ds, instructeur, motivation)
         if not result.get("success"):
             logger.error(f"[DOSSIER {dossier.numero}] Échec du refus DS : {result.get('message')}")
-            return redirect_error(request, f"Erreur lors du refus sur Démarches Simplifiées. Contactez le support.")
+            return redirect_error(request, f"Erreur lors du refus sur Démarche Numérique. Contactez le support.")
 
 
     # ========================
@@ -301,7 +302,8 @@ def refuse_le_dossier(request):
     safe_update_etape(dossier, "Refusé", request, break_si_erreur=False) # On continue si Erreur
 
     # --- Mise à jour État ---
-    safe_update_etat(dossier, "refuse", request, break_si_erreur=False) # On continue si Erreur
+    if dossier.present_sur_ds :
+        safe_update_etat(dossier, "refuse", request, break_si_erreur=False) # On continue si Erreur
 
     # Maj Date Fin Instruction
     try:
@@ -345,7 +347,7 @@ def passer_en_instruction(request):
 
         if not result.get("success"):
                 logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du passage en instruction DS par {request.user} : {result.get('message')}")
-                return redirect_error(request, f"Erreur lors du passage en instruction sur Démarches Simplifiées. Contactez le support.")
+                return redirect_error(request, f"Erreur lors du passage en instruction sur Démarche Numérique. Contactez le support.")
         
 
     # --- Mise à jour Étape ---
@@ -839,7 +841,7 @@ def repasser_en_instruction(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[REPASSAGE EN INSTRUCTION] User={request.user} : ID du dossier DS manquant")
-        return redirect_error(request, "❌ Impossible de repasser en instruction : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+        return redirect_error(request, "❌ Impossible de repasser en instruction : ID Démarche Numérique du dossier manquant. Contactez le support.")
 
     # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "REPASSAGE EN INSTRUCTION", id_ds=dossier_id_ds)
@@ -866,15 +868,15 @@ def repasser_en_instruction(request):
             if not result.get("success"):
                 if result.get('message') == "Le dossier est déjà en instruction" :
                     logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'est pas repassé en instruction sur DS car il est déjà en instruction : {result.get('message')}")
-                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarches Simplifiées car il est déjà en instruction. Contactez le support.")
+                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarche Numérique car il est déjà en instruction. Contactez le support.")
 
                 elif result.get('message') == "Le dossier est déjà en construction" :
                     logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'est pas repassé en instruction sur DS car il est déjà en construction : {result.get('message')}")
-                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarches Simplifiées car il est déjà en construction. Contactez le support.")
+                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarche Numérique car il est déjà en construction. Contactez le support.")
  
                 else:
                     logger.error(f"[DOSSIER {dossier.numero}] Échec du repassage en instruction du dossier par {request.user} : {result.get('message')}")
-                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarches Simplifiées. Contactez le support.")
+                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarche Numérique. Contactez le support.")
 
 
     # --- Mise à jour Étape ---
@@ -935,7 +937,7 @@ def acte_inchange_envoyer_pour_relecture_qualite(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[ENVOI POUR RELECTURE QUALITÉ] User={request.user} : ID du dossier DS manquant dans le formulaire.")
-        return redirect_error(request, "❌ Échec de l'envoi pour relecture : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+        return redirect_error(request, "❌ Échec de l'envoi pour relecture : ID Démarche Numérique du dossier manquant. Contactez le support.")
 
     # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "ENVOI POUR RELECTURE QUALITÉ", id_ds=dossier_id_ds)
@@ -970,7 +972,7 @@ def valider_et_envoyer_pour_relecture_qualite(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[VALIDATION AVANT RELECTURE QUALITÉ] User={request.user} : ID du dossier DS manquant dans le formulaire.")
-        return redirect_error(request, "❌ Échec de l'envoi pour relecture : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+        return redirect_error(request, "❌ Échec de l'envoi pour relecture : ID Démarche Numérique du dossier manquant. Contactez le support.")
 
     # --- Vérification choix relecteur ---
     if not relecteur:
@@ -1052,7 +1054,7 @@ def envoyer_les_modifications_de_l_acte_pour_validation(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[ENVOI POUR VALIDATION] User={request.user} : ID du dossier DS manquant dans le formulaire.")
-        return redirect_error(request, "❌ Échec de l'envoi pour validation : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+        return redirect_error(request, "❌ Échec de l'envoi pour validation : ID Démarche Numérique du dossier manquant. Contactez le support.")
 
     # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "ENVOI POUR VALIDATION", id_ds=dossier_id_ds)
@@ -1104,7 +1106,7 @@ def pret_a_la_signature(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[PRÊT À LA SIGNATURE] User={request.user} : ID DS manquant dans le formulaire.")
-        return redirect_error(request, "❌ Échec : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+        return redirect_error(request, "❌ Échec : ID Démarche Numérique du dossier manquant. Contactez le support.")
 
     # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "PRÊT À LA SIGNATURE", id_ds=dossier_id_ds)
@@ -1197,7 +1199,7 @@ def acte_pret_a_la_signature(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[PRÊT À LA SIGNATURE] User={request.user} : ID DS manquant dans le formulaire.")
-        return redirect_error(request, "❌ Échec : ID Démarches Simplifiées du dossier manquant. Contactez le support.")
+        return redirect_error(request, "❌ Échec : ID Démarche Numérique du dossier manquant. Contactez le support.")
 
     # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "PRÊT À LA SIGNATURE", id_ds=dossier_id_ds)
@@ -1416,7 +1418,7 @@ def acte_pret_a_etre_envoye(request):
     # --- Vérification dossierId ---
     if not dossier_id_ds:
         logger.error(f"[ACTE PRÊT À ENVOI] User={request.user} : ID DS manquant.")
-        return redirect_error(request, "❌ ID Démarches Simplifiées manquant. Contactez le support.")
+        return redirect_error(request, "❌ ID Démarche Numérique manquant. Contactez le support.")
 
      # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "ACTE PRÊT À ENVOI", id_ds=dossier_id_ds)
@@ -1848,7 +1850,7 @@ def envoyer_l_acte(request):
 
             else:
                 logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur} : {result['message']}")
-                return redirect_error(request, f"Erreur lors de l'acceptation du dossier sur Démarches Simplifiées. Contactez le support.")
+                return redirect_error(request, f"Erreur lors de l'acceptation du dossier sur Démarche Numérique. Contactez le support.")
 
 
         # -------------------------------------------------------
@@ -1910,26 +1912,31 @@ def envoyer_l_acte(request):
         emails = request.POST.getlist("emails_copie[]")
 
         emails_nouveaux = request.POST.getlist("email_contact[]")
+        emails_selectionnes_lower = { (e or "").strip().lower() for e in emails }
         noms = request.POST.getlist("nom_contact[]")
         prenoms = request.POST.getlist("prenom_contact[]")
         types = request.POST.getlist("type_contact[]")
         raisons = request.POST.getlist("raison_sociale[]")
         motivation_copie_mail = request.POST.get("motivation_copie_mail")
 
-        if partager_par_mail :
+        if partager_par_mail == "oui" :
 
             # =======================================
             # 1) AJOUT DES NOUVEAUX CONTACTS EXTERNES
             # =======================================
             for i, email in enumerate(emails_nouveaux):
-                email = (email or "").strip()
-                if not email:
+                email_clean = (email or "").strip()
+                if not email_clean:
                     continue
 
                 try:
-                    validate_email(email)
+                    validate_email(email_clean)
                 except ValidationError:
                     logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {email}")
+                    continue
+
+                # chip supprimée => on ignore (pas de création, pas d'envoi)
+                if email_clean.lower() not in emails_selectionnes_lower:
                     continue
 
                 nom = (noms[i] if i < len(noms) else "").strip()
@@ -1941,22 +1948,22 @@ def envoyer_l_acte(request):
                 if type_id:
                     type_obj = TypeContactExterne.objects.filter(id=type_id).first()
                 if not type_obj:
-                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="autre")
+                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="Autre")
 
                 contact, created = ContactExterne.objects.get_or_create(
-                    email=email,
+                    email=email_clean,
+                    id_type= type_obj,
                     defaults={
                         "nom": nom,
                         "prenom": prenom,
-                        "raison_sociale": raison,
-                        "id_type": type_obj,
+                        "raison_sociale": raison
                     }
                 )
                 if created:
                     logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {contact}")
 
                 # Ajouter ce mail aux destinataires
-                emails.append(email)
+                # emails.append(email)
 
 
             # ================================

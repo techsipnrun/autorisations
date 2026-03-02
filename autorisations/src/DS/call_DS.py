@@ -36,7 +36,7 @@ def init_setup():
 
 def get_number_demarche_Postgres():
     """
-        Récupère sur Postgres le numéro 'Démarches-Simplifiées' de nos démarches
+        Récupère sur Postgres le numéro 'Démarche Numérique' de nos démarches
 
         Returns:
             list: Liste des numéros de démarches
@@ -89,7 +89,7 @@ def recup_data_DS(number):
 
 def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original, content_type="application/pdf", body=None, correction=False):
     '''
-    Envoie un message avec une pièce jointe via l’API Démarches Simplifiées.
+    Envoie un message avec une pièce jointe via l’API Démarche Numérique.
 
     Args:
         dossier_id (str): Identifiant DS du dossier concerné.
@@ -192,7 +192,7 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original,
 
 def suppr_msg_DS(msg):
     """
-    Supprime un message via l’API Démarches Simplifiées.
+    Supprime un message via l’API Démarche Numérique.
 
     Args:
         msg (Message): Instance du message à supprimer. Doit contenir `email_emetteur` et `id_ds`.
@@ -383,7 +383,7 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur):
 """ON GARDE LE RETOUR {"success", "message"}"""
 def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
     """
-    Classe un dossier comme "sans suite" via l'API Démarches Simplifiées.
+    Classe un dossier comme "sans suite" via l'API Démarche Numérique.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.
@@ -429,7 +429,7 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
 
 def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
     """
-    Refuse un dossier via l'API Démarches Simplifiées.
+    Refuse un dossier via l'API Démarche Numérique.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.
@@ -473,7 +473,7 @@ def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
 
 def repasser_en_instruction_ds(dossier_id_ds, instructeur):
     """
-    Rebascule un dossier en instruction via l'API Démarches Simplifiées.
+    Rebascule un dossier en instruction via l'API Démarche Numérique.
 
     Args:
         dossier_id_ds (str): ID du dossier D-S.

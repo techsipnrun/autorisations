@@ -11,7 +11,7 @@ from autorisations.models.models_instruction import EtapeDossier, EtatDossier, G
 
 def dossier_normalize(id_demarche, doss, emplacement_dossier):
     """
-    Normalise les données d'un dossier en provenance de Démarches Simplifiées.
+    Normalise les données d'un dossier en provenance de Démarche Numérique.
     :param id_demarche: ID interne de la démarche (FK)
     :param doss: Données brutes d'un dossier
     :return: Dictionnaire normalisé pour l'objet Dossier

@@ -109,8 +109,12 @@ def safe_enregistrer_action(dossier, instructeur, action, request, description=N
         enregistrer_action(dossier, instructeur, action, description, date)
         return None
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l’enregistrement de l’action '{action}' par {request.user} -  : {e}")
-        messages.error(request, "Erreur lors de l’enregistrement de l’action. Contactez le support.")
+        if request :
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l’enregistrement de l’action '{action}' par {request.user} -  : {e}")
+            messages.error(request, "Erreur lors de l’enregistrement de l’action. Contactez le support.")
+        else :
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l’enregistrement de l’action '{action}' -  : {e}")
+            
         return None
 
 
@@ -330,63 +334,29 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
 
     # DOSSIER PLUS SUR DS
     else :
+        actions_classement = [
+            "Archiver le dossier comme accepté",
+            "Archiver le dossier comme non soumis à autorisation",
+            "Archiver le dossier comme refusé",
+        ]
+                
         etapes = {
-            "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
-
-            "En pré-instruction": ["Classer le dossier comme non soumis à autorisation",
-                                "Classer le dossier comme refusé", "Passer en instruction"],
-
-            "En attente de compléments": [],
-
-            "En instruction": ["Classer le dossier comme non soumis à autorisation", "Classer le dossier comme refusé",
-                            "Faire valider une demande d'avis", "Faire valider le projet d'acte"],
-
-            "À valider avant demande d'avis": ["Valider le modèle de demande d'avis et le projet d'acte"],
-
-            "À valider avant signature": ["Valider et envoyer pour relecture qualité",
-                                        "Classer le dossier comme non soumis à autorisation",
-                                        "Classer le dossier comme refusé"],
-
-            "En relecture qualité": ["Prêt à la signature", "Classer le dossier comme non soumis à autorisation",
-                                    "Classer le dossier comme refusé"],
-
-            "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
-                                        "Acte inchangé, envoyer pour relecture qualité",
-                                        "Classer le dossier comme non soumis à autorisation",
-                                        "Classer le dossier comme refusé"],
-
-            "Avis à envoyer": ["Avis envoyé", "Classer le dossier comme non soumis à autorisation",
-                            "Classer le dossier comme refusé"],
-
-            "En attente de signature": ["Acte prêt à être envoyé",
-                                        "Classer le dossier comme non soumis à autorisation",
-                                        "Classer le dossier comme refusé"],
-
-            "Acte à envoyer": ["Envoyer l'acte", "Classer le dossier comme non soumis à autorisation",
-                            "Classer le dossier comme refusé"],
-
-            "À publier au RAA": ["Classer le dossier comme accepté",
-                                "Classer le dossier comme non soumis à autorisation",
-                                "Classer le dossier comme refusé"],
-
+            "À affecter": actions_classement,
+            "En pré-instruction": actions_classement,
+            "En attente de compléments": actions_classement,
+            "En instruction": actions_classement,
+            "À valider avant demande d'avis": actions_classement,
+            "À valider avant signature": actions_classement,
+            "En relecture qualité": actions_classement,
+            "En attente réponse d'avis": actions_classement,
+            "Avis à envoyer": actions_classement,
+            "En attente de signature": actions_classement,
+            "Acte à envoyer": actions_classement,
+            "À publier au RAA": actions_classement,
             "Non soumis à autorisation": [],
-
             "Accepté": [],
-
             "Refusé": [],
         }
-
-        # Etapes simplifiées pour le SPPN
-        if dossier_sppn:
-            # Retiré : "Faire valider une demande d'avis", "Faire valider le projet d'acte"
-            # Ajouté : "Acte prêt à la signature"
-            etapes["En instruction"] = [
-                "Demander des compléments",
-                "Classer le dossier comme non soumis à autorisation",
-                "Classer le dossier comme refusé",
-                "Acte prêt à la signature",
-            ]
-
 
 
     # Cas spécial : manifestations sportives
@@ -430,6 +400,7 @@ LOGO_MAPPING = {
     "Intermédiaire signature changé.e": "changer_intermédiaire.png",
     "Envoyeur.se d'acte changé.e": "changer_envoyeur.png",
     "Publieur.se RAA changé.e": "changer_publieurRAA.png",
+    "Dossier supprimé de Démarche Numérique": "dossier_supprime_de_DN.png",
 }
 
 

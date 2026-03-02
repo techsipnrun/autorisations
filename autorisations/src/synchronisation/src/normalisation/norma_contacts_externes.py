@@ -54,7 +54,7 @@ def contact_externe_normalize(doss, contacts_externes):
         #  Demandeur = Personne Morale (pas la possibilité de mettre de demandeur intermédiaire de toute façon)
         #  ---
         #  ATTENTION : Si le remplisseur du form = Pers Morale --> Ce n'est pas forcément le bénéficiaire (il peut servir de demandeur intermédiaire)
-        #  On stocke dans un contacts_externes['demandeur_pers_morale'] et décider seulement dans norma_dossier_champs si on le passe en ['beneficiaire'] ou ['demandeur_intermediaire']
+        #  On stocke dans un contacts_externes['demandeur_pers_morale'] et on décide seulement dans norma_dossier_champs si on le passe en ['beneficiaire'] ou ['demandeur_intermediaire']
         # -----------------------------------------------------------------------------------------------------
         if doss['demandeur']['__typename'] == 'PersonneMorale' :
 
@@ -77,6 +77,5 @@ def contact_externe_normalize(doss, contacts_externes):
 
             if doss['demandeur']['address']['cityName'] :
                 contacts_externes['demandeur_pers_morale']["adresse"] = doss['demandeur']['address']['cityName']
-
 
     return contacts_externes

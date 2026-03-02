@@ -10,7 +10,8 @@ from autorisations.models.models_instruction import Demarche, Dossier, DossierAc
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
-from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
+from autorisations.utils.nas_fonctions import _normalize_unc_path
+from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action, get_etapes_custom
 from instruction.utils.files_utils import load_geojson
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
@@ -192,7 +193,27 @@ def preinstruction_dossier(request, numero):
         logger.error(f"[PREINSTRUCTION DOSSIER] Erreur lors de l'affichage de la page par {request.user} : Dossier {numero} introuvable.")
         return redirect_error(request, f"❌ Le dossier {numero} est introuvable en base. Contactez le support")
 
- 
+    # Normalisation du path complet
+    chemin_complet = dossier.emplacement
+    if not chemin_complet.startswith(os.getenv('NAS_ROOT')):
+        chemin_complet = os.path.join(os.getenv('NAS_ROOT'), chemin_complet)
+    chemin_complet = _normalize_unc_path(chemin_complet)
+    
+    ########################################
+    # Menu déroulant avec les choix d'étapes
+    ########################################
+
+    etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
+
+    dossier_sppn = dossier.id_demarche.service == 'SPPN'
+    etapes_custom = get_etapes_custom(
+        present_sur_ds=dossier.present_sur_ds,
+        dossier_sppn=dossier_sppn,
+        etape_actuelle=etape_actuelle.etape if etape_actuelle else "",
+        demarche_type=dossier.id_demarche.type
+    )
+
+
     ####################################
     # Charger les fonds de carte GeoJSON
     ####################################
@@ -309,6 +330,9 @@ def preinstruction_dossier(request, numero):
         # Dossier
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
+        "etape_actuelle": etape_actuelle,
+        "etapes_custom": etapes_custom,
+        "chemin_complet": chemin_complet,
         "etape_dossier": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "N/A",
         "dossier_actions": dossier_actions,
         "champs": champs_prepares,
@@ -396,12 +420,12 @@ def changer_groupe_instructeur(request):
         result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_num}] Erreur API DS lors du changement de groupe vers {nom_groupe} par {request.user} : {e}")
-        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarches Simplifiées. Contactez le support.")
+        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.")
 
 
     if not result.get("success"):
         logger.error(f"[DOSSIER {dossier_num}] Echec du changement de Groupe Instructeur vers {nom_groupe} par {request.user} : {result.get('message')}")
-        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarches Simplifiées. Contactez le support.")
+        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.")
 
     logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur changé avec succès sur DS par {request.user} --> Affecté au groupe {nom_groupe}.")
 
@@ -423,58 +447,3 @@ def changer_groupe_instructeur(request):
         return redirect_error(request,"⚠️ Groupe modifié sur DS mais erreur interne lors de la mise à jour locale. Contactez le support.")
    
     return redirect(request.META.get('HTTP_REFERER', '/'))
-
-
-
-# @require_POST
-# def passer_en_instruction(request):
-
-#     dossier_id = request.POST.get("dossierId")
-#     instructeur_email = request.user.email
-
-#     # -----------------
-#     # Vérifications
-#     # -----------------
-#     dossier = Dossier.objects.filter(id_ds=dossier_id).first()
-#     if not dossier:
-#         logger.error(f"[PASSAGE INSTRUCTION] Dossier id_ds={dossier_id} introuvable — User={request.user}")
-#         return redirect_error(request, "❌ Dossier introuvable. Contactez le support.")
-
-#     instructeur = Instructeur.objects.filter(email=instructeur_email).first()
-#     if not instructeur:
-#         logger.error(f"[DOSSIER {dossier.numero}] {request.user} a tenté un passage en instruction sans profil instructeur.")
-#         return redirect_error(request, "❌ Vous n'avez pas de profil Instructeur. Contactez le support.")
-
-
-#     # Vérifie qu'un groupe instructeur est affecté
-#     if not dossier.id_groupeinstructeur:
-#         logger.warning(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : aucun groupe instructeur affecté.")
-#         return redirect(request.META.get("HTTP_REFERER", "/"))
-
-#     if not instructeur :
-#         logger.error(f"[DOSSIER {dossier.numero}] Échec de passage en instruction par {instructeur_email} : Mail de l'instructeur non reconnu en BDD.")
-#         return redirect(request.META.get("HTTP_REFERER", "/"))
-
-#     result = passer_en_instruction_ds(dossier_id, instructeur)
-
-#     if result["success"]:
-#         logger.info(f"[DOSSIER {dossier.numero}] Passage en instruction réussi sur DS par {instructeur_email}")
-
-#         try:
-#             etat_instruction = EtatDossier.objects.get(nom__iexact="en_instruction")
-#             dossier.id_etat_dossier = etat_instruction
-#             dossier.date_debut_instruction = timezone.now()
-#             dossier.save()
-#             logger.info(f"[DOSSIER {dossier.numero}] État du dossier mis à jour en 'en_instruction' par {instructeur_email}.")
-            
-#             return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
-
-#         except Exception as e:
-#             logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la mise à jour en 'en_instruction' par {instructeur_email}: {e}")
-
-#     else:
-#         logger.error(f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DS par {instructeur_email}: {result['message']}")
-
-#     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-

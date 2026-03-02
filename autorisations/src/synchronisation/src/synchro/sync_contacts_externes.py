@@ -9,7 +9,7 @@ def sync_contacts_externes(contacts_externes):
     """
     Synchronise les contacts externes (bénéficiaire et demandeur intermédiaire).
     { 'beneficiaire': {"email", "id_type", "nom", "prenom", "siret", "raison_sociale", "organisation", "adresse", "telephone"},
-      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom", "adresse", "organisation", "telephone"},
+      'demandeur_intermediaire': {"email", "id_type", "nom", "prenom", "adresse", "organisation", "siret", "raison_sociale", "telephone"},
     }
     """
 
@@ -23,11 +23,16 @@ def sync_contacts_externes(contacts_externes):
             continue
 
         try:
-            email = data.get("email") #Le bénéficiaire peut ne pas avoir d'email
+            email = data.get("email")
+            # Normalement on recupère TOUJOURS un email
+            if not email :
+                logger.error(f"Erreur lors de la synchronisation du contact externe ({role}) ---> Aucun email n'a été récupéré sur Démarche Numérique")
+                return None
+
             id_type = data["id_type"]
+            siret = data.get("siret")
 
-
-            defaults = {k: v for k, v in [("nom", data.get("nom")), ("prenom", data.get("prenom")), ("siret", data.get("siret")), 
+            defaults = {k: v for k, v in [("nom", data.get("nom")), ("prenom", data.get("prenom")),
                                           ("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
                                           ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
 
@@ -36,27 +41,28 @@ def sync_contacts_externes(contacts_externes):
             created = None
 
             if id_type:
-                if email : #Le bénéficiaire peut ne pas avoir d'email
 
-                    # 2 Contact Externes ne peuvent pas avoir le même email ET le même type
-                    obj, created = ContactExterne.objects.get_or_create(
-                        email=email,
-                        id_type_id=id_type,
-                        defaults=defaults
-                    )
-                else :
-                    obj, created = ContactExterne.objects.get_or_create(
-                        id_type_id=id_type,
-                        nom=data.get("nom"),
-                        prenom=data.get("prenom"),
-                    )
+                # Clé unique sur id_type, email et siret 
+                obj, created = ContactExterne.objects.get_or_create(
+                    email=email,
+                    id_type_id=id_type,
+                    siret=siret or None,
+                    defaults=defaults
+                )
+
+                # else :
+                #     obj, created = ContactExterne.objects.get_or_create(
+                #         id_type_id=id_type,
+                #         nom=data.get("nom"),
+                #         prenom=data.get("prenom"),
+                #     )
 
             else :
-  
-                logger.error(f"ERROR ---> La normalisation de contact externe {role} n'est pas bonne (absence du type)")
+                logger.error(f"Erreur lors de la synchronisation du contact externe ---> La normalisation du contact externe {role} n'est pas bonne (absence du type)")
+                return None
 
             if created:
-                logger.info(f"[CREATE] ContactExterne {role} - {obj.prenom} {obj.nom} (email: {obj.email}) créé.")
+                logger.info(f"[CREATE] ContactExterne {role} - {obj} (email: {obj.email}) créé.")
 
             else:
                 
@@ -66,7 +72,7 @@ def sync_contacts_externes(contacts_externes):
                     logger.warning(f"Le contact externe de type {role} et avec le mail {obj.email} existe déjà")
                     obj.save()
                     champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
-                    logger.info(f"[SAVE] {role} - {obj.prenom} {obj.nom} mis à jour. Champs modifiés : {champs}.")
+                    logger.info(f"[SAVE] {role} - {obj} mis à jour. Champs modifiés : {champs}.")
       
 
         except IntegrityError as e:

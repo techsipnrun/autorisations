@@ -15,7 +15,7 @@ from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
 from autorisations.models.models_avis import AvisDocument, DossierAvis
-from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
+from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
 from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etapes_custom, redirect_error, safe_enregistrer_action
@@ -401,6 +401,12 @@ def instruction_dossier(request, num_dossier):
     
     demarche = dossier.id_demarche
 
+    # Normalisation du path complet
+    chemin_complet = dossier.emplacement
+    if not chemin_complet.startswith(os.getenv('NAS_ROOT')):
+        chemin_complet = os.path.join(os.getenv('NAS_ROOT'), chemin_complet)
+    chemin_complet = _normalize_unc_path(chemin_complet)
+
 
     ####################################
     # Charger les fonds de carte GeoJSON
@@ -474,7 +480,7 @@ def instruction_dossier(request, num_dossier):
     etapes_possibles = EtapeDossier.objects.all().order_by("etape")
     etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
 
-    dossier_sppn = "mission scientifique" in dossier.id_demarche.titre.lower()
+    dossier_sppn = dossier.id_demarche.service == 'SPPN'
     etapes_custom = get_etapes_custom(
         present_sur_ds=dossier.present_sur_ds,
         dossier_sppn=dossier_sppn,
@@ -583,6 +589,7 @@ def instruction_dossier(request, num_dossier):
         "demarche": demarche,
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
+        "chemin_complet": chemin_complet,
         "champs": champs_prepares,
         "etapes_possibles": etapes_possibles,
         "etape_actuelle": etape_actuelle,
@@ -693,31 +700,66 @@ def actualiser_dossier(request, num_dossier):
             for ddm in doss_dm_norma :
                 sync_declaration_manifestations(ddm, loggerSynchro)
             loggerSynchro.info("------------------------------------------------")
+            loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")
 
+        else :
+            loggerSynchro.info("\n\n")
+            loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss["number"]} (Démarche Numérique) ######")
         try :
+
+
+            # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
+            if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
+                type_demarche = Demarche.objects.get(id=id_demarche).type
+                loggerSynchro.warning(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
+                return redirect_error(request, f"❌ Erreur lors de la normalisation du dossier. Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée. Réessayez plus tard.")
+
+            contact_beneficiaire = doss["demandeur"]
+
+            #Construction du chemin du dossier (sans le créer physiquement)
+            emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
+            c_e_n = contact_externe_normalize(doss, None)
+            d_c_n, c_e_n_complete = dossiers_champs_normalize(doss, emplacement_dossier, c_e_n)
+            
+            # loggerSynchro.warning("Sortie de dossiers_champs_normalize : ")
+            # loggerSynchro.warning(c_e_n_complete)
+            c_e_n_complete.pop("demandeur_pers_morale", None)
+            # loggerSynchro.warning("Après le .pop : ")
+            # loggerSynchro.warning(c_e_n_complete)
 
             dico_dossier = {
                 "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
-                "contacts_externes": contact_externe_normalize(doss, None),
+                "contacts_externes": c_e_n_complete,
                 "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
-                "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier, None)[0],
+                "dossier_champs": d_c_n,
                 "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
                 "messages": message_normalize(doss, emplacement_dossier),
                 "demandes": demande_normalize(id_demarche, titre_demarche, doss)
             }
+            
+            
+
+            # ICI PAS BON. IL FAUT QUE JE FASSE COMME DANS dossiers_normalize_process --> limite j'appelle la fonction si possible
+            # dico_dossier = {
+            #     "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
+            #     "contacts_externes": contact_externe_normalize(doss, None),
+            #     "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
+            #     "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier, None)[0],
+            #     "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
+            #     "messages": message_normalize(doss, emplacement_dossier),
+            #     "demandes": demande_normalize(id_demarche, titre_demarche, doss)
+            # }
 
         except Exception as e:
-            logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors de la normalisation du dossier : {e}")
+            loggerSynchro.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors de la normalisation du dossier : {e}")
             return redirect_error(request, f"❌ Erreur lors de la normalisation du dossier. Contactez le support.")
 
         # 3. Synchronisation en base
         try :
             if liaison:
-                loggerSynchro.info("\n")
-                loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarches Simplifiées) ######")
+                loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")
             else:
-                loggerSynchro.info("\n")
-                loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarches Simplifiées) ######")
+                loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarche Numérique) ######")
 
             dico_notifs = {}  #Est ce que on envoi vraiment une notif pour l'actualisation d'un dossier ? je ne pense pas
             sync_dossiers([dico_dossier], demarche.numero, True, dico_notifs)

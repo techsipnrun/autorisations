@@ -16,6 +16,7 @@
 {
     margin-top: 0;
     margin-bottom: 4rem;
+    font-size: clamp(1.5rem, 2vw, 1.8rem);
 }
 
 /* ====== Se déclarer comme instructeur ====== */
@@ -649,7 +650,7 @@
 }
 
 .demander-relecture_juridique h3 {
-    font-size: 1.4rem;
+    font-size: clamp(1.2rem, 1vw, 1.4em);
     color: #003366;
     margin-bottom: 1rem;
 }

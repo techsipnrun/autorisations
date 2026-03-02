@@ -20,7 +20,7 @@ logger = logging.getLogger('ORM_DJANGO')
 def get_number_demarche_Postgres():
     """
     Récupère tous les numéros des démarches enregistrées dans Postgres,
-    associées à Démarches-Simplifiées via le champ `numero`.
+    associées à Démarche Numérique via le champ `numero`.
 
     Returns:
         list[str]: Liste des numéros de démarches (DS) présents en base,
@@ -61,7 +61,7 @@ def create_message_bdd(
         document_format_str (str, optional): Format du document (ex: "pdf", "jpg").
         document_nature_str (str, optional): Nature du document (défaut: "Pièce jointe message").
         document_description (str, optional): Description libre du document.
-        id_ds (str, optional): ID du message sur Démarches Simplifiées (DS).
+        id_ds (str, optional): ID du message sur Démarche Numérique (DS).
         url_ds (str, optional): URL publique vers la pièce jointe sur DS.
 
     Returns:

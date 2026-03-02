@@ -27,3 +27,11 @@ def contains(value, substring):
     if value is None:
         return False
     return str(substring) in value
+
+@register.filter
+def is_int(value):
+    try:
+        int(value)
+        return True
+    except (ValueError, TypeError):
+        return False

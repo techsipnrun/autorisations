@@ -59,20 +59,22 @@
                             {% endif %} -->
                         </div>
                         
-                        <!-- Nom et Prénom en italique -->
-                        {% if not action.description %}
+                        {% if action.id_action.action != "Dossier supprimé de Démarche Numérique" %}
+                            <!-- Nom et Prénom en italique -->
+                            {% if not action.description %}
 
-                            {% with full_name=action.id_instructeur.id_agent_autorisations.nom|add:action.id_instructeur.id_agent_autorisations.prenom %}
-                                <div class="timeline-user {% if full_name|length > 25 %}small-text-user{% endif %}">
-                                    {{ action.id_instructeur.id_agent_autorisations.nom|upper }}
-                                    {{ action.id_instructeur.id_agent_autorisations.prenom|capfirst }}
+                                {% with full_name=action.id_instructeur.id_agent_autorisations.nom|add:action.id_instructeur.id_agent_autorisations.prenom %}
+                                    <div class="timeline-user {% if full_name|length > 25 %}small-text-user{% endif %}">
+                                        {{ action.id_instructeur.id_agent_autorisations.nom|upper }}
+                                        {{ action.id_instructeur.id_agent_autorisations.prenom|capfirst }}
+                                    </div>
+                                {% endwith %}
+
+                            {% else %}
+                                <div class="timeline-user {% if action.description|length > 25 %}small-text-user{% endif %}">
+                                    {{ action.description }}
                                 </div>
-                            {% endwith %}
-
-                        {% else %}
-                            <div class="timeline-user {% if action.description|length > 25 %}small-text-user{% endif %}">
-                                {{ action.description }}
-                            </div>
+                            {% endif %}
                         {% endif %}
                     </div>
 

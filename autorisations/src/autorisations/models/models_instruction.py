@@ -106,6 +106,11 @@ class Groupe(models.Model):
 
 
 class Demarche(models.Model):
+    SERVICE_CHOICES = [
+        ("SAADD", "SAADD"),
+        ("SPPN", "SPPN"),
+    ]
+
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(blank=True, null=True)
     numero = models.IntegerField(unique=True)
@@ -116,6 +121,7 @@ class Demarche(models.Model):
     description = models.CharField(blank=True, null=True)
     delais_jours_instruction = models.IntegerField(blank=True, null=True)
     type = models.CharField(blank=True, null=True)
+    service = models.CharField(max_length=10, choices=SERVICE_CHOICES, default="SAADD")
 
     class Meta:
         managed = False

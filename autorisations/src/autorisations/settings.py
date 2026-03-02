@@ -227,7 +227,7 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
-        'synchro_file': { # fichier pour les logs lors de la synchronisation entre Postgres et Démarches Simplifiées
+        'synchro_file': { # fichier pour les logs lors de la synchronisation entre Postgres et Démarche Numérique
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': 'logs/synchronisation.log', 

@@ -33,7 +33,7 @@ def prepare_temp_file(fichier):
 
 def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_type=None, chemin_fichier=None, num_dossier=None, correction=False):
     """
-    Envoie un message via l’API Démarches Simplifiées, avec ou sans pièce jointe.
+    Envoie un message via l’API Démarche Numérique, avec ou sans pièce jointe.
     """
     email_instructeur = instructeur.email
     
