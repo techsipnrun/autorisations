@@ -704,7 +704,7 @@ def actualiser_dossier(request, num_dossier):
 
         else :
             loggerSynchro.info("\n\n")
-            loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss["number"]} (Démarche Numérique) ######")
+            loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss['number']} (Démarche Numérique) ######")
         try :
 
 
