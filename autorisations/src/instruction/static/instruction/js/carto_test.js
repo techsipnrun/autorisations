@@ -403,7 +403,12 @@
                 {
                     maxZoom: 19,
                     tileSize: 256,
-                    attribution: "© IGN - Géoplateforme"
+                    attribution: "© IGN - Géoplateforme",
+
+                    // perf
+                    updateWhenZooming: false,
+                    updateWhenIdle: true,
+                    keepBuffer: 2,
                 }
             ),
             "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
