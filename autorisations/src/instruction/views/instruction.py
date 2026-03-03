@@ -255,6 +255,7 @@ def mesdossiers(request):
         # Structurer les infos
         dossiers_par_demarche.setdefault(dossier.id_demarche.type, []).append({
             "nom_dossier": dossier.nom_dossier,
+            "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "numero": dossier.numero,
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "demandeur": demandeur,
