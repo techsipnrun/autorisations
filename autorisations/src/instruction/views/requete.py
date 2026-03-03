@@ -30,7 +30,7 @@ def _export_dossiers_xlsx(dossiers_qs):
 
     headers = [
         "N°", "Nom dossier", "Démarche", "Étape",
-        "Date dépôt", "Groupe instructeur", "Bénéficiaire", "Lien"
+        "Date dépôt", "Groupe instructeur", "Bénéficiaire"
     ]
     ws.append(headers)
 
@@ -68,7 +68,6 @@ def _export_dossiers_xlsx(dossiers_qs):
             d.date_depot.strftime("%d/%m/%Y") if d.date_depot else "",
             d.id_groupeinstructeur.nom if d.id_groupeinstructeur else "",
             beneficiaire,
-            getattr(d, "lien", ""),
         ])
 
     # Largeurs de colonnes (simple)
@@ -102,8 +101,7 @@ def _export_avis_xlsx(avis_iterable):
         "Expert",
         "Demandeur",
         "Réponse",
-        "Publié au RAA",
-        "Lien"
+        "Publié au RAA"
     ]
     ws.append(headers)
 
@@ -148,8 +146,6 @@ def _export_avis_xlsx(avis_iterable):
 
         publie = "Oui" if getattr(a, "publie_au_raa", False) else "Non"
 
-        lien = f"/reception_avis/{a.id}"
-
         ws.append([
             a.id,
             date_demande,
@@ -158,7 +154,6 @@ def _export_avis_xlsx(avis_iterable):
             demandeur,
             reponse,
             publie,
-            lien,
         ])
 
     # Largeurs de colonnes (simple + lisible)
