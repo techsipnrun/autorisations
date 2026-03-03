@@ -251,6 +251,12 @@ h1 {
     font-style: italic;
 }
 
+.pj-actions .pj_et_signature {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+}
+
 
 /* ---------------------------------------------------------------- */
 /*            Informations Dossier - Partie de droite               */

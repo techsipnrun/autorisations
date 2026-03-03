@@ -1157,7 +1157,7 @@ def mes_avis_action_a_faire(request):
     nb_avis_action = 0
 
     # ----------------------------------------------------------
-    # 1️⃣ Identifier l’utilisateur comme instructeur et/ou expert
+    # 1️ Identifier l’utilisateur comme instructeur et/ou expert
     # ----------------------------------------------------------
     instructeur = Instructeur.objects.filter(email=email_user).first()
 
@@ -1168,7 +1168,7 @@ def mes_avis_action_a_faire(request):
     )
 
     # ----------------------------------------------------------
-    # 2️⃣ Cas où l’utilisateur est EXPERT (interne ou externe)
+    # 2️ Cas où l’utilisateur est EXPERT (interne ou externe)
     # ----------------------------------------------------------
     if expert:
         # (a) Avis à rendre → favorable is null
@@ -1176,7 +1176,7 @@ def mes_avis_action_a_faire(request):
 
         liste_avis_avec_action_a_faire.extend(nb_avis_a_rendre)
 
-        # (b) Avis rendus avec messages non lus dont il n’est pas l’émetteur
+        # (b) Avis rendus avec messages du demandeur non lus
         avis_rendus = Avis.objects.filter(id_expert=expert, favorable__isnull=False, statut="Envoyé")
         for avis in avis_rendus:
             nb_non_lus = Message.objects.filter(
@@ -1189,8 +1189,9 @@ def mes_avis_action_a_faire(request):
 
         nb_avis_action += nb_avis_a_rendre.count()
 
+
     # ----------------------------------------------------------
-    # 3️⃣ Cas où l’utilisateur est DEMANDEUR d’avis
+    # 3️ Cas où l’utilisateur est DEMANDEUR d’avis
     # ----------------------------------------------------------
     if instructeur:
         avis_demandes = Avis.objects.filter(id_instructeur=instructeur, statut="Envoyé")
@@ -1757,3 +1758,23 @@ def gestion_logs(request):
         "selected_levels": selected_levels,
         "log_files": LOG_FILES.keys(),
     })
+
+
+@require_POST
+@login_required
+def update_nom_plus_parlant(request, num_dossier):
+    dossier = get_object_or_404(Dossier, numero=num_dossier)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "JSON invalide"}, status=400)
+
+    new_name = (payload.get("nom_dossier_plus_parlant") or "").strip()
+    if not new_name:
+        return JsonResponse({"error": "Nom vide"}, status=400)
+
+    dossier.nom_dossier_plus_parlant = new_name
+    dossier.save(update_fields=["nom_dossier_plus_parlant"])
+
+    return JsonResponse({"nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant})

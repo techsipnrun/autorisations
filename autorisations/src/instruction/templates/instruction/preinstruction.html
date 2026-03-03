@@ -74,7 +74,8 @@
                     <td class="td_demarche">{{ d.demarche }}</td>
                     <td>{{ d.date_depot }}</td>
                     <td>{{ d.demandeur }}</td>
-                    <td>{{ d.nom_projet|truncatechars:40 }}</td>
+                    <!-- <td>{{ d.nom_dossier|truncatechars:40 }}</td>   -->
+                    <td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}</td>
                     <td>{{ d.numero }}</td>
                 </tr>
             {% empty %}
@@ -153,7 +154,7 @@
                         <tbody>
                             {% for d in dossiers_manif_sportive_DM %}
                                 <tr class="clickable-row" data-href="{% url 'dossier_manif_sportive_sans_ds' numero=d.numero_dossier_declaration_manifestations %}">
-                                    <td>{{ d.nom_dossier }}</td>
+                                    <td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}</td>
                                     <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
                                     <td>{{ d.numero_dossier_declaration_manifestations }}</td>
                                     <td>{{ d.date_debut_evenement|date:"d F Y" }}</td>

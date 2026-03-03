@@ -320,6 +320,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_infos.append({
             "nom_dossier": dossier.nom_dossier,
+            "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
             "numero": dossier.numero,
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
@@ -363,6 +364,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_archives_infos.append({
             "nom_dossier": dossier.nom_dossier,
+            "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
             "numero": dossier.numero,
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",

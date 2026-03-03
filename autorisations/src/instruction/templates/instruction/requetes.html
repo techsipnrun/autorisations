@@ -142,8 +142,27 @@
         {% if recherche_dossier_effectuee %}
             <div class="resultat">
 
-                {% if dossiers %}
+                <!-- {% if dossiers %}
                     <p class="result-count">{{ dossiers|length }} dossier{{ dossiers|length|pluralize:"s" }} trouvé{{ dossiers|length|pluralize:"s" }} :</p>
+                {% else %}
+                    <p class="result-count">Aucun dossier trouvé.</p>
+                {% endif %} -->
+
+                {% if dossiers %}
+                    <p class="result-count">
+                        {{ dossiers|length }} dossier{{ dossiers|length|pluralize:"s" }} trouvé{{ dossiers|length|pluralize:"s" }} :
+                    </p>
+                    <!-- Excel -->
+                    <div class="export-excel-container">
+                        <a href="{% url 'requetes_dossiers' %}?{{ request.GET.urlencode }}&export=xlsx"
+                        class="btn-export-excel"
+                        title="Télécharger le tableau Excel">
+                        
+                            <img src="{% static 'instruction/img/excel-logo.svg' %}"
+                                alt="Télécharger Excel"
+                                class="excel-icon">
+                        </a>
+                    </div>
                 {% else %}
                     <p class="result-count">Aucun dossier trouvé.</p>
                 {% endif %}
@@ -167,7 +186,7 @@
                         <tr onclick="window.location.href='{{ dossier.lien }}'" class="clickable-row">
 
                             <td>{{ dossier.numero }}</td>
-                            <td>{{ dossier.nom_dossier }}</td>
+                            <td>{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier|truncatechars:60 }}</td>
                             <td>{{ dossier.id_demarche.type }}</td>
                             <td>{{ dossier.id_etape_dossier.etape }}</td>
                             <td>{{ dossier.date_depot|date:"d/m/Y" }}</td>
@@ -311,6 +330,18 @@
             <div class="resultat">
                 {% if avis_list %}
                     <p class="result-count">{{ avis_list|length }} avis trouvé{{ avis_list|length|pluralize:"s" }} :</p>
+                    <!-- Excel -->
+                    <div class="export-excel-container">
+                        <a href="{% url 'requetes_avis' %}?{{ request.GET.urlencode }}&export=xlsx"
+                        class="btn-export-excel"
+                        title="Télécharger le tableau des avis en Excel">
+                        
+                            <img src="{% static 'instruction/img/excel-logo.svg' %}"
+                                alt="Télécharger Excel"
+                                class="excel-icon">
+                        </a>
+                    </div>
+
                 {% else %}
                     <p class="result-count">Aucun avis trouvé.</p>
                 {% endif %}

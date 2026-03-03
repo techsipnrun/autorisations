@@ -279,6 +279,7 @@ def envoyer_message_dossier(request, numero):
     body = request.POST.get("body")
     fichier = request.FILES.get("piece_jointe")
     correction = request.POST.get("correction") or False
+    message_signe = request.POST.get("message_signe") == "oui"
 
     # ----------------------------
     # Vérification
@@ -308,6 +309,15 @@ def envoyer_message_dossier(request, numero):
         logger.warning(f"[DOSSIER {numero}] User {request.user} sans profil instructeur a tenté d’envoyer un message.")
         return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
 
+    # Signature du message
+    if message_signe:
+        signature = (
+            "\n\n\n"
+            f"{instructeur.id_agent_autorisations.prenom} {instructeur.id_agent_autorisations.nom}\n"
+            "Parc national de La Réunion"
+        )
+
+        body = body + signature
 
     # ----------------------------
     # Envoi vers DS
