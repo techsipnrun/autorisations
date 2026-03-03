@@ -176,7 +176,7 @@
 .table-resultats {
     margin: 0 auto;
     border-collapse: collapse;
-    min-width: 80%;
+    width: 90%;
 }
 
 .table-resultats th,
@@ -199,3 +199,28 @@
     background-color: #eef8ee;
 }
 
+
+/* ---------------------- */
+/*     DOWNLOAD EXCEL     */
+/* ---------------------- */
+.export-excel-container{
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 5% 1rem 0;
+}
+
+.btn-export-excel{
+    display: inline-block;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.excel-icon{
+    width: 36px;
+    height: auto;
+    cursor: pointer;
+}
+
+.btn-export-excel:hover{
+    transform: scale(1.1);
+    opacity: 0.85;
+}

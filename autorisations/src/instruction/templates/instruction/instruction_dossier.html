@@ -53,7 +53,7 @@
         {% breadcrumb breadcrumb_items %}
 
         <div class="refresh_et_timeline">
-            {% if dossier.present_sur_ds %}
+            {% if dossier.present_sur_ds and instructeur_connecte %}
                 <div class="refresh-doss">
                     <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
                         {% csrf_token %}
@@ -1471,36 +1471,52 @@ En conséquence, la demande est refusée.</textarea>
                         </div>
                     {% endif %}
 
+
+                    <div class="nom_du_dossier" id="nomDossierBloc"
+                        data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
+
+                        <h2>Nom du dossier</h2>
+
+                        <div class="nom_dossier_ligne">
+                            <p class="nom_dossier_texte" id="nomDossierTexte">
+                            {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
+                            </p>
+
+                            <!-- Bouton modifier (visible au hover du bloc) -->
+                            <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
+                                <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                            </button>
+
+                        </div>
+
+                        <!-- Input d’édition (affiché seulement en mode édition) -->
+                        <div class="nom_dossier_edit_zone">
+                            <input
+                                type="text"
+                                class="nom_dossier_input"
+                                id="nomDossierInput"
+                                value="{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}"
+                                maxlength="60"
+                                autocomplete="off"
+                            />
+
+                            <!-- Bouton valider (visible seulement en mode édition) -->
+                            <button type="button" class="btn-icon btn-validate" id="btnValidateNom" aria-label="Valider" title="Valider le changement de nom">
+                                <img src="{% static 'instruction/img/square-check.png' %}" alt="">
+                            </button>
+
+                            <p class="nom-dossier-exemple"> Exemple : Travaux Piste de la glacière - ONF (10/02/2026) </p>
+                        </div>
+                    </div>
+
                     {% for champ in champs %}
                         {% if champ.type == 'header' %}
                             {% if champ.titre != 'MODIFICATION DU PROJET' and champ.titre != 'RENOUVELLEMENT DU PROJET' %}
                                 <h2>{{ champ.titre }}</h2>
                             {% endif %}
 
-                            <!-- Nom et prénom du bénéficiare -->
-                            <!-- {% if champ.titre|contains:"Identification du bénéficiaire de la demande" %}
-                                {% if beneficiaire and dossier.id_demarche.type != "Travaux soumis à demande d'urbanisme" %}
-                                    {% if beneficiaire.nom %}
-                                        <p><strong>Nom</strong> : {{ beneficiaire.nom|upper }}</p>
-                                    {% endif %}
-                                    {% if beneficiaire.prenom %}
-                                        <p><strong>Prénom</strong> : {{ beneficiaire.prenom|capfirst }}</p>
-                                    {% endif %}
-                                {% endif %}
-                            {% endif %} -->
-
                             <!-- Nom et prénom du demandeur intermédiaire -->
                             {% if champ.titre|slice:":41" == "Identification du demandeur intermédiaire" %}
-                         
-                                <!-- {% if demandeur_intermediaire %}
-                                    {% if demandeur_intermediaire.nom %}
-                                        <p><strong>Nom</strong> : {{ demandeur_intermediaire.nom|upper }}</p>
-                                    {% endif %}
-                                    {% if demandeur_intermediaire.prenom %}
-                                        <p><strong>Prénom</strong> : {{ demandeur_intermediaire.prenom|capfirst }}</p>
-                                    {% endif %}
-
-                                {% else %}  {% endif %} -->
                                 {% if not demandeur_intermediaire %}
                                     <p style="color: rgb(158, 11, 0);" title="La personne ayant fait cette demande n’a pas coché “Ce dossier est pour un bénéficiaire” sur la page d’entrée du formulaire.">
                                         Le prénom et le nom du demandeur intermédiaire n’ont pas été fournis.
@@ -3110,6 +3126,105 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
     });
 </script>
 
+
+<!-- Nom du dossier -->
+<script>
+    (function () {
+    const bloc = document.getElementById("nomDossierBloc");
+    if (!bloc) return;
+
+    const btnEdit = document.getElementById("btnEditNom");
+    const btnValidate = document.getElementById("btnValidateNom");
+    const texte = document.getElementById("nomDossierTexte");
+    const input = document.getElementById("nomDossierInput");
+
+    const saveUrl = bloc.dataset.saveUrl;
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return "";
+    }
+    const csrfToken = getCookie("csrftoken");
+
+    let oldValue = input.value || "";
+
+    function enterEditMode() {
+        oldValue = input.value || texte.textContent.trim() || "";
+        bloc.classList.add("is-editing");
+        input.focus();
+        input.select();
+    }
+
+    function exitEditMode(reset = true) {
+        if (reset) input.value = oldValue;
+        bloc.classList.remove("is-editing");
+    }
+
+    async function save() {
+        const newValue = (input.value || "").trim();
+        if (!newValue) {
+        exitEditMode(true);
+        return;
+        }
+
+        try {
+        const resp = await fetch(saveUrl, {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ nom_dossier_plus_parlant: newValue }),
+        });
+
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+
+        texte.textContent = data.nom_dossier_plus_parlant;
+        input.value = data.nom_dossier_plus_parlant;
+
+        exitEditMode(false);
+        } catch (e) {
+        console.error(e);
+        // En cas d'erreur : on annule l'édition
+        exitEditMode(true);
+        alert("Impossible d'enregistrer le nom du dossier.");
+        }
+    }
+
+    btnEdit.addEventListener("click", (e) => {
+        e.stopPropagation();
+        enterEditMode();
+    });
+
+    btnValidate.addEventListener("click", (e) => {
+        e.stopPropagation();
+        save();
+    });
+
+    // Entrée = valider, Escape = annuler
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+        e.preventDefault();
+        save();
+        } else if (e.key === "Escape") {
+        e.preventDefault();
+        exitEditMode(true);
+        }
+    });
+
+    // Click en dehors = sortir du mode édition (annuler)
+    document.addEventListener("mousedown", (e) => {
+        if (!bloc.classList.contains("is-editing")) return;
+        if (!bloc.contains(e.target)) {
+        exitEditMode(true);
+        }
+    });
+    })();
+</script>>
 
 
 </body>

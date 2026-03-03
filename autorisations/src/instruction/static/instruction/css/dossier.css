@@ -92,6 +92,117 @@
     border-left: #006131 solid 4px;
 }
 
+
+/* -------------------- */
+/*    Nom du dossier    */
+/* -------------------- */
+.nom_du_dossier {
+  padding-left: 1rem;
+  border-left: 4px solid #003366;
+  position: relative;
+}
+
+.champs .nom_du_dossier p{
+    margin: 0;
+}
+
+/* Ligne texte + icônes */
+.nom_dossier_ligne {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nom_dossier_texte {
+  margin: 0;
+}
+
+/* Boutons icône */
+.btn-icon {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: scale(1);
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.btn-icon img {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.btn-icon:hover {
+  transform: scale(1.08);
+}
+
+/* Icône modifier visible uniquement au hover du bloc */
+.btn-edit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nom_du_dossier:hover .btn-edit {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Zone édition = input + bouton alignés */
+.nom_dossier_edit_zone {
+  display: none;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap; 
+}
+
+/* Input caché par défaut */
+.nom_dossier_input {
+  display: none;
+  width: 80%;
+  max-width: 600px;
+  padding: 0.4rem 0.6rem;
+}
+
+.nom-dossier-exemple {
+    flex-basis: 100%;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.3rem;
+}
+
+/* Bouton valider caché par défaut */
+.btn-validate {
+  display: none;
+}
+
+/* Mode édition */
+.nom_du_dossier.is-editing .nom_dossier_texte {
+  display: none;
+}
+
+.nom_du_dossier.is-editing .btn-edit {
+  display: none; /* optionnel */
+}
+
+.nom_du_dossier.is-editing .nom_dossier_input {
+  display: block;
+}
+
+.nom_du_dossier.is-editing .btn-validate {
+  display: inline-flex;
+}
+
+.nom_du_dossier.is-editing .nom_dossier_edit_zone {
+  display: flex;
+}
+
+
+
 .champs p {
     margin-bottom: 0.4rem;
     font-size: 1rem;

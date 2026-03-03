@@ -12,8 +12,172 @@ from django.db.models.functions import Concat
 from autorisations.models.models_avis import Avis
 from django.db.models.functions import ExtractYear, ExtractMonth
 
+from io import BytesIO
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
+
 def clean_int(value):
     return value if value and value.isdigit() else None
+
+
+# Export Excel Dossiers
+def _export_dossiers_xlsx(dossiers_qs):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dossiers"
+
+    headers = [
+        "N°", "Nom dossier", "Démarche", "Étape",
+        "Date dépôt", "Groupe instructeur", "Bénéficiaire", "Lien"
+    ]
+    ws.append(headers)
+
+    # Style en-têtes
+    bold = Font(bold=True)
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = bold
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    # Remplissage
+    for d in dossiers_qs:
+        # Bénéficiaire : on recopie la logique du template :contentReference[oaicite:4]{index=4}
+        beneficiaire = ""
+        interlocuteur = d.dossierinterlocuteur_set.first()
+        if interlocuteur:
+            db = interlocuteur.dossierbeneficiaire_set.select_related("id_beneficiaire").first()
+            if db and db.id_beneficiaire:
+                b = db.id_beneficiaire
+                if getattr(b, "raison_sociale", None):
+                    beneficiaire = b.raison_sociale
+                elif getattr(b, "nom", None) and getattr(b, "prenom", None):
+                    beneficiaire = f"{b.nom} {b.prenom}"
+
+        nom_dossier = getattr(d, "nom_dossier_plus_parlant", None) or d.nom_dossier
+
+        ws.append([
+            d.numero,
+            nom_dossier,
+            d.id_demarche.type if d.id_demarche else "",
+            d.id_etape_dossier.etape if d.id_etape_dossier else "",
+            d.date_depot.strftime("%d/%m/%Y") if d.date_depot else "",
+            d.id_groupeinstructeur.nom if d.id_groupeinstructeur else "",
+            beneficiaire,
+            getattr(d, "lien", ""),
+        ])
+
+    # Largeurs de colonnes (simple)
+    widths = [10, 50, 35, 25, 14, 30, 35, 25]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    # Output
+    bio = BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+
+    response = HttpResponse(
+        bio.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="dossiers.xlsx"'
+    return response
+
+
+# Export Excel Avis
+def _export_avis_xlsx(avis_iterable):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Avis"
+
+    headers = [
+        "N° Avis",
+        "Date demande",
+        "Démarche",
+        "Expert",
+        "Demandeur",
+        "Réponse",
+        "Publié au RAA",
+        "Lien"
+    ]
+    ws.append(headers)
+
+    # Style entêtes
+    bold = Font(bold=True)
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = bold
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    for a in avis_iterable:
+        # Date
+        date_demande = ""
+        if getattr(a, "date_demande_avis", None):
+            date_demande = a.date_demande_avis.strftime("%d/%m/%Y")
+
+        # Démarche
+        demarche = ""
+        dossier = getattr(a, "id_dossier", None)
+        if dossier and getattr(dossier, "id_demarche", None):
+            demarche = dossier.id_demarche.type or ""
+
+        # Expert / demandeur (dans ton tableau: a.id_expert, a.id_instructeur)
+        expert = str(getattr(a, "id_expert", "") or "")
+        demandeur = str(getattr(a, "id_instructeur", "") or "")
+
+        # Réponse (copie exacte de ta logique template)
+        favorable = getattr(a, "favorable", None)
+        sous_reserve = getattr(a, "sous_reserve", None)
+
+        if favorable is True and not sous_reserve:
+            reponse = "Favorable"
+        elif favorable is True and sous_reserve:
+            reponse = "Favorable sous réserve"
+        elif favorable is False:
+            reponse = "Défavorable"
+        else:
+            reponse = "En attente"
+
+        publie = "Oui" if getattr(a, "publie_au_raa", False) else "Non"
+
+        lien = f"/reception_avis/{a.id}"
+
+        ws.append([
+            a.id,
+            date_demande,
+            demarche,
+            expert,
+            demandeur,
+            reponse,
+            publie,
+            lien,
+        ])
+
+    # Largeurs de colonnes (simple + lisible)
+    widths = [10, 14, 35, 25, 25, 22, 14, 22]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    bio = BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+
+    response = HttpResponse(
+        bio.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="avis.xlsx"'
+    return response
+
+
 
 @login_required
 def requete_dossiers(request):
@@ -186,6 +350,13 @@ def requete_dossiers(request):
             d.lien = f"/preinstruction/{d.numero}/"
         else:
             d.lien = f"/instruction/{d.numero}/"
+
+
+    # Export Excel si demandé
+    if request.GET.get("export") == "xlsx":
+        # Optionnel mais mieux: limiter les requêtes bénéficiaire
+        dossiers = dossiers.prefetch_related("dossierinterlocuteur_set__dossierbeneficiaire_set__id_beneficiaire")
+        return _export_dossiers_xlsx(dossiers)
             
 
     context = {
@@ -381,6 +552,10 @@ def requete_avis(request):
         avis_list = avis_list.filter(id_dossier__id_demarche__type__icontains=type_demarche)
 
     avis_list = avis_list.order_by("-date_demande_avis")
+
+    # Export Excel
+    if request.GET.get("export") == "xlsx":
+        return _export_avis_xlsx(avis_list)
 
 
     # --- Contexte pour le template ---

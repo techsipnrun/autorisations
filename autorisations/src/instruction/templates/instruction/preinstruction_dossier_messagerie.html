@@ -110,11 +110,23 @@
                         {% csrf_token %}
                         <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
                         <textarea name="body" placeholder="Écrire un message..." required></textarea>
+                        
                         <div class="pj-actions">
-                            <div class="pj-input-wrapper">
-                                <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
-                                <span class="pj-max">(20 Mo max)</span>
+                            <div class="pj_et_signature">
+                                <div class="pj-input-wrapper">
+                                    <input type="file" name="piece_jointe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                                    <span class="pj-max">(20 Mo max)</span>
+                                </div>
+
+                                <!-- Case signature -->
+                                <div class="signature-option">
+                                    <label>
+                                        <input type="checkbox" name="message_signe" value="oui" checked>
+                                        Je veux que mon message soit signé
+                                    </label>
+                                </div>
                             </div>
+                            
                             <button type="submit" title="Envoyer le message">Envoyer</button>
                         </div>
                     </form>

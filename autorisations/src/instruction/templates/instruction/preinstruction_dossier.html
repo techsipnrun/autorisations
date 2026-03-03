@@ -47,7 +47,7 @@
         {% breadcrumb breadcrumb_items %}
 
         <div class="refresh_et_timeline">
-            {% if dossier.present_sur_ds %}
+            {% if dossier.present_sur_ds and instructeur_connecte %}
                 <div class="refresh-doss">
                     <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
                         {% csrf_token %}
@@ -105,22 +105,6 @@
                         </div>
 
                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
-                            <!-- <div class="etat-badge-menu-content" id="etatMenuContent">
-                                {% if dossier.id_groupeinstructeur %}
-                                    <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                        <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
-                                    </form>
-                                    
-                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Classer le dossier comme non soumis à autorisation</button>
-                                            
-                                {% else %}
-                                    <div class="instruction-warning">
-                                        Veuillez d’abord sélectionner un groupe instructeur.
-                                    </div>
-                                {% endif %}
-                            </div> -->
 
                             <div class="etat-badge-menu-content" id="etatMenuContent">
                                 {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
@@ -255,6 +239,47 @@
                         {% endif %}
                     </div>
                 {% endif %}
+
+
+                <div class="nom_du_dossier" id="nomDossierBloc"
+                    data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
+
+                    <h2>Nom du dossier</h2>
+
+                    <div class="nom_dossier_ligne">
+                        <p class="nom_dossier_texte" id="nomDossierTexte">
+                        {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
+                        </p>
+
+                        <!-- Bouton modifier (visible au hover du bloc) -->
+                        <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
+                            <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                        </button>
+
+                    </div>
+
+                    <!-- Input d’édition (affiché seulement en mode édition) -->
+                    <div class="nom_dossier_edit_zone">
+                        <input
+                            type="text"
+                            class="nom_dossier_input"
+                            id="nomDossierInput"
+                            value="{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}"
+                            maxlength="60"
+                            autocomplete="off"
+                        />
+
+                        
+                        <!-- Bouton valider (visible seulement en mode édition) -->
+                        <button type="button" class="btn-icon btn-validate" id="btnValidateNom" aria-label="Valider" title="Valider le changement de nom">
+                            <img src="{% static 'instruction/img/square-check.png' %}" alt="">
+                        </button>
+                        
+                        <p class="nom-dossier-exemple"> Exemple : Travaux Piste de la glacière - ONF (10/02/2026) </p>
+
+                    </div>
+                    
+                </div>
 
                 <div class="champs">
                     {% for champ in champs %}
@@ -875,6 +900,105 @@
         }
     }
 </script>
+
+<!-- Nom du dossier -->
+<script>
+    (function () {
+    const bloc = document.getElementById("nomDossierBloc");
+    if (!bloc) return;
+
+    const btnEdit = document.getElementById("btnEditNom");
+    const btnValidate = document.getElementById("btnValidateNom");
+    const texte = document.getElementById("nomDossierTexte");
+    const input = document.getElementById("nomDossierInput");
+
+    const saveUrl = bloc.dataset.saveUrl;
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return "";
+    }
+    const csrfToken = getCookie("csrftoken");
+
+    let oldValue = input.value || "";
+
+    function enterEditMode() {
+        oldValue = input.value || texte.textContent.trim() || "";
+        bloc.classList.add("is-editing");
+        input.focus();
+        input.select();
+    }
+
+    function exitEditMode(reset = true) {
+        if (reset) input.value = oldValue;
+        bloc.classList.remove("is-editing");
+    }
+
+    async function save() {
+        const newValue = (input.value || "").trim();
+        if (!newValue) {
+        exitEditMode(true);
+        return;
+        }
+
+        try {
+        const resp = await fetch(saveUrl, {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ nom_dossier_plus_parlant: newValue }),
+        });
+
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+
+        texte.textContent = data.nom_dossier_plus_parlant;
+        input.value = data.nom_dossier_plus_parlant;
+
+        exitEditMode(false);
+        } catch (e) {
+        console.error(e);
+        // En cas d'erreur : on annule l'édition
+        exitEditMode(true);
+        alert("Impossible d'enregistrer le nom du dossier.");
+        }
+    }
+
+    btnEdit.addEventListener("click", (e) => {
+        e.stopPropagation();
+        enterEditMode();
+    });
+
+    btnValidate.addEventListener("click", (e) => {
+        e.stopPropagation();
+        save();
+    });
+
+    // Entrée = valider, Escape = annuler
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+        e.preventDefault();
+        save();
+        } else if (e.key === "Escape") {
+        e.preventDefault();
+        exitEditMode(true);
+        }
+    });
+
+    // Click en dehors = sortir du mode édition (annuler)
+    document.addEventListener("mousedown", (e) => {
+        if (!bloc.classList.contains("is-editing")) return;
+        if (!bloc.contains(e.target)) {
+        exitEditMode(true);
+        }
+    });
+    })();
+</script>>
 
 
 </html>

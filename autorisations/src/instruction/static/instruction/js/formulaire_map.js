@@ -318,8 +318,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         };
 
-        // Fond par défaut
+        // Fond par défaut IGN
         let fondActif = fonds.planign.addTo(map);
+        
 
 
         // ---------------------------------

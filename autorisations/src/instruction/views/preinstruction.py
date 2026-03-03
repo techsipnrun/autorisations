@@ -66,7 +66,8 @@ def preinstruction(request):
             "date_depot": dossier.date_depot,
             # "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
             "demandeur": demandeur,
-            "nom_projet": dossier.nom_dossier,
+            "nom_dossier": dossier.nom_dossier,
+            "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "numero": dossier.numero,
             "action_a_faire": True if dossier in dossiers_actions else False
         })

@@ -67,6 +67,7 @@ urlpatterns = [
     path('changer_envoyeur_acte/', views.changer_envoyeur_acte, name='changer_envoyeur_acte'),
     path('changer_publieur_raa/', views.changer_publieur_raa, name='changer_publieur_raa'),
     path("instruction/dossier-precedent/<int:num_dossier_precedent>/", views.rediriger_vers_dossier_precedent, name="rediriger_vers_dossier_precedent"),
+    path("instruction/<int:num_dossier>/nom-plus-parlant/", views.update_nom_plus_parlant, name="dossier_update_nom_plus_parlant"),
 
     
     

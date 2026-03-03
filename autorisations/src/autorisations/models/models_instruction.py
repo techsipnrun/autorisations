@@ -157,6 +157,7 @@ class Dossier(models.Model):
     id_dossier_parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, db_column='id_dossier_parent', related_name='dossiers_enfants')
     note = models.CharField(blank=True, null=True)
     nom_dossier = models.CharField()
+    nom_dossier_plus_parlant = models.CharField(blank=True, null=True)
     emplacement = models.CharField(unique=True)
     date_limite_traitement = models.DateTimeField()
     id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.RESTRICT, db_column='id_groupeinstructeur')
