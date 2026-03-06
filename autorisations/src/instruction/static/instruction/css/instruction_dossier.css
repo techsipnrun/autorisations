@@ -486,18 +486,98 @@
 
 .doc-item {
     display: flex;
-}
-
-.doc-titre {
-    color: #006131;
-    text-decoration: none;
     margin-bottom: 0.5rem;
 }
 
+
+
+/* Copier le path des docs à relire et à valider */
+.doc-titre, .doc-titre-no-download {
+    color: #006131;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.doc-titre {
+    margin-bottom: 0.5rem;
+}
+
+
 .doc-titre:hover {
     text-decoration: underline;
-    font-weight: bold;
 }
+
+/* --- Projet d'acte à valider, à relire, à signer : copie chemin / téléchargement doc--- */
+.doc-copy-row, .doc-download-row{
+    display: flex;
+    position: relative;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    padding: 0.4rem 0.6rem;
+}
+
+.doc-copy-row:hover, .doc-download-row:hover{
+    background-color: #eef7f2;
+}
+
+.doc-copy-icon {
+    margin-left: auto;
+    width: 22px;
+    height: 22px;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.doc-copy-row:hover .doc-copy-icon, .doc-download-row:hover .doc-copy-icon{
+    opacity: 0.7;
+}
+
+.doc-copy-row:hover .doc-copy-icon:hover, .doc-download-row:hover .doc-copy-icon:hover{
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.copie-feedback{
+    position: absolute;
+    font-style: italic;
+    left: 100%;
+    margin-left: 10px;
+    white-space: nowrap;
+    color: #000000;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.copie-feedback.show{
+    opacity: 1;
+}
+
+/* Numéro acte */
+.badge-numero-acte{
+    display: inline-block;
+    margin: 0 0.1rem;
+    padding: 0.15rem 0.5rem;
+    background-color: #006131;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    letter-spacing: 0.4px;
+}
+
+.rappel-numero-acte{
+    display: block;
+    margin: 0 0 0.6rem 0.6rem;
+    font-style: italic;
+    color: #000000;
+    padding-left: 0.5rem;
+    border-left: 3px solid #006131;
+}
+
+
 
 /* Liste des validants */
 .btn-changer-valideur {

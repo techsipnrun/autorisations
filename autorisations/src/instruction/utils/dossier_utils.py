@@ -274,8 +274,6 @@ def build_champs_prepares(dossier):
 
 
 
-# instruction/services/etapes_service.py
-
 def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: str, demarche_type: str):
     """Retourne les actions possibles pour chaque étape."""
 
@@ -285,14 +283,12 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
         etapes = {
             "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
 
-            "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
-                                "Classer le dossier comme refusé", "Passer en instruction"],
+            "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Passer en instruction"],
 
             "En attente de compléments": ["Passer en instruction"],
 
-            "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation",
-                            "Classer le dossier comme refusé", "Faire valider avant l'envoi d'une demande d'avis à une instance",
-                            "Faire valider le projet d'acte"],
+            "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", 
+                               "Faire valider avant l'envoi d'une demande d'avis à une instance", "Faire valider le projet d'acte"],
 
             "À valider avant demande d'avis": ["Repasser en instruction",
                                             "Valider le modèle de demande d'avis et le projet d'acte"],
@@ -307,12 +303,11 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
             "Avis à envoyer": ["Avis envoyé"],
 
             "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé",
-                                        "Classer le dossier comme non soumis à autorisation",
-                                        "Classer le dossier comme refusé"],
+                                        "Classer le dossier comme non soumis à autorisation"],
 
-            "Acte à envoyer": ["Envoyer l'acte"],
+            "Acte à envoyer": ["Envoyer l'acte d'acceptation", "Envoyer l'acte de refus"],
 
-            "À publier au RAA": ["Classer le dossier comme accepté"],
+            "À publier au RAA": ["Classer le dossier comme accepté", "Archiver le dossier comme refusé"],
 
             "Non soumis à autorisation": ["Repasser en instruction"],
 
@@ -320,6 +315,7 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
 
             "Refusé": ["Repasser en instruction"],
         }
+        
         # Etapes simplifiées pour le SPPN
         if dossier_sppn:
             # Retiré : "Faire valider une demande d'avis", "Faire valider le projet d'acte"
@@ -327,7 +323,6 @@ def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: 
             etapes["En instruction"] = [
                 "Demander des compléments",
                 "Classer le dossier comme non soumis à autorisation",
-                "Classer le dossier comme refusé",
                 "Acte prêt à la signature",
             ]
 

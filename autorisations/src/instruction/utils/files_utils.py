@@ -7,7 +7,7 @@ from django.contrib import messages
 
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument
-from autorisations.utils.nas_fonctions import ecrire_file_sur_nas
+from autorisations.utils.nas_fonctions import _normalize_unc_path, ecrire_file_sur_nas
 from instruction.utils.dossier_utils import redirect_error
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -27,17 +27,17 @@ def save_if_not_exists(request, dossier, file_obj, dest_path, fail_if_exists=Tru
 
     # Déjà présent → OK
     if smbclient.path.exists(dest_path) and fail_if_exists :
-        logger.info(f"[DOSSIER {dossier.numero}] Pas d'écriture par {request.user} car un fichier du même nom existe déjà : {dossier_path}")
-        return redirect_error(request, f"❌ Impossible d'enregistrer le fichier {file_obj.name} : Un fichier du même nom existe déjà à l'emplacement {dossier_path}")
+        logger.info(f"[DOSSIER {dossier.numero}] Pas d'écriture par {request.user} car un fichier du même nom existe déjà : {_normalize_unc_path(dossier_path)}")
+        return redirect_error(request, f"❌ Impossible d'enregistrer le fichier {file_obj.name} : Un fichier du même nom existe déjà à l'emplacement {_normalize_unc_path(dossier_path)}")
 
     try:
         if not ecrire_file_sur_nas(file_obj, dest_path):
-            raise Exception(f"Échec de l’écriture du fichier {dossier_path} sur le NAS par {request.user}.")
+            raise Exception(f"Échec de l’écriture du fichier {_normalize_unc_path(dossier_path)} sur le NAS par {request.user}.")
 
         logger.info(f"[DOSSIER {dossier.numero}] '{file_obj.name}' enregistré dans le Dossier Work par {request.user}.")
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'écriture du fichier {dossier_path} sur le NAS par {request.user} : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'écriture du fichier {_normalize_unc_path(dossier_path)} sur le NAS par {request.user} : {e}")
         return redirect_error(request, f"❌ Impossible d’enregistrer le fichier {file_obj.name}. Contactez le support.")
 
     return None
@@ -53,7 +53,7 @@ def generate_unique_filename(dir_abs_path: str, dir_rel_path: str, base_filename
         titre_final : nom sans extension (ex: "rapport_2")
         abs_file_path : Chemin absolu de "rapport_2.pdf"
 
-    dir_abs_path : chemin absolu du dossier contenant le file (ex: /mnt/nas/D123/Actes/)
+    dir_abs_path : chemin absolu du dossier /Actes
     dir_rel_path : chemin relatif (= emplacement doc BDD) du dossier contenant le file (ex: D123/Actes/)
     base_filename : nom du fichier d'origine (ex: "rapport.pdf")
     """
@@ -91,6 +91,9 @@ def save_and_update_document(request, dossier, fichier, document, format_obj, na
 
     num = dossier.numero
 
+    """
+    On dégage
+    """
     # 1) Supprimer l'ancien doc si doublon
     doc_existant = Document.objects.filter(emplacement=rel_dir_path, titre=document.titre).first()
 
@@ -103,16 +106,23 @@ def save_and_update_document(request, dossier, fichier, document, format_obj, na
             logger.error(f"[DOSSIER {num}] Erreur lors de la suppression de l'ancien DossierDocument (id document={doc_existant.id}) : {e}")
             return redirect_error(request, "❌ Erreur lors de la suppression de l'ancien acte du même nom. Contactez le support.")
 
+
+    """
+    On dégage
+    """
     # 2) Log écrasement éventuel
     if smbclient.path.exists(abs_file_path):
         logger.warning(f"[DOSSIER {num}] Écrasement de l'acte existant (avec le même nom) par {request.user} : {abs_file_path}")
 
+    """
+    On dégage
+    """
     # 3) Écriture physique
     if not ecrire_file_sur_nas(fichier, abs_file_path):
         logger.error(f"[DOSSIER {num}] Échec de l’écriture du fichier {fichier.name} sur {abs_file_path}")
         return redirect_error(request, f"❌ Échec de l’écriture du fichier {fichier.name} dans {abs_file_path}. Contactez le support.")
-
     logger.info(f"[DOSSIER {num}] Fichier '{document.titre}' écrit dans {abs_file_path}")
+
 
     # 4) Mise à jour du Document en BDD
     try:
@@ -125,7 +135,7 @@ def save_and_update_document(request, dossier, fichier, document, format_obj, na
 
     except Exception as e:
         logger.error(f"[DOSSIER {num}] Erreur MAJ Document {document.id} : {e}")
-        return redirect_error(request, "❌ Erreur lors de la mise à jour du Document {document.titre} en base. Contactez le support.")
+        return redirect_error(request, f"❌ Erreur lors de la mise à jour du Document {document.titre} en base. Contactez le support.")
 
     return None
 
