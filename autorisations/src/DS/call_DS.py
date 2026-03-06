@@ -7,6 +7,7 @@ import django
 import base64
 import hashlib
 import requests
+import ntpath
 
 from autorisations.models.models_instruction import Demarche, Dossier, Message
 from DS.graphql_client import GraphQLClient
@@ -25,7 +26,7 @@ def init_setup():
     Init Setup Django pour run le file dans le terminal
     '''
 
-    CURRENT_DIR = os.path.dirname(__file__)
+    CURRENT_DIR = ntpath.dirname(__file__)
     SRC_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))  # src/
     
     sys.path.append(SRC_DIR)
