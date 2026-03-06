@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import UploadedFile
 import platform
 import subprocess
 import re
+import ntpath
 
 
 loggerApp = logging.getLogger("APP")
@@ -54,7 +55,9 @@ def ecrire_file_sur_nas(source, chemin_destination):
 
     try:
         # --- Création du dossier distant si nécessaire ---
-        dossier_parent = os.path.dirname(chemin_destination)
+        dossier_parent = ntpath.dirname(chemin_destination)
+        # loggerApp.warning(f"chemin_destination : {chemin_destination}")
+        # loggerApp.warning(f"dossier_parent: {dossier_parent}")
         if not smbclient.path.exists(dossier_parent):
             smbclient.makedirs(dossier_parent)
             loggerApp.info(f"[NAS] 📁 Dossier créé sur le NAS : {dossier_parent}")
@@ -86,15 +89,15 @@ def ecrire_file_sur_nas(source, chemin_destination):
 
     # --- Gestion des erreurs spécifiques ---
     except smb_exceptions.LogonFailure as e:
-        loggerApp.error(f"[NAS] ❌ Échec d’authentification SMB (admin_auto) lors de l'écriture du fichier {source.name} : {e}")
+        loggerApp.error(f"[NAS] ❌ Échec d’authentification SMB (admin_auto) lors de l'écriture du fichier {str(source)} : {e}")
     except smb_exceptions.SMBOSError as e:
-        loggerApp.error(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {source.name} : {e}")
+        loggerApp.error(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {str(source)} : {e}")
     except PermissionError as e:
         loggerApp.error(f"[NAS] ⛔ Permission refusée sur {chemin_destination} : {e}")
     except FileNotFoundError as e:
-        loggerApp.error(f"[NAS] ❌ Fichier source {source.name} introuvable : {e}")
+        loggerApp.error(f"[NAS] ❌ Fichier source {str(source)} introuvable : {e}")
     except Exception as e:
-        loggerApp.exception(f"[NAS] ⚠️ Erreur inattendue lors de l’écriture du fichier {source.name} : {e}")
+        loggerApp.exception(f"[NAS] ⚠️ Erreur inattendue lors de l’écriture du fichier {str(source)} : {e}")
 
     return False
 
