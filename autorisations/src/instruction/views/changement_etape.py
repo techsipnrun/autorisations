@@ -14,7 +14,7 @@ from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
-from instruction.utils.files_utils import generate_unique_filename, save_and_update_document, save_if_not_exists
+from instruction.utils.files_utils import generate_unique_filename, save_and_update_document
 from instruction.utils.utilisateurs_utils import get_instructeur_or_redirect
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
