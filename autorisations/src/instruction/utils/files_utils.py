@@ -1,5 +1,6 @@
 import json
 import logging
+import ntpath
 import os
 import smbclient
 from django.shortcuts import redirect
@@ -23,7 +24,7 @@ def save_if_not_exists(request, dossier, file_obj, dest_path, fail_if_exists=Tru
     """
 
     # Le dossier_path est juste utile pour les logs
-    dossier_path = os.path.dirname(dest_path).replace("\\", "/")
+    dossier_path = ntpath.dirname(dest_path).replace("\\", "/")
 
     # Déjà présent → OK
     if smbclient.path.exists(dest_path) and fail_if_exists :

@@ -1303,7 +1303,7 @@ def ajouter_annexe_dossier(request, dossier_id):
         DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
 
         # Enregistrement physique
-        # os.makedirs(os.path.dirname(chemin_complet), exist_ok=True)
+        # os.makedirs(ntpath.dirname(chemin_complet), exist_ok=True)
 
 
         # Si un fichier du même nom existe déjà, on le supprime
