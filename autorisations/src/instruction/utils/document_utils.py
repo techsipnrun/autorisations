@@ -59,6 +59,7 @@ def build_documents_for_dossier(dossier):
     acte_valide_avant_demande_avis = filtre_actes(["validé avant demande d'avis"], NATURES_VALIDES)
     acte_envoye = filtre_actes(["envoyé"], NATURES_VALIDES)
     acte_envoye_et_publie = filtre_actes(["envoyé"], NATURES_VALIDES, published_only=True)
+    acte_envoye_et_pas_publie = [doc for doc in acte_envoye if not doc.publie_au_raa]
 
     # Paramètres PDF
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
@@ -76,10 +77,24 @@ def build_documents_for_dossier(dossier):
         if dd.id_document.id_nature.nature.lower() == "rapport ca"
     ]
 
+    rapports_ca_envoyes = [
+        dd.id_document
+        for dd in docs_du_dossier
+        if dd.id_document.id_nature.nature.lower() == "rapport ca"
+        and dd.id_document.id_statut
+        and dd.id_document.id_statut.statut.lower() == "envoyé"
+    ]
+
     # Indicateur "délibération CA en cours"
     delibCA = any(
         dd.id_document.id_nature.nature.lower() == "déliberation ca"
-        and dd.id_document.id_statut and dd.id_document.id_statut.statut != "Envoyé"
+        and dd.id_document.id_statut and dd.id_document.id_statut.statut.lower() != "envoyé"
+        for dd in docs_du_dossier
+    )
+
+    delibCA_envoye_ou_non = any(
+        dd.id_document.id_nature.nature.lower() == "déliberation ca"
+        and dd.id_document.id_statut
         for dd in docs_du_dossier
     )
 
@@ -94,8 +109,11 @@ def build_documents_for_dossier(dossier):
         "doc_valide_avant_demande_avis": acte_valide_avant_demande_avis,
         "doc_envoye": acte_envoye,
         "doc_envoye_et_publie": acte_envoye_et_publie,
+        "acte_envoye_et_pas_publie": acte_envoye_et_pas_publie,
         "resume_pdf_titre": resume_pdf_titre,
         "projets_rapport_ca": projets_rapport_ca,
         "rapports_ca": rapports_ca,
+        "rapports_ca_envoyes": rapports_ca_envoyes,
         "delibCA": delibCA,
+        "delibCA_envoye_ou_non": delibCA_envoye_ou_non,
     }

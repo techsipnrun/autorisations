@@ -352,7 +352,7 @@ class DemarcheTypeFilter(admin.SimpleListFilter):
 
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'id', 'nom_dossier', 'etat','groupe_instructeur', 'date_depot')
+    list_display = ('numero', 'id', 'nom_dossier', 'etat', 'etape', 'groupe_instructeur', 'date_depot')
     list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds')
     search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
     list_per_page = 20
@@ -360,6 +360,10 @@ class DossierAdmin(admin.ModelAdmin):
     def etat(self, obj):
         return obj.id_etat_dossier.nom if obj.id_etat_dossier else "-"
     etat.short_description = "État"
+
+    def etape(self, obj):
+        return obj.id_etape_dossier.etape if obj.id_etape_dossier else "-"
+    etape.short_description = "Étape"
 
     def groupe_instructeur(self, obj):
         return obj.id_groupeinstructeur.nom if obj.id_groupeinstructeur else "-"

@@ -12,7 +12,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvo
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
-from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas
+from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.files_utils import generate_unique_filename, save_and_update_document, save_if_not_exists
 from instruction.utils.utilisateurs_utils import get_instructeur_or_redirect
@@ -249,6 +249,7 @@ def dossier_non_soumis_a_autorisation(request):
 
 
 
+"""
 @require_POST
 @login_required
 def refuse_le_dossier(request):
@@ -268,9 +269,9 @@ def refuse_le_dossier(request):
     
     
     # --- Vérification justification ---
-    if not motivation and dossier.present_sur_ds:
-        logger.warning(f"[DOSSIER {dossier.numero}] User {request.user} a tenté de refuser le dossier sans justification.")
-        return redirect_error(request, f"Une justification est requise pour refuser le dossier.")
+    # if not motivation and dossier.present_sur_ds:
+    #     logger.warning(f"[DOSSIER {dossier.numero}] User {request.user} a tenté de refuser le dossier sans justification.")
+    #     return redirect_error(request, f"Une justification est requise pour refuser le dossier.")
     
 
     # ==========================================
@@ -319,6 +320,7 @@ def refuse_le_dossier(request):
 
     return redirect(reverse('instruction_dossier', kwargs={'num_dossier': dossier.numero}))
 
+"""
 
 
 
@@ -910,7 +912,7 @@ def repasser_en_instruction(request):
         if statut_actuel in statuts_cibles:
             doc.id_statut = None
             doc.save()
-            logger.info(f"[DOSSIER {dossier.numero}] Repassage en Instruction par {request.user} : Statut du document '{doc.titre}' remis à NULL.")
+            logger.info(f"[DOSSIER {dossier.numero}] Repassage en Instruction par {request.user} : Statut du document '{doc.titre}' ({doc.id_nature.nature}) remis à NULL.")
 
     # Avis
     avis_a_reset = Avis.objects.filter(id_dossier=dossier, statut="À valider")
@@ -1410,10 +1412,12 @@ def acte_pret_a_etre_envoye(request):
     signataire_id = request.POST.get("choix-signataire") # id Instructeur
     envoyeur_id = request.POST.get("choix-envoi-acte-peti") # id Instructeur
     nature_document = request.POST.get("nature_document")
+    id_doc_a_signer = request.POST.get("id_doc_a_signer")
+    id_projet_rapport_ca = request.POST.get("id_projet_rapport_ca")
 
-    # =====================
+    # =========================
     #     VÉRIFICATIONS
-    # =====================
+    # =========================
 
     # --- Vérification dossierId ---
     if not dossier_id_ds:
@@ -1442,12 +1446,26 @@ def acte_pret_a_etre_envoye(request):
         logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Nature {nature_document} introuvable en base.")
         return redirect_error(request, f"❌ Nature '{nature_document}' introuvable en base. Contactez le support.")
     
-    # --- Vérification Nature Rapport CA ---
+    # --- Vérification Rapport CA ---
     if fichier_rapportCA :
         doc_nature_rapportCA = DocumentNature.objects.filter(nature__iexact = "Rapport CA").first()
         if not doc_nature_rapportCA:
             logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Nature {doc_nature_rapportCA} introuvable en base.")
             return redirect_error(request, f"❌ Nature 'Rapport CA' introuvable en base. Contactez le support.")
+
+        extension_RapCA = Path(fichier_rapportCA.name).suffix.lower()
+        if extension_RapCA != ".pdf" :
+            return redirect_error(request, f"❌ Le rapport du CA doit etre au format PDF --> Type de fichier non autorisé : {extension_RapCA}")
+
+        if not id_projet_rapport_ca :
+            logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Le projet de Rapport CA n'est pas reconnu.")
+            return redirect_error(request, f"❌ Le projet de Rapport CA n'est pas reconnu. Contactez le support.")
+        else :
+            projet_rapportCA = Document.objects.filter(id=id_projet_rapport_ca).first()
+            if not projet_rapportCA :
+                logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' : Projet de Rapport CA id={str(id_projet_rapport_ca)} introuvable.")
+                return redirect_error(request,f"❌ Le projet de Rapport CA (id = {str(id_projet_rapport_ca)}) est introuvable en base. Contactez le support.")
+
     
     # --- Vérification Format PDF ---
     format_pdf = DocumentFormat.objects.filter(format__iexact = "pdf").first()
@@ -1467,44 +1485,116 @@ def acte_pret_a_etre_envoye(request):
         logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Instructeur (ID {envoyeur_id}) introuvable en base.")
         return redirect_error(request, f"❌ Instructeur (ID {envoyeur_id}) introuvable en base. Contactez le support.")
     
-    # Vérification Acte
+    # Vérification Acte au format PDF
     if not fichier:
         return redirect_error(request, "❌ Aucun fichier Acte fourni.")
     
     extension = Path(fichier.name).suffix.lower()
     if extension != ".pdf" :
-        return redirect_error(request, f"❌ L'acte joint doit etre au format PDF --> Type de fichier non autorisé : {extension}")
+        return redirect_error(request, f"❌ L'acte signé doit etre au format PDF --> Type de fichier non autorisé : {extension}")
     
-    # Vérification dossier Work
+    # Vérification sur le projet d'acte existant
+    if id_doc_a_signer :
+        projet_acte = Document.objects.filter(id=id_doc_a_signer).first()
+        if not projet_acte:
+            logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' : Projet d'acte id={str(id_doc_a_signer)} introuvable.")
+            return redirect_error(request,f"❌ Le projet d'acte (id = {str(id_doc_a_signer)}) est introuvable en base. Contactez le support.")
+        if not projet_acte.numero :
+            logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Le projet d'acte n'a pas de numéro.")
+            return redirect_error(request, f"❌ Le projet d'acte n'a pas eu de numéro attribué. Contactez le support.")
+    else :
+        logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Le projet d'acte n'est pas reconnu.")
+        return redirect_error(request, f"❌ Le projet d'acte n'est pas reconnu. Contactez le support.")
+
+
+    # Vérification dossier Actes
     dossier_path = os.path.join(dossier.emplacement, "Actes/").replace("\\", "/")
     full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
     creer_dossier_sur_nas(full_path)
 
 
-    # =========================
-    #   Sauvegarde Acte signé
-    # =========================
-    filepath = os.path.join(full_path, fichier.name)
-    err = save_if_not_exists(request, dossier, fichier, filepath, fail_if_exists=True)
-    if err:
-        return err
+    # =================================
+    #   Écriture Acte signé dans /Actes
+    # =================================
+
+    """
+    Ici on est dans acte_pret_a_etre_envoye : manifestement c'est là que les actes signés (pdf) et rapport CA (pdf) sont écrit dans /Actes
+    Regarder ce qui se passe dans : envoyer_l_acte, envoyer_l_acte_de_refus --> J'ai l'impression qu'on Copie des trucs dans /Actes aussi ???
+    
+    """
+
+    # === 1. On génère le nom (ex : DIR-I-2026-031_05-03-26) ===
+    if nature_document == "Déliberation CA" :
+        prefixe = "DELIB-CA"
+    elif nature_document == "Arrêté directeur" :
+        prefixe = "DIR-I"
+    elif nature_document == "Avis conforme" :
+        prefixe = "AVIS-CONFORME"
+    elif nature_document == "Avis simple" :
+        prefixe = "AVIS-SIMPLE"
+    else : 
+        logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Nature {nature_document} n'est pas parmis : Déliberation CA, Arrêté directeur, Avis conforme, Avis simple.")
+        return redirect_error(request, f"❌ Nature de document '{nature_document}' non reconnue. Contactez le support.")
+    
+    date_du_jour = datetime.today().strftime("%d-%m")
+    nom_acte_genere = f"{prefixe}-{projet_acte.numero}_{date_du_jour}"
 
 
-    # ===================================
-    #   Sauvegarde Rapport CA (optionnel)
-    # ===================================
+    # === 2. On s'assure qu'on a un nom unique ===
+    titre_final_acte_signe, abs_file_path_acte_signe = generate_unique_filename(
+        dir_abs_path = full_path, 
+        dir_rel_path = dossier_path, 
+        base_filename = f"{nom_acte_genere}.pdf"
+    )
+
+    abs_file_path_acte_signe = _normalize_unc_path(abs_file_path_acte_signe)
+    
+
+    # === 3. On écrit dans le dossier /Actes ===
+    if not ecrire_file_sur_nas(fichier, abs_file_path_acte_signe): 
+      raise (f"Échec de l’écriture du fichier {nom_acte_genere}.pdf sur {abs_file_path_acte_signe}")
+    
+    logger.info(f"[DOSSIER {dossier.numero}] Transmission de l'acte signé par {request.user} : {nature_document} ({nom_acte_genere}.pdf) écrit dans le dossier Actes.")
+    
+    # filepath = os.path.join(full_path, fichier.name)
+    # err = save_if_not_exists(request, dossier, fichier, filepath, fail_if_exists=True)
+    # if err:
+    #     return err
+
+
+    # ====================================
+    #   Écriture Rapport CA PDF (optionnel)
+    # ====================================
     filepath_rapportCA = None
 
     if fichier_rapportCA :
-        extensionCA = Path(fichier_rapportCA.name).suffix.lower()
-        if extensionCA != ".pdf" :
-            return redirect_error(request, f"❌ Le rapport du CA joint doit etre .pdf --> Type de fichier non autorisé : {extensionCA}")
+
+        # === 1. On génère le nom (ex : RapportCA_05-03-26) ===
+        nom_rapportCA_genere = f"RapportCA_{date_du_jour}"
+
         
-        filepath_rapportCA = os.path.join(full_path, fichier_rapportCA.name)
+        # === 2. On s'assure qu'on a un nom unique ===
+        titre_final_rapportCA, abs_file_path_rapportCA = generate_unique_filename(
+            dir_abs_path = full_path, 
+            dir_rel_path = dossier_path, 
+            base_filename = f"{nom_rapportCA_genere}.pdf"
+        )
+
+        abs_file_path_rapportCA = _normalize_unc_path(abs_file_path_rapportCA)
+
+
+        # === 3. On écrit dans le dossier /Actes ===
+        if not ecrire_file_sur_nas(fichier_rapportCA, abs_file_path_rapportCA): 
+            raise (f"Échec de l’écriture du fichier {nom_rapportCA_genere}.pdf sur {abs_file_path_rapportCA}")
         
-        err = save_if_not_exists(request, dossier, fichier_rapportCA, filepath_rapportCA, fail_if_exists=True)
-        if err:
-            return err
+        logger.info(f"[DOSSIER {dossier.numero}] Transmission de l'acte signé par {request.user} : Rapport CA ({nom_rapportCA_genere}.pdf) écrit dans le dossier Actes.")
+
+        # filepath_rapportCA = os.path.join(full_path, fichier_rapportCA.name)
+        
+        # err = save_if_not_exists(request, dossier, fichier_rapportCA, filepath_rapportCA, fail_if_exists=True)
+        # if err:
+        #     return err
+
 
 
     # -----------------------------------
@@ -1521,7 +1611,7 @@ def acte_pret_a_etre_envoye(request):
             try :
                 doc.id_statut = None
                 doc.save()
-                logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : statut du document '{doc.titre}' remis à NULL.")
+                # logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : statut du document '{doc.titre}' remis à NULL.")
             
             except Exception as e:
                 logger.error(f"[DOSSIER {dossier.numero}] Changement d'étape à 'Acte à envoyer' par {request.user} : Erreur MAJ statut document {doc.id} : {e}")
@@ -1530,26 +1620,45 @@ def acte_pret_a_etre_envoye(request):
     # ----------------------------------
     # Création du doc (Acte) "À envoyer" 
     # ----------------------------------
-    doc, created = Document.objects.get_or_create(
-                            emplacement=dossier_path, titre=fichier.name,
-                            defaults={
-                                "id_format": format_pdf,
-                                "id_nature": doc_nature,
-                                "id_statut": statut_a_envoyer,
-                                "description": f"{doc_nature.nature} du dossier {dossier.numero}",
-                            }
-                        )
+
+    """
+    On met à jour le doc projet_acte (projet acte word devient acte signé pdf : statut, format, numero, path, description) plutot que de faire un get_or_create
+    --> titre_final_acte_signe à la place du fichier.name 
+    """
+
+    try:
+        projet_acte.id_statut = statut_a_envoyer
+        projet_acte.id_format = format_pdf
+        projet_acte.titre = f"{titre_final_acte_signe}.pdf"
+        projet_acte.emplacement = dossier_path
+        projet_acte.description = f"{nature_document} pour le dossier {dossier.numero}"
+        projet_acte.save()
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Échec MAJ {nature_document} (id={projet_acte.id}) en BDD : {e}")
+        return redirect_error(request,f"❌ {nature_document} copié dans le Dossier '/Actes' mais échec de sa mise à jour en base. Contactez le support.")
+                
+
+    # doc, created = Document.objects.get_or_create(
+    #                         emplacement=dossier_path, titre=fichier.name,
+    #                         defaults={
+    #                             "id_format": format_pdf,
+    #                             "id_nature": doc_nature,
+    #                             "id_statut": statut_a_envoyer,
+    #                             "description": f"{doc_nature.nature} du dossier {dossier.numero}",
+    #                         }
+    #                     )
     
-    if created:
-        DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-        logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : {fichier.name} ({doc_nature.nature} 'À envoyer') créé et lié au dossier")
-    else:
-        try :
-            doc.id_statut = statut_a_envoyer
-            doc.save()
-            logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : {fichier.name} ({doc_nature.nature}, {doc.id_statut.statut}) déjà existant – statut changé à 'À envoyer'")
-        except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé ({request.user}) : Erreur lors de la MAJ au statut 'à envoyer' du document {doc.id} : {e}")
+    # if created:
+    #     DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+    #     logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : {fichier.name} ({doc_nature.nature} 'À envoyer') créé et lié au dossier")
+    # else:
+    #     try :
+    #         doc.id_statut = statut_a_envoyer
+    #         doc.save()
+    #         logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : {fichier.name} ({doc_nature.nature}, {doc.id_statut.statut}) déjà existant – statut changé à 'À envoyer'")
+    #     except Exception as e:
+    #         logger.error(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé ({request.user}) : Erreur lors de la MAJ au statut 'à envoyer' du document {doc.id} : {e}")
 
 
     # ---------------------------------
@@ -1557,26 +1666,46 @@ def acte_pret_a_etre_envoye(request):
     # ---------------------------------
     if fichier_rapportCA :
 
-        doc_ca, created = Document.objects.get_or_create(
-                                emplacement=dossier_path, titre=fichier_rapportCA.name,
-                                defaults={
-                                    "id_format": format_pdf,
-                                    "id_nature": doc_nature_rapportCA,
-                                    "description": f"{doc_nature_rapportCA.nature} du dossier {dossier.numero}",
-                                }
-                            )
-        
-        if created:
-            DossierDocument.objects.create(id_dossier=dossier, id_document=doc_ca)
-            logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé - Transmission du Rapport CA : {fichier.name} (Document {doc_ca.numero}) créé et lié au dossier")
-        else:
-            try :
-                doc_ca.id_statut = statut_a_envoyer
-                doc_ca.save()
-                logger.warning(f"[DOSSIER {dossier.numero}] Transmission du Rapport CA par {request.user} : {fichier.name} (Document {doc_ca.numero}, Statut {doc_ca.id_statut.statut}) déjà existant – statut changé à 'À envoyer'")
+        """ 
+        On met à jour le doc projet_rapportCA (Projet Rapport CA word devient Rapport CA (Word ou pdf ici ?) : statut, format, path, description) plutot que de faire un get_or_create
+        --> nom unique à la place du fichier_rapportCA.name  (TO DO)   
+        """
 
-            except Exception as e:
-                logger.error(f"[DOSSIER {dossier.numero}] Passage Étape 'Acte prêt à être envoyé' par {request.user} - Transmission du Rapport CA : Erreur lors de la MAJ au statut 'à envoyer' du document {doc_ca.id} existant : {e}")
+        try:
+            projet_rapportCA.id_statut = statut_a_envoyer
+            projet_rapportCA.id_format = format_pdf
+            projet_rapportCA.id_nature = doc_nature_rapportCA
+            projet_rapportCA.titre = f"{titre_final_rapportCA}.pdf"
+            projet_rapportCA.emplacement = dossier_path
+            projet_rapportCA.description = f"{doc_nature_rapportCA} du dossier {dossier.numero}"
+            projet_rapportCA.save()
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Échec MAJ Projet Rapport CA (id={projet_rapportCA.id}) en BDD : {e}")
+            return redirect_error(request,f"❌ {doc_nature_rapportCA} copié dans le Dossier '/Actes' mais échec de sa mise à jour en base. Contactez le support.")
+
+        # doc_ca, created = Document.objects.get_or_create(
+        #                         emplacement=dossier_path, titre=fichier_rapportCA.name,
+        #                         defaults={
+        #                             "id_format": format_pdf,
+        #                             "id_nature": doc_nature_rapportCA,
+        #                             "description": f"{doc_nature_rapportCA.nature} du dossier {dossier.numero}",
+        #                         }
+        #                     )
+        
+        # if created:
+        #     DossierDocument.objects.create(id_dossier=dossier, id_document=doc_ca)
+        #     logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé - Transmission du Rapport CA : {fichier.name} (Document {doc_ca.numero}) créé et lié au dossier")
+        # else:
+        #     try :
+        #         doc_ca.id_statut = statut_a_envoyer
+        #         doc_ca.save()
+        #         logger.warning(f"[DOSSIER {dossier.numero}] Transmission du Rapport CA par {request.user} : {fichier.name} (Document {doc_ca.numero}, Statut {doc_ca.id_statut.statut}) déjà existant – statut changé à 'À envoyer'")
+
+        #     except Exception as e:
+        #         logger.error(f"[DOSSIER {dossier.numero}] Passage Étape 'Acte prêt à être envoyé' par {request.user} - Transmission du Rapport CA : Erreur lors de la MAJ au statut 'à envoyer' du document {doc_ca.id} existant : {e}")
+
+
 
 
     # Ajout du signataire au dossier
@@ -1666,6 +1795,66 @@ def classer_le_dossier_comme_accepte(request):
 
 
 
+@require_POST
+@login_required
+def classer_le_dossier_comme_refuse(request):
+    
+    dossier_id_ds = request.POST.get("dossierId")
+
+    # --- Vérification dossierId ---
+    if not dossier_id_ds:
+        logger.error(f"[REFUS DOSSIER] User={request.user} : ID DS manquant.")
+        return redirect_error(request, "❌ Impossible de classer le dossier comme refusé : ID DS manquant. Contactez le support.")
+
+    # --- Récupération dossier ---
+    dossier, err = get_dossier_or_redirect(request, "REFUS DOSSIER", id_ds=dossier_id_ds)
+    if err:
+        return err
+
+    # --- Récupération instructeur ---
+    instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Classer comme refusé")
+    if err:
+        return err
+
+
+    # --- Mise à jour document publié au RAA ---
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+
+    for lien in documents_du_dossier:
+        doc = lien.id_document
+        try:
+            if doc.id_statut and doc.id_statut.statut.lower() == "envoyé" and not doc.publie_au_raa:
+                doc.publie_au_raa = True
+                doc.save()
+                logger.info(f"[DOSSIER {dossier.numero}] Document {doc.titre} publié au RAA par {request.user}.")
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la MAJ publié_au_raa ({request.user}) pour le Document {doc.id} : {e}")
+            return redirect_error(request, f"❌ Erreur lorsqu'on tente d'indiquer la bonne publication au RAA du document {doc.titre}. Contactez le support.")
+
+
+    # --- Mise à jour Date Fin Instruction ---
+    try:
+        dossier.date_fin_instruction = timezone.now()
+        dossier.save()
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur MAJ date_fin_instruction par {request.user} (date = {timezone.now()}) : {e}")
+        messages.error(request, "❌ Erreur lors de la mise à jour de la date de fin d’instruction. Contactez le support.")
+        # on continue
+
+
+    # --- Mise à jour Étape ---
+    err = safe_update_etape(dossier, "Refusé", request, break_si_erreur=True)
+    if err:
+        return err
+
+    #Dossier Action
+    safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
 """  
 ####################################################
 DERNIERE FONCTION A CLEAN
@@ -1704,6 +1893,16 @@ def envoyer_l_acte(request):
     if err:
         return err
 
+    # --- Nature de l'acte ---
+    if not nature_document:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Nature du document {document_id} (Statut : À envoyer) manquante dans le formulaire.")
+        return redirect_error(request,"❌ La nature (Arrêté, Délibération...) de l’acte à envoyer est manquante. Contactez le support.")
+
+    nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
+    if not nature_obj:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Document id={document_id} : Nature {nature_document} introuvable.")
+        return redirect_error(request,f"❌ La nature de document '{nature_document}' est introuvable en base. Contactez le support.")
+    
     # --- Publieur RAA ---
     if not publieur_raa_id:
         return redirect_error(request,"❌ Vous devez choisir la personne chargée de publier l’acte au RAA.")
@@ -1758,27 +1957,21 @@ def envoyer_l_acte(request):
         emplacement_doc = os.path.join(emplacement_relatif_dossier_acte, f"{document.titre}")
         full_path_doc = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc)
 
-        # Chercher si un document existe déjà avec même emplacement + titre
-        doc_existant = Document.objects.filter(emplacement=emplacement_relatif_dossier_acte, titre=document.titre).first()
 
         # Définir le Content Type à partir du Format du Doc
         format_str = document.id_format.format.lower()
-        if format_str in ['jpg', 'jpeg']:
+        if format_str == 'pdf':
+            content_type = 'application/pdf'
+        elif format_str in ['jpg', 'jpeg']:
             content_type = 'image/jpeg'
         elif format_str == 'png':
             content_type = 'image/png'
-        elif format_str == 'pdf':
-            content_type = 'application/pdf'
         else:
             content_type = 'application/octet-stream'
 
         try:
             with smbclient.open_file(full_path_doc, mode="rb") as f:
                 fichier = SimpleUploadedFile(name=document.titre, content=f.read(), content_type=content_type)
-
-
-            # with open(full_path_doc, 'rb') as f:
-            #     fichier = SimpleUploadedFile(name=f"{document.titre}", content=f.read(), content_type=content_type)
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) : Impossible de lire le fichier {full_path_doc} : {e}")
@@ -1793,49 +1986,6 @@ def envoyer_l_acte(request):
             logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Document id={document_id} : Format {ext} introuvable.")
             return redirect_error(request,f"❌ Le format de document '{ext}' est introuvable en base. Contactez le support.")
     
-        
-        # ======================================================
-        #        Copie du Rapport CA (s'il existe) Work -> Actes
-        # ======================================================
-        if rapportCA_id :
-            try:
-                try:
-                    docRapportCA = Document.objects.get(id=rapportCA_id)
-
-                except Document.DoesNotExist :
-                    logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Rapport CA introuvable en base (id={rapportCA_id})")
-                    return redirect_error(request,"❌ Le Rapport CA est introuvable en base. Contactez le support.")
-                
- 
-                #  Trouver un nom de fichier non existant (ex : titre_final = rapport_2, abs_file_path = Chemin absolu de "rapport_2.pdf")
-                titre_final, abs_file_path = generate_unique_filename(
-                                                dir_abs_path = emplacement_absolu_dossier_acte, 
-                                                dir_rel_path = emplacement_relatif_dossier_acte, 
-                                                base_filename = docRapportCA.titre
-                                            )
-
-
-                # Copie physique Work -> Actes
-                emplacement_ancien_rapportCA =  os.path.join(os.environ.get("NAS_ROOT"), docRapportCA.emplacement, docRapportCA.titre) 
-
-                if not ecrire_file_sur_nas(emplacement_ancien_rapportCA, abs_file_path): 
-                    raise (f"Échec de l’écriture du fichier {docRapportCA.titre} sur {abs_file_path}")
-
-                logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Rapport CA ({fichier.name}) copié du dossier Work au dossier Actes.")
-
-
-                # MAJ de l'emplacement (/Work -> /Actes)
-                try:
-                    docRapportCA.emplacement = emplacement_relatif_dossier_acte
-                    docRapportCA.save()
-
-                except Exception as e:
-                    logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Échec MAJ emplacement Rapport CA (id={docRapportCA.id}) en BDD : {e}")
-                    return redirect_error(request,"❌ Rapport CA copié dans le Dossier '/Actes' mais échec de la mise à jour de son emplacement en base. Contactez le support.")
-                
-            except Exception as e:
-                logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Echec de la copie du Rapport CA du dossier Work vers le dossier Actes : {e}")
-                return redirect_error(request, "❌ Echec de la copie du Rapport CA du dossier Work vers le dossier Actes. Contactez le support")
 
 
         # ============================================
@@ -1855,9 +2005,10 @@ def envoyer_l_acte(request):
         # -------------------------------------------------------
         # Ajout de la personne chargée de publier l'acte au RAA
         # ------------------------------------------------------
-        err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
-        if err:
-            return err
+        if nature_obj.nature != "Déliberation CA" :
+            err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
+            if err:
+                return err
         
 
         # ============================================
@@ -1865,31 +2016,47 @@ def envoyer_l_acte(request):
         # ============================================
 
         # --- Mise à jour Étape ---
-        safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
+        if nature_obj.nature == "Déliberation CA" :
+            # On classe le dossier comme accepté
+            err = safe_update_etape(dossier, "Accepté", request, break_si_erreur=True)
+            if err:
+                return err
+            
+        else :
+            safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
 
         # --- Mise à jour État ---
         safe_update_etat(dossier, "accepte", request, break_si_erreur=False) # On continue si Erreur
 
         # --- Enregistrer Action ---
         safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
+        if nature_obj.nature == "Déliberation CA" :
+            safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
+
+        
+
+        # ==============================================
+        #     Mise à jour Doc "À envoyer" --> "Envoyé"
+        # ==============================================
+        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+        for lien in documents_du_dossier:
+            doc = lien.id_document
+            statut = doc.id_statut.statut.lower() if doc.id_statut else ""
+
+            if statut == "à envoyer":
+                try:
+                    doc.id_statut = statut_envoye
+                    doc.save()
+                    logger.info(f"[DOSSIER {dossier.numero}] Statut de {doc.id_nature.nature} '{doc.titre}' mis à jour → Envoyé.")
+                except Exception as e:
+                    logger.error(f"[DOSSIER {dossier.numero}] Envoi acte ({request.user}) : Erreur MAJ statut (À Envoyer → Envoyé) du document {doc.id} : {e}")
+            
+            # On considère que la délibération du CA a été publiée au RAA
+            if doc.id_nature.nature == "Déliberation CA" :
+                doc.publie_au_raa = True
+                doc.save()
 
 
-        # ===============================================
-        #  ÉCRITURE PHYSIQUE DE L'ACTE + MAJ du Document 
-        # ===============================================
-        err = save_and_update_document(
-            request=request,
-            dossier=dossier,
-            fichier=fichier,
-            document=document,
-            format_obj=format_obj,
-            nature_obj=nature_obj,
-            statut_obj=statut_envoye,
-            abs_file_path=full_path_doc,
-            rel_dir_path=emplacement_relatif_dossier_acte,
-        )
-        if err:
-            return err
 
 
         # ==============================================
@@ -2018,6 +2185,363 @@ def envoyer_l_acte(request):
         logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email}: {str(e)}")
         return redirect_error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
 
-    return redirect(request.META.get("HTTP_REFERER", "/")
-)
+    return redirect(request.META.get("HTTP_REFERER", "/"))
 
+
+
+
+
+
+@login_required
+@require_POST
+def envoyer_l_acte_de_refus(request):
+
+    dossier_id_ds = request.POST.get("dossierId")
+    dossier_numero = request.POST.get("dossier_numero")
+    motivation = request.POST.get("motivation", "Votre demande a été refusée.")
+    document_id = request.POST.get("document_id_existant")  #ID du Doc à envoyer
+    rapportCA_id = request.POST.get("rapportCA_id")
+    nature_document = request.POST.get("nature_document")
+    publieur_raa_id = request.POST.get("choix-publieur-raa") # id Instructeur
+
+
+    # ============================
+    #        VÉRIFICATIONS
+    # ============================
+
+    # --- Vérification dossierId ---
+    if not dossier_id_ds:
+        logger.error(f"[ENVOYER ACTE] User={request.user} : ID DS manquant.")
+        return redirect_error(request, "❌ Impossible d'envoyer l'acte : ID DS manquant. Contactez le support.")
+
+    # --- Récupération dossier ---
+    dossier, err = get_dossier_or_redirect(request, "ENVOYER ACTE", id_ds=dossier_id_ds)
+    if err:
+        return err
+
+    # --- Récupération instructeur ---
+    instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Envoyer l'acte")
+    if err:
+        return err
+
+    # --- Nature de l'acte ---
+    if not nature_document:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Nature du document {document_id} (Statut : À envoyer) manquante dans le formulaire.")
+        return redirect_error(request,"❌ La nature (Arrêté, Délibération...) de l’acte à envoyer est manquante. Contactez le support.")
+
+    nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
+    if not nature_obj:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Document id={document_id} : Nature {nature_document} introuvable.")
+        return redirect_error(request,f"❌ La nature de document '{nature_document}' est introuvable en base. Contactez le support.")
+    
+    # --- Publieur RAA ---
+    if nature_obj.nature != "Déliberation CA" :
+        if not publieur_raa_id :
+            return redirect_error(request,"❌ Vous devez choisir la personne chargée de publier l’acte au RAA.")
+        
+        publieur_raa = Instructeur.objects.filter(id=publieur_raa_id).first()
+        if not publieur_raa:
+            logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) : Publieur RAA introuvable (id={publieur_raa_id}).")
+            return redirect_error(request, f"❌ Publieur.se RAA introuvable en base. Contactez le support.")
+
+    # --- Document à envoyer ---
+    if not document_id:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : ID du document signé (Statut : À envoyer) manquant dans le formulaire.")
+        return redirect_error(request,"❌ L'acte signé à envoyer est introuvable depuis l'application (ID du document NULL). Contactez le support.")
+
+    document = Document.objects.filter(id=document_id).select_related("id_format").first()
+    if not document:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Document id={document_id} (Statut : À envoyer) introuvable.")
+        return redirect_error(request,"❌ Le document signé à envoyer est introuvable en base. Contactez le support.")
+    
+    # --- Format de l'acte ---
+    if not document.id_format or not document.id_format.format:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Format du Document id={document.id} (Statut : À envoyer) introuvable.")
+        return redirect_error(request,"❌ Le format du document signé est introuvable en base. Contactez le support.")
+
+    # --- Statut "Envoyé"
+    statut_envoye = DocumentStatut.objects.filter(statut__iexact="envoyé").first()
+    if not statut_envoye:
+        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Statut 'Envoyé' introuvable.")
+        return redirect_error(request, "❌ Statut 'Envoyé' introuvable en base. Contactez le support.")
+        
+
+    try:
+        # Construire l’emplacement de stockage
+        dossier_path = dossier.emplacement
+        emplacement_relatif_dossier_acte = os.path.join(dossier_path, 'Actes/')
+        emplacement_absolu_dossier_acte = os.path.join(os.environ.get("NAS_ROOT"), emplacement_relatif_dossier_acte)
+
+        emplacement_doc = os.path.join(emplacement_relatif_dossier_acte, f"{document.titre}")
+        full_path_doc = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc)
+
+        # Chercher si un document existe déjà avec même emplacement + titre
+        # doc_existant = Document.objects.filter(emplacement=emplacement_relatif_dossier_acte, titre=document.titre).first()
+
+        # Définir le Content Type à partir du Format du Doc
+        format_str = document.id_format.format.lower()
+        if format_str in ['jpg', 'jpeg']:
+            content_type = 'image/jpeg'
+        elif format_str == 'png':
+            content_type = 'image/png'
+        elif format_str == 'pdf':
+            content_type = 'application/pdf'
+        else:
+            content_type = 'application/octet-stream'
+
+        try:
+            with smbclient.open_file(full_path_doc, mode="rb") as f:
+                fichier = SimpleUploadedFile(name=document.titre, content=f.read(), content_type=content_type)
+
+
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) : Impossible de lire le fichier {full_path_doc} : {e}")
+            return redirect_error(request,"❌ Impossible de lire le fichier de l’acte sur le serveur. Contactez le support.")
+        
+
+        # --- Vérification Format de l'acte ---
+        nom, extension = os.path.splitext(fichier.name)
+        ext = extension.lstrip('.').lower()
+        format_obj = DocumentFormat.objects.filter(format__iexact=ext).first()
+        if not format_obj:
+            logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Document id={document_id} : Format {ext} introuvable.")
+            return redirect_error(request,f"❌ Le format de document '{ext}' est introuvable en base. Contactez le support.")
+    
+        
+        # ======================================================
+        #        Copie du Rapport CA (s'il existe) Work -> Actes
+        # ======================================================
+        # if rapportCA_id :
+        #     try:
+        #         try:
+        #             docRapportCA = Document.objects.get(id=rapportCA_id)
+
+        #         except Document.DoesNotExist :
+        #             logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Rapport CA introuvable en base (id={rapportCA_id})")
+        #             return redirect_error(request,"❌ Le Rapport CA est introuvable en base. Contactez le support.")
+                
+
+        #         #  Trouver un nom de fichier non existant (ex : titre_final = rapport_2, abs_file_path = Chemin absolu de "rapport_2.pdf")
+        #         titre_final, abs_file_path = generate_unique_filename(
+        #                                         dir_abs_path = emplacement_absolu_dossier_acte, 
+        #                                         dir_rel_path = emplacement_relatif_dossier_acte, 
+        #                                         base_filename = docRapportCA.titre
+        #                                     )
+
+
+        #         # Copie physique Work -> Actes
+        #         emplacement_ancien_rapportCA =  os.path.join(os.environ.get("NAS_ROOT"), docRapportCA.emplacement, docRapportCA.titre) 
+
+        #         if not ecrire_file_sur_nas(emplacement_ancien_rapportCA, abs_file_path): 
+        #             raise (f"Échec de l’écriture du fichier {docRapportCA.titre} sur {abs_file_path}")
+
+        #         logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Rapport CA ({docRapportCA.titre}) copié du dossier Work au dossier Actes.")
+
+
+        #         # MAJ de l'emplacement (/Work -> /Actes)
+        #         try:
+        #             docRapportCA.emplacement = emplacement_relatif_dossier_acte
+        #             docRapportCA.save()
+
+        #         except Exception as e:
+        #             logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Échec MAJ emplacement Rapport CA (id={docRapportCA.id}) en BDD : {e}")
+        #             return redirect_error(request,"❌ Rapport CA copié dans le Dossier '/Actes' mais échec de la mise à jour de son emplacement en base. Contactez le support.")
+                
+        #     except Exception as e:
+        #         logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Echec de la copie du Rapport CA du dossier Work vers le dossier Actes : {e}")
+        #         return redirect_error(request, "❌ Echec de la copie du Rapport CA du dossier Work vers le dossier Actes. Contactez le support")
+
+
+
+        # ============================================
+        #      REFUS DU DOSSIER SUR DS
+        # ============================================
+        if dossier.present_sur_ds :
+
+            result = refuser_dossier_ds(dossier_id_ds, instructeur, motivation, fichier)
+        
+            if not result["success"]:
+                logger.error(f"[DOSSIER {dossier_numero}] Erreur lors du refus du dossier sur DS par {instructeur} : {result['message']}")
+                return redirect_error(request, f"Erreur lors du refus du dossier sur Démarche Numérique. Contactez le support.")
+
+
+        # -------------------------------------------------------
+        # Ajout de la personne chargée de publier l'acte au RAA
+        # ------------------------------------------------------
+        err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
+        if err:
+            return err
+        
+
+        # ============================================
+        #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
+        # ============================================
+
+        # --- Mise à jour Étape ---
+        safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
+
+        # --- Mise à jour État ---
+        safe_update_etat(dossier, "refuse", request, break_si_erreur=False) # On continue si Erreur
+
+        # --- Enregistrer Action ---
+        safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
+        if nature_obj.nature == "Déliberation CA" :
+            safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
+
+
+        # ===============================================
+        #  ÉCRITURE PHYSIQUE DE L'ACTE + MAJ du Document 
+        # ===============================================
+        """
+        TO DO
+
+
+        Arreter de ré écrire le file, c'est deja fait dans acte_pret_a_etre_envoye
+
+
+        """
+
+        err = save_and_update_document(
+            request=request,
+            dossier=dossier,
+            fichier=fichier,
+            document=document,
+            format_obj=format_obj,
+            nature_obj=nature_obj,
+            statut_obj=statut_envoye,
+            abs_file_path=full_path_doc,
+            rel_dir_path=emplacement_relatif_dossier_acte,
+        )
+        if err:
+            return err
+        
+
+
+        # ==============================================
+        #     Envoyer une copie de l'acte par Mail
+        # ==============================================
+
+        partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
+        emails = request.POST.getlist("emails_copie[]")
+
+        emails_nouveaux = request.POST.getlist("email_contact[]")
+        emails_selectionnes_lower = { (e or "").strip().lower() for e in emails }
+        noms = request.POST.getlist("nom_contact[]")
+        prenoms = request.POST.getlist("prenom_contact[]")
+        types = request.POST.getlist("type_contact[]")
+        raisons = request.POST.getlist("raison_sociale[]")
+        motivation_copie_mail = request.POST.get("motivation_copie_mail")
+
+        if partager_par_mail == "oui" :
+
+            # =======================================
+            # 1) AJOUT DES NOUVEAUX CONTACTS EXTERNES
+            # =======================================
+            for i, email in enumerate(emails_nouveaux):
+                email_clean = (email or "").strip()
+                if not email_clean:
+                    continue
+
+                try:
+                    validate_email(email_clean)
+                except ValidationError:
+                    logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {email}")
+                    continue
+
+                # chip supprimée => on ignore (pas de création, pas d'envoi)
+                if email_clean.lower() not in emails_selectionnes_lower:
+                    continue
+
+                nom = (noms[i] if i < len(noms) else "").strip()
+                prenom = (prenoms[i] if i < len(prenoms) else "").strip()
+                raison = (raisons[i] if i < len(raisons) else "").strip()
+                type_id = types[i] if i < len(types) else None
+
+                type_obj = None
+                if type_id:
+                    type_obj = TypeContactExterne.objects.filter(id=type_id).first()
+                if not type_obj:
+                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="Autre")
+
+                contact, created = ContactExterne.objects.get_or_create(
+                    email=email_clean,
+                    id_type= type_obj,
+                    defaults={
+                        "nom": nom,
+                        "prenom": prenom,
+                        "raison_sociale": raison
+                    }
+                )
+                if created:
+                    logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {contact}")
+
+                # Ajouter ce mail aux destinataires
+                # emails.append(email)
+
+
+            # ================================
+            # 2) NORMALISATION + DEDOUBLONNAGE
+            # ================================
+            emails_norm = []
+            seen = set()
+
+            for e in emails:
+                e_norm = (e or "").strip()
+                if not e_norm:
+                    continue
+
+                e_key = e_norm.lower()
+                if e_key in seen:
+                    continue
+
+                try:
+                    validate_email(e_norm)
+                except ValidationError:
+                    logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {e_norm}")
+                    continue
+
+                seen.add(e_key)
+                emails_norm.append(e_norm)
+
+            if not emails_norm:
+                logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Aucun email valide sélectionné pour l’envoi de l'acte en copie. Liste des emails transmis : {emails}")
+            
+            else:
+                # =========================
+                # 3) ENVOI DE L'EMAIL
+                # =========================
+                sujet = f"{nature_document} – Dossier {dossier.numero}"
+                context = {"body": motivation_copie_mail}
+                template_name = "mail_en_copie"
+                emails_txt = ", ".join(emails_norm)
+
+                try :
+                    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+                except Exception as e:
+                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec de l'envoi de l'acte en copie par mail - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
+
+                # return None si Erreur 
+                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Envoi de l'acte", document=document)
+                
+                if outbox :
+                    ok, err = envoi_mail(outbox.id)
+
+                else :
+                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Erreur lors de la création de l'EmailOutbox, Les users qui n'ont pas été notifiés par mail : {emails_txt}")
+                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
+
+                if ok:
+                    logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Envoi en copie de l'acte par Mail ({outbox.id}) envoyée à {', '.join(outbox.to)} ")
+                else:
+                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec envoi en copie de l'acte par Mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
+                    return redirect_error(request, f"L'envoi en copie de l'acte par Mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
+        
+
+
+    except Exception as e:
+        logger.error(f"[DOSSIER {dossier_numero}] Erreur lors du refus du dossier par {instructeur.email}: {str(e)}")
+        return redirect_error(request, f"[DOSSIER {dossier_numero}] Erreur lors du refus du dossier sur DS par {instructeur.email}: {str(e)}")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))

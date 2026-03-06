@@ -427,7 +427,8 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
 
 
 
-def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
+def refuser_dossier_ds(dossier_id_ds, instructeur, motivation, fichier=None):
+    
     """
     Refuse un dossier via l'API Démarche Numérique.
 
@@ -441,9 +442,47 @@ def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
     """
     client = GraphQLClient()
 
+    signed_blob_id = None
+  
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
     email_instructeur = instructeur.email
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de refus du dossier sur DS par {email_instructeur}")
+
+  
+    if fichier:
+        try:
+            file_data = fichier.read()
+            byte_size = len(file_data)
+            checksum = base64.b64encode(hashlib.md5(file_data).digest()).decode()
+
+            upload_vars = {
+                "input": {
+                    "filename": fichier.name,
+                    "byteSize": byte_size,
+                    "checksum": checksum,
+                    "contentType": fichier.content_type,
+                    "dossierId": dossier_id_ds
+                }
+            }
+
+            upload_response = client.execute_query("DS/mutations/create_direct_upload.graphql", upload_vars)
+            direct_upload = upload_response["data"]["createDirectUpload"]["directUpload"]
+            signed_blob_id = direct_upload["signedBlobId"]
+
+            response = requests.put(
+                direct_upload["url"],
+                headers=json.loads(direct_upload["headers"]),
+                data=BytesIO(file_data),
+                stream=True
+            )
+
+            if response.status_code not in [200, 201]:
+                loggerDS.error(f"[DOSSIER {num_dossier_pg}] Réponse innatendue lors du refus du dossier sur DS (mutation create_direct_upload.graphql) : ", response.text)
+                raise Exception("Échec de l'upload : " + response.text)
+        except Exception as e:
+            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Echec du refus du dossier sur DS (mutation create_direct_upload.graphql) : ", str(e))
+            return {"success": False, "message": str(e)}
+  
 
     try:
         variables = {
@@ -453,6 +492,9 @@ def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
                 "motivation": motivation
             }
         }
+
+        if signed_blob_id:
+            variables["input"]["justificatif"] = signed_blob_id
 
         result = client.execute_query("DS/mutations/refuser_dossier.graphql", variables)
 
@@ -469,6 +511,7 @@ def refuser_dossier_ds(dossier_id_ds, instructeur, motivation):
     except Exception as e:
         loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors du refus du dossier sur DS : {str(e)}")
         return {"success": False, "message": str(e)}
+
 
 
 def repasser_en_instruction_ds(dossier_id_ds, instructeur):
@@ -568,10 +611,12 @@ def accepter_dossier_ds(dossier_id_ds, instructeur, motivation, fichier=None):
             variables["input"]["justificatif"] = signed_blob_id
 
         result = client.execute_query("DS/mutations/accepter_dossier.graphql", variables)
+
         response_data = result.get("data", {}).get("dossierAccepter", {})
         if response_data.get("errors"):
             loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de l’acceptation du dossier sur DS : {response_data.get('errors')}")
             return {"success": False, "message": response_data["errors"]}
+        
         return {"success": True, "message": response_data.get("message", "OK")}
     except Exception as e:
         loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de l’acceptation du dossier sur DS : ", str(e))

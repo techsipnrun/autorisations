@@ -138,7 +138,7 @@ urlpatterns = [
     path("changer-etape/passer-en-pre-instruction/", changement_etape.passer_en_pre_instruction, name="passer_en_pre_instruction_url"),
     path("changer-etape/demander-des-complements/", changement_etape.demander_des_complements, name="demander_des_complements_url"),
     path("changer-etape/non-soumis/", changement_etape.dossier_non_soumis_a_autorisation, name="classer_le_dossier_comme_non_soumis_a_autorisation_url"),
-    path("changer-etape/refuse/", changement_etape.refuse_le_dossier, name="classer_le_dossier_comme_refuse_url"),
+    path("changer-etape/refuse/", changement_etape.classer_le_dossier_comme_refuse, name="classer_le_dossier_comme_refuse_url"),
     path("changer-etape/passer-en-instruction/", changement_etape.passer_en_instruction, name="passer_en_instruction_url"),
     path("changer-etape/validation-avis/", changement_etape.faire_valider_une_demande_d_avis, name="faire_valider_une_demande_d_avis_url"),
     path("changer-etape/validation-signature/", changement_etape.faire_valider_le_projet_d_acte, name="faire_valider_le_projet_d_acte_url"),
@@ -151,6 +151,7 @@ urlpatterns = [
     path("changer-etape/signature/", changement_etape.pret_a_la_signature, name="pret_a_la_signature_url"),
     path("changer-etape/signature_sppn/", changement_etape.acte_pret_a_la_signature, name="acte_pret_a_la_signature_url"),
     path("changer-etape/acte-envoye/", changement_etape.envoyer_l_acte, name="envoyer_l_acte_url"),
+    path("changer-etape/acte-refus-envoye/", changement_etape.envoyer_l_acte_de_refus, name="envoyer_l_acte_de_refus_url"),
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
 
