@@ -1552,7 +1552,9 @@ def acte_pret_a_etre_envoye(request):
 
     # === 3. On écrit dans le dossier /Actes ===
     if not ecrire_file_sur_nas(fichier, abs_file_path_acte_signe): 
-      raise (f"Échec de l’écriture du fichier {nom_acte_genere}.pdf sur {abs_file_path_acte_signe}")
+        logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Échec de l’écriture du fichier {nom_acte_genere}.pdf sur {abs_file_path_acte_signe}.")
+        return redirect_error(request, f"❌ Échec de l’écriture du fichier {nom_acte_genere}.pdf sur {abs_file_path_acte_signe}. Contactez le support.")
+
     
     logger.info(f"[DOSSIER {dossier.numero}] Transmission de l'acte signé par {request.user} : {nature_document} ({nom_acte_genere}.pdf) écrit dans le dossier Actes.")
     
