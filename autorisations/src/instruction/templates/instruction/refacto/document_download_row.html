@@ -1,0 +1,29 @@
+{% load static %}
+
+<li class="doc-item" title="Télécharger le document">
+    <div class="doc-download-row"
+         data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
+         title="Télécharger le document">
+
+        <span class="doc-titre-no-download">
+            {{ doc.id_nature.nature }}
+
+            {% if show_numero and doc.numero %}
+                <span class="badge-numero-acte">
+                    {% if doc.id_nature.nature == "Déliberation CA" %}
+                        CA/
+                    {% elif doc.id_nature.nature == "Arrêté directeur" %}
+                        DIR-I-
+                    {% endif %}
+                    {{ doc.numero }}
+                </span>
+            {% endif %}
+
+            : {{ doc.titre }}
+        </span>
+
+        <img class="doc-copy-icon"
+             src="{% static 'instruction/img/download.png' %}"
+             alt="Télécharger">
+    </div>
+</li>

@@ -113,11 +113,12 @@
     cursor: pointer;
 }
 
+
 .msg_pour_peti {
     margin: 0.5rem 0 1.5rem 0;
 }
 
-.msg_pour_peti label{
+.zone-envoyer-pour-validation .msg_pour_peti label{
     display: block;
     margin-bottom: 1rem;
 }
@@ -126,7 +127,7 @@
     margin: 1.5rem 0;
 }
 
-.msg_pour_mail_copie label{
+.zone-envoyer-pour-validation .msg_pour_mail_copie label{
     display: block;
     margin-bottom: 1rem;
 }
@@ -409,6 +410,7 @@
 
 .zone-envoyer-pour-validation label {
     font-weight: bold;
+    /* margin: auto; Ca décalle tout */  
 }
 
 .zone-envoyer-pour-validation select {
@@ -540,7 +542,7 @@
     transform: scale(1.2);
 }
 
-.copie-feedback{
+.copie-feedback-doc{
     position: absolute;
     font-style: italic;
     left: 100%;
@@ -551,7 +553,7 @@
     transition: opacity 0.25s ease;
 }
 
-.copie-feedback.show{
+.copie-feedback-doc.show{
     opacity: 1;
 }
 
@@ -590,6 +592,68 @@
     margin: auto;
     vertical-align: text-bottom; 
 }
+
+
+
+
+
+
+
+/* ---------- Boite de dialogue avec les fichiers de Work ---------- */
+
+.selection-fichier-work {
+    margin-top: 10px;
+}
+
+.liste-work-files {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.liste-work-files li {
+    border-bottom: 1px solid #eee;
+}
+
+.liste-work-files li:last-child {
+    border-bottom: none;
+}
+
+.btn-fichier-work {
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.btn-fichier-work:hover {
+    background: #eef7f2;
+}
+
+.btn-fichier-work.selected {
+    background: #dff3e8;
+    font-weight: 600;
+}
+
+.fichier-selectionne {
+    margin-top: 6px;
+    font-size: 0.9rem;
+}
+
+.work-vide {
+    font-style: italic;
+    color: #666;
+}
+
+
 
 
 

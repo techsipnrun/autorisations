@@ -33,10 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const fond_coeur_de_Parc = window._coeurData;
     const cartes = document.querySelectorAll(".carte-container-trail .carte");
 
-    if (cartes.length === 0) {
-        console.info("Aucune carte à afficher.");
-        return;
-    }
 
     function poiDivIcon(char, extraClass = "") {
         return L.divIcon({
@@ -110,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Ajout du bouton impression PDF
         L.control.browserPrint({
-            title: "📥 Télécharger en PDF",
+            title: "Télécharger en PDF",
             position: "topleft",  // coin haut gauche comme zoom
             closePopupsOnPrint: true,
             printModes: ["Landscape", "Portrait"] // propose les 2

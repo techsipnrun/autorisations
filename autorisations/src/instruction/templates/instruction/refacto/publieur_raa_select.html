@@ -1,0 +1,42 @@
+{% if not delibCA %}
+    <div class="validant">
+        <label>Personne chargée de publier l'acte au RAA :</label>
+        <select name="choix-publieur-raa" id="choix-publieur-raa" required>
+            <option value="" disabled selected>Choisir</option>
+
+            {% if demarche.service == 'SPPN' %}
+
+                {% for p in publieurs_RAA_sppn %}
+                    <option value="{{ p.id }}">
+                        {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
+                    </option>
+                {% endfor %}
+
+                {% for i in publieurs_RAA_du_dossier %}
+                    {% if i not in publieurs_RAA_sppn %}
+                        <option value="{{ i.id }}">
+                            {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
+                        </option>
+                    {% endif %}
+                {% endfor %}
+
+            {% else %}
+
+                {% for p in publieurs_RAA_saadd %}
+                    <option value="{{ p.id }}">
+                        {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
+                    </option>
+                {% endfor %}
+
+                {% for i in instructeurs_du_dossier %}
+                    {% if i not in publieurs_RAA_saadd %}
+                        <option value="{{ i.id }}">
+                            {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
+                        </option>
+                    {% endif %}
+                {% endfor %}
+
+            {% endif %}
+        </select>
+    </div>
+{% endif %}

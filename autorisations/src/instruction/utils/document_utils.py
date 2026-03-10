@@ -1,3 +1,7 @@
+import os
+
+import smbclient
+
 from autorisations.models.models_documents import Document, DossierDocument
 
 
@@ -22,9 +26,7 @@ def build_documents_for_dossier(dossier):
     )
 
     # Liste brute des emplacements
-    emplacements_documents = [
-        dd.id_document.emplacement for dd in docs_du_dossier
-    ]
+    emplacements_documents = [ f"{dd.id_document.emplacement}{dd.id_document.titre}" for dd in docs_du_dossier ]
 
     # Annexes instructeur
     annexes_instructeur = [
@@ -98,6 +100,23 @@ def build_documents_for_dossier(dossier):
         for dd in docs_du_dossier
     )
 
+
+
+    work_files = []
+
+    dossier_work_path = os.path.join(os.environ.get("NAS_ROOT"), dossier.emplacement, "Work")
+    dossier_work_path = dossier_work_path.replace("\\", "/")
+
+    if smbclient.path.exists(dossier_work_path):
+        for nom in smbclient.listdir(dossier_work_path):
+            lower = nom.lower()
+            if lower.endswith((".doc", ".docx", ".odt")):
+                work_files.append(nom)
+
+    work_files.sort(key=str.lower)
+
+
+
     return {
         "emplacements_documents": emplacements_documents,
         "annexes_instructeur": annexes_instructeur,
@@ -116,4 +135,5 @@ def build_documents_for_dossier(dossier):
         "rapports_ca_envoyes": rapports_ca_envoyes,
         "delibCA": delibCA,
         "delibCA_envoye_ou_non": delibCA_envoye_ou_non,
+        "work_files": work_files,
     }

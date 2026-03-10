@@ -70,7 +70,7 @@ def lancer_en_arriere_plan2():
             with open("logs/synchronisation.log", "a", buffering=1) as f:
                 process = subprocess.Popen(
                     [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
-                    stdout=f, stderr=f,
+                    stdout=f, stderr=f, encoding="utf-8", errors="replace",
                 )
 
         except Exception:

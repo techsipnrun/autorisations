@@ -16,7 +16,6 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <!-- <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}"> -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -28,7 +27,6 @@
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- <script src="https://unpkg.com/@alcalin/leaflet-tilelayer-wmts/dist/Leaflet.TileLayer.WMTS.js"></script> -->
 
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
@@ -42,6 +40,9 @@
     <!-- Envoi de l'acte final -->
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
+    <!-- JS commun à instruction_dossier et preinstruction_dossier -->
+    <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
+
 </head>
 
 
@@ -52,12 +53,13 @@
     <div class="page_instruction_dossier">
         {% breadcrumb breadcrumb_items %}
 
+        <!-- Actualiser -->
         <div class="refresh_et_timeline">
             {% if dossier.present_sur_ds and instructeur_connecte %}
                 <div class="refresh-doss">
                     <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
                         {% csrf_token %}
-                        <button type="submit" class="refresh-button">
+                        <button type="submit" class="refresh-button" data-icon="{% static 'instruction/img/actualiser.png' %}">
                             <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
                             Actualiser
                         </button>
@@ -69,7 +71,6 @@
             {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
                 <div class="mini_timeline">
                 
-
                     {% if etape_actuelle.etape == "À affecter" or etape_actuelle.etape == "En pré-instruction" %}
                         <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
 
@@ -87,11 +88,10 @@
                     {% endif %}
                 </div>
             {% endif %}
-
         </div>
         
-        <div class="page-container">
 
+        <div class="page-container">
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
                 
@@ -122,19 +122,18 @@
                     <p class="info-message">
                         ⚠️ Ce dossier n'est plus sur Démarche Numérique.
                         
-
                         {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
                             <br>
                             Le dossier a été supprimé de Démarche Numérique par le demandeur alors que son instruction n'était pas terminée.
                         {% endif %}
-
 
                         {% if etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "À publier au RAA" %}
                             Si un acte est à envoyer au pétitionnaire, vous devez lui transmettre en dehors de l'application.
                         {% endif %}    
                     </p>
                 {% endif %}
-
+                
+                <!-- Etape du dossier -->
                 <div class="etat-badge-container">
                     <div class="etat-badge-menu-dropdown">
 
@@ -189,7 +188,6 @@
                                             <!-- SPPN : Passe direct de 'Instruction' à 'Acte prêt à la signature' -->
                                             {% elif label == "Acte prêt à la signature" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretALaSignature()">Acte prêt à la signature</button>
-
 
                                             {% elif label == "Acte prêt à être envoyé" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
@@ -287,11 +285,14 @@
 
 
                 
+
                 <!-- #################################################################
                 ########################## ZONES MASQUÉES ############################
                 ###################################################################-->
 
+                <!------------------------------------------------------>
                 <!-- Zone masquée pour envoyer pour relecture qualité -->
+                <!------------------------------------------------------>
                 <div id="formulaire-relecture-qualite" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'valider_et_envoyer_pour_relecture_qualite_url' %}">
                         {% csrf_token %}
@@ -318,7 +319,9 @@
                 </div>
 
 
+                <!-------------------------------------------------------->
                 <!-- Zone masquée pour transmettre à l'intermédiaire CA -->
+                <!-------------------------------------------------------->
                 <div id="formulaire-transmission-ca" class="zone-complement zone-envoyer-pour-validation" style="display: none;">
                     <form method="post" action="{% url 'pret_a_la_signature_url' %}">
                         {% csrf_token %}
@@ -329,9 +332,7 @@
                             <select name="intermediaireCA" id="choix_intermediaire_ca" required>
                                 <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
                                 {% for ica in intermediaires_CA %}
-                                    <option value="{{ ica.id }}">
-                                        {{ ica }}
-                                    </option>
+                                    <option value="{{ ica.id }}"> {{ ica }} </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -345,7 +346,9 @@
                 </div>
 
 
+                <!-------------------------------------------------------------------------------->
                 <!-- Zone masquée pour choisir qui enverra l'acte à la direction pour signature -->
+                <!-------------------------------------------------------------------------------->
                 <div id="formulaire-transmission-dir" class="zone-complement zone-envoyer-pour-validation" style="display: none;">
                     <form method="post" action="{% url 'pret_a_la_signature_url' %}">
                         {% csrf_token %}
@@ -358,32 +361,24 @@
                                 <!-- SPPN -->
                                 {% if demarche.service == 'SPPN' %}
                                     {% for idir in intermediaires_dir_sppn %}
-                                        <option value="{{ idir.id }}">
-                                            {{ idir }}
-                                        </option>
+                                        <option value="{{ idir.id }}"> {{ idir }} </option>
                                     {% endfor %}
 
                                     {% for i in instructeurs_du_dossier %}
                                         {% if i not in intermediaires_dir_sppn %}
-                                            <option value="{{ i.id }}">
-                                                {{ i }}
-                                            </option>
+                                            <option value="{{ i.id }}"> {{ i }} </option>
                                         {% endif %}
                                     {% endfor %}
 
                                 <!-- SAADD -->
                                 {% else %}
                                     {% for idir in intermediaires_dir_saadd %}
-                                        <option value="{{ idir.id }}">
-                                            {{ idir }}
-                                        </option>
+                                        <option value="{{ idir.id }}"> {{ idir }} </option>
                                     {% endfor %}
 
                                     {% for i in instructeurs_du_dossier %}
                                         {% if i not in intermediaires_dir_saadd %}
-                                            <option value="{{ i.id }}">
-                                                {{ i }}
-                                            </option>
+                                            <option value="{{ i.id }}"> {{ i }} </option>
                                         {% endif %}
                                     {% endfor %}
 
@@ -400,8 +395,9 @@
                 </div>
 
 
-
+                <!--------------------------------------------------------------------------------------------------------->
                 <!-- Zone masquée pour SPPN (étapes réduites) : Choisir qui enverra l'acte à la direction pour signature -->
+                <!--------------------------------------------------------------------------------------------------------->
                 <div id="formulaire-acte-pret-a-la-signature" class="zone-complement zone-envoyer-pour-validation" style="display: none;" >
                     <form method="post" enctype="multipart/form-data" action="{% url 'acte_pret_a_la_signature_url' %}">
                         {% csrf_token %}
@@ -425,46 +421,57 @@
                                 <!-- SPPN -->
                                 {% if demarche.service == 'SPPN' %}
                                     {% for idir in intermediaires_dir_sppn %}
-                                        <option value="{{ idir.id }}">
-                                            {{ idir }}
-                                        </option>
+                                        <option value="{{ idir.id }}"> {{ idir }} </option>
                                     {% endfor %}
 
                                     {% for i in instructeurs_du_dossier %}
                                         {% if i not in intermediaires_dir_sppn %}
-                                            <option value="{{ i.id }}">
-                                                {{ i }}
-                                            </option>
+                                            <option value="{{ i.id }}"> {{ i }} </option>
                                         {% endif %}
                                     {% endfor %}
                                 {% endif %}
                             </select>
                         </div>
 
-                         
                         <div class="choix-intermediaire-ca" id="bloc-intermediaire-ca">
                             <label for="choix_intermediaire_ca-sppn">Choisir qui fera l’intermédiaire avec le CA :</label>
                             <select name="intermediaireCA" id="choix_intermediaire_ca-sppn">
                                 <option value="" disabled selected>-- Sélectionner un intermédiaire --</option>
                                 {% for ica in intermediaires_CA %}
-                                    <option value="{{ ica.id }}">
-                                        {{ ica }}
-                                    </option>
+                                    <option value="{{ ica.id }}"> {{ ica }} </option>
                                 {% endfor %}
                             </select>
                         </div>
 
-                        
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
-                                <label for="pj_validation">Joindre le projet d’acte :</label>
-                                <input type="file" name="piece_jointe" id="pj_validation_acte_pret" accept=".odt,.doc,.docx" required>
+                                <input type="hidden" name="piece_jointe_work" id="piece_jointe_work_sppn" required>
+
+                                <div class="selection-fichier-work">
+                                    <label>Choisir le projet d’acte dans le dossier Work :</label>
+
+                                    {% if work_files %}
+                                        <ul class="liste-work-files">
+                                            {% for nom in work_files %}
+                                                <li>
+                                                    <button type="button"
+                                                            class="btn-fichier-work btn-fichier-work-sppn"
+                                                            onclick="selectionnerFichierWorkGeneric(this, '{{ nom|escapejs }}', 'piece_jointe_work_sppn', 'nom-fichier-selectionne-sppn', '.btn-fichier-work-sppn')">
+                                                        {{ nom }}
+                                                    </button>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+
+                                        <p class="fichier-selectionne">Fichier sélectionné : <strong id="nom-fichier-selectionne-sppn">Aucun</strong></p>
+                                    {% else %}
+                                        <p class="work-vide">Aucun fichier .doc, .docx ou .odt trouvé dans le dossier Work.</p>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div id="zone-projet-rapport-sppn"></div>
-                            <p class="hint-text">📁 Merci de sélectionner des fichiers situés dans le dossier <strong>Work</strong>.</p>
                         </div>
-
 
                         <div class="envoi-pour-validation-avant-signature">
                             <button type="button" class="btn-envoyer-complement" onclick="confirmerActePretALaSignature()">
@@ -520,17 +527,17 @@
                             }
 
                             // --- (B) PJ Rapport CA : ajout/suppression ---
-                            const existing = document.getElementById("pj_rapport_ca");
+                            const existing = document.getElementById("piece_jointe_rapport_ca_sppn");
 
                             if (isDelibCA) {
                                 if (!existing) {
-                                    const div = document.createElement("div");
-                                    div.classList.add("projet_rapport_ca_pj");
-                                    div.innerHTML = `
-                                        <label for="pj_rapport_ca">Joindre le projet de Rapport du CA :</label>
-                                        <input type="file" name="piece_jointe_rapport_ca" id="pj_rapport_ca" accept=".odt,.doc,.docx" required>
-                                    `;
-                                    zoneRapport.appendChild(div);
+                                    const wrapper = document.createElement("div");
+                                    wrapper.innerHTML = genererBlocRapportCA(
+                                        "piece_jointe_rapport_ca_sppn",
+                                        "nom-fichier-rapport-ca-sppn",
+                                        "btn-fichier-rapport-ca-sppn"
+                                    );
+                                    zoneRapport.appendChild(wrapper.firstElementChild);
                                 }
                             } else {
                                 if (existing) existing.parentElement.remove();
@@ -539,15 +546,15 @@
 
                         // init
                         updateUI();
-
                         // change
                         selectNature.addEventListener("change", updateUI);
                     });
                 </script>
 
 
-
+                <!--------------------------------------------->
                 <!-- Zone masquée pour transmettre doc signé -->
+                <!--------------------------------------------->
                 <div id="formulaire-acte-pret" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'acte_pret_a_etre_envoye_url' %}">
                         {% csrf_token %}
@@ -571,9 +578,7 @@
                                 <option value="" disabled selected>Choisir un.e signataire</option>
                                 <!-- Liste signataires -->
                                 {% for s in signataires %}
-                                    <option value="{{ s.id }}">
-                                        {{ s.id_agent_autorisations.nom|upper }} {{ s.id_agent_autorisations.prenom }}
-                                    </option>
+                                    <option value="{{ s.id }}"> {{ s.id_agent_autorisations.nom|upper }} {{ s.id_agent_autorisations.prenom }} </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -586,17 +591,13 @@
                                 <!-- Liste envoyeurs acte SPPN -->
                                 {% if demarche.service == 'SPPN' %}
                                     {% for i in envoyeurs_sppn_et_instructeurs %}
-                                        <option value="{{ i.id }}">
-                                            {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                        </option>
+                                        <option value="{{ i.id }}"> {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }} </option>
                                     {% endfor %}
 
                                 <!-- Liste envoyeurs acte SAADD -->
                                 {% else %}
                                     {% for i in envoyeurs_saadd_et_instructeurs %}
-                                        <option value="{{ i.id }}">
-                                            {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                        </option>
+                                        <option value="{{ i.id }}"> {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }} </option>
                                     {% endfor %}
 
                                 {% endif %}
@@ -635,7 +636,9 @@
                 </div>
 
 
+                <!---------------------------------------------------->
                 <!-- Zone masquée pour envoyer l'acte d'acceptation -->
+                <!---------------------------------------------------->
                 <div id="formulaire-acceptation" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_url' %}">
                         {% csrf_token %}
@@ -644,20 +647,11 @@
 
                         <div class="nature_du_doc">
                             <label for="nature_document">Nature du document :</label>
-                            <p class="valeur-fixe">
-                                {{ doc_a_envoyer.0.id_nature.nature }}
-                            </p>
+                            <p class="valeur-fixe"> {{ doc_a_envoyer.0.id_nature.nature }} </p>
                         </div>
 
                         <input type="hidden" name="nature_document" value="{{ doc_a_envoyer.0.id_nature.nature }}">
 
-                        <!-- <select name="nature_document" id="nature_document" required>
-                            <option value="Avis conforme" {% if doc_a_envoyer.0.id_nature.nature == "Avis conforme" %}selected{% endif %}>Avis conforme</option>
-                            <option value="Avis simple" {% if doc_a_envoyer.0.id_nature.nature == "Avis simple" %}selected{% endif %}>Avis simple</option>
-                            <option value="Déliberation CA" {% if doc_a_envoyer.0.id_nature.nature == "Déliberation CA" %}selected{% endif %}>Déliberation CA</option>
-                            <option value="Arrêté directeur" {% if doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}selected{% endif %}>Arrêté directeur</option>
-
-                        </select> -->
                         <div class="msg_pour_peti">
                             <label>Message pour le pétitionnaire :</label>
                             <div class="mail_entier">
@@ -667,166 +661,14 @@
 
 Sauf demande de votre part, il n’y aura pas de notification postale.
 Bonne réception.</textarea>
-     
                             </div>
                         </div>
+                        
+                        <!-- Publieur RAA -->
+                        {% include "instruction/refacto/publieur_raa_select.html" %}
 
-                            <div class="validant">
-                                <label>Personne chargée de publier l'acte au RAA :</label>
-                                <select name="choix-publieur-raa" id="choix-publieur-raa" required>
-                                    <option value="" disabled selected>Choisir</option>
-                                    <!-- Liste publieurs acte RAA SPPN -->
-                                    {% if demarche.service == 'SPPN' %}
-
-                                        {% for p in publieurs_RAA_sppn %}
-                                            <option value="{{ p.id }}">
-                                                {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
-                                            </option>
-                                        {% endfor %}
-
-                                        {% for i in publieurs_RAA_du_dossier %}
-                                            {% if i not in publieurs_RAA_sppn %}
-                                                <option value="{{ i.id }}">
-                                                    {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                </option>
-                                            {% endif %}
-                                        {% endfor %}
-
-                                        {% if delibCA %}
-                                            {% for i in intermediaires_CA %}
-                                                {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_sppn %}
-                                                    <option value="{{ i.id }}">
-                                                        {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    
-                                    <!-- Liste publieurs acte RAA SAADD -->
-                                    {% else %}
-
-                                        {% for p in publieurs_RAA_saadd %}
-                                        <option value="{{ p.id }}">
-                                            {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
-                                        </option>
-                                        {% endfor %}
-
-                                        {% for i in instructeurs_du_dossier %}
-                                            {% if i not in publieurs_RAA_saadd %}
-                                                <option value="{{ i.id }}">
-                                                    {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                </option>
-                                            {% endif %}
-                                        {% endfor %}
-
-                                        {% if delibCA %}
-                                            {% for i in intermediaires_CA %}
-                                                {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_saadd %}
-                                                    <option value="{{ i.id }}">
-                                                        {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-
-                                    {% endif %}
-                            </select>
-                        </div>
-
-                        <div class="copie_par_mail">
-                            <div class="copie_par_mail_label">
-                                <label class="toggle-label">Partager l’acte par mail :</label>
-                            </div>
-                            <div class="toggle-group">
-                                <label>
-                                    <input type="radio" name="partager_par_mail_choice" value="non" checked>
-                                    Non
-                                </label>
-                                <label>
-                                    <input type="radio" name="partager_par_mail_choice" value="oui">
-                                    Oui
-                                </label>
-                            </div>
-                            <input type="hidden" name="partager_par_mail" class="partager_par_mail_hidden" value="non">
-                        </div>
-
-                        <!-- Formulaire affiché uniquement si "Oui" -->
-                        <div class="zone-complement zone-partage-mails formulaire-partage-mails">
-                            <label for="emails_copie">Destinataires du mail :</label>
-
-                            <div class="search-wrapper">
-                                <input
-                                    type="text"
-                                    class="search-contacts"
-                                    placeholder="Rechercher (nom, email)…"
-                                    autocomplete="off"
-                                    aria-label="Rechercher un contact"
-                                />
-
-                                <button type="button" class="add-email-btn" title="Ajouter un nouveau contact">+</button>
-                            </div>
-
-                            <!-- Template caché pour un nouveau contact -->
-                            <template class="nouveau-contact-template">
-                                <div class="nouveau-contact-form">
-                                    <input type="hidden" name="email_contact[]">
-
-                                    <label>Email :</label>
-                                    <input type="text" name="email_affiche" class="input-mini" disabled>
-
-                                    <label>Nom :</label>
-                                    <input type="text" name="nom_contact[]" class="input-mini">
-
-                                    <label>Prénom :</label>
-                                    <input type="text" name="prenom_contact[]" class="input-mini">
-
-                                    <label>Type :</label>
-                                    <select name="type_contact[]" class="input-mini">
-                                        {% for t in types_contacts %}
-                                            <option value="{{ type.id }}">{{ t.type }}</option>
-                                        {% endfor %}
-                                    </select>
-
-                                    <label>Raison sociale :</label>
-                                    <input type="text" name="raison_sociale[]" class="input-mini">
-
-                                    <button type="button" class="btn-ajout-contact">Ajouter ce contact</button>
-                                    <button type="button" class="btn-annuler-ajout-contact">Annuler</button>
-                                </div>
-                            </template>
-
-                            <div class="nouveaux-contacts-container"></div>
-
-                            <select name="emails_copie[]" multiple size="4" class="emails-multiselect emails_copie">
-                                {% for e in emails_uniques %}
-                                <option class="ligne-contact" value="{{ e }}" data-nom="{{ e }}" data-email="{{ e|lower }}">
-                                    {% if e %}
-                                        {{ e }}
-                                    {% endif %}
-                                </option>
-                                {% empty %}
-                                    <option disabled>Aucun email disponible.</option>
-                                {% endfor %}
-                            </select>
-                            <div class="selected-chips" aria-live="polite"></div>
-
-                            <div class="msg_pour_mail_copie">
-                                <label>Corps du mail (l'acte signé sera en pièce jointe) :</label>
-                                <div class="mail_entier">
-
-                                    <div class="debut_fin_mail">Madame, monsieur,</div> <br>
-                                    <textarea name="motivation_copie_mail" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation du dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
-Bonne réception.</textarea>
-                                    <div class="debut_fin_mail">
-                                        Cordialement, <br><br>
-                                        Le Parc national de La Réunion <br>
-                                        258 rue de la République 97431 La Plaine-des-Palmistes <br>
-                                        Tél : +262 (0)2 62 90 11 35 <br>
-                                        www.reunion-parcnational.fr
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Partager par mail -->
+                        {% include "instruction/refacto/partage_par_mail.html" with mode_mail="acceptation" %}
 
                         <div class="zone-pj-complement">
                             <!-- Acte à envoyer -->
@@ -845,10 +687,9 @@ Bonne réception.</textarea>
                 </div>
 
 
-                
-
-
+                <!----------------------------------------------->
                 <!-- Zone masquée pour envoyer l'acte de refus -->
+                <!----------------------------------------------->
                 <div id="formulaire-envoyer-acte-refus" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_de_refus_url' %}">
                         {% csrf_token %}
@@ -857,9 +698,7 @@ Bonne réception.</textarea>
 
                         <div class="nature_du_doc">
                             <label for="nature_document">Nature du document :</label>
-                            <p class="valeur-fixe">
-                                {{ doc_a_envoyer.0.id_nature.nature }}
-                            </p>
+                            <p class="valeur-fixe"> {{ doc_a_envoyer.0.id_nature.nature }} </p>
                         </div>
 
                         <input type="hidden" name="nature_document" value="{{ doc_a_envoyer.0.id_nature.nature }}">
@@ -878,167 +717,11 @@ Bonne réception.</textarea>
                             </div>
                         </div>
                         
-                        {% if not delibCA %}
+                        <!-- Publieur RAA -->
+                        {% include "instruction/refacto/publieur_raa_select.html" %}
 
-                            <div class="validant">
-                                <label>Personne chargée de publier l'acte au RAA :</label>
-                                <select name="choix-publieur-raa" id="choix-publieur-raa" required>
-                                    <option value="" disabled selected>Choisir</option>
-                                    <!-- Liste publieurs acte RAA SPPN -->
-                                    {% if demarche.service == 'SPPN' %}
-
-                                        {% for p in publieurs_RAA_sppn %}
-                                            <option value="{{ p.id }}">
-                                                {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
-                                            </option>
-                                        {% endfor %}
-
-                                        {% for i in publieurs_RAA_du_dossier %}
-                                            {% if i not in publieurs_RAA_sppn %}
-                                                <option value="{{ i.id }}">
-                                                    {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                </option>
-                                            {% endif %}
-                                        {% endfor %}
-
-                                        {% if delibCA %}
-                                            {% for i in intermediaires_CA %}
-                                                {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_sppn %}
-                                                    <option value="{{ i.id }}">
-                                                        {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    
-                                    <!-- Liste publieurs acte RAA SAADD -->
-                                    {% else %}
-
-                                        {% for p in publieurs_RAA_saadd %}
-                                        <option value="{{ p.id }}">
-                                            {{ p.id_agent_autorisations.nom|upper }} {{ p.id_agent_autorisations.prenom }}
-                                        </option>
-                                        {% endfor %}
-
-                                        {% for i in instructeurs_du_dossier %}
-                                            {% if i not in publieurs_RAA_saadd %}
-                                                <option value="{{ i.id }}">
-                                                    {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                </option>
-                                            {% endif %}
-                                        {% endfor %}
-
-                                        {% if delibCA %}
-                                            {% for i in intermediaires_CA %}
-                                                {% if i not in instructeurs_du_dossier and i not in publieurs_RAA_saadd %}
-                                                    <option value="{{ i.id }}">
-                                                        {{ i.id_agent_autorisations.nom|upper }} {{ i.id_agent_autorisations.prenom }}
-                                                    </option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-
-                                    {% endif %}
-
-                                    
-                                </select>
-                            </div>
-                        {% endif %}
-
-                        <div class="copie_par_mail">
-                            <div class="copie_par_mail_label">
-                                <label class="toggle-label">Partager l’acte par mail :</label>
-                            </div>
-                            <div class="toggle-group">
-                                <label>
-                                    <input type="radio" name="partager_par_mail_choice" value="non" checked>
-                                    Non
-                                </label>
-                                <label>
-                                    <input type="radio" name="partager_par_mail_choice" value="oui">
-                                    Oui
-                                </label>
-                            </div>
-                            <input type="hidden" name="partager_par_mail" class="partager_par_mail_hidden" value="non">
-                        </div>
-
-                        <!-- Formulaire affiché uniquement si "Oui" -->
-                        <div class="zone-complement zone-partage-mails formulaire-partage-mails">
-                            <label for="emails_copie">Destinataires du mail :</label>
-
-                            <div class="search-wrapper">
-                                <input
-                                    type="text"
-                                    class="search-contacts"
-                                    placeholder="Rechercher (nom, email)…"
-                                    autocomplete="off"
-                                    aria-label="Rechercher un contact"
-                                />
-
-                                <button type="button" class="add-email-btn" title="Ajouter un nouveau contact">+</button>
-                            </div>
-
-                            <!-- Template caché pour un nouveau contact -->
-                            <template class="nouveau-contact-template">
-                                <div class="nouveau-contact-form">
-                                    <input type="hidden" name="email_contact[]">
-
-                                    <label>Email :</label>
-                                    <input type="text" name="email_affiche" class="input-mini" disabled>
-
-                                    <label>Nom :</label>
-                                    <input type="text" name="nom_contact[]" class="input-mini">
-
-                                    <label>Prénom :</label>
-                                    <input type="text" name="prenom_contact[]" class="input-mini">
-
-                                    <label>Type :</label>
-                                    <select name="type_contact[]" class="input-mini">
-                                        {% for t in types_contacts %}
-                                            <option value="{{ type.id }}">{{ t.type }}</option>
-                                        {% endfor %}
-                                    </select>
-
-                                    <label>Raison sociale :</label>
-                                    <input type="text" name="raison_sociale[]" class="input-mini">
-
-                                    <button type="button" class="btn-ajout-contact">Ajouter ce contact</button>
-                                    <button type="button" class="btn-annuler-ajout-contact">Annuler</button>
-                                </div>
-                            </template>
-
-                            <div class="nouveaux-contacts-container"></div>
-
-                            <select name="emails_copie[]" multiple size="4" class="emails-multiselect emails_copie">
-                                {% for e in emails_uniques %}
-                                <option class="ligne-contact" value="{{ e }}" data-nom="{{ e }}" data-email="{{ e|lower }}">
-                                    {% if e %}
-                                        {{ e }}
-                                    {% endif %}
-                                </option>
-                                {% empty %}
-                                    <option disabled>Aucun email disponible.</option>
-                                {% endfor %}
-                            </select>
-                            <div class="selected-chips" aria-live="polite"></div>
-
-                            <div class="msg_pour_mail_copie">
-                                <label>Corps du mail (l'acte signé sera en pièce jointe) :</label>
-                                <div class="mail_entier">
-
-                                    <div class="debut_fin_mail">Madame, monsieur,</div> <br>
-                                    <textarea name="motivation_copie_mail" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie sa décision relative au dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
-Bonne réception.</textarea>
-                                    <div class="debut_fin_mail">
-                                        Cordialement, <br><br>
-                                        Le Parc national de La Réunion <br>
-                                        258 rue de la République 97431 La Plaine-des-Palmistes <br>
-                                        Tél : +262 (0)2 62 90 11 35 <br>
-                                        www.reunion-parcnational.fr
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Partager par mail -->
+                        {% include "instruction/refacto/partage_par_mail.html" with mode_mail="refus" %}
 
                         <div class="zone-pj-complement">
                             <!-- Acte à envoyer -->
@@ -1057,14 +740,9 @@ Bonne réception.</textarea>
                 </div>
 
 
-
-
-
-
-
-
-
+                <!------------------------------------------------->
                 <!-- Zone masquée pour la demande de compléments -->
+                <!------------------------------------------------->
                 <div id="formulaire-complement" class="zone-complement zone-envoyer-pour-validation">
                     <form id="form-complement" method="post" enctype="multipart/form-data" action="{% url 'demander_des_complements_url' %}">
                         {% csrf_token %}
@@ -1084,7 +762,9 @@ Le délai d’instruction ne commencera qu’à la date de réception par le Par
                 </div>
 
 
+                <!----------------------------------------------------------------------->
                 <!-- Zone masquée : justification classement sans suite, refus dossier -->
+                <!----------------------------------------------------------------------->
                 <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
@@ -1101,7 +781,9 @@ Le délai d’instruction ne commencera qu’à la date de réception par le Par
                 </div>
 
 
+                <!------------------------------------------->
                 <!-- Zone masquée : justification du refus -->
+                <!------------------------------------------->
                 <div id="formulaire-refus" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
                         {% csrf_token %}
@@ -1119,7 +801,9 @@ En conséquence, la demande est refusée.</textarea>
                 </div>
 
 
+                <!--------------------------------------------------------------->
                 <!-- Zone masquée pour envoyer pour validation avant signature -->
+                <!--------------------------------------------------------------->
                 <div id="formulaire-validation-signature" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'faire_valider_le_projet_d_acte_url' %}">
                         {% csrf_token %}
@@ -1144,16 +828,12 @@ En conséquence, la demande est refusée.</textarea>
                                 <!-- Validants SPPN -->
                                 {% if demarche.service == 'SPPN' %}
                                     {% for validant in validants_SPPN %}
-                                        <option value="{{ validant.id }}">
-                                            {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
-                                        </option>
+                                        <option value="{{ validant.id }}"> {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }} </option>
                                     {% endfor %}
                                 <!-- Validants SAADD -->
                                 {% else %}
                                     {% for validant in validants_SAADD %}
-                                        <option value="{{ validant.id }}">
-                                            {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }}
-                                        </option>
+                                        <option value="{{ validant.id }}"> {{ validant.id_agent_autorisations.nom|upper }} {{ validant.id_agent_autorisations.prenom }} </option>
                                     {% endfor %}
                                 {% endif %}
             
@@ -1162,12 +842,33 @@ En conséquence, la demande est refusée.</textarea>
 
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
-                                <label for="pj_validation">Joindre le projet d’acte :</label>
-                                <input type="file" name="piece_jointe" id="pj_validation" accept=".odt,.doc,.docx" required>
+
+                                <input type="hidden" name="piece_jointe_work" id="piece_jointe_work" required>
+
+                                <div class="selection-fichier-work">
+                                    <label>Choisir le projet d’acte dans le dossier Work :</label>
+
+                                    {% if work_files %}
+                                        <ul class="liste-work-files">
+                                            {% for nom in work_files %}
+                                                <li>
+                                                    <button type="button"
+                                                            class="btn-fichier-work"
+                                                            onclick="selectionnerFichierWorkGeneric(this, '{{ nom|escapejs }}', 'piece_jointe_work', 'nom-fichier-selectionne', '.btn-fichier-work')">
+                                                        {{ nom }}
+                                                    </button>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+
+                                        <p class="fichier-selectionne"> Fichier sélectionné : <strong id="nom-fichier-selectionne">Aucun</strong> </p>
+                                    {% else %}
+                                        <p class="work-vide">Aucun fichier .doc, .docx ou .odt trouvé dans le dossier Work.</p>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div id="zone-projet-rapport"></div>
-                            <p class="hint-text">📁 Merci de sélectionner des fichiers situés dans le dossier <strong>Work</strong>.</p>
 
                             <div class="envoi-pour-validation-avant-signature">
                                 <button type="button" class="btn-envoyer-complement" onclick="confirmerValidationAvantSignature()">Confirmer l’envoi pour validation</button>
@@ -1175,40 +876,24 @@ En conséquence, la demande est refusée.</textarea>
                         </div>
                     </form>
                 </div>
+
                 <!-- Affichage conditionnel si on choisit Délibération CA  -->
                 <script>
                     document.addEventListener("DOMContentLoaded", function() {
-                        const selectNature = document.getElementById("nature_validation_avant_signa");
-                        const zoneRapport = document.getElementById("zone-projet-rapport");
-
-                        
-
-
-                        selectNature.addEventListener("change", function() {
-                            // Si Délibération CA → ajouter un champ supplémentaire
-
-                            if (this.value === "Déliberation CA") {
-                                
-                                if (!document.getElementById("pj_rapport_ca")) {
-                                    const div = document.createElement("div");
-                                    div.classList.add("projet_rapport_ca_pj");
-                                    div.innerHTML = `
-                                        <label for="pj_rapport_ca">Joindre le projet de Rapport du CA :</label>
-                                        <input type="file" name="piece_jointe_rapport_ca" id="pj_rapport_ca" accept=".odt,.doc,.docx" required>
-                                    `;
-                                    zoneRapport.appendChild(div);
-                                }
-                            } else {
-                                // Supprimer le champ si on change de nature
-                                const existing = document.getElementById("pj_rapport_ca");
-                                if (existing) existing.parentElement.remove();
-                            }
+                        gererBlocRapportCA({
+                            selectId: "nature_validation_avant_signa",
+                            zoneId: "zone-projet-rapport",
+                            hiddenId: "piece_jointe_rapport_ca_signa",
+                            labelId: "nom-fichier-rapport-ca-signa",
+                            buttonClass: "btn-fichier-rapport-ca-signa"
                         });
                     });
                 </script>
 
 
+                <!-------------------------------------------------------------------->
                 <!-- Zone masquée pour envoyer pour validation avant demande d'avis -->
+                <!-------------------------------------------------------------------->
                 <div id="formulaire-validation-demande-avis" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'faire_valider_une_demande_d_avis_url' %}">
                         {% csrf_token %}
@@ -1257,13 +942,53 @@ En conséquence, la demande est refusée.</textarea>
                             </select>
                         </div>
 
+
                         <div class="zone-pj-complement pj-validation-avant-signature">
                             <div class="projet_acte_pj">
-                                <label for="pj_validation">Joindre le projet d’acte :</label>
-                                <input type="file" name="piece_jointe" id="pj_validation_avant_dmd_avis" accept=".odt,.doc,.docx" required>
+
+                                <input type="hidden" name="piece_jointe_work" id="piece_jointe_work_avis" required>
+
+                                <div class="selection-fichier-work">
+                                    <label>Choisir le projet d’acte dans le dossier Work :</label>
+
+                                    {% if work_files %}
+                                        <ul class="liste-work-files">
+                                            {% for nom in work_files %}
+                                                <li>
+                                                    <button type="button"
+                                                            class="btn-fichier-work btn-fichier-work-avis"
+                                                            onclick="selectionnerFichierWorkGeneric(this, '{{ nom|escapejs }}', 'piece_jointe_work_avis', 'nom-fichier-selectionne-avis', '.btn-fichier-work-avis')">
+                                                        {{ nom }}
+                                                    </button>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+
+                                        <p class="fichier-selectionne">
+                                            Fichier sélectionné : <strong id="nom-fichier-selectionne-avis">Aucun</strong>
+                                        </p>
+
+                                    {% else %}
+                                        <p class="work-vide">Aucun fichier .doc, .docx ou .odt trouvé dans le dossier Work.</p>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <p class="hint-text">📁 Merci de sélectionner un fichier situé dans le dossier <strong>Work</strong>.</p>
+
+                            <div id="zone-projet-rapport-avant-dmd-avis"></div>
                         </div>
+
+                        <!-- Affichage conditionnel si on choisit Délibération CA  -->
+                        <script>
+                            document.addEventListener("DOMContentLoaded", function() {
+                                gererBlocRapportCA({
+                                    selectId: "nature_acte_avant_dmd_avis",
+                                    zoneId: "zone-projet-rapport-avant-dmd-avis",
+                                    hiddenId: "piece_jointe_rapport_ca_avis",
+                                    labelId: "nom-fichier-rapport-ca-avis",
+                                    buttonClass: "btn-fichier-rapport-ca-avis"
+                                });
+                            });
+                        </script>
 
                         <!-- Sélection multiple des avis du dossier -->
                         <div class="avis-dossier">
@@ -1296,6 +1021,7 @@ En conséquence, la demande est refusée.</textarea>
 
 
 
+
                 <!-- ###############################################################
                 ########################## BLOCS DOCUMENTS #########################
                 #################################################################-->
@@ -1309,40 +1035,7 @@ En conséquence, la demande est refusée.</textarea>
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_a_valider %}
-                                        <!-- <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.id_nature.nature }} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                            </a>
-                                        </li> -->
-
-                                        <li class="doc-item" title="Copier l'emplacement du document">
-                                            <div class="doc-copy-row"
-                                                data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
-                                                onclick="copyPathDocument(this)">
-                                                
-
-                                                <span class="doc-titre-no-download">
-                                                    {{ doc.id_nature.nature }}
-
-                                                    {% if doc.numero %}
-                                                        <span class="badge-numero-acte">
-                                                            {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                        </span>
-                                                    {% endif %}
-
-                                                    : {{ doc.titre }}
-                                                </span>
-
-
-
-                                                <img class="doc-copy-icon"
-                                                    src="{% static 'instruction/img/copy.png' %}"
-                                                    alt="Copier">
-
-                                                <span class="copie-feedback">Chemin copié !</span>
-                                            </div>
-                                        </li>
-
+                                        {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
                                     {% endfor %}
                                 </ul>
                             </form>
@@ -1359,39 +1052,7 @@ En conséquence, la demande est refusée.</textarea>
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_valide_avant_demande_avis %}
-
-                                        <li class="doc-item" title="Copier l'emplacement du document">
-                                            <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{ doc.titre }} {% if doc.numero %} {{ doc.numero }} {% endif %}
-                                            </a> -->
-                                            <div class="doc-copy-row"
-                                                data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
-                                                onclick="copyPathDocument(this)">
-                                                
-
-                                                <span class="doc-titre-no-download">
-                                                    {{ doc.id_nature.nature }}
-
-                                                    {% if doc.numero %}
-                                                        <span class="badge-numero-acte">
-                                                            {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                        </span>
-                                                    {% endif %}
-
-                                                    : {{ doc.titre }}
-                                                </span>
-
-
-
-                                                <img class="doc-copy-icon"
-                                                    src="{% static 'instruction/img/copy.png' %}"
-                                                    alt="Copier">
-
-                                                <span class="copie-feedback">Chemin copié !</span>
-                                            </div>
-                                        </li>
-
-                                        
+                                        {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
                                     {% endfor %}
                                 </ul>
                             </form>
@@ -1404,41 +1065,12 @@ En conséquence, la demande est refusée.</textarea>
                     {% if doc_a_relire %}
                         <div class="validation-documents">
                             <h2>Documents à relire</h2>
-
                             <form method="post" action="#">
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_a_relire %}
-                                        <!-- <li class="doc-item">
-                                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                            </a>
-                                        </li> -->
-                                        <li class="doc-item" title="Copier l'emplacement du document">
-                                            <div class="doc-copy-row"
-                                                data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
-                                                onclick="copyPathDocument(this)">
-
-                                                <span class="doc-titre-no-download">
-                                                    {{ doc.id_nature.nature }}
-
-                                                    {% if doc.numero %}
-                                                        <span class="badge-numero-acte">
-                                                            {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                        </span>
-                                                    {% endif %}
-
-                                                    : {{ doc.titre }}
-                                                </span>
-
-                                                <img class="doc-copy-icon"
-                                                    src="{% static 'instruction/img/copy.png' %}"
-                                                    alt="Copier">
-
-                                                <span class="copie-feedback">Chemin copié !</span>
-
-                                            </div>
-                                        </li>
+                                        {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
+                                        
                                         <!-- Délib CA : L'insertion du numéro se fait plus tard -->
                                         {% if doc.numero and not delibCA %}
                                             <span class="rappel-numero-acte">
@@ -1460,29 +1092,7 @@ En conséquence, la demande est refusée.</textarea>
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
                                 {% for doc in doc_a_signer %}
-                                    <li class="doc-item" title="Télécharger le document">
-                                        <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                        </a> -->
-                                        <div class="doc-download-row"
-                                            data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                            title="Télécharger le document">
-                                            
-                                            <span class="doc-titre-no-download">
-                                                {{ doc.id_nature.nature }}
-
-                                                {% if doc.numero %}
-                                                    <span class="badge-numero-acte">
-                                                        {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                    </span>
-                                                {% endif %}
-
-                                                : {{ doc.titre }}
-                                            </span>
-
-                                            <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                        </div>
-                                    </li>
+                                    {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
 
                                     <span class="rappel-numero-acte">
                                         {% if delibCA %}
@@ -1505,35 +1115,11 @@ En conséquence, la demande est refusée.</textarea>
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
                                 {% for doc in doc_a_envoyer %}
-
-                                    <li class="doc-item" title="Télécharger le document">
-                                        <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                            {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                        </a> -->
-                                        <div class="doc-download-row"
-                                            data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                            title="Télécharger le document">
-                                            
-                                            <span class="doc-titre-no-download">
-                                                {{ doc.id_nature.nature }}
-
-                                                {% if doc.numero %}
-                                                    <span class="badge-numero-acte">
-                                                        {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                    </span>
-                                                {% endif %}
-
-                                                : {{ doc.titre }}
-                                            </span>
-
-                                            <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                        </div>
-                                    </li>
+                                    {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
 
                                     <span class="rappel-numero-acte">
                                         Si vous constatez une erreur sur le document à envoyer, contactez le support.
                                     </span>
-
                                 {% endfor %}
                             </ul>
                         </form>
@@ -1556,31 +1142,7 @@ En conséquence, la demande est refusée.</textarea>
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_envoye %}
                                         {% if not doc.publie_au_raa %}
-
-                                            <li class="doc-item" title="Télécharger le document">
-                                                <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                    {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                                </a> -->
-                                                <div class="doc-download-row"
-                                                    data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                                    title="Télécharger le document">
-                                                    
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }}
-
-                                                        {% if doc.numero %}
-                                                            <span class="badge-numero-acte">
-                                                                {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                            </span>
-                                                        {% endif %}
-
-                                                        : {{ doc.titre }}
-                                                    </span>
-
-                                                    <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                                </div>
-                                            </li>
-
+                                            {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
                                         {% endif %}
                                     {% endfor %}
                                 </ul>
@@ -1592,44 +1154,17 @@ En conséquence, la demande est refusée.</textarea>
                         {% if acte_envoye_et_pas_publie %}
                             <div class="validation-documents">            
                                 <h2>Documents envoyés</h2>
-
                                 <form method="post" action="#">
                                     {% csrf_token %}
                                     <ul class="doc-a-valider-liste">
                                         {% for doc in acte_envoye_et_pas_publie %}
-  
-                                            <li class="doc-item" title="Télécharger le document">
-                                                <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                    {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                                </a> -->
-                                                <div class="doc-download-row"
-                                                    data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                                    title="Télécharger le document">
-                                                    
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }}
-
-                                                        {% if doc.numero %}
-                                                            <span class="badge-numero-acte">
-                                                                {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                            </span>
-                                                        {% endif %}
-
-                                                        : {{ doc.titre }}
-                                                    </span>
-
-                                                    <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                                </div>
-                                            </li>
-
+                                            {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
                                         {% endfor %}
                                     </ul>
                                 </form>
                             </div>
                         {% endif %}
                     {% endif %}
-
-
                 {% endif %}
 
                 <!-- Documents envoyés et publiés -->
@@ -1637,36 +1172,11 @@ En conséquence, la demande est refusée.</textarea>
                     {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé"%}
                         <div class="validation-documents">
                             <h2>Document(s) publié(s) au RAA</h2>
-                       
                             <form method="post" action="#">
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_envoye_et_publie %}
-
-
-                                        <li class="doc-item" title="Télécharger le document">
-                                                <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                    {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                                </a> -->
-                                                <div class="doc-download-row"
-                                                    data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                                    title="Télécharger le document">
-                                                    
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }}
-
-                                                        {% if doc.numero %}
-                                                            <span class="badge-numero-acte">
-                                                                {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
-                                                            </span>
-                                                        {% endif %}
-
-                                                        : {{ doc.titre }}
-                                                    </span>
-
-                                                    <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                                </div>
-                                            </li>
+                                        {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
                                     {% endfor %}
                                 </ul>
                             </form>
@@ -1676,7 +1186,7 @@ En conséquence, la demande est refusée.</textarea>
 
                 <!-- Projet de rapport au CA -->
                 {% if delibCA and projets_rapport_ca %}
-                    {% if etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" %}
+                    {% if etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "En attente réponse d'avis" or etape_actuelle.etape == "Avis à envoyer" %}
                         <div class="validation-documents">
                             <h2>Projet de rapport au CA</h2>
                             <form method="post" action="#">
@@ -1684,45 +1194,24 @@ En conséquence, la demande est refusée.</textarea>
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in projets_rapport_ca %}
 
-                                        {% if etape_actuelle.etape != "En attente de signature" %}
-                                            <li class="doc-item" title="Copier l'emplacement du document">
-                                                <div class="doc-copy-row"
-                                                    data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
-                                                    onclick="copyPathDocument(this)">
+                                        {% if etape_actuelle.etape == "En attente réponse d'avis" or etape_actuelle.etape == "Avis à envoyer" %}
+                                            {% if doc.id_statut and doc.id_statut.statut != "Envoyé" %}
+                                                {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
+                                            {% endif %}
 
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }} : {{ doc.titre }}
-                                                    </span>
+                                        {% elif etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" %}
+                                            {% if doc.id_statut and doc.id_statut.statut == "À valider" %}
+                                                {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
+                                            {% endif %}
 
-                                                    <img class="doc-copy-icon"
-                                                        src="{% static 'instruction/img/copy.png' %}"
-                                                        alt="Copier">
+                                        {% elif etape_actuelle.etape == "En attente de signature" %}
+                                            {% if doc.id_statut and doc.id_statut.statut == "À signer" %}
+                                                {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=False %}
 
-                                                    <span class="copie-feedback">Chemin copié !</span>
-                                                </div>
-                                            </li>
-
-                                        {% else %}
-                                            <li class="doc-item" title="Télécharger le document">
-                                                <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                    {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                                </a> -->
-                                                <div class="doc-download-row"
-                                                    data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                                    title="Télécharger le document">
-                                                    
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }} : {{ doc.titre }}
-                                                    </span>
-
-                                                    <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                                </div>
-                                            </li>
-
-                                            <span class="rappel-numero-acte">
-                                                Attention : seules les modifications effectuées sur le document présent dans le dossier /Work seront prises en compte.
-                                            </span>
-
+                                                <span class="rappel-numero-acte">
+                                                    Attention : seules les modifications effectuées sur le document présent dans le dossier /Work seront prises en compte.
+                                                </span>
+                                            {% endif %}
                                         {% endif %}
 
                                     {% endfor %}
@@ -1743,22 +1232,7 @@ En conséquence, la demande est refusée.</textarea>
                                     {% for doc in rapports_ca %}
                                         {% if doc.id_statut and doc.id_statut.statut != "Envoyé" %}
 
-                                            <li class="doc-item" title="Télécharger le document">
-                                                <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                    {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                                </a> -->
-                                                <div class="doc-download-row"
-                                                    data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                                    title="Télécharger le document">
-                                                    
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }} : {{ doc.titre }}
-                                                    </span>
-
-                                                    <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                                </div>
-                                            </li>
-
+                                            {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=False %}
 
                                         {% endif %}
                                     {% endfor %}
@@ -1767,9 +1241,8 @@ En conséquence, la demande est refusée.</textarea>
                         </div>
                     {% endif %}
                 {% endif %}
-
+                
                 {% if delibCA_envoye_ou_non and rapports_ca_envoyes %}
-
                     {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé" %}
                         <div class="validation-documents">
                             <h2>Rapport CA</h2>
@@ -1777,23 +1250,7 @@ En conséquence, la demande est refusée.</textarea>
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in rapports_ca_envoyes %}
-
-                                            <li class="doc-item" title="Télécharger le document">
-                                                <!-- <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" class="doc-titre">
-                                                    {{doc.id_nature.nature}} {% if doc.numero %} {{ doc.numero }} {% endif %} : {{ doc.titre }}
-                                                </a> -->
-                                                <div class="doc-download-row"
-                                                    data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-                                                    title="Télécharger le document">
-                                                    
-                                                    <span class="doc-titre-no-download">
-                                                        {{ doc.id_nature.nature }} : {{ doc.titre }}
-                                                    </span>
-
-                                                    <img class="doc-copy-icon" src="{% static 'instruction/img/download.png' %}" alt="Télécharger">
-                                                </div>
-                                            </li>
-
+                                        {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=False %}
                                     {% endfor %}
                                 </ul>
                             </form>
@@ -1801,6 +1258,7 @@ En conséquence, la demande est refusée.</textarea>
                     {% endif %}
                 {% endif %}
                 
+
 
 
                 <!-- #############################################################
@@ -1910,7 +1368,9 @@ En conséquence, la demande est refusée.</textarea>
                 -->
                 <div class="champs">
 
+                    <!--------------------------->
                     <!-- Identité bénéficiaire -->
+                    <!--------------------------->
                     {% if beneficiaire %}
                         <div class="identite_demandeur">
                             <h2> Identité du bénéficaire </h2>
@@ -1938,8 +1398,11 @@ En conséquence, la demande est refusée.</textarea>
                             {% endif %}
                         </div>
                     {% endif %}
-                    
+
+
+                    <!-------------------------------------->
                     <!-- Identité demandeur intermediaire -->
+                    <!-------------------------------------->
                     {% if demandeur_intermediaire %}
                         <div class="identite_demandeur">
                             <h2> Identité du demandeur intermédiaire</h2>
@@ -1953,9 +1416,9 @@ En conséquence, la demande est refusée.</textarea>
                                 <p><strong>Email</strong> : {{ demandeur_intermediaire.email }}</p>
                             {% endif %}
                             {% if demandeur_intermediaire.siret %}
-                                <!-- <p><strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}</p> -->
                                 <div class="siret_insee">
                                     <strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}
+                                    <!-- Lien INSEE -->
                                     <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{demandeur_intermediaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
                                         <img src="{% static 'instruction/img/lien-externe.png' %}" alt="">
                                     </a>
@@ -1968,11 +1431,13 @@ En conséquence, la demande est refusée.</textarea>
                     {% endif %}
 
 
+                    <!-------------------->
+                    <!-- Nom du dossier -->
+                    <!-------------------->
                     <div class="nom_du_dossier" id="nomDossierBloc"
                         data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
 
                         <h2>Nom du dossier</h2>
-
                         <div class="nom_dossier_ligne">
                             <p class="nom_dossier_texte" id="nomDossierTexte">
                             {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
@@ -1982,10 +1447,9 @@ En conséquence, la demande est refusée.</textarea>
                             <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
                                 <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
                             </button>
-
                         </div>
 
-                        <!-- Input d’édition (affiché seulement en mode édition) -->
+                        <!-- Input d’édition -->
                         <div class="nom_dossier_edit_zone">
                             <input
                                 type="text"
@@ -1996,7 +1460,7 @@ En conséquence, la demande est refusée.</textarea>
                                 autocomplete="off"
                             />
 
-                            <!-- Bouton valider (visible seulement en mode édition) -->
+                            <!-- Bouton valider -->
                             <button type="button" class="btn-icon btn-validate" id="btnValidateNom" aria-label="Valider" title="Valider le changement de nom">
                                 <img src="{% static 'instruction/img/square-check.png' %}" alt="">
                             </button>
@@ -2005,6 +1469,10 @@ En conséquence, la demande est refusée.</textarea>
                         </div>
                     </div>
 
+
+                    <!---------------------------------->
+                    <!--   LES CHAMPS DU FORMULAIRE   -->
+                    <!---------------------------------->
                     {% for champ in champs %}
                         {% if champ.type == 'header' %}
                             {% if champ.titre != 'MODIFICATION DU PROJET' and champ.titre != 'RENOUVELLEMENT DU PROJET' %}
@@ -2022,6 +1490,7 @@ En conséquence, la demande est refusée.</textarea>
 
                         <!-- Champs classiques -->
                         {% elif champ.type == 'champ' %}
+
                             <!-- Champs J'atteste que ... -->
                             {% if champ.nom|contains:"atteste que" and champ.valeur == 'true' %}
                                 <p><i>{{ champ.nom }}</i></p>
@@ -2030,8 +1499,6 @@ En conséquence, la demande est refusée.</textarea>
                             {% elif champ.nom|contains:"Numéro du dossier précédent" and champ.valeur and champ.valeur|is_int %}
                                 <p>
                                     <strong>{{ champ.nom }}</strong> :
-
-
                                     {% if champ.valeur|default_if_none:"" and champ.valeur != "Non renseigné" %}
                                         <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
                                             Voir le dossier précédent
@@ -2039,9 +1506,9 @@ En conséquence, la demande est refusée.</textarea>
                                     {% else %}
                                         Non renseigné
                                     {% endif %}
-
                                 </p>
-                                
+                            
+                            <!-- Champ True/False : Oui/Non -->
                             {% else %}
                                 {% if champ.valeur == 'true' %}
                                     <p><strong>{{ champ.nom }}</strong> : Oui</p>
@@ -2052,9 +1519,6 @@ En conséquence, la demande est refusée.</textarea>
                                 {% endif %}
                             {% endif %}
 
-                           
-
-
                         
                         <!-- Champs bloc répété -->
                         {% elif champ.type == 'repetition' %}
@@ -2064,8 +1528,6 @@ En conséquence, la demande est refusée.</textarea>
                                     {% for bloc in champ.valeur %}
                                         <div class="un_bloc">
                                             {% for ligne in bloc %}
-                                                <!-- <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p> -->
-
                                                 {% if ligne.valeur == 'true' %}
                                                     <p><strong>{{ ligne.nom }}</strong> : Oui</p>
                                                 {% elif ligne.valeur == 'false' %}
@@ -2073,8 +1535,6 @@ En conséquence, la demande est refusée.</textarea>
                                                 {% else %}
                                                     <p><strong>{{ ligne.nom }}</strong> : {{ ligne.valeur }}</p>
                                                 {% endif %}
-
-
                                             {% endfor %}
                                         </div>
                                     {% endfor %}
@@ -2083,6 +1543,7 @@ En conséquence, la demande est refusée.</textarea>
                             {% endif %}
                         </div>
                         
+
                         <!-- Champs carto -->
                         {% elif champ.type == 'carte' %}
                             <div class="titre-carte-avec-bouton">
@@ -2094,9 +1555,9 @@ En conséquence, la demande est refusée.</textarea>
                             
                             <div class="carte-container">
                                 <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
-                                <!-- <button type="button" class="btn-browser-print btn-pdf">📥 Télécharger la carte en PDF</button> -->
                             </div>
                         
+
                         <!-- Champs pièces justificatives -->
                         {% elif champ.type == 'piece_justificative' %}
                             <div class="pj_champ">
@@ -2109,6 +1570,7 @@ En conséquence, la demande est refusée.</textarea>
                                 {% endwith %}
                             </div>
                         
+
                         <!-- Champs Liste à choix simple -->
                         {% elif champ.type == 'drop_down_list' %}
                             <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
@@ -2133,22 +1595,23 @@ En conséquence, la demande est refusée.</textarea>
                                 
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
-                                    <!-- <button type="button" class="btn-browser-print btn-pdf">📥 Télécharger la carte en PDF</button> -->
                                 </div>
                             {% endif %}
-
                         {% endif %}
                     {% endfor %}
                 </div>
             </div>
 
             
+
+
             <!-- 
                 ####################################################################
                 ######################## PARTIE DE DROITE ##########################
                 ####################################################################
             -->
-            <!-- Colonne droite : navigation -->
+
+            <!-- ############### Form / Messagerie / Consultation ############### -->
             <div class="nav_preinstruction">
                 <div class="nav_top">
                     <div class="form_messagerie">
@@ -2176,13 +1639,6 @@ En conséquence, la demande est refusée.</textarea>
                             </div>
                         </a>
                     </div>
-                    
-                    <!-- Lien dossier à droite -->
-                    <!-- <div class="lien_dossier" title="Copier le chemin d'accès du dossier">
-                        <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ dossier.emplacement }}')">
-                            <img src="{% static 'instruction/img/folder.png' %}" alt="Voir le dossier">
-                        </a>
-                    </div> -->
                 </div>
                 
 
@@ -2200,14 +1656,11 @@ En conséquence, la demande est refusée.</textarea>
                                     </li>
 
                                     {% if changer_valideur_message %}
-                                        <div class="instruction-warning">
-                                            {{ changer_valideur_message }}
-                                        </div>
+                                        <div class="instruction-warning"> {{ changer_valideur_message }} </div>
                                     {% endif %}
 
                                 {% else %}
                                     <li class="pas_instructeur_du_dossier">
-
                                         <span title="La personne n'est pas déclarée comme validant.e">
                                             {{ valideur.id_agent_autorisations.nom|upper }} {{ valideur.id_agent_autorisations.prenom|capfirst }}
                                         </span>
@@ -2223,7 +1676,6 @@ En conséquence, la demande est refusée.</textarea>
                                                 </button>
                                             </form>
                                         {% endif %}
-
                                     </li>
                                 {% endif %}
                             
@@ -2233,6 +1685,7 @@ En conséquence, la demande est refusée.</textarea>
                         </ul>
                     </div>
                 {% endif %}
+
 
                 <!-- ############################# RELECTEURS QUALITÉS ############################# -->
                 {% if dossier.id_etape_dossier.etape == 'En relecture qualité' %}
@@ -2248,9 +1701,7 @@ En conséquence, la demande est refusée.</textarea>
                                     </li>
 
                                     {% if changer_relecteur_qualite_message %}
-                                        <div class="instruction-warning">
-                                            {{ changer_relecteur_qualite_message }}
-                                        </div>
+                                        <div class="instruction-warning"> {{ changer_relecteur_qualite_message }} </div>
                                     {% endif %}
 
                                 {% else %}
@@ -2508,8 +1959,6 @@ En conséquence, la demande est refusée.</textarea>
                 {% endif %}
 
 
-                
-
                 <!-- ############################# MAILS ENVOYÉS ############################# -->
                 {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' %}
                     {% if emails_dossiers %}
@@ -2581,6 +2030,7 @@ En conséquence, la demande est refusée.</textarea>
                     {% endif %}
                 {% endif %}
 
+
                 <!-- ############################# GROUPES INSTRUCTEURS ############################# -->
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
@@ -2607,13 +2057,10 @@ En conséquence, la demande est refusée.</textarea>
 
                                     </li>
                                     {% if retirer_instructeur_message %}
-                                        <div class="instruction-warning">
-                                            {{ retirer_instructeur_message }}
-                                        </div>
+                                        <div class="instruction-warning"> {{ retirer_instructeur_message }} </div>
                                     {% endif %}
 
                                 {% else %}
-
                                     <li class="pas_instructeur_du_dossier">
                                         {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
 
@@ -2628,14 +2075,13 @@ En conséquence, la demande est refusée.</textarea>
                                                 </button>
                                             </form>
                                         {% endif %}
-
                                     </li>
 
                                 {% endif %}
                             {% endfor %}
                         </ul>
 
-
+                        <!-- Changer le groupe instructeur -->
                         {% if groupes_instructeurs|length > 1 %}
                             {% if request.user|est_concerné_par_le_dossier:dossier %}
                                 <form method="post" action="{% url 'changer_groupe_instructeur' %}" class="form_groupe_select" id="form-changer-groupe">
@@ -2652,7 +2098,8 @@ En conséquence, la demande est refusée.</textarea>
                                 </form>
                             {% endif %}
                         {% endif %}
-
+                        
+                        <!-- Je me retire -->
                         {% if instructeur_connecte.id in instructeurs_dossier_ids %}
                             <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-soi">
                                 {% csrf_token %}
@@ -2663,6 +2110,7 @@ En conséquence, la demande est refusée.</textarea>
                                 </button>
                             </form>
                         
+                            <!-- Je me déclare -->
                         {% elif instructeur_connecte in membres_groupe %}
                             <form method="post" action="{% url 'se_declarer_instructeur' %}" class="form-ajouter-soi">
                                 {% csrf_token %}
@@ -2675,6 +2123,7 @@ En conséquence, la demande est refusée.</textarea>
                         {% endif %}
                     </div>
                 {% endif %}
+
 
                 <!-- ############################# RELECTURE ############################# -->
                 {% if relecteurs_du_dossier or request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
@@ -2703,17 +2152,13 @@ En conséquence, la demande est refusée.</textarea>
                                                 </div>
                                                 
                                                 {% if rj.relu %}
-                                                <div class="relecture_faite">
-                                                    Faite
-                                                </div>
-                                                
+                                                    <div class="relecture_faite"> Faite </div>
                                                 {% else %}
-                                                    <div class="relecture_en_attente">
-                                                        En attente
-                                                    </div>
+                                                    <div class="relecture_en_attente"> En attente </div>
                                                 {% endif %}
                                             </div>
                                             
+                                            <!-- Supprimer la demande de relecture -->
                                             {% if request.user|est_concerné_par_le_dossier:dossier %}
                                                 <form method="post" action="{% url 'retirer_relecteur' %}" class="form-retirer-relecteur" onsubmit="return confirm('Confirmer le retrait de ce·tte relecteur·rice ?')">
                                                     {% csrf_token %}
@@ -2767,6 +2212,7 @@ En conséquence, la demande est refusée.</textarea>
                             {% endif %}
                         {% endif %}
 
+                        <!-- Demande de relecture -->
                         <div id="formulaire-relecture-juridique" class="formulaire-relecture-juridique">
                             <form method="post" action="{% url 'ajouter_relecteur_dossier' %}" enctype="multipart/form-data">
                                 {% csrf_token %}
@@ -2811,9 +2257,9 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                                 <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
                                     <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
                                 </label>
-                                <input type="file" id="file-upload" name="annexe"
+                                <input type="file" id="file-upload" name="annexe" data-dossier="{{ dossier.emplacement }}"
                                     accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                    class="annexe-input" onchange="this.form.submit()">
+                                    class="annexe-input">
                             </form>
                         {% endif %}
                     </h3>
@@ -2847,8 +2293,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                                             onclick="copierPath(this, '{{ NAS_ROOT }}{{ annexe.emplacement }}')"
                                             title="Copier le chemin">📋</button>
                                     
-                                    <span class="copie-feedback">Copié !</span>
-                                    
+                                    <span class="copie-feedback">Copié !</span> 
                                 </li>
                             {% endfor %}
                         </ul>
@@ -2860,7 +2305,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                             <p class="note-meta">
                                 <strong>{{ n.instructeur }}</strong> – {{ n.date|date:"d/m/Y H:i" }}
                             </p>
-
 
                             <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form-note">
                                 {% csrf_token %}
@@ -2878,7 +2322,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                                 {% endif %}
                             </form>
                                                     
-
                         </div>
                     {% empty %}
                         <p class="note-aucune">Aucune note pour ce dossier.</p>
@@ -2890,7 +2333,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                             <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
+                                <textarea name="note" rows="4" id="nouvelle-note-textarea" data-user="{{ request.user.email }}" data-dossier="{{ dossier.id_ds }}"></textarea>
                                 <button type="submit" class="valider-btn">Enregistrer</button>
                             </form>
                         </div>
@@ -2908,7 +2351,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
     </div>
 
 
-    
+
     <!-- --------------------------------------------------------------------------->
     <!-- --------------------------------CARTO ------------------------------------->
     <!-- --------------------------------------------------------------------------->
@@ -2925,24 +2368,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
         window._mafateData = JSON.parse(document.getElementById("mafate-data").textContent);
     </script>
 
-    <!-- Mise en forme des geojson (géométries du pétitionnaire ou modifiée par instructeur) -->
-    <script>
-    document.querySelectorAll(".carte").forEach((carte, index) => {
-            const script = document.getElementById(`geojson-${index + 1}`);
-
-            if (!script) {
-                console.warn("Pas de GeoJSON pour :", carte);
-                return;
-            }
-
-            try {
-                carte.dataset.geojson = script.textContent;
-            } catch (e) {
-                console.error("Erreur de parsing GeoJSON pour la carte", carte.id, ":", e);
-            }
-        });
-
-    </script>
 
     <!-- 3. Script Leaflet personnalisé -->
     {{ pois_json|json_script:"pois-data" }}
@@ -2952,136 +2377,11 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
     <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
 
 
-    <!-- --------------------------------------------------------------------------->
-    <!-- --------------------- Menu déroulant Etape dossier ------------------------>
-    <!-- --------------------------------------------------------------------------->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const toggleBtn = document.getElementById("etapeMenuToggle");
-            const menuContent = document.getElementById("etapeMenuContent");
-            const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
-
-            toggleBtn.addEventListener("click", function (e) {
-                e.stopPropagation();
-        
-                const isOpen = !dropdownWrapper.classList.contains("open");
-        
-                if (isOpen) {
-                    menuContent.classList.add("show");
-                    dropdownWrapper.classList.add("open");
-
-                    // Appliquer la hauteur comme margin-bottom
-                    const hauteur = menuContent.scrollHeight;
-                    dropdownWrapper.style.marginBottom = `${hauteur}px`;
-                } else {
-                    menuContent.classList.remove("show");
-                    dropdownWrapper.classList.remove("open");
-                    dropdownWrapper.style.marginBottom = "";
-                }
-            });
-
-            document.addEventListener("click", function (e) {
-                if (!dropdownWrapper.contains(e.target)) {
-                    menuContent.classList.remove("show");
-                    dropdownWrapper.classList.remove("open");
-                    dropdownWrapper.style.marginBottom = "";
-                }
-            });
-        });
-    </script>
-
-
-
-    <!-- --------------------------------------------------------------------------->
-    <!-- ------- POP UP de validation du changement de groupe instructeur ---------->
-    <!-- --------------------------------------------------------------------------->
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const select = document.getElementById("select-changer-groupe");
-            const form = document.getElementById("form-changer-groupe");
-
-            select.addEventListener("change", function() {
-                const selectedOption = select.options[select.selectedIndex].text;
-                const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
-
-                if (confirmed) {
-                    form.submit();
-                } else {
-                    // Réinitialise le select sur le placeholder
-                    select.selectedIndex = 0;
-                }
-            });
-        });
-    </script>
-
-
-    <!------------------------------------------------------------------------------>
-    <!----------- Annulation ou écrasage du document en cas de doublon ------------->
-    <!------------------------------------------------------------------------------>
+    <!----------- Emplacements des docs du dossier ------------->
    {{ emplacements_documents|json_script:"emplacements-existants" }}
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const input = document.getElementById("file-upload");
-            const dossierEmplacement = "{{ dossier.emplacement }}";
-            const emplacements = JSON.parse(document.getElementById("emplacements-existants").textContent);
-
-            input.addEventListener("change", function () {
-                const fichier = input.files[0];
-                if (!fichier) return;
-
-                const emplacement = `${dossierEmplacement}/Annexes/${fichier.name}`;
-
-                if (emplacements.includes(emplacement)) {
-                    const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà. Voulez-vous le remplacer ?`);
-                    if (!confirmReplace) {
-                        input.value = "";  // On annule la sélection
-                    }
-                }
-            });
-        });
-    </script>
 
 
 
-    <!------------------------------------------------------------------------------>
-    <!------------------ Copier le path de l'annexe instructeur -------------------->
-    <!------------------------------------------------------------------------------>
-    <script>
-        function copierPath(button, path) {
-            navigator.clipboard.writeText(path)
-                .then(() => {
-                    const feedback = button.nextElementSibling;
-                    feedback.classList.add("show");
-
-                    setTimeout(() => {
-                        feedback.classList.remove("show");
-                    }, 2000); // disparaît après 2 secondes
-                })
-                .catch(err => {
-                    alert("Erreur lors de la copie du chemin : " + err);
-                });
-        }
-    </script>
-
-    
-
-    <!------------------------------------------------------------------------------>
-    <!--------------------------- Bouton actualiser -------------------------------->
-    <!------------------------------------------------------------------------------>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const refreshForm = document.querySelector(".refresh-doss form");
-            const refreshButton = document.querySelector(".refresh-button");
-
-            refreshForm.addEventListener("submit", function () {
-                refreshButton.disabled = true;
-                refreshButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
-            });
-        });
-    </script>
-
-
-   
     <!------------------------------------------------------------------------------>
     <!--------------Ouverture et la fermeture des Zones textuelles ----------------->
     <!------------------------------------------------------------------------------>
@@ -3090,6 +2390,27 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const zones = document.querySelectorAll(".zone-complement");
             zones.forEach(zone => zone.classList.remove("show"));
         }
+
+
+        // Masquer les boutons submit après clic
+        document.addEventListener("DOMContentLoaded", function () {
+            // Sélectionne toutes les zones contenant des boutons d'envoi
+            const zones = document.querySelectorAll(".zone-envoyer-pour-validation form");
+
+            zones.forEach(form => {
+                form.addEventListener("submit", function (e) {
+                    const btn = form.querySelector("button[type='submit'], button.btn-envoyer-complement");
+                    if (btn) {
+                        // Désactive le bouton immédiatement
+                        btn.disabled = true;
+                        btn.textContent = "Envoi en cours...";
+                        btn.style.opacity = "0.6";
+                        btn.style.cursor = "not-allowed";
+                    }
+                });
+            });
+        });
+
 
         function confirmerClasserCommeNonSoumis() {
             masquerToutesZonesComplementaires();
@@ -3192,6 +2513,12 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             fermerMenuEtape();
         }
 
+        // Afficher form relecture
+        function toggleRelecteurForm() {
+            const form = document.getElementById("formulaire-relecture-juridique");
+            form.classList.toggle("show");
+        }
+
 
         function afficherFormulaireActePretALaSignature() {
             masquerToutesZonesComplementaires();
@@ -3202,10 +2529,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
             fermerMenuEtape();
         }
-
-
-        
-
 
         function fermerMenuEtape() {
             const menuContent = document.getElementById("etapeMenuContent");
@@ -3286,14 +2609,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
 
 
-        // Pour confirmer la supression d'une Annexe instructeur (note)
-        function confirmerSuppressionAnnexe(bouton) {
-            const ok = confirm("Êtes-vous sûr de vouloir supprimer définitivement cette annexe du dossier ?");
-            if (ok) {
-                bouton.closest("form").submit();
-            }
-        }
-
         // Pour confirmer la transmission du dossier à l'intermédiaire CA
         function confirmerTransmissionIntermediaireCA() {
             const select = document.getElementById('choix_intermediaire_ca');
@@ -3325,53 +2640,86 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
         }
 
-        // Pour confirmer la transmission du dossier à l'intermédiaire DIR
+        // Pour confirmer la transmission du dossier à l'intermédiaire DIR (raccourci SPPN)
         function confirmerActePretALaSignature() {
+            // AJOUTER VERIF RAPPOR CA (si delibCA select)
             const form = document.querySelector('#formulaire-acte-pret-a-la-signature form');
 
             const inter_dir = form.querySelector('#choix_intermediaire_dir-sppn');
-            const inter_ca  = form.querySelector('#choix_intermediaire_ca-sppn');
+            const inter_ca = form.querySelector('#choix_intermediaire_ca-sppn');
 
             const nature = form.querySelector('#nature_validation');
-            const fichierInput = form.querySelector('input[name="piece_jointe"]');
-            const fichier = fichierInput?.files?.[0] || null;
+            const fichierChoisi = form.querySelector('#piece_jointe_work_sppn');
 
-            const pj_rapport_ca = form.querySelector('#pj_rapport_ca');
-            const fichier_rapportCA = pj_rapport_ca?.files?.[0] || null;
+            const rapportCA = form.querySelector('#piece_jointe_rapport_ca_sppn');
+            const nomRapportCA = rapportCA?.value || "";
+
+            if (nature.value === "Déliberation CA" && !nomRapportCA) {
+                alert("Veuillez sélectionner le projet de Rapport du CA dans le dossier Work.");
+                return;
+            }
+
+            if (nature.value === "Déliberation CA" && fichierChoisi.value === nomRapportCA) {
+                alert("Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.");
+                return;
+            }
 
             const intermediaire_dir = inter_dir?.value || "";
-            const intermediaire_ca  = inter_ca?.value || "";
+            const intermediaire_ca = inter_ca?.value || "";
+            const nomFichier = fichierChoisi?.value || "";
 
-            if (!nature.value) { alert("Veuillez sélectionner la nature du document."); return; }
-            if (!fichier) { alert("Veuillez joindre le projet d'acte."); return; }
-            if (!intermediaire_dir && !intermediaire_ca) { alert("Veuillez sélectionner l'intermédiaire."); return; }
-            if (intermediaire_ca && !fichier_rapportCA) { alert("Veuillez joindre le projet de rapport du CA."); return; }
+            if (!nature.value) {
+                alert("Veuillez sélectionner la nature du document.");
+                return;
+            }
+
+            if (!nomFichier) {
+                alert("Veuillez sélectionner le projet d'acte dans le dossier Work.");
+                return;
+            }
+
+            if (!intermediaire_dir && !intermediaire_ca) {
+                alert("Veuillez sélectionner l'intermédiaire.");
+                return;
+            }
 
             if (confirm("Je confirme que l'acte est prêt pour la signature ?")) {
-                form.requestSubmit(); // ou form.submit();
+                form.requestSubmit();
             }
         }
 
-
         // Pour confirmer l'envoi pour Validation avant signature
         function confirmerValidationAvantSignature() {
+            // AJOUTER VERIF RAPPOR CA (si delibCA select)
             const select = document.getElementById("nature_validation_avant_signa");
             const validant = document.getElementById("choix-validant");
-            const fichierInput = document.getElementById("pj_validation");
-            const fichier = fichierInput.files[0];
+            const fichierChoisi = document.getElementById("piece_jointe_work");
+
+            const rapportCA = document.getElementById("piece_jointe_rapport_ca_signa");
+            const nomRapportCA = rapportCA?.value || "";
 
             if (!select.value) {
                 alert("Veuillez sélectionner la nature du document.");
                 return;
             }
 
-            if (!validant.value) {
-                alert("Veuillez sélectionner un.e validant.e");
+            if (select.value === "Déliberation CA" && !nomRapportCA) {
+                alert("Veuillez sélectionner le projet de Rapport du CA dans le dossier Work.");
                 return;
             }
 
-            if (!fichier) {
-                alert("Veuillez ajouter une pièce jointe.");
+            if (select.value === "Déliberation CA" && fichierChoisi.value === nomRapportCA) {
+                alert("Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.");
+                return;
+            }
+
+            if (!validant.value) {
+                alert("Veuillez sélectionner un.e validant.e.");
+                return;
+            }
+
+            if (!fichierChoisi.value) {
+                alert("Veuillez sélectionner un fichier du dossier Work.");
                 return;
             }
 
@@ -3380,33 +2728,44 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
         }
 
-        // Pour confirmer l'envoi pour Validation avant signature
+
+        // Pour confirmer l'envoi pour Validation avant demande d'avis
         function confirmerValidationAvantDemandeAvis() {
             const select = document.getElementById("nature_acte_avant_dmd_avis");
             const validant = document.getElementById("choix-validant-avant-dmd-avis");
-            const fichierInput = document.getElementById("pj_validation_avant_dmd_avis");
+            const fichierChoisi = document.getElementById("piece_jointe_work_avis");
             const avis = document.getElementById("avis-selectionnes");
-            
-            const fichier = fichierInput.files[0];
+
+            const rapportCA = document.getElementById("piece_jointe_rapport_ca_avis");
+            const nomRapportCA = rapportCA?.value || "";
 
             if (!select.value) {
                 alert("Veuillez sélectionner la nature du document.");
                 return;
             }
 
-            if (!avis.value) {
-                alert("Veuillez sélectionner le.s demande.s d'avis à faire valider.");
+            if (select.value === "Déliberation CA" && !nomRapportCA) {
+                alert("Veuillez sélectionner le projet de Rapport du CA dans le dossier Work.");
                 return;
             }
 
+            if (select.value === "Déliberation CA" && fichierChoisi.value === nomRapportCA) {
+                alert("Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.");
+                return;
+            }
+
+            if (!avis.selectedOptions.length) {
+                alert("Veuillez sélectionner la/les demande(s) d'avis à faire valider.");
+                return;
+            }
 
             if (!validant.value) {
-                alert("Veuillez sélectionner un.e validant.e");
+                alert("Veuillez sélectionner un.e validant.e.");
                 return;
             }
 
-            if (!fichier) {
-                alert("Veuillez ajouter une pièce jointe.");
+            if (!fichierChoisi.value) {
+                alert("Veuillez sélectionner un fichier du dossier Work.");
                 return;
             }
 
@@ -3414,6 +2773,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 document.querySelector('#formulaire-validation-demande-avis form').submit();
             }
         }
+
         
         // Pour confirmer la transmission de l'acte signé
         function confirmerSignature() {
@@ -3445,7 +2805,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 return;
             }
             
-
             if (!fichier.type == "application/pdf") {
                 alert("L'acte signé doit être au format PDF.");
                 return;
@@ -3465,11 +2824,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
         }
 
+
         // Pour confirmer relecture qualité
         function confirmerRelectureQualite() {
-
             const relecteur = document.getElementById("choix-relecteur");
-
             if (!relecteur.value) {
                 alert("Veuillez sélectionner un.e relecteur.rice");
                 return;
@@ -3479,22 +2837,108 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 document.querySelector('#formulaire-relecture-qualite form').submit();
             }
         }
-    </script>
 
-    <!-- Form Relecture juridique -->
-    <script>
-        function toggleRelecteurForm() {
-            const form = document.getElementById("formulaire-relecture-juridique");
-            form.classList.toggle("show");
-        }
- 
+
+        // Pour confirmer la relecture
         function confirmerRelectureFaite() {
             return confirm("Confirmez-vous que la relecture est faite ?");
         }
-
     </script>
 
+
+
+
+    <!------------------------------------------------------------------------------->
+    <!---------------- Boite de dialogue - files du dossier Work  ------------------->
+    <!------------------------------------------------------------------------------->
+    <script>
+        function selectionnerFichierWorkGeneric(btn, nom, hiddenId, labelId, buttonSelector) {
+            document.getElementById(hiddenId).value = nom;
+            document.getElementById(labelId).textContent = nom;
+
+            document.querySelectorAll(buttonSelector).forEach(b => {b.classList.remove("selected");});
+            btn.classList.add("selected");
+        }
+
+        function selectionnerFichierRapportCA(btn, nom, hiddenId, labelId) {
+            document.getElementById(hiddenId).value = nom;
+            document.getElementById(labelId).textContent = nom;
+
+            const container = btn.closest(".projet_rapport_ca_pj");
+            if (!container) return;
+
+            container.querySelectorAll(".btn-fichier-work").forEach(b => {b.classList.remove("selected");});
+            btn.classList.add("selected");
+        }
+
+        function genererBlocRapportCA(hiddenId, labelId, buttonClass) {
+            return `
+                <div class="projet_rapport_ca_pj">
+                    <input type="hidden" name="piece_jointe_rapport_ca_work" id="${hiddenId}" required>
+
+                    <div class="selection-fichier-work">
+                        <label>Choisir le projet de Rapport du CA dans le dossier Work :</label>
+
+                        {% if work_files %}
+                            <ul class="liste-work-files">
+                                {% for nom in work_files %}
+                                    <li>
+                                        <button type="button"
+                                                class="btn-fichier-work ${buttonClass}"
+                                                onclick="selectionnerFichierRapportCA(this, '{{ nom|escapejs }}', '${hiddenId}', '${labelId}')">
+                                            {{ nom }}
+                                        </button>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+
+                            <p class="fichier-selectionne">
+                                Fichier sélectionné : <strong id="${labelId}">Aucun</strong>
+                            </p>
+                        {% else %}
+                            <p class="work-vide">Aucun fichier .doc, .docx ou .odt trouvé dans le dossier Work.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            `;
+        }
+
+        function gererBlocRapportCA(config) {
+            const select = document.getElementById(config.selectId);
+            const zoneRapport = document.getElementById(config.zoneId);
+
+            if (!select || !zoneRapport) return;
+
+            function update() {
+                const isDelibCA = select.value === "Déliberation CA";
+                const existing = document.getElementById(config.hiddenId);
+
+                if (isDelibCA) {
+                    if (!existing) {
+                        const wrapper = document.createElement("div");
+                        wrapper.innerHTML = genererBlocRapportCA(
+                            config.hiddenId,
+                            config.labelId,
+                            config.buttonClass
+                        );
+                        zoneRapport.appendChild(wrapper.firstElementChild);
+                    }
+                } else {
+                    if (existing) {
+                        existing.parentElement.remove();
+                    }
+                }
+            }
+            update();
+            select.addEventListener("change", update);
+        }
+    </script>
+
+
+
+    <!--------------------------------------------------------------------------------------------->
     <!-- POP UP Validation écrasement d'un acte existant avec le meme nom et le meme emplacement -->
+    <!--------------------------------------------------------------------------------------------->
     {{ titres_documents_actes|json_script:"titres-docs-actes" }}
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -3523,49 +2967,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             });
         });
     </script>
-
-
-
-    <!------------------------------------------------------------------------------>
-    <!--------------- Enregistrer les notes en cours de redaction  ----------------->
-    <!------------------------------------------------------------------------------>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const textarea = document.getElementById("nouvelle-note-textarea");
-            const userEmail = "{{ request.user.email|escapejs }}";
-            const dossierId = "{{ dossier.id_ds }}";
-            const storageKey = `note_temp_${userEmail}_${dossierId}`;
-
-            // Restaurer la note enregistrée
-            const saved = localStorage.getItem(storageKey);
-            if (saved !== null) {
-                textarea.value = saved;
-            }
-
-            // Mettre à jour localStorage à chaque frappe
-            textarea.addEventListener("input", () => {
-                localStorage.setItem(storageKey, textarea.value);
-            });
-
-            // Nettoyer après soumission de la note
-            const noteForm = textarea.closest("form");
-            noteForm?.addEventListener("submit", () => {
-                localStorage.removeItem(storageKey);
-            });
-
-            // Capture avant ajout d'annexe
-            const annexeInput = document.getElementById("file-upload");
-            if (annexeInput) {
-                annexeInput.addEventListener("change", () => {
-                    if (textarea.value.trim() !== "") {
-                        localStorage.setItem(storageKey, textarea.value);
-                    }
-                });
-            }
-        });
-    </script>
-
-
 
 
 
@@ -3599,149 +3000,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             });
         });
     </script>
-
-
-<!-- Rendre Disable les boutons Submit des Zones manquées après clic -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // Sélectionne toutes les zones contenant des boutons d'envoi
-        const zones = document.querySelectorAll(".zone-envoyer-pour-validation form");
-
-        zones.forEach(form => {
-            form.addEventListener("submit", function (e) {
-                const btn = form.querySelector("button[type='submit'], button.btn-envoyer-complement");
-                if (btn) {
-                    // Désactive le bouton immédiatement
-                    btn.disabled = true;
-                    btn.textContent = "Envoi en cours...";
-                    btn.style.opacity = "0.6";
-                    btn.style.cursor = "not-allowed";
-                }
-            });
-        });
-
-
-        // Désactiver définitivement les boutons Confirm (type=button)
-        document.addEventListener("DOMContentLoaded", function () {
-            const boutonsConfirm = document.querySelectorAll(
-                ".btn-envoyer-complement[onclick*='confirmer']"
-            );
-
-            boutonsConfirm.forEach(bouton => {
-                bouton.addEventListener("click", function () {
-                    bouton.disabled = true;
-                    bouton.textContent = "Traitement...";
-                    bouton.style.opacity = "0.6";
-                    bouton.style.cursor = "not-allowed";
-                });
-            });
-        });
-
-
-
-    });
-</script>
-
-
-<!-- Nom du dossier -->
-<script>
-    (function () {
-    const bloc = document.getElementById("nomDossierBloc");
-    if (!bloc) return;
-
-    const btnEdit = document.getElementById("btnEditNom");
-    const btnValidate = document.getElementById("btnValidateNom");
-    const texte = document.getElementById("nomDossierTexte");
-    const input = document.getElementById("nomDossierInput");
-
-    const saveUrl = bloc.dataset.saveUrl;
-
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(";").shift();
-        return "";
-    }
-    const csrfToken = getCookie("csrftoken");
-
-    let oldValue = input.value || "";
-
-    function enterEditMode() {
-        oldValue = input.value || texte.textContent.trim() || "";
-        bloc.classList.add("is-editing");
-        input.focus();
-        input.select();
-    }
-
-    function exitEditMode(reset = true) {
-        if (reset) input.value = oldValue;
-        bloc.classList.remove("is-editing");
-    }
-
-    async function save() {
-        const newValue = (input.value || "").trim();
-        if (!newValue) {
-        exitEditMode(true);
-        return;
-        }
-
-        try {
-        const resp = await fetch(saveUrl, {
-            method: "POST",
-            headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken,
-            "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify({ nom_dossier_plus_parlant: newValue }),
-        });
-
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-        const data = await resp.json();
-
-        texte.textContent = data.nom_dossier_plus_parlant;
-        input.value = data.nom_dossier_plus_parlant;
-
-        exitEditMode(false);
-        } catch (e) {
-        console.error(e);
-        // En cas d'erreur : on annule l'édition
-        exitEditMode(true);
-        alert("Impossible d'enregistrer le nom du dossier.");
-        }
-    }
-
-    btnEdit.addEventListener("click", (e) => {
-        e.stopPropagation();
-        enterEditMode();
-    });
-
-    btnValidate.addEventListener("click", (e) => {
-        e.stopPropagation();
-        save();
-    });
-
-    // Entrée = valider, Escape = annuler
-    input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-        e.preventDefault();
-        save();
-        } else if (e.key === "Escape") {
-        e.preventDefault();
-        exitEditMode(true);
-        }
-    });
-
-    // Click en dehors = sortir du mode édition (annuler)
-    document.addEventListener("mousedown", (e) => {
-        if (!bloc.classList.contains("is-editing")) return;
-        if (!bloc.contains(e.target)) {
-        exitEditMode(true);
-        }
-    });
-    })();
-</script>>
-
 
 </body>
 </html>

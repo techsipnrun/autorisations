@@ -197,13 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const fond_coeur_de_Parc = window._coeurData;
     const cartes = document.querySelectorAll(".carte-container .carte");
 
-    if (cartes.length === 0) {
-        console.info("Aucune carte à afficher.");
-        return;
-    }
-
     cartes.forEach((div) => {
-        console.info(`Nombre de cartes : ${cartes.length}`);
         const data = div.dataset.geojson;
 
         // ---------------------------------
@@ -249,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Ajout du bouton impression PDF
         L.control.browserPrint({
-            title: "📥 Télécharger en PDF",
+            title: "Télécharger en PDF",
             position: "topleft",  // coin haut gauche comme zoom
             closePopupsOnPrint: true,
             printModes: ["Landscape", "Portrait"] // propose les 2
@@ -315,7 +309,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     keepBuffer: 2,
                 }
             )
-
         };
 
         // Fond par défaut IGN
@@ -376,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Menus "Fonds" et "Couches" (mini popovers en haut à droite)
         // ---------------------------------
         const baseLayers = {
-            "Plan IGN v2": fonds.planign,
+            "Plan IGN": fonds.planign,
             "OpenStreetMap": fonds.osm,
             "Satellite": fonds.satellite,
             "OpenTopoMap": fonds.opentopomap,

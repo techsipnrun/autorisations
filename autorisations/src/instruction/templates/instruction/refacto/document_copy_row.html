@@ -1,0 +1,25 @@
+{% load static %}
+<li class="doc-item" title="Copier l'emplacement du document">
+    <div class="doc-copy-row"
+        data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
+        onclick="copyPathDocument(this)">
+
+        <span class="doc-titre-no-download">
+            {{ doc.id_nature.nature }}
+
+            {% if doc.numero %}
+                <span class="badge-numero-acte">
+                    {% if doc.id_nature.nature == "Déliberation CA" %}CA/{% elif doc.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc.numero }}
+                </span>
+            {% endif %}
+
+            : {{ doc.titre }}
+        </span>
+
+        <img class="doc-copy-icon"
+            src="{% static 'instruction/img/copy.png' %}"
+            alt="Copier">
+
+        <span class="copie-feedback-doc">Chemin copié !</span>
+    </div>
+</li>
