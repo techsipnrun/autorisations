@@ -113,6 +113,9 @@
     cursor: pointer;
 }
 
+.titre_envoi_acte{
+    margin: 0 0 1.5rem 0;
+}
 
 .msg_pour_peti {
     margin: 0.5rem 0 1.5rem 0;

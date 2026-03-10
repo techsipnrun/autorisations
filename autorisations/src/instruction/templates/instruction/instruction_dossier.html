@@ -645,6 +645,8 @@
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
 
+                        <h2 class="titre_envoi_acte">ACCEPTATION DE LA DEMANDE</h2>
+
                         <div class="nature_du_doc">
                             <label for="nature_document">Nature du document :</label>
                             <p class="valeur-fixe"> {{ doc_a_envoyer.0.id_nature.nature }} </p>
@@ -695,6 +697,8 @@ Bonne réception.</textarea>
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
+
+                        <h2 class="titre_envoi_acte">REFUS DE LA DEMANDE</h2>
 
                         <div class="nature_du_doc">
                             <label for="nature_document">Nature du document :</label>
