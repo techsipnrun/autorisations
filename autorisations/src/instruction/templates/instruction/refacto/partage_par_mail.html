@@ -1,0 +1,95 @@
+<div class="copie_par_mail">
+    <div class="copie_par_mail_label">
+        <label class="toggle-label">Partager l’acte par mail :</label>
+    </div>
+    <div class="toggle-group">
+        <label>
+            <input type="radio" name="partager_par_mail_choice" value="non" checked>
+            Non
+        </label>
+        <label>
+            <input type="radio" name="partager_par_mail_choice" value="oui">
+            Oui
+        </label>
+    </div>
+    <input type="hidden" name="partager_par_mail" class="partager_par_mail_hidden" value="non">
+</div>
+
+<!-- Formulaire affiché uniquement si "Oui" -->
+<div class="zone-complement zone-partage-mails formulaire-partage-mails">
+    <label for="emails_copie">Destinataires du mail :</label>
+
+    <div class="search-wrapper">
+        <input
+            type="text"
+            class="search-contacts"
+            placeholder="Rechercher (nom, email)…"
+            autocomplete="off"
+            aria-label="Rechercher un contact"
+        />
+
+        <button type="button" class="add-email-btn" title="Ajouter un nouveau contact">+</button>
+    </div>
+
+    <!-- Template caché pour un nouveau contact -->
+    <template class="nouveau-contact-template">
+        <div class="nouveau-contact-form">
+            <input type="hidden" name="email_contact[]">
+
+            <label>Email :</label>
+            <input type="text" name="email_affiche" class="input-mini" disabled>
+
+            <label>Nom :</label>
+            <input type="text" name="nom_contact[]" class="input-mini">
+
+            <label>Prénom :</label>
+            <input type="text" name="prenom_contact[]" class="input-mini">
+
+            <label>Type :</label>
+            <select name="type_contact[]" class="input-mini">
+                {% for t in types_contacts %}
+                    <option value="{{ t.id }}">{{ t.type }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Raison sociale :</label>
+            <input type="text" name="raison_sociale[]" class="input-mini">
+
+            <button type="button" class="btn-ajout-contact">Ajouter ce contact</button>
+            <button type="button" class="btn-annuler-ajout-contact">Annuler</button>
+        </div>
+    </template>
+
+    <div class="nouveaux-contacts-container"></div>
+
+    <select name="emails_copie[]" multiple size="4" class="emails-multiselect emails_copie">
+        {% for e in emails_uniques %}
+            <option class="ligne-contact" value="{{ e }}" data-nom="{{ e }}" data-email="{{ e|lower }}">
+                {% if e %}
+                    {{ e }}
+                {% endif %}
+            </option>
+        {% empty %}
+            <option disabled>Aucun email disponible.</option>
+        {% endfor %}
+    </select>
+
+    <div class="selected-chips" aria-live="polite"></div>
+
+    <div class="msg_pour_mail_copie">
+        <label>Corps du mail (l'acte signé sera en pièce jointe) :</label>
+        <div class="mail_entier">
+            <div class="debut_fin_mail">Madame, monsieur,</div> <br>
+            <textarea name="motivation_copie_mail" class="textarea-complement">{% if mode_mail == "acceptation" %}L’établissement du Parc national de La Réunion vous notifie l’acceptation du dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
+Bonne réception.{% elif mode_mail == "refus" %}L’établissement du Parc national de La Réunion vous notifie sa décision relative au dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
+Bonne réception.{% endif %}</textarea>
+            <div class="debut_fin_mail">
+                Cordialement, <br><br>
+                Le Parc national de La Réunion <br>
+                258 rue de la République 97431 La Plaine-des-Palmistes <br>
+                Tél : +262 (0)2 62 90 11 35 <br>
+                www.reunion-parcnational.fr
+            </div>
+        </div>
+    </div>
+</div>

@@ -65,7 +65,7 @@ function copyPathDocument(rowEl) {
     path = "\\" + path;
   }
 
-  const feedback = rowEl.querySelector(".copie-feedback");
+  const feedback = rowEl.querySelector(".copie-feedback-doc");
 
   const showFeedback = () => {
     if (!feedback) return;

@@ -36,6 +36,9 @@
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 
+    <!-- JS commun à instruction_dossier et preinstruction_dossier -->
+    <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
+
 </head>
 
 
@@ -51,7 +54,7 @@
                 <div class="refresh-doss">
                     <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
                         {% csrf_token %}
-                        <button type="submit" class="refresh-button">
+                        <button type="submit" class="refresh-button" data-icon="{% static 'instruction/img/actualiser.png' %}">
                             <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
                             Actualiser
                         </button>
@@ -99,14 +102,14 @@
 
                 <div class="etat-badge-container">
                     <div class="etat-badge-menu-dropdown">
-                        <div class="etat-badge-label" id="etatMenuToggle">
+                        <div class="etat-badge-label" id="etapeMenuToggle">
                             {{ etape_dossier }}
                             <span class="dropdown-arrow">&#9660;</span>
                         </div>
 
-                        {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                        {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier or request.user.is_superuser %}
 
-                            <div class="etat-badge-menu-content" id="etatMenuContent">
+                            <div class="etat-badge-menu-content" id="etapeMenuContent">
                                 {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
                                         {% if actions %}
                                             {% for label in actions %}
@@ -580,9 +583,9 @@
                                 <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
                                     <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
                                 </label>
-                                <input type="file" id="file-upload" name="annexe"
+                                <input type="file" id="file-upload" name="annexe" data-dossier="{{ dossier.emplacement }}"
                                     accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                    class="annexe-input" onchange="this.form.submit()">
+                                    class="annexe-input">
                             </form>
                         {% endif %}
                     </h3>
@@ -648,7 +651,7 @@
                             <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                <textarea name="note" rows="4" id="nouvelle-note-textarea"></textarea>
+                                <textarea name="note" rows="4" id="nouvelle-note-textarea" data-user="{{ request.user.email }}" data-dossier="{{ dossier.id_ds }}"></textarea>
                                 <button type="submit" class="valider-btn">Enregistrer</button>
                             </form>
                         </div>
@@ -678,26 +681,6 @@
     window._mafateData = JSON.parse(document.getElementById("mafate-data").textContent);
 </script>
 
-
-<!-- Mise en forme des geojson (géométries du pétitionnaire ou modifiée par instructeur) -->
-<script>
-   document.querySelectorAll(".carte").forEach((carte, index) => {
-        const script = document.getElementById(`geojson-${index + 1}`);
-
-        if (!script) {
-            console.warn("Pas de GeoJSON pour :", carte);
-            return;
-        }
-
-        try {
-            carte.dataset.geojson = script.textContent;
-        } catch (e) {
-            console.error("Erreur de parsing GeoJSON pour la carte", carte.id, ":", e);
-        }
-    });
-
-</script>
-
 <!-- 3. Script Leaflet personnalisé -->
 {{ pois_json|json_script:"pois-data" }}
 <script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
@@ -705,153 +688,11 @@
 <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
 <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
 
-
-<script>
-    // Ouverture et fermeture du menu déroulant des étapes du dossier
-    document.addEventListener("DOMContentLoaded", function () {
-        const toggleBtn = document.getElementById("etatMenuToggle");
-        const menuContent = document.getElementById("etatMenuContent");
-        const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
     
-        toggleBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            menuContent.classList.toggle("show");
-            dropdownWrapper.classList.toggle("open");
-        });
-    
-        document.addEventListener("click", function () {
-            menuContent.classList.remove("show");
-            dropdownWrapper.classList.remove("open");
-        });
-    });
-</script>
-
-
-<!-- POP UP de validation du changement de groupe instructeur -->
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const select = document.getElementById("select-changer-groupe");
-        const form = document.getElementById("form-changer-groupe");
-
-        select.addEventListener("change", function() {
-            const selectedOption = select.options[select.selectedIndex].text;
-            const confirmed = confirm("Voulez-vous vraiment affecter ce dossier au groupe : « " + selectedOption + " » ?");
-
-            if (confirmed) {
-                form.submit();
-            } else {
-                // Réinitialise le select sur le placeholder
-                select.selectedIndex = 0;
-            }
-        });
-    });
-</script>
-    
-
-<!-- Annulation ou écrasage du document (annexe instructeur) en cas de doublon -->
+<!----------- Emplacements des docs du dossier ------------->
 {{ emplacements_documents|json_script:"emplacements-existants" }}
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const input = document.getElementById("file-upload");
-        const dossierEmplacement = "{{ dossier.emplacement }}";
-        const emplacements = JSON.parse(document.getElementById("emplacements-existants").textContent);
-
-        input.addEventListener("change", function () {
-            const fichier = input.files[0];
-            if (!fichier) return;
-
-            const emplacement = `${dossierEmplacement}/Annexes/${fichier.name}`;
-
-            if (emplacements.includes(emplacement)) {
-                const confirmReplace = confirm(`Un fichier nommé "${fichier.name}" existe déjà. Voulez-vous le remplacer ?`);
-                if (!confirmReplace) {
-                    input.value = "";  // On annule la sélection
-                }
-            }
-        });
-    });
-</script>
-
-    
-<!-- Copier le path de l'annexe instructeur -->
-<script>
-    function copierPath(button, path) {
-        navigator.clipboard.writeText(path)
-            .then(() => {
-                const feedback = button.nextElementSibling;
-                feedback.classList.add("show");
-
-                setTimeout(() => {
-                    feedback.classList.remove("show");
-                }, 2000); // affichage du "Copié !" pedant 2sec
-            })
-            .catch(err => {
-                alert("Erreur lors de la copie du chemin : " + err);
-            });
-    }
-</script>
 
 
-<!-- Pour confirmer la supression d'une Annexe instructeur (note) -->
-<script>
-    function confirmerSuppressionAnnexe(bouton) {
-        const ok = confirm("Êtes-vous sûr de vouloir supprimer définitivement cette annexe du dossier ?");
-        if (ok) {
-            bouton.closest("form").submit();
-        }
-    }
-</script>
-
-
-<!-- Bouton actualiser -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const refreshForm = document.querySelector(".refresh-doss form");
-        const refreshButton = document.querySelector(".refresh-button");
-
-        refreshForm.addEventListener("submit", function () {
-            refreshButton.disabled = true;
-            refreshButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
-        });
-    });
-</script>
-
-<!-- Enregistrer les notes en cours de redaction -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const textarea = document.getElementById("nouvelle-note-textarea");
-        const userEmail = "{{ request.user.email|escapejs }}";
-        const dossierId = "{{ dossier.id_ds }}";
-        const storageKey = `note_temp_${userEmail}_${dossierId}`;
-
-        // Restaurer la note enregistrée
-        const saved = localStorage.getItem(storageKey);
-        if (saved !== null) {
-            textarea.value = saved;
-        }
-
-        // Mettre à jour localStorage à chaque frappe
-        textarea.addEventListener("input", () => {
-            localStorage.setItem(storageKey, textarea.value);
-        });
-
-        // Nettoyer après soumission de la note
-        const noteForm = textarea.closest("form");
-        noteForm?.addEventListener("submit", () => {
-            localStorage.removeItem(storageKey);
-        });
-
-        // Capture avant ajout d'annexe
-        const annexeInput = document.getElementById("file-upload");
-        if (annexeInput) {
-            annexeInput.addEventListener("change", () => {
-                if (textarea.value.trim() !== "") {
-                    localStorage.setItem(storageKey, textarea.value);
-                }
-            });
-        }
-    });
-</script>
 
 <!-- Gère l'ouverture et la fermeture des Zones textuelles -->
 <script>
@@ -900,105 +741,5 @@
         }
     }
 </script>
-
-<!-- Nom du dossier -->
-<script>
-    (function () {
-    const bloc = document.getElementById("nomDossierBloc");
-    if (!bloc) return;
-
-    const btnEdit = document.getElementById("btnEditNom");
-    const btnValidate = document.getElementById("btnValidateNom");
-    const texte = document.getElementById("nomDossierTexte");
-    const input = document.getElementById("nomDossierInput");
-
-    const saveUrl = bloc.dataset.saveUrl;
-
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(";").shift();
-        return "";
-    }
-    const csrfToken = getCookie("csrftoken");
-
-    let oldValue = input.value || "";
-
-    function enterEditMode() {
-        oldValue = input.value || texte.textContent.trim() || "";
-        bloc.classList.add("is-editing");
-        input.focus();
-        input.select();
-    }
-
-    function exitEditMode(reset = true) {
-        if (reset) input.value = oldValue;
-        bloc.classList.remove("is-editing");
-    }
-
-    async function save() {
-        const newValue = (input.value || "").trim();
-        if (!newValue) {
-        exitEditMode(true);
-        return;
-        }
-
-        try {
-        const resp = await fetch(saveUrl, {
-            method: "POST",
-            headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken,
-            "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify({ nom_dossier_plus_parlant: newValue }),
-        });
-
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-        const data = await resp.json();
-
-        texte.textContent = data.nom_dossier_plus_parlant;
-        input.value = data.nom_dossier_plus_parlant;
-
-        exitEditMode(false);
-        } catch (e) {
-        console.error(e);
-        // En cas d'erreur : on annule l'édition
-        exitEditMode(true);
-        alert("Impossible d'enregistrer le nom du dossier.");
-        }
-    }
-
-    btnEdit.addEventListener("click", (e) => {
-        e.stopPropagation();
-        enterEditMode();
-    });
-
-    btnValidate.addEventListener("click", (e) => {
-        e.stopPropagation();
-        save();
-    });
-
-    // Entrée = valider, Escape = annuler
-    input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-        e.preventDefault();
-        save();
-        } else if (e.key === "Escape") {
-        e.preventDefault();
-        exitEditMode(true);
-        }
-    });
-
-    // Click en dehors = sortir du mode édition (annuler)
-    document.addEventListener("mousedown", (e) => {
-        if (!bloc.classList.contains("is-editing")) return;
-        if (!bloc.contains(e.target)) {
-        exitEditMode(true);
-        }
-    });
-    })();
-</script>>
-
 
 </html>

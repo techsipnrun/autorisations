@@ -665,7 +665,21 @@ def actualiser_dossier(request, num_dossier):
             return redirect_error(request, "❌ Erreur lors de l'appel à l'API DS. Contactez le support.")
 
         if "errors" in result and result["errors"]:
-            raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
+            # ex : [{'message': 'Dossier not found', 'locations': [{'line': 2, 'column': 3}], 'path': ['dossier'], 'extensions': {'code': 'not_found'}}]
+            erreur = result["errors"][0]
+            if erreur and erreur.get('message') and erreur.get('message') == 'Dossier not found' :
+                instructeur = Instructeur.objects.order_by("id").first()
+                dossier.present_sur_ds = False
+                dossier.save()
+
+                # On enregistre l'action
+                if instructeur:
+                    safe_enregistrer_action(dossier, instructeur, "Dossier supprimé de Démarche Numérique", request=None)
+
+                loggerSynchro.warning(f"[ACTUALISER DOSSIER {num_dossier}] Le dossier n'existe plus sur Démarche Numérique : BDD mise à jour")
+                return redirect(request.META.get("HTTP_REFERER", "/"))
+            else :
+                raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
         
         
         # 2. Normalisation des données
@@ -740,18 +754,6 @@ def actualiser_dossier(request, num_dossier):
                 "demandes": demande_normalize(id_demarche, titre_demarche, doss)
             }
             
-            
-
-            # ICI PAS BON. IL FAUT QUE JE FASSE COMME DANS dossiers_normalize_process --> limite j'appelle la fonction si possible
-            # dico_dossier = {
-            #     "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
-            #     "contacts_externes": contact_externe_normalize(doss, None),
-            #     "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
-            #     "dossier_champs": dossiers_champs_normalize(doss, emplacement_dossier, None)[0],
-            #     "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
-            #     "messages": message_normalize(doss, emplacement_dossier),
-            #     "demandes": demande_normalize(id_demarche, titre_demarche, doss)
-            # }
 
         except Exception as e:
             loggerSynchro.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors de la normalisation du dossier : {e}")

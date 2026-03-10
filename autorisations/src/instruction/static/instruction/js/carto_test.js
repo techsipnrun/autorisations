@@ -129,7 +129,7 @@
 
         // Bouton impression PDF
         L.control.browserPrint({
-            title: "📥 Télécharger en PDF",
+            title: "Télécharger en PDF",
             position: "topleft",  // coin haut gauche comme zoom
             closePopupsOnPrint: true,
             printModes: ["Landscape", "Portrait"] // propose les 2

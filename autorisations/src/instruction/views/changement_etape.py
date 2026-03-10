@@ -381,7 +381,9 @@ def faire_valider_une_demande_d_avis(request):
     dossier_id_ds = request.POST.get("dossierId")
     nature = request.POST.get("nature_document")
     validant = request.POST.get("choix-validant") #Objet Instructeur
-    fichier = request.FILES.get("piece_jointe")
+    # fichier = request.FILES.get("piece_jointe")
+    nom_fichier = (request.POST.get("piece_jointe_work") or "").strip()
+    nom_fichier_rapport_ca = (request.POST.get("piece_jointe_rapport_ca_work") or "").strip()
     ids_selectionnes = request.POST.getlist("avis_selectionnes")
     
     # ========================
@@ -389,6 +391,11 @@ def faire_valider_une_demande_d_avis(request):
     # ========================
     if not dossier_id_ds :
         return redirect_error(request, "❌ L'id du dossier est manquant. Contactez le support.")
+    
+    # --- Récupération dossier ---
+    dossier, err = get_dossier_or_redirect(request, "VALIDATION AVANT DEMANDE AVIS", id_ds=dossier_id_ds)
+    if err: 
+        return err
     
     if not nature :
         return redirect_error(request, "❌ La nature du projet d'acte est manquante. Contactez le support.")
@@ -398,23 +405,29 @@ def faire_valider_une_demande_d_avis(request):
         nature_obj = DocumentNature.objects.filter(nature=nature).first()
         if not nature_obj:
             logger.error(f"[DOSSIER {dossier.numero}] User {request.user} : Aucune nature Document trouvée pour '{nature}'")
-            return redirect_error(request, "❌ Le nature de document '{{nature}}' n'a pas été trouvée en base. Contactez le support.")
+            return redirect_error(request, f"❌ Le nature de document '{nature}' n'a pas été trouvée en base. Contactez le support.")
     
-    if not fichier :
-        return redirect_error(request, "❌ Le projet d'acte n'a pas été joint. Contactez le support.")
+    if not nom_fichier :
+        return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
+
+    # Rapport CA obligatoire pour une Délibération CA
+    if nature == "Déliberation CA" and not nom_fichier_rapport_ca:
+        return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
     
     else :
-        # --- Récupération format ---
-        extension = os.path.splitext(fichier.name)[1].lower().lstrip('.')
-        format_obj = DocumentFormat.objects.filter(format=extension).first()
-        if not format_obj:
-            logger.error(f"[DOSSIER {dossier.numero}] User {request.user} : Aucun format Document trouvé pour '{extension}'")
-            return redirect_error(request, "❌ Le format de document '{{extension}}' n'a pas été trouvé en base. Contactez le support.")
-        
+
         # --- Extension ---
-        extension = Path(fichier.name).suffix.lower()
+        extension = Path(nom_fichier).suffix.lower()
         if extension not in {".doc", ".docx", ".odt"} :
             return redirect_error(request, f"❌ Le fichier joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}.")
+        
+        # --- Récupération format ---
+        format_obj = DocumentFormat.objects.filter(format=extension.lstrip('.')).first()
+        if not format_obj:
+            logger.error(f"[DOSSIER {dossier.numero}] User {request.user} : Aucun format Document trouvé pour '{extension}'")
+            return redirect_error(request, f"❌ Le format de document '{extension}' n'a pas été trouvé en base. Contactez le support.")
+        
+        
 
         # --- Récupération statut ---
         statut_obj = DocumentStatut.objects.filter(statut="À valider").first()
@@ -436,12 +449,6 @@ def faire_valider_une_demande_d_avis(request):
         return redirect_error(request, "❌ Aucun avis sélectionné. Contactez le support.")
     
 
-    # --- Récupération dossier ---
-    dossier, err = get_dossier_or_redirect(request, "VALIDATION AVANT DEMANDE AVIS", id_ds=dossier_id_ds)
-    if err: 
-        return err
-    
-
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Envoi pour validation avant demande d'avis")
     if err: 
@@ -458,7 +465,7 @@ def faire_valider_une_demande_d_avis(request):
     dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
     full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
     creer_dossier_sur_nas(full_path)
-    filepath = os.path.join(full_path, fichier.name)
+    filepath = os.path.join(full_path, nom_fichier)
 
     if not smbclient.path.exists(filepath):
         return redirect_error(request, f"❌ Le projet d’acte doit être placé dans le sous-dossier 'Work' du dossier concerné.")
@@ -495,7 +502,7 @@ def faire_valider_une_demande_d_avis(request):
         
         # Enregistrer en BDD
         doc, created = Document.objects.get_or_create(
-                            emplacement=dossier_path, titre=fichier.name,
+                            emplacement=dossier_path, titre=nom_fichier,
                             defaults={
                                 "id_format": format_obj,
                                 "id_nature": nature_obj,
@@ -504,15 +511,75 @@ def faire_valider_une_demande_d_avis(request):
                             })
         if created:
             DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-            logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {fichier.name} créé en base par {request.user}.")
+            logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {nom_fichier} créé en base par {request.user}.")
         else:
             doc.id_statut = statut_obj
+            doc.id_nature = nature_obj
+            doc.id_format = format_obj
+            doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
+            doc.numero = None
             doc.save()
-            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du changement d'étape 'Faire valider une demande d'avis' par {request.user} - Erreur lors de la création ou de la MAJ du Document {fichier.name} en base : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du changement d'étape 'Faire valider une demande d'avis' par {request.user} - Erreur lors de la création ou de la MAJ du Document {nom_fichier} en base : {e}")
     
+
+    ########################
+    # Projet rapport CA
+    ########################
+    if nature == "Déliberation CA":
+
+        extension_rapport = Path(nom_fichier_rapport_ca).suffix.lower()
+        if extension_rapport not in {".doc", ".docx", ".odt"}:
+            return redirect_error(request, f"❌ Le projet de rapport du CA doit être .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension_rapport}.")
+
+        filepath_rapport = os.path.join(full_path, nom_fichier_rapport_ca)
+        if not smbclient.path.exists(filepath_rapport):
+            return redirect_error(request, "❌ Le projet de rapport du CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
+
+        try:
+            nature_rapport_obj = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
+            if not nature_rapport_obj:
+                return redirect_error(request,"❌ Nature 'Projet Rapport CA' introuvable en base. Contactez le support.")
+
+            format_rapport_obj = DocumentFormat.objects.filter(format=extension_rapport.lstrip('.')).first()
+            if not format_rapport_obj:
+                return redirect_error(request, f"❌ Le format '{extension_rapport}' n'a pas été trouvé en base. Contactez le support.")
+
+            doc_rapport, created = Document.objects.get_or_create(
+                emplacement=dossier_path,
+                titre=nom_fichier_rapport_ca,
+                defaults={
+                    "id_format": format_rapport_obj,
+                    "id_nature": nature_rapport_obj,
+                    "id_statut": statut_obj,
+                    "description": f"{nature_rapport_obj.nature} du dossier {dossier.numero}",
+                }
+            )
+
+            if created:
+                DossierDocument.objects.create(id_dossier=dossier, id_document=doc_rapport)
+                logger.info(
+                    f"[DOSSIER {dossier.numero}] Document {nature_rapport_obj.nature} {nom_fichier_rapport_ca} créé en base par {request.user}."
+                )
+                
+            else:
+                doc_rapport.id_statut = statut_obj
+                doc_rapport.id_nature = nature_rapport_obj
+                doc_rapport.id_format = format_rapport_obj
+                doc_rapport.description = f"{nature_rapport_obj.nature} du dossier {dossier.numero}"
+                doc_rapport.save()
+                logger.warning(
+                    f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_rapport_obj.nature} {nom_fichier_rapport_ca} déjà existant en base – aucune création"
+                )
+
+        except Exception as e:
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Erreur lors du changement d'étape 'Faire valider une demande d'avis' par {request.user} - "
+                f"Erreur lors de la création ou de la MAJ du Document {nom_fichier_rapport_ca} en base : {e}"
+            )
+
 
     # Changer Etape
     err = safe_update_etape(dossier, "À valider avant demande d'avis", request, break_si_erreur=True)
@@ -533,8 +600,11 @@ def faire_valider_le_projet_d_acte(request):
     dossier_id_ds = request.POST.get("dossierId")
     nature = request.POST.get("nature_document")
     validant = request.POST.get("choix-validant") #Objet Instructeur
-    fichier = request.FILES.get("piece_jointe")
-    fichier_rapport_CA = request.FILES.get("piece_jointe_rapport_ca")
+    # fichier = request.FILES.get("piece_jointe")
+    # fichier_rapport_CA = request.FILES.get("piece_jointe_rapport_ca")
+    nom_fichier_rapport_ca = (request.POST.get("piece_jointe_rapport_ca_work") or "").strip()
+    nom_fichier = (request.POST.get("piece_jointe_work") or "").strip()
+
 
     # =========================
     # ---   VERIFICATIONS   ---
@@ -552,14 +622,24 @@ def faire_valider_le_projet_d_acte(request):
         logger.error(f"[FAIRE VALIDER PROJET] Nature '{nature}' introuvable en base (user={request.user})")
         return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
 
-    if not fichier:
-        return redirect_error(request, "❌ Le projet d'acte n'a pas été joint.")
-
-    # Vérification que l'extension du file est .doc, .docx, .pdf, .odt
-    extension = Path(fichier.name).suffix.lower()
-    if extension not in {".doc", ".docx", ".odt"} :
-        return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+    if not nom_fichier:
+        return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
     
+    extension = Path(nom_fichier).suffix.lower()
+    if extension not in {".doc", ".docx", ".odt"}:
+        return redirect_error(request, f"❌ Le projet d'acte doit être .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+    # if not fichier:
+    #     return redirect_error(request, "❌ Le projet d'acte n'a pas été joint.")
+
+    # # Vérification que l'extension du file est .doc, .docx, .pdf, .odt
+    # extension = Path(fichier.name).suffix.lower()
+    # if extension not in {".doc", ".docx", ".odt"} :
+    #     return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
+    
+    # --- Récupération dossier ---
+    dossier, err = get_dossier_or_redirect(request, "VALIDATION PROJET ACTE", id_ds=dossier_id_ds)
+    if err: return err
+
 
     format_obj = DocumentFormat.objects.filter(format=extension.lstrip('.')).first()
     if not format_obj:
@@ -580,10 +660,7 @@ def faire_valider_le_projet_d_acte(request):
         logger.error(f"[VALIDER PROJET ACTE] User {request.user} : Aucun validant trouvé avec l'id : {validant}")
         return redirect_error(request, "❌ Le validant choisi n'existe pas.")
 
-    # --- Récupération dossier ---
-    dossier, err = get_dossier_or_redirect(request, "VALIDATION PROJET ACTE", id_ds=dossier_id_ds)
-    if err: return err
-
+    
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Validation projet d'acte")
     if err: return err
@@ -594,7 +671,11 @@ def faire_valider_le_projet_d_acte(request):
     full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
     creer_dossier_sur_nas(full_path)
 
-    filepath = os.path.join(full_path, fichier.name)
+    # filepath = os.path.join(full_path, fichier.name)
+    # if not smbclient.path.exists(filepath):
+    #     return redirect_error(request, "❌ Le projet d’acte doit être dans le sous-dossier 'Work' du dossier concerné.")
+
+    filepath = os.path.join(full_path, nom_fichier)
     if not smbclient.path.exists(filepath):
         return redirect_error(request, "❌ Le projet d’acte doit être dans le sous-dossier 'Work' du dossier concerné.")
 
@@ -609,7 +690,7 @@ def faire_valider_le_projet_d_acte(request):
         
         # Enregistrer en BDD
         doc, created = Document.objects.get_or_create(
-                        emplacement=dossier_path, titre=fichier.name, id_format=format_obj,
+                        emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
                         defaults={
                             "id_format": format_obj,
                             "id_nature": nature_obj,
@@ -620,7 +701,7 @@ def faire_valider_le_projet_d_acte(request):
 
         if created:
             DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} créé dans le dossier Work")
+            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
             
         else:
             doc.id_statut = statut_obj
@@ -628,9 +709,9 @@ def faire_valider_le_projet_d_acte(request):
             # Force un nouveau numéro
             doc.numero = None
             doc.save()
-            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'Faire valider le projet d'acte' par {request.user} - Erreur lors de la création du Document {fichier.name} en base : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'Faire valider le projet d'acte' par {request.user} - Erreur lors de la création du Document {nom_fichier} en base : {e}")
 
 
 
@@ -638,52 +719,51 @@ def faire_valider_le_projet_d_acte(request):
     # Projet rapport CA
     ########################
 
-    if fichier_rapport_CA :
+    if nature == "Déliberation CA":
+        if not nom_fichier_rapport_ca:
+            return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
 
-        extension_rapport = Path(fichier_rapport_CA.name).suffix.lower()
-        if extension_rapport not in {".doc", ".docx", ".odt"} :
-            return redirect_error(request, f"❌ Le projet de rapport du CA joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension_rapport}")
-        
-        filepath_rapport = os.path.join(full_path, fichier_rapport_CA.name)
-        # Vérification que le projet Rapport CA est bien dans le sous dossier Work
+        extension_rapport = Path(nom_fichier_rapport_ca).suffix.lower()
+        if extension_rapport not in {".doc", ".docx", ".odt"}:
+            return redirect_error(request, f"❌ Le projet de rapport du CA doit être .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension_rapport}")
+
+        filepath_rapport = os.path.join(full_path, nom_fichier_rapport_ca)
         if not smbclient.path.exists(filepath_rapport):
             return redirect_error(request, "❌ Le projet de rapport du CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
 
         try:
-            # Écriture du fichier sur le NAS
-            # if not ecrire_file_sur_nas(fichier, filepath_rapport): 
-            #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
-
-            nature_obj = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
-            if not nature_obj:
+            nature_rapport_obj = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
+            if not nature_rapport_obj:
                 return redirect_error(request, "❌ Nature 'Projet Rapport CA' introuvable en base. Contactez le support.")
 
-            format_obj = DocumentFormat.objects.filter(format=extension_rapport.lstrip('.')).first()
-            if not format_obj:
+            format_rapport_obj = DocumentFormat.objects.filter(format=extension_rapport.lstrip('.')).first()
+            if not format_rapport_obj:
                 return redirect_error(request, f"❌ Format '{extension_rapport}' non trouvé en base. Contactez le support.")
 
-
-            # Enregistrer en BDD
             doc, created = Document.objects.get_or_create(
-                                emplacement=dossier_path, titre=fichier_rapport_CA.name,
-                                defaults={
-                                    "id_format": format_obj,
-                                    "id_nature": nature_obj,
-                                    "id_statut": statut_obj,  # Récupéré précédemment
-                                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                                }
-                            )
+                emplacement=dossier_path,
+                titre=nom_fichier_rapport_ca,
+                defaults={
+                    "id_format": format_rapport_obj,
+                    "id_nature": nature_rapport_obj,
+                    "id_statut": statut_obj,
+                    "description": f"{nature_rapport_obj.nature} du dossier {dossier.numero}",
+                }
+            )
+
             if created:
                 DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier_rapport_CA.name} créé dans le dossier Work")
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_rapport_obj.nature} {nom_fichier_rapport_ca} créé dans le dossier Work")
             else:
                 doc.id_statut = statut_obj
+                doc.id_nature = nature_rapport_obj
+                doc.id_format = format_rapport_obj
+                doc.description = f"{nature_rapport_obj.nature} du dossier {dossier.numero}"
                 doc.save()
-                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_rapport_obj.nature} {nom_fichier_rapport_ca} déjà existant en base – aucune création")
 
         except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'Faire valider le projet d'acte' par {request.user} - Erreur lors de la création du Document {fichier.name} en base : {e}")
-
+            logger.error(f"[DOSSIER {dossier.numero}] Projet Rapport CA : erreur lors de la création du document {nom_fichier_rapport_ca} en base : {e}")
 
     # =======================
     # --- Ajout validant ---
@@ -1186,6 +1266,7 @@ def pret_a_la_signature(request):
 
 
 
+# Methode raccourci pour SPPN
 @require_POST
 @login_required
 def acte_pret_a_la_signature(request):
@@ -1195,8 +1276,10 @@ def acte_pret_a_la_signature(request):
     intermediaire_dir_id = request.POST.get("intermediaire_dir") # ID instructeur
 
     nature = request.POST.get("nature_document")
-    fichier = request.FILES.get("piece_jointe")
-    fichier_rapport_CA = request.FILES.get("piece_jointe_rapport_ca")
+    # fichier = request.FILES.get("piece_jointe")
+    nom_fichier = (request.POST.get("piece_jointe_work") or "").strip()
+    # fichier_rapport_CA = request.FILES.get("piece_jointe_rapport_ca")
+    nom_fichier_rapport_ca = (request.POST.get("piece_jointe_rapport_ca_work") or "").strip()
 
     # --- Vérification dossierId ---
     if not dossier_id_ds:
@@ -1228,16 +1311,29 @@ def acte_pret_a_la_signature(request):
         logger.error(f"[DOSSIER {dossier.numero}] Échec du changement d'étape à 'En attente de signature' par {request.user} : Nature '{nature}' introuvable en base (user={request.user})")
         return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
 
+    if not nom_fichier:
+        return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
 
     # Fichier 
-    if not fichier:
-        return redirect_error(request, "❌ Le projet d'acte n'a pas été joint.")
+    # if not fichier:
+    #     return redirect_error(request, "❌ Le projet d'acte n'a pas été joint.")
 
     # Vérification que l'extension du file est .doc, .docx, .pdf, .odt
-    extension = Path(fichier.name).suffix.lower()
+    extension = Path(nom_fichier).suffix.lower()
     if extension not in {".doc", ".docx", ".odt"} :
         return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
     
+    # Rapport CA
+    if nature == "Déliberation CA" and not nom_fichier_rapport_ca:
+        return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
+
+    if nature == "Déliberation CA" and nom_fichier and nom_fichier_rapport_ca and nom_fichier == nom_fichier_rapport_ca:
+        logger.warning(f"[DOSSIER {dossier.numero}] Prêt à la signature refusé par {request.user} : "
+            f"le projet de délibération et le projet de Rapport CA sont identiques ({nom_fichier})."
+        )
+        return redirect_error(request, "❌ Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.")
+
+
 
     format_obj = DocumentFormat.objects.filter(format=extension.lstrip('.')).first()
     if not format_obj:
@@ -1250,7 +1346,7 @@ def acte_pret_a_la_signature(request):
     full_path = os.path.join(os.environ.get("NAS_ROOT"), dossier_path)
     creer_dossier_sur_nas(full_path)
 
-    filepath = os.path.join(full_path, fichier.name)
+    filepath = os.path.join(full_path, nom_fichier)
     if not smbclient.path.exists(filepath):
         return redirect_error(request, "❌ Le projet d’acte doit être dans le sous-dossier 'Work' du dossier concerné.")
     
@@ -1266,7 +1362,7 @@ def acte_pret_a_la_signature(request):
         
         # Enregistrer en BDD
         doc, created = Document.objects.get_or_create(
-                        emplacement=dossier_path, titre=fichier.name, id_format=format_obj,
+                        emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
                         defaults={
                             "id_format": format_obj,
                             "id_nature": nature_obj,
@@ -1277,15 +1373,17 @@ def acte_pret_a_la_signature(request):
 
         if created:
             DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier.name} créé dans le dossier Work")
+            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
             
         else:
             doc.id_statut = statut_a_signer
             doc.id_nature = nature_obj
+            doc.id_format = format_obj
+            doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
             doc.save()
-            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {fichier.name} en base : {e}")
+        logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {nom_fichier} en base : {e}")
 
 
 
@@ -1293,13 +1391,13 @@ def acte_pret_a_la_signature(request):
     # Projet rapport CA
     ########################
 
-    if fichier_rapport_CA :
+    if nature == "Déliberation CA" :
 
-        extension_rapport = Path(fichier_rapport_CA.name).suffix.lower()
+        extension_rapport = Path(nom_fichier_rapport_ca).suffix.lower()
         if extension_rapport not in {".doc", ".docx", ".odt"} :
             return redirect_error(request, f"❌ Le projet de rapport du CA joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension_rapport}")
         
-        filepath_rapport = os.path.join(full_path, fichier_rapport_CA.name)
+        filepath_rapport = os.path.join(full_path, nom_fichier_rapport_ca)
         # Vérification que le projet Rapport CA est bien dans le sous dossier Work
         if not smbclient.path.exists(filepath_rapport):
             return redirect_error(request, "❌ Le projet de rapport du CA doit être placé dans le sous-dossier 'Work' du dossier concerné.")
@@ -1309,35 +1407,40 @@ def acte_pret_a_la_signature(request):
             # if not ecrire_file_sur_nas(fichier, filepath_rapport): 
             #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath_rapport}")
 
-            nature_obj = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
-            if not nature_obj:
+            nature_rapport_obj  = DocumentNature.objects.filter(nature="Projet Rapport CA").first()
+            if not nature_rapport_obj :
                 return redirect_error(request, "❌ Nature 'Projet Rapport CA' introuvable en base. Contactez le support.")
 
-            format_obj = DocumentFormat.objects.filter(format=extension_rapport.lstrip('.')).first()
-            if not format_obj:
+            format_rapport_obj  = DocumentFormat.objects.filter(format=extension_rapport.lstrip('.')).first()
+            if not format_rapport_obj :
                 return redirect_error(request, f"❌ Format '{extension_rapport}' non trouvé en base. Contactez le support.")
 
 
             # Enregistrer en BDD
             doc, created = Document.objects.get_or_create(
-                                emplacement=dossier_path, titre=fichier_rapport_CA.name,
+                                emplacement=dossier_path, titre=nom_fichier_rapport_ca,
                                 defaults={
-                                    "id_format": format_obj,
-                                    "id_nature": nature_obj,
+                                    "id_format": format_rapport_obj ,
+                                    "id_nature": nature_rapport_obj ,
                                     "id_statut": statut_a_signer,  # Récupéré précédemment
-                                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                                    "description": f"{nature_rapport_obj .nature} du dossier {dossier.numero}",
                                 }
                             )
             if created:
+                
                 DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {fichier_rapport_CA.name} créé dans le dossier Work")
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_rapport_obj .nature} {nom_fichier_rapport_ca} créé dans le dossier Work")
             else:
+                
                 doc.id_statut = statut_a_signer
+                doc.id_nature = nature_rapport_obj 
+                doc.id_format = format_rapport_obj 
+                doc.description = f"{nature_rapport_obj .nature} du dossier {dossier.numero}"
                 doc.save()
-                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {fichier.name} déjà existant en base – aucune création")
+                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_rapport_obj .nature} {nom_fichier_rapport_ca} déjà existant en base – aucune création")
 
         except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {fichier.name} en base : {e}")
+            logger.error(f"[DOSSIER {dossier.numero}] {nature_rapport_obj .nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {nom_fichier_rapport_ca} en base : {e}")
 
 
 
@@ -1389,6 +1492,9 @@ def acte_pret_a_la_signature(request):
         if statut == "à relire":
             try:
                 doc.id_statut = statut_a_signer
+                doc.id_nature = nature_obj
+                doc.id_format = format_obj
+                doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Statut du document '{doc.titre}' mis à jour → À signer.")
 

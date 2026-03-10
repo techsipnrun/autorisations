@@ -292,7 +292,9 @@ def preinstruction_dossier(request, numero):
     # Documents du dossier
     # -----------------------------------
     dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
-    emplacements_documents = [doc.id_document.emplacement for doc in dossier_documents]
+    emplacements_documents = [ f"{doc.id_document.emplacement}{doc.id_document.titre}" for doc in dossier_documents]
+
+    print(emplacements_documents)
 
     # Documents de nature "Annexe instructeur"
     annexes_instructeur = [

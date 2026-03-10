@@ -192,7 +192,6 @@ def _apply_ntfs_modify_for_group(unc_path: str, group_domain: str) -> bool:
     # Auth Samba : DOMAIN\user%password
     auth = f"{smb_domain}\\{smb_user}%{smb_pass}"
 
-    # ACE identique à ta commande OK
     ace = f"ACL:{group_domain}:ALLOWED/3/CHANGE"
 
     cmd = [
@@ -203,10 +202,8 @@ def _apply_ntfs_modify_for_group(unc_path: str, group_domain: str) -> bool:
         "--add", ace,
     ]
 
-    # (optionnel mais utile en debug) log sans le mot de passe
-    # loggerApp.info(f"[ACL][Linux][SMB] cmd=smbcacls {smb_share} {relpath} -U {smb_domain}\\{smb_user}%*** --add {ace}")
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     if result.returncode != 0:
         loggerApp.error(
@@ -246,7 +243,7 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
                 "/grant",
                 f"{GROUPE_NAS_LINUX}:(OI)(CI)M"
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
             if result.returncode != 0:
                 loggerApp.error(
