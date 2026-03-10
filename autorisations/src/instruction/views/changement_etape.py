@@ -1,11 +1,10 @@
 from datetime import datetime
 import logging
 import os
-from django.db import IntegrityError
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from django.db import transaction
 import smbclient
 from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
@@ -14,11 +13,10 @@ from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
-from instruction.utils.files_utils import generate_unique_filename, save_and_update_document
+from instruction.utils.files_utils import generate_unique_filename
 from instruction.utils.utilisateurs_utils import get_instructeur_or_redirect
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
-from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
@@ -27,7 +25,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from pathlib import Path
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-from psycopg2.errors import UniqueViolation
+
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -1963,12 +1961,10 @@ def classer_le_dossier_comme_refuse(request):
 
 
 
-"""  
-####################################################
-DERNIERE FONCTION A CLEAN
-####################################################
-"""
 
+####################################################
+###             ACTE D'ACCEPTATION               ###
+####################################################
 @login_required
 @require_POST
 def envoyer_l_acte(request):
@@ -2052,7 +2048,6 @@ def envoyer_l_acte(request):
         return redirect_error(request, "❌ Statut 'Envoyé' introuvable en base. Contactez le support.")
         
 
-
     # ===================================================
     #            LECTURE DE L'ACTE SIGNÉ
     # ===================================================
@@ -2095,7 +2090,6 @@ def envoyer_l_acte(request):
             return redirect_error(request,f"❌ Le format de document '{ext}' est introuvable en base. Contactez le support.")
     
 
-
         # ============================================
         #      ACCEPTATION DU DOSSIER SUR DS
         # ============================================
@@ -2110,67 +2104,71 @@ def envoyer_l_acte(request):
                 return redirect_error(request, f"Erreur lors de l'acceptation du dossier sur Démarche Numérique. Contactez le support.")
 
 
-        # -------------------------------------------------------
-        # Ajout de la personne chargée de publier l'acte au RAA
-        # ------------------------------------------------------
-        if nature_obj.nature != "Déliberation CA" :
-            err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
-            if err:
-                return err
-        
 
-        # ============================================
-        #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
-        # ============================================
+        try :
+            with transaction.atomic():
+                # -------------------------------------------------------
+                # Ajout de la personne chargée de publier l'acte au RAA
+                # ------------------------------------------------------
+                if nature_obj.nature != "Déliberation CA" :
+                    err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
+                    if err:
+                        return err
+                
 
-        # --- Mise à jour Étape ---
-        if nature_obj.nature == "Déliberation CA" :
-            # On classe le dossier comme accepté
-            err = safe_update_etape(dossier, "Accepté", request, break_si_erreur=True)
-            if err:
-                return err
-            
-        else :
-            safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
+                # ============================================
+                #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
+                # ============================================
+                # --- Mise à jour Étape ---
+                if nature_obj.nature == "Déliberation CA" :
+                    # On classe le dossier comme accepté
+                    err = safe_update_etape(dossier, "Accepté", request, break_si_erreur=True)
+                    if err:
+                        return err
+                    
+                else :
+                    safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
 
-        # --- Mise à jour État ---
-        safe_update_etat(dossier, "accepte", request, break_si_erreur=False) # On continue si Erreur
+                # --- Mise à jour État ---
+                safe_update_etat(dossier, "accepte", request, break_si_erreur=False) # On continue si Erreur
 
-        # --- Enregistrer Action ---
-        safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
-        if nature_obj.nature == "Déliberation CA" :
-            safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
+                # --- Enregistrer Action ---
+                safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
+                if nature_obj.nature == "Déliberation CA" :
+                    safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
 
-        
+                
 
-        # ==============================================
-        #     Mise à jour Doc "À envoyer" --> "Envoyé"
-        # ==============================================
-        documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
-        for lien in documents_du_dossier:
-            doc = lien.id_document
-            statut = doc.id_statut.statut.lower() if doc.id_statut else ""
+                # ==============================================
+                #     Mise à jour Doc "À envoyer" --> "Envoyé"
+                # ==============================================
+                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+                for lien in documents_du_dossier:
+                    doc = lien.id_document
+                    statut = doc.id_statut.statut.lower() if doc.id_statut else ""
 
-            if statut == "à envoyer":
-                try:
-                    doc.id_statut = statut_envoye
-                    doc.save()
-                    logger.info(f"[DOSSIER {dossier.numero}] Statut de {doc.id_nature.nature} '{doc.titre}' mis à jour → Envoyé.")
-                except Exception as e:
-                    logger.error(f"[DOSSIER {dossier.numero}] Envoi acte ({request.user}) : Erreur MAJ statut (À Envoyer → Envoyé) du document {doc.id} : {e}")
-            
-            # On considère que la délibération du CA a été publiée au RAA
-            if doc.id_nature.nature == "Déliberation CA" :
-                doc.publie_au_raa = True
-                doc.save()
+                    if statut == "à envoyer":
+                        try:
+                            doc.id_statut = statut_envoye
+                            doc.save()
+                            logger.info(f"[DOSSIER {dossier.numero}] Statut de {doc.id_nature.nature} '{doc.titre}' mis à jour → Envoyé.")
+                        except Exception as e:
+                            logger.error(f"[DOSSIER {dossier.numero}] Envoi acte ({request.user}) : Erreur MAJ statut (À Envoyer → Envoyé) du document {doc.id} : {e}")
+                    
+                    # On considère que la délibération du CA a été publiée au RAA
+                    if doc.id_nature.nature == "Déliberation CA" :
+                        doc.publie_au_raa = True
+                        doc.save()
 
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier_numero}] Envoi acte d'acceptation ({request.user}) - Document id={document_id} : Acte bien envoyé sur Démarche Numérique mais erreur lors de la mise à jour de la base locale : {e}")
+            return redirect_error(request, "Acte bien envoyé sur Démarche Numérique mais erreur lors de la mise à jour de la base locale. Contactez le support.")
 
 
 
         # ==============================================
         #     Envoyer une copie de l'acte par Mail
         # ==============================================
-
         partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
         emails = request.POST.getlist("emails_copie[]")
 
@@ -2299,7 +2297,9 @@ def envoyer_l_acte(request):
 
 
 
-
+###############################################
+###             ACTE DE REFUS               ###
+###############################################
 @login_required
 @require_POST
 def envoyer_l_acte_de_refus(request):
@@ -2383,8 +2383,6 @@ def envoyer_l_acte_de_refus(request):
         emplacement_doc = os.path.join(emplacement_relatif_dossier_acte, f"{document.titre}")
         full_path_doc = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc)
 
-        # Chercher si un document existe déjà avec même emplacement + titre
-        # doc_existant = Document.objects.filter(emplacement=emplacement_relatif_dossier_acte, titre=document.titre).first()
 
         # Définir le Content Type à partir du Format du Doc
         format_str = document.id_format.format.lower()
@@ -2416,50 +2414,6 @@ def envoyer_l_acte_de_refus(request):
             return redirect_error(request,f"❌ Le format de document '{ext}' est introuvable en base. Contactez le support.")
     
         
-        # ======================================================
-        #        Copie du Rapport CA (s'il existe) Work -> Actes
-        # ======================================================
-        # if rapportCA_id :
-        #     try:
-        #         try:
-        #             docRapportCA = Document.objects.get(id=rapportCA_id)
-
-        #         except Document.DoesNotExist :
-        #             logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Rapport CA introuvable en base (id={rapportCA_id})")
-        #             return redirect_error(request,"❌ Le Rapport CA est introuvable en base. Contactez le support.")
-                
-
-        #         #  Trouver un nom de fichier non existant (ex : titre_final = rapport_2, abs_file_path = Chemin absolu de "rapport_2.pdf")
-        #         titre_final, abs_file_path = generate_unique_filename(
-        #                                         dir_abs_path = emplacement_absolu_dossier_acte, 
-        #                                         dir_rel_path = emplacement_relatif_dossier_acte, 
-        #                                         base_filename = docRapportCA.titre
-        #                                     )
-
-
-        #         # Copie physique Work -> Actes
-        #         emplacement_ancien_rapportCA =  os.path.join(os.environ.get("NAS_ROOT"), docRapportCA.emplacement, docRapportCA.titre) 
-
-        #         if not ecrire_file_sur_nas(emplacement_ancien_rapportCA, abs_file_path): 
-        #             raise (f"Échec de l’écriture du fichier {docRapportCA.titre} sur {abs_file_path}")
-
-        #         logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Rapport CA ({docRapportCA.titre}) copié du dossier Work au dossier Actes.")
-
-
-        #         # MAJ de l'emplacement (/Work -> /Actes)
-        #         try:
-        #             docRapportCA.emplacement = emplacement_relatif_dossier_acte
-        #             docRapportCA.save()
-
-        #         except Exception as e:
-        #             logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Échec MAJ emplacement Rapport CA (id={docRapportCA.id}) en BDD : {e}")
-        #             return redirect_error(request,"❌ Rapport CA copié dans le Dossier '/Actes' mais échec de la mise à jour de son emplacement en base. Contactez le support.")
-                
-        #     except Exception as e:
-        #         logger.error(f"[DOSSIER {dossier_numero}] Échec envoi acte ({request.user}) - Echec de la copie du Rapport CA du dossier Work vers le dossier Actes : {e}")
-        #         return redirect_error(request, "❌ Echec de la copie du Rapport CA du dossier Work vers le dossier Actes. Contactez le support")
-
-
 
         # ============================================
         #      REFUS DU DOSSIER SUR DS
@@ -2473,62 +2427,69 @@ def envoyer_l_acte_de_refus(request):
                 return redirect_error(request, f"Erreur lors du refus du dossier sur Démarche Numérique. Contactez le support.")
 
 
-        # -------------------------------------------------------
-        # Ajout de la personne chargée de publier l'acte au RAA
-        # ------------------------------------------------------
-        err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
-        if err:
-            return err
-        
+        try :
+            with transaction.atomic():
 
-        # ============================================
-        #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
-        # ============================================
+                # -------------------------------------------------------
+                # Ajout de la personne chargée de publier l'acte au RAA
+                # ------------------------------------------------------
+                if nature_obj.nature != "Déliberation CA" :
+                    err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
+                    if err:
+                        return err
+                
 
-        # --- Mise à jour Étape ---
-        safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
+                # ============================================
+                #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
+                # ============================================
 
-        # --- Mise à jour État ---
-        safe_update_etat(dossier, "refuse", request, break_si_erreur=False) # On continue si Erreur
+                # --- Mise à jour Étape ---
+                if nature_obj.nature == "Déliberation CA" :
+                    # On classe le dossier comme refusé
+                    err = safe_update_etape(dossier, "Refusé", request, break_si_erreur=True)
+                    if err:
+                        return err
+                    
+                else :
+                    safe_update_etape(dossier, "À publier au RAA", request, break_si_erreur=False) # On continue si Erreur
 
-        # --- Enregistrer Action ---
-        safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
-        if nature_obj.nature == "Déliberation CA" :
-            safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
+                # --- Mise à jour État ---
+                safe_update_etat(dossier, "refuse", request, break_si_erreur=False) # On continue si Erreur
+
+                # --- Enregistrer Action ---
+                safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
+                if nature_obj.nature == "Déliberation CA" :
+                    safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
 
 
-        # ===============================================
-        #  ÉCRITURE PHYSIQUE DE L'ACTE + MAJ du Document 
-        # ===============================================
-        """
-        TO DO
 
+                # ==============================================
+                #     Mise à jour Doc "À envoyer" --> "Envoyé"
+                # ==============================================
+                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+                for lien in documents_du_dossier:
+                    doc = lien.id_document
+                    statut = doc.id_statut.statut.lower() if doc.id_statut else ""
 
-        Arreter de ré écrire le file, c'est deja fait dans acte_pret_a_etre_envoye
-
-
-        """
-
-        err = save_and_update_document(
-            request=request,
-            dossier=dossier,
-            fichier=fichier,
-            document=document,
-            format_obj=format_obj,
-            nature_obj=nature_obj,
-            statut_obj=statut_envoye,
-            abs_file_path=full_path_doc,
-            rel_dir_path=emplacement_relatif_dossier_acte,
-        )
-        if err:
-            return err
-        
-
+                    if statut == "à envoyer":
+                        try:
+                            doc.id_statut = statut_envoye
+                            doc.save()
+                            logger.info(f"[DOSSIER {dossier.numero}] Statut de {doc.id_nature.nature} '{doc.titre}' mis à jour → Envoyé.")
+                        except Exception as e:
+                            logger.error(f"[DOSSIER {dossier.numero}] Envoi acte ({request.user}) : Erreur MAJ statut (À Envoyer → Envoyé) du document {doc.id} : {e}")
+                    
+                    # On considère que la délibération du CA a été publiée au RAA
+                    if doc.id_nature.nature == "Déliberation CA" :
+                        doc.publie_au_raa = True
+                        doc.save()
+        except Exception as e:
+            logger.error(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) - Document id={document_id} : Acte bien envoyé sur Démarche Numérique mais erreur lors de la mise à jour de la base locale : {e}")
+            return redirect_error(request, "Acte de refus bien envoyé sur Démarche Numérique mais erreur lors de la mise à jour de la base locale. Contactez le support.")
 
         # ==============================================
         #     Envoyer une copie de l'acte par Mail
         # ==============================================
-
         partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
         emails = request.POST.getlist("emails_copie[]")
 
