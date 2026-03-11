@@ -64,7 +64,7 @@ class Document(models.Model):
     
     def save(self, *args, **kwargs):
         """
-        Incrémente automatiquement le numéro au format AAAA-XXX
+        Incrémente automatiquement le numéro au format AAAA-XXXX
         pour les natures : 'Arrêté directeur', 'Déliberation CA', 'Avis simple', 'Avis conforme'.
         Si la nature du document change, le numéro est régénéré.
         """
@@ -98,11 +98,11 @@ class Document(models.Model):
             if dernier_num:
                 try:
                     last_counter = int(dernier_num.split('-')[-1])
-                    nouveau_num = f"{annee}-{last_counter + 1:03d}"
+                    nouveau_num = f"{annee}-{last_counter + 1:04d}"
                 except ValueError:
-                    nouveau_num = f"{annee}-001"
+                    nouveau_num = f"{annee}-1000"
             else:
-                nouveau_num = f"{annee}-001"
+                nouveau_num = f"{annee}-1000"
 
             self.numero = nouveau_num
 

@@ -567,6 +567,7 @@ def faire_valider_une_demande_d_avis(request):
                 doc_rapport.id_nature = nature_rapport_obj
                 doc_rapport.id_format = format_rapport_obj
                 doc_rapport.description = f"{nature_rapport_obj.nature} du dossier {dossier.numero}"
+                doc_rapport.numero = None
                 doc_rapport.save()
                 logger.warning(
                     f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_rapport_obj.nature} {nom_fichier_rapport_ca} déjà existant en base – aucune création"
@@ -626,18 +627,10 @@ def faire_valider_le_projet_d_acte(request):
     extension = Path(nom_fichier).suffix.lower()
     if extension not in {".doc", ".docx", ".odt"}:
         return redirect_error(request, f"❌ Le projet d'acte doit être .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-    # if not fichier:
-    #     return redirect_error(request, "❌ Le projet d'acte n'a pas été joint.")
 
-    # # Vérification que l'extension du file est .doc, .docx, .pdf, .odt
-    # extension = Path(fichier.name).suffix.lower()
-    # if extension not in {".doc", ".docx", ".odt"} :
-    #     return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
-    
     # --- Récupération dossier ---
     dossier, err = get_dossier_or_redirect(request, "VALIDATION PROJET ACTE", id_ds=dossier_id_ds)
     if err: return err
-
 
     format_obj = DocumentFormat.objects.filter(format=extension.lstrip('.')).first()
     if not format_obj:
@@ -682,10 +675,7 @@ def faire_valider_le_projet_d_acte(request):
     # Sauvegarde du Projet d'acte
     ##############################
     try:
-        # Écriture du fichier sur le NAS ?
-        # if not ecrire_file_sur_nas(fichier, filepath): 
-        #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
-        
+
         # Enregistrer en BDD
         doc, created = Document.objects.get_or_create(
                         emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
@@ -757,6 +747,7 @@ def faire_valider_le_projet_d_acte(request):
                 doc.id_nature = nature_rapport_obj
                 doc.id_format = format_rapport_obj
                 doc.description = f"{nature_rapport_obj.nature} du dossier {dossier.numero}"
+                doc.numero = None
                 doc.save()
                 logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_rapport_obj.nature} {nom_fichier_rapport_ca} déjà existant en base – aucune création")
 
@@ -1434,6 +1425,7 @@ def acte_pret_a_la_signature(request):
                 doc.id_nature = nature_rapport_obj 
                 doc.id_format = format_rapport_obj 
                 doc.description = f"{nature_rapport_obj .nature} du dossier {dossier.numero}"
+                doc.numero = None
                 doc.save()
                 logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_rapport_obj .nature} {nom_fichier_rapport_ca} déjà existant en base – aucune création")
 
