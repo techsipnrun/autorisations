@@ -102,17 +102,52 @@ function confirmerSuppressionAnnexe(bouton) {
 }
 
 
-// Copier le path de l'annexe instructeur
 function copierPath(button, path) {
-    navigator.clipboard.writeText(path)
-        .then(() => {
-            const feedback = button.nextElementSibling;
-            feedback.classList.add("show");
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(path)
+            .then(() => afficherFeedbackCopie(button))
+            .catch(err => fallbackCopie(button, path, err));
+    } else {
+        fallbackCopie(button, path);
+    }
+}
 
-            setTimeout(() => { feedback.classList.remove("show"); }, 2000); // "Copié !" disparaît après 2 secondes
-        })
-        .catch(err => { alert("Erreur lors de la copie du chemin : " + err);
-    });
+function afficherFeedbackCopie(button) {
+    const feedback = button.nextElementSibling;
+    if (!feedback) return;
+
+    feedback.classList.add("show");
+    setTimeout(() => {
+        feedback.classList.remove("show");
+    }, 2000);
+}
+
+function fallbackCopie(button, path, originalError = null) {
+    try {
+        const textarea = document.createElement("textarea");
+        textarea.value = path;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        if (ok) {
+            afficherFeedbackCopie(button);
+        } else {
+            throw new Error("Copie impossible");
+        }
+    } catch (err) {
+        alert(
+            "Erreur lors de la copie du chemin."
+            + (originalError ? "\nCause initiale : " + originalError : "")
+        );
+    }
 }
 
 

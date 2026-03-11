@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Max
 from datetime import date
+from django.db import IntegrityError, transaction
 
 from .models_utilisateurs import DossierRelecteur
 
@@ -85,26 +86,35 @@ class Document(models.Model):
 
         # Nouveau document cible OU changement de nature
         if (not self.numero or nature_changee) and nature_actuelle in natures_cibles:
-            dernier = (
-                Document.objects
-                .filter(
-                    id_nature=self.id_nature,
-                    numero__startswith=str(annee)
+            for _ in range(3):
+                dernier = (
+                    Document.objects
+                    .filter(
+                        id_nature=self.id_nature,
+                        numero__startswith=str(annee)
+                    )
+                    .aggregate(max_num=Max('numero'))
                 )
-                .aggregate(max_num=Max('numero'))
-            )
 
-            dernier_num = dernier["max_num"]
-            if dernier_num:
-                try:
-                    last_counter = int(dernier_num.split('-')[-1])
-                    nouveau_num = f"{annee}-{last_counter + 1:04d}"
-                except ValueError:
+                dernier_num = dernier["max_num"]
+                if dernier_num:
+                    try:
+                        last_counter = int(dernier_num.split('-')[-1])
+                        nouveau_num = f"{annee}-{last_counter + 1:04d}"
+                    except ValueError:
+                        nouveau_num = f"{annee}-1000"
+                else:
                     nouveau_num = f"{annee}-1000"
-            else:
-                nouveau_num = f"{annee}-1000"
 
-            self.numero = nouveau_num
+                self.numero = nouveau_num
+
+                try:
+                    with transaction.atomic():
+                        return super().save(*args, **kwargs)
+                except IntegrityError:
+                    self.numero = None
+                    
+            raise IntegrityError("Impossible de générer un numéro unique.")
 
         super().save(*args, **kwargs)
 
