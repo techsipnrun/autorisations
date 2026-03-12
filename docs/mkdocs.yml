@@ -31,7 +31,7 @@ nav:
       - Habilitations: prerequis/habilitations.md
   - Onglets de navigation:
       - Réception: onglets/reception.md
-      - Instruction: onglets/instruction.md
+      - Vue d'ensemble: onglets/vue-ensemble.md
       - Mes dossiers: onglets/mes-dossiers.md
       - Mes Avis:
           - Vision Expert: onglets/vision-expert.md
@@ -57,8 +57,8 @@ nav:
       - Acte prêt à être envoyé: etapes/acte-pret.md
       - Envoyer l'acte: etapes/envoyer-acte.md
   - Un dossier:
-      - Onglet Formulaire: 
-        - Raccourcis : dossier/formulaire/raccourcis.md
+      - Onglet Formulaire:
+        - L'entête : dossier/formulaire/entete.md
         - Timeline: dossier/formulaire/timeline.md
         - Pannel de droite: dossier/formulaire/pannel-droite.md
         - Champs: dossier/formulaire/champs.md

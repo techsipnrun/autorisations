@@ -32,7 +32,7 @@
   <figure style="margin: 0; text-align: center; flex: 0 0 auto;">
     <img src="../../images/dossier/formulaire/raccourcis/copie-path.png"
          alt="Copier le chemin"
-         style="height:80px;">
+         style="width:180px;">
     <figcaption><em>Figure 2 — Copier le chemin</em></figcaption>
   </figure>
 

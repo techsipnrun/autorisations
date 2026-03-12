@@ -79,14 +79,19 @@ En cas d’erreur :
 
 En cas d’erreur, vous devez en **informer le support**.
 
+<figure style="text-align: center;">
+  <img src="../images/onglets/synchro-erreur.png" alt="Erreur lors de la synchronisation" width="450">
+  <figcaption><em>Figure 4 — Erreur lors de la synchronisation </em></figcaption>
+</figure>
+
 ---
 
 ### Synchronisations ciblées
 
 En complément de la synchronisation générale, des synchronisations plus **ciblées et rapides** peuvent être réalisées :
 
-- à l’échelle d’un **type de dossier** (voir la page [Actualiser les dossiers d'un même type](instruction.md#actualiser-les-dossiers-dun-meme-type))
-- à l’échelle d’un **dossier spécifique** (voir la page [Actualiser un dossier](../dossier/formulaire/raccourcis.md#actualiser-un-dossier))
+- à l’échelle d’un **type de dossier** (voir la page [Actualiser les dossiers d'un même type](vue-ensemble.md#actualiser-les-dossiers-dun-meme-type))
+- à l’échelle d’un **dossier spécifique** (voir la page [Actualiser un dossier](../dossier/formulaire/entete.md#actualiser-un-dossier))
 - uniquement pour la **messagerie d’un dossier** (voir la page [Actualiser la messagerie](../dossier/messagerie.md#actualiser-la-messagerie))
 
 Ces synchronisations ciblées permettent de mettre à jour rapidement des éléments précis sans relancer une synchronisation globale.

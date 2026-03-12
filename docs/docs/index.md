@@ -3,7 +3,7 @@
 Bienvenue dans la documentation de l'application **Autorisations**.  
 
 !!! info "Information"
-    Date de la dernière mise à jour : **19/01/2026**
+    Date de la dernière mise à jour : **12/03/2026**
 
 
 ---
@@ -18,7 +18,7 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 
 ## Onglets de navigation
 - [Réception](onglets/reception.md)
-- [Instruction](onglets/instruction.md)
+- [Vue d'ensemble](onglets/vue-ensemble.md)
 - [Mes dossiers](onglets/mes-dossiers.md)
 - [Mes Avis : Vision Expert](onglets/vision-expert.md)
 - [Mes Avis : Vision Demandeur](onglets/vision-demandeur.md)
@@ -50,7 +50,7 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 
 ## Un dossier
 ### Onglet Formulaire
-- [Raccourcis](dossier/formulaire/raccourcis.md)
+- [L'entête](dossier/formulaire/entete.md)
 - [Timeline](dossier/formulaire/timeline.md)
 - [Panneau de droite](dossier/formulaire/pannel-droite.md)
 - [Champs](dossier/formulaire/champs.md)
