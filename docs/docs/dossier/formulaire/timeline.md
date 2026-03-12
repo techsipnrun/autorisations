@@ -79,5 +79,5 @@ En haut de la page d'un dossier en cours d'instruction, on retrouve une timeline
 | <img src="../../images/dossier/formulaire/timeline/instructeur_ajoute.png" width="30"> | Instructeur·rice ajouté·e au dossier | <img src="../../images/dossier/formulaire/timeline/instructeur_retire.png" width="30"> | Instructeur·rice retiré·e du dossier |
 | <img src="../../images/dossier/formulaire/timeline/publie_au_raa.png" width="30"> | Acte publié au RAA | <img src="../../images/dossier/formulaire/timeline/recu.png" width="30"> | Dossier reçu |
 | <img src="../../images/dossier/formulaire/timeline/refuse.png" width="30"> | Dossier classé comme *Refusé* | <img src="../../images/dossier/formulaire/timeline/relecture-qualite.png" width="30"> | Relecture qualité faite |
-| <img src="../../images/dossier/formulaire/timeline/valide.png" width="30"> | Dossier validé |  |  |
+| <img src="../../images/dossier/formulaire/timeline/valide.png" width="30"> | Dossier validé | <img src="../../images/dossier/formulaire/timeline/dossier_supprime_de_DN.png" width="30"> | Dossier supprimé de Démarche Numérique |
 

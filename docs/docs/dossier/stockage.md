@@ -96,6 +96,14 @@ Exemple :
 ### Dossier *Actes/*
 Contient **tous les actes signés** délivrés par le Parc (format PDF).
 
+| Type d'acte | Norme de nommage |
+|:-----:|--------|
+| Arrêté du directeur | DIR-I-{NUMERO}_{DATE DU JOUR} |
+| Délibération du CA | DELIB-CA-{NUMERO}_{DATE DU JOUR} |
+| Avis Simple | AVIS-SIMPLE-{NUMERO}_{DATE DU JOUR} |
+| Avis Conforme | AVIS-CONFORME-{NUMERO}_{DATE DU JOUR} |
+
+
 > Ce dossier est **en lecture seule** : il est alimenté exclusivement par l’application.
 
 ---

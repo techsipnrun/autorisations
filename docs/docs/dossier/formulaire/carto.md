@@ -24,14 +24,14 @@ Plusieurs outils permettent de naviguer facilement dans la carte :
 
 - **Déplacement** : Cliquer-glisser pour se déplacer dans la carte.
 
-- **Impression** : Un bouton permet de générer une **impression PDF** de la carte. Cette fonctionnalité est en cours d’amélioration et pourra évoluer.
+- **Impression** : Un bouton permet de générer une **impression PDF** de la carte.
 
 ---
 
 L’interface permet :
 
 - d’**afficher ou masquer des couches cartographiques** (Cœur de Parc, Aire d'adhésion, etc.).
-- de **changer le fond de carte** (OpenStreetMap, Satellite, etc.).
+- de **changer le fond de carte** (IGN, OpenStreetMap, Satellite, etc.).
 
 Si vous souhaitez ajouter de nouvelles couches ou proposer d’autres fonds de carte, rapprochez-vous du **support**.
 
