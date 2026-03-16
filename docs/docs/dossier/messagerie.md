@@ -40,6 +40,24 @@ Pour plus de détails sur l’organisation du stockage, consulter la page  [Stoc
 
 ---
 
+## Signer son message
+
+<figure style="text-align: center;">
+  <img src="../images/dossier/messagerie/signer-message.png" alt="Timeline minimaliste" width="700">
+  <figcaption><em>Figure 2 — Signer son message</em></figcaption>
+</figure>
+
+Par défaut la case « Je veux que mon message soit signé » est cochée.
+Cette option ajoute à la fin de votre message :
+
+```PRENOM NOM```   
+```Parc national de La Réunion```
+
+Vous pouvez tout à fait décocher cette option si vous souhaitez garder l'anonymat.
+
+
+---
+
 ## Spécificités des échanges avec le pétitionnaire
 
 ### Anonymisation des échanges
