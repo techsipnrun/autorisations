@@ -11,7 +11,7 @@
 | Nom du champ | Description | En interne | À une instance |
 |:-----:|--------|--------|--------|
 | Nature de l'avis | *Consultation en interne* ou *Demande à une instance* | 🟢 | 🟢 |
-| Thématique de l'avis | xxx | 🟢 | 🟢 |
+| Thématique de l'avis | Exemple : Chambre d'hôtes | 🟢 | 🟢 |
 | Note | Note libre visible uniquement parles autres instructeurs.rices | 🟠 | 🟠 |
 | Mode de contact | *Via l'application* (par défaut), *Courrier papier*, *Téléphone* ou *Mail* | 🟢 | 🟢 |
 | Joindre la demande d'avis (Word) | Exemple : Le projet d'avis du CS | 🟠 | 🟢 |
