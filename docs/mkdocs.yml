@@ -48,14 +48,13 @@ nav:
       - Valider le modèle de demande d'avis et le projet d'acte: etapes/valider-avis-et-acte.md
       - Valider et envoyer pour relecture qualité: etapes/valider-acte.md
       - Prêt à la signature: etapes/pret-a-la-signature.md
-      - Envoyer les modifications de l'acte pour validation: etapes/faire-valider-modifs-acte.md
       - Classer le dossier comme non soumis à autorisation: etapes/non-soumis-a-autorisation.md
       - Classer le dossier comme refusé: etapes/refuse.md
       - Classer le dossier comme accepté: etapes/accepte.md
-      - Acte inchangé, envoyer pour relecture qualité: etapes/acte-inchange.md
       - Avis envoyé: etapes/avis-envoye.md
-      - Acte prêt à être envoyé: etapes/acte-pret.md
+      - Transmettre l'acte signé: etapes/transmettre-acte-signe.md
       - Envoyer l'acte: etapes/envoyer-acte.md
+      - Partager l'acte par mail: etapes/partager_acte_par_mail.md
   - Un dossier:
       - Onglet Formulaire:
         - L'entête : dossier/formulaire/entete.md

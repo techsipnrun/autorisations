@@ -9,7 +9,7 @@ Dans cette « Vision expert », on retrouve **deux sections** :
 <br>
 
 <figure style="text-align: center;">
-  <img src="../images/onglets/avis/avis_expert.png" alt="Timeline minimaliste" width="700">
+  <img src="../images/onglets/avis/avis_expert.png" alt="Timeline minimaliste" width="800">
   <figcaption><em>Figure 1 — La vision expert </em></figcaption>
 </figure>
 
@@ -25,7 +25,7 @@ Le petit plus : vous avez désormais la possibilité, en tant qu’expert·e, de
 
 <figure style="text-align: center;">
   <img src="../images/onglets/avis/donner_son_avis.png" alt="Timeline minimaliste" width="500">
-  <figcaption><em>Figure 1 — Rendre un avis </em></figcaption>
+  <figcaption><em>Figure 2 — Rendre un avis </em></figcaption>
 </figure>
 
 ---
