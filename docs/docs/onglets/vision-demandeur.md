@@ -11,7 +11,7 @@ Dans cette « Vision demandeur », **on peut retrouver jusqu'à trois sections**
 <br>
 
 <figure style="text-align: center;">
-  <img src="../images/onglets/avis/avis_demandeur.png" alt="Timeline minimaliste" width="700">
+  <img src="../images/onglets/avis/avis_demandeur.png" alt="Timeline minimaliste" width="800">
   <figcaption><em>Figure 1 — La vision demandeur </em></figcaption>
 </figure>
 
@@ -63,7 +63,7 @@ Si, au sein de la « Vision demandeur », vous cliquez sur une demande d’avis 
 <br>
 
 <figure style="text-align: center;">
-  <img src="../images/onglets/avis/messagerie_avis_favorable.png" alt="Timeline minimaliste" width="650">
+  <img src="../images/onglets/avis/messagerie_avis_favorable.png" alt="Timeline minimaliste" width="700">
   <figcaption><em>Figure 2 — La messagerie avec l'expert </em></figcaption>
 </figure>
 
