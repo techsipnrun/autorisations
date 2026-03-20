@@ -1,6 +1,3 @@
-!!! info "Information"
-    Page en cours de rédaction
-
 Lorsque vous êtes sur le point d'envoyer un acte au pétitionnaire (voir la page [Envoyer l'acte](envoyer-acte.md)), vous pouvez décider de partager cet acte à d'autres contacts.
 
 En cliquant sur « Partager l'acte par mail : Oui », deux sections apparaissent en dessous :
