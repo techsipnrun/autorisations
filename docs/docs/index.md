@@ -3,7 +3,7 @@
 Bienvenue dans la documentation de l'application **Autorisations**.  
 
 !!! info "Information"
-    Date de la dernière mise à jour : **17/03/2026**
+    Date de la dernière mise à jour : **20/03/2026**
 
 
 ---
