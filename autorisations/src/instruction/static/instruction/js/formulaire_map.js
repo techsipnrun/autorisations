@@ -283,7 +283,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }),
             osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap',
-                maxZoom: 19
+                maxZoom: 19,
+                referrerPolicy: "strict-origin-when-cross-origin"
             }),
             opentopomap: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenTopoMap',
