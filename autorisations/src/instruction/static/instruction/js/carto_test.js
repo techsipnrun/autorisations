@@ -412,7 +412,7 @@
                 }
             ),
             "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap', maxZoom: 19
+                attribution: '© OpenStreetMap', maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin"
             }),
             "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 attribution: 'Esri & NASA', maxZoom: 19
