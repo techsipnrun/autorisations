@@ -232,7 +232,7 @@
                         {% if demandeur_intermediaire.siret %}
                             <div class="siret_insee">
                                 <strong>N° SIRET</strong> : {{ demandeur_intermediaire.siret }}
-                                <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{beneficiaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
+                                <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{demandeur_intermediaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
                                     <img src="{% static 'instruction/img/lien-externe.png' %}" alt="">
                                 </a>
                             </div>

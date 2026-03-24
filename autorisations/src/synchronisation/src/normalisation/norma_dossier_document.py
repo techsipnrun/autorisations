@@ -11,7 +11,7 @@ def dossier_document_normalize(doss, emplacement_dossier):
 
     dico_pdf = {
         "numero": doss["number"],
-        "id_format": get_first_id(DocumentFormat, format=extension_fichier),
+        "id_format": get_first_id(DocumentFormat, format=extension_fichier.lower()),
         "id_nature": get_first_id(DocumentNature, nature="Résumé dossier"),
         "url_ds": doss["pdf"]["url"],
         "emplacement": emplacement_dossier,

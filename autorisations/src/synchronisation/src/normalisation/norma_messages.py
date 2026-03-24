@@ -45,7 +45,7 @@ def message_normalize(doss, emplacement_dossier):
 
                         nom_fichier, extension_fichier = extraire_nom_et_extension(file["filename"])
 
-                        id_format_doc = get_first_id(DocumentFormat, format=extension_fichier)
+                        id_format_doc = get_first_id(DocumentFormat, format=extension_fichier.lower())
                         if not id_format_doc:
                             logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss['number']}")
                             continue
@@ -71,7 +71,7 @@ def message_normalize(doss, emplacement_dossier):
                         filename = unquote(params.get("filename", [""])[0])
                         nom_fichier, extension_fichier = extraire_nom_et_extension(filename)
 
-                        id_format_doc = get_first_id(DocumentFormat, format=extension_fichier)
+                        id_format_doc = get_first_id(DocumentFormat, format=extension_fichier.lower())
                         if not id_format_doc:
                             logger.error(f"[PJ Message] Format de document inconnu : {extension_fichier} pour le dossier {doss['number']}")
                             continue
