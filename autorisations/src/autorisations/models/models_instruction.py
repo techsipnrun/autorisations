@@ -167,6 +167,11 @@ class Dossier(models.Model):
     present_sur_ds = models.BooleanField(default=False)
     # relecture_juridique = models.BooleanField(default=False)
 
+    actualisation_statut = models.CharField(max_length=20, blank=True, null=True)
+    actualisation_date = models.DateTimeField(blank=True, null=True)
+    actualisation_message = models.CharField(blank=True, null=True)
+
+
     class Meta:
         managed = False
         db_table = '"instruction"."dossier"'
