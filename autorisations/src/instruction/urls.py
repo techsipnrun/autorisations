@@ -98,6 +98,7 @@ urlpatterns = [
     path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
     path('preinstruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),
     path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
+    path('instruction/<int:num_dossier>/etat-actualisation/', instruction.etat_actualisation_dossier, name='etat_actualisation_dossier'),
 
 
     # GROUPE INSTRUCTEUR

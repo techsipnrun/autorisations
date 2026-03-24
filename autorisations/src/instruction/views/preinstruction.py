@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import DossierDocument
@@ -294,7 +294,6 @@ def preinstruction_dossier(request, numero):
     dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
     emplacements_documents = [ f"{doc.id_document.emplacement}{doc.id_document.titre}" for doc in dossier_documents]
 
-    print(emplacements_documents)
 
     # Documents de nature "Annexe instructeur"
     annexes_instructeur = [
@@ -328,6 +327,11 @@ def preinstruction_dossier(request, numero):
     ###############################
     nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
 
+    ###############################
+    # Infos sur la synchro
+    ###############################
+    etat_global = SynchronisationEtat.objects.filter(id=1).values("en_cours").first()
+
 
     return render(request, 'instruction/preinstruction_dossier.html', {
         # Dossier
@@ -343,6 +347,7 @@ def preinstruction_dossier(request, numero):
         "avis_manif_sportive": avis_manif_sportive,
         "notes": notes,
         "nb_messages_non_lus": nb_messages_non_lus,
+        "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         
         # Carto
         "coeurData": fond_coeur_de_parc,

@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
@@ -18,7 +18,7 @@ from autorisations.models.models_avis import AvisDocument, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
 from instruction.utils.document_utils import build_documents_for_dossier
-from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etapes_custom, redirect_error, safe_enregistrer_action
+from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etapes_custom, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -44,6 +44,8 @@ from django.http import Http404
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from django.contrib.auth import get_user_model
+from threading import Thread
+from django.http import JsonResponse
 
 
 logger = logging.getLogger('ORM_DJANGO')
@@ -585,7 +587,13 @@ def instruction_dossier(request, num_dossier):
     #  AVIS 
     ##################
     avis_data = build_avis_for_dossier(dossier)
-    
+
+
+    ###############################
+    # Infos sur la synchro
+    ###############################
+    etat_global = SynchronisationEtat.objects.filter(id=1).values("en_cours").first()
+
 
     return render(request, 'instruction/instruction_dossier.html', {
         # Dossier
@@ -604,6 +612,7 @@ def instruction_dossier(request, num_dossier):
         "emails_uniques": emails_uniques,
         "emails_dossiers": emails_dossiers,
         "nb_messages_non_lus": nb_messages_non_lus,
+        "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
 
         # Carto
         "coeurData": fond_coeur_de_parc,
@@ -642,107 +651,133 @@ def instruction_dossier(request, num_dossier):
     })
 
 
-
-
 @login_required
-def actualiser_dossier(request, num_dossier):
+def etat_actualisation_dossier(request, num_dossier):
+    return JsonResponse(get_etat_actualisation_dossier(num_dossier))
 
+
+def actualiser_dossier_job(num_dossier, user_display):
     dossier = Dossier.objects.filter(numero=num_dossier).first()
     if not dossier:
-        logger.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {request.user}")
-        return redirect_error(request, f"❌ Le dossier {num_dossier} est introuvable. Contactez le support.")
+        logger.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {user_display}")
+        set_etat_actualisation_dossier(
+            num_dossier,
+            statut="error",
+            message=f"Le dossier {num_dossier} est introuvable."
+        )
+        return
 
     client = GraphQLClient()
 
     try:
-        # 1. Appel de l'API DS pour récupérer toute la démarche associée
-        result = client.execute_query("DS/queries/get_dossier.graphql", {"number": num_dossier})
+        set_etat_actualisation_dossier(
+            num_dossier,
+            statut="running",
+            message="Actualisation en cours..."
+        )
 
+        # 1. Appel API DS
         try:
             result = client.execute_query("DS/queries/get_dossier.graphql", {"number": num_dossier})
         except Exception as api_err:
             logger.error(f"[ACTUALISER DOSSIER {num_dossier}] Erreur API DS (get_dossier.graphql) : {api_err}")
-            return redirect_error(request, "❌ Erreur lors de l'appel à l'API DS. Contactez le support.")
+            set_etat_actualisation_dossier(
+                num_dossier,
+                statut="error",
+                message="Erreur lors de l'appel à l'API DS."
+            )
+            return
 
         if "errors" in result and result["errors"]:
-            # ex : [{'message': 'Dossier not found', 'locations': [{'line': 2, 'column': 3}], 'path': ['dossier'], 'extensions': {'code': 'not_found'}}]
             erreur = result["errors"][0]
-            if erreur and erreur.get('message') and erreur.get('message') == 'Dossier not found' :
+
+            if erreur and erreur.get("message") == "Dossier not found":
                 instructeur = Instructeur.objects.order_by("id").first()
                 dossier.present_sur_ds = False
                 dossier.save()
 
-                # On enregistre l'action
                 if instructeur:
-                    safe_enregistrer_action(dossier, instructeur, "Dossier supprimé de Démarche Numérique", request=None)
+                    safe_enregistrer_action(
+                        dossier,
+                        instructeur,
+                        "Dossier supprimé de Démarche Numérique",
+                        request=None
+                    )
 
-                loggerSynchro.warning(f"[ACTUALISER DOSSIER {num_dossier}] Le dossier n'existe plus sur Démarche Numérique : BDD mise à jour")
-                return redirect(request.META.get("HTTP_REFERER", "/"))
-            else :
-                raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
-        
-        
-        # 2. Normalisation des données
+                loggerSynchro.warning(
+                    f"[ACTUALISER DOSSIER {num_dossier}] Le dossier n'existe plus sur Démarche Numérique : BDD mise à jour"
+                )
+                set_etat_actualisation_dossier(
+                    num_dossier,
+                    statut="success",
+                    message="Le dossier n'existe plus sur Démarche Numérique."
+                )
+                return
+
+            raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
+
+        # 2. Normalisation
         doss = result["data"].get("dossier")
 
-        # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
-        if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
-            logger.warning(f"Le dossier {doss['number']} ne peut pas être actualisé pour le moment : Les services de l’INSEE sont momentanément indisponibles, la personne morale ne peut pas être identifiée")
-            return redirect_error(request, "❌ Erreur lors de l'identification de la personne morale, les services de l’INSEE sont momentanément indisponibles. Réessayez dans quelques heures.")
+        if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete":
+            logger.warning(
+                f"Le dossier {doss['number']} ne peut pas être actualisé : services INSEE momentanément indisponibles"
+            )
+            set_etat_actualisation_dossier(
+                num_dossier,
+                statut="error",
+                message="Les services INSEE sont momentanément indisponibles."
+            )
+            return
 
         contact_beneficiaire = doss.get("demandeur")
-
         demarche = dossier.id_demarche
         id_demarche = demarche.id
         titre_demarche = demarche.titre
 
-        # Mettre à un autre endroit car si le nom du doss change on créer une deuxieme dossier ici (au lieu de le renommer) A VERIF
-        try :
+        try:
             emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
-
         except Exception as e:
-            logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors du calcul de l'emplacement du dossier : {e}")
-            return redirect_error(request, f"❌ Erreur lors du calcul de l'emplacement du dossier {num_dossier}. Contactez le support.")
+            logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {user_display} - Erreur calcul emplacement : {e}")
+            set_etat_actualisation_dossier(
+                num_dossier,
+                statut="error",
+                message="Erreur lors du calcul de l'emplacement du dossier."
+            )
+            return
 
-
-        # Manif sportives - Déclaration manifestations
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier.id).first()
 
-        if liaison and os.getenv("SYNCHRO_DM", "false") == "True" :
-            doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
+        if liaison and os.getenv("SYNCHRO_DM", "false") == "True":
+            doss_dm = recup_un_seul_dossier(
+                liaison.id_dossier_manif.numero_dossier_declaration_manifestations
+            )
             doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
+
             loggerSynchro.info("\n\n")
-            loggerSynchro.info(f"###### SYNCHRONISATION {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ######")
+            loggerSynchro.info(
+                f"###### SYNCHRONISATION {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ######"
+            )
 
-            for ddm in doss_dm_norma :
+            for ddm in doss_dm_norma:
                 sync_declaration_manifestations(ddm, loggerSynchro)
-            loggerSynchro.info("------------------------------------------------")
-            loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")
 
-        else :
+            loggerSynchro.info("------------------------------------------------")
+            loggerSynchro.info(
+                f"###### NORMALISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######"
+            )
+        else:
             loggerSynchro.info("\n\n")
             loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss['number']} (Démarche Numérique) ######")
-        try :
 
-
-            # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
-            if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
-                type_demarche = Demarche.objects.get(id=id_demarche).type
-                loggerSynchro.warning(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
-                return redirect_error(request, f"❌ Erreur lors de la normalisation du dossier. Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée. Réessayez plus tard.")
-
+        try:
             contact_beneficiaire = doss["demandeur"]
 
-            #Construction du chemin du dossier (sans le créer physiquement)
             emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
             c_e_n = contact_externe_normalize(doss, None)
             d_c_n, c_e_n_complete = dossiers_champs_normalize(doss, emplacement_dossier, c_e_n)
-            
-            # loggerSynchro.warning("Sortie de dossiers_champs_normalize : ")
-            # loggerSynchro.warning(c_e_n_complete)
+
             c_e_n_complete.pop("demandeur_pers_morale", None)
-            # loggerSynchro.warning("Après le .pop : ")
-            # loggerSynchro.warning(c_e_n_complete)
 
             dico_dossier = {
                 "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
@@ -753,32 +788,225 @@ def actualiser_dossier(request, num_dossier):
                 "messages": message_normalize(doss, emplacement_dossier),
                 "demandes": demande_normalize(id_demarche, titre_demarche, doss)
             }
-            
 
         except Exception as e:
-            loggerSynchro.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors de la normalisation du dossier : {e}")
-            return redirect_error(request, f"❌ Erreur lors de la normalisation du dossier. Contactez le support.")
+            loggerSynchro.error(
+                f"[ACTUALISER DOSSIER {num_dossier}] User {user_display} - Erreur normalisation : {e}"
+            )
+            set_etat_actualisation_dossier(
+                num_dossier,
+                statut="error",
+                message="Erreur lors de la normalisation du dossier."
+            )
+            return
 
-        # 3. Synchronisation en base
-        try :
+        # 3. Synchronisation
+        try:
             if liaison:
-                loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")
+                loggerSynchro.info(
+                    f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######"
+                )
             else:
-                loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarche Numérique) ######")
+                loggerSynchro.info(
+                    f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarche Numérique) ######"
+                )
 
-            dico_notifs = {}  #Est ce que on envoi vraiment une notif pour l'actualisation d'un dossier ? je ne pense pas
+            dico_notifs = {}
             sync_dossiers([dico_dossier], demarche.numero, True, dico_notifs)
-        
+
         except Exception as sync_err:
-            logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Échec lors de la synchronisation : {sync_err}")
-            return redirect_error(request, f"❌ Erreur lors de la synchronisation du dossier. Contactez le support.")
-        
-        
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+            logger.error(
+                f"[ACTUALISER DOSSIER {num_dossier}] User {user_display} - Échec lors de la synchronisation : {sync_err}"
+            )
+            set_etat_actualisation_dossier(
+                num_dossier,
+                statut="error",
+                message="Erreur lors de la synchronisation du dossier."
+            )
+            return
+
+        logger.info(f"[ACTUALISER DOSSIER {num_dossier}] Actualisation terminée — User : {user_display}")
+        set_etat_actualisation_dossier(
+            num_dossier,
+            statut="success",
+            message="Actualisation terminée avec succès."
+        )
 
     except Exception as e:
-        logger.error(f"[DOSSIER] Échec de l'actualisation complète du dossier {num_dossier} par {request.user} - : {e}")
-        return redirect_error(request, f"❌ Erreur lors de l'actualisation du dossier. Contactez le support.")
+        logger.error(f"[DOSSIER] Échec de l'actualisation complète du dossier {num_dossier} par {user_display} : {e}")
+        set_etat_actualisation_dossier(
+            num_dossier,
+            statut="error",
+            message="Erreur lors de l'actualisation du dossier."
+        )
+
+
+@require_POST
+@login_required
+def actualiser_dossier(request, num_dossier):
+    dossier = Dossier.objects.filter(numero=num_dossier).first()
+
+    if not dossier:
+        logger.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {request.user}")
+        return redirect_error(request, f"❌ Le dossier {num_dossier} est introuvable. Contactez le support.")
+
+    if actualisation_dossier_est_bloquee(dossier):
+        logger.warning(f"[ACTUALISER DOSSIER {num_dossier}] Actualisation bloquée détectée, reset de l'état.")
+        clear_etat_actualisation_dossier(num_dossier)
+        dossier.refresh_from_db()
+
+    if dossier.actualisation_statut == "running":
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    set_etat_actualisation_dossier(
+        num_dossier,
+        statut="running",
+        message="Actualisation en cours..."
+    )
+
+    Thread(
+        target=actualiser_dossier_job,
+        args=(num_dossier, str(request.user)),
+        daemon=True
+    ).start()
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+# @require_POST
+# @login_required
+# def actualiser_dossier(request, num_dossier):
+
+#     dossier = Dossier.objects.filter(numero=num_dossier).first()
+#     if not dossier:
+#         logger.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {request.user}")
+#         return redirect_error(request, f"❌ Le dossier {num_dossier} est introuvable. Contactez le support.")
+
+#     client = GraphQLClient()
+
+#     try:
+#         # 1. Appel de l'API DS pour récupérer toute la démarche associée
+#         try:
+#             result = client.execute_query("DS/queries/get_dossier.graphql", {"number": num_dossier})
+#         except Exception as api_err:
+#             logger.error(f"[ACTUALISER DOSSIER {num_dossier}] Erreur API DS (get_dossier.graphql) : {api_err}")
+#             return redirect_error(request, "❌ Erreur lors de l'appel à l'API DS. Contactez le support.")
+
+#         if "errors" in result and result["errors"]:
+#             # ex : [{'message': 'Dossier not found', 'locations': [{'line': 2, 'column': 3}], 'path': ['dossier'], 'extensions': {'code': 'not_found'}}]
+#             erreur = result["errors"][0]
+#             if erreur and erreur.get('message') and erreur.get('message') == 'Dossier not found' :
+#                 instructeur = Instructeur.objects.order_by("id").first()
+#                 dossier.present_sur_ds = False
+#                 dossier.save()
+
+#                 # On enregistre l'action
+#                 if instructeur:
+#                     safe_enregistrer_action(dossier, instructeur, "Dossier supprimé de Démarche Numérique", request=None)
+
+#                 loggerSynchro.warning(f"[ACTUALISER DOSSIER {num_dossier}] Le dossier n'existe plus sur Démarche Numérique : BDD mise à jour")
+#                 return redirect(request.META.get("HTTP_REFERER", "/"))
+#             else :
+#                 raise Exception(f"Erreur(s) GraphQL lors de l'actualisation du dossier {num_dossier} : {result['errors']}")
+        
+        
+#         # 2. Normalisation des données
+#         doss = result["data"].get("dossier")
+
+#         # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
+#         if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
+#             logger.warning(f"Le dossier {doss['number']} ne peut pas être actualisé pour le moment : Les services de l’INSEE sont momentanément indisponibles, la personne morale ne peut pas être identifiée")
+#             return redirect_error(request, "❌ Erreur lors de l'identification de la personne morale, les services de l’INSEE sont momentanément indisponibles. Réessayez dans quelques heures.")
+
+#         contact_beneficiaire = doss.get("demandeur")
+
+#         demarche = dossier.id_demarche
+#         id_demarche = demarche.id
+#         titre_demarche = demarche.titre
+
+#         # Mettre à un autre endroit car si le nom du doss change on créer une deuxieme dossier ici (au lieu de le renommer) A VERIF
+#         try :
+#             emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
+
+#         except Exception as e:
+#             logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors du calcul de l'emplacement du dossier : {e}")
+#             return redirect_error(request, f"❌ Erreur lors du calcul de l'emplacement du dossier {num_dossier}. Contactez le support.")
+
+
+#         # Manif sportives - Déclaration manifestations
+#         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier.id).first()
+
+#         if liaison and os.getenv("SYNCHRO_DM", "false") == "True" :
+#             doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
+#             doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
+#             loggerSynchro.info("\n\n")
+#             loggerSynchro.info(f"###### SYNCHRONISATION {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ######")
+
+#             for ddm in doss_dm_norma :
+#                 sync_declaration_manifestations(ddm, loggerSynchro)
+#             loggerSynchro.info("------------------------------------------------")
+#             loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")
+
+#         else :
+#             loggerSynchro.info("\n\n")
+#             loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss['number']} (Démarche Numérique) ######")
+#         try :
+
+
+#             # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
+#             if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
+#                 type_demarche = Demarche.objects.get(id=id_demarche).type
+#                 loggerSynchro.warning(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
+#                 return redirect_error(request, f"❌ Erreur lors de la normalisation du dossier. Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée. Réessayez plus tard.")
+
+#             contact_beneficiaire = doss["demandeur"]
+
+#             #Construction du chemin du dossier (sans le créer physiquement)
+#             emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
+#             c_e_n = contact_externe_normalize(doss, None)
+#             d_c_n, c_e_n_complete = dossiers_champs_normalize(doss, emplacement_dossier, c_e_n)
+            
+#             # loggerSynchro.warning("Sortie de dossiers_champs_normalize : ")
+#             # loggerSynchro.warning(c_e_n_complete)
+#             c_e_n_complete.pop("demandeur_pers_morale", None)
+#             # loggerSynchro.warning("Après le .pop : ")
+#             # loggerSynchro.warning(c_e_n_complete)
+
+#             dico_dossier = {
+#                 "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
+#                 "contacts_externes": c_e_n_complete,
+#                 "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
+#                 "dossier_champs": d_c_n,
+#                 "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
+#                 "messages": message_normalize(doss, emplacement_dossier),
+#                 "demandes": demande_normalize(id_demarche, titre_demarche, doss)
+#             }
+            
+
+#         except Exception as e:
+#             loggerSynchro.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Erreur lors de la normalisation du dossier : {e}")
+#             return redirect_error(request, f"❌ Erreur lors de la normalisation du dossier. Contactez le support.")
+
+#         # 3. Synchronisation en base
+#         try :
+#             if liaison:
+#                 loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")
+#             else:
+#                 loggerSynchro.info(f"###### SYNCHRONISATION DOSSIER {dico_dossier['dossier']['nom_dossier']} (Démarche Numérique) ######")
+
+#             dico_notifs = {}  #Est ce que on envoi vraiment une notif pour l'actualisation d'un dossier ? je ne pense pas
+#             sync_dossiers([dico_dossier], demarche.numero, True, dico_notifs)
+        
+#         except Exception as sync_err:
+#             logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {request.user} - Échec lors de la synchronisation : {sync_err}")
+#             return redirect_error(request, f"❌ Erreur lors de la synchronisation du dossier. Contactez le support.")
+        
+        
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
+
+#     except Exception as e:
+#         logger.error(f"[DOSSIER] Échec de l'actualisation complète du dossier {num_dossier} par {request.user} - : {e}")
+#         return redirect_error(request, f"❌ Erreur lors de l'actualisation du dossier. Contactez le support.")
 
 
 
