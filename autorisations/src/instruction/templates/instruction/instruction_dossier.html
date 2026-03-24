@@ -1389,13 +1389,13 @@ En conséquence, la demande est refusée.</textarea>
                             {% endif %}
                             {% if beneficiaire.siret %}
                                
-                            <div class="siret_insee">
-                                <strong>N° SIRET</strong> : {{ beneficiaire.siret }}
-                                <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{beneficiaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
-                                    <img src="{% static 'instruction/img/lien-externe.png' %}" alt="">
-                                </a>
-                            </div>
-        
+                                <div class="siret_insee">
+                                    <strong>N° SIRET</strong> : {{ beneficiaire.siret }}
+                                    <a href="https://annuaire-entreprises.data.gouv.fr/etablissement/{{beneficiaire.siret}}" target="_blank" title="Redirection vers l'INSEE pour plus d'informations">
+                                        <img src="{% static 'instruction/img/lien-externe.png' %}" alt="">
+                                    </a>
+                                </div>
+            
                             {% endif %}
                             {% if beneficiaire.raison_sociale %}
                                 <p><strong>Raison Sociale</strong> : {{ beneficiaire.raison_sociale|capfirst }}</p>

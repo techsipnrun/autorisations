@@ -66,6 +66,7 @@ def sync_declaration_manifestations(dossier, logger):
                 ).exists()
         
         if liaison_existe :
+                # CAS ou on recoit un dossier DN avant DM (ou alors numéro DM mal renseigné dans le form DN)
                 logger.error(f"DossierManifSportive numéro {obj.numero_dossier_declaration_manifestations} apparait en création alors qu'il est déjà lié à un dossier DS")
         else:
             #  -->  Dossier DS en attente

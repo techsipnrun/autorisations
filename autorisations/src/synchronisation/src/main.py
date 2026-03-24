@@ -28,7 +28,7 @@ def lancer_normalisation_et_synchronisation():
                 logger.info('')
                 if demarche_obj.type.lower() == 'manifestations sportives':
                     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
-                    continue
+                    # continue
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} (Démarche Numérique) ######")
                 else:
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} ######")

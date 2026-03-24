@@ -14,6 +14,20 @@ def main():
 
     # Récupération de tous les avis
     avis_list = get_all_avis(token)
+    """
+    [
+        {
+            "id": 877770,
+            "etat": "termine",
+            "reponse_avis": "favorable",
+            "service": "PN La Réunion (974)",
+            "date_demande": "2026-02-23T08:26:22.828663+01:00",
+            "date_reponse": "2026-03-06",
+            "manif_id": 106328,
+            "objet_demande_str": null
+        }, ...
+    ]
+    """
     loggerDM.info(f"{len(avis_list)} avis au total")
     loggerSynchro.info(f"{len(avis_list)} avis au total")
 
@@ -22,9 +36,26 @@ def main():
     avis_echantillon = []
     unique_numeros = []
 
-    loggerDM.info(f"On récupère un échantillon test de dossiers")
-    for avis in avis_list:
 
+    # avis_list = get_all_avis(token)
+
+    avis_filtres = [
+        avis for avis in avis_list
+        if not (
+            avis.get("reponse_avis") is not None
+            or avis.get("etat") in ["caduc", "termine"]
+        )
+    ]
+
+    loggerSynchro("\n avis_filtres :")
+    loggerSynchro(avis_filtres)
+
+
+    loggerDM.info(f"On récupère un échantillon test de dossiers")
+    for avis in avis_filtres:
+        #
+        # EXCLURE ici les avis deja rendu (reponse_avis not null) ET (etat avis = caduc ou = termine)
+        #
         manif_id = avis["manif_id"]
         date_demande = avis.get("date_demande", "")
 
@@ -59,7 +90,10 @@ def main():
                 else :
                     loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier['nom']} ({dossier['pk']}) : Geojson vide")
                     dossier["geometrie"] = None
-                
+                #
+                # On ajoute ici que si : date du jour < date de fin de la manif  ET  etat dossier != annulée
+                # Si ca respecte pas cette condition, on log en warning
+                #
                 dossiers.append(dossier)
 
             else :

@@ -369,6 +369,11 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
 
 
 def create_emplacement_sport(obj, logger):
+    """
+    Créé l'emplacement d'un dossier Déclaration manifestations sur le NAS
+    """
+    # À changer
+    # Manifestations_sportives > 2026 > Déclaration_manifestations
 
     racine = os.environ.get("NAS_ROOT")
     chemin_complet = os.path.join(racine, obj.emplacement)

@@ -179,7 +179,7 @@ def requete_dossiers(request):
     dossiers = Dossier.objects.all().select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
     
     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
-    dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
+    # dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
 
 
     # Menus déroulant

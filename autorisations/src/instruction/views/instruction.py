@@ -193,7 +193,7 @@ def accueil(request):
 
     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
     demarches = Demarche.objects.all().order_by("titre")
-    demarches = demarches.exclude(type__icontains="manifestations sportives")
+    # demarches = demarches.exclude(type__icontains="manifestations sportives")
 
     current_year = date.today().year
 
@@ -228,7 +228,7 @@ def mesdossiers(request):
 
 
     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
-    dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
+    # dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
 
 
     # Liste dossiers avec action à faire (Hors étape 'À affecter')
@@ -708,7 +708,7 @@ def actualiser_dossier(request, num_dossier):
         # Manif sportives - Déclaration manifestations
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier.id).first()
 
-        if liaison:
+        if liaison and os.getenv("SYNCHRO_DM", "false") == "True":
             doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
             doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
             loggerSynchro.info("\n\n")
