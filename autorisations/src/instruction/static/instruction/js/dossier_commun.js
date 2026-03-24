@@ -76,14 +76,133 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!refreshForm || !refreshButton) return;
 
-    refreshForm.addEventListener("submit", function () {
-        const icon = refreshButton.dataset.icon;
+    const statusEl = refreshForm.querySelector(".refresh-status");
+    const etatUrl = refreshForm.dataset.etatUrl;
+    const icon = refreshButton.dataset.icon;
+    const synchroGlobaleEnCours = refreshButton.dataset.synchroGlobale === "true";
 
+    const initialButtonHtml = refreshButton.innerHTML;
+    const initialButtonDisabled = refreshButton.disabled;
+
+    let pollingInterval = null;
+    let clearMessageTimeout = null;
+    let wasRunning = false;
+
+    if (synchroGlobaleEnCours) return;
+    if (!etatUrl) return;
+
+    function setButtonLoading() {
         refreshButton.disabled = true;
         refreshButton.innerHTML = `
             <img src="${icon}" class="refresh-icon" />
             Traitement en cours...
         `;
+    }
+
+    function setButtonDefault() {
+        refreshButton.disabled = initialButtonDisabled;
+        refreshButton.innerHTML = initialButtonHtml;
+    }
+
+    function setStatus(message = "", statut = null) {
+        if (!statusEl) return;
+
+        statusEl.textContent = message;
+        statusEl.classList.remove("running", "success", "error");
+
+        if (statut) {
+            statusEl.classList.add(statut);
+        }
+
+        if (clearMessageTimeout) {
+            clearTimeout(clearMessageTimeout);
+            clearMessageTimeout = null;
+        }
+
+        if ((statut === "success" || statut === "error") && message) {
+            clearMessageTimeout = setTimeout(() => {
+                statusEl.textContent = "";
+                statusEl.classList.remove("success", "error");
+            }, 5000);
+        }
+    }
+
+    async function checkStatus() {
+        try {
+            const response = await fetch(etatUrl, {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.en_cours) {
+                wasRunning = true;
+                setButtonLoading();
+                setStatus(data.message || "Actualisation en cours...", "running");
+                return;
+            }
+
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+
+            setButtonDefault();
+
+            if (data.statut === "success") {
+                if (wasRunning) {
+                    setStatus(data.message || "Actualisation terminée.", "success");
+                    setTimeout(() => window.location.reload(), 5000);
+                } else {
+                    setStatus("", null);
+                }
+                return;
+            }
+
+            if (data.statut === "error") {
+                if (wasRunning) {
+                    setStatus(data.message || "Erreur lors de l'actualisation.", "error");
+                } else {
+                    setStatus("", null);
+                }
+                return;
+            }
+
+            setStatus("", null);
+
+        } catch (error) {
+            console.error("Erreur lors du polling de l'actualisation du dossier :", error);
+
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+
+            setButtonDefault();
+            setStatus("Erreur lors de la récupération de l'état.", "error");
+        }
+    }
+
+    function startPolling() {
+        if (pollingInterval) return;
+        pollingInterval = setInterval(checkStatus, 2000);
+        checkStatus();
+    }
+
+    refreshForm.addEventListener("submit", function () {
+        wasRunning = true;
+        setButtonLoading();
+        setStatus("Actualisation en cours...", "running");
+    });
+
+    checkStatus().then(() => {
+        if (refreshButton.disabled) {
+            startPolling();
+        }
     });
 });
 

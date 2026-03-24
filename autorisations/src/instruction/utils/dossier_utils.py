@@ -1,4 +1,5 @@
 import ast
+from datetime import timedelta
 import json
 import logging
 from django.utils import timezone
@@ -15,6 +16,10 @@ logger = logging.getLogger("ORM_DJANGO")
 
 def redirect_error(request, msg):
     messages.error(request, msg)
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+def redirect_warning(request, msg):
+    messages.warning(request, msg)
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -406,3 +411,63 @@ def build_timeline_for_dossier(dossier):
         a.logo = LOGO_MAPPING.get(a.id_action.action, "timeline.png")
 
     return actions
+
+
+
+
+def set_etat_actualisation_dossier(num_dossier, statut=None, message=None):
+    """
+    statut:
+      - "running"
+      - "success"
+      - "error"
+      - None
+    """
+    Dossier.objects.filter(numero=num_dossier).update(
+        actualisation_statut=statut,
+        actualisation_date=timezone.now() if statut else None,
+        actualisation_message=message,
+    )
+
+
+def get_etat_actualisation_dossier(num_dossier):
+    dossier = Dossier.objects.filter(numero=num_dossier).values(
+        "actualisation_statut",
+        "actualisation_date",
+        "actualisation_message",
+    ).first()
+
+    if not dossier:
+        return {
+            "en_cours": False,
+            "statut": None,
+            "message": "Dossier introuvable",
+            "date": None,
+        }
+
+    statut = dossier["actualisation_statut"]
+
+    return {
+        "en_cours": statut == "running",
+        "statut": statut,
+        "message": dossier["actualisation_message"],
+        "date": dossier["actualisation_date"],
+    }
+
+
+def clear_etat_actualisation_dossier(num_dossier):
+    Dossier.objects.filter(numero=num_dossier).update(
+        actualisation_statut=None,
+        actualisation_date=None,
+        actualisation_message=None,
+    )
+
+
+def actualisation_dossier_est_bloquee(dossier, delai_minutes=10):
+    if dossier.actualisation_statut != "running":
+        return False
+
+    if not dossier.actualisation_date:
+        return True
+
+    return timezone.now() - dossier.actualisation_date > timedelta(minutes=delai_minutes)

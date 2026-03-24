@@ -52,12 +52,17 @@
         <div class="refresh_et_timeline">
             {% if dossier.present_sur_ds and instructeur_connecte %}
                 <div class="refresh-doss">
-                    <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}">
+                    <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}" data-etat-url="{% url 'etat_actualisation_dossier' dossier.numero %}">
                         {% csrf_token %}
-                        <button type="submit" class="refresh-button" data-icon="{% static 'instruction/img/actualiser.png' %}">
+                        <button type="submit" class="refresh-button" data-icon="{% static 'instruction/img/actualiser.png' %}" data-synchro-globale="{% if synchro_globale_en_cours %}true{% else %}false{% endif %}" {% if synchro_globale_en_cours %}disabled{% endif %}>
                             <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
-                            Actualiser
+                                {% if synchro_globale_en_cours %}
+                                    Synchronisation globale en cours...
+                                {% else %}
+                                    Actualiser
+                                {% endif %}
                         </button>
+                        <span class="refresh-status"></span>
                     </form>
                 </div>
             {% endif %}

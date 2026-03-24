@@ -147,10 +147,10 @@ def write_pj(emplacement, name, url_pj):
     try:
         if smbclient.path.exists(chemin_fichier):
             # loggerApp.warning(f"safe_name : {safe_name}  --- chemin_fichier : {chemin_fichier}")
-            loggerApp.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucun téléchargement effectué.")
+            loggerApp.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucune écriture effectuée.")
             return
 
-        response = requests.get(url_pj, timeout=15)
+        response = requests.get(url_pj, timeout=60)
         response.raise_for_status()
 
         # Écriture
