@@ -11,7 +11,8 @@ Dans le cas d'une réponse favorable du Parc suite à une demande d'autorisation
 
 Après avoir cliqué sur « Envoyer l'acte d'acceptation », la fenêtre ci-dessous s'ouvre.
 
-Vous pouvez, si vous le souhaitez, compléter le message prérempli dans l'encadré. Ce message sera visible par le demandeur sur son espace Démarche Numérique lors de la réception de son acte. 
+Vous pouvez, si vous le souhaitez, compléter le message prérempli dans l'encadré. Ce message sera visible par le demandeur sur son espace Démarche Numérique lors de la réception de son acte.
+
 
 Vous devez également désigner la personne chargée de publier l’acte au RAA après son envoi.
 
@@ -24,8 +25,14 @@ Enfin vous avez la possibilité de partager cet acte par mail à d'autres contac
   <figcaption><em>Figure 2 — Formulaire : Envoyer l'acte d'acceptation</em></figcaption>
 </figure>
 
+### Envoyer des annexes
 
+Si vous souhaitez transmettre des annexes au demandeur, vous pouvez :
 
+- ajouter les liens [France Transfert](https://francetransfert.numerique.gouv.fr/upload) dans le message prérempli. **(Préconisé)**
+- transmettre les annexes peu volumineuses dans la messagerie
+
+---
 
 ## Envoyer l'acte de refus
 
