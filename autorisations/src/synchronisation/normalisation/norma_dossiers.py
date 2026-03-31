@@ -1,0 +1,59 @@
+import logging
+from .norma_dossier import dossier_normalize
+from .norma_contacts_externes import contact_externe_normalize
+from .norma_dossier_interlocuteur import dossier_interlocuteur_normalize
+from .norma_dossier_champs import dossiers_champs_normalize
+from .norma_dossier_document import dossier_document_normalize
+from .norma_messages import message_normalize
+from .norma_demandes import demande_normalize
+from synchronisation.utils.model_helpers import get_first_id
+from synchronisation.utils.fichiers import construire_emplacement_dossier
+from autorisations.models.models_instruction import Demarche
+
+loggerSynchro = logging.getLogger("SYNCHRONISATION")
+
+def dossiers_normalize_process(d):
+    """
+    Normalise la liste des dossiers d'une démarche à partir des données brutes.
+    :param d: Données brutes d'une démarche
+    :return: Liste de dictionnaires, chacun représentant un dossier et ses composants associés
+    """
+
+    id_demarche = get_first_id(Demarche, id_ds=d["id"], numero=d["number"])
+    dossiers = []
+
+    for doss in d["dossiers"]["nodes"]:
+
+        # On écarte de la normalisation si la personne morale n'est pas identifiable (services de l’INSEE temporairement indisponibles)
+        if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete" :
+            type_demarche = Demarche.objects.get(id=id_demarche).type
+            loggerSynchro.warning(f"Le dossier {doss['number']} ({type_demarche}) sera récupéré plus tard : Les services de l’INSEE sont indisponibles, la personne morale ne peut pas être identifiée")
+            continue
+
+        contact_beneficiaire = doss["demandeur"]
+        titre_demarche = d["title"]
+
+        #Construction du chemin du dossier (sans le créer physiquement)
+        emplacement_dossier = construire_emplacement_dossier(doss, contact_beneficiaire, titre_demarche)
+        c_e_n = contact_externe_normalize(doss, None)
+        d_c_n, c_e_n_complete = dossiers_champs_normalize(doss, emplacement_dossier, c_e_n)
+        
+        # loggerSynchro.warning("Sortie de dossiers_champs_normalize : ")
+        # loggerSynchro.warning(c_e_n_complete)
+        c_e_n_complete.pop("demandeur_pers_morale", None)
+        # loggerSynchro.warning("Après le .pop : ")
+        # loggerSynchro.warning(c_e_n_complete)
+
+        dico_dossier = {
+            "dossier": dossier_normalize(id_demarche, doss, emplacement_dossier),
+            "contacts_externes": c_e_n_complete,
+            "dossier_interlocuteur": dossier_interlocuteur_normalize(doss),
+            "dossier_champs": d_c_n,
+            "dossier_document": dossier_document_normalize(doss, emplacement_dossier),
+            "messages": message_normalize(doss, emplacement_dossier),
+            "demandes": demande_normalize(id_demarche, titre_demarche, doss)
+        }
+
+        dossiers.append(dico_dossier)
+
+    return dossiers

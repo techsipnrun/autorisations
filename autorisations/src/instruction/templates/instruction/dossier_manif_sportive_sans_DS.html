@@ -34,7 +34,7 @@
     {% breadcrumb breadcrumb_items %}
 
     <div class="page-container">
-        <div class="formulaire formulaire_dm">
+        <div class="formulaire_dm">
             <div class="en_attente_DS"><p> En attente d'un dossier Démarches Simpifiées </p></div>
             <div class="titre-manif">
                 <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
@@ -45,38 +45,6 @@
                 </a>
             </div>
 
-            <h2>Avis du Parc sur Déclaration Manifestations</h2>
-            {% if avis_manif_sportive %}
-                <div class="champs">
-
-                    {% if avis_manif_sportive.id_avis_manif_sportive %}
-                        <p><strong>Numéro de l'avis sur déclaration manifestations :</strong> {{ avis_manif_sportive.id_avis_manif_sportive }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.service %}
-                        <p><strong>Service :</strong> {{ avis_manif_sportive.service }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.etat %}
-                        <p><strong>État :</strong> {{ avis_manif_sportive.etat }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.date_demande %}
-                        <p><strong>Date de demande :</strong> {{ avis_manif_sportive.date_demande|date:"d/m/Y" }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.date_reponse %}
-                        <p><strong>Date de réponse :</strong> {{ avis_manif_sportive.date_reponse|date:"d/m/Y" }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.reponse_avis %}
-                        <p><strong>Réponse :</strong> {{ avis_manif_sportive.reponse_avis }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.prescriptions %}
-                        <p><strong>Prescriptions :</strong> {{ avis_manif_sportive.prescriptions }}</p>
-                    {% endif %}
-                    {% if avis_manif_sportive.objet_demande %}
-                        <p><strong>Objet :</strong> {{ avis_manif_sportive.objet_demande }}</p>
-                    {% endif %}
-                </div>
-            {% else %}
-                <p><em>Aucun avis enregistré pour ce dossier.</em></p>
-            {% endif %}
 
             <h2>Organisateur.trice</h2>
             <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"Non renseigné" }}</p></div>
@@ -92,6 +60,20 @@
                 <div class="carte" data-geojson='{{ doss_manif_sportive.geometrie }}'></div>
                 <div class="course-panel"></div>
             </div>
+
+            {% if pjs_demandeur_DM %}
+                <h2>Les pièces jointes</h2>
+                {% for doc in pjs_demandeur_DM %}
+                    <div class="champs">
+                        <p>
+                            <strong>{{ doc.description }}</strong> : 
+                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
+                                {{ doc.titre }}
+                            </a>
+                        </p>
+                    </div>
+                {% endfor %}
+            {% endif %}
 
             <h2>Caractéristiques</h2>
             <div class="champs"><p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</p></div>
@@ -155,6 +137,40 @@
             <h2>Balisage</h2>
             <div class="champs"><p><strong>Signataire charte balisage</strong> : {{ doss_manif_sportive.signataire_charte_balisage|yesno:"Oui,Non,Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Description du balisage</strong> : {{ doss_manif_sportive.description_balisage|default:"Non renseigné" }}</p></div>
+            
+
+            <h2>Avis du Parc sur Déclaration Manifestations</h2>
+            {% if avis_manif_sportive %}
+                <div class="champs">
+
+                    {% if avis_manif_sportive.id_avis_manif_sportive %}
+                        <p><strong>Numéro de l'avis sur déclaration manifestations :</strong> {{ avis_manif_sportive.id_avis_manif_sportive }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.service %}
+                        <p><strong>Service :</strong> {{ avis_manif_sportive.service }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.etat %}
+                        <p><strong>État :</strong> {{ avis_manif_sportive.etat }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.date_demande %}
+                        <p><strong>Date de demande :</strong> {{ avis_manif_sportive.date_demande|date:"d/m/Y" }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.date_reponse %}
+                        <p><strong>Date de réponse :</strong> {{ avis_manif_sportive.date_reponse|date:"d/m/Y" }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.reponse_avis %}
+                        <p><strong>Réponse :</strong> {{ avis_manif_sportive.reponse_avis }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.prescriptions %}
+                        <p><strong>Prescriptions :</strong> {{ avis_manif_sportive.prescriptions }}</p>
+                    {% endif %}
+                    {% if avis_manif_sportive.objet_demande %}
+                        <p><strong>Objet :</strong> {{ avis_manif_sportive.objet_demande }}</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p><em>Aucun avis enregistré pour ce dossier.</em></p>
+            {% endif %}
 
         </div>
     </div>

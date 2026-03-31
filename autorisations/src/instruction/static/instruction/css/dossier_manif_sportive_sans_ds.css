@@ -16,6 +16,22 @@
     margin: 0;
 }
 
+.formulaire_dm {
+    position: relative;
+    /* flex: 1 1 70%; */
+    width: 80%;
+    min-width: 300px;
+    padding: 4rem 2rem 3rem 2rem;
+    background-color: rgb(239, 239, 239);
+    border: solid 1px black;
+}
+
+@media (max-width: 1300px) {
+  .formulaire_dm {
+      width: 100%;
+  }
+
+}
 
 .formulaire_dm h2 {
     margin: 2rem 0 1rem 0;
@@ -57,26 +73,64 @@
 /* Conteneur carte + panneau à droite */
 .carte-container-trail {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  gap: 16px;
+  width: 90%;
+  height: 70vh;
+  margin: 0;
+  align-items: start;
+  box-sizing: border-box;
 }
 
-/* La div leaflet (.carte) doit prendre la place dispo */
+/* Carte = 75% */
 .carte-container-trail .carte {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 calc(75% - 8px);
+  min-width: 400px;
+  height: 100%;
+  border: 2px solid #646464;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  background: #f8f8f8;
 }
 
-/* Panneau des courses */
+/* Panel = 25% */
 .course-panel {
-  width: 280px;
-  max-width: 35%;
+  flex: 0 0 calc(25% - 8px);
+  min-width: 230px;   /* sécurité */
+  /* max-width: 350px; */
   background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  border: 2px solid #646464;
+  border-radius: 12px;
   padding: 10px;
   overflow: auto;
+  box-sizing: border-box;
 }
+
+/* Responsive carto trail */
+@media (max-width: 1100px) {
+  .carte-container-trail{
+    width: 100%;
+  }
+  .course-panel {
+      min-width: 200px;
+  }
+}
+
+@media (max-width: 900px) {
+  .course-panel {
+      min-width: 170px;
+  }
+  #titre_pannel_courses{
+    font-size: 1.2rem;
+  }
+  .course-panel .course-item label{
+    font-size: 0.7rem;
+  }
+  .course-panel .course-actions {
+    flex-direction: column;
+  }
+}
+
 
 /* UI panneau */
 .course-panel h3 {
@@ -87,11 +141,13 @@
 #titre_pannel_courses {
     margin-top: 0;
 }
+
 .course-panel .course-actions {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
 }
+
 .course-panel button {
   padding: 6px 8px;
   border: 1px solid #ccc;

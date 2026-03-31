@@ -2,10 +2,11 @@ from django.db import models
 from django.db.models import Max
 from datetime import date
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from .models_utilisateurs import DossierRelecteur
 
-from .models_instruction import Dossier, DossierNote, Message
+from .models_instruction import Dossier, DossierManifSportive, DossierNote, Message
 
 
 class DocumentFormat(models.Model):
@@ -49,11 +50,14 @@ class Document(models.Model):
     id_nature = models.ForeignKey(DocumentNature, models.RESTRICT, db_column='id_nature')
     id_statut = models.ForeignKey(DocumentStatut, models.RESTRICT, db_column='id_statut', blank=True, null=True)
     url_ds = models.CharField(blank=True, null=True)
+    url_dm = models.CharField(blank=True, null=True)
     emplacement = models.CharField()
     description = models.CharField(blank=True, null=True)
     numero = models.CharField(blank=True, null=True)
     titre = models.CharField()
     publie_au_raa = models.BooleanField(default=False)
+    date = models.DateTimeField(default=timezone.now)
+    pj_dm_id = models.IntegerField(unique=True, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -143,6 +147,33 @@ class DossierDocument(models.Model):
 
     def __str__(self):
         return f"{self.id_document.id_nature.nature} {self.id_document.id} lié à {self.id_dossier}"
+    
+
+class DossierManifSportiveDocument(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier_manif_sportive = models.ForeignKey(
+        DossierManifSportive, models.CASCADE, db_column='id_dossier_manif_sportive'
+    )
+    id_document = models.ForeignKey(
+        Document, models.CASCADE, db_column='id_document'
+    )
+
+    class Meta:
+        managed = False
+        db_table = '"documents"."dossier_manif_sportive_document"'
+        indexes = [
+            models.Index(fields=['id_dossier_manif_sportive', 'id_document'],
+                name='dossier_dm_document_unique_idx'
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.id_document.id_nature.nature} {self.id_document.id} "
+            f"lié au dossier manif sportive {self.id_dossier_manif_sportive.numero_dossier_declaration_manifestations} {self.id_dossier_manif_sportive}"
+        )
+    
+    
 
 
 class MessageDocument(models.Model):

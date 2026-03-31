@@ -82,17 +82,14 @@
 
 .formulaire {
     position: relative;
-    flex: 1 1 70%;
-    width: auto; /* on laisse flex gérer */
+    flex: 0 0 70%;
+    width: auto;
     min-width: 300px;
     padding: 4rem 2rem 3rem 2rem;
     background-color: rgb(239, 239, 239);
     border: solid 1px black;
 }
 
-.formulaire_dm {
-    width: 80%;
-}
 
 .identite_demandeur {
     padding-left: 1rem;
@@ -503,12 +500,25 @@ h2 {
 }
 
 .leaflet-container {
-    height: 80vh;
-    width: 100%;
+    height: 70vh;
+    width: 80%;
     border: 1px solid #ccc;
     margin: 0;
     border-radius: 8px;
 }
+
+@media (max-width: 2200px) {
+  .leaflet-container {
+        width: 90%;
+    }
+}
+
+@media (max-width: 2000px) {
+  .leaflet-container {
+        width: 100%;
+    }
+}
+
 
 .legend {
     background: rgba(255, 255, 255, 0.596);
@@ -1284,3 +1294,40 @@ textarea[name="note"] {
 .txt_en_gras {
     font-weight: bold;
 }
+
+
+
+/* ---------------------------------------------*/
+/*       MANIFS SPORTIVES RESPONSIVE CARTO      */
+/* -------------------------------------------- */
+
+@media (max-width: 1200px) {
+
+  .carte-container-trail-dossier-complet {
+        gap: 8px;
+        width: 100%;
+        flex: 0 0 calc(80%);
+    }
+
+  .carte-container-trail-dossier-complet .course-panel label {
+    font-size: 0.6rem;
+  }
+  
+  .carte-container-trail-dossier-complet .course-panel h2 {
+    font-size: 1.2rem;
+  }
+
+  .carte-container-trail-dossier-complet .course-actions button {
+    font-size: 0.7rem;
+  }
+
+    .carte-container-trail-dossier-complet .course-panel .course-actions {
+        flex-direction: column;
+    }
+
+    .carte-container-trail-dossier-complet .course-panel {
+      min-width: 150px;
+      flex: 0 0 calc(15%);
+  }
+}
+

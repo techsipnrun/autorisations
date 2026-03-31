@@ -3,12 +3,13 @@ import re
 import smtplib
 import unicodedata
 from django.db import DatabaseError, IntegrityError, connection
+from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import logging
 
 import smbclient
-from autorisations.models.models_instruction import Action, Dossier, DossierAction, EtapeDossier, EtatDossier, Message
+from autorisations.models.models_instruction import Action, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message
 # import pythoncom
 # import win32com.client
 import os
@@ -296,16 +297,21 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
 def dossiers_reception_action_a_faire(dossiers, user):
     """
     Retourne les dossiers où l'utilisateur doit affecter le dossier qui est en reception
-    POUR LE MOMENT ON EXCLU LES DOSSIERS DE MANIFESTATIONS SPORTIVES
     """
     if not user.is_authenticated:
         return set()
     
-    # Exclure les démarches "Manifestations sportives"
-    # dossiers = dossiers.exclude(id_demarche__type__icontains="manifestations sportives")
+    # POUR LE MOMENT ON EXCLU LES DOSSIERS DE MANIFESTATIONS SPORTIVES
+    # Exclure les dossiers "Manifestations sportives" incomplets (qui n'apparaisse pas dans un DossierManifestationLiaison)
+    # liaison_exists = DossierManifestationLiaison.objects.filter(id_dossier=OuterRef('pk'))
+
+    dossiers = dossiers.exclude(
+        id_demarche__type__icontains="manifestations sportives",
+        dossiermanifestationliaison__isnull=True
+    )
+
 
     dossiers_a_traiter_ids = set()
-
     # Vérification rôle Reception
     est_receptionniste_SAADD = False
     est_receptionniste_SPPN = False

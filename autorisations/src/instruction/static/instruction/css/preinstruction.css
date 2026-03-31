@@ -180,15 +180,12 @@ input:checked + .slider:before {
 
 
 
-
-
-
 /* ---------------------------------------------- */
 /* --------- Manifestations sportives ----------- */
 /* ---------------------------------------------- */
 .manif-sportive {
     /* border-top: 1px solid #006131; */
-    margin-top: 20rem;
+    margin-top: 10rem;
 }
 
 /* Actualisation manifs sportives */
@@ -233,4 +230,29 @@ input:checked + .slider:before {
 
 .refresh-button:hover .refresh-icon {
     transform: rotate(180deg);
+}
+
+.ligne_horizontale {
+  width: 85%;
+  margin: 3rem auto;
+  border-top: 1px solid #ddd;
+}
+
+.manif-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 85%;
+  margin: 3rem auto 1rem auto; /* aligne comme les tables */
+}
+
+.manif-header img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.manif-header h2 {
+  margin: 0;              /* annule le margin-left global */
 }

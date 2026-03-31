@@ -79,6 +79,9 @@
             
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
+                {% if dossier.id_demarche.type == "Manifestations sportives" and dossier.present_sur_ds %}
+                    <div class="en_attente_DM"><p> En attente d'un dossier Déclaration Manifestations </p></div>
+                {% endif %}
 
                 <!-- Copier le chemin d'accès du dossier -->
                 <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
@@ -177,7 +180,7 @@
                     {% endif %}
 
                     <!-- Lien DM -->
-                    {% if dossier.id_demarche.type|lower == "manifestations sportives" %}
+                    {% if dossier.id_demarche.type|lower == "manifestations sportives" and doss_manif_sportive %}
                         <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
                             <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                                 alt="Visualiser le dossier sur Déclaration manifestations"
@@ -656,6 +659,7 @@
                     {% endif %}
                 </div>
             </div>
+            
         </div>
 
         {% if doss_manif_sportive %}

@@ -1,5 +1,4 @@
-from datetime import datetime, date, timedelta
-import time
+from datetime import datetime, timedelta
 from django.utils import timezone
 import json
 import os
@@ -12,7 +11,7 @@ import urllib
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 import smbclient
-from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, EtapeDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, Message
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
@@ -20,18 +19,14 @@ from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_fil
 from instruction.utils.dossier_utils import redirect_error, safe_enregistrer_action
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
-from synchronisation.src.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
-from threading import Lock
-import threading
-import subprocess
-import sys
+from synchronisation.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
+
 from mimetypes import guess_type
 from django.contrib import messages
 import logging
 from django.db.models import Q
 from django.utils.timezone import now
 from autorisations import settings
-from django.db import close_old_connections
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
 
@@ -39,86 +34,6 @@ from django.core.paginator import Paginator
 logger = logging.getLogger("ORM_DJANGO")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
 loggerDS = logging.getLogger("API_DS")  
-
-
-# @login_required(login_url='/login/')
-# def requetes(request):
-#     return render(request, 'instruction/requetes.html')
-
-
-def lancer_en_arriere_plan2():
-    """
-    Démarre la synchro si et seulement si le flag en BDD est à False.
-    Retourne True si démarré, False si déjà en cours.
-    """
-    # S'assurer que la ligne existe
-    SynchronisationEtat.objects.get_or_create(id=1, defaults={"en_cours": False})
-
-    # Tentative atomique: on passe en True seulement si c'est actuellement False
-    rows = (SynchronisationEtat.objects
-            .filter(id=1, en_cours=False)
-            .update(en_cours=True, date_derniere_tentative=timezone.localtime(timezone.now())))
-
-    if rows == 0:
-        logger.warning("Synchro déjà en cours – nouvelle tentative ignorée (BDD).")
-        return False
-
-    def lancement_et_suivi():
-        close_old_connections()
-        try:
-
-            with open("logs/synchronisation.log", "a", buffering=1) as f:
-                process = subprocess.Popen(
-                    [sys.executable, "synchronisation/src/lancer_synchronisation.py"],
-                    stdout=f, stderr=f, encoding="utf-8", errors="replace",
-                )
-
-        except Exception:
-            logger.exception("Erreur lors du sous-processus de synchronisation.")
-
-        finally:
-            close_old_connections()
-
-    threading.Thread(target=lancement_et_suivi).start()
-    return True
-
-
-
-@login_required
-def actualiser_donnees(request):
-    if request.method == "POST":
-        lancé = lancer_en_arriere_plan2()
-        if not lancé:
-            return JsonResponse({
-                "status": "already_running",
-                "message": "Une actualisation est déjà en cours."
-            })
-        return JsonResponse({"status": "ok", "message": "Synchronisation lancée."})
-    return JsonResponse({"status": "error", "message": "Requête invalide"})
-
-
-
-@login_required
-def etat_actualisation(request):
-    etat = SynchronisationEtat.objects.filter(id=1).first()
-
-    # Timeout de sécurité : si ça dépasse 1h, on force en_cours=False
-    TIMEOUT_RESET_FLAG = 60
-    if ( etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=TIMEOUT_RESET_FLAG)):
-        
-        loggerSynchro.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout de {TIMEOUT_RESET_FLAG} minutes dépassé) – dernière tentative : {timezone.localtime(etat.date_derniere_tentative)}")
-        etat.en_cours = False
-        etat.save(update_fields=["en_cours"])
-
-    if not etat:
-        return JsonResponse({"en_cours": False, "dernier_statut": "inconnu", "date_maj": None, "date_derniere_tentative": None})
-
-    return JsonResponse({
-        "en_cours": etat.en_cours,
-        "dernier_statut": etat.dernier_statut,
-        "date_maj": etat.date_maj.isoformat() if etat.date_maj else None,
-        "date_derniere_tentative": etat.date_derniere_tentative.isoformat() if etat.date_derniere_tentative else None,
-    })
 
 
 
@@ -146,6 +61,9 @@ def rediriger_vers_dossier_precedent(request, num_dossier_precedent):
 @require_POST
 @login_required
 def se_declarer_instructeur(request):
+    """
+    Affecter un instructeur sur un dossier.
+    """
     
     dossier_id = request.POST.get("dossier_id")
     instructeur_id = request.POST.get("instructeur_id")
@@ -180,11 +98,9 @@ def se_declarer_instructeur(request):
         logger.error(f"[DOSSIER {dossier.numero}] Ajout instructeur refusé — {instructeur} n'appartient pas au groupe {dossier.id_groupeinstructeur.nom}")
         return redirect_error(request,"❌ Vous ne pouvez pas ajouter cet instructeur : il n’appartient pas au groupe instructeur du dossier.")
 
-
     DossierInstructeur.objects.get_or_create(id_dossier=dossier, id_instructeur=instructeur)
     logger.info(f"[DOSSIER {dossier.numero}] Instructeur {instructeur} ajouté par {request.user}.")
 
-    # nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
     nom_prenom = (
         f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
         if instructeur.id_agent_autorisations
@@ -192,7 +108,6 @@ def se_declarer_instructeur(request):
     )
     
     # Dossier Action
-    # enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", nom_prenom)
     safe_enregistrer_action(dossier, instructeur_request, "Instructeur.e ajouté.e", request, description=nom_prenom)
 
 
@@ -247,9 +162,7 @@ def se_declarer_instructeur(request):
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
                 messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
 
-
     return redirect(request.META.get("HTTP_REFERER", "/"))
-
 
 
 
@@ -1302,13 +1215,6 @@ def ajouter_annexe_dossier(request, dossier_id):
         # Lien avec le Dossier
         DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
 
-        # Enregistrement physique
-        # os.makedirs(ntpath.dirname(chemin_complet), exist_ok=True)
-
-
-        # Si un fichier du même nom existe déjà, on le supprime
-        # if os.path.exists(chemin_complet):
-        #     os.remove(chemin_complet)
 
         # 1) Supprimer si un fichier du même nom existe déjà
         try:
@@ -1329,43 +1235,9 @@ def ajouter_annexe_dossier(request, dossier_id):
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
-        # try:
-        #     with open(chemin_complet, 'wb+') as destination:
-        #         for chunk in fichier.chunks():
-        #             destination.write(chunk)
-
-        #     logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} ajoutée avec succès par {request.user}")
-        #     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        # except Exception as e:
-        #     logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'écriture de l'annexe instructeur (Note) : {e}")
-        #     messages.error(request, "Une erreur est survenue lors de l’enregistrement du fichier. Veuillez réessayer.")
-        #     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
     logger.warning(f"[DOSSIER {dossier.numero}] Annexe non ajoutée par {request.user} : Aucune pièce jointe reçue.")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
-
-
-@login_required
-def synchroniser_demarche(request, num_demarche):
-    if request.method == "POST":
-        try:
-            l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
-        except Exception as e:
-            loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
-    return redirect("instruction_demarche", num_demarche=num_demarche)
-
-
-@login_required
-def synchroniser_demarche_depuis_reception(request, num_demarche):
-    if request.method == "POST":
-        try:
-            l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
-        except Exception as e:
-            loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
-    return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
 
 @login_required
@@ -1449,8 +1321,14 @@ def dossier_manif_sportive_sans_ds(request, numero):
     with open(pois_json, encoding="utf-8") as f:
         pois_json = json.load(f)
 
+    # Les PJ du demandeur sur Déclaration Manifestations
+    pjs_demandeur_DM = Document.objects.filter(
+        dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive
+    )
+
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
+        "pjs_demandeur_DM": pjs_demandeur_DM,
         "avis_manif_sportive": avis_manif_sportive,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,

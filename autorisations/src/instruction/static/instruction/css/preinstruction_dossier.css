@@ -28,6 +28,12 @@
     border-radius: 8px;
 }
 
+/* En attete d'un doss Déclaration Manifestations */
+.formulaire .en_attente_DM{
+    font-style: italic;
+    font-size: 1.5rem;
+    margin-bottom: 3rem;
+}
 
 /* --------------------------------------------- */
 /*           Bloc Non soumis à autorisation      */
@@ -71,6 +77,5 @@
 .btn-envoyer-complement:hover {
     background-color: #0e4c27;
 }
-
 
 

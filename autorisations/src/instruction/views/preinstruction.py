@@ -154,6 +154,12 @@ def preinstruction(request):
 
 
     # Création d’un dictionnaire : dossier → dossier_manif
+    dossiers_actions_ids = {d.id for d in dossiers_actions}
+
+    for liaison in liaisons:
+        dossierDN = liaison.id_dossier
+        dossierDN.action_a_faire = dossierDN.id in dossiers_actions_ids
+
     dossiers_manif_sportive_complet_map = { liaison.id_dossier: liaison.id_dossier_manif for liaison in liaisons }
 
     # Conversion en liste de tuples pour itération dans le template

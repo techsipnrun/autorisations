@@ -16,8 +16,8 @@ from instruction.services.messagerie_service import enregistrer_message_bdd, env
 from instruction.utils_instru import format_etat_dossier
 from DS.call_DS import suppr_msg_DS, get_msg_DS
 from DS.graphql_client import GraphQLClient
-from synchronisation.src.normalisation.norma_messages import message_normalize
-from synchronisation.src.synchro.sync_messages import sync_messages
+from synchronisation.normalisation.norma_messages import message_normalize
+from synchronisation.synchro.sync_messages import sync_messages
 import logging, os
 from django.utils import timezone
 from datetime import timedelta

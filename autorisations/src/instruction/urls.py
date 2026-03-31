@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path
-from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert
+from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert, synchro
 from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
@@ -92,13 +92,13 @@ urlpatterns = [
     
 
     # ACTUALISATION
-    path("actualiser/", views.actualiser_donnees, name="actualiser_donnees"),
-    path("etat-actualisation/", views.etat_actualisation, name="etat_actualisation"),
-    path('instruction/<int:num_dossier>/actualiser', instruction.actualiser_dossier, name='actualiser_dossier'),
-    path('instruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche, name='synchroniser_demarche'),
-    path('preinstruction/<int:num_demarche>/synchroniser/', views.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),
+    path("actualiser/", synchro.actualiser_donnees, name="actualiser_donnees"),
+    path("etat-actualisation/", synchro.etat_actualisation, name="etat_actualisation"),
+    path('instruction/<int:num_dossier>/actualiser', synchro.actualiser_dossier, name='actualiser_dossier'),
+    path('instruction/<int:num_demarche>/synchroniser/', synchro.synchroniser_demarche, name='synchroniser_demarche'),
+    path('preinstruction/<int:num_demarche>/synchroniser/', synchro.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),
     path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
-    path('instruction/<int:num_dossier>/etat-actualisation/', instruction.etat_actualisation_dossier, name='etat_actualisation_dossier'),
+    path('instruction/<int:num_dossier>/etat-actualisation/', synchro.etat_actualisation_dossier, name='etat_actualisation_dossier'),
 
 
     # GROUPE INSTRUCTEUR

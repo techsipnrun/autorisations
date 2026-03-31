@@ -7,7 +7,7 @@ from autorisations.models.models_avis import AvisDocument, AvisThematique, Dossi
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils_instru import enregistrer_document
-from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
+from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
 
 logger = logging.getLogger("ORM_DJANGO")

@@ -89,7 +89,7 @@
     {% if request.user.is_superuser and django_env == "dev" %}
         <div class="manif-sportive">
 
-            <h1>Les demandes de Manifestations Sportives</h1>
+            <h1>Les demandes de Manifestations Sportives incomplètes</h1>
 
             {% if instructeur %}
                 <div class="refresh-doss">
@@ -104,23 +104,24 @@
             {% endif %}
 
             <div class="manif_sportive_tableau">
-                <h2 class="h2_first">Dossiers complets</h2>
+                <h2 class="h2_first">DOSSIERS COMPLETS</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Nom de la manifestation</th>
                             <th>Organisateur</th>
                             <th>Date de début de l'événement</th>
-                            <th>N° dossier D-S</th>
+                            <th>N° dossier D-N</th>
                             <th>N° dossier D-M</th>
-                            <th>Dossier D-S reçu le</th>
+                            <th>Dossier D-N reçu le</th>
                             <th>Dossier D-M reçu le</th>    
                         </tr>
                     </thead>
                     <tbody>
                         {% for dossier, dm in dossiers_manif_sportive_complet %}
-                            <tr class="clickable-row" data-href="{% url 'preinstruction_dossier' numero=dossier.numero %}">
-                                <td>{{ dm.nom_dossier }}</td>
+                            <tr class="clickable-row {% if dossier.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'preinstruction_dossier' numero=dossier.numero %}"
+                                    {% if dossier.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
+                                <td class="td_demarche">{{ dm.nom_dossier }}</td>
                                 <td>{{ dm.nom_organisateur }} {{ dm.prenom_organisateur }}</td>
                                 <td>{{ dm.date_debut_evenement|date:"d F Y" }}</td>
                                 <td>{{ dossier.numero }}</td>
@@ -129,7 +130,7 @@
                                 <td>{{ dm.date_depot|date:"d F Y" }}</td>
                             </tr>
                         {% empty %}
-                                                <tr>
+                            <tr>
                                 <td colspan="7">Aucun dossier en attente d'affectation.</td>
                             </tr>
                         {% endfor %}
@@ -137,10 +138,14 @@
                 </table>
             </div>
 
+            <div class="ligne_horizontale"></div>
+
             {% if dossiers_manif_sportive_DM %}
                 <div class="manif_sportive_tableau">
-                    <h2>En attente du dossier Démarche Numérique</h2>
-
+                    <div class="manif-header">
+                        <img src="{% static 'instruction/img/prefet_icon_color.svg' %}" alt="Déclaration manifestations" title="Déclaration manifestations">
+                        <h2>EN ATTENTE DU DOSSIER DÉMARCHE NUMÉRIQUE</h2>
+                    </div>
                     <table>
                         <thead>
                             <tr>
@@ -172,15 +177,18 @@
             
             {% if dossiers_manif_sportive_DS_infos %}
                 <div class="manif_sportive_tableau">
-                    <h2>En attente du dossier Déclaration Manifestations</h2>
+                    <div class="manif-header">
+                        <img src="{% static 'instruction/img/icon_DS_32.png' %}" alt="Démarche Numérique" title="Démarche Numérique">
+                        <h2>EN ATTENTE DU DOSSIER DÉCLARATION MANIFESTATIONS</h2>
+                    </div>
                     
                     <table>
                         <thead>
                             <tr>
                                 <th>Nom de la manifestation</th>
                                 <th>Organisateur</th>
-                                <th>N° dossier D-S</th>
-                                <th>Dossier D-S reçu le</th>
+                                <th>N° dossier D-N</th>
+                                <th>Dossier D-N reçu le</th>
                                 <th>N° dossier D-M renseigné</th>
                             </tr>
                         </thead>

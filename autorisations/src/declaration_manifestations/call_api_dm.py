@@ -1,13 +1,25 @@
 import json
 import logging
+import os
+
+from django.utils import timezone
+from datetime import timedelta
+
+import smbclient
+
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
+from autorisations.utils.nas_fonctions import ecrire_file_sur_nas
+from synchronisation.utils.conversion import parse_datetime_with_tz
+from synchronisation.utils.model_helpers import update_fields
 
 from .utils import formattage_geojson
-from .get_methods import get_access_token, get_all_avis, get_dossier_by_id, get_geojson
+from .get_methods import get_access_token, get_all_avis, get_dossier_by_id, get_file, get_geojson, get_pj_dossier
 
 loggerDM = logging.getLogger("API_DM")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
+logger = logging.getLogger("ORM_DJANGO")
 
-def main():
+def recup_avis_et_dossiers():
 
     # Récupère le token
     token = get_access_token()
@@ -33,46 +45,36 @@ def main():
 
     # Détails pour chaque dossier
     dossiers = []
-    avis_echantillon = []
+    # avis_echantillon = []
     unique_numeros = []
 
-
-    # avis_list = get_all_avis(token)
-
-    avis_filtres = [
-        avis for avis in avis_list
-        if not (
-            avis.get("reponse_avis") is not None
-            or avis.get("etat") in ["caduc", "termine"]
-        )
-    ]
-
-    loggerSynchro("\n avis_filtres :")
-    loggerSynchro(avis_filtres)
+    # Filtre seulement les avis non rendus sur des demandes en cours
+    # avis_filtres = [
+    #     avis for avis in avis_list
+    #     if not (
+    #         avis.get("reponse_avis") is not None
+    #         or avis.get("etat") in ["caduc", "termine"]
+    #     )
+    # ]
 
 
-    loggerDM.info(f"On récupère un échantillon test de dossiers")
+    # Filtre pour le dev : 1 seul avis
+    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") == 103791 )]  # 105963
+
+
+
+    loggerDM.info(f"{len(avis_filtres)} avis récupéré(s) après filtre sur Déclaration manifestations")
+    loggerSynchro.info(f"{len(avis_filtres)} avis récupéré(s) après filtre sur Déclaration manifestations")
+
+    loggerDM.info(f"On récupère les dossiers en cours, de ces avis non rendus.")
     for avis in avis_filtres:
-        #
-        # EXCLURE ici les avis deja rendu (reponse_avis not null) ET (etat avis = caduc ou = termine)
-        #
+
         manif_id = avis["manif_id"]
         date_demande = avis.get("date_demande", "")
 
-        # Filtrer uniquement les avis 2026
-        if (not date_demande.startswith("2026")) :
-            continue
-
-        # filtre sur un seul trail pour TEST
-        # if manif_id != 93165 :
-        #     continue
-
-        avis_echantillon.append(avis)
-
-      
-        # if avis["date_demande"][:7] == '2025-05' :  #and avis["manif_id"] == 65866 
 
         dossier = get_dossier_by_id(token, manif_id)
+
         if dossier:
             if "description" in dossier and dossier["description"]:
                 dossier["description"] = dossier["description"].replace("\n", " ").replace("\r", "") 
@@ -90,22 +92,33 @@ def main():
                 else :
                     loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier['nom']} ({dossier['pk']}) : Geojson vide")
                     dossier["geometrie"] = None
-                #
-                # On ajoute ici que si : date du jour < date de fin de la manif  ET  etat dossier != annulée
-                # Si ca respecte pas cette condition, on log en warning
-                #
+
+                # # Récupération des pjs
+                # dossier["liste_pj"] = get_pj_dossier(token, manif_id)
+
+                # Log si : date du jour > date de fin de la manif  ET  etat dossier != annulée
+                date_fin_evenement =  parse_datetime_with_tz(dossier.get("date_fin"))
+                etat_dossier = dossier.get("etat")
+                
+                if (date_fin_evenement and date_fin_evenement < timezone.now() and (timezone.now() - date_fin_evenement) < timedelta(days=100) and etat_dossier != "annulée") :
+                    nom_dossier = dossier.get("nom")
+                    numero_dossier_declaration_manifestations = dossier.get("pk")
+
+                    loggerSynchro.warning(f"Récupération infos sur Déclaration manifestations : Dossier {numero_dossier_declaration_manifestations} " +
+                        f"({nom_dossier}) n'a aucun avis rendu, or le dossier est toujours en cours sur DM et la manifestation est déjà passée ({date_fin_evenement})."
+                    )
+
                 dossiers.append(dossier)
 
             else :
                 loggerDM.warning(f"Le dossier {dossier['nom']} ({dossier['pk']}) est en double sur Déclaration Manifestations")
- 
+    
+
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
     loggerSynchro.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
 
-    loggerDM.info(f"{len(avis_echantillon)} avis récupéré(s) sur Déclaration manifestations")
-    loggerSynchro.info(f"{len(avis_echantillon)} avis récupéré(s) sur Déclaration manifestations")
+    return dossiers, avis_filtres
 
-    return dossiers, avis_echantillon
 
 
 def recup_un_seul_dossier(manif_id):
@@ -132,5 +145,261 @@ def recup_un_seul_dossier(manif_id):
             loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier['nom']} ({dossier['pk']}) : Geojson vide")
             dossier["geometrie"] = None
         
-
     return [dossier]
+
+
+def recup_pj_dossiers(doss, docs, token, doss_lie):
+    """
+    doss = DossierManifSportive
+    docs = [Document] du doss
+    token = Token API Déclaration Manifestations
+    doss_lie = True si Dossier DM lié à un dossier DN, False sinon
+
+    Récupération des Pj associées au dossier sur Déclaration Manifestations.
+    Synchronisation NAS et BDD
+    """
+
+    manif_id = doss.numero_dossier_declaration_manifestations
+
+    # Récupération des pjs
+    liste_pj = get_pj_dossier(token, manif_id)
+
+    # [{ "id": 950564, "document_attache": null, "historique": [], "date_modification_model": "2026-01-30T10:10:20.753457+01:00", 
+    #    "nom": "Attestation de présence de médecin(s)", "champ_cerfa": "presence_docteur", "info": "", "validation_instructeur": false, "date_demande": null,
+    #    "date_limite": null, "date_televersement": null, "scan_antivirus": true, "tentative_scan": 0, "document_attache_taille_maximum": 25,
+    #    "history_json": null, "is_archived": false, "demande_par_utilisateur": null, "demande_par_service": null, "valide_par_service": null, "instance": null
+    #  }, ... ]
+
+    if not liste_pj:
+        loggerDM.warning(f"[Dossier Déclaration Manifestations {manif_id} - {doss.nom_dossier}] Aucune PJ visible depuis l'API DM")
+        return doss
+    
+
+    # Liste des ids des Document étant liés à un DossierManifSportive du doss
+    docs_ids = {doc.id for doc in docs}
+
+
+    compteur_nouvelles_pjs_recup = 0
+
+    for pj in liste_pj:
+        url = pj.get("document_attache")
+
+        # Un document est bien présent sur DM
+        if url :
+            
+            # RÉCUPÉRATION DES INFOS
+            titre = url.split('/')[-1]
+            pj_dm_id = pj.get("id")
+            format_fichier = url.split('.')[-1].lower()
+            id_format = DocumentFormat.objects.filter(format=format_fichier).first()
+            id_nature = DocumentNature.objects.filter(nature__iexact="Pièce jointe demandeur").first()
+
+            if not id_format:
+                loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Format inconnu pour '{titre}' : {format_fichier}")
+                continue
+
+            if not id_nature:
+                loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Nature 'Pièce jointe demandeur' introuvable.")
+                return doss
+
+
+            description = pj.get("nom")
+            date_televersement = parse_datetime_with_tz(pj.get("date_televersement"))
+            
+            if doss_lie :
+                emplacement_doc = os.path.join(doss.emplacement, "Annexes/Déclaration Manifestations/")
+            else :
+                emplacement_doc = os.path.join(doss.emplacement, "Annexes/")
+                
+            emplacement_file = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc, titre)
+
+
+            fields_to_update = {
+                "id_format": id_format,
+                "id_nature": id_nature,
+                "url_dm": url,
+                "emplacement": emplacement_doc,
+                "description": description,
+                "titre": titre,
+                "date": date_televersement,
+                "pj_dm_id": pj_dm_id,
+            }
+
+            defaults={
+                "id_format": id_format,
+                "id_nature": id_nature,
+                "url_dm": url,
+                "description": description,
+                "date": date_televersement,
+                "pj_dm_id": pj_dm_id,
+            }
+
+
+            # Le doc existe-t-il sur le NAS ?
+            fichier_existe_sur_NAS = smbclient.path.exists(emplacement_file)
+
+            # Le doc existe-t-il en BDD ?
+            doc_bdd = None
+            if pj_dm_id is not None:
+                doc_bdd = Document.objects.filter(pj_dm_id=pj_dm_id).first()
+            document_existe_en_bdd = doc_bdd is not None
+
+
+            # -----------------------------
+            # DOCUMENT EXISTE DEJA EN BDD
+            # -----------------------------
+            if document_existe_en_bdd :
+
+                # On s'assure qu'il y a bien une liaison DossierManifSportiveDocument
+                if doc_bdd and doc_bdd.id not in docs_ids:
+                    obj, created = DossierManifSportiveDocument.objects.get_or_create(id_dossier_manif_sportive=doss, id_document=doc_bdd)
+                    docs_ids.add(doc_bdd.id)
+                
+                # ----------------------------
+                # -- DOC PRÉSENT SUR LE NAS --
+                # ----------------------------
+                if fichier_existe_sur_NAS:
+                        
+                    if date_televersement is None or doc_bdd.date is None or date_televersement <= doc_bdd.date:
+                        # Check MAJ Document
+                        try:
+                            updated_fields = update_fields(doc_bdd, fields_to_update, date_fields=["date"])
+                            if updated_fields:
+                                doc_bdd.save(update_fields=updated_fields)
+                                loggerSynchro.info(f"[DOSSIER MANIF SPORTIVE {manif_id}] Document {doc_bdd} mis à jour. Changements: {', '.join(updated_fields)}")
+
+                        except Exception as e:
+                            loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Synchro : Erreur lors de la mise à jour du Document {doc_bdd} : {e}")
+                            continue
+                        continue
+
+                    # else :
+                        # + bas : 
+                        # écriture sur le NAS + MAJ Document
+
+                # ---------------------------
+                # -- DOC ABSENT SUR LE NAS --
+                # ---------------------------
+                if not fichier_existe_sur_NAS:
+                    loggerSynchro.warning(
+                        f"[DOSSIER DM {manif_id}] Incohérence PJ DM id={pj_dm_id} : Document {doc_bdd.id} présent en BDD "
+                        f"mais absent sur le NAS à l'emplacement '{emplacement_file}'"
+                    )
+                    # + bas :
+                    # MAJ Doc + écrire sur le NAS + bas
+
+            
+            # --------------------------
+            # DOCUMENT ABSENT EN BDD
+            # --------------------------
+            else :
+                # ----------------------------
+                # -- DOC PRÉSENT SUR LE NAS --
+                # ----------------------------
+                if fichier_existe_sur_NAS:
+                    loggerSynchro.warning(
+                        f"[DOSSIER DM {manif_id}] Incohérence PJ DM id={pj_dm_id} : "
+                        f"Document absent en BDD mais fichier présent sur le NAS à l'emplacement '{emplacement_file}'."
+                    )
+
+                    # Création ou mise à jour du Document (contrainte UNIQUE emplacement,titre)
+                    doc, created = Document.objects.get_or_create(emplacement=emplacement_doc, titre=titre, defaults=defaults)
+
+                    # On s'assure qu'il y a bien une liaison DossierManifSportiveDocument
+                    if doc and doc.id not in docs_ids:
+                        obj, created = DossierManifSportiveDocument.objects.get_or_create(id_dossier_manif_sportive=doss, id_document=doc)
+                        docs_ids.add(doc.id)
+
+                    if created:
+                        loggerSynchro.warning(f"[CREATE] Document {doc} créé pour le Dossier Manif Sportive {manif_id}. Le fichier était lui, déjà présent sur le NAS.")
+                    else:
+    
+                        try:
+                            updated_fields = update_fields(doc, fields_to_update, date_fields=["date"])
+                            if updated_fields:
+                                doc.save(update_fields=updated_fields)
+                                loggerSynchro.info(f"[DOSSIER MANIF SPORTIVE {manif_id}] Document {doc} mis à jour. Changements: {', '.join(updated_fields)}")
+
+                        except Exception as e:
+                            loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Synchro : Erreur lors de la mise à jour du Document {doc} : {e}")
+                            continue
+
+                    continue
+                
+                # ---------------------------
+                # -- DOC ABSENT SUR LE NAS --
+                # ---------------------------
+                # else :
+                    # + bas :
+                    # écrire sur le NAS + Création Document (attention aux contraintes)
+
+            
+            # -----------------------------------------
+            # ÉCRITURE SUR LE NAS POUR LES NOUVELLES PJ
+            # -----------------------------------------
+            try :
+
+                # Récupération du fichier sur DM
+                file = get_file(token, url)  #Bytes
+
+            except Exception as e:
+                loggerDM.warning(f"[DOSSIER MANIF SPORTIVE {manif_id} - {doss.nom_dossier}] Erreur lors du téléchargement de '{description}' ({url}) : {e}")
+                continue
+            
+
+            
+
+            # Ecriture sur le NAS (écrase fichier si existant)
+            if not ecrire_file_sur_nas(file, emplacement_file) :
+                loggerDM.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Échec de l’écriture du fichier {emplacement_file}")
+                continue
+            
+
+            # DOC EXISTE EN BDD
+            if document_existe_en_bdd :
+                # MAJ DOCUMENT
+                try:
+
+                    updated_fields = update_fields(doc_bdd, fields_to_update, date_fields=["date"])
+                    if updated_fields:
+                        doc_bdd.save(update_fields=updated_fields)
+                        loggerSynchro.info(f"[DOSSIER MANIF SPORTIVE {manif_id}] Document {doc_bdd} mis à jour. Changements: {', '.join(updated_fields)}")
+
+                except Exception as e:
+                    loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Synchro : Erreur lors de la mise à jour du Document {doc_bdd} : {e}")
+                    continue
+            
+            # DOCUMENT(pj_dm_id=pj_dm_id) : ABSENT EN BDD
+            else : 
+                # Création ou mise à jour du Document (contrainte UNIQUE emplacement,titre)
+                doc, created = Document.objects.get_or_create(emplacement=emplacement_doc, titre=titre, defaults=defaults)
+
+                # On s'assure qu'il y a bien une liaison DossierManifSportiveDocument
+                if doc and doc.id not in docs_ids:
+                    obj, created = DossierManifSportiveDocument.objects.get_or_create(id_dossier_manif_sportive=doss, id_document=doc)
+                    docs_ids.add(doc.id)
+
+
+                if created:
+                    loggerSynchro.info(f"[CREATE] Document {doc} créé pour le Dossier Manif Sportive {manif_id}.")
+                else:
+
+                    try:
+                        updated_fields = update_fields(doc, fields_to_update, date_fields=["date"])
+                        if updated_fields:
+                            doc.save(update_fields=updated_fields)
+                            loggerSynchro.info(f"[DOSSIER MANIF SPORTIVE {manif_id}] Document {doc} mis à jour. Changements: {', '.join(updated_fields)}")
+
+                    except Exception as e:
+                        loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Synchro : Erreur lors de la mise à jour du Document {doc} : {e}")
+                        continue
+
+            # COMPTEUR NOUVELLES PJ
+            compteur_nouvelles_pjs_recup += 1
+    
+
+    if compteur_nouvelles_pjs_recup > 0 :
+        loggerDM.info("---")
+        loggerDM.info(f"[Dossier {manif_id} - {doss.nom_dossier}] {compteur_nouvelles_pjs_recup} nouvelles PJ récupérées")
+
+    return doss

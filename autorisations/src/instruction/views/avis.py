@@ -20,7 +20,7 @@ from autorisations.models.models_documents import Document, DocumentFormat, Docu
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_file_sur_nas
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import create_message_avis_bdd, enregistrer_document
-from synchronisation.src.utils.model_helpers import update_fields
+from synchronisation.utils.model_helpers import update_fields
 from pathlib import Path
 from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
@@ -29,7 +29,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, redirect_error
 
-from synchronisation.src.utils.fichiers import nettoyer_nom_fichier
+from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
 logger = logging.getLogger('ORM_DJANGO')
 

@@ -1,10 +1,10 @@
 import logging
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
-from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument, MessageDocument
+from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import AvisManifSportive, Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
-
+from django.db.models import Exists, OuterRef
 
 # Personnalisation globale de l'admin
 admin.site.site_header = "Administration des Autorisations"
@@ -350,10 +350,35 @@ class DemarcheTypeFilter(admin.SimpleListFilter):
         return queryset
     
 
+class DossierLiaisonFilter(admin.SimpleListFilter):
+    title = "Lié"
+    parameter_name = "liaison"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("oui", "Oui"),
+            ("non", "Non"),
+        )
+
+    def queryset(self, request, queryset):
+        liaison_qs = DossierManifestationLiaison.objects.filter(
+            id_dossier=OuterRef("pk")
+        )
+
+        queryset = queryset.annotate(est_lie=Exists(liaison_qs))
+
+        if self.value() == "oui":
+            return queryset.filter(est_lie=True)
+        if self.value() == "non":
+            return queryset.filter(est_lie=False)
+
+        return queryset
+    
+
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
     list_display = ('numero', 'id', 'nom_dossier', 'etat', 'etape', 'groupe_instructeur', 'date_depot')
-    list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds')
+    list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds', DossierLiaisonFilter,)
     search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
     list_per_page = 20
 
@@ -742,7 +767,7 @@ class LiaisonDossierFilter(admin.SimpleListFilter):
 
 @admin.register(DossierManifSportive)
 class DossierManifSportiveAdmin(admin.ModelAdmin):
-    list_display = ('nom_dossier', 'etat_dossier', 'numero_affiche',)
+    list_display = ('nom_dossier', 'etat_dossier', 'numero_affiche', 'est_lie',)
     list_filter = ('etat_dossier', LiaisonDossierFilter)
     search_fields = ('nom_dossier', 'numero_dossier_declaration_manifestations')
 
@@ -750,7 +775,13 @@ class DossierManifSportiveAdmin(admin.ModelAdmin):
         return obj.numero_dossier_declaration_manifestations
     numero_affiche.short_description = "Numéro"
 
+    @admin.display(boolean=True, description="Lié")
+    def est_lie(self, obj):
+        return DossierManifestationLiaison.objects.filter(id_dossier_manif=obj).exists()
+
 admin.site.register(DossierManifestationLiaison)
+
+admin.site.register(DossierManifSportiveDocument)
 
 admin.site.register(SynchronisationEtat)
 

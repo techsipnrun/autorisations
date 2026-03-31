@@ -41,7 +41,7 @@ NAS_MOUNT_POINT = "/mnt/nas_autorisations"  # point de montage sur Linux
 
 def ecrire_file_sur_nas(source, chemin_destination):
     """
-    Écrit un fichier sur le NAS via SMB.
+    Écrit un fichier sur le NAS via SMB (écrase si un fichier du meme nom existe deja)
     Peut écrire depuis :
         - un fichier Django UploadedFile (ex: request.FILES['fichier'])
         - un chemin local (str) pointant vers un fichier existant
@@ -83,11 +83,24 @@ def ecrire_file_sur_nas(source, chemin_destination):
                 for chunk in iter(lambda: src.read(4096), b""):
                     dst.write(chunk)
 
+            loggerApp.info(f"[NAS] ✅ Fichier {src_label} écrit sur {chemin_destination}")
+
+        elif isinstance(source, bytes):
+            src_label = chemin_destination.split("/")[-1]
+
+            with smbclient.open_file(chemin_destination, mode="wb") as dst:
+                dst.write(source)
 
             loggerApp.info(f"[NAS] ✅ Fichier {src_label} écrit sur {chemin_destination}")
 
+
         else:
             loggerApp.error(f"[NAS] ⚠️ Type de source non supporté : {type(source)}. La fonction 'ecrire_file_sur_nas' n'accepte que des UploadedFile ou des String (= path complet du fichier)")
+            loggerApp.error(
+                f"[NAS] ⚠️ Type de source non supporté : {type(source)}. "
+                "La fonction 'ecrire_file_sur_nas' n'accepte que UploadedFile, str (= path complet du fichier) ou bytes."
+            )
+            
             return False
 
         return True
@@ -285,3 +298,63 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
         loggerApp.exception(f"[ACL] ⚠️ Erreur inattendue lors de l’attribution des droits : {e}")
 
     return False
+
+
+
+
+def copier_dossier_smb(src, dst, logger):
+    """
+    Copie récursivement un dossier sur un partage SMB.
+
+    Args:
+        src (str): chemin source
+        dst (str): chemin destination
+    """
+
+    # Si le dossier source n'existe pas → rien à faire
+    if not smbclient.path.exists(src):
+        logger.warning(f"[COPY FILE] Dossier source introuvable : {src}")
+        return
+
+    # Créer le dossier destination si besoin
+    if not smbclient.path.exists(dst):
+        smbclient.makedirs(dst)
+
+    for item in smbclient.listdir(src):
+        src_path = os.path.join(src, item)
+        dst_path = os.path.join(dst, item)
+
+        if smbclient.path.isdir(src_path):
+            # récursif
+            copier_dossier_smb(src_path, dst_path, logger)
+
+        else:
+            # copie fichier
+            with smbclient.open_file(src_path, mode="rb") as fsrc:
+                with smbclient.open_file(dst_path, mode="wb") as fdst:
+                    fdst.write(fsrc.read())
+
+            logger.info(f"[COPY FILE] {src_path} -> {dst_path}")
+
+
+
+def supprimer_dossier_smb_recursif(path, logger=None):
+    """
+    Supprime récursivement un dossier SMB et tout son contenu.
+    """
+    if not smbclient.path.exists(path):
+        if logger:
+            logger.warning(f"[DELETE DOSSIER] Dossier introuvable : {path}")
+        return
+
+    for item in smbclient.listdir(path):
+        item_path = os.path.join(path, item)
+
+        if smbclient.path.isdir(item_path):
+            supprimer_dossier_smb_recursif(item_path, logger=logger)
+        else:
+            smbclient.remove(item_path)
+            if logger:
+                logger.info(f"[DELETE DOSSIER] Dossier non vide, Fichier supprimé : {item_path}")
+
+    smbclient.rmdir(path)

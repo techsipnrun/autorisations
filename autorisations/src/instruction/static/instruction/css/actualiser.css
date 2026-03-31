@@ -25,13 +25,11 @@
 }
 
 #btn-actualiser:hover {
-    /* background: #006130c6; */
     background: #cdcdcdcb;
     transform: rotate(90deg);
 }
 
 #btn-actualiser img {
-    /* border: red solid; */
     width: 22px;
     height: 22px;
 }
@@ -42,9 +40,6 @@
     color: black;
 }
 
-/* .actualisation-texte {
-    font-style: italic;
-} */
 
 #btn-actualiser:disabled {
     opacity: 0.5;
