@@ -59,7 +59,7 @@ def recup_avis_et_dossiers():
 
 
     # Filtre pour le dev : 1 seul avis
-    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") == 103791 )]  # 105963
+    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [103791, 99265] )]  # 105963, 99265, 109421, 109834
 
 
 

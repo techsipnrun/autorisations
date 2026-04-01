@@ -46,6 +46,7 @@ def sync_declaration_manifestations(dossier, logger):
     champ_num_dm = Champ.objects.get(nom="Numéro du dossier sur la plateforme déclaration-manifestations")
     nom_courses_clean = nettoyer_nom_fichier(dossier.get('nom_dossier'))
     dossier_dn = None
+    doss_lie = False
 
     try:
         defaults = foreign_keys_add_suffixe_id(DossierManifSportive, dossier)
@@ -94,6 +95,8 @@ def sync_declaration_manifestations(dossier, logger):
 
             if created_liaison:
                 logger.info(f"[CREATE] Liaison créée entre DossierManifSportive {manif_id} et Dossier DN {dossier_dn.numero}.")
+                doss_lie = True
+                
 
             obj.emplacement = dossier_dn.emplacement
             obj.save()
@@ -119,6 +122,8 @@ def sync_declaration_manifestations(dossier, logger):
     # -----------------------------
     else:
         update_data = {}
+
+        doss_lie = DossierManifestationLiaison.objects.filter(id_dossier_manif=obj).exists()
 
         for field, new_value in dossier.items():
 
@@ -153,4 +158,4 @@ def sync_declaration_manifestations(dossier, logger):
             logger.info(f"[NO CHANGE] DossierManifSportive {manif_id} inchangé.")
 
 
-    return obj, True if dossier_dn else False
+    return obj, doss_lie

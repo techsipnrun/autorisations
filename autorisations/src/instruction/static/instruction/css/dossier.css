@@ -1301,6 +1301,13 @@ textarea[name="note"] {
 /*       MANIFS SPORTIVES RESPONSIVE CARTO      */
 /* -------------------------------------------- */
 
+#warning_numero_manif_sportive{
+    /* padding: 0.5rem 0; */
+    margin-bottom: 1rem;
+    color: rgb(145, 0, 0);
+    font-style: italic;
+}
+
 @media (max-width: 1200px) {
 
   .carte-container-trail-dossier-complet {

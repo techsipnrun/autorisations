@@ -256,3 +256,19 @@ input:checked + .slider:before {
 .manif-header h2 {
   margin: 0;              /* annule le margin-left global */
 }
+
+
+/* Bouton Synchro - Manifs sportives */
+
+.refresh-doss-manif .form-sync-inline {
+    display: flex !important;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: nowrap;
+}
+
+.refresh-doss-manif .sync-inline-status {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    margin-top: 0;
+}

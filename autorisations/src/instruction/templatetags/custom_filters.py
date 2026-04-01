@@ -35,3 +35,10 @@ def is_int(value):
         return True
     except (ValueError, TypeError):
         return False
+    
+@register.filter
+def to_int(value):
+    try:
+        return int(value)
+    except:
+        return 0

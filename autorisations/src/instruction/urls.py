@@ -88,8 +88,8 @@ urlpatterns = [
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
     path('preinstruction/<int:numero>/messagerie', messagerie.preinstruction_dossier_messagerie, name='preinstruction_dossier_messagerie'),
     path('preinstruction/<int:numero>/messagerie/envoyer/', messagerie.envoyer_message_dossier, name='envoyer_message_dossier'),
-    path('preinstruction/declaration_manifestations/<int:numero>/', views.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
-    
+    path('preinstruction/declaration_manifestations/<int:numero>/', preinstruction.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
+    path("manif-sportive/<int:id_dossier_manif>/lier-dn/",preinstruction.lier_dossier_manif_sportive_a_DN,name="lier_dossier_manif_sportive_a_DN"),
 
     # ACTUALISATION
     path("actualiser/", synchro.actualiser_donnees, name="actualiser_donnees"),
@@ -99,6 +99,7 @@ urlpatterns = [
     path('preinstruction/<int:num_demarche>/synchroniser/', synchro.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),
     path('preinstruction/<int:numero>/messagerie/actualiser/', messagerie.actualiser_messages, name='actualiser_messages'),
     path('instruction/<int:num_dossier>/etat-actualisation/', synchro.etat_actualisation_dossier, name='etat_actualisation_dossier'),
+    path("instruction/<int:num_demarche>/etat-actualisation-demarche/",synchro.etat_actualisation_demarche,name="etat_actualisation_demarche"),
 
 
     # GROUPE INSTRUCTEUR

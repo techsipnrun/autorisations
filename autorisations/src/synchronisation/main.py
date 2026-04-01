@@ -3,6 +3,7 @@ import logging
 from DS.call_DS import recup_data_DS
 from BDD.pg_functions import get_number_demarche_Postgres
 from autorisations.models.models_instruction import Demarche, SynchronisationEtat
+from instruction.utils.dossier_utils import set_etat_actualisation_demarche
 from notifications.service import envoi_notif_mails_nouveaux_dossiers
 from .synchro.sync_process import synchro_process
 from .normalisation.normalize_main import normalize_process
@@ -61,6 +62,8 @@ def lancer_normalisation_et_synchronisation():
                 s = synchro_process(resultats, dico_notifs, demarche_obj)
                 if not s :
                     success = False
+                else :
+                    set_etat_actualisation_demarche(demarche_obj.numero, "success", "Actualisation terminée avec succès.")
 
                 logger.info("------------------------------------------------")
 
@@ -137,7 +140,8 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
                 s = synchro_process(resultats, dico_notifs, demarche)
                 if not s :
                     return False
-
+                else :
+                    set_etat_actualisation_demarche(demarche.numero, "success", "Actualisation terminée avec succès.")
 
         if dico_notifs :
             envoi_notif_mails_nouveaux_dossiers(dico_notifs)
@@ -152,3 +156,5 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
     except Exception as e:
         logger.error(f"Erreur critique dans lancer_normalisation_et_synchronisation_pour_une_demarche({num_demarche}) : {e}")
         return False
+
+    return success

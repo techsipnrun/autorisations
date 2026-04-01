@@ -122,6 +122,11 @@ class Demarche(models.Model):
     delais_jours_instruction = models.IntegerField(blank=True, null=True)
     type = models.CharField(blank=True, null=True)
     service = models.CharField(max_length=10, choices=SERVICE_CHOICES, default="SAADD")
+    
+    actualisation_statut = models.CharField(max_length=20, blank=True, null=True)
+    actualisation_date = models.DateTimeField(blank=True, null=True)
+    actualisation_message = models.CharField(blank=True, null=True)
+
 
     class Meta:
         managed = False

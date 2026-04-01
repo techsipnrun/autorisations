@@ -357,11 +357,9 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
             if supprimer_ancien_dossier:
                 try:
                     supprimer_dossier_smb_recursif(ancien_emplacement_full_path, loggerSynchro)
-                    loggerSynchro.info(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : ancien dossier supprimé : {ancien_emplacement_full_path}")
+                    loggerSynchro.info(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : ancien dossier supprimé : {ancien_emplacement_dm}")
                 except Exception as e:
-                    loggerSynchro.warning(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : "
-                        f"impossible de supprimer l'ancien dossier {ancien_emplacement_full_path} : {e}"
-                    )
+                    loggerSynchro.warning(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : impossible de supprimer l'ancien dossier {ancien_emplacement_dm} : {e}")
 
 
             # ---------------------------------

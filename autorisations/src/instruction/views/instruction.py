@@ -21,8 +21,6 @@ from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etapes_custom, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
-from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
-from declaration_manifestations.call_api_dm import recup_un_seul_dossier
 from synchronisation.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.synchro.sync_declaration_manifestations import sync_declaration_manifestations
 from synchronisation.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -368,6 +366,11 @@ def instruction_demarche(request, num_demarche):
     # Tri : dossiers avec action en premier, puis par nb de messages non lus
     dossier_archives_infos.sort(key=lambda d: (not d["action_a_faire"], -d["nb_messages_non_lus"]))
 
+    ###############################
+    # Infos sur la synchro
+    ###############################
+    etat_global = SynchronisationEtat.objects.filter(id=1).values("en_cours").first()
+    
 
     return render(request, "instruction/instruction_demarche.html", {
     "demarche": demarche,
@@ -376,6 +379,8 @@ def instruction_demarche(request, num_demarche):
     "annee_selectionnee": annee_selectionnee,
     "dossiers_archives": dossier_archives_infos,
     "instructeur": instructeur,
+    "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
+    "synchro_demarche_en_cours": demarche.actualisation_statut == "running",
 })
 
 

@@ -16,6 +16,7 @@
 
     <!-- JS pour l'actualisation -->
     <script src="{% static 'instruction/js/actualiser.js' %}?v=2"></script>
+    <script src="{% static 'instruction/js/preinstruction_manif_actualiser.js' %}?v=2"></script>
 </head>
 
 
@@ -92,13 +93,24 @@
             <h1>Les demandes de Manifestations Sportives incomplètes</h1>
 
             {% if instructeur %}
-                <div class="refresh-doss">
-                    <form method="post" action="{% url 'synchroniser_demarche_depuis_reception' num_demarche=num_demarche_manif_sportive %}">
+                <div class="refresh-doss refresh-doss-manif">
+                    <form method="post"
+                        action="{% url 'synchroniser_demarche_depuis_reception' num_demarche=num_demarche_manif_sportive %}"
+                        data-etat-url="{% url 'etat_actualisation_demarche' num_demarche=num_demarche_manif_sportive %}"
+                        class="form-sync-inline">
                         {% csrf_token %}
-                        <button type="submit" class="refresh-button" id="btn-sync">
+
+                        <button type="submit"
+                                class="refresh-button"
+                                id="btn-sync-manif"
+                                data-icon="{% static 'instruction/img/actualiser.png' %}"
+                                data-synchro-globale="{{ etat_global.en_cours|yesno:'true,false' }}"
+                                data-running="{{ etat_actualisation_manif.en_cours|yesno:'true,false' }}">
                             <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
                             Actualiser les dossiers Manifestations sportives
                         </button>
+
+                        <div id="sync-manif-status" class="sync-inline-status"></div>
                     </form>
                 </div>
             {% endif %}
@@ -227,7 +239,7 @@
 </script>
 
 <!-- Bouton actualiser -->
-<script>
+<!-- <script>
     document.addEventListener("DOMContentLoaded", function () {
         const syncForm = document.querySelector("form[action*='synchroniser']");
         const syncButton = document.getElementById("btn-sync");
@@ -237,7 +249,7 @@
             syncButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
         });
     });
-</script>
+</script> -->
 
 <!-- Bouton toggle pour afficher que les dossiers qu'on doit réceptionner -->
 <script>

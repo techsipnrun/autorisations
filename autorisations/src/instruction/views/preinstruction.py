@@ -9,7 +9,7 @@ from django.contrib import messages
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
-from autorisations.models.models_documents import DossierDocument
+from autorisations.models.models_documents import Document, DossierDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action, get_etapes_custom
 from instruction.utils.files_utils import load_geojson
@@ -82,6 +82,21 @@ def preinstruction(request):
         return redirect_error(request, "❌ Erreur interne : démarche Manif Sportive introuvable.")
 
     num_demarche_manif_sportive = demarche_manif.numero
+
+    etat_actualisation_manif = {
+        "en_cours": False,
+        "statut": None,
+        "message": None,
+        "date": None,
+    }
+
+    if demarche_manif:
+        etat_actualisation_manif = {
+            "en_cours": demarche_manif.actualisation_statut == "running",
+            "statut": demarche_manif.actualisation_statut,
+            "message": demarche_manif.actualisation_message,
+            "date": demarche_manif.actualisation_date,
+        }
 
 
     # ---------------------------------------------
@@ -178,6 +193,11 @@ def preinstruction(request):
         reverse=True
     )
 
+    ###############################
+    # Infos sur la synchro
+    ###############################
+    etat_global = SynchronisationEtat.objects.filter(id=1).values("en_cours").first()
+
     
 
     return render(request, 'instruction/preinstruction.html', {
@@ -188,6 +208,8 @@ def preinstruction(request):
         "dossiers_manif_sportive_complet": dossiers_manif_sportive_complet_list,
         "instructeur": instructeur,
         "django_env" : settings.ENVIRONMENT,
+        "etat_actualisation_manif": etat_actualisation_manif,
+        "etat_global": etat_global,
         })
 
 
@@ -461,3 +483,103 @@ def changer_groupe_instructeur(request):
         return redirect_error(request,"⚠️ Groupe modifié sur DS mais erreur interne lors de la mise à jour locale. Contactez le support.")
    
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+
+
+@login_required
+def dossier_manif_sportive_sans_ds(request, numero):
+    """
+    Affichage en Reception des Dossiers DM (qui ne sont pas liés à un Dossier DN)
+    """
+
+    doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
+
+     # Récupération de l'avis lié (OneToOne → un seul)
+    try:
+        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+    except Exception:
+        avis_manif_sportive = None  # Aucun avis encore associé
+
+    # Charger le fond de carte GeoJSON (une seule fois)
+    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+    with open(fond_coeur_de_parc, encoding="utf-8") as f:
+        fond_coeur_de_parc = json.load(f)
+
+    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
+    with open(fond_aire_adhesion, encoding="utf-8") as f:
+        fond_aire_adhesion = json.load(f)
+
+    pois_json = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/pois.json")
+    with open(pois_json, encoding="utf-8") as f:
+        pois_json = json.load(f)
+
+    # Les PJ du demandeur sur Déclaration Manifestations
+    pjs_demandeur_DM = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive)
+
+
+    # On récupère les dossiers DN Manifestations Sportives non liés
+    dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
+
+    dossiers_DN_manif_sportive_a_affecter = (
+        Dossier.objects
+        .filter(id_demarche__type="Manifestations sportives", id_etape_dossier__etape="À affecter")
+        .exclude(id__in=dossiers_deja_lies_ids)
+        .select_related("id_demarche", "id_etape_dossier")
+        .order_by("date_depot")
+    )
+
+    for d in dossiers_DN_manif_sportive_a_affecter :
+        champ_nom_manifestation = DossierChamp.objects.filter(
+            id_dossier=d,
+            id_champ__nom="Nom de la manifestation"
+        ).first()
+        d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+
+
+    return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
+        "doss_manif_sportive": doss_manif_sportive,
+        "pjs_demandeur_DM": pjs_demandeur_DM,
+        "avis_manif_sportive": avis_manif_sportive,
+        "coeurData": fond_coeur_de_parc,
+        "adhesionData": fond_aire_adhesion,
+        "pois_json": pois_json,
+        "dossiers_DN_manif_sportive_a_affecter": dossiers_DN_manif_sportive_a_affecter,
+    })
+
+
+
+
+@login_required
+@require_POST
+def lier_dossier_manif_sportive_a_DN(request, id_dossier_manif):
+    """
+    Lier manuellement un Dossier DM à un Dossier DN
+    """
+
+    # --- Récupération du dossier DM ---
+    dossier_manif = get_object_or_404(DossierManifSportive, id=id_dossier_manif)
+
+    # --- Récupération du dossier DN sélectionné ---
+    dossier_dn_id = request.POST.get("dossier_ds_id")
+
+    if not dossier_dn_id:
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    dossier_dn = get_object_or_404(Dossier, id=dossier_dn_id)
+
+    # --- Sécurité : vérifier qu'il est bien "Manifestations sportives" + "À affecter" ---
+    if (dossier_dn.id_demarche.type != "Manifestations sportives" or dossier_dn.id_etape_dossier.etape != "À affecter"):
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # --- Vérifier qu'il n'est pas déjà lié ---
+    if DossierManifestationLiaison.objects.filter(id_dossier=dossier_dn).exists():
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    # --- Création de la liaison ---
+    DossierManifestationLiaison.objects.create(id_dossier=dossier_dn,id_dossier_manif=dossier_manif)
+
+    logger.info(f"[RECEPTION] User {request.user} : Liaison manuelle entre le Dossier DM {dossier_manif.numero_dossier_declaration_manifestations} et le Dossier DN  {dossier_dn.numero} ({dossier_manif.nom_dossier})")
+
+    # --- Redirection ---
+    return redirect(request.META.get("HTTP_REFERER", "/"))

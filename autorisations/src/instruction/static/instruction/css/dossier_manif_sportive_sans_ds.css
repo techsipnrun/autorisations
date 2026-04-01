@@ -295,3 +295,85 @@
 
 
 
+
+/* Bloc pour Relier 2 dossiers manuellement */
+.formulaire_dm .en_attente_DS {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    padding: 0 1.4rem;
+    
+}
+
+.formulaire_dm .en_attente_DS_message {
+    flex: 1;
+}
+
+.formulaire_dm .en_attente_DS_message p {
+    font-style: italic;
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+.bloc_liaison_ds {
+    position: relative;
+    width: auto;
+    min-width: 350px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+}
+
+.btn-liaison-ds,
+.btn-valider-liaison {
+    background-color: #006131;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-liaison-ds:hover,
+.btn-valider-liaison:hover {
+    background-color: #0e4c27;
+}
+
+.form-liaison-ds {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    display: none;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.form-liaison-ds.open {
+    display: block;
+}
+
+.form-liaison-ds label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.form-liaison-ds select {
+    width: 100%;
+    padding: 0.6rem;
+    margin-bottom: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+

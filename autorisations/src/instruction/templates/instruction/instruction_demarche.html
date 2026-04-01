@@ -34,7 +34,7 @@
             </div>
         {% endif %}
         
-        {% if instructeur %}
+        <!-- {% if instructeur %}
             <div class="refresh-doss">
                 <form method="post" action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}">
                     {% csrf_token %}
@@ -44,7 +44,35 @@
                     </button>
                 </form>
             </div>
+        {% endif %} -->
+
+        {% if instructeur %}
+            <div class="refresh-doss">
+                <form method="post"
+                    action="{% url 'synchroniser_demarche' num_demarche=demarche.numero %}"
+                    data-etat-url="{% url 'etat_actualisation_demarche' demarche.numero %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="refresh-button"
+                            data-icon="{% static 'instruction/img/actualiser.png' %}"
+                            data-synchro-globale="{{ synchro_globale_en_cours|yesno:'true,false' }}"
+                            {% if synchro_globale_en_cours or demarche.actualisation_statut == "running" %}disabled{% endif %}>
+                        <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
+
+                        {% if synchro_globale_en_cours %}
+                            Synchronisation globale en cours...
+                        {% elif demarche.actualisation_statut == "running" %}
+                            Actualisation en cours...
+                        {% else %}
+                            Actualiser
+                        {% endif %}
+                    </button>
+                    <!-- <span class="refresh-status"></span> -->
+                </form>
+            </div>
         {% endif %}
+
+
         
         <!-- {% if instructeur %}
             <div class="filtre-au-dessus">
@@ -196,7 +224,7 @@
     </script>
 
     <!-- Bouton actualiser -->
-    <script>
+    <!-- <script>
       document.addEventListener("DOMContentLoaded", function () {
           const syncForm = document.querySelector("form[action*='synchroniser']");
           const syncButton = document.getElementById("btn-sync");
@@ -206,7 +234,149 @@
               syncButton.innerHTML = '<img src="{% static "instruction/img/actualiser.png" %}" class="refresh-icon" /> Traitement en cours...';
           });
       });
-  </script>
+  </script> -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const refreshForm = document.querySelector(".refresh-doss form");
+    const refreshButton = document.querySelector(".refresh-button");
+
+    if (!refreshForm || !refreshButton) return;
+
+    const statusEl = refreshForm.querySelector(".refresh-status");
+    const etatUrl = refreshForm.dataset.etatUrl;
+    const icon = refreshButton.dataset.icon;
+    const synchroGlobaleEnCours = refreshButton.dataset.synchroGlobale === "true";
+
+    const initialButtonHtml = `
+        <img src="${icon}" alt="Synchroniser" class="refresh-icon">
+        Actualiser
+    `;
+    const defaultDisabled = synchroGlobaleEnCours;
+
+    let pollingInterval = null;
+    let clearMessageTimeout = null;
+    let wasRunning = false;
+
+    if (synchroGlobaleEnCours) return;
+    if (!etatUrl) return;
+
+    function setButtonLoading() {
+        refreshButton.disabled = true;
+        refreshButton.innerHTML = `
+            <img src="${icon}" class="refresh-icon" />
+            Actualisation en cours...
+        `;
+    }
+
+    function setButtonDefault() {
+        refreshButton.disabled = defaultDisabled;
+        refreshButton.innerHTML = initialButtonHtml;
+    }
+
+    function setStatus(message = "", statut = null) {
+        if (!statusEl) return;
+
+        statusEl.textContent = message;
+        statusEl.classList.remove("running", "success", "error");
+
+        if (statut) {
+            statusEl.classList.add(statut);
+        }
+
+        if (clearMessageTimeout) {
+            clearTimeout(clearMessageTimeout);
+            clearMessageTimeout = null;
+        }
+
+        if ((statut === "success" || statut === "error") && message) {
+            clearMessageTimeout = setTimeout(() => {
+                statusEl.textContent = "";
+                statusEl.classList.remove("success", "error");
+            }, 5000);
+        }
+    }
+
+    async function checkStatus() {
+        try {
+            const response = await fetch(etatUrl, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.en_cours) {
+                wasRunning = true;
+                setButtonLoading();
+                setStatus(data.message || "Actualisation en cours...", "running");
+                return;
+            }
+
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+
+            setButtonDefault();
+
+            if (data.statut === "success") {
+                if (wasRunning) {
+                    setStatus(data.message || "Actualisation terminée.", "success");
+                } else {
+                    setStatus("", null);
+                }
+                return;
+            }
+
+            if (data.statut === "error") {
+                if (wasRunning) {
+                    setStatus(data.message || "Erreur lors de l'actualisation.", "error");
+                } else {
+                    setStatus("", null);
+                }
+                return;
+            }
+
+            setStatus("", null);
+
+        } catch (error) {
+            console.error("Erreur lors du polling de l'actualisation de la démarche :", error);
+
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+
+            setButtonDefault();
+            setStatus("Erreur lors de la récupération de l'état.", "error");
+        }
+    }
+
+    function startPolling() {
+        if (pollingInterval) return;
+        pollingInterval = setInterval(checkStatus, 2000);
+        checkStatus();
+    }
+
+    refreshForm.addEventListener("submit", function () {
+        wasRunning = true;
+        setButtonLoading();
+        setStatus("Actualisation en cours...", "running");
+    });
+
+    checkStatus().then(() => {
+        if (refreshButton.disabled) {
+            startPolling();
+        }
+    });
+});
+</script>
+
+  
 
 
 <!-- Bouton toggle pour afficher Mes dossiers -->

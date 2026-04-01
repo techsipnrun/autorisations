@@ -11,7 +11,7 @@ import urllib
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 import smbclient
-from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, Message
+from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, Message
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
@@ -1296,44 +1296,6 @@ def supprimer_annexe_instructeur(request):
 
 
 
-@login_required
-def dossier_manif_sportive_sans_ds(request, numero):
-
-
-    doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
-
-     # Récupération de l'avis lié (OneToOne → un seul)
-    try:
-        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
-    except Exception:
-        avis_manif_sportive = None  # Aucun avis encore associé
-
-    # Charger le fond de carte GeoJSON (une seule fois)
-    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
-    with open(fond_coeur_de_parc, encoding="utf-8") as f:
-        fond_coeur_de_parc = json.load(f)
-
-    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
-    with open(fond_aire_adhesion, encoding="utf-8") as f:
-        fond_aire_adhesion = json.load(f)
-
-    pois_json = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/pois.json")
-    with open(pois_json, encoding="utf-8") as f:
-        pois_json = json.load(f)
-
-    # Les PJ du demandeur sur Déclaration Manifestations
-    pjs_demandeur_DM = Document.objects.filter(
-        dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive
-    )
-
-    return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
-        "doss_manif_sportive": doss_manif_sportive,
-        "pjs_demandeur_DM": pjs_demandeur_DM,
-        "avis_manif_sportive": avis_manif_sportive,
-        "coeurData": fond_coeur_de_parc,
-        "adhesionData": fond_aire_adhesion,
-        "pois_json": pois_json,
-    })
 
 
 

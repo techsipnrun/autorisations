@@ -11,19 +11,17 @@ import logging
 import threading
 import subprocess
 import sys
-import shutil
 
-import smbclient
 
 from DS.graphql_client import GraphQLClient
 
-from autorisations.models.models_documents import Document, DossierManifSportiveDocument
-from autorisations.models.models_instruction import Dossier, DossierManifSportive, DossierManifestationLiaison, SynchronisationEtat
+
+from autorisations.models.models_instruction import Demarche, Dossier, DossierManifSportive, DossierManifestationLiaison, SynchronisationEtat
 from autorisations.models.models_utilisateurs import Instructeur
 
-from autorisations.utils.nas_fonctions import copier_dossier_smb, creer_dossier_sur_nas
+
 from declaration_manifestations.call_api_dm import recup_un_seul_dossier
-from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, clear_etat_actualisation_dossier, get_etapes_custom, get_etat_actualisation_dossier, redirect_error, safe_enregistrer_action, set_etat_actualisation_dossier
+from instruction.utils.dossier_utils import actualisation_demarche_est_bloquee, actualisation_dossier_est_bloquee, clear_etat_actualisation_demarche, clear_etat_actualisation_dossier, get_etapes_custom, get_etat_actualisation_demarche, get_etat_actualisation_dossier, redirect_error, safe_enregistrer_action, set_etat_actualisation_demarche, set_etat_actualisation_dossier
 
 from synchronisation.main import lancer_normalisation_et_synchronisation_pour_une_demarche
 from synchronisation.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -40,7 +38,6 @@ from synchronisation.synchro.sync_dossiers import sync_dossiers
 
 from django.views.decorators.http import require_POST
 from threading import Thread
-
 
 
 
@@ -133,33 +130,125 @@ def etat_actualisation(request):
 
 
 
+def synchroniser_demarche_job(num_demarche, user_display):
+    try:
+
+        success = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+        
+        if success:
+            set_etat_actualisation_demarche(num_demarche, "success", "Actualisation terminée avec succès.")
+        else:
+            set_etat_actualisation_demarche(num_demarche,"error","Erreur lors de l'actualisation de la démarche.")
+
+    except Exception as e:
+        loggerSynchro.exception(f"[DEMARCHE {num_demarche}] Échec de l'actualisation par {user_display}: {e}")
+        set_etat_actualisation_demarche(num_demarche,"error","Erreur inattendue lors de l'actualisation.")
+
+        
 @login_required
+def etat_actualisation_demarche(request, num_demarche):
+    """
+    Regarde l'état d'actualisation d'une démarche
+    """
+    etat = get_etat_actualisation_demarche(num_demarche)
+
+    return JsonResponse(etat)
+
+# @login_required
+# def synchroniser_demarche(request, num_demarche):
+#     """
+#     Synchronise les dossiers d'une démarche. 
+#     Fonction appelée depuis la Vue d'ensemble
+#     """
+#     if request.method == "POST":
+#         try:
+#             l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+#         except Exception as e:
+#             loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+#     return redirect("instruction_demarche", num_demarche=num_demarche)
+
+
+
+@login_required
+@require_POST
 def synchroniser_demarche(request, num_demarche):
     """
-    Synchronise les dossiers d'une démarche. 
-    Fonction appelée depuis la Vue d'ensemble
+    Synchronisation de la Demarche depuis le module 'Vue d'ensemble'
     """
-    if request.method == "POST":
-        try:
-            l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
-        except Exception as e:
-            loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+    demarche = Demarche.objects.filter(numero=num_demarche).first()
+
+    if not demarche:
+        return redirect("instruction_demarche", num_demarche=num_demarche)
+
+    if actualisation_demarche_est_bloquee(demarche):
+        loggerSynchro.warning(f"[DEMARCHE {num_demarche}] Actualisation bloquée détectée, reset de l'état.")
+        clear_etat_actualisation_demarche(num_demarche)
+        demarche.refresh_from_db()
+
+    if demarche.actualisation_statut == "running":
+        return redirect("instruction_demarche", num_demarche=num_demarche)
+
+    set_etat_actualisation_demarche(num_demarche, "running", "Actualisation en cours...")
+
+    Thread(target=synchroniser_demarche_job, args=(num_demarche, str(request.user)), daemon=True,).start()
+
     return redirect("instruction_demarche", num_demarche=num_demarche)
 
 
 
 @login_required
+@require_POST
 def synchroniser_demarche_depuis_reception(request, num_demarche):
     """
-    Synchronise les dossiers d'une démarche. 
-    Fonction appelée depuis la Réception
+    Synchronisation de la Demarche depuis la Réception
     """
-    if request.method == "POST":
-        try:
-            l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
-        except Exception as e:
-            loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    demarche = Demarche.objects.filter(numero=num_demarche).first()
+
+    if not demarche:
+        if is_ajax:
+            return JsonResponse({"status": "error", "message": "Démarche introuvable."}, status=404)
+        return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+    etat_global = SynchronisationEtat.objects.filter(id=1).first()
+    if etat_global and etat_global.en_cours:
+        if is_ajax:
+            return JsonResponse({"status": "blocked_global","message": "Une synchronisation globale est déjà en cours."}, status=409)
+        return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+    
+    if actualisation_demarche_est_bloquee(demarche):
+        loggerSynchro.warning(f"[DEMARCHE {num_demarche}] Actualisation bloquée détectée, passage en erreur.")
+        set_etat_actualisation_demarche(num_demarche, "error", "Synchronisation interrompue ou bloquée.")
+        demarche.refresh_from_db()
+
+    if demarche.actualisation_statut == "running":
+        if is_ajax:
+            return JsonResponse({"status": "already_running","message": "Une synchronisation de cette démarche est déjà en cours."}, status=409)
+        return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+    set_etat_actualisation_demarche(num_demarche, "running", "Actualisation en cours...")
+
+    Thread(target=synchroniser_demarche_job, args=(num_demarche, str(request.user)), daemon=True,).start()
+
+    if is_ajax:
+        return JsonResponse({"status": "ok", "message": "Synchronisation lancée."})
+
     return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+
+# @login_required
+# def synchroniser_demarche_depuis_reception(request, num_demarche):
+#     """
+#     Synchronise les dossiers d'une démarche. 
+#     Fonction appelée depuis la Réception
+#     """
+#     if request.method == "POST":
+#         try:
+#             l = lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche)
+#         except Exception as e:
+#             loggerSynchro.error(f"Erreur de synchronisation pour la démarche {num_demarche} : {e}")
+#     return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
 
 
@@ -178,7 +267,7 @@ def actualiser_dossier_job(num_dossier, user_display):
     """
     dossier = Dossier.objects.filter(numero=num_dossier).first()
     if not dossier:
-        logger.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {user_display}")
+        loggerSynchro.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {user_display}")
         set_etat_actualisation_dossier(num_dossier, statut="error", message=f"Le dossier {num_dossier} est introuvable.")
         return
 
@@ -186,8 +275,8 @@ def actualiser_dossier_job(num_dossier, user_display):
 
     try:
         set_etat_actualisation_dossier(num_dossier, statut="running", message="Actualisation en cours...")
-        logger.info("\n\n")
-        logger.info(f" --- ACTUALISATION DU DOSSIER {num_dossier} ---")
+        loggerSynchro.info("\n\n")
+        loggerSynchro.info(f" --- ACTUALISATION DU DOSSIER {num_dossier} ---")
 
 
         # ---------------
@@ -197,7 +286,7 @@ def actualiser_dossier_job(num_dossier, user_display):
             result = client.execute_query("DS/queries/get_dossier.graphql", {"number": num_dossier})
         except Exception as api_err:
 
-            logger.error(f"[ACTUALISER DOSSIER {num_dossier}] Erreur API DS (get_dossier.graphql) : {api_err}")
+            loggerSynchro.error(f"[ACTUALISER DOSSIER {num_dossier}] Erreur API DS (get_dossier.graphql) : {api_err}")
             set_etat_actualisation_dossier(num_dossier, statut="error", message="Erreur lors de l'appel à l'API DS.")
             return
 
@@ -225,7 +314,7 @@ def actualiser_dossier_job(num_dossier, user_display):
         doss = result["data"].get("dossier")
 
         if doss.get("demandeur", {}).get("__typename") == "PersonneMoraleIncomplete":
-            logger.warning(f"Le dossier {doss['number']} ne peut pas être actualisé : services INSEE momentanément indisponibles")
+            loggerSynchro.warning(f"Le dossier {doss['number']} ne peut pas être actualisé : services INSEE momentanément indisponibles")
             set_etat_actualisation_dossier(num_dossier, statut="error", message="Les services INSEE sont momentanément indisponibles.")
             return
 
@@ -242,7 +331,7 @@ def actualiser_dossier_job(num_dossier, user_display):
 
         if liaison and os.getenv("SYNCHRO_DM", "false") == "True":
             loggerSynchro.info("")
-            loggerSynchro.info(f"###### NORMALISATION {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ######")
+            loggerSynchro.info(f"###### NORMALISATION {liaison.id_dossier_manif.nom_dossier} (Déclaration Manifestations) ######")
             doss_dm = recup_un_seul_dossier(liaison.id_dossier_manif.numero_dossier_declaration_manifestations)
             doss_dm_norma = dossiers_declaration_manifestations_normalize(doss_dm)
 
@@ -302,15 +391,15 @@ def actualiser_dossier_job(num_dossier, user_display):
             sync_dossiers([dico_dossier], demarche.numero, True, dico_notifs)
 
         except Exception as sync_err:
-            logger.error(f"[ACTUALISER DOSSIER {num_dossier}] User {user_display} - Échec lors de la synchronisation : {sync_err}")
+            loggerSynchro.error(f"[ACTUALISER DOSSIER {num_dossier}] User {user_display} - Échec lors de la synchronisation : {sync_err}")
             set_etat_actualisation_dossier(num_dossier, statut="error", message="Erreur lors de la synchronisation du dossier.")
             return
 
-        logger.info(f"[ACTUALISER DOSSIER {num_dossier}] Actualisation terminée — User : {user_display}")
+        loggerSynchro.info(f"[ACTUALISER DOSSIER {num_dossier}] Actualisation terminée — User : {user_display}")
         set_etat_actualisation_dossier(num_dossier, statut="success", message="Actualisation terminée avec succès.")
 
     except Exception as e:
-        logger.error(f"[DOSSIER] Échec de l'actualisation complète du dossier {num_dossier} par {user_display} : {e}")
+        loggerSynchro.error(f"[DOSSIER] Échec de l'actualisation complète du dossier {num_dossier} par {user_display} : {e}")
         set_etat_actualisation_dossier(num_dossier, statut="error", message="Erreur lors de l'actualisation du dossier.")
 
 
@@ -319,7 +408,7 @@ def actualiser_dossier_job(num_dossier, user_display):
 @login_required
 def actualiser_dossier(request, num_dossier):
     """
-    Si actualisation pas bloquée par une autre deja en cours : appelle le job d'actualisation d'un dossier.
+    Synchronisation d'un Dossier
     """
     dossier = Dossier.objects.filter(numero=num_dossier).first()
 
@@ -340,7 +429,4 @@ def actualiser_dossier(request, num_dossier):
     Thread(target=actualiser_dossier_job, args=(num_dossier, str(request.user)), daemon=True).start()
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
-
 

@@ -5,7 +5,7 @@ import logging
 from django.utils import timezone
 
 from django.shortcuts import redirect
-from autorisations.models.models_instruction import Dossier, DossierAction, Message
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, Message, SynchronisationEtat
 from django.contrib import messages
 
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur
@@ -471,3 +471,56 @@ def actualisation_dossier_est_bloquee(dossier, delai_minutes=10):
         return True
 
     return timezone.now() - dossier.actualisation_date > timedelta(minutes=delai_minutes)
+
+
+def set_etat_actualisation_demarche(num_demarche, statut=None, message=None):
+    Demarche.objects.filter(numero=num_demarche).update(
+        actualisation_statut=statut,
+        actualisation_date=timezone.now() if statut else None,
+        actualisation_message=message,
+    )
+
+
+def get_etat_actualisation_demarche(num_demarche):
+    
+    demarche = Demarche.objects.filter(numero=num_demarche).values("actualisation_statut", "actualisation_date", "actualisation_message",).first()
+
+    etat_global = SynchronisationEtat.objects.filter(id=1).values("en_cours").first()
+    synchro_globale_en_cours = etat_global["en_cours"] if etat_global else False
+
+    if not demarche:
+        return {
+            "en_cours": False,
+            "statut": None,
+            "message": "Démarche introuvable",
+            "date": None,
+            "synchro_globale_en_cours": synchro_globale_en_cours,
+        }
+
+    statut = demarche["actualisation_statut"]
+
+    return {
+        "en_cours": statut == "running",
+        "statut": statut,
+        "message": demarche["actualisation_message"],
+        "date": demarche["actualisation_date"],
+        "synchro_globale_en_cours": synchro_globale_en_cours,
+    }
+
+
+def clear_etat_actualisation_demarche(num_demarche):
+    Demarche.objects.filter(numero=num_demarche).update(
+        actualisation_statut=None,
+        actualisation_date=None,
+        actualisation_message=None,
+    )
+
+
+def actualisation_demarche_est_bloquee(demarche, delai_minutes=30):
+    if demarche.actualisation_statut != "running":
+        return False
+
+    if not demarche.actualisation_date:
+        return True
+
+    return timezone.now() - demarche.actualisation_date > timedelta(minutes=delai_minutes)

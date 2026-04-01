@@ -35,7 +35,40 @@
 
     <div class="page-container">
         <div class="formulaire_dm">
-            <div class="en_attente_DS"><p> En attente d'un dossier Démarches Simpifiées </p></div>
+            
+            <div class="en_attente_DS">
+                <div class="en_attente_DS_message">
+                    <p>En attente d'un dossier Démarches Simplifiées</p>
+                </div>
+
+                <div class="bloc_liaison_ds">
+                    <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
+                        Relier à un dossier Démarche Numérique
+                    </button>
+
+                    <div class="form-liaison-ds" id="form-liaison-ds">
+                        <form method="post" action="{% url 'lier_dossier_manif_sportive_a_DN' id_dossier_manif=doss_manif_sportive.id %}">
+                            {% csrf_token %}
+
+                            <label for="dossier_ds_id">Choisir un dossier DN en réception</label>
+                            <select name="dossier_ds_id" id="dossier_ds_id" required>
+                                <option value="" selected disabled>-- Sélectionner un dossier --</option>
+                                {% for dossier in dossiers_DN_manif_sportive_a_affecter %}
+                                    <option value="{{ dossier.id }}">
+                                        {{ dossier.numero }} — {{ dossier.nom_manifestation }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+
+                            <button type="submit" class="btn-valider-liaison">
+                                Confirmer la liaison
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+
             <div class="titre-manif">
                 <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
                 <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
@@ -192,6 +225,33 @@
 
     <!-- 3. Script Leaflet personnalisé -->
     <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=2"></script>
+
+
+    <!-- Menu déroulant pour relier 2 Dossiers (DM - DN) -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleBtn = document.getElementById("toggle-liaison-ds");
+            const formBloc = document.getElementById("form-liaison-ds");
+
+            if (!toggleBtn || !formBloc) return;
+
+            // Ouvrir / fermer avec le bouton
+            toggleBtn.addEventListener("click", function (e) {
+                e.stopPropagation(); // empêche fermeture immédiate
+                formBloc.classList.toggle("open");
+            });
+
+            // Empêche fermeture quand on clique DANS le menu
+            formBloc.addEventListener("click", function (e) {
+                e.stopPropagation();
+            });
+
+            // Fermer si clic ailleurs
+            document.addEventListener("click", function () {
+                formBloc.classList.remove("open");
+            });
+        });
+    </script>
 
 </body>
 </html>
