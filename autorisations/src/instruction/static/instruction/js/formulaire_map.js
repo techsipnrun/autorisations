@@ -480,10 +480,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // POP UP Intersection
                 if (intersecte) {
-                    L.popup()
-                        .setLatLng(coucheTraces.getBounds().getCenter())
-                        .setContent("Cette géométrie intersecte le cœur de parc.")
-                        .openOn(map);
+                    showCartoBanner(div, "Cette géométrie intersecte le cœur de parc.");
+                } else {
+                    hideCartoBanner(div);
                 }
 
             } catch (e) {
@@ -526,3 +525,26 @@ function copierChemin(chemin) {
 
 
 
+function showCartoBanner(carteDiv, message) {
+    const container = carteDiv.closest(".carte-container");
+    if (!container) return;
+
+    const banner = container.previousElementSibling;
+
+    if (!banner || !banner.classList.contains("carto-banner")) return;
+
+    banner.textContent = message;
+    banner.style.display = "inline-block";
+}
+
+function hideCartoBanner(carteDiv) {
+    const container = carteDiv.closest(".carte-container");
+    if (!container) return;
+
+    const banner = container.previousElementSibling;
+
+    if (!banner || !banner.classList.contains("carto-banner")) return;
+
+    banner.textContent = "";
+    banner.style.display = "none";
+}

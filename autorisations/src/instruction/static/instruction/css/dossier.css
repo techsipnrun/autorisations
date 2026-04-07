@@ -508,13 +508,13 @@ h2 {
 }
 
 @media (max-width: 2200px) {
-  .leaflet-container {
+    .leaflet-container, .carto-banner {
         width: 90%;
     }
 }
 
 @media (max-width: 2000px) {
-  .leaflet-container {
+    .leaflet-container, .carto-banner {
         width: 100%;
     }
 }
@@ -640,6 +640,22 @@ h2 {
 
 .btn-pdf:hover {
     background-color: #0a4c2e;
+}
+
+
+/* Bandeau Informatif : Intersection coeur de Parc */
+.carto-banner {
+    display: none;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: auto;
+    border-left: 4px solid #2e7d32;
+    background: #e8f5e9;
+    color: #1b5e20; 
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 
@@ -1266,11 +1282,30 @@ textarea[name="note"] {
     transform: scale(1.2);
 }
 
+
 /* Messages d'erreurs */
-.django-messages{
-    color: rgb(172, 2, 2);
+.django-messages {
     font-weight: bold;
 }
+
+/* Style par type */
+.message.info {
+    color: #0c5460;
+}
+
+.message.success {
+    color: #155724;
+}
+
+.message.warning {
+    color: #856404;
+}
+
+.message.error {
+    color: #721c24;
+}
+
+
 
 
 /* ICON DS et DM */
@@ -1336,5 +1371,109 @@ textarea[name="note"] {
       min-width: 150px;
       flex: 0 0 calc(15%);
   }
+}
+
+
+
+/* ----------------------------------------------------------------*/
+/* Bloc pour Relier 2 dossiers Manifestation Sportive manuellement */
+/* ----------------------------------------------------------------*/
+.formulaire_dm .en_attente_DS, .formulaire .en_attente_DS {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 1rem;
+    margin-bottom: 2.5rem;
+    padding: 0 1.4rem;
+    
+}
+
+.formulaire_dm .en_attente_DS_message, .formulaire .en_attente_DS_message {
+    flex: 1;
+}
+
+.formulaire_dm .en_attente_DS_message p, .formulaire .en_attente_DS_message p {
+    font-style: italic;
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+.bloc_liaison_ds {
+    position: relative;
+    width: auto;
+    min-width: 350px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+}
+
+.formulaire_dm .en_attente_DS .info_liaison, .formulaire .en_attente_DS .info_liaison{
+  font-style: italic;
+  font-size: 0.9rem;
+  padding: 0 0.5rem;
+  text-align: justify;
+  margin-bottom: 1rem;
+}
+
+.btn-liaison-ds,
+.btn-valider-liaison {
+    background-color: #006131;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-valider-liaison {
+  font-size: 1rem;
+}
+
+.btn-liaison-ds{
+  font-size: clamp(0.9rem, 1vw, 1.2rem);
+}
+
+.btn-liaison-ds:hover,
+.btn-valider-liaison:hover {
+    background-color: #0e4c27;
+}
+
+.form-liaison-ds {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    display: none;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.form-liaison-ds.open {
+    display: block;
+}
+
+.form-liaison-ds label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.form-liaison-ds select {
+    width: 100%;
+    padding: 0.6rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.message_info_liaison {
+    color: #9e0000;
 }
 

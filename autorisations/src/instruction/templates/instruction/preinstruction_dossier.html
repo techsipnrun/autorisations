@@ -79,8 +79,78 @@
             
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
-                {% if dossier.id_demarche.type == "Manifestations sportives" and dossier.present_sur_ds %}
-                    <div class="en_attente_DM"><p> En attente d'un dossier Déclaration Manifestations </p></div>
+                {% if dossier.id_demarche.type == "Manifestations sportives" and dossier.present_sur_ds and not dossier_lie_manif_sportive %}
+                    <div class="en_attente_DS">
+                        <div class="en_attente_DS_message">
+                            <p>En attente d'un dossier Déclaration Manifestations</p>
+
+                            <!-- dossier_dm_meme_numero_deja_lie -->
+                            {% if dossier_dm_meme_numero_deja_lie %}
+                                <p class="message_info_liaison">
+                                    Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_deja_lie.numero_dossier_declaration_manifestations}} existe, mais celui-ci est déjà lié 
+                                    à une autre dossier Démarche Numérique. Si cela pose problème, contactez le support.
+                                </p>
+                            {% endif %}
+
+                            <!-- dossier_dm_meme_numero_pas_lie_archive -->
+                            {% if dossier_dm_meme_numero_pas_lie_archive %}
+                                <p class="message_info_liaison">
+                                    Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_archive.numero_dossier_declaration_manifestations}} existe, 
+                                    mais un avis a déjà été rendu sur la plateforme. Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver ce dossier 
+                                    Démarche Numérique N°{{dossier.numero}}.
+                                </p>
+                            {% endif %}
+
+                            <!-- dossier_dm_meme_numero_pas_lie_acte_pas_archive -->
+                            {% if dossier_dm_meme_numero_pas_lie_acte_pas_archive %}
+                                <p class="message_info_liaison">
+                                    Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_acte_pas_archive.numero_dossier_declaration_manifestations}} existe. 
+                                    Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
+                                </p>
+                            {% endif %}
+
+                        </div>
+
+                        <div class="bloc_liaison_ds">
+                            <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
+                                Relier à un dossier Déclaration Manifestations
+                            </button>
+
+                            <div class="form-liaison-ds" id="form-liaison-ds">
+                                <form method="post" id="form-liaison-manif-dn" action="{% url 'lier_dossier_manif_sportive_a_DN'%}">
+                                    {% csrf_token %}
+
+                                    <!-- <input type="hidden" name="id_dossier_dm" value=None> -->
+                                    <input type="hidden" name="id_dossier_dn" value="{{ dossier.id }}">
+
+                                    <p class="info_liaison">
+                                        Dans certains cas, la liaison entre un dossier Déclaration Manifestations et un dossier Démarche Numérique peut ne pas se faire toute seule. 
+                                        <br><br>
+                                        C'est par exemple le cas si en remplissant son formulaire Démarche Numérique, le pétitionnaire s'est trompé en renseignant son "numéro de dossier Déclaration Manifestations". 
+                                        <br><br>
+                                        Dans ce cas là, vous devez relier ces deux dossiers manuellement.
+                                    </p>
+
+                                    <label for="dossier_dm_id">Choisir un dossier DM en réception</label>
+                                    <select name="dossier_dm_id" id="dossier_dm_id" required>
+                                        <option value="" selected disabled>-- Sélectionner un dossier --</option>
+                                        {% for dossier in dossiers_DM_manif_sportive_a_affecter %}
+                                            <option value="{{ dossier.id }}">
+                                                {{ dossier.numero_dossier_declaration_manifestations }} — {{ dossier.nom_dossier }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <button type="submit" class="btn-valider-liaison">
+                                        Confirmer la liaison
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    
+                    
+                    
+                    </div>
                 {% endif %}
 
                 <!-- Copier le chemin d'accès du dossier -->
@@ -94,7 +164,7 @@
                 {% if dossier.id_demarche.type != "Manifestations sportives" %}
                     <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
                 {% else %}
-                    <h1>Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
+                    <h1> Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
                 {% endif %}
 
                 {% if not dossier.present_sur_ds %}
@@ -118,16 +188,19 @@
                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier or request.user.is_superuser %}
 
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
-                                {% with etapes_custom|get_item:etape_actuelle.etape as actions %}
-                                        {% if actions %}
-                                            {% for label in actions %}
+                                <!-- {% with etapes_custom|get_item:etape_actuelle.etape as actions %}  -->
+                                        {% if actions_possibles %}
+                                            {% for label in actions_possibles %}
 
                                                 {% if label == "Archiver le dossier comme non soumis à autorisation" %}
-                                                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
-                                                    </form>
+                                                    {% if not dossier.present_sur_ds %}
+                                                        <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                            <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
+                                                        </form>
+                                                    {% endif %}
+                                                    <!-- Pour le moment on ne laisse pas la possibilité de classer comme non soumis si doss existe sur DN  -->
                                                 
                                                 {% elif label == "Archiver le dossier comme refusé" %}
                                                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
@@ -150,13 +223,14 @@
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
                                                     </form>
+  
                                                 {% endif %}
                                             {% endfor %}
 
                                         {% else %}
                                             <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
                                         {% endif %}
-                                {% endwith %}
+                                <!-- {% endwith %} -->
                             </div>
 
                         {% endif %}
@@ -250,47 +324,49 @@
                         {% endif %}
                     </div>
                 {% endif %}
-
-
-                <div class="nom_du_dossier" id="nomDossierBloc"
-                    data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
-
-                    <h2>Nom du dossier</h2>
-
-                    <div class="nom_dossier_ligne">
-                        <p class="nom_dossier_texte" id="nomDossierTexte">
-                        {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
-                        </p>
-
-                        <!-- Bouton modifier (visible au hover du bloc) -->
-                        <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
-                            <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
-                        </button>
-
-                    </div>
-
-                    <!-- Input d’édition (affiché seulement en mode édition) -->
-                    <div class="nom_dossier_edit_zone">
-                        <input
-                            type="text"
-                            class="nom_dossier_input"
-                            id="nomDossierInput"
-                            value="{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}"
-                            maxlength="60"
-                            autocomplete="off"
-                        />
-
-                        
-                        <!-- Bouton valider (visible seulement en mode édition) -->
-                        <button type="button" class="btn-icon btn-validate" id="btnValidateNom" aria-label="Valider" title="Valider le changement de nom">
-                            <img src="{% static 'instruction/img/square-check.png' %}" alt="">
-                        </button>
-                        
-                        <p class="nom-dossier-exemple"> Exemple : Travaux Piste de la glacière - ONF (10/02/2026) </p>
-
-                    </div>
+                
+                
+                 
+                {% if dossier.id_demarche.type|lower != "manifestations sportives" %}
                     
-                </div>
+                    <div class="nom_du_dossier" id="nomDossierBloc"
+                        data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
+
+                        <h2>Nom du dossier</h2>
+
+                        <div class="nom_dossier_ligne">
+                            <p class="nom_dossier_texte" id="nomDossierTexte">
+                            {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
+                            </p>
+
+                            <!-- Bouton modifier (visible au hover du bloc) -->
+                            <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
+                                <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                            </button>
+
+                        </div>
+
+                        <!-- Input d’édition (affiché seulement en mode édition) -->
+                        <div class="nom_dossier_edit_zone">
+                            <input
+                                type="text"
+                                class="nom_dossier_input"
+                                id="nomDossierInput"
+                                value="{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}"
+                                maxlength="60"
+                                autocomplete="off"
+                            />
+
+                            
+                            <!-- Bouton valider (visible seulement en mode édition) -->
+                            <button type="button" class="btn-icon btn-validate" id="btnValidateNom" aria-label="Valider" title="Valider le changement de nom">
+                                <img src="{% static 'instruction/img/square-check.png' %}" alt="">
+                            </button>
+                            
+                            <p class="nom-dossier-exemple"> Exemple : Travaux Piste de la glacière - ONF (10/02/2026) </p>
+                        </div>  
+                    </div>
+                {% endif %}
 
                 <div class="champs">
                     {% for champ in champs %}
@@ -354,7 +430,7 @@
                             <!-- Numéro du dossier sur la plateforme déclaration-manifestations -->
                             {% elif champ.nom|contains:"Numéro du dossier sur la plateforme déclaration-manifestations" and champ.valeur and champ.valeur|is_int %}
                                 <p><strong>{{ champ.nom }}</strong> : {{ champ.valeur }}</p>
-                                {% if doss_manif_sportive and doss_manif_sportive.numero_dossier_declaration_manifestations|to_int == champ.valeur|to_int %}
+                                {% if doss_manif_sportive and doss_manif_sportive.numero_dossier_declaration_manifestations|to_int != champ.valeur|to_int %}
                                     <p id="warning_numero_manif_sportive">
                                         Point de vigilance : Le numéro du dossier Déclaration Manifestations lié ({{doss_manif_sportive.numero_dossier_declaration_manifestations }}) 
                                         est différent du numéro renseigné dans le formulaire ({{champ.valeur}}).    
@@ -383,6 +459,7 @@
                                 {% endif %}
                             </div>
                             
+                            <div class="carto-banner"></div>
                             <div class="carte-container">
                                 <div class="carte" data-geojson='{{ champ.geojson|safe }}'></div>
                             </div>
@@ -436,7 +513,8 @@
                                         <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
                                     </div>
                                 {% endif %}
-
+                                
+                                <div class="carto-banner"></div>
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ champ.geojson }}'></div>
                                 </div>
@@ -449,6 +527,7 @@
                                     </div>
                                 {% endif %}
                                 
+                                <div class="carto-banner"></div>
                                 <div class="carte-container">
                                     <div class="carte" data-geojson='{{ champ.geojson }}'></div>
                                 </div>
@@ -674,7 +753,7 @@
         </div>
 
         {% if doss_manif_sportive %}
-            {% include "dossier_manif_sportive.html" with doss_manif_sportive=doss_manif_sportive %}
+            {% include "dossier_manif_sportive.html" with doss_manif_sportive=doss_manif_sportive pjs_demandeur_DM=pjs_demandeur_DM %}
         {% endif %}
 
     </div>
@@ -753,6 +832,52 @@
             menuWrapper.style.marginBottom = "";
         }
     }
+</script>
+
+
+<!-- Menu déroulant pour relier 2 Dossiers (DM - DN) -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleBtn = document.getElementById("toggle-liaison-ds");
+        const formBloc = document.getElementById("form-liaison-ds");
+
+        if (!toggleBtn || !formBloc) return;
+
+        // Ouvrir / fermer avec le bouton
+        toggleBtn.addEventListener("click", function (e) {
+            e.stopPropagation(); // empêche fermeture immédiate
+            formBloc.classList.toggle("open");
+        });
+
+        // Empêche fermeture quand on clique DANS le menu
+        formBloc.addEventListener("click", function (e) {
+            e.stopPropagation();
+        });
+
+        // Fermer si clic ailleurs
+        document.addEventListener("click", function () {
+            formBloc.classList.remove("open");
+        });
+    });
+</script>
+
+<!-- POP UP de confirmation pour la création d'une liaison -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const formLiaison = document.getElementById("form-liaison-manif-dn");
+
+        if (!formLiaison) return;
+
+        formLiaison.addEventListener("submit", function (e) {
+            const confirmation = confirm(
+                "Êtes-vous sûr de vouloir lier ces deux dossiers ?\n\nCette action sera irréversible."
+            );
+
+            if (!confirmation) {
+                e.preventDefault();
+            }
+        });
+    });
 </script>
 
 </html>

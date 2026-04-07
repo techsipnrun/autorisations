@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     cartes.forEach((div) => {
-        console.info(`Nombre de cartes : ${cartes.length}`);
+        // console.info(`Nombre de cartes : ${cartes.length}`);
         const data = div.dataset.geojson;
 
         // ---------------------------------
@@ -781,44 +781,42 @@ document.addEventListener("DOMContentLoaded", () => {
         // ------------------------------------------------------------------
         // Calcul d'intersection entre le coeur de Parc et la géométrie pétitionnaire
         // ------------------------------------------------------------------
-        // if (fond_coeur_de_Parc && geojson) {
-        //     try {
-        //         const featuresFond = fond_coeur_de_Parc.features;
-        //         const petitionnaireFeatures = geojson.features || [geojson];
+        if (fond_coeur_de_Parc && geojson) {
+            try {
+                const featuresFond = fond_coeur_de_Parc.features;
+                const petitionnaireFeatures = geojson.features || [geojson];
 
-        //         let intersecte = false;
+                let intersecte = false;
 
-        //         petitionnaireFeatures.forEach(petFeature => {
-        //             featuresFond.forEach(fondFeature => {
-        //                 if (
-        //                     petFeature.geometry.type === "Point" &&
-        //                     turf.booleanPointInPolygon(petFeature, fondFeature)
-        //                 ) {
-        //                     intersecte = true;
-        //                 }
-        //                 else if (
-        //                     turf.booleanIntersects(petFeature, fondFeature) ||
-        //                     turf.booleanWithin(petFeature, fondFeature)
-        //                 ) {
-        //                     intersecte = true;
-        //                 }
-        //             });
-        //         });
+                petitionnaireFeatures.forEach(petFeature => {
+                    featuresFond.forEach(fondFeature => {
+                        if (
+                            petFeature.geometry.type === "Point" &&
+                            turf.booleanPointInPolygon(petFeature, fondFeature)
+                        ) {
+                            intersecte = true;
+                        }
+                        else if (
+                            turf.booleanIntersects(petFeature, fondFeature) ||
+                            turf.booleanWithin(petFeature, fondFeature)
+                        ) {
+                            intersecte = true;
+                        }
+                    });
+                });
 
-        //         console.log("Intersection avec le cœur de parc :", intersecte);
+                console.log("Intersection avec le cœur de parc :", intersecte);
 
-        //         // POP UP Intersection
-        //         if (intersecte) {
-        //             L.popup()
-        //                 .setLatLng(allCoursesGroup.getBounds().getCenter())
-        //                 .setContent("Cette géométrie intersecte le cœur de parc.")
-        //                 .openOn(map);
-        //         }
+                if (intersecte) {
+                    showCartoBannerTrail(div, "Cette manifestation intersecte le cœur de parc.");
+                } else {
+                    hideCartoBannerTrail(div);
+                }
 
-        //     } catch (e) {
-        //         console.error("Erreur d'intersection avec Turf.js :", e);
-        //     }
-        // }
+            } catch (e) {
+                console.error("Erreur d'intersection avec Turf.js :", e);
+            }
+        }
 
         // --------------------------------------
         // Centrer sur la géométrie pétitionnaire
@@ -851,4 +849,29 @@ function copierChemin(chemin) {
         }
         document.body.removeChild(input);
     }
+}
+
+
+function showCartoBannerTrail(carteDiv, message) {
+    const container = carteDiv.closest(".carte-container-trail");
+    if (!container) return;
+
+    const banner = container.previousElementSibling;
+
+    if (!banner || !banner.classList.contains("carto-banner")) return;
+
+    banner.textContent = message;
+    banner.style.display = "inline-block";
+}
+
+function hideCartoBannerTrail(carteDiv) {
+    const container = carteDiv.closest(".carte-container-trail");
+    if (!container) return;
+
+    const banner = container.previousElementSibling;
+
+    if (!banner || !banner.classList.contains("carto-banner")) return;
+
+    banner.textContent = "";
+    banner.style.display = "none";
 }

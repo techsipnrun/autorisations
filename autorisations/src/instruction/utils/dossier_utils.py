@@ -5,11 +5,14 @@ import logging
 from django.utils import timezone
 
 from django.shortcuts import redirect
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, Message, SynchronisationEtat
+from autorisations.models.models_instruction import ActionsPossibles, Demarche, Dossier, DossierAction, Message, SynchronisationEtat
 from django.contrib import messages
 
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur
 from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
+from django.db.models import Q
+
+
 
 logger = logging.getLogger("ORM_DJANGO")
 
@@ -20,6 +23,10 @@ def redirect_error(request, msg):
 
 def redirect_warning(request, msg):
     messages.warning(request, msg)
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+def redirect_info(request, msg):
+    messages.info(request, msg)
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -279,94 +286,182 @@ def build_champs_prepares(dossier):
 
 
 
-def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: str, demarche_type: str):
-    """Retourne les actions possibles pour chaque étape."""
+# def get_etapes_custom(present_sur_ds: bool, dossier_sppn: bool, etape_actuelle: str, demarche_type: str):
+#     """Retourne les actions possibles pour chaque étape."""
 
-    # DOSSIER PRESENT SUR DS
-    if present_sur_ds :
+#     # DOSSIER PRESENT SUR DS
+#     if present_sur_ds :
 
-        etapes = {
-            "À affecter": ["Passer en pré-instruction", "Classer le dossier comme non soumis à autorisation"],
+#         etapes = {
+#             "À affecter": ["Passer en pré-instruction", "Archiver le dossier comme non soumis à autorisation"],
 
-            "En pré-instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", "Passer en instruction"],
+#             "En pré-instruction": ["Demander des compléments", "Archiver le dossier comme non soumis à autorisation", "Passer en instruction"],
 
-            "En attente de compléments": ["Passer en instruction"],
+#             "En attente de compléments": ["Passer en instruction"],
 
-            "En instruction": ["Demander des compléments", "Classer le dossier comme non soumis à autorisation", 
-                               "Faire valider avant l'envoi d'une demande d'avis à une instance", "Faire valider le projet d'acte"],
+#             "En instruction": ["Demander des compléments", "Archiver le dossier comme non soumis à autorisation", 
+#                                "Faire valider avant l'envoi d'une demande d'avis à une instance", "Faire valider le projet d'acte"],
 
-            "À valider avant demande d'avis": ["Repasser en instruction",
-                                            "Valider le modèle de demande d'avis et le projet d'acte"],
+#             "À valider avant demande d'avis": ["Repasser en instruction",
+#                                             "Valider le modèle de demande d'avis et le projet d'acte"],
 
-            "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
+#             "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
 
-            "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
+#             "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
 
-            "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
-                                        "Acte inchangé, envoyer pour relecture qualité"],
+#             "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
+#                                         "Acte inchangé, envoyer pour relecture qualité"],
 
-            "Avis à envoyer": ["Avis envoyé"],
+#             "Avis à envoyer": ["Avis envoyé"],
 
-            "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé",
-                                        "Classer le dossier comme non soumis à autorisation"],
+#             "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé",
+#                                         "Archiver le dossier comme non soumis à autorisation"],
 
-            "Acte à envoyer": ["Envoyer l'acte d'acceptation", "Envoyer l'acte de refus"],
+#             "Acte à envoyer": ["Envoyer l'acte d'acceptation", "Envoyer l'acte de refus"],
 
-            "À publier au RAA": ["Classer le dossier comme accepté", "Archiver le dossier comme refusé"],
+#             "À publier au RAA": ["Archiver le dossier comme accepté", "Archiver le dossier comme refusé"],
 
-            "Non soumis à autorisation": ["Repasser en instruction"],
+#             "Non soumis à autorisation": ["Repasser en instruction"],
 
-            "Accepté": ["Repasser en instruction"],
+#             "Accepté": ["Repasser en instruction"],
 
-            "Refusé": ["Repasser en instruction"],
-        }
+#             "Refusé": ["Repasser en instruction"],
+#         }
         
-        # Etapes simplifiées pour le SPPN
-        if dossier_sppn:
-            # Retiré : "Faire valider une demande d'avis", "Faire valider le projet d'acte"
-            # Ajouté : "Acte prêt à la signature"
-            etapes["En instruction"] = [
-                "Demander des compléments",
-                "Classer le dossier comme non soumis à autorisation",
-                "Acte prêt à la signature",
-            ]
+#         # Etapes simplifiées pour le SPPN
+#         if dossier_sppn:
+#             # Retiré : "Faire valider une demande d'avis", "Faire valider le projet d'acte"
+#             # Ajouté : "Acte prêt à la signature"
+#             etapes["En instruction"] = [
+#                 "Demander des compléments",
+#                 "Archiver le dossier comme non soumis à autorisation",
+#                 "Acte prêt à la signature",
+#             ]
 
 
-    # DOSSIER PLUS SUR DS
-    else :
-        actions_classement = [
-            "Archiver le dossier comme accepté",
-            "Archiver le dossier comme non soumis à autorisation",
-            "Archiver le dossier comme refusé",
-        ]
+#     # DOSSIER PLUS SUR DS
+#     else :
+#         actions_classement = [
+#             "Archiver le dossier comme accepté",
+#             "Archiver le dossier comme non soumis à autorisation",
+#             "Archiver le dossier comme refusé",
+#         ]
                 
-        etapes = {
-            "À affecter": actions_classement,
-            "En pré-instruction": actions_classement,
-            "En attente de compléments": actions_classement,
-            "En instruction": actions_classement,
-            "À valider avant demande d'avis": actions_classement,
-            "À valider avant signature": actions_classement,
-            "En relecture qualité": actions_classement,
-            "En attente réponse d'avis": actions_classement,
-            "Avis à envoyer": actions_classement,
-            "En attente de signature": actions_classement,
-            "Acte à envoyer": actions_classement,
-            "À publier au RAA": actions_classement,
-            "Non soumis à autorisation": [],
-            "Accepté": [],
-            "Refusé": [],
-        }
+#         etapes = {
+#             "À affecter": actions_classement,
+#             "En pré-instruction": actions_classement,
+#             "En attente de compléments": actions_classement,
+#             "En instruction": actions_classement,
+#             "À valider avant demande d'avis": actions_classement,
+#             "À valider avant signature": actions_classement,
+#             "En relecture qualité": actions_classement,
+#             "En attente réponse d'avis": actions_classement,
+#             "Avis à envoyer": actions_classement,
+#             "En attente de signature": actions_classement,
+#             "Acte à envoyer": actions_classement,
+#             "À publier au RAA": actions_classement,
+#             "Non soumis à autorisation": [],
+#             "Accepté": [],
+#             "Refusé": [],
+#         }
 
 
-    # Cas spécial : manifestations sportives
-    if etape_actuelle == "En instruction" and demarche_type == "Manifestations sportives":
-        etapes["En instruction"] = [
-            a for a in etapes["En instruction"]
-            if a != "Faire valider une demande d'avis"
-        ]
+#     # Cas spécial : manifestations sportives
+#     if etape_actuelle == "En instruction" and demarche_type == "Manifestations sportives":
+#         etapes["En instruction"] = [
+#             a for a in etapes["En instruction"]
+#             if a != "Faire valider une demande d'avis"
+#         ]
 
-    return etapes
+#     return etapes
+
+
+
+
+
+def get_actions_possibles(dossier):
+    """
+    Retourne la liste des labels d'actions possibles pour un dossier.
+
+    Priorité de recherche :
+    1. (Étape, Groupe instructeur, Démarche, présent sur DN)
+    2. (Étape, Démarche, présent sur DN)
+    3. (Étape, présent sur DN)
+
+    On s'arrête dès qu'un niveau retourne au moins une règle.
+    """
+
+    if not dossier or not dossier.id_etape_dossier:
+        return []
+
+    etape_id = dossier.id_etape_dossier_id
+    demarche_id = dossier.id_demarche_id
+    groupe_id = dossier.id_groupeinstructeur_id
+    present_sur_dn = dossier.present_sur_ds
+
+    base_qs = (
+        ActionsPossibles.objects
+        .select_related("id_changement_etape", "id_etape", "id_demarche", "id_groupe_instructeur")
+        .filter(
+            id_etape_id=etape_id,
+            coeur_de_parc__isnull=True,
+            type_manif_sportive__isnull=True,
+        )
+    )
+
+    niveaux = []
+
+    # Niveau 1 : (Étape, Groupe instructeur, Démarche, présent sur DN)
+    if groupe_id and demarche_id:
+        niveaux.append(
+            base_qs.filter(
+                id_groupe_instructeur_id=groupe_id,
+                id_demarche_id=demarche_id,
+            ).filter(
+                Q(present_sur_dn=present_sur_dn) | Q(present_sur_dn__isnull=True)
+            )
+        )
+
+    # Niveau 2 : (Étape, Démarche, présent sur DN)
+    if demarche_id:
+        niveaux.append(
+            base_qs.filter(
+                id_groupe_instructeur__isnull=True,
+                id_demarche_id=demarche_id,
+            ).filter(
+                Q(present_sur_dn=present_sur_dn) | Q(present_sur_dn__isnull=True)
+            )
+        )
+
+    # Niveau 3 : (Étape, présent sur DN)
+    niveaux.append(
+        base_qs.filter(
+            id_groupe_instructeur__isnull=True,
+            id_demarche__isnull=True,
+        ).filter(
+            Q(present_sur_dn=present_sur_dn) | Q(present_sur_dn__isnull=True)
+        )
+    )
+
+    for qs in niveaux:
+        regles = list(qs)
+        if regles:
+            # déduplication conservant l'ordre DB
+            labels = []
+            deja_vus = set()
+
+            for regle in regles:
+                label = regle.id_changement_etape.action
+                if label not in deja_vus:
+                    deja_vus.add(label)
+                    labels.append(label)
+
+            return labels
+
+    return []
+
+
+
 
 
 

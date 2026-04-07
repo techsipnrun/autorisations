@@ -232,7 +232,7 @@ def type_demande_from_nom_demarche(nom_demarche: str, champs: list):
 
 
 
-def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
+def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement, logger_arg):
     """
     Crée une liaison DossierManifSportive <=> Dossier,
     Déplace les documents du dossier DM vers l'emplacement DN,
@@ -265,16 +265,19 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
             
 
             if liaison_existe_dossDM :
-                loggerSynchro.warning(f"Échec de la création de la Liaison Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier}). Le Dossier DM est déjà lié à un autre dossier DN.")
+                logger_arg.warning(f"Échec de la création de la Liaison Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier}). Le Dossier DM est déjà lié à un autre dossier DN.")
                 return False
             
             elif liaison_existe_dossDN :
-                loggerSynchro.warning(f"Échec de la création de la Liaison Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier}). Le Dossier DN est déjà lié à un autre dossier DN.")
+                logger_arg.warning(f"Échec de la création de la Liaison Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier}). Le Dossier DN est déjà lié à un autre dossier DN.")
                 return False
             
             else :
                 liaison = DossierManifestationLiaison.objects.create(id_dossier_manif=dossier_dm, id_dossier=dossier_dn)
-                loggerSynchro.info(f"[CREATE LIAISON] Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier})")
+                logger_arg.info(f"[CREATE LIAISON] Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier})")
+                # Nom + parlant = Nom de la manif
+                dossier_dn.nom_dossier_plus_parlant = dossier_dm.nom_dossier
+                dossier_dn.save()
 
 
             # ----------------------------------------------------
@@ -301,7 +304,7 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
             for doc in docs_dm :
 
                 if not doc.emplacement:
-                    loggerSynchro.warning(f"[LIAISON DM/DN] Document {doc.id} ({doc.titre}) ignoré : emplacement vide en BDD.")
+                    logger_arg.warning(f"[LIAISON DM/DN] Document {doc.id} ({doc.titre}) ignoré : emplacement vide en BDD.")
                     continue
 
                 ancien_emplacement_doc_full_path = os.path.join(root_folder, doc.emplacement, doc.titre)
@@ -311,26 +314,25 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
 
                 # SI LE FICHIER SOURCE N'EXISTE PAS
                 if not smbclient.path.exists(ancien_emplacement_doc_full_path):
-                    loggerSynchro.warning(f"[LIAISON DM/DN] Déplacements des fichiers DM : Fichier introuvable pour le document {doc.id} ({doc.titre}) : {ancien_emplacement_doc_full_path}")
+                    logger_arg.warning(f"[LIAISON DM/DN] Déplacements des fichiers DM : Fichier introuvable pour le document {doc.id} ({doc.titre}) : {ancien_emplacement_doc_full_path}")
                     continue
 
 
                 # SI LE FICHIER CIBLE EXISTE DEJA
                 if smbclient.path.exists(nouvel_emplacement_doc_full_path):
-                    loggerSynchro.warning(f"[LIAISON DM/DN] Déplacements des fichiers DM : Le fichier cible existe déjà pour le document {doc.id} ({doc.titre}) : {nouvel_emplacement_doc_full_path}")
+                    logger_arg.warning(f"[LIAISON DM/DN] Déplacements des fichiers DM : Le fichier cible existe déjà pour le document {doc.id} ({doc.titre}) : {nouvel_emplacement_doc_full_path}")
 
                     # Et on met à jour l'emplacement en base seulement si besoin
                     if doc.emplacement != nouvel_emplacement_doc:
                         doc.emplacement = nouvel_emplacement_doc
                         doc.save(update_fields=["emplacement"])
 
-                    docs_deplaces += 1
                     continue
 
                 # Déplacement physique sur le NAS
                 smbclient.rename(ancien_emplacement_doc_full_path, nouvel_emplacement_doc_full_path)
 
-                # loggerSynchro.info(f"[LIAISON DM/DN] Document {doc.id} ({doc.titre}) déplacé : {ancien_emplacement_doc_full_path} -> {nouvel_emplacement_doc_full_path}")
+                # logger_arg.info(f"[LIAISON DM/DN] Document {doc.id} ({doc.titre}) déplacé : {ancien_emplacement_doc_full_path} -> {nouvel_emplacement_doc_full_path}")
 
                 # MAJ emplacement document en base
                 doc.emplacement = nouvel_emplacement_doc
@@ -338,28 +340,41 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
 
                 docs_deplaces += 1
 
-            loggerSynchro.info(f"[LIAISON DM/DN] {docs_deplaces} fichiers déplacés -> {nouvel_emplacement}")
+            logger_arg.info(f"[LIAISON DM/DN] {docs_deplaces} fichiers déplacés -> {nouvel_emplacement}")
         
+
             # ----------------------------
             # On déplace le fichier carto
             # ----------------------------
             carto_ancien_emplacement_full_path = os.path.join(ancien_emplacement_full_path, "Carto")
             carto_nouvel_emplacement_full_path = os.path.join(nouvel_emplacement_full_path, "Carto")
-            try :
-                copier_dossier_smb(carto_ancien_emplacement_full_path,carto_nouvel_emplacement_full_path, loggerSynchro)
-            except Exception as e :
-                loggerSynchro.error(f"[COPIE DU FICHIER CARTO] Dossier DM {num_DM} <=> Dossier DN {num_DN} : Echec de l'écriture du fichier geojson à carto_nouvel_emplacement_full_path : {e}")
 
+            if carto_ancien_emplacement_full_path != carto_nouvel_emplacement_full_path :
+                try :
+                    copier_dossier_smb(carto_ancien_emplacement_full_path,carto_nouvel_emplacement_full_path, logger_arg)
+                except Exception as e :
+                    msg = str(e)
+
+                    if "being used by another process" in msg:
+                        logger_arg.warning(f"[COPIE CARTO] Dossier DM {num_DM} <=> Dossier DN {num_DN} : "
+                            f"fichier GeoJSON non supprimé car verrouillé par un autre processus "
+                            f"(source={carto_ancien_emplacement_full_path}, cible={carto_nouvel_emplacement_full_path})"
+                        )
+
+                    else :
+                        logger_arg.error(f"[COPIE DU FICHIER CARTO] Dossier DM {num_DM} <=> Dossier DN {num_DN} : Echec de l'écriture du fichier geojson "
+                            f"(source={carto_ancien_emplacement_full_path}, cible={carto_nouvel_emplacement_full_path}) : {e}"
+                        )
 
             # -------------------------------------------------
             # Si ancien dossier dans "0 - En attente d'un dossier Démarche Numérique", on le supprime
             # -------------------------------------------------
             if supprimer_ancien_dossier:
                 try:
-                    supprimer_dossier_smb_recursif(ancien_emplacement_full_path, loggerSynchro)
-                    loggerSynchro.info(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : ancien dossier supprimé : {ancien_emplacement_dm}")
+                    supprimer_dossier_smb_recursif(ancien_emplacement_full_path, logger_arg)
+                    logger_arg.info(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : ancien dossier supprimé : {ancien_emplacement_dm}")
                 except Exception as e:
-                    loggerSynchro.warning(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : impossible de supprimer l'ancien dossier {ancien_emplacement_dm} : {e}")
+                    logger_arg.warning(f"[SUPPRESSION DOSSIER SOURCE] Dossier DM {num_DM} : impossible de supprimer l'ancien dossier {ancien_emplacement_dm} : {e}")
 
 
             # ---------------------------------
@@ -368,11 +383,11 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement):
             dossier_dm.emplacement = nouvel_emplacement
             dossier_dm.save(update_fields=["emplacement"])
 
-            loggerSynchro.info(f"[LIAISON DM/DN] Emplacement du dossier DM {num_DM} mis à jour -> {nouvel_emplacement}")
+            logger_arg.info(f"[LIAISON DM/DN] Emplacement du dossier DM {num_DM} mis à jour -> {nouvel_emplacement}")
 
             
             return True
 
     except Exception as e:
-        loggerSynchro.exception(f"[LIAISON DM/DN] Erreur lors de la liaison du dossier DM {getattr(dossier_dm, 'pk', '?')} avec le dossier DN {getattr(dossier_dn, 'pk', '?')} : {e}")
+        logger_arg.exception(f"[LIAISON DM/DN] Erreur lors de la liaison du dossier DM {getattr(dossier_dm, 'pk', '?')} avec le dossier DN {getattr(dossier_dn, 'pk', '?')} : {e}")
         return False

@@ -2,7 +2,7 @@ import logging
 from django.contrib import admin
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
-from .models.models_instruction import AvisManifSportive, Champ, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
+from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, OuterRef
 
@@ -474,7 +474,6 @@ class DemandeAdmin(admin.ModelAdmin):
 
 
 
-
 admin.site.register(Demarche)
 
 
@@ -595,6 +594,84 @@ class DossierGroupeAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Groupe)
+
+
+
+
+@admin.register(ChangementEtape)
+class ChangementEtapeAdmin(admin.ModelAdmin):
+    list_display = ("id", "action", "code", "url_name")
+    search_fields = ("action", "code")
+    ordering = ("id",)
+
+    @admin.display(description="Nom URL")
+    def url_name(self, obj):
+        return obj.get_url_name()
+
+
+@admin.register(ActionsPossibles)
+class ActionsPossiblesAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "etape",
+        "action",
+        "demarche",
+        "groupe_instructeur",
+        "present_sur_dn",
+        "coeur_de_parc",
+        "type_manif_sportive",
+    )
+
+    list_filter = (
+        "id_etape",
+        "id_changement_etape",
+        "id_demarche",
+        "id_groupe_instructeur",
+        "present_sur_dn",
+        "coeur_de_parc",
+        "type_manif_sportive",
+    )
+
+    search_fields = (
+        "id_etape__etape",
+        "id_changement_etape__action",
+        "id_changement_etape__code",
+        "id_demarche__titre",
+        "id_demarche__type",
+        "id_groupe_instructeur__nom",
+    )
+
+
+    list_select_related = (
+        "id_etape",
+        "id_changement_etape",
+        "id_demarche",
+        "id_groupe_instructeur",
+    )
+
+    ordering = (
+        "id_etape__etape",
+        "id_demarche__titre",
+        "id_groupe_instructeur__nom",
+        "id_changement_etape__action",
+    )
+
+    @admin.display(ordering="id_etape__etape", description="Étape")
+    def etape(self, obj):
+        return obj.id_etape
+
+    @admin.display(ordering="id_changement_etape__action", description="Action possible")
+    def action(self, obj):
+        return obj.id_changement_etape
+
+    @admin.display(ordering="id_demarche__titre", description="Démarche")
+    def demarche(self, obj):
+        return obj.id_demarche or "Toutes"
+
+    @admin.display(ordering="id_groupe_instructeur__nom", description="Groupe instructeur")
+    def groupe_instructeur(self, obj):
+        return obj.id_groupe_instructeur or "Tous"
+
 
 
 

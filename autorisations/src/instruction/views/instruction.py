@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
@@ -18,7 +18,7 @@ from autorisations.models.models_avis import AvisDocument, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
 from instruction.utils.document_utils import build_documents_for_dossier
-from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etapes_custom, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
+from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
 from synchronisation.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
@@ -98,15 +98,37 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
     # Requêtes de base
     dossiers = Dossier.objects.filter(id_demarche=demarche)
 
-    nb_reception = dossiers.filter(id_etape_dossier=etape_a_affecter).count()
+    # -------------------------------
+    # Nombre de dossiers en Réception
+    # -------------------------------
+    dossiers_DM_manif_sportive_non_lie_en_reception = 0
+    if demarche.type.lower() == 'manifestations sportives':
+        dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
+        dossiers_DM_manif_sportive_non_lie_en_reception = DossierManifSportive.objects.filter(archive=False,).exclude(id__in=dossiers_deja_lies_ids).count()
+
+    nb_reception = dossiers.filter(id_etape_dossier=etape_a_affecter).count() + dossiers_DM_manif_sportive_non_lie_en_reception
+
+
+    # --------------------------------
+    # Nombre de dossiers en Intruction
+    # --------------------------------
     nb_suivis = dossiers.filter(id_etape_dossier__in=etapes_instruction).count()
-    nb_traites = dossiers.filter(id_etape_dossier__in=etapes_termines, date_fin_instruction__year=current_year).count()
+
+
+    # ---------------------------
+    # Nombre de dossiers Archivés
+    # ---------------------------
+    dossiers_DM_manif_sportive_non_lie_archive = 0
+    if demarche.type.lower() == 'manifestations sportives':
+        dossiers_DM_manif_sportive_non_lie_archive = DossierManifSportive.objects.filter(archive=True,).exclude(id__in=dossiers_deja_lies_ids).count()
+
+    nb_traites = dossiers.filter(id_etape_dossier__in=etapes_termines, date_fin_instruction__year=current_year).count() + dossiers_DM_manif_sportive_non_lie_archive
+
 
     # Dossiers où l'instructeur intervient
     dossiers_instructeur = get_dossiers_instructeur(instructeur).filter(id_demarche=demarche)
 
     nb_suivis_user = dossiers_action_a_faire(dossiers_instructeur, instructeur).count()
-    
 
     return {
         "demarche": demarche,
@@ -477,12 +499,12 @@ def instruction_dossier(request, num_dossier):
     etape_actuelle = dossier.id_etape_dossier if hasattr(dossier, "id_etape_dossier") else None
 
     dossier_sppn = dossier.id_demarche.service == 'SPPN'
-    etapes_custom = get_etapes_custom(
-        present_sur_ds=dossier.present_sur_ds,
-        dossier_sppn=dossier_sppn,
-        etape_actuelle=etape_actuelle.etape if etape_actuelle else "",
-        demarche_type=demarche.type
-    )
+    # etapes_custom = get_etapes_custom(
+    #     present_sur_ds=dossier.present_sur_ds,
+    #     dossier_sppn=dossier_sppn,
+    #     etape_actuelle=etape_actuelle.etape if etape_actuelle else "",
+    #     demarche_type=demarche.type
+    # )
     
     
     #####################################################
@@ -586,6 +608,10 @@ def instruction_dossier(request, num_dossier):
     etat_global = SynchronisationEtat.objects.filter(id=1).values("en_cours").first()
 
 
+    # Actions possibles
+    actions_possibles = get_actions_possibles(dossier)
+    print(actions_possibles)
+
     return render(request, 'instruction/instruction_dossier.html', {
         # Dossier
         "demarche": demarche,
@@ -595,7 +621,7 @@ def instruction_dossier(request, num_dossier):
         "champs": champs_prepares,
         "etapes_possibles": etapes_possibles,
         "etape_actuelle": etape_actuelle,
-        "etapes_custom": etapes_custom,
+        # "etapes_custom": etapes_custom,
         "dossier_actions": dossier_actions,
         "notes": notes,
         "doss_manif_sportive": doss_manif_sportive,
@@ -604,6 +630,7 @@ def instruction_dossier(request, num_dossier):
         "emails_dossiers": emails_dossiers,
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
+        "actions_possibles": actions_possibles,
 
         # Carto
         "coeurData": fond_coeur_de_parc,

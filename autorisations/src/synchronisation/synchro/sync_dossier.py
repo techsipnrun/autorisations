@@ -33,6 +33,9 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
 
     demarche = Demarche.objects.filter(id=dossier['id_demarche']).first()
 
+    # ----------------------------
+    # NOUVEAU Dossier DN
+    # ----------------------------
     if created:
         logger.info(f"[CREATE] Dossier {obj.numero} (id_ds: {obj.id_ds}) créé.")
 
@@ -46,6 +49,7 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
         if demarche.type.lower() == 'manifestations sportives':
 
             try :
+                manif_id = None
                 for ch in dossiers_champs:
                     dossier_champ = ch["champ"]
                     if dossier_champ["nom_champ"] == 'Numéro du dossier sur la plateforme déclaration-manifestations' :
@@ -54,8 +58,9 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
                     else :
                         continue
                 
-                # On vérifie si un Dossier Déclaration Manifestations existe
-                dossier_dm = DossierManifSportive.objects.filter(numero_dossier_declaration_manifestations=manif_id).first()
+
+                # On vérifie si un Dossier Déclaration Manifestations (non archivé) existe
+                dossier_dm = DossierManifSportive.objects.filter(numero_dossier_declaration_manifestations=manif_id, archive=False).first()
                 
                 # -------------------------------------------
                 # Dossier Déclaration Manifestations existant
@@ -63,7 +68,7 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
                 if dossier_dm :
                     # Création liaison : On déplace les fichiers, met à jour les emplacements
                     try :
-                        lier_dossier_dm_au_dossier_dn(dossier_dm, obj, obj.emplacement)
+                        lier_dossier_dm_au_dossier_dn(dossier_dm, obj, obj.emplacement, logger)
                     except Exception as e:
                         logger.error(f"Erreur lors de la création de la liaison Dossier DN {obj.numero} <=> Dossier DM {manif_id} (Incluant le transfert des fichiers du Dossier DM) : {e}")
 
@@ -76,7 +81,6 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
                 
             except Exception as e:
                 logger.error(f"[CREATE Dossier Manif Sportive {obj.numero} - Démarche Numérique] Échec de la création de la Liaison avec le Dossier DM {manif_id} : {e}")
-
 
 
         # Write geojson
@@ -133,6 +137,9 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
             dico_notifs[type_demarche] = 1
 
 
+    # ----------------------------
+    # Dossier DN EXISTANT
+    # ----------------------------
     else:
         update_data = {}
 

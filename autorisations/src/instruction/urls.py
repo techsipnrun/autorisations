@@ -89,7 +89,7 @@ urlpatterns = [
     path('preinstruction/<int:numero>/messagerie', messagerie.preinstruction_dossier_messagerie, name='preinstruction_dossier_messagerie'),
     path('preinstruction/<int:numero>/messagerie/envoyer/', messagerie.envoyer_message_dossier, name='envoyer_message_dossier'),
     path('preinstruction/declaration_manifestations/<int:numero>/', preinstruction.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
-    path("manif-sportive/<int:id_dossier_manif>/lier-dn/",preinstruction.lier_dossier_manif_sportive_a_DN,name="lier_dossier_manif_sportive_a_DN"),
+    path("manif-sportive/lier-dn/",preinstruction.lier_dossier_manif_sportive_a_DN,name="lier_dossier_manif_sportive_a_DN"),
 
     # ACTUALISATION
     path("actualiser/", synchro.actualiser_donnees, name="actualiser_donnees"),
@@ -118,7 +118,6 @@ urlpatterns = [
     path('supprimer_annexe/', views.supprimer_annexe_instructeur, name='supprimer_annexe_instructeur'),
     # path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),
     path('annexe/<path:chemin>/<str:titre>/', views.afficher_annexe, name='afficher_annexe'),
-
     path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
     path('instruction/supprimer_note/', instruction.supprimer_note_dossier, name='supprimer_note_dossier'),
     # path("instruction/relecture/", instruction.mettre_a_jour_relecture, name="mettre_a_jour_relecture"),

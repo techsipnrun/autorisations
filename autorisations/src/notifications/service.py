@@ -227,12 +227,14 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
         else :
             emails_norm_saadd = [EMAIL_NOTIF_TEST]
 
-
-    
         context_saadd = {k: v for k, v in dico_notifs.items() if k not in keys_mission}
         dedupe_saadd = compute_dedupe_key(emails_norm_saadd, sujet, template_name, context_saadd)
 
-        outbox_saadd = create_EmailOutbox(emails_norm_saadd, sujet, template_name, dedupe_saadd, {"dico_notif" : context_saadd}, None, type_mail = "Notification")
+        context = {
+            "dico_notif": context_saadd, 
+            "url": f"{os.getenv('URL_APPLI')}preinstruction/"
+        }
+        outbox_saadd = create_EmailOutbox(emails_norm_saadd, sujet, template_name, dedupe_saadd, context, None, type_mail = "Notification")
 
         if outbox_saadd :
             ok, err = envoi_mail(outbox_saadd.id)
@@ -261,7 +263,11 @@ def envoi_notif_mails_nouveaux_dossiers(dico_notifs) :
         context_sppn = {k: v for k, v in dico_notifs.items() if k in keys_mission}
         dedupe_sppn = compute_dedupe_key(emails_norm_sppn, sujet, template_name, context_sppn)
 
-        outbox_sppn = create_EmailOutbox(emails_norm_sppn, sujet, template_name, dedupe_sppn, {"dico_notif" : context_sppn}, None, type_mail = "Notification")
+        context = {
+            "dico_notif": context_sppn, 
+            "url": f"{os.getenv('URL_APPLI')}preinstruction/"
+        }
+        outbox_sppn = create_EmailOutbox(emails_norm_sppn, sujet, template_name, dedupe_sppn, context, None, type_mail = "Notification")
 
         if outbox_sppn :
             ok, err = envoi_mail(outbox_sppn.id)

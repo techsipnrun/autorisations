@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // garde-fou principal : synchro globale
         if (synchro_globale_en_cours) {
             setBouton(true, "Traitement indisponible");
-            setStatus("warning", "🟠 Synchronisation globale en cours");
+            setStatus("warning", "Synchronisation globale en cours");
             return;
         }
 

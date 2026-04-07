@@ -90,7 +90,7 @@
     {% if request.user.is_superuser and django_env == "dev" %}
         <div class="manif-sportive">
 
-            <h1>Les demandes de Manifestations Sportives incomplètes</h1>
+            <h1>Les demandes de Manifestations Sportives</h1>
 
             {% if instructeur %}
                 <div class="refresh-doss refresh-doss-manif">
@@ -123,6 +123,7 @@
                             <th>Nom de la manifestation</th>
                             <th>Organisateur</th>
                             <th>Date de début de l'événement</th>
+                            <th>Cœur de parc</th>
                             <th>N° dossier D-N</th>
                             <th>N° dossier D-M</th>
                             <th>Dossier D-N reçu le</th>
@@ -136,6 +137,15 @@
                                 <td class="td_demarche">{{ dm.nom_dossier }}</td>
                                 <td>{{ dm.nom_organisateur }} {{ dm.prenom_organisateur }}</td>
                                 <td>{{ dm.date_debut_evenement|date:"d F Y" }}</td>
+                                <td>
+                                    {% if dm.coeur_de_parc is None %}
+                                        <span class="coeur-null">?</span>
+                                    {% elif dm.coeur_de_parc %}
+                                        <span class="coeur-oui">Oui</span>
+                                    {% else %}
+                                        <span class="coeur-non">Non</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ dossier.numero }}</td>
                                 <td>{{ dm.numero_dossier_declaration_manifestations }}</td>
                                 <td>{{ dossier.date_depot|date:"d F Y" }}</td>
@@ -143,7 +153,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="7">Aucun dossier en attente d'affectation.</td>
+                                <td colspan="8">Aucun dossier en attente d'affectation.</td>
                             </tr>
                         {% endfor %}
                     </tbody>  
@@ -165,6 +175,7 @@
                                 <th>Organisateur</th>
                                 <th>N° dossier D-M</th>
                                 <th>Date de début de l'événement</th>
+                                <th>Cœur de parc</th>
                                 <th>Dossier D-M reçu le</th> 
                             </tr>
                         </thead>
@@ -175,11 +186,20 @@
                                     <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
                                     <td>{{ d.numero_dossier_declaration_manifestations }}</td>
                                     <td>{{ d.date_debut_evenement|date:"d F Y" }}</td>
+                                    <td>
+                                        {% if d.coeur_de_parc is None %}
+                                            <span class="coeur-null">?</span>
+                                        {% elif d.coeur_de_parc %}
+                                            <span class="coeur-oui">Oui</span>
+                                        {% else %}
+                                            <span class="coeur-non">Non</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ d.date_depot|date:"d F Y" }}</td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                                    <td colspan="6">Aucun dossier en attente d'affectation.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>  

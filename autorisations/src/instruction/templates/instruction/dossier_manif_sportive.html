@@ -41,9 +41,24 @@
             <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
 
             <h2>Tracé de la manifestation</h2>
+            <div class="carto-banner"></div>
             <div class="carte-container-trail carte-container-trail-dossier-complet">
                 <div class="carte" data-geojson='{{ doss_manif_sportive.geometrie }}'></div>
             </div>
+            
+            {% if pjs_demandeur_DM %}
+                <h2>Les pièces jointes</h2>
+                {% for doc in pjs_demandeur_DM %}
+                    <div class="champs">
+                        <p>
+                            <strong>{{ doc.description }}</strong> : 
+                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
+                                {{ doc.titre }}
+                            </a>
+                        </p>
+                    </div>
+                {% endfor %}
+            {% endif %}
 
             <h2>Caractéristiques</h2>
             <div class="champs"><p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</p></div>

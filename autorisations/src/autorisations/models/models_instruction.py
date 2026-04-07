@@ -358,6 +358,7 @@ class DossierManifSportive(models.Model):
     geometrie = models.JSONField(blank=True, null=True)
     emplacement = models.CharField()
     archive = models.BooleanField(default=False)
+    coeur_de_parc = models.BooleanField(null=True, blank=True)
 
     nom_organisateur = models.TextField(blank=True, null=True)
     prenom_organisateur = models.TextField(blank=True, null=True)
@@ -478,3 +479,59 @@ class AvisManifSportive(models.Model):
 
     def __str__(self):
         return f"Avis {self.id_avis_manif_sportive} (Manifestation sportive) pour {self.id_dossier_manif_sportive.nom_dossier}"
+
+
+class ChangementEtape(models.Model):
+    id = models.AutoField(primary_key=True)
+    action = models.TextField(unique=True)
+    code = models.TextField(unique=True, null=True, blank=True)
+
+    def get_url_name(self):
+        return f"{self.code}_url" if self.code else None
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."changement_etape"'
+
+    def __str__(self):
+        return self.action
+    
+
+class ActionsPossibles(models.Model):
+    TYPE_MANIF_SPORTIVE_CHOICES = [
+        ("Dossier DN", "Dossier DN"),
+        ("Dossier DM", "Dossier DM"),
+        ("Dossier complet", "Dossier complet"),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    id_etape = models.ForeignKey(EtapeDossier, models.CASCADE, db_column="id_etape", related_name="actions_possibles",)
+    id_demarche = models.ForeignKey(Demarche, models.CASCADE, db_column="id_demarche", null=True, blank=True, related_name="actions_possibles",)
+    id_changement_etape = models.ForeignKey(ChangementEtape, models.CASCADE, db_column="id_changement_etape", related_name="actions_possibles",)
+    id_groupe_instructeur = models.ForeignKey(Groupeinstructeur, models.CASCADE, db_column="id_groupe_instructeur", null=True, blank=True, related_name="actions_possibles",)
+    present_sur_dn = models.BooleanField(null=True, blank=True)
+    coeur_de_parc = models.BooleanField(null=True, blank=True)
+    type_manif_sportive = models.CharField(max_length=20, choices=TYPE_MANIF_SPORTIVE_CHOICES, null=True, blank=True,)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."actions_possibles"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["id_etape", "id_demarche", "id_changement_etape", "id_groupe_instructeur", "present_sur_dn",],
+                name="actions_possibles_unique_present_sur_dn",
+            ),
+            models.UniqueConstraint(
+                fields=["id_etape", "id_demarche", "id_changement_etape", "id_groupe_instructeur", "coeur_de_parc", "type_manif_sportive",],
+                name="actions_possibles_unique_coeur_type_manif",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["id_etape"], name="idx_actions_possibles_etape"),
+            models.Index(fields=["id_demarche"], name="idx_actions_possibles_demarche"),
+            models.Index(fields=["id_changement_etape"], name="idx_actions_changement_etape"),
+            models.Index(fields=["id_groupe_instructeur"], name="idx_actions_groupe_instru"),
+        ]
+
+    def __str__(self):
+        return f"{self.id_demarche} ( Étape '{self.id_etape}' - Groupe Instructeur '{self.id_groupe_instructeur}') -> {self.id_changement_etape}"

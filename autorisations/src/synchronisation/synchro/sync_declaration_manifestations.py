@@ -68,13 +68,27 @@ def sync_declaration_manifestations(dossier, logger):
     if created:
         logger.info(f"[CREATE] DossierManifSportive numéro {manif_id} ({obj.nom_dossier}).")
 
-        #On regarde si un dossier DN (de - d'un an) existe deja pour cette manifestation
-        dossier_dn = Dossier.objects.filter(
-            id_demarche__type__iexact="Manifestations sportives",
-            date_depot__gte=timezone.now() - timedelta(days=365),
-            dossierchamp__id_champ=champ_num_dm,
-            dossierchamp__valeur=str(manif_id),
-        ).order_by("-date_depot").first()
+        #On regarde si un dossier DN (de - d'un an, non lié, non archivé) existe deja pour cette manifestation
+        dossier_dn = (
+            Dossier.objects
+            .filter(
+                id_demarche__type__iexact="Manifestations sportives",
+                date_depot__gte=timezone.now() - timedelta(days=365),
+                dossierchamp__id_champ=champ_num_dm,
+                dossierchamp__valeur=str(manif_id),
+                dossiermanifestationliaison__isnull=True,
+            )
+            .exclude(
+                id_etape_dossier__etape__in=[
+                    "À publier au RAA",
+                    "Non soumis à autorisation",
+                    "Refusé",
+                    "Accepté",
+                ]
+            )
+            .order_by("-date_depot")
+            .first()
+        )
         
 
         if dossier_dn :
@@ -86,9 +100,10 @@ def sync_declaration_manifestations(dossier, logger):
             # Liaison existante
             liaisons_dossDS = DossierManifestationLiaison.objects.filter(id_dossier=dossier_dn)
             if liaisons_dossDS :
-                logger.warning(f"[CREATE DossierManifSportive numéro {manif_id}] Le dossier DN {dossier_dn.numero} est déjà lié à un dossier DM, pour des raisons de cohérence, on supprime la DossierManifestationLiaison.")
-                for l in liaisons_dossDS :
-                    l.delete()
+                # logger.warning(f"[CREATE DossierManifSportive numéro {manif_id}] Le dossier DN {dossier_dn.numero} est déjà lié à un dossier DM, pour des raisons de cohérence, on supprime la DossierManifestationLiaison.")
+                # liaisons_dossDS.delete()
+                logger.warning(f"[CREATE DossierManifSportive (DM) numéro {manif_id}] Le dossier DN {dossier_dn.numero} est déjà lié au dossier DM {liaisons_dossDS.id_dossier_manif.numero_dossier_declaration_manifestations}. La liaison ne peut donc pas être faite.")
+                return obj, doss_lie
             
             # Création liaison
             liaison, created_liaison = DossierManifestationLiaison.objects.get_or_create(id_dossier_manif=obj,id_dossier=dossier_dn)

@@ -21,12 +21,15 @@
     <!-- Leaflet impression PDF -->
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
-
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
+
+    <!-- JS -->
+    <!-- Copier chemin d'accès du dossier -->
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 
 </head>
 <body>
@@ -36,9 +39,42 @@
     <div class="page-container">
         <div class="formulaire_dm">
             
+            <!-- Copier le chemin d'accès du dossier -->
+            <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+                <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+            </button>
+            
             <div class="en_attente_DS">
                 <div class="en_attente_DS_message">
-                    <p>En attente d'un dossier Démarches Simplifiées</p>
+                    <p>En attente d'un dossier Démarche Numérique</p>
+
+                    {% if dossier_dn_meme_numero_deja_lie %}
+                        <p class="message_info_liaison">
+                            Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_deja_lie.numero}} possède pour le champ 
+                            « Numéro du dossier sur la plateforme déclaration-manifestations » la valeur {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                            Toutefois ce dossier est déjà lié à un autre dossier Déclaration Manifestations. Si cela pose problème, contactez le support.
+                        </p>
+                    {% endif %}
+
+                    {% if dossier_dn_meme_numero_pas_lie_acte_envoye %}
+                        <p class="message_info_liaison">
+                            Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_envoye.numero}} a son champ 
+                            « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                            Toutefois ce dossier Démarche Numérique est déjà à l'étape {{dossier_dn_meme_numero_pas_lie_acte_envoye.id_etape.etape}}. 
+                            Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver le dossier {{doss_manif_sportive.nom_dossier}} sur Déclaration Manifestations.
+                        </p>
+                    {% endif %}
+
+                    {% if dossier_dn_meme_numero_pas_lie_acte_pas_envoye %}
+                        <p class="message_info_liaison">
+                            Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_pas_envoye.numero}} a son champ 
+                            « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                            Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
+                        </p>
+                    {% endif %}
+
                 </div>
 
                 <div class="bloc_liaison_ds">
@@ -47,13 +83,24 @@
                     </button>
 
                     <div class="form-liaison-ds" id="form-liaison-ds">
-                        <form method="post" action="{% url 'lier_dossier_manif_sportive_a_DN' id_dossier_manif=doss_manif_sportive.id %}">
+                        <form method="post" id="form-liaison-manif-dn" action="{% url 'lier_dossier_manif_sportive_a_DN' %}">
                             {% csrf_token %}
 
-                            <label for="dossier_ds_id">Choisir un dossier DN en réception</label>
-                            <select name="dossier_ds_id" id="dossier_ds_id" required>
+                            <input type="hidden" name="id_dossier_dm" value="{{ doss_manif_sportive.id }}">
+                            <!-- <input type="hidden" name="id_dossier_dn" value=None> -->
+
+                            <p class="info_liaison">
+                                Dans certains cas, la liaison entre un dossier Déclaration Manifestations et un dossier Démarche Numérique peut ne pas se faire toute seule. 
+                                <br><br>
+                                C'est par exemple le cas si en remplissant son formulaire Démarche Numérique, le pétitionnaire s'est trompé en renseignant son "numéro de dossier Déclaration Manifestations". 
+                                <br><br>
+                                Dans ce cas là, vous devez relier ces deux dossiers manuellement.
+                            </p>
+
+                            <label for="dossier_dn_id">Choisir un dossier DN en réception</label>
+                            <select name="dossier_dn_id" id="dossier_dn_id" required>
                                 <option value="" selected disabled>-- Sélectionner un dossier --</option>
-                                {% for dossier in dossiers_DN_manif_sportive_a_affecter %}
+                                {% for dossier in dossiers_DN_manif_sportive_non_lie %}
                                     <option value="{{ dossier.id }}">
                                         {{ dossier.numero }} — {{ dossier.nom_manifestation }}
                                     </option>
@@ -67,6 +114,16 @@
                     </div>
                 </div>
             </div>
+
+            {% if messages %}
+                <div class="django-messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
 
             <div class="titre-manif">
@@ -89,6 +146,7 @@
             <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
             
             <h2>Tracé de la manifestation</h2>
+            <div class="carto-banner"></div>
             <div class="carte-container-trail">
                 <div class="carte" data-geojson='{{ doss_manif_sportive.geometrie }}'></div>
                 <div class="course-panel"></div>
@@ -252,6 +310,25 @@
             });
         });
     </script>
+
+    <!-- POP UP de confirmation pour la création d'une liaison -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const formLiaison = document.getElementById("form-liaison-manif-dn");
+
+        if (!formLiaison) return;
+
+        formLiaison.addEventListener("submit", function (e) {
+            const confirmation = confirm(
+                "Êtes-vous sûr de vouloir lier ces deux dossiers ?\n\nCette action sera irréversible."
+            );
+
+            if (!confirmation) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
 
 </body>
 </html>
