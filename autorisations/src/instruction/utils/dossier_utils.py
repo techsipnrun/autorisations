@@ -5,7 +5,7 @@ import logging
 from django.utils import timezone
 
 from django.shortcuts import redirect
-from autorisations.models.models_instruction import ActionsPossibles, Demarche, Dossier, DossierAction, Message, SynchronisationEtat
+from autorisations.models.models_instruction import ActionsPossibles, Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, Message, SynchronisationEtat
 from django.contrib import messages
 
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur
@@ -379,14 +379,22 @@ def build_champs_prepares(dossier):
 
 
 
-def get_actions_possibles(dossier):
+def get_actions_possibles(dossier: Dossier):
     """
     Retourne la liste des labels d'actions possibles pour un dossier.
-
     Priorité de recherche :
-    1. (Étape, Groupe instructeur, Démarche, présent sur DN)
-    2. (Étape, Démarche, présent sur DN)
-    3. (Étape, présent sur DN)
+
+    # MANIFESTATIONS SPORTIVES
+    1. Groupe instructeur, Démarche, coeur_de_parc, (présent sur DN, type_manif_sportive)
+    2. Démarche, coeur_de_parc, (présent sur DN, type_manif_sportive)
+    3. Démarche, (présent sur DN, type_manif_sportive)
+    4. (présent sur DN, type_manif_sportive)
+    5. (présent sur DN)
+
+    # HORS MANIFESTATIONS SPORTIVES
+    1. Groupe instructeur, Démarche, (présent sur DN)
+    2. Démarche, (présent sur DN)
+    3. (présent sur DN)
 
     On s'arrête dès qu'un niveau retourne au moins une règle.
     """
@@ -399,50 +407,276 @@ def get_actions_possibles(dossier):
     groupe_id = dossier.id_groupeinstructeur_id
     present_sur_dn = dossier.present_sur_ds
 
+    type_manif_sportive = None
+    coeur_de_parc = None
+
+    est_manif_sportive = dossier.id_demarche.type == "Manifestations sportives"
+
+
+    if est_manif_sportive :
+        liaison_existe_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+
+        if liaison_existe_dossDN :
+            type_manif_sportive = "Dossier complet"
+            coeur_de_parc = liaison_existe_dossDN.id_dossier_manif.coeur_de_parc
+
+        else :
+            type_manif_sportive = "Dossier DN"
+
+        base_qs = (
+            ActionsPossibles.objects
+            .select_related("id_changement_etape", "id_etape", "id_demarche", "id_groupe_instructeur")
+            .filter(id_etape_id=etape_id,)
+        )
+
+    else :    
+        base_qs = (
+            ActionsPossibles.objects
+            .select_related("id_changement_etape", "id_etape", "id_demarche", "id_groupe_instructeur")
+            .filter(
+                id_etape_id=etape_id,
+                coeur_de_parc__isnull=True,
+                type_manif_sportive__isnull=True,
+            )
+        )
+
+    niveaux = []
+
+
+    print(
+        f"""
+        --- DEBUG DOSSIER ---
+        etape_id              : {etape_id}
+        demarche_id           : {demarche_id}
+        groupe_id             : {groupe_id}
+        present_sur_dn        : {present_sur_dn}
+        type_manif_sportive   : {type_manif_sportive}
+        coeur_de_parc         : {coeur_de_parc}
+        est_manif_sportive    : {est_manif_sportive}
+        -----------------------
+        """
+    )
+
+
+    # ------------------------
+    # MANIFESTATIONS SPORTIVES
+    # ------------------------
+    if est_manif_sportive :
+
+        # Niveau 1 : Groupe instructeur, Démarche, coeur_de_parc, (présent sur DN, type_manif_sportive)
+        if groupe_id and demarche_id and type_manif_sportive and coeur_de_parc is not None :
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur_id=groupe_id,
+                    id_demarche_id=demarche_id,
+                    type_manif_sportive=type_manif_sportive,
+                    coeur_de_parc=coeur_de_parc,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+
+        # Niveau 2 : Démarche, coeur_de_parc, (présent sur DN, type_manif_sportive)
+        if demarche_id and type_manif_sportive and coeur_de_parc is not None :
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur__isnull=True,
+                    id_demarche_id=demarche_id,
+                    type_manif_sportive=type_manif_sportive,
+                    coeur_de_parc=coeur_de_parc,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+
+        # Niveau 3 : Démarche, (présent sur DN, type_manif_sportive)
+        if demarche_id and type_manif_sportive :
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur__isnull=True,
+                    id_demarche_id=demarche_id,
+                    type_manif_sportive=type_manif_sportive,
+                    coeur_de_parc__isnull=True,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+        
+        # Niveau 4 : (présent sur DN, type_manif_sportive)
+        if type_manif_sportive :
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur__isnull=True,
+                    id_demarche__isnull=True,
+                    type_manif_sportive=type_manif_sportive,
+                    coeur_de_parc__isnull=True,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+        
+        # Niveau 5 : (présent sur DN)
+        if type_manif_sportive :
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur__isnull=True,
+                    id_demarche__isnull=True,
+                    type_manif_sportive__isnull=True,
+                    coeur_de_parc__isnull=True,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+
+
+    # -----------------------------
+    # HORS MANIFESTATIONS SPORTIVES
+    # -----------------------------
+    else :
+
+        # Niveau 1 : Groupe instructeur, Démarche, (présent sur DN)
+        if groupe_id and demarche_id:
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur_id=groupe_id,
+                    id_demarche_id=demarche_id,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+
+        # Niveau 2 : Démarche, (présent sur DN)
+        if demarche_id:
+            niveaux.append(
+                base_qs.filter(
+                    id_groupe_instructeur__isnull=True,
+                    id_demarche_id=demarche_id,
+                    present_sur_dn=present_sur_dn,
+                )
+            )
+
+        # Niveau 3 : (présent sur DN)
+        niveaux.append(
+            base_qs.filter(
+                id_groupe_instructeur__isnull=True,
+                id_demarche__isnull=True,
+                present_sur_dn=present_sur_dn,
+            )
+        )
+
+
+    # On execute les requetes SQL et on s'arrete dès qu'un niveau propose un résultat
+    for qs in niveaux:
+        regles = list(qs)
+        if regles:
+            # déduplication conservant l'ordre DB
+            labels = []
+            deja_vus = set()
+
+            for regle in regles:
+                label = regle.id_changement_etape.action
+                if label not in deja_vus:
+                    deja_vus.add(label)
+                    labels.append(label)
+
+            return labels
+
+    return []
+
+
+def get_actions_possibles_DM(dossierDM: DossierManifSportive):
+    """
+    Retourne la liste des labels d'actions possibles pour un dossier DM (sans DN) qui est en réception.
+    Étapes possibles : En réception, Non soumis à autorisation, Refusé, Accepté
+    Priorité de recherche :
+
+    1. Démarche, coeur_de_parc, type_manif_sportive, (présent sur DN)
+    2. Démarche, type_manif_sportive, (présent sur DN)
+    3. Démarche, (présent sur DN)
+    4. (présent sur DN)
+
+
+    On s'arrête dès qu'un niveau retourne au moins une règle.
+    """
+
+    if not dossierDM or not dossierDM.id_etape:
+        return []
+
+    manif_id = dossierDM.numero_dossier_declaration_manifestations
+    etape_id = dossierDM.id_etape_id
+    demarche_id = Demarche.objects.get(type="Manifestations sportives").id
+    coeur_de_parc = dossierDM.coeur_de_parc
+    liaison_existe_dossDM = DossierManifestationLiaison.objects.filter(id_dossier_manif=dossierDM).first()
+
+    if liaison_existe_dossDM :
+        logger.error(f"[DOSSIER DM n°{manif_id}] La fonction get_actions_possibles_DM est appelée alors que le dossier DM est lié au Dossier DN n°{liaison_existe_dossDM.id_dossier.numero}")
+        return []
+    
+    else :
+        type_manif_sportive = "Dossier DM"
+        present_sur_dn = False
+  
+
     base_qs = (
         ActionsPossibles.objects
-        .select_related("id_changement_etape", "id_etape", "id_demarche", "id_groupe_instructeur")
-        .filter(
-            id_etape_id=etape_id,
-            coeur_de_parc__isnull=True,
-            type_manif_sportive__isnull=True,
-        )
+        .select_related("id_changement_etape", "id_etape", "id_demarche",)
+        .filter(id_etape_id=etape_id, id_groupe_instructeur__isnull=True,)
     )
 
     niveaux = []
 
-    # Niveau 1 : (Étape, Groupe instructeur, Démarche, présent sur DN)
-    if groupe_id and demarche_id:
-        niveaux.append(
-            base_qs.filter(
-                id_groupe_instructeur_id=groupe_id,
-                id_demarche_id=demarche_id,
-            ).filter(
-                Q(present_sur_dn=present_sur_dn) | Q(present_sur_dn__isnull=True)
-            )
-        )
-
-    # Niveau 2 : (Étape, Démarche, présent sur DN)
-    if demarche_id:
-        niveaux.append(
-            base_qs.filter(
-                id_groupe_instructeur__isnull=True,
-                id_demarche_id=demarche_id,
-            ).filter(
-                Q(present_sur_dn=present_sur_dn) | Q(present_sur_dn__isnull=True)
-            )
-        )
-
-    # Niveau 3 : (Étape, présent sur DN)
-    niveaux.append(
-        base_qs.filter(
-            id_groupe_instructeur__isnull=True,
-            id_demarche__isnull=True,
-        ).filter(
-            Q(present_sur_dn=present_sur_dn) | Q(present_sur_dn__isnull=True)
-        )
+    print(
+        f"""
+        --- DEBUG DOSSIER ---
+        etape_id              : {etape_id}
+        demarche_id           : {demarche_id}
+        present_sur_dn        : {present_sur_dn}
+        type_manif_sportive   : {type_manif_sportive}
+        coeur_de_parc         : {coeur_de_parc}
+        -----------------------
+        """
     )
 
+    # Niveau 1 : Démarche, coeur_de_parc, type_manif_sportive, (présent sur DN)
+    if demarche_id and type_manif_sportive and coeur_de_parc is not None :
+        niveaux.append(
+            base_qs.filter(
+                id_demarche_id=demarche_id,
+                type_manif_sportive=type_manif_sportive,
+                coeur_de_parc=coeur_de_parc,
+                present_sur_dn = present_sur_dn,
+            )
+        )
+
+    # Niveau 2 : Démarche, type_manif_sportive, (présent sur DN)
+    if demarche_id and type_manif_sportive :
+        niveaux.append(
+            base_qs.filter(
+                id_demarche_id=demarche_id,
+                type_manif_sportive=type_manif_sportive,
+                coeur_de_parc__isnull=True,
+                present_sur_dn = present_sur_dn,
+            )
+        )
+
+    # Niveau 3 : Démarche, (présent sur DN)
+    if demarche_id :
+        niveaux.append(
+            base_qs.filter(
+                id_demarche_id=demarche_id,
+                type_manif_sportive__isnull=True,
+                coeur_de_parc__isnull=True,
+                present_sur_dn = present_sur_dn,
+            )
+        )
+
+    # Niveau 4 : (présent sur DN)
+    niveaux.append(
+        base_qs.filter(
+            id_demarche__isnull=True,
+            type_manif_sportive__isnull=True,
+            coeur_de_parc__isnull=True,
+            present_sur_dn = present_sur_dn,
+        )
+    )
+    
+
+
+    # On execute les requetes SQL et on s'arrete dès qu'un niveau propose un résultat
     for qs in niveaux:
         regles = list(qs)
         if regles:

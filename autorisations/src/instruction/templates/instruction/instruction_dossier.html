@@ -150,7 +150,7 @@
 
                         {% if request.user.is_superuser or request.user|est_autorise_a_changer_etape:dossier %}
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
-                                <!-- {% with etapes_custom|get_item:etape_actuelle.etape as actions %} -->
+
                                     {% if actions_possibles %}
                                         {% for label in actions_possibles %}
                                         
@@ -251,7 +251,7 @@
                                     {% else %}
                                         <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
                                     {% endif %}
-                                <!-- {% endwith %} -->
+
                             </div>
                         {% endif %}
                     </div>

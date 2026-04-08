@@ -352,9 +352,12 @@ class DossierNote(models.Model):
         return f"Note - Dossier {self.id_dossier.numero} par {self.id_instructeur}"
     
 
+def get_default_etape_en_reception():
+        return EtapeDossier.objects.get(etape="En réception").id
 
 class DossierManifSportive(models.Model):
     id = models.AutoField(primary_key=True)
+    id_etape = models.ForeignKey(EtapeDossier, models.RESTRICT, db_column="id_etape", default=get_default_etape_en_reception)
     geometrie = models.JSONField(blank=True, null=True)
     emplacement = models.CharField()
     archive = models.BooleanField(default=False)
@@ -509,13 +512,16 @@ class ActionsPossibles(models.Model):
     id_demarche = models.ForeignKey(Demarche, models.CASCADE, db_column="id_demarche", null=True, blank=True, related_name="actions_possibles",)
     id_changement_etape = models.ForeignKey(ChangementEtape, models.CASCADE, db_column="id_changement_etape", related_name="actions_possibles",)
     id_groupe_instructeur = models.ForeignKey(Groupeinstructeur, models.CASCADE, db_column="id_groupe_instructeur", null=True, blank=True, related_name="actions_possibles",)
-    present_sur_dn = models.BooleanField(null=True, blank=True)
+    present_sur_dn = models.BooleanField()
     coeur_de_parc = models.BooleanField(null=True, blank=True)
     type_manif_sportive = models.CharField(max_length=20, choices=TYPE_MANIF_SPORTIVE_CHOICES, null=True, blank=True,)
 
     class Meta:
         managed = False
         db_table = '"instruction"."actions_possibles"'
+        verbose_name = "Action possible"
+        verbose_name_plural = "Actions possibles"
+
         constraints = [
             models.UniqueConstraint(
                 fields=["id_etape", "id_demarche", "id_changement_etape", "id_groupe_instructeur", "present_sur_dn",],

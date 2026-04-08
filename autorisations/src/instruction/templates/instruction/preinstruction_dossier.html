@@ -188,7 +188,7 @@
                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier or request.user.is_superuser %}
 
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
-                                <!-- {% with etapes_custom|get_item:etape_actuelle.etape as actions %}  -->
+
                                         {% if actions_possibles %}
                                             {% for label in actions_possibles %}
 
@@ -230,7 +230,7 @@
                                         {% else %}
                                             <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
                                         {% endif %}
-                                <!-- {% endwith %} -->
+
                             </div>
 
                         {% endif %}
