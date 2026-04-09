@@ -59,7 +59,7 @@ def recup_avis_et_dossiers():
 
 
     # Filtre pour le dev : 1 seul avis
-    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [103791, 99265] )]  # 105963, 99265, 109421, 109834
+    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [103791, 99265, 105963, 109421] )]  # 105963, 99265, 109421, 109834
 
 
 
@@ -345,8 +345,6 @@ def recup_pj_dossiers(doss, docs, token, doss_lie):
             except Exception as e:
                 loggerDM.warning(f"[DOSSIER MANIF SPORTIVE {manif_id} - {doss.nom_dossier}] Erreur lors du téléchargement de '{description}' ({url}) : {e}")
                 continue
-            
-
             
 
             # Ecriture sur le NAS (écrase fichier si existant)

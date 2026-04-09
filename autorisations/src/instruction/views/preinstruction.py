@@ -15,7 +15,7 @@ from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
-from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
+from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
@@ -108,12 +108,13 @@ def preinstruction(request):
     # CARTO
     coeur_geojson = load_geojson("instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
 
-    # ---------------------------------------------
-    # Dossier DM non liés à un Dossier DS
-    # ---------------------------------------------
+    # -----------------------------------------------------------
+    # Dossiers DM non liés à un Dossier DN et Etape = En réception
+    # -----------------------------------------------------------
     dossiers_manif_sportive_DM = (
-        DossierManifSportive.objects.exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True))
-        .exclude(archive=True)
+        DossierManifSportive.objects
+        .filter(id_etape__etape="En réception", archive=False)
+        .exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True))
         .order_by("date_debut_evenement")
     )
 
@@ -428,7 +429,7 @@ def preinstruction_dossier(request, numero):
 
     # Actions possibles
     actions_possibles = get_actions_possibles(dossier)
-    print(actions_possibles)
+
 
 
     return render(request, 'instruction/preinstruction_dossier.html', {
@@ -653,6 +654,10 @@ def dossier_manif_sportive_sans_ds(request, numero):
         chemin_complet = os.path.join(os.getenv('NAS_ROOT'), chemin_complet)
     chemin_complet = _normalize_unc_path(chemin_complet)
 
+    # Actions possibles
+    actions_possibles = get_actions_possibles_DM(doss_manif_sportive)
+
+
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
         "pjs_demandeur_DM": pjs_demandeur_DM,
@@ -665,6 +670,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "dossier_dn_meme_numero_deja_lie" : dossier_dn_meme_numero_deja_lie,
         "dossier_dn_meme_numero_pas_lie_acte_envoye" : dossier_dn_meme_numero_pas_lie_acte_envoye,
         "dossier_dn_meme_numero_pas_lie_acte_pas_envoye" : dossier_dn_meme_numero_pas_lie_acte_pas_envoye,
+        "actions_possibles": actions_possibles,
     })
 
 

@@ -68,6 +68,7 @@ urlpatterns = [
     path('changer_publieur_raa/', views.changer_publieur_raa, name='changer_publieur_raa'),
     path("instruction/dossier-precedent/<int:num_dossier_precedent>/", views.rediriger_vers_dossier_precedent, name="rediriger_vers_dossier_precedent"),
     path("instruction/<int:num_dossier>/nom-plus-parlant/", views.update_nom_plus_parlant, name="dossier_update_nom_plus_parlant"),
+    path('instruction/declaration_manifestations/<int:numero>/', preinstruction.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds_archive'),
 
     
     
@@ -156,6 +157,8 @@ urlpatterns = [
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
 
-
-    
+    path("changer-etape/accepte-declaration-manifestations/", changement_etape.declaration_manifestations_accepter, name="declaration_manifestations_accepter_url"),
+    path("changer-etape/refuse-declaration-manifestations/", changement_etape.declaration_manifestations_refuser, name="declaration_manifestations_refuser_url"),
+    path("changer-etape/non-soumis-declaration-manifestations/", changement_etape.declaration_manifestations_non_soumis, name="declaration_manifestations_non_soumis_url"),
+ 
 ]

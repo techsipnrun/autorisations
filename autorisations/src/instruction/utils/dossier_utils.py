@@ -293,21 +293,21 @@ def build_champs_prepares(dossier):
 #     if present_sur_ds :
 
 #         etapes = {
-#             "À affecter": ["Passer en pré-instruction", "Archiver le dossier comme non soumis à autorisation"],
+#             "À affecter": ["Passer en pré-instruction", "Archiver le dossier comme non soumis à autorisation"], OK
 
 #             "En pré-instruction": ["Demander des compléments", "Archiver le dossier comme non soumis à autorisation", "Passer en instruction"],
 
-#             "En attente de compléments": ["Passer en instruction"],
+#             "En attente de compléments": ["Passer en instruction"], OK
 
 #             "En instruction": ["Demander des compléments", "Archiver le dossier comme non soumis à autorisation", 
-#                                "Faire valider avant l'envoi d'une demande d'avis à une instance", "Faire valider le projet d'acte"],
+#                                "Faire valider avant l'envoi d'une demande d'avis à une instance", "Faire valider le projet d'acte"], OK
 
 #             "À valider avant demande d'avis": ["Repasser en instruction",
 #                                             "Valider le modèle de demande d'avis et le projet d'acte"],
 
-#             "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"],
+#             "À valider avant signature": ["Repasser en instruction", "Valider et envoyer pour relecture qualité"], OK
 
-#             "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"],
+#             "En relecture qualité": ["Repasser en instruction", "Prêt à la signature"], OK
 
 #             "En attente réponse d'avis": ["Envoyer les modifications de l'acte pour validation",
 #                                         "Acte inchangé, envoyer pour relecture qualité"],
@@ -315,15 +315,15 @@ def build_champs_prepares(dossier):
 #             "Avis à envoyer": ["Avis envoyé"],
 
 #             "En attente de signature": ["Repasser en instruction", "Acte prêt à être envoyé",
-#                                         "Archiver le dossier comme non soumis à autorisation"],
+#                                         "Archiver le dossier comme non soumis à autorisation"],  OK
 
-#             "Acte à envoyer": ["Envoyer l'acte d'acceptation", "Envoyer l'acte de refus"],
+#             "Acte à envoyer": ["Envoyer l'acte d'acceptation", "Envoyer l'acte de refus"], OK
 
-#             "À publier au RAA": ["Archiver le dossier comme accepté", "Archiver le dossier comme refusé"],
+#             "À publier au RAA": ["Archiver le dossier comme accepté", "Archiver le dossier comme refusé"], OK
 
 #             "Non soumis à autorisation": ["Repasser en instruction"],
 
-#             "Accepté": ["Repasser en instruction"],
+#             "Accepté": ["Repasser en instruction"], OK
 
 #             "Refusé": ["Repasser en instruction"],
 #         }
@@ -336,7 +336,7 @@ def build_champs_prepares(dossier):
 #                 "Demander des compléments",
 #                 "Archiver le dossier comme non soumis à autorisation",
 #                 "Acte prêt à la signature",
-#             ]
+#             ]                                          OK
 
 
 #     # DOSSIER PLUS SUR DS
@@ -345,7 +345,7 @@ def build_champs_prepares(dossier):
 #             "Archiver le dossier comme accepté",
 #             "Archiver le dossier comme non soumis à autorisation",
 #             "Archiver le dossier comme refusé",
-#         ]
+#         ]                                                    OK
                 
 #         etapes = {
 #             "À affecter": actions_classement,
@@ -443,19 +443,19 @@ def get_actions_possibles(dossier: Dossier):
     niveaux = []
 
 
-    print(
-        f"""
-        --- DEBUG DOSSIER ---
-        etape_id              : {etape_id}
-        demarche_id           : {demarche_id}
-        groupe_id             : {groupe_id}
-        present_sur_dn        : {present_sur_dn}
-        type_manif_sportive   : {type_manif_sportive}
-        coeur_de_parc         : {coeur_de_parc}
-        est_manif_sportive    : {est_manif_sportive}
-        -----------------------
-        """
-    )
+    # print(
+    #     f"""
+    #     --- DEBUG DOSSIER ---
+    #     etape_id              : {etape_id}
+    #     demarche_id           : {demarche_id}
+    #     groupe_id             : {groupe_id}
+    #     present_sur_dn        : {present_sur_dn}
+    #     type_manif_sportive   : {type_manif_sportive}
+    #     coeur_de_parc         : {coeur_de_parc}
+    #     est_manif_sportive    : {est_manif_sportive}
+    #     -----------------------
+    #     """
+    # )
 
 
     # ------------------------
@@ -619,17 +619,17 @@ def get_actions_possibles_DM(dossierDM: DossierManifSportive):
 
     niveaux = []
 
-    print(
-        f"""
-        --- DEBUG DOSSIER ---
-        etape_id              : {etape_id}
-        demarche_id           : {demarche_id}
-        present_sur_dn        : {present_sur_dn}
-        type_manif_sportive   : {type_manif_sportive}
-        coeur_de_parc         : {coeur_de_parc}
-        -----------------------
-        """
-    )
+    # print(
+    #     f"""
+    #     --- DEBUG DOSSIER ---
+    #     etape_id              : {etape_id}
+    #     demarche_id           : {demarche_id}
+    #     present_sur_dn        : {present_sur_dn}
+    #     type_manif_sportive   : {type_manif_sportive}
+    #     coeur_de_parc         : {coeur_de_parc}
+    #     -----------------------
+    #     """
+    # )
 
     # Niveau 1 : Démarche, coeur_de_parc, type_manif_sportive, (présent sur DN)
     if demarche_id and type_manif_sportive and coeur_de_parc is not None :

@@ -184,6 +184,26 @@ class Dossier(models.Model):
             models.Index(fields=['id_etat_dossier'], name='idx_dossier_id_etat'),
         ]
 
+    @staticmethod
+    def normaliser_emplacement(emplacement: str | None) -> str:
+        if not emplacement:
+            return "/"
+
+        emplacement = emplacement.strip().replace("\\", "/")
+
+        while "//" in emplacement:
+            emplacement = emplacement.replace("//", "/")
+
+        if not emplacement.endswith("/"):
+            emplacement += "/"
+
+        return emplacement
+
+    def save(self, *args, **kwargs):
+        self.emplacement = self.normaliser_emplacement(self.emplacement)
+        super().save(*args, **kwargs)
+
+
     def __str__(self):
         return f"Dossier {self.nom_dossier}"
 
@@ -425,6 +445,27 @@ class DossierManifSportive(models.Model):
     class Meta:
         db_table = '"instruction"."dossier_manif_sportive"'
         managed = False
+
+
+    @staticmethod
+    def normaliser_emplacement(emplacement: str | None) -> str:
+        if not emplacement:
+            return "/"
+
+        emplacement = emplacement.strip().replace("\\", "/")
+
+        while "//" in emplacement:
+            emplacement = emplacement.replace("//", "/")
+
+        if not emplacement.endswith("/"):
+            emplacement += "/"
+
+        return emplacement
+
+    def save(self, *args, **kwargs):
+        self.emplacement = self.normaliser_emplacement(self.emplacement)
+        super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"{self.nom_dossier}"

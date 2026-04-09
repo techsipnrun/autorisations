@@ -90,7 +90,7 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="nom">Bénéficiaire :</label>
+                    <label for="nom">Bénéficiaire / Demandeur :</label>
                     <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ nom_rempli }}">
                     <datalist id="suggestions-nom"></datalist>
                 </div>
@@ -177,39 +177,27 @@
                             <th>Étape</th>
                             <th>Date dépôt</th>
                             <th>Groupe Instructeur</th>
-                            <th>Bénéficiaire</th>
+                            <th>Demandeur</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for dossier in dossiers %}
-                        <tr onclick="window.location.href='/instruction/{{ dossier.numero}}'" class="clickable-row">
-                        <tr onclick="window.location.href='{{ dossier.lien }}'" class="clickable-row">
-
-                            <td>{{ dossier.numero }}</td>
-                            <td>{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier|truncatechars:60 }}</td>
-                            <td>{{ dossier.id_demarche.type }}</td>
-                            <td>{{ dossier.id_etape_dossier.etape }}</td>
-                            <td>{{ dossier.date_depot|date:"d/m/Y" }}</td>
-                            <td>{{ dossier.id_groupeinstructeur.nom }}</td>
-                            <td>
-                                {% with dossier.dossierinterlocuteur_set.first as interlocuteur %}
-                                    {% if interlocuteur %}
-                                        {% with interlocuteur.dossierbeneficiaire_set.first.id_beneficiaire as b %}
-                                            {% if b %}
-                                                {% if b.raison_sociale %}
-                                                    {{ b.raison_sociale }}
-                                                {% elif b.nom and b.prenom %}
-                                                    {{ b.nom }} {{ b.prenom }}
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endwith %}
+                         {% for dossier in dossiers %}
+                            <tr onclick="window.location.href='{{ dossier.lien }}'" class="clickable-row">
+                                <td>{{ dossier.numero }}</td>
+                                <td>
+                                    {% if dossier.source == "dossier_dm" %}
+                                        <span class="badge-dm" title="Dossier Déclaration Manifestation">DM</span>
                                     {% endif %}
-                                {% endwith %}
-                            </td>
-
-                        </tr>
+                                    {{ dossier.nom_dossier|truncatechars:60 }}
+                                </td>
+                                <td>{{ dossier.demarche }}</td>
+                                <td>{{ dossier.etape }}</td>
+                                <td>{{ dossier.date_depot|date:"d/m/Y" }}</td>
+                                <td>{{ dossier.groupe }}</td>
+                                <td>{{ dossier.beneficiaire }}</td>
+                            </tr>
                         {% empty %}
-                        <tr><td colspan="7">Aucun résultat</td></tr>
+                            <tr><td colspan="7">Aucun résultat</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 
 from autorisations.models.models_avis import DossierAvis
 
-from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_instruction import DossierManifSportive
+from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, Groupeinstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
 from django.db.models import Q
 
 
@@ -167,12 +168,58 @@ def user_display(user):
     return user.email
 
 
+@register.filter(name="est_autorise_a_agir_reception_manif_sportive")
+def est_autorise_a_agir_reception_manif_sportive(user):
+    """
+    Retourne True si le user appartient à la liste des Instructeurs autorisés à agir sur le dossier Déclaration Manifestations en Réception :
+
+    """
+    # Identification de l'instructeur connecté
+    if not user or not user.email:
+        return False
+
+    email = user.email.strip().lower()
+    instructeur_connecte = Instructeur.objects.filter(email__iexact=email).first()
+    if not instructeur_connecte:
+        return False
+    
+    # -----------------------------------
+    # Cas 1 : Groupe Réception SAADD
+    # -----------------------------------
+    if user.groups.filter(name="Réception SAADD").exists():
+        return True
+
+    # -----------------------------------
+    # Cas 2 : Groupe instructeur "Manifestations sportives"
+    # -----------------------------------
+    groupe_manif = Groupeinstructeur.objects.filter(nom="Manifestations sportives").first()
+
+    if groupe_manif:
+        est_dans_groupe = GroupeinstructeurInstructeur.objects.filter(
+            id_instructeur=instructeur_connecte,
+            id_groupeinstructeur=groupe_manif
+        ).exists()
+
+        if est_dans_groupe:
+            return True
+
+    return False
+
+
+
+
+
 
 @register.filter(name="est_autorise_a_changer_etape")
 def est_autorise_a_changer_etape(user, dossier):
     """
     Retourne True si le user appartient à la liste des Instructeurs autorisés à changer l'étape du dossier :
- 
+
+    Conditions :
+    - appartient au groupe "Réception SAADD"
+    OU
+    - appartient au groupe instructeur "Manifestations sportives
+
     """
     # Identification de l'instructeur connecté
     if not user or not user.email:

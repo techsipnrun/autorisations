@@ -157,8 +157,6 @@
                                             {% if label == "Demander des compléments" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
                                             
-                                            
-                                            
                                             {% elif label == "Classer le dossier comme refusé" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
 
@@ -190,7 +188,7 @@
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionDirecteur()">Prêt à la signature</button>
 
                                             <!-- SPPN : Passe direct de 'Instruction' à 'Acte prêt à la signature' -->
-                                            {% elif label == "Acte prêt à la signature" %}
+                                            {% elif label == "Raccourci SPPN - Acte prêt à la signature" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretALaSignature()">Acte prêt à la signature</button>
 
                                             {% elif label == "Acte prêt à être envoyé" %}

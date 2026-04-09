@@ -140,7 +140,7 @@ def _extract_error_message(response):
     return response.text[:300].replace("\n", " ") if response.text else "Aucune réponse renvoyée"
 
 
-# A VERIF
+
 def _check_response(response, contexte):
     if response.status_code != 200:
         msg = _extract_error_message(response)
@@ -211,13 +211,11 @@ def get_file(token, media_path):
     return response.content
 
 
-def ajouter_pj_avis(token, avis_id, id_document, file_path, demande_de_remonte_en_doc_officiel_b=False):
+def ajouter_pj_avis_with_file_path(token, avis_id, file_path, demande_de_remonte_en_doc_officiel_b=False):
     """
     Upload d'une pièce jointe à un avis.
     """
-    headers = {
-        "Authorization": f"Bearer {token}",
-    }
+    headers = {"Authorization": f"Bearer {token}",}
     url = AJOUTER_PJ_AVIS_URL.format(avis_id)
 
     if smbclient.path.exists(file_path):
@@ -226,7 +224,7 @@ def ajouter_pj_avis(token, avis_id, id_document, file_path, demande_de_remonte_e
 
         data = {
             "demande_de_remonte_en_doc_officiel_b": str(demande_de_remonte_en_doc_officiel_b).lower(),
-            "id": str(id_document),
+            "id": str(avis_id),
         }
 
         with smbclient.open_file(file_path, "rb") as f:
@@ -245,5 +243,37 @@ def ajouter_pj_avis(token, avis_id, id_document, file_path, demande_de_remonte_e
     
     else:
         loggerDM(f"AJOUTER PJ AVIS {avis_id} : Échec fichier introuvable : {file_path}")
+
+    return {"success": True}
+
+
+
+def ajouter_pj_avis(token, avis_id, fichier, demande_de_remonte_en_doc_officiel_b=False):
+    """
+    Upload d'une pièce jointe à un avis à partir d'un fichier Django
+    (request.FILES.getlist("files")).
+    """
+    headers = {"Authorization": f"Bearer {token}",}
+    url = AJOUTER_PJ_AVIS_URL.format(avis_id)
+
+    mime_type = getattr(fichier, "content_type", None) or mimetypes.guess_type(fichier.name)[0] or "application/octet-stream"
+
+    data = {
+        "demande_de_remonte_en_doc_officiel_b": str(demande_de_remonte_en_doc_officiel_b).lower(),
+        "id": str(avis_id),
+    }
+
+    fichier.seek(0)
+
+    files = {"fichier": (fichier.name, fichier, mime_type)}
+
+    response = requests.post(url, headers=headers, data=data, files=files)
+    _check_response(response, f"POST Ajouter PJ Avis {avis_id}")
+
+    if response.content:
+        try:
+            return response.json()
+        except Exception:
+            return response.text
 
     return {"success": True}

@@ -147,8 +147,10 @@ def sync_declaration_manifestations(dossier, logger):
                 continue
             
             # Ignore geometrie vide
-            if field == "geometrie" and not new_value:
+            if field == "geometrie" and not new_value :
                 continue
+    
+
 
             model_field = getattr(obj.__class__, field, None)
             field_name = f"{field}_id" if isinstance(getattr(model_field, 'field', None), models.ForeignKey) else field
@@ -169,6 +171,9 @@ def sync_declaration_manifestations(dossier, logger):
             if "geometrie" in updated_fields :
                 # Write geojson
                 write_geojson(f"{obj.emplacement}/Carto/", f"{nom_courses_clean}.geojson",obj.geometrie)
+                logger.warning("GEOMETRIE MODIFIÉE PAR L'ORGANISATEUR SUR DM, IL FAUT RECALCULER LA VALEUR coeur_de_parc")
+
+
         else:
             logger.info(f"[NO CHANGE] DossierManifSportive {manif_id} inchangé.")
 

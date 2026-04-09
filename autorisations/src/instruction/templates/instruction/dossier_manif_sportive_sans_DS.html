@@ -1,5 +1,7 @@
 {% load static %}
+{% load group_tags %}
 {% load breadcrumb_tags %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -30,6 +32,9 @@
     <!-- JS -->
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
+
+    <!-- Pour le menu déroulant des étapes -->
+    <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
 
 </head>
 <body>
@@ -125,14 +130,152 @@
                 </div>
             {% endif %}
 
-
             <div class="titre-manif">
                 <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
+            </div>
+
+
+            <!-- Etape du dossier DM -->
+            <div class="etat-badge-container">
+                <div class="etat-badge-menu-dropdown">
+
+                    <div class="etat-badge-label" id="etapeMenuToggle" 
+                    {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
+                        {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
+                        <span class="dropdown-arrow">&#9660;</span>
+                    </div>
+
+                    {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive %}
+                        <div class="etat-badge-menu-content" id="etapeMenuContent">
+
+                                {% if actions_possibles %}
+                                    {% for label in actions_possibles %}
+                                    
+                                        {% if label == "Déclaration Manifestations - Accepter" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAccepterDeclarationManifestations()">Donner un avis favorable sur Déclaration Manifestations</button>
+
+                                        {% elif label == "Déclaration Manifestations - Refuser" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefuserDeclarationManifestations()">Rendre un avis défavorable sur Déclaration Manifestations</button>
+
+                                        {% elif label == "Déclaration Manifestations - Non Soumis" %}
+                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonSoumisDeclarationManifestations()">Préciser que le Parc n'est pas concerné par ce dossier</button>
+                                        
+                                        {% endif %}
+
+                                    {% endfor %}
+                                {% else %}
+                                    <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
+                                {% endif %}
+
+                        </div>
+                    {% endif %}
+                </div>
+
+
+
+                <!-- Lien DM -->
                 <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
                     <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                         alt="Visualiser le dossier sur Déclaration manifestations"
                         title="Visualiser le dossier sur Déclaration manifestations">
                 </a>
+
+            </div>
+
+        
+            <!-------------------------------------------------------------------------->
+            <!-- Zone masquée pour accepter un dossier sur Déclaration Manifestations -->
+            <!-------------------------------------------------------------------------->
+            <div id="formulaire-accepter-dm" class="zone-complement zone-envoyer-pour-validation">
+                <form id="form-accepter-dm" method="post" enctype="multipart/form-data" action="{% url 'declaration_manifestations_accepter_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+
+                    <h2>Dépôt d'un avis favorable sur Déclaration Manifestations</h2>
+                    <h4>Prescriptions transmises au demandeur :</h4>
+                    <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions" required>Avis favorable.</textarea>
+                    
+                    <div class="zone-pj-complement">
+                        <label for="acte-accepte">Joindre l'acte :</label>
+                        <input type="file" id="acte-accepte" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p>
+
+                    <div class="zone-pj-complement">
+                        <label for="files-accepte">Joindre une ou plusieurs pièces jointes (taille max par document 5Mo) :</label>
+                        <input type="file" id="files-accepte" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+
+                    <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
+
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerAccepterDM()">Confirmer</button>
+                    </div>
+
+                </form>
+            </div>
+
+
+            <!-------------------------------------------------------------------------->
+            <!-- Zone masquée pour refuser un dossier sur Déclaration Manifestations -->
+            <!-------------------------------------------------------------------------->
+            <div id="formulaire-refuser-dm" class="zone-complement zone-envoyer-pour-validation">
+                <form id="form-refuser-dm" method="post" enctype="multipart/form-data" action="{% url 'declaration_manifestations_refuser_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+
+                    <h2>Dépôt d'un avis défavorable sur Déclaration Manifestations</h2>
+                    <h4>Prescriptions transmises au demandeur :</h4>
+                    <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions" required>Avis défavorable.</textarea>
+                    
+                    <div class="zone-pj-complement">
+                        <label for="acte-refuse">Joindre l'acte :</label>
+                        <input type="file" id="acte-refuse" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p>
+
+                    <div class="zone-pj-complement">
+                        <label for="files-refuse">Joindre une ou plusieurs pièces jointes :</label>
+                        <input type="file" id="files-refuse" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+                    <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
+
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerRefuserDM()">Confirmer</button>
+                    </div>
+
+                </form>
+            </div>
+
+
+            <!------------------------------------------------------------------------------------------>
+            <!-- Zone masquée pour mettre en 'Non Concerné' un dossier sur Déclaration Manifestations -->
+            <!------------------------------------------------------------------------------------------>
+            <div id="formulaire-non-soumis-dm" class="zone-complement zone-envoyer-pour-validation">
+                <form id="form-non-soumis-dm" method="post" enctype="multipart/form-data" action="{% url 'declaration_manifestations_non_soumis_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+                    <h2>Préciser sur Déclaration Manifestations que le Parc n'est pas concerné par ce dossier</h2>
+                    <h4>Prescriptions transmises au demandeur :</h4>
+                    <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions" required>Madame, monsieur,
+
+Le parcours de la manifestation publique {{ doss_manif_sportive.nom_dossier }} que vous organisez {% format_periode_evenement doss_manif_sportive.date_debut_evenement doss_manif_sportive.date_fin_evenement %} ne se situe pas en cœur de parc national de La Réunion. 
+À ce titre et conformément aux dispositions du Code de l'environnement, la réglementation relative aux manifestations publiques du Parc national de La Réunion n'est pas applicable à votre évènement et aucune autorisation n'est nécessaire de la part de notre établissement.
+
+Le Parc national de La Réunion</textarea>
+                    
+                    <div class="zone-pj-complement">
+                        <label for="files-non-soumis">Joindre une ou plusieurs annexes :</label>
+                        <input type="file" id="files-non-soumis" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+                    <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
+
+
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerNonSoumisDM()">Confirmer</button>
+                    </div>
+
+                </form>
             </div>
 
 
@@ -329,6 +472,109 @@
         });
     });
 </script>
+
+
+
+<!------------------------------------------------------------------------------->
+<!------------------ Afficher Formulaires Changement Etape  --------------------->
+<!------------------------------------------------------------------------------->
+ <script>
+
+    function masquerToutesZonesComplementaires() {
+        const zones = document.querySelectorAll(".zone-complement");
+        zones.forEach(zone => zone.classList.remove("show"));
+    }
+
+    function fermerMenuEtape() {
+        const menuContent = document.getElementById("etapeMenuContent");
+        const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
+
+        if (menuContent && menuWrapper) {
+            menuContent.classList.remove("show");
+            menuWrapper.classList.remove("open");
+            menuWrapper.style.marginBottom = "";
+        }
+    }
+
+    function afficherFormulaireAccepterDeclarationManifestations() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-accepter-dm").classList.add("show");
+        fermerMenuEtape();
+    }
+
+    function afficherFormulaireRefuserDeclarationManifestations() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-refuser-dm").classList.add("show");
+        fermerMenuEtape();
+    }
+
+    function afficherFormulaireNonSoumisDeclarationManifestations() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-non-soumis-dm").classList.add("show");
+        fermerMenuEtape();
+    }
+
+ </script>
+
+
+
+<!------------------------------------------------------------------------------>
+<!--------------------- POP UP Message de confirmation  ------------------------>
+<!------------------------------------------------------------------------------>
+<script>
+    // Confirmer l'acceptation du dossier DM
+    function confirmerAccepterDM() {
+        const confirmation = confirm("Confirmez-vous l'acceptation du dossier sur Déclaration Manifestations, malgré l'absence d'un dossier Démarche Numérique ?");
+        if (confirmation) {
+            document.getElementById("form-accepter-dm").submit();
+        }
+        fermerMenuEtape();
+    }
+
+
+    // Confirmer le refus du dossier DM
+    function confirmerRefuserDM() {
+        const confirmation = confirm("Confirmez-vous le refus du dossier sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé.");
+        if (confirmation) {
+            document.getElementById("form-refuser-dm").submit();
+        }
+        fermerMenuEtape();
+    }
+
+
+    // Confirmer que le dossier DM ne nous concerne pas
+    function confirmerNonSoumisDM() {
+        const confirmation = confirm("Confirmez-vous le classement du dossier comme 'Non Concerné' sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé.");
+        if (confirmation) {
+            document.getElementById("form-non-soumis-dm").submit();
+        }
+        fermerMenuEtape();
+    }
+ </script>
+
+
+<!-- Check Taille max PJ -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("files-non-soumis");
+        const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
+
+        input.addEventListener("change", function () {
+            const files = input.files;
+
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].size > MAX_SIZE) {
+                    alert(`Le fichier "${files[i].name}" dépasse 5 Mo.`);
+                    input.value = ""; // reset
+                    return;
+                }
+            }
+        });
+    });
+</script>
+
+
+
 
 </body>
 </html>

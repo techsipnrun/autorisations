@@ -66,6 +66,28 @@ class Document(models.Model):
             models.Index(fields=['id_format'], name='idx_document_id_format'),
             models.Index(fields=['id_nature'], name='idx_document_id_nature'),
         ]
+
+    @staticmethod
+    def normaliser_emplacement(emplacement: str | None) -> str:
+        """
+        Uniformise les séparateurs de chemin :
+        - remplace les \\ par /
+        - supprime les doublons éventuels //
+        - supprime les espaces inutiles
+        - garantit une terminaison par /
+        """
+        if not emplacement:
+            return "/"
+
+        emplacement = emplacement.strip().replace("\\", "/")
+
+        while "//" in emplacement:
+            emplacement = emplacement.replace("//", "/")
+
+        if not emplacement.endswith("/"):
+            emplacement += "/"
+
+        return emplacement
     
     def save(self, *args, **kwargs):
         """
@@ -73,6 +95,9 @@ class Document(models.Model):
         pour les natures : 'Arrêté directeur', 'Déliberation CA', 'Avis simple', 'Avis conforme'.
         Si la nature du document change, le numéro est régénéré.
         """
+
+        self.emplacement = self.normaliser_emplacement(self.emplacement)
+        
         natures_cibles = ["Arrêté directeur", "Déliberation CA", "Avis simple", "Avis conforme"]
         annee = date.today().year
         nature_actuelle = self.id_nature.nature if self.id_nature else None

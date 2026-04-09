@@ -1,8 +1,9 @@
-from datetime import date
-from django.db.models import Q, Value
+from datetime import date, datetime
+from django.db.models import Q, TextField, Value
 from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import render
-from autorisations.models.models_instruction import Dossier, EtapeDossier, Demarche
+from autorisations.models.models_instruction import Dossier, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, Demarche
 from autorisations.models.models_avis import Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from django.contrib.auth.decorators import login_required
@@ -23,7 +24,72 @@ def clean_int(value):
 
 
 # Export Excel Dossiers
-def _export_dossiers_xlsx(dossiers_qs):
+# def _export_dossiers_xlsx(dossiers_qs):
+#     wb = Workbook()
+#     ws = wb.active
+#     ws.title = "Dossiers"
+
+#     headers = [
+#         "N°", "Nom dossier", "Démarche", "Étape",
+#         "Date dépôt", "Groupe instructeur", "Bénéficiaire"
+#     ]
+#     ws.append(headers)
+
+#     # Style en-têtes
+#     bold = Font(bold=True)
+#     for col_idx in range(1, len(headers) + 1):
+#         cell = ws.cell(row=1, column=col_idx)
+#         cell.font = bold
+#         cell.alignment = Alignment(horizontal="center", vertical="center")
+
+#     ws.freeze_panes = "A2"
+#     ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+#     # Remplissage
+#     for d in dossiers_qs:
+#         # Bénéficiaire : on recopie la logique du template :contentReference[oaicite:4]{index=4}
+#         beneficiaire = ""
+#         interlocuteur = d.dossierinterlocuteur_set.first()
+#         if interlocuteur:
+#             db = interlocuteur.dossierbeneficiaire_set.select_related("id_beneficiaire").first()
+#             if db and db.id_beneficiaire:
+#                 b = db.id_beneficiaire
+#                 if getattr(b, "raison_sociale", None):
+#                     beneficiaire = b.raison_sociale
+#                 elif getattr(b, "nom", None) and getattr(b, "prenom", None):
+#                     beneficiaire = f"{b.nom} {b.prenom}"
+
+#         nom_dossier = getattr(d, "nom_dossier_plus_parlant", None) or d.nom_dossier
+
+#         ws.append([
+#             d.numero,
+#             nom_dossier,
+#             d.id_demarche.type if d.id_demarche else "",
+#             d.id_etape_dossier.etape if d.id_etape_dossier else "",
+#             d.date_depot.strftime("%d/%m/%Y") if d.date_depot else "",
+#             d.id_groupeinstructeur.nom if d.id_groupeinstructeur else "",
+#             beneficiaire,
+#         ])
+
+#     # Largeurs de colonnes (simple)
+#     widths = [10, 50, 35, 25, 14, 30, 35, 25]
+#     for i, w in enumerate(widths, start=1):
+#         ws.column_dimensions[get_column_letter(i)].width = w
+
+#     # Output
+#     bio = BytesIO()
+#     wb.save(bio)
+#     bio.seek(0)
+
+#     response = HttpResponse(
+#         bio.getvalue(),
+#         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+#     )
+#     response["Content-Disposition"] = 'attachment; filename="dossiers.xlsx"'
+#     return response
+
+
+def _export_dossiers_xlsx(resultats):
     wb = Workbook()
     ws = wb.active
     ws.title = "Dossiers"
@@ -34,7 +100,6 @@ def _export_dossiers_xlsx(dossiers_qs):
     ]
     ws.append(headers)
 
-    # Style en-têtes
     bold = Font(bold=True)
     for col_idx in range(1, len(headers) + 1):
         cell = ws.cell(row=1, column=col_idx)
@@ -44,38 +109,21 @@ def _export_dossiers_xlsx(dossiers_qs):
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
 
-    # Remplissage
-    for d in dossiers_qs:
-        # Bénéficiaire : on recopie la logique du template :contentReference[oaicite:4]{index=4}
-        beneficiaire = ""
-        interlocuteur = d.dossierinterlocuteur_set.first()
-        if interlocuteur:
-            db = interlocuteur.dossierbeneficiaire_set.select_related("id_beneficiaire").first()
-            if db and db.id_beneficiaire:
-                b = db.id_beneficiaire
-                if getattr(b, "raison_sociale", None):
-                    beneficiaire = b.raison_sociale
-                elif getattr(b, "nom", None) and getattr(b, "prenom", None):
-                    beneficiaire = f"{b.nom} {b.prenom}"
-
-        nom_dossier = getattr(d, "nom_dossier_plus_parlant", None) or d.nom_dossier
-
+    for d in resultats:
         ws.append([
-            d.numero,
-            nom_dossier,
-            d.id_demarche.type if d.id_demarche else "",
-            d.id_etape_dossier.etape if d.id_etape_dossier else "",
-            d.date_depot.strftime("%d/%m/%Y") if d.date_depot else "",
-            d.id_groupeinstructeur.nom if d.id_groupeinstructeur else "",
-            beneficiaire,
+            d["numero"],
+            d["nom_dossier"],
+            d["demarche"],
+            d["etape"],
+            d["date_depot"].strftime("%d/%m/%Y") if d["date_depot"] else "",
+            d["groupe"],
+            d["beneficiaire"],
         ])
 
-    # Largeurs de colonnes (simple)
-    widths = [10, 50, 35, 25, 14, 30, 35, 25]
+    widths = [10, 50, 35, 25, 14, 30, 35]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
-    # Output
     bio = BytesIO()
     wb.save(bio)
     bio.seek(0)
@@ -86,6 +134,10 @@ def _export_dossiers_xlsx(dossiers_qs):
     )
     response["Content-Disposition"] = 'attachment; filename="dossiers.xlsx"'
     return response
+
+
+
+
 
 
 # Export Excel Avis
@@ -178,6 +230,14 @@ def _export_avis_xlsx(avis_iterable):
 def requete_dossiers(request):
     dossiers = Dossier.objects.all().select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
     
+    # Dossiers DM non liés
+    dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
+    dossiers_dm = (
+        DossierManifSportive.objects
+        .exclude(id__in=dossiers_deja_lies_ids)
+        .select_related("id_etape")
+    )
+
     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
     # dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
 
@@ -186,8 +246,12 @@ def requete_dossiers(request):
     etapes_dossier = EtapeDossier.objects.all().order_by('etape')
     demarches = Demarche.objects.all().order_by('type')
     groupes = Groupeinstructeur.objects.all().order_by('nom')
-    annees = Dossier.objects.annotate(annee=ExtractYear("date_depot")) \
-                        .values_list("annee", flat=True).distinct().order_by("-annee")
+
+    annees_dossiers = set(Dossier.objects.annotate(annee=ExtractYear("date_depot")).values_list("annee", flat=True))
+    annees_dm = set(DossierManifSportive.objects.annotate(annee=ExtractYear("date_depot")).values_list("annee", flat=True))
+    annees = sorted({a for a in (annees_dossiers | annees_dm) if a is not None}, reverse=True)
+    # annees = Dossier.objects.annotate(annee=ExtractYear("date_depot")) \
+    #                     .values_list("annee", flat=True).distinct().order_by("-annee")
     
     annees_avis = Avis.objects.annotate(annee=ExtractYear("date_demande_avis")) \
         .values_list("annee", flat=True).distinct().order_by("-annee")
@@ -211,9 +275,11 @@ def requete_dossiers(request):
 
     if annee :
         dossiers = dossiers.filter(date_depot__year=annee)
+        dossiers_dm = dossiers_dm.filter(date_depot__year=annee)
 
     if numero:
         dossiers = dossiers.filter(numero=numero)
+        dossiers_dm = dossiers_dm.filter(numero_dossier_declaration_manifestations=numero)
 
     # Période ou le dossier a été recu
     # Si une date de début est fournie sans date de fin → aujourd'hui
@@ -221,21 +287,16 @@ def requete_dossiers(request):
         date_fin_reception = date.today().isoformat()
 
     # Si date debut > date fin : on inverse les dates
-    if date_debut_reception and date_fin_reception:
-        if date_debut_reception > date_fin_reception:
-            date_debut_reception, date_fin_reception = (
-                date_fin_reception, date_debut_reception
-            )
+    if date_debut_reception and date_fin_reception and date_debut_reception > date_fin_reception :
+        date_debut_reception, date_fin_reception = (date_fin_reception, date_debut_reception)
 
     if date_debut_reception:
-        dossiers = dossiers.filter(
-            date_depot__date__gte=date_debut_reception
-        )
+        dossiers = dossiers.filter(date_depot__date__gte=date_debut_reception)
+        dossiers_dm = dossiers_dm.filter(date_depot__date__gte=date_debut_reception)
 
     if date_fin_reception:
-        dossiers = dossiers.filter(
-            date_depot__date__lte=date_fin_reception
-        )
+        dossiers = dossiers.filter(date_depot__date__lte=date_fin_reception)
+        dossiers_dm = dossiers_dm.filter(date_depot__date__lte=date_fin_reception)
 
 
     # Période ou le dossier a été instruit
@@ -249,24 +310,29 @@ def requete_dossiers(request):
             )
 
     if date_debut_instruction:
-        dossiers = dossiers.filter(
-            date_fin_instruction__date__gte=date_debut_instruction
-        )
+        dossiers = dossiers.filter(date_fin_instruction__date__gte=date_debut_instruction)
+        dossiers_dm = dossiers_dm.filter(avis__date_reponse__date__gte=date_debut_instruction)
 
     if date_fin_instruction:
-        dossiers = dossiers.filter(
-            date_fin_instruction__date__lte=date_fin_instruction
-        )
+        dossiers = dossiers.filter(date_fin_instruction__date__lte=date_fin_instruction)
+        dossiers_dm = dossiers_dm.filter(avis__date_reponse__date__lte=date_fin_instruction)
+
 
 
     if type_demarche :
         dossiers = dossiers.filter(id_demarche__type__icontains=type_demarche)
 
+        if "manifestations sportives".find(type_demarche.lower()) == -1:
+            dossiers_dm = dossiers_dm.none()
+
     if groupe :
         dossiers = dossiers.filter(id_groupeinstructeur__nom__icontains=groupe)
+        if "manifestations sportives".find(groupe.lower()) == -1:
+            dossiers_dm = dossiers_dm.none()
 
     if etape :
         dossiers = dossiers.filter(id_etape_dossier__etape__icontains=etape)
+        dossiers_dm = dossiers_dm.filter(id_etape__etape__icontains=etape)
 
     if instructeur:
         exists_instructeur = Instructeur.objects.annotate(
@@ -290,6 +356,9 @@ def requete_dossiers(request):
 
         else:
             instructeur = ""
+
+        # Dossiers DM non liés
+        dossiers_dm = dossiers_dm.none()
 
     if nom:
         # Vérifier si le nom existe en tant que raison sociale
@@ -324,12 +393,35 @@ def requete_dossiers(request):
             ).distinct()
 
         else:
-            nom = ""
+            dossiers = dossiers.none()
 
+        # Dossiers DM non liés
+        dossiers_dm = dossiers_dm.annotate(
+            nom_prenom=Concat(
+                F("nom_organisateur"),
+                Value(" "),
+                F("prenom_organisateur"),
+                output_field=TextField()
+            ),
+            prenom_nom=Concat(
+                F("prenom_organisateur"),
+                Value(" "),
+                F("nom_organisateur"),
+                output_field=TextField()
+            )
+        ).filter(
+            Q(nom_prenom__icontains=nom) |
+            Q(prenom_nom__icontains=nom) |
+            Q(nom_organisateur__icontains=nom) |
+            Q(prenom_organisateur__icontains=nom) |
+            Q(structure__icontains=nom)
+        )
+        
+ 
     dossiers = dossiers.order_by("-date_depot").distinct()
 
 
-    # 1)On prend les ids uniques pour éviter des doublons
+    # 1) On prend les ids uniques pour éviter des doublons
     ids = dossiers.values("id").distinct()
     dossiers = (
         Dossier.objects
@@ -338,24 +430,95 @@ def requete_dossiers(request):
         .order_by("-date_depot")
     )
 
+    dossiers_dm = dossiers_dm.distinct()
 
-    # Ajout du champ 'lien' pour chaque dossier
+
+    resultats_dossiers = []
+
+
+    # # Ajout du champ 'lien' pour chaque dossier
+    # for d in dossiers:
+    #     if d.id_etape_dossier and d.id_etape_dossier.etape == "À affecter":
+    #         d.lien = f"/preinstruction/{d.numero}/"
+    #     else:
+    #         d.lien = f"/instruction/{d.numero}/"
+
+
+    # DOSSIERS CLASSIQUES
     for d in dossiers:
-        if d.id_etape_dossier and d.id_etape_dossier.etape == "À affecter":
-            d.lien = f"/preinstruction/{d.numero}/"
-        else:
-            d.lien = f"/instruction/{d.numero}/"
+        beneficiaire = ""
+        interlocuteur = d.dossierinterlocuteur_set.first()
+        if interlocuteur:
+            db = interlocuteur.dossierbeneficiaire_set.select_related("id_beneficiaire").first()
+            if db and db.id_beneficiaire:
+                b = db.id_beneficiaire
+                if getattr(b, "raison_sociale", None):
+                    beneficiaire = b.raison_sociale
+                elif getattr(b, "nom", None) and getattr(b, "prenom", None):
+                    beneficiaire = f"{b.nom} {b.prenom}"
+
+        resultats_dossiers.append({
+            "source": "dossier",
+            "obj": d,
+            "numero": d.numero,
+            "nom_dossier": getattr(d, "nom_dossier_plus_parlant", None) or d.nom_dossier,
+            "demarche": d.id_demarche.type if d.id_demarche else "",
+            "etape": d.id_etape_dossier.etape if d.id_etape_dossier else "",
+            "date_depot": d.date_depot,
+            "groupe": d.id_groupeinstructeur.nom if d.id_groupeinstructeur else "",
+            "beneficiaire": beneficiaire,
+            "lien": reverse("preinstruction_dossier", kwargs={"numero": d.numero})
+                    if d.id_etape_dossier and d.id_etape_dossier.etape == "À affecter"
+                    else reverse("instruction_dossier", kwargs={"num_dossier": d.numero}),
+        })
+
+
+    # DOSSIERS DM
+    groupe_manif = Groupeinstructeur.objects.filter(nom__iexact="Manifestations sportives").first()
+    for d in dossiers_dm.order_by("-date_depot"):
+        nom_complet = " ".join(
+            part.strip()
+            for part in [d.prenom_organisateur, d.nom_organisateur]
+            if part and part.strip()
+        )
+
+        structure = d.structure.strip() if d.structure and d.structure.strip() else ""
+        beneficiaire = nom_complet or structure or ""
+        print(beneficiaire)
+
+        url_name = ("dossier_manif_sportive_sans_ds_archive" if d.archive else "dossier_manif_sportive_sans_ds")
+
+        resultats_dossiers.append({
+            "source": "dossier_dm",
+            "obj": d,
+            "numero": d.numero_dossier_declaration_manifestations,
+            "nom_dossier": d.nom_dossier or "",
+            "demarche": "Manifestations sportives",
+            "etape": d.id_etape.etape if d.id_etape else "",
+            "date_depot": d.date_depot,
+            "groupe": groupe_manif.nom if groupe_manif else "Manifestations sportives",
+            "beneficiaire": beneficiaire,
+            "lien": reverse(url_name, kwargs={"numero": d.numero_dossier_declaration_manifestations}),
+        })
+
+    resultats_dossiers.sort(
+        key=lambda x: x["date_depot"] or datetime.min,
+        reverse=True
+    )
 
 
     # Export Excel si demandé
+    # if request.GET.get("export") == "xlsx":
+    #     # Optionnel mais mieux: limiter les requêtes bénéficiaire
+    #     dossiers = dossiers.prefetch_related("dossierinterlocuteur_set__dossierbeneficiaire_set__id_beneficiaire")
+    #     return _export_dossiers_xlsx(dossiers)
+
     if request.GET.get("export") == "xlsx":
-        # Optionnel mais mieux: limiter les requêtes bénéficiaire
-        dossiers = dossiers.prefetch_related("dossierinterlocuteur_set__dossierbeneficiaire_set__id_beneficiaire")
-        return _export_dossiers_xlsx(dossiers)
+        return _export_dossiers_xlsx(resultats_dossiers)
             
 
     context = {
-        "dossiers": dossiers,
+        "dossiers": resultats_dossiers,
         "etapes": EtapeDossier.objects.all(),
         "demarches": Demarche.objects.all(),
         'etapes_dossier': etapes_dossier,
@@ -581,20 +744,94 @@ def requete_avis(request):
 
 
 
+# @login_required
+# def autocomplete_numero_dossier(request):
+#     query = request.GET.get("term", "").strip()
+#     if not query.isdigit():
+#         return JsonResponse([], safe=False)
+
+#     suggestions = Dossier.objects.filter(numero__startswith=query) \
+#                                  .order_by("numero")[:5]
+
+#     resultats = [{"value": d.numero} for d in suggestions]
+#     return JsonResponse(resultats, safe=False)
+
+
 @login_required
 def autocomplete_numero_dossier(request):
     query = request.GET.get("term", "").strip()
     if not query.isdigit():
         return JsonResponse([], safe=False)
 
-    suggestions = Dossier.objects.filter(numero__startswith=query) \
-                                 .order_by("numero")[:5]
+    results = []
+    seen = set()
 
-    resultats = [{"value": d.numero} for d in suggestions]
-    return JsonResponse(resultats, safe=False)
+    def add_value(value):
+        value = str(value).strip()
+        if not value or value in seen:
+            return
+        seen.add(value)
+        results.append({"value": value})
+
+    # Dossiers classiques
+    suggestions_dossiers = (
+        Dossier.objects
+        .filter(numero__startswith=query)
+        .order_by("numero")
+        .values_list("numero", flat=True)[:5]
+    )
+    for numero in suggestions_dossiers:
+        add_value(numero)
+
+    # Dossiers DM non liés
+    dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list(
+        "id_dossier_manif_id", flat=True
+    )
+
+    suggestions_dm = (
+        DossierManifSportive.objects
+        .exclude(id__in=dossiers_deja_lies_ids)
+        .filter(numero_dossier_declaration_manifestations__startswith=query)
+        .order_by("numero_dossier_declaration_manifestations")
+        .values_list("numero_dossier_declaration_manifestations", flat=True)[:5]
+    )
+    for numero in suggestions_dm:
+        add_value(numero)
+
+    # Tri numérique propre
+    results = sorted(results, key=lambda x: int(x["value"]))
+
+    return JsonResponse(results[:5], safe=False)
 
 
+# @login_required
+# def autocomplete_nom_beneficiaire(request):
+#     query = request.GET.get("term", "").strip()
+#     if not query:
+#         return JsonResponse([], safe=False)
 
+#     beneficiaires = ContactExterne.objects.filter(
+#         dossierbeneficiaire__isnull=False
+#     ).filter(
+#         Q(raison_sociale__icontains=query) |
+#         Q(nom__icontains=query) |
+#         Q(prenom__icontains=query)
+#     ).values("raison_sociale", "nom", "prenom").distinct()
+
+#     results = []
+#     for b in beneficiaires:
+#         if b["raison_sociale"]:
+#             display = b["raison_sociale"]
+#         elif b["nom"] and b["prenom"]:
+#             display = f"{b['nom']} {b['prenom']}"
+#         # elif b["nom"]:
+#         #     display = b["nom"]
+#         else:
+#             continue
+
+#         results.append({"value": display})
+
+#     return JsonResponse(results[:5], safe=False)
 
 
 @login_required
@@ -603,26 +840,90 @@ def autocomplete_nom_beneficiaire(request):
     if not query:
         return JsonResponse([], safe=False)
 
-    beneficiaires = ContactExterne.objects.filter(
-        dossierbeneficiaire__isnull=False
-    ).filter(
-        Q(raison_sociale__icontains=query) |
-        Q(nom__icontains=query) |
-        Q(prenom__icontains=query)
-    ).values("raison_sociale", "nom", "prenom").distinct()
-
     results = []
+    seen = set()
+
+    def add_value(value):
+        if not value:
+            return
+        value = " ".join(str(value).split()).strip()
+        if not value:
+            return
+        key = value.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        results.append({"value": value})
+
+    # ---------------------------------
+    # Bénéficiaires classiques
+    # ---------------------------------
+    beneficiaires = (
+        ContactExterne.objects
+        .filter(dossierbeneficiaire__isnull=False)
+        .filter(
+            Q(raison_sociale__icontains=query) |
+            Q(nom__icontains=query) |
+            Q(prenom__icontains=query)
+        )
+        .values("raison_sociale", "nom", "prenom")
+        .distinct()[:10]
+    )
+
     for b in beneficiaires:
         if b["raison_sociale"]:
-            display = b["raison_sociale"]
+            add_value(b["raison_sociale"])
         elif b["nom"] and b["prenom"]:
-            display = f"{b['nom']} {b['prenom']}"
-        # elif b["nom"]:
-        #     display = b["nom"]
-        else:
-            continue
+            add_value(f"{b['nom']} {b['prenom']}")
 
-        results.append({"value": display})
+    # ---------------------------------
+    # Dossiers DM non liés
+    # ---------------------------------
+    dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list(
+        "id_dossier_manif_id", flat=True
+    )
+
+    dossiers_dm = DossierManifSportive.objects.exclude(id__in=dossiers_deja_lies_ids)
+
+    # Structures
+    structures = (
+        dossiers_dm
+        .filter(structure__icontains=query)
+        .values_list("structure", flat=True)
+        .distinct()[:10]
+    )
+    for s in structures:
+        add_value(s)
+
+    # Nom prénom organisateur
+    organisateurs = (
+        dossiers_dm
+        .filter(
+            Q(nom_organisateur__icontains=query) |
+            Q(prenom_organisateur__icontains=query)
+        )
+        .values("nom_organisateur", "prenom_organisateur")
+        .distinct()[:10]
+    )
+    for o in organisateurs:
+        nom = (o["nom_organisateur"] or "").strip()
+        prenom = (o["prenom_organisateur"] or "").strip()
+        if nom and prenom:
+            add_value(f"{nom} {prenom}")
+        elif nom:
+            add_value(nom)
+        elif prenom:
+            add_value(prenom)
+
+    # Nom dossier DM
+    noms_dossier = (
+        dossiers_dm
+        .filter(nom_dossier__icontains=query)
+        .values_list("nom_dossier", flat=True)
+        .distinct()[:10]
+    )
+    for nd in noms_dossier:
+        add_value(nd)
 
     return JsonResponse(results[:5], safe=False)
 

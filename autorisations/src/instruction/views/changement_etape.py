@@ -6,12 +6,14 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db import transaction
 import smbclient
-from autorisations.models.models_instruction import Dossier, EtapeDossier, EtatDossier, DossierAction, Action
+from autorisations.models.models_instruction import AvisManifSportive, Dossier, DossierManifSportive, EtapeDossier, EtatDossier, DossierAction, Action
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
 from DS.call_DS import accepter_dossier_ds, get_msg_DS, passer_en_instruction_ds,classer_sans_suite_ds, refuser_dossier_ds, repasser_en_instruction_ds
 from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
-from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
+from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
+from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
+from instruction.utils.document_utils import normaliser_emplacement
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.files_utils import generate_unique_filename
 from instruction.utils.utilisateurs_utils import get_instructeur_or_redirect
@@ -19,12 +21,14 @@ from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument
+from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument
 from django.contrib import messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from pathlib import Path
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+
+from synchronisation.utils.fichiers import get_nom_disponible
 
 
 
@@ -2597,3 +2601,366 @@ def envoyer_l_acte_de_refus(request):
         return redirect_error(request, f"[DOSSIER {dossier_numero}] Erreur lors du refus du dossier sur DS par {instructeur.email}: {str(e)}")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+
+###############################################
+###       DECLARATION MANIFESTATIONS        ###
+###############################################
+
+
+"""
+Tests faits :
+- File taille max : 5Mo
+- nb files déposés : illimité
+- Ajouter PJ : fonctionne peut importe si avis en cours ou rendu (fav, non fav, non concerné)
+- Ajouter : Pas possible d'en add plusieurs en un seul appel API
+- Prescriptions : Dispo peut importe la nature de l'avis rendu (fav, non fav, non concerné)
+
+"""
+
+# =========================
+# ACCEPTER UN DOSSIER DM
+# =========================
+@login_required
+@require_POST
+def declaration_manifestations_accepter(request):
+    print("declaration_manifestations_accepter est appelée")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+
+# =========================
+# REFUSER UN DOSSIER DM
+# =========================
+@login_required
+@require_POST
+def declaration_manifestations_refuser(request):
+    print("declaration_manifestations_refuser est appelée")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+
+# =========================
+# DOSSIER DM NON SOUMIS
+# =========================
+@login_required
+@require_POST
+def declaration_manifestations_non_soumis(request):
+
+    num_dossier_dm = None
+    dossier_dm_id = request.POST.get("dossierDM_id")
+
+    try:
+        #################################################
+        ###         Récupération des Infos            ###
+        #################################################
+
+        # Récupération des données POST
+        prescriptions = request.POST.get("prescriptions", "").strip()
+        fichiers = request.FILES.getlist("files")
+
+        if not dossier_dm_id :
+            logger.error(f"[Dossier DM Réception - Non Concerné] Utilisateur : {request.user}. ID du dossier Déclaration Manifestations manquant dans le formulaire")
+            return redirect_error(request, "ID du dossier Déclaration Manifestations manquant dans le formulaire. Contactez le support.")
+
+
+        # Récupération du dossier DM
+        dossier_dm = DossierManifSportive.objects.filter(id=dossier_dm_id).first()
+        if not dossier_dm:
+            logger.error(f"[Dossier DM Réception - Non Concerné] Utilisateur : {request.user}. Dossier Déclaration Manifestations (id={dossier_dm_id}) introuvable en base.")
+            return redirect_error(request, f"Dossier Déclaration Manifestations (id={dossier_dm_id}) introuvable en base. Contactez le support.")
+        
+        num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
+
+
+        # Récupération de l'avis associé
+        avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
+        if not avis_dm:
+            logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Aucun Avis DM associé au Dossier DM.")
+            return redirect_error(request, f"Aucun avis associé au dossier Déclaration Manifestations n° {num_dossier_dm}. Contactez le support.")
+
+        avis_id = avis_dm.id_avis_manif_sportive
+
+
+        #################################################
+        ###              RENDRE AVIS DM               ###
+        #################################################
+
+        # Récupération du token API
+        token = get_access_token()
+
+        # 0-None, 1-favorable, 2-défavorable, 3-non concerné
+        # response_avis = rendre_avis(token, avis_id, 3, prescriptions)
+        # logger.info(
+        #     f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. "
+        #     f"Avis 'Non concerné' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}"
+        # )
+
+        """"
+        Attention à l'Avis déjà rendu qui nous met en erreur (meme si logiquement ca devrait pas arriver)
+        
+        """
+
+        # ------------------
+        # MAJ Avis DM en BDD
+        # ------------------
+        # avis_dm.reponse_avis = None  # (défavorable, défavorable, non concerné = null)
+        avis_dm.date_reponse = timezone.now()
+        avis_dm.prescriptions = prescriptions
+        avis_dm.save(update_fields=["date_reponse", "prescriptions"])
+
+        logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Avis DM {avis_id} mis à jour (prescriptions, date_reponse)")
+
+        # ---------------------
+        # MAJ Dossier DM en BDD
+        # ---------------------
+        dossier_dm.archive = True
+        dossier_dm.id_etape = EtapeDossier.objects.get(etape="Non soumis à autorisation")
+        dossier_dm.save(update_fields=["archive", "id_etape"])
+
+        logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Dossier DM mis à jour -> etape : Non soumis à autorisation, archive : True")
+
+
+
+        ##################################################################
+        ###        DÉPLACEMENT DANS LE DOSSIER > 1 - Hors coeur        ###
+        ##################################################################
+
+        # Récupération des documents liés au dossier DM
+        docs_dm = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=dossier_dm)
+
+        # ----------------------------
+        # Ancien et Nouvel emplacement
+        # ----------------------------
+        root_folder = os.environ.get("NAS_ROOT")
+        ancien_emplacement_dm = dossier_dm.emplacement.replace("\\", "/")   #ex : Manifestations_sportives/2026/..../30360570_trail_du_poisson_davril/
+
+        if not root_folder :
+            logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Erreur lors du déplacement du dossier {ancien_emplacement_dm} sur le NAS : la variable d'environnement 'NAS_ROOT' est vide.")
+            msg = f"Avis rendu. Cependant le dossier n'a pas été déplacé sur le NAS, il est toujours à l'emplacement {ancien_emplacement_dm}. Les pièces jointes, s'il y en avaient, n'ont pas été déposées sur Déclaration Manifestations. Le chemin d'accès au NAS n'a pas pu être récupéré. Contactez le support."
+            return redirect_error(request, msg)
+
+        ancien_emplacement_full_path = os.path.join(root_folder, ancien_emplacement_dm)
+
+        parts = ancien_emplacement_dm.strip("/").split("/")
+        if len(parts) < 3:
+            logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Erreur lors du déplacement du dossier {ancien_emplacement_dm} sur le NAS : Le path est censé avoir au moins 3 étages (Manifestations_sportives/2026/...)")
+            msg = f"Avis rendu. Cependant le dossier n'a pas été déplacé sur le NAS, il est toujours à l'emplacement {ancien_emplacement_full_path}. Les pièces jointes, s'il y en avaient, n'ont pas été déposées sur Déclaration Manifestations, vous pouvez réessayer de les déposer. Contactez le support."
+            return redirect_error(request, msg)
+
+        # Racine dynamique : ex : Manifestations_sportives/2026
+        racine = os.path.join(parts[0], parts[1])
+
+        # Nom du dossier final
+        nom_dossier = parts[-1]
+
+        # Nouveau chemin
+        nouvel_emplacement = os.path.join(racine, "1 - Hors coeur", f"{nom_dossier}/")
+        nouvel_emplacement_full_path = os.path.join(root_folder, nouvel_emplacement)
+
+        # Crée le dossier cible si besoin
+        creer_dossier_sur_nas(os.path.join(nouvel_emplacement_full_path, "Annexes", "Declaration Manifestations"))
+        creer_dossier_sur_nas(os.path.join(nouvel_emplacement_full_path, "Work"))
+
+
+        # -----------------------------------
+        # On déplace les docs du Dossier DM
+        # -----------------------------------
+        docs_deplaces = 0
+        for doc in docs_dm :
+
+            if not doc.emplacement:
+                logger.warning(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Document {doc.id} ({doc.titre}) ignoré : emplacement vide en BDD.")
+                continue
+
+            ancien_emplacement_doc_full_path = os.path.join(root_folder, doc.emplacement, doc.titre)
+            nouvel_emplacement_doc = os.path.join(nouvel_emplacement, "Annexes", "Declaration Manifestations/")
+            nouvel_emplacement_doc_full_path = os.path.join(root_folder, nouvel_emplacement_doc, doc.titre)
+
+
+            # SI LE FICHIER SOURCE N'EXISTE PAS
+            if not smbclient.path.exists(ancien_emplacement_doc_full_path):
+                logger.warning(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Déplacements des fichiers DM : Fichier introuvable pour le document {doc.id} ({doc.titre}) : {ancien_emplacement_doc_full_path}")
+                continue
+
+            # SI LE FICHIER CIBLE EXISTE DEJA
+            if smbclient.path.exists(nouvel_emplacement_doc_full_path):
+                logger.warning(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Déplacements des fichiers DM : Le fichier cible existe déjà pour le document {doc.id} ({doc.titre}) : {nouvel_emplacement_doc_full_path}")
+
+                # Et on met à jour l'emplacement en base seulement si besoin
+                if doc.emplacement != nouvel_emplacement_doc:
+                    doc.emplacement = nouvel_emplacement_doc
+                    doc.save(update_fields=["emplacement"])
+
+                continue
+
+            # Déplacement physique sur le NAS
+            smbclient.rename(ancien_emplacement_doc_full_path, nouvel_emplacement_doc_full_path)
+
+
+            # MAJ emplacement document en base
+            doc.emplacement = nouvel_emplacement_doc
+            doc.save(update_fields=["emplacement"])
+            docs_deplaces += 1
+
+        logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. {docs_deplaces} fichiers déplacés -> {nouvel_emplacement}")
+
+
+        # ----------------------------
+        # On déplace le fichier carto
+        # ----------------------------
+        carto_ancien_emplacement_full_path = os.path.join(ancien_emplacement_full_path, "Carto")
+        carto_nouvel_emplacement_full_path = os.path.join(nouvel_emplacement_full_path, "Carto")
+
+        if carto_ancien_emplacement_full_path != carto_nouvel_emplacement_full_path :
+            try :
+                copier_dossier_smb(carto_ancien_emplacement_full_path,carto_nouvel_emplacement_full_path, logger)
+            except Exception as e :
+                msg = str(e)
+
+                if "being used by another process" in msg:
+                    logger.warning(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. COPIE CARTO : "
+                        f"fichier GeoJSON non supprimé car verrouillé par un autre processus "
+                        f"(source={carto_ancien_emplacement_full_path}, cible={carto_nouvel_emplacement_full_path})"
+                    )
+
+                else :
+                    logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. COPIE CARTO : : Echec de l'écriture du fichier geojson "
+                        f"(source={carto_ancien_emplacement_full_path}, cible={carto_nouvel_emplacement_full_path}) : {e}"
+                    )
+
+
+        # ----------------------------
+        # On déplace le dossier Work
+        # ----------------------------
+        work_ancien_emplacement_full_path = os.path.join(ancien_emplacement_full_path, "Work")
+        work_nouvel_emplacement_full_path = os.path.join(nouvel_emplacement_full_path, "Work")
+
+        if work_ancien_emplacement_full_path and smbclient.path.exists(work_ancien_emplacement_full_path) and any(smbclient.listdir(work_ancien_emplacement_full_path)) and work_ancien_emplacement_full_path != work_nouvel_emplacement_full_path  :
+            try :
+                copier_dossier_smb(work_ancien_emplacement_full_path, work_nouvel_emplacement_full_path, logger)
+            except Exception as e :
+                msg = str(e)
+
+                if "being used by another process" in msg:
+                    logger.warning(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. COPIE DOSSIER WORK : "
+                        f"fichier du dossier WORK non copié car verrouillé par un autre processus "
+                        f"(source={work_ancien_emplacement_full_path}, cible={work_nouvel_emplacement_full_path})"
+                    )
+
+                else :
+                    logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. COPIE DOSSIER WORK : Echec de l'écriture d'un fichier du dossier WORK "
+                        f"(source={work_ancien_emplacement_full_path}, cible={work_nouvel_emplacement_full_path}) : {e}"
+                    )
+
+
+        # -----------------------------------------------------------------------------------
+        # Si ancien dossier dans "0 - En attente d'un dossier Démarche Numérique", on le supprime
+        # -----------------------------------------------------------------------------------
+        supprimer_ancien_dossier = "En attente" in ancien_emplacement_dm
+        if supprimer_ancien_dossier:
+            try:
+                supprimer_dossier_smb_recursif(ancien_emplacement_full_path, logger)
+                logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Ancien dossier supprimé : {ancien_emplacement_dm}")
+            except Exception as e:
+                logger.warning(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Impossible de supprimer l'ancien dossier {ancien_emplacement_dm} : {e}")
+
+
+        # -----------------------------------
+        # MAJ Dossier DM (emplacement) en BDD
+        # -----------------------------------
+        if dossier_dm.emplacement != normaliser_emplacement(nouvel_emplacement) :
+            dossier_dm.emplacement = nouvel_emplacement
+            dossier_dm.save(update_fields=["emplacement"])
+
+            logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Dossier DM mis à jour -> emplacement : {nouvel_emplacement}")
+
+  
+
+        #########################################################
+        ###        DÉPOSER LES PJ SUR DM ET SUR LE NAS        ###
+        #########################################################
+
+        if fichiers :
+            logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. {len(fichiers)} pièce(s) jointe(s) à transmettre sur DM.")
+            
+            for fichier in fichiers:
+                try:
+                    # ----------------------------
+                    # Ajout de l'annexe sur DM
+                    # ----------------------------
+                    response_pj = ajouter_pj_avis(token, avis_id, fichier)
+                    logger.info(
+                        f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. "
+                        f"PJ '{fichier.name}' ajoutée avec succès à l'avis DM {avis_id}. Réponse API : {response_pj}"
+                    )
+
+                except Exception as e:
+                    logger.error(
+                        f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. "
+                        f"Erreur lors de l'ajout de la PJ '{fichier.name}' sur l'avis DM {avis_id} : {e}"
+                    )
+                    return redirect_error(request, f"Erreur lors de l'ajout de la pièce jointe '{fichier.name}' sur Déclaration Manifestations. Contactez le support si besoin.")
+
+
+                # -----------------------------------
+                # Écriture de l'annexe sur le NAS
+                # -----------------------------------
+                nouvel_emplacement_fichier_full_path = os.path.join(root_folder, nouvel_emplacement, "Annexes/")
+                nouvel_emplacement_fichier_rel_path = os.path.join(nouvel_emplacement, "Annexes/")
+
+                titre_doc = get_nom_disponible(nouvel_emplacement_fichier_rel_path, fichier.name)
+
+
+                if not ecrire_file_sur_nas(fichier, os.path.join(nouvel_emplacement_fichier_full_path, titre_doc)):
+                    logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. "
+                                  f"Échec de l’écriture du fichier {titre_doc} sur {nouvel_emplacement_fichier_full_path}")
+
+                    messages.error(request, f"Erreur lors de l’écriture du fichier {titre_doc} sur {nouvel_emplacement_fichier_full_path}. Contactez le support si besoin.")
+                    continue
+
+
+                # -----------------------------
+                # Création du Document en BDD
+                # -----------------------------
+                extension = os.path.splitext(titre_doc)[1].lower().lstrip(".")
+                doc_format = DocumentFormat.objects.filter(format__iexact=extension).first()
+                doc_nature = DocumentNature.objects.filter(nature__iexact="Annexe instructeur").first()
+                if not doc_format or not doc_nature :
+                    logger.error(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. "
+                                  f"Fichier {titre_doc} écrit à l'emplacement{nouvel_emplacement_fichier_rel_path}, mais le document n'a pas été créé en base car la nature ({doc_nature}) ou le format ({doc_format}) est introuvable.")
+                    continue
+
+                defaults={
+                    "id_format": doc_format,
+                    "id_nature": doc_nature,
+                    "description": "Annexe envoyée sur Déclaration Manifestations.",
+                }
+
+                doc, created = Document.objects.get_or_create(emplacement=nouvel_emplacement_fichier_rel_path, titre=titre_doc, defaults=defaults)
+
+                if created :
+                    logger.info(f"[Dossier DM {num_dossier_dm} - Réception - Non Concerné] Utilisateur : {request.user}. Document {doc} créé.")
+                
+                # Création du DossierManifSportiveDocument
+                DossierManifSportiveDocument.objects.get_or_create(id_dossier_manif_sportive=dossier_dm, id_document=doc)
+
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+
+    except Exception as e:
+        identifiant_doss = f"{num_dossier_dm}" if num_dossier_dm else f"(id = {dossier_dm_id})"
+
+        logger.error(f"[Dossier DM {identifiant_doss} - Réception - Non Concerné] Utilisateur : {request.user}. "
+                        f"Erreur lors de la soumission d'un avis 'Non Concerné' sur DM : {e}")
+            
+        return redirect_error(request, f"Une erreur est survenue lors de la soumission de l'avis sur Déclaration Manifestations. Contactez le support si besoin.")
+

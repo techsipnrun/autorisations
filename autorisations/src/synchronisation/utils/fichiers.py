@@ -215,7 +215,7 @@ def create_emplacement(emplacement_dossier):
                 return False
             
             if nom == 'Work' : 
-                # Test attribution des droits
+                # Attribution des droits d'écriture
                 donner_droits_ecriture_groupe(chemin_sous_dossier)
                 
         return True
@@ -247,13 +247,17 @@ def create_emplacement_manif_sportive(emplacement_dossier):
 
 
         # Sous-dossiers standards
-        sous_dossiers = ["Annexes", "Carto"]
+        sous_dossiers = ["Annexes", "Carto", "Work"]
         for nom in sous_dossiers:
             chemin_sous_dossier = os.path.join(chemin_complet, nom)
 
             if not creer_dossier_sur_nas(chemin_sous_dossier) :
                 loggerORM.error(f"[CREATION FOLDER] Erreur lors de la création des folders sur le NAS : {chemin_complet}")
                 return False
+            
+            if nom == 'Work' : 
+                # Attribution des droits d'écriture
+                donner_droits_ecriture_groupe(chemin_sous_dossier)
              
         return True
     

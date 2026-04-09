@@ -137,3 +137,19 @@ def build_documents_for_dossier(dossier):
         "delibCA_envoye_ou_non": delibCA_envoye_ou_non,
         "work_files": work_files,
     }
+
+
+
+def normaliser_emplacement(emplacement: str | None) -> str:
+    if not emplacement:
+        return "/"
+
+    emplacement = emplacement.strip().replace("\\", "/")
+
+    while "//" in emplacement:
+        emplacement = emplacement.replace("//", "/")
+
+    if not emplacement.endswith("/"):
+        emplacement += "/"
+
+    return emplacement

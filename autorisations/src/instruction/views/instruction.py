@@ -348,18 +348,31 @@ def instruction_demarche(request, num_demarche):
     annee_selectionnee = int(request.GET.get("annee", datetime.now().year))
 
     # Années disponibles
-    min_depot = Dossier.objects.filter(id_demarche=demarche).aggregate(min_date=Min("date_depot")).get("min_date")
-    annee_min = min_depot.year if min_depot else annee_selectionnee
+    min_depot_dossier = Dossier.objects.filter(id_demarche=demarche).aggregate(min_date=Min("date_depot")).get("min_date")
+
+    min_depot_dm = None
+    if demarche.type and demarche.type.lower() == "manifestations sportives":
+        min_depot_dm = DossierManifSportive.objects.aggregate(min_date=Min("date_depot")).get("min_date")
+
+    dates_min = [d for d in [min_depot_dossier, min_depot_dm] if d is not None]
+    annee_min = min(dates_min).year if dates_min else annee_selectionnee
+
+    # min_depot = Dossier.objects.filter(id_demarche=demarche).aggregate(min_date=Min("date_depot")).get("min_date")
+    # annee_min = min_depot.year if min_depot else annee_selectionnee
     annees_disponibles = list(range(annee_min, datetime.now().year + 1))
 
+    dossier_archives_infos = []
+
+
+    # ---------------------------------
+    # 1. Dossiers classiques archivés
+    # ---------------------------------
     dossiers_archives = Dossier.objects.filter(
         id_etape_dossier__in=etapes_termines,
         id_demarche=demarche,
         date_depot__year=annee_selectionnee
     ).select_related("id_groupeinstructeur").order_by("-date_depot")
 
-
-    dossier_archives_infos = []
     for dossier in dossiers_archives:
 
         # Bénéficiaire
@@ -372,21 +385,69 @@ def instruction_demarche(request, num_demarche):
         nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
 
         dossier_archives_infos.append({
+            "source": "dossier",
             "nom_dossier": dossier.nom_dossier,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
             "numero": dossier.numero,
-            # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
             "action_a_faire": dossier in dossiers_actions,
+            "url_detail": reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}),
         })
 
+
+    # --------------------------------------------------------
+    # 2. Dossiers DossierManifSportive archivés et non liés
+    # --------------------------------------------------------
+    if demarche.type and demarche.type.lower() == "manifestations sportives":
+        dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
+
+        groupe_manif = Groupeinstructeur.objects.filter(nom__iexact="Manifestations sportives").first()
+
+        dossiers_dm_archives_non_lies = (
+            DossierManifSportive.objects
+            .filter(
+                archive=True,
+                date_depot__year=annee_selectionnee,
+            )
+            .exclude(id__in=dossiers_deja_lies_ids)
+            .select_related("id_etape")
+            .order_by("-date_depot")
+        )
+
+        for dossier_dm in dossiers_dm_archives_non_lies:
+            demandeur = " ".join(
+                part for part in [dossier_dm.prenom_organisateur, dossier_dm.nom_organisateur] if part
+            ) or dossier_dm.structure or "N/A"
+
+            dossier_archives_infos.append({
+                "source": "dossier_manif_sportive",
+                "nom_dossier": dossier_dm.nom_dossier,
+                "nom_dossier_plus_parlant": dossier_dm.nom_dossier,
+                "obj_doss": dossier_dm,
+                "numero": dossier_dm.numero_dossier_declaration_manifestations,
+                "demandeur": demandeur,
+                "date_depot": dossier_dm.date_depot,
+                "groupe": groupe_manif.nom if groupe_manif else "Manifestations sportives",
+                "etape": dossier_dm.id_etape.etape if dossier_dm.id_etape else "Non défini",
+                "nb_messages_non_lus": 0,
+                "action_a_faire": False,
+                "url_detail": reverse("dossier_manif_sportive_sans_ds_archive", kwargs={"numero": dossier_dm.numero_dossier_declaration_manifestations}),
+            })
+
+
     # Tri : dossiers avec action en premier, puis par nb de messages non lus
-    dossier_archives_infos.sort(key=lambda d: (not d["action_a_faire"], -d["nb_messages_non_lus"]))
+    dossier_archives_infos.sort(
+        key=lambda d: (
+            not d["action_a_faire"],
+            -d["nb_messages_non_lus"],
+            -(d["date_depot"].timestamp() if d["date_depot"] else 0),
+        )
+    )
 
     ###############################
     # Infos sur la synchro
@@ -610,7 +671,7 @@ def instruction_dossier(request, num_dossier):
 
     # Actions possibles
     actions_possibles = get_actions_possibles(dossier)
-    print(actions_possibles)
+
 
     return render(request, 'instruction/instruction_dossier.html', {
         # Dossier

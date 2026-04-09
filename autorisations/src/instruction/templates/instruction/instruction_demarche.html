@@ -180,7 +180,7 @@
                 <tbody>
                     {% for d in dossiers_archives %}
                         <tr class="clickable-row {% if d.action_a_faire %} ligne_en_gras {% endif %} {% if request.user|est_concerné_par_le_dossier:d.obj_doss %}ligne_concerne_par_dossier{% endif %}"
-                        data-href="{% url 'instruction_dossier' d.numero %}" {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
+                        data-href="{{ d.url_detail }}" {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
                             <td>
                                 {% if d.nb_messages_non_lus > 0 %}
                                     <div class="nouv_mess_wrapper">

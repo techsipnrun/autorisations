@@ -2,6 +2,8 @@
 from django import template
 import unicodedata
 import re
+from datetime import timedelta
+from django.utils.timezone import localtime
 
 register = template.Library()
 
@@ -42,3 +44,31 @@ def to_int(value):
         return int(value)
     except:
         return 0
+
+
+
+
+@register.simple_tag
+def format_periode_evenement(date_debut, date_fin):
+    if not date_debut and not date_fin:
+        return "à une date non renseignée"
+
+    if date_debut:
+        date_debut = localtime(date_debut)
+
+    if date_fin:
+        date_fin = localtime(date_fin)
+
+    if date_debut and not date_fin:
+        return f"le {date_debut.strftime('%d/%m/%Y')}"
+
+    if date_fin and not date_debut:
+        return f"le {date_fin.strftime('%d/%m/%Y')}"
+
+    d1 = date_debut.date()
+    d2 = date_fin.date()
+
+    if d1 == d2:
+        return f"le {d1.strftime('%d/%m/%Y')}"
+
+    return f"du {d1.strftime('%d/%m/%Y')} au {d2.strftime('%d/%m/%Y')}"

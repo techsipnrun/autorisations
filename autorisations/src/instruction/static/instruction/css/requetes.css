@@ -199,6 +199,25 @@
     background-color: #eef8ee;
 }
 
+/* Badge DM */
+.badge-dm {
+    display: inline-block;
+    margin-right: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background-color: #006131;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.table-resultats td:nth-child(2) {
+    text-align: left;
+}
+
 
 /* ---------------------- */
 /*     DOWNLOAD EXCEL     */

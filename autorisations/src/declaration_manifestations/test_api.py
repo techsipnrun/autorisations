@@ -97,7 +97,6 @@ def main():
     rep = ajouter_pj_avis(
         token=token,
         avis_id=avis_id,
-        id_document=avis_id,
         file_path=file_path,
         demande_de_remonte_en_doc_officiel_b=False,
     )
