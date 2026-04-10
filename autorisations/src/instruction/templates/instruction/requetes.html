@@ -76,14 +76,16 @@
                 </div>
 
 
-
-
                 <div class="form-field">
                     <label for="etape">Étape dossier :</label>
                     <select name="etape" id="etape">
                         <option value="" {% if not request.GET.etape %}selected{% endif %}> - - - </option>
                         {% for etape in etapes_dossier %}
-                            <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
+                            {% if etape.etape == "En réception" %}
+                                <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }} (DM)</option>
+                            {% else %}
+                                <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
+                            {% endif %}
                         {% endfor %}
                     </select>
 

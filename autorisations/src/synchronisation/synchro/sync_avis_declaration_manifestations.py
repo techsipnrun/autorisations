@@ -86,11 +86,8 @@ def sync_avis_declaration_manifestations(avis, logger):
             for field, new_value in avis.items():
                 
                 if field == "id_dossier_manif_sportive" :
-                    new_value = DossierManifSportive.objects.filter(
-                                        numero_dossier_declaration_manifestations=avis["id_dossier_manif_sportive"]
-                                        ).first()
+                    new_value = DossierManifSportive.objects.filter(numero_dossier_declaration_manifestations=avis["id_dossier_manif_sportive"]).first()
                 
-
                 # Ignore les prescriptions et id_dossier_manif_sportive vides
                 if (field == "prescriptions" and not new_value) or (field == "id_dossier_manif_sportive" and not new_value) :
                     continue

@@ -6,7 +6,7 @@ from autorisations.models.models_documents import DossierDocument
 from autorisations.models.models_instruction import Dossier
 from django.contrib import messages
 
-from autorisations.models.models_utilisateurs import Instructeur
+from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
 
 logger = logging.getLogger("ORM_DJANGO")
 
@@ -154,3 +154,7 @@ def build_roles_for_dossier(dossier):
 
         "signataires": signataires_group,
     }
+
+
+
+

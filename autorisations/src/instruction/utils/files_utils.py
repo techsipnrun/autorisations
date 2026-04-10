@@ -6,6 +6,9 @@ import smbclient
 from django.shortcuts import redirect
 from django.contrib import messages
 
+import re
+from django.utils.text import get_valid_filename
+
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path, ecrire_file_sur_nas
@@ -83,56 +86,6 @@ def generate_unique_filename(dir_abs_path: str, dir_rel_path: str, base_filename
 
 
 
-
-# def save_and_update_document(request, dossier, fichier, document, format_obj, nature_obj, statut_obj, abs_file_path, rel_dir_path):
-#     """
-#     Écrit physiquement un document (écrasement si deja présent) et met à jour l’objet Document associé.
-#     Renvoie : None ou redirect_error(...)
-#     """
-
-#     num = dossier.numero
-
-
-#     # 1) Supprimer l'ancien doc si doublon
-#     doc_existant = Document.objects.filter(emplacement=rel_dir_path, titre=document.titre).first()
-
-#     if doc_existant and doc_existant.id != document.id:
-#         try:
-#             DossierDocument.objects.filter(id_document=doc_existant.id).delete()
-#             doc_existant.delete()
-#             logger.warning(f"[DOSSIER {num}] Ancien DossierDocument (id document={doc_existant.id}) supprimé par {request.user}.")
-#         except Exception as e:
-#             logger.error(f"[DOSSIER {num}] Erreur lors de la suppression de l'ancien DossierDocument (id document={doc_existant.id}) : {e}")
-#             return redirect_error(request, "❌ Erreur lors de la suppression de l'ancien acte du même nom. Contactez le support.")
-
-
-#     # 2) Log écrasement éventuel
-#     if smbclient.path.exists(abs_file_path):
-#         logger.warning(f"[DOSSIER {num}] Écrasement de l'acte existant (avec le même nom) par {request.user} : {abs_file_path}")
-
-#     # 3) Écriture physique
-#     if not ecrire_file_sur_nas(fichier, abs_file_path):
-#         logger.error(f"[DOSSIER {num}] Échec de l’écriture du fichier {fichier.name} sur {abs_file_path}")
-#         return redirect_error(request, f"❌ Échec de l’écriture du fichier {fichier.name} dans {abs_file_path}. Contactez le support.")
-#     logger.info(f"[DOSSIER {num}] Fichier '{document.titre}' écrit dans {abs_file_path}")
-
-
-#     # 4) Mise à jour du Document en BDD
-#     try:
-#         document.id_format = format_obj
-#         document.id_nature = nature_obj
-#         document.id_statut = statut_obj
-#         document.emplacement = rel_dir_path
-#         document.description = f"{nature_obj.nature} pour le dossier {dossier.numero}"
-#         document.save()
-
-#     except Exception as e:
-#         logger.error(f"[DOSSIER {num}] Erreur MAJ Document {document.id} : {e}")
-#         return redirect_error(request, f"❌ Erreur lors de la mise à jour du Document {document.titre} en base. Contactez le support.")
-
-#     return None
-
-
 def load_geojson(rel_path: str):
     """
     Charge un fichier GeoJSON depuis le dossier static.
@@ -145,3 +98,22 @@ def load_geojson(rel_path: str):
     except Exception as e:
         logger.error(f"[GEOJSON] Impossible de charger le fichier {rel_path} : {e}")
         return {}
+
+
+def valider_fichiers_dm(fichiers, size_max, extensions_ok):
+    for fichier in fichiers:
+        if fichier.size > size_max:
+            raise ValueError(f"Le fichier '{fichier.name}' dépasse la taille maximale autorisée de 5 Mo.")
+
+        _, ext = os.path.splitext(fichier.name)
+        ext = ext.lower().lstrip(".")
+
+        if ext not in extensions_ok:
+            raise ValueError(f"Le fichier '{fichier.name}' a une extension non autorisée (.{ext}).")
+        
+
+def sanitiser_nom_fichier(nom):
+    nom = os.path.basename(nom.strip())
+    nom = get_valid_filename(nom)
+    nom = re.sub(r"[^\w.\- ]", "_", nom)
+    return nom

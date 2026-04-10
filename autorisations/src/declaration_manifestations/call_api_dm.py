@@ -58,8 +58,8 @@ def recup_avis_et_dossiers():
     # ]
 
 
-    # Filtre pour le dev : 1 seul avis
-    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [103791, 99265, 105963, 109421] )]  # 105963, 99265, 109421, 109834
+    # Filtre pour le dev
+    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [103791, 99265, 105963, 109421, 109834] )]  # 105963, 99265, 109421, 109834
 
 
 
@@ -117,6 +117,12 @@ def recup_avis_et_dossiers():
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
     loggerSynchro.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
 
+    """
+    ---------------------------------
+    plutot que retoruner 'avis_filtres', ce serait mieux de retourner tous les avis de la dernière année par exemple, 
+    afin d'etre bien raccord en BDD pour les AvisManifSportive.
+    ---------------------------------
+    """
     return dossiers, avis_filtres
 
 

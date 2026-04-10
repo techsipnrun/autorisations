@@ -53,7 +53,11 @@
             
             <div class="en_attente_DS">
                 <div class="en_attente_DS_message">
-                    <p>En attente d'un dossier Démarche Numérique</p>
+                    {% if doss_manif_sportive.coeur_de_parc %}
+                        <p>En attente d'un dossier Démarche Numérique</p>
+                    {% else %}
+                        <p>Cette manifestation n'intersecte pas le cœur de parc</p>
+                    {% endif %}
 
                     {% if dossier_dn_meme_numero_deja_lie %}
                         <p class="message_info_liaison">
@@ -83,40 +87,42 @@
                 </div>
 
                 <div class="bloc_liaison_ds">
-                    <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
-                        Relier à un dossier Démarche Numérique
-                    </button>
+                    {% if not doss_manif_sportive.archive %}
+                        <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
+                            Relier à un dossier Démarche Numérique
+                        </button>
 
-                    <div class="form-liaison-ds" id="form-liaison-ds">
-                        <form method="post" id="form-liaison-manif-dn" action="{% url 'lier_dossier_manif_sportive_a_DN' %}">
-                            {% csrf_token %}
+                        <div class="form-liaison-ds" id="form-liaison-ds">
+                            <form method="post" id="form-liaison-manif-dn" action="{% url 'lier_dossier_manif_sportive_a_DN' %}">
+                                {% csrf_token %}
 
-                            <input type="hidden" name="id_dossier_dm" value="{{ doss_manif_sportive.id }}">
-                            <!-- <input type="hidden" name="id_dossier_dn" value=None> -->
+                                <input type="hidden" name="id_dossier_dm" value="{{ doss_manif_sportive.id }}">
+                                <!-- <input type="hidden" name="id_dossier_dn" value=None> -->
 
-                            <p class="info_liaison">
-                                Dans certains cas, la liaison entre un dossier Déclaration Manifestations et un dossier Démarche Numérique peut ne pas se faire toute seule. 
-                                <br><br>
-                                C'est par exemple le cas si en remplissant son formulaire Démarche Numérique, le pétitionnaire s'est trompé en renseignant son "numéro de dossier Déclaration Manifestations". 
-                                <br><br>
-                                Dans ce cas là, vous devez relier ces deux dossiers manuellement.
-                            </p>
+                                <p class="info_liaison">
+                                    Dans certains cas, la liaison entre un dossier Déclaration Manifestations et un dossier Démarche Numérique peut ne pas se faire toute seule. 
+                                    <br><br>
+                                    C'est par exemple le cas si en remplissant son formulaire Démarche Numérique, le pétitionnaire s'est trompé en renseignant son "numéro de dossier Déclaration Manifestations". 
+                                    <br><br>
+                                    Dans ce cas là, vous devez relier ces deux dossiers manuellement.
+                                </p>
 
-                            <label for="dossier_dn_id">Choisir un dossier DN en réception</label>
-                            <select name="dossier_dn_id" id="dossier_dn_id" required>
-                                <option value="" selected disabled>-- Sélectionner un dossier --</option>
-                                {% for dossier in dossiers_DN_manif_sportive_non_lie %}
-                                    <option value="{{ dossier.id }}">
-                                        {{ dossier.numero }} — {{ dossier.nom_manifestation }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                                <label for="dossier_dn_id">Choisir un dossier DN en réception</label>
+                                <select name="dossier_dn_id" id="dossier_dn_id" required>
+                                    <option value="" selected disabled>-- Sélectionner un dossier --</option>
+                                    {% for dossier in dossiers_DN_manif_sportive_non_lie %}
+                                        <option value="{{ dossier.id }}">
+                                            {{ dossier.numero }} — {{ dossier.nom_manifestation }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
 
-                            <button type="submit" class="btn-valider-liaison">
-                                Confirmer la liaison
-                            </button>
-                        </form>
-                    </div>
+                                <button type="submit" class="btn-valider-liaison">
+                                    Confirmer la liaison
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -134,53 +140,54 @@
                 <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
             </div>
 
+                <!-- Etape du dossier DM -->
+                <div class="etat-badge-container">
+                    <div class="etat-badge-menu-dropdown">
 
-            <!-- Etape du dossier DM -->
-            <div class="etat-badge-container">
-                <div class="etat-badge-menu-dropdown">
+                        <div class="etat-badge-label" id="etapeMenuToggle" 
+                        {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
+                            {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
+                            <span class="dropdown-arrow">&#9660;</span>
+                        </div>
+                        {% if not doss_manif_sportive.archive %}
+                            {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive %}
+                                <div class="etat-badge-menu-content" id="etapeMenuContent">
 
-                    <div class="etat-badge-label" id="etapeMenuToggle" 
-                    {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
-                        {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
-                        <span class="dropdown-arrow">&#9660;</span>
-                    </div>
+                                        {% if actions_possibles %}
+                                            {% for label in actions_possibles %}
+                                            
+                                                {% if label == "Déclaration Manifestations - Accepter" %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAccepterDeclarationManifestations()">Donner un avis favorable sur Déclaration Manifestations</button>
 
-                    {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive %}
-                        <div class="etat-badge-menu-content" id="etapeMenuContent">
+                                                {% elif label == "Déclaration Manifestations - Refuser" %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefuserDeclarationManifestations()">Rendre un avis défavorable sur Déclaration Manifestations</button>
 
-                                {% if actions_possibles %}
-                                    {% for label in actions_possibles %}
-                                    
-                                        {% if label == "Déclaration Manifestations - Accepter" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAccepterDeclarationManifestations()">Donner un avis favorable sur Déclaration Manifestations</button>
+                                                {% elif label == "Déclaration Manifestations - Non Soumis" %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonSoumisDeclarationManifestations()">Préciser que le Parc n'est pas concerné par ce dossier</button>
+                                                
+                                                {% elif label == "Déclaration Manifestations - Non répondu" %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonReponduDeclarationManifestations()">Ne pas rendre d'avis</button>
+                                                
+                                                {% endif %}
 
-                                        {% elif label == "Déclaration Manifestations - Refuser" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefuserDeclarationManifestations()">Rendre un avis défavorable sur Déclaration Manifestations</button>
-
-                                        {% elif label == "Déclaration Manifestations - Non Soumis" %}
-                                            <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonSoumisDeclarationManifestations()">Préciser que le Parc n'est pas concerné par ce dossier</button>
-                                        
+                                            {% endfor %}
+                                        {% else %}
+                                            <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
                                         {% endif %}
 
-                                    {% endfor %}
-                                {% else %}
-                                    <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
-                                {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
 
-                        </div>
-                    {% endif %}
+                    <!-- Lien DM -->
+                    <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
+                        <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
+                            alt="Visualiser le dossier sur Déclaration manifestations"
+                            title="Visualiser le dossier sur Déclaration manifestations">
+                    </a>
                 </div>
-
-
-
-                <!-- Lien DM -->
-                <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
-                    <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
-                        alt="Visualiser le dossier sur Déclaration manifestations"
-                        title="Visualiser le dossier sur Déclaration manifestations">
-                </a>
-
-            </div>
+            
 
         
             <!-------------------------------------------------------------------------->
@@ -209,7 +216,7 @@
                     <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
 
                     <div class="zone-confirmer-formulaire">
-                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerAccepterDM()">Confirmer</button>
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerAccepterDM(this)">Confirmer</button>
                     </div>
 
                 </form>
@@ -230,7 +237,7 @@
                     
                     <div class="zone-pj-complement">
                         <label for="acte-refuse">Joindre l'acte :</label>
-                        <input type="file" id="acte-refuse" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                        <input type="file" id="acte-refuse" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx" required>
                     </div>
                     <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p>
 
@@ -241,7 +248,7 @@
                     <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
 
                     <div class="zone-confirmer-formulaire">
-                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerRefuserDM()">Confirmer</button>
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerRefuserDM(this)">Confirmer</button>
                     </div>
 
                 </form>
@@ -272,11 +279,29 @@ Le Parc national de La Réunion</textarea>
 
 
                     <div class="zone-confirmer-formulaire">
-                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerNonSoumisDM()">Confirmer</button>
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerNonSoumisDM(this)">Confirmer</button>
                     </div>
-
                 </form>
             </div>
+
+
+            <!-------------------------------------------------------------------------------------------->
+            <!-- Zone masquée pour archivé un dossier sur Déclaration Manifestations sans donner d'avis -->
+            <!-------------------------------------------------------------------------------------------->
+            <div id="formulaire-non-repondu-dm" class="zone-complement zone-envoyer-pour-validation">
+                <form id="form-non-repondu-dm" method="post" enctype="multipart/form-data" action="{% url 'declaration_manifestations_non_repondu_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+                    <h2>Archiver ce dossier sur Déclaration Manifestations sans rendre d'avis</h2>
+                    <h4>Prescriptions transmises au demandeur :</h4>
+                    <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions"></textarea>
+                    
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerNonReponduDM(this)">Confirmer</button>
+                    </div>
+                </form>
+            </div>
+
 
 
             <h2>Organisateur.trice</h2>
@@ -514,6 +539,12 @@ Le Parc national de La Réunion</textarea>
         fermerMenuEtape();
     }
 
+    function afficherFormulaireNonReponduDeclarationManifestations() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-non-repondu-dm").classList.add("show");
+        fermerMenuEtape();
+    }
+
  </script>
 
 
@@ -523,56 +554,148 @@ Le Parc national de La Réunion</textarea>
 <!------------------------------------------------------------------------------>
 <script>
     // Confirmer l'acceptation du dossier DM
-    function confirmerAccepterDM() {
-        const confirmation = confirm("Confirmez-vous l'acceptation du dossier sur Déclaration Manifestations, malgré l'absence d'un dossier Démarche Numérique ?");
-        if (confirmation) {
-            document.getElementById("form-accepter-dm").submit();
-        }
-        fermerMenuEtape();
-    }
+    // function confirmerAccepterDM() {
+    //     const confirmation = confirm("Confirmez-vous l'acceptation du dossier sur Déclaration Manifestations, malgré l'absence d'un dossier Démarche Numérique ?");
+    //     if (confirmation) {
+    //         document.getElementById("form-accepter-dm").submit();
+    //     }
+    //     fermerMenuEtape();
+    // }
 
 
     // Confirmer le refus du dossier DM
-    function confirmerRefuserDM() {
-        const confirmation = confirm("Confirmez-vous le refus du dossier sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé.");
-        if (confirmation) {
-            document.getElementById("form-refuser-dm").submit();
-        }
-        fermerMenuEtape();
-    }
+    // function confirmerRefuserDM() {
+    //     const confirmation = confirm("Confirmez-vous le refus du dossier sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé.");
+    //     if (confirmation) {
+    //         document.getElementById("form-refuser-dm").submit();
+    //     }
+    //     fermerMenuEtape();
+    // }
 
 
     // Confirmer que le dossier DM ne nous concerne pas
-    function confirmerNonSoumisDM() {
-        const confirmation = confirm("Confirmez-vous le classement du dossier comme 'Non Concerné' sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé.");
-        if (confirmation) {
-            document.getElementById("form-non-soumis-dm").submit();
-        }
-        fermerMenuEtape();
-    }
- </script>
+    // function confirmerNonSoumisDM() {
+    //     const confirmation = confirm("Confirmez-vous le classement du dossier comme 'Non Concerné' sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé.");
+    //     if (confirmation) {
+    //         document.getElementById("form-non-soumis-dm").submit();
+    //     }
+    //     fermerMenuEtape();
+    // }
 
+    // function confirmerNonSoumisDM(button) {
+    //     const confirmation = confirm(
+    //         "Confirmez-vous le classement du dossier comme 'Non Concerné' sur Déclaration Manifestations ? \n\n Pour rappel, aucun dossier Démarche Numérique n'est encore associé."
+    //     );
 
-<!-- Check Taille max PJ -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const input = document.getElementById("files-non-soumis");
-        const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
+    //     if (confirmation) {
+    //         button.disabled = true;
+    //         button.innerText = "Traitement en cours...";
+    //         document.getElementById("form-non-soumis-dm").submit();
+    //     }
 
-        input.addEventListener("change", function () {
-            const files = input.files;
-
-            for (let i = 0; i < files.length; i++) {
-                if (files[i].size > MAX_SIZE) {
-                    alert(`Le fichier "${files[i].name}" dépasse 5 Mo.`);
-                    input.value = ""; // reset
-                    return;
-                }
-            }
-        });
-    });
+    //     fermerMenuEtape();
+    // }
 </script>
 
+
+
+<script>
+    // TAILLE MAX 5Mo
+    document.addEventListener("DOMContentLoaded", function () {
+        const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
+
+        // Tous les inputs file de la page
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+
+        fileInputs.forEach(input => {
+            input.addEventListener("change", function () {
+                const files = Array.from(input.files || []);
+
+                for (const file of files) {
+                    if (file.size > MAX_SIZE) {
+                        alert(`Le fichier "${file.name}" dépasse la taille maximale autorisée de 5 Mo.`);
+                        input.value = "";
+                        return;
+                    }
+                }
+            });
+        });
+    });
+
+    // DISABLE BTN CONFIRMER
+    function soumettreFormulaireAvecConfirmation({
+        formId,
+        button,
+        messageConfirmation,
+        texteBoutonPendantTraitement = "Traitement en cours..."
+    }) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        const confirmation = confirm(messageConfirmation);
+        if (!confirmation) {
+            fermerMenuEtape();
+            return;
+        }
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            fermerMenuEtape();
+            return;
+        }
+
+        // Désactiver tous les boutons du formulaire
+        const boutons = form.querySelectorAll('button, input[type="submit"]');
+        boutons.forEach(btn => {
+            btn.disabled = true;
+        });
+
+        // Désactiver aussi les inputs file pour éviter toute modif pendant l’envoi
+        const champsFichier = form.querySelectorAll('input[type="file"]');
+        champsFichier.forEach(champ => {
+            champ.disabled = true;
+        });
+
+        if (button) {
+            button.innerText = texteBoutonPendantTraitement;
+        }
+
+        form.submit();
+        fermerMenuEtape();
+    }
+
+    function confirmerAccepterDM(button) {
+        soumettreFormulaireAvecConfirmation({
+            formId: "form-accepter-dm",
+            button: button,
+            messageConfirmation: "Confirmez-vous l'acceptation du dossier sur Déclaration Manifestations, malgré l'absence d'un dossier Démarche Numérique ?"
+        });
+    }
+
+    function confirmerRefuserDM(button) {
+        soumettreFormulaireAvecConfirmation({
+            formId: "form-refuser-dm",
+            button: button,
+            messageConfirmation: "Confirmez-vous le refus du dossier sur Déclaration Manifestations ?\n\nPour rappel, aucun dossier Démarche Numérique n'est encore associé."
+        });
+    }
+
+    function confirmerNonSoumisDM(button) {
+        soumettreFormulaireAvecConfirmation({
+            formId: "form-non-soumis-dm",
+            button: button,
+            messageConfirmation: "Confirmez-vous le classement du dossier comme 'Non Concerné' sur Déclaration Manifestations ?\n\nPour rappel, aucun dossier Démarche Numérique n'est encore associé."
+        });
+    }
+
+    function confirmerNonReponduDM(button) {
+        soumettreFormulaireAvecConfirmation({
+            formId: "form-non-repondu-dm",
+            button: button,
+            messageConfirmation: "Confirmez-vous ne pas répondre à la demande et archiver le dossier sur Déclaration Manifestations ?\n\nPour rappel, aucun dossier Démarche Numérique n'est encore associé."
+        });
+    }
+</script>
 
 
 

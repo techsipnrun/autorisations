@@ -193,6 +193,7 @@ def rendre_avis(token, avis_id, reponse_avis, prescriptions=""):
     return {"success": True}
 
 
+
 def get_file(token, media_path):
     """
     media_path : ex "/media/974/.../fichier.pdf"

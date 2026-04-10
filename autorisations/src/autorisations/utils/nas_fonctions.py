@@ -334,7 +334,7 @@ def copier_dossier_smb(src, dst, logger):
                 with smbclient.open_file(dst_path, mode="wb") as fdst:
                     fdst.write(fsrc.read())
 
-            logger.info(f"[COPY FILE] {src_path} -> {dst_path}")
+            logger.info(f"[COPY FILE] {_normalize_unc_path(src_path)} -> {_normalize_unc_path(dst_path)}")
 
 
 

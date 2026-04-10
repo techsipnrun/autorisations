@@ -160,5 +160,6 @@ urlpatterns = [
     path("changer-etape/accepte-declaration-manifestations/", changement_etape.declaration_manifestations_accepter, name="declaration_manifestations_accepter_url"),
     path("changer-etape/refuse-declaration-manifestations/", changement_etape.declaration_manifestations_refuser, name="declaration_manifestations_refuser_url"),
     path("changer-etape/non-soumis-declaration-manifestations/", changement_etape.declaration_manifestations_non_soumis, name="declaration_manifestations_non_soumis_url"),
- 
+    path("changer-etape/non-repondu-declaration-manifestations/", changement_etape.declaration_manifestations_non_repondu, name="declaration_manifestations_non_repondu_url"),
+
 ]
