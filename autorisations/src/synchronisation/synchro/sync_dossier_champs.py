@@ -5,7 +5,7 @@ from autorisations.models.models_documents import Document
 from autorisations.models.models_utilisateurs import DossierInstructeur
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from ..utils.model_helpers import get_first_id, update_fields, update_fields_dossier_champs
-from ..utils.fichiers import get_nom_disponible, rendre_titre_unique_dans_liste, write_geojson, write_pj, rendre_titres_uniques
+from ..utils.fichiers import rendre_titre_unique_dans_liste, write_pj, rendre_titres_uniques, write_pj_volumineuse
 import logging
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
@@ -147,33 +147,38 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                     document_obj_sans_desc.delete()
 
 
-
                 # Si un autre document existe avec le meme nom et le meme emplacement --> On renomme avec _2 ou _3 ect..
                 # titre_doc = get_nom_disponible(doc["emplacement"], doc["titre"])
                 # doc["titre"] = titre_doc
 
-                # Création du doc avec le bon titre
-                document_obj = Document.objects.create(
-                                emplacement=doc["emplacement"],
-                                titre=doc["titre"],
-                                id_nature_id=doc["id_nature"],
-                                id_format_id=doc["id_format"],
-                                url_ds=doc["url_ds"],
-                                description=doc["description"]
-                            )
-                
-                if document_obj:
-                    liste_docs.add(document_obj.id)
 
+                # Écriture PJ sur le NAS
+                if write_pj_volumineuse(doc['emplacement'], doc["titre"], doc["url_ds"], ecrase=True) :
 
-                logger.info(f"[CREATE] Document ({type_du_champ}) créé pour dossier {dossier.numero} : {document_obj.titre}")
-                write_pj(doc['emplacement'], doc["titre"], doc["url_ds"], ecrase=True)
+                    # Création du doc avec le bon titre
+                    document_obj = Document.objects.create(
+                                    emplacement=doc["emplacement"],
+                                    titre=doc["titre"],
+                                    id_nature_id=doc["id_nature"],
+                                    id_format_id=doc["id_format"],
+                                    url_ds=doc["url_ds"],
+                                    description=doc["description"]
+                                )
+                    
+                    if document_obj:
+                        liste_docs.add(document_obj.id)
 
-                champ_obj = DossierChamp.objects.filter(
-                    id_dossier_id=id_dossier,
-                    id_champ_id=id_champ,
-                    id_document__isnull=True
-                ).order_by("id").first()
+                    logger.info(f"[CREATE] Document ({type_du_champ}) créé pour dossier {dossier.numero} : {document_obj.titre}")
+
+                    champ_obj = DossierChamp.objects.filter(
+                        id_dossier_id=id_dossier,
+                        id_champ_id=id_champ,
+                        id_document__isnull=True
+                    ).order_by("id").first()
+
+                # Erreur lors de l'écriture de la PJ sur le NAS
+                else :
+                    logger.error(f"[DOSSIER {dossier.numero} - SYNC DOSSIER CHAMP] Erreur lors de l'écriture de la PJ {doc['titre']}. Le DossierChamp et le Document n'ont pas été créés en base.")
 
 
             #--------------------------------

@@ -151,7 +151,8 @@ def write_pj(emplacement, name, url_pj, ecrase = False):
             loggerApp.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucune écriture effectuée.")
             return
 
-        response = requests.get(url_pj, timeout=60)
+        # response = requests.get(url_pj, timeout=60)
+        response = requests.get(url_pj, stream=True, timeout=(10, 300))
         response.raise_for_status()
 
         # Écriture
@@ -168,7 +169,113 @@ def write_pj(emplacement, name, url_pj, ecrase = False):
     except Exception as e:
         loggerORM.error(f"[ECRITURE PJ] Erreur inattendue lors du téléchargement ou de l’écriture de la pièce jointe {chemin_fichier} : {e}")
     
-    return chemin_fichier
+    return None
+
+
+import time
+
+def write_pj_volumineuse(emplacement, name, url_pj, ecrase=False):
+    """
+    Télécharge une pièce jointe depuis une URL distante et l’écrit en streaming sur le NAS.
+
+    Cette fonction :
+    - télécharge le fichier en mode streaming (optimisé pour les fichiers volumineux) ;
+    - écrit directement sur le NAS via smbclient ;
+    - supprime le fichier partiel en cas d’erreur.
+
+    Args:
+        emplacement (str): "Activites/2025/123456_NOM/Annexes/"
+        name (str): "document.pdf"
+        url_pj (str): URL publique ou accessible de la pièce jointe à télécharger.
+        ecrase (bool, optional): False (par défaut), True si on veut écraser un potentiel fichier existant sur le NAS.
+
+    Returns:
+        str | None:
+            - Chemin absolu du fichier écrit sur le NAS en cas de succès.
+            - None si :
+                * le fichier existe déjà et ecrase=False
+                * une erreur survient (réseau, écriture, etc.)
+
+    Notes:
+        - Utilise un téléchargement en streaming pour limiter l’usage mémoire.
+        - En cas d’échec, un nettoyage automatique du fichier partiel est tenté.
+
+    """
+    chemin_dossier = ensure_dossier_root(emplacement)
+    safe_name = os.path.basename(name)
+    chemin_fichier = os.path.join(chemin_dossier, safe_name)
+
+    try:
+        if smbclient.path.exists(chemin_fichier) and not ecrase:
+            loggerApp.error(f"[FICHIER EXISTANT] {chemin_fichier} existe déjà.")
+            return None
+
+        start_time = time.time()
+
+        with requests.get(url_pj, stream=True, timeout=(10, 400)) as response:
+            response.raise_for_status()
+
+            # Taille totale (si connue)
+            total_size = response.headers.get("Content-Length")
+            total_size = int(total_size) if total_size and total_size.isdigit() else None
+
+            if total_size:
+                total_mo = round(total_size / (1024 * 1024), 2)
+                if total_mo and total_mo > 20:
+                    loggerApp.info(f"[PJ DOWNLOAD] Début téléchargement '{name}' ({total_mo} Mo)")
+            else:
+                loggerApp.info(f"[PJ DOWNLOAD] Début téléchargement '{name}' (taille inconnue)")
+
+            bytes_written = 0
+            last_log_percent = 0
+
+            with smbclient.open_file(chemin_fichier, mode="wb") as dst:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1 Mo
+                    if chunk:
+                        dst.write(chunk)
+                        bytes_written += len(chunk)
+
+                        # --- LOG PROGRESSION POUR LES FICHIERS LOURDS ---
+                        if total_mo > 20 and total_size :
+                            percent = int((bytes_written / total_size) * 100)
+
+                            # log tous les 20%
+                            if percent >= last_log_percent + 20:
+                                loggerApp.info(
+                                    f"[PJ DOWNLOAD] {name} : {percent}% ({round(bytes_written / (1024*1024), 2)} Mo)"
+                                )
+                                last_log_percent = percent
+                        # else:
+                        #     # si taille inconnue → log tous les 5 Mo
+                        #     if bytes_written % (5 * 1024 * 1024) < 1024 * 1024:
+                        #         loggerApp.info(
+                        #             f"[PJ DOWNLOAD] {name} : {round(bytes_written / (1024*1024), 2)} Mo écrits"
+                        #         )
+
+        duration = round(time.time() - start_time, 2)
+        size_mo = round(bytes_written / (1024 * 1024), 2)
+
+        loggerApp.info(f"[PJ OK] {name} téléchargé ({size_mo} Mo) en {duration}s → {chemin_fichier}")
+
+        return chemin_fichier
+
+    except requests.exceptions.RequestException as e:
+        loggerORM.error(f"[HTTP ERROR] {name} : {e}")
+
+    except Exception as e:
+        loggerORM.error(f"[ECRITURE PJ] {name} : {e}")
+
+    # nettoyage fichier partiel
+    try:
+        if smbclient.path.exists(chemin_fichier):
+            smbclient.remove(chemin_fichier)
+            loggerApp.warning(f"[CLEANUP] Fichier partiel supprimé : {chemin_fichier}")
+    except Exception:
+        pass
+
+    return None
+
+
 
 
 

@@ -53,10 +53,12 @@
             
             <div class="en_attente_DS">
                 <div class="en_attente_DS_message">
-                    {% if doss_manif_sportive.coeur_de_parc %}
-                        <p>En attente d'un dossier Démarche Numérique</p>
-                    {% else %}
-                        <p>Cette manifestation n'intersecte pas le cœur de parc</p>
+                    {% if not doss_manif_sportive.archive %}
+                        {% if doss_manif_sportive.coeur_de_parc %}
+                            <p>En attente d'un dossier Démarche Numérique</p>
+                        {% else %}
+                            <p>Cette manifestation n'intersecte pas le cœur de parc</p>
+                        {% endif %}
                     {% endif %}
 
                     {% if dossier_dn_meme_numero_deja_lie %}
@@ -86,8 +88,9 @@
 
                 </div>
 
-                <div class="bloc_liaison_ds">
-                    {% if not doss_manif_sportive.archive %}
+                {% if not doss_manif_sportive.archive %}
+                    <div class="bloc_liaison_ds">
+
                         <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
                             Relier à un dossier Démarche Numérique
                         </button>
@@ -122,8 +125,10 @@
                                 </button>
                             </form>
                         </div>
-                    {% endif %}
-                </div>
+                    </div>
+                {% endif %}
+
+                <!-- Faire un bloc du même style 'Relier à un dossier Démarche Numérique déjà traité' -->
             </div>
 
             {% if messages %}
@@ -302,7 +307,42 @@ Le Parc national de La Réunion</textarea>
                 </form>
             </div>
 
+            
 
+            <!---------------------------------------------------->
+            <!-- Les PJ envoyées sur Déclaration Manifestations -->
+            <!---------------------------------------------------->
+
+            <!-- Acte -->
+            {% if actes_deposes_sur_DM %}
+                <div class="validation-documents">
+                    <h2>Acte déposé sur Déclaration Manifestations</h2>
+                    <form method="post" action="#">
+                        {% csrf_token %}
+                        <ul class="doc_deposes_sur_DM">
+                            {% for doc in actes_deposes_sur_DM %}
+                                {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
+                            {% endfor %}
+                        </ul>
+                    </form>
+                </div>
+            {% endif %}
+
+            <!-- Annexes -->
+            {% if annexes_deposees_sur_DM %}
+                <div class="validation-documents">
+                    <h2>Annexes déposées sur Déclaration Manifestations</h2>
+                    <form method="post" action="#">
+                        {% csrf_token %}
+                        <ul class="doc_deposes_sur_DM">
+                            {% for doc in annexes_deposees_sur_DM %}
+                                {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=False %}
+                            {% endfor %}
+                        </ul>
+                    </form>
+                </div>
+            {% endif %}
+             
 
             <h2>Organisateur.trice</h2>
             <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"Non renseigné" }}</p></div>

@@ -12,7 +12,7 @@ from django.contrib import messages
 from autorisations.models.models_instruction import Champ, Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
-from autorisations.models.models_documents import Document, DossierDocument
+from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
 from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
@@ -658,6 +658,23 @@ def dossier_manif_sportive_sans_ds(request, numero):
     actions_possibles = get_actions_possibles_DM(doss_manif_sportive)
 
 
+    # On récupère les actes/annexe déposées sur DM
+    documents_DM = [ d.id_document for d in DossierManifSportiveDocument.objects.filter( id_dossier_manif_sportive=doss_manif_sportive)]
+
+    actes_natures = {"Avis conforme", "Avis simple", "Déliberation CA", "Arrêté directeur",}
+
+    actes_deposes_sur_DM = [
+        doc for doc in documents_DM
+        if doc.id_nature.nature in actes_natures
+    ]
+
+    annexes_deposees_sur_DM = [
+        doc for doc in documents_DM
+        if doc.id_nature.nature == "Annexe instructeur"
+    ]
+
+
+
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
         "pjs_demandeur_DM": pjs_demandeur_DM,
@@ -671,6 +688,8 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "dossier_dn_meme_numero_pas_lie_acte_envoye" : dossier_dn_meme_numero_pas_lie_acte_envoye,
         "dossier_dn_meme_numero_pas_lie_acte_pas_envoye" : dossier_dn_meme_numero_pas_lie_acte_pas_envoye,
         "actions_possibles": actions_possibles,
+        "actes_deposes_sur_DM": actes_deposes_sur_DM,
+        "annexes_deposees_sur_DM": annexes_deposees_sur_DM,
     })
 
 

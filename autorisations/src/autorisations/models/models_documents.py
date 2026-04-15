@@ -176,12 +176,8 @@ class DossierDocument(models.Model):
 
 class DossierManifSportiveDocument(models.Model):
     id = models.AutoField(primary_key=True)
-    id_dossier_manif_sportive = models.ForeignKey(
-        DossierManifSportive, models.CASCADE, db_column='id_dossier_manif_sportive'
-    )
-    id_document = models.ForeignKey(
-        Document, models.CASCADE, db_column='id_document'
-    )
+    id_dossier_manif_sportive = models.ForeignKey(DossierManifSportive, models.CASCADE, db_column='id_dossier_manif_sportive')
+    id_document = models.ForeignKey(Document, models.CASCADE, db_column='id_document')
 
     class Meta:
         managed = False
@@ -202,12 +198,8 @@ class DossierManifSportiveDocument(models.Model):
 
 
 class MessageDocument(models.Model):
-    id_document = models.ForeignKey(
-        Document, models.CASCADE, db_column='id_document'
-    )
-    id_message = models.ForeignKey(
-        Message, models.CASCADE, db_column='id_message'
-    )
+    id_document = models.ForeignKey(Document, models.CASCADE, db_column='id_document')
+    id_message = models.ForeignKey(Message, models.CASCADE, db_column='id_message')
 
     class Meta:
         managed = False
@@ -222,12 +214,8 @@ class MessageDocument(models.Model):
 
 class DossierRelecteurDocument(models.Model):
     id = models.AutoField(primary_key=True)
-    id_dossier_relecteur = models.ForeignKey(
-        DossierRelecteur, models.CASCADE, db_column="id_dossier_relecteur"
-    )
-    id_document = models.ForeignKey(
-        Document, models.CASCADE, db_column="id_document"
-    )
+    id_dossier_relecteur = models.ForeignKey(DossierRelecteur, models.CASCADE, db_column="id_dossier_relecteur")
+    id_document = models.ForeignKey(Document, models.CASCADE, db_column="id_document")
 
     class Meta:
         managed = False
