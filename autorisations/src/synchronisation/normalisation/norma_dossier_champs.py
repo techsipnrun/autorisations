@@ -8,6 +8,7 @@ from synchronisation.utils.fichiers import fetch_geojson, geoareas_to_geojson_te
 from synchronisation.utils.conversion import extraire_nom_et_extension
 
 logger = logging.getLogger('ORM_DJANGO')
+loggerSynchro = logging.getLogger('SYNCHRONISATION')
 def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
 
 

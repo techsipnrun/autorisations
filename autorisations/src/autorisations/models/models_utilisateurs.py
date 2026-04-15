@@ -47,7 +47,7 @@ class TypeContactExterne(models.Model):
 
 class ContactExterne(models.Model):
     id = models.AutoField(primary_key=True)
-    email = models.CharField(blank=False, null=False)
+    email = models.CharField(blank=True, null=True)
     id_type = models.ForeignKey(TypeContactExterne, models.RESTRICT, db_column='id_type')
     nom = models.CharField(blank=True, null=True)
     prenom = models.CharField(blank=True, null=True)

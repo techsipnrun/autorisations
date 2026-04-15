@@ -65,28 +65,22 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
                     safe_enregistrer_action(dossier, instructeur, "Dossier supprimé de Démarche Numérique", request=None)
                
 
-        # nb_desactives = len(numeros_a_desactiver)
-
-        # if nb_desactives > 0:
-        #     apercu = ", ".join(map(str, numeros_a_desactiver[:50]))
-        #     suffixe = " (liste tronquée)" if len(numeros_a_desactiver) > 50 else ""
-        #     logger.info(
-        #         f"<<< {nb_desactives} dossier(s) marqué(s) présent(s) en BDD mais absent(s) de Démarche Numérique : "
-        #         f"{apercu}{suffixe} >>>"
-        #     )
-
 
     for doss in dossiers_list:
 
         id_dossier = sync_doss(doss['dossier'], dico_notifs, doss['dossier_champs'])
         ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
 
-        id_dossier_interlocuteur = sync_dossier_interlocuteur(
-            doss['dossier_interlocuteur'], ids_beneficiaire_intermediaire, id_dossier
-        )
+        id_dossier_interlocuteur = sync_dossier_interlocuteur(doss['dossier_interlocuteur'], ids_beneficiaire_intermediaire, id_dossier)
 
         sync_dossier_beneficiaire(ids_beneficiaire_intermediaire, id_dossier_interlocuteur)
-        sync_dossier_champs(doss['dossier_champs'], id_dossier)
-        sync_dossier_document(doss['dossier_document'], id_dossier)
+
+        try :
+            sync_dossier_champs(doss['dossier_champs'], id_dossier)
+        except Exception as e:
+            logger.error(f"ERROR dans sync_dossier_champs : {e}")
+
+            sync_dossier_document(doss['dossier_document'], id_dossier)
+
         sync_messages(doss['messages'], id_dossier)
         sync_demandes(doss['demandes'], id_dossier)

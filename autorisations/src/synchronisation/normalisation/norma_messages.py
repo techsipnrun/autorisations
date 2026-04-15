@@ -56,7 +56,7 @@ def message_normalize(doss, emplacement_dossier):
                             "id_format": id_format_doc,
                             "id_nature": id_nature_doc,
                             "url_ds": file["url"],
-                            "emplacement": f"{emplacement_dossier}/Annexes/",
+                            "emplacement": f"{emplacement_dossier}Annexes/",
                             "description": f"Pièce jointe dans la messagerie du dossier {doss['number']}",
                             "titre": f"{nom_fichier}.{extension_fichier}",
                         })

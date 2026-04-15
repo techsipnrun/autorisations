@@ -21,7 +21,7 @@ def sync_dossier_document(dossier_document, id_dossier):
     if not dossier_document:
         logger.warning(f"[WARNING] Le résumé PDF du Dossier {id_dossier} est non renseigné")
         return
-
+    
     doc_obj, created = Document.objects.get_or_create(
         id_nature_id=dossier_document["id_nature"],
         numero=dossier_document["numero"],

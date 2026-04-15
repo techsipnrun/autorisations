@@ -493,10 +493,21 @@ document.addEventListener("DOMContentLoaded", () => {
         // --------------------------------------
         // Centrer sur la géométrie pétitionnaire
         // --------------------------------------
-        map.fitBounds(coucheTraces.getBounds(), {
-            maxZoom: 12,
-            padding: [20, 20]
-        });
+        // map.fitBounds(coucheTraces.getBounds(), {
+        //     maxZoom: 12,
+        //     padding: [20, 20]
+        // });
+        const groupeGlobal = L.featureGroup([coucheTraces, couchePoints]);
+        const bounds = groupeGlobal.getBounds();
+
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, {
+                maxZoom: 12,
+                padding: [20, 20]
+            });
+        } else {
+            map.setView([-21.1, 55.5], 10);
+        }
 
     });
 });

@@ -44,6 +44,13 @@ def sync_messages(messages, id_dossier):
         )
 
         if created:
+            """
+            
+            Problème : Si nouveau message avec PJ
+            On créé msg et document (hors document existe peut etre deja, et ici pour le moment on recupère le document existant
+            --> faux notre pj de la messagerie pointera vers un autre doc.)
+            
+            """
             logger.info(f"[CREATE] Message {msg_obj.id_ds} pour Dossier {id_dossier} créé.")
             if message_data["email_emetteur"] == 'contact@demarches-simplifiees.fr' or message_data["email_emetteur"] == 'contact@demarche.numerique.gouv.fr' or 'reunion-parcnational.fr' in message_data["email_emetteur"] :
                 lu = True

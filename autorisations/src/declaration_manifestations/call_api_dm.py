@@ -9,6 +9,7 @@ import smbclient
 
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas
+from instruction.utils.document_utils import normaliser_emplacement
 from synchronisation.utils.conversion import parse_datetime_with_tz
 from synchronisation.utils.model_helpers import update_fields
 
@@ -224,7 +225,7 @@ def recup_pj_dossiers(doss, docs, token, doss_lie):
                 "id_format": id_format,
                 "id_nature": id_nature,
                 "url_dm": url,
-                "emplacement": emplacement_doc,
+                "emplacement": normaliser_emplacement(emplacement_doc),  # important
                 "description": description,
                 "titre": titre,
                 "date": date_televersement,
@@ -268,9 +269,12 @@ def recup_pj_dossiers(doss, docs, token, doss_lie):
                         
                     if date_televersement is None or doc_bdd.date is None or date_televersement <= doc_bdd.date:
                         # Check MAJ Document
+
                         try:
                             updated_fields = update_fields(doc_bdd, fields_to_update, date_fields=["date"])
                             if updated_fields:
+
+
                                 doc_bdd.save(update_fields=updated_fields)
                                 loggerSynchro.info(f"[DOSSIER MANIF SPORTIVE {manif_id}] Document {doc_bdd} mis à jour. Changements: {', '.join(updated_fields)}")
 

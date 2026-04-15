@@ -493,7 +493,7 @@ admin.site.register(DemandeChamp)
 
 @admin.register(DossierChamp)
 class DossierChampAdmin(admin.ModelAdmin):
-    list_display = ('numero_dossier', 'type_champ', 'nom_champ_limite')
+    list_display = ('id', 'numero_dossier', 'type_champ', 'nom_champ_limite')
     search_fields = (
         'id_dossier__numero',
         'id_champ__nom',
@@ -503,6 +503,8 @@ class DossierChampAdmin(admin.ModelAdmin):
         'id_champ__id_champ_type',
     )
     list_per_page = 25
+
+    ordering = ('-id',)
 
     def numero_dossier(self, obj):
         return obj.id_dossier.numero

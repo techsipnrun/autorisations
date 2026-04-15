@@ -23,18 +23,25 @@ def sync_contacts_externes(contacts_externes):
             continue
 
         try:
-            email = data.get("email")
-            # Normalement on recupère TOUJOURS un email
-            if not email :
-                logger.error(f"Erreur lors de la synchronisation du contact externe ({role}) ---> Aucun email n'a été récupéré sur Démarche Numérique")
-                return None
 
             id_type = data["id_type"]
             siret = data.get("siret")
+            nom = data.get("nom")
+            prenom = data.get("prenom")
+            email = data.get("email")
 
-            defaults = {k: v for k, v in [("nom", data.get("nom")), ("prenom", data.get("prenom")),
-                                          ("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
-                                          ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
+            # Normalement on recupère TOUJOURS un email
+            if not email :
+                logger.warning(f"Lors de la synchronisation du contact externe ({role}) ---> Aucun email n'a été récupéré sur Démarche Numérique pour {data.get('nom')} {data.get('prenom')}")
+                # return None
+
+                defaults = {k: v for k, v in [("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
+                                            ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
+
+            else :
+                defaults = {k: v for k, v in [("nom", nom), ("prenom", prenom),
+                                            ("raison_sociale", data.get("raison_sociale")), ("organisation", data.get("organisation")), 
+                                            ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
 
             # logger.info(defaults)
             obj = None
@@ -42,13 +49,24 @@ def sync_contacts_externes(contacts_externes):
 
             if id_type:
 
-                # Clé unique sur id_type, email et siret 
-                obj, created = ContactExterne.objects.get_or_create(
-                    email=email,
-                    id_type_id=id_type,
-                    siret=siret or None,
-                    defaults=defaults
-                )
+                if email :
+                    # Clé unique sur id_type, email et siret 
+                    obj, created = ContactExterne.objects.get_or_create(
+                        email=email,
+                        id_type_id=id_type,
+                        siret=siret or None,
+                        defaults=defaults
+                    )
+                else :
+                    # Clé unique sur id_type, email et siret 
+                    obj, created = ContactExterne.objects.get_or_create(
+                        id_type_id=id_type,
+                        nom=nom or None,
+                        prenom=prenom or None,
+                        siret=siret or None,
+                        defaults=defaults
+                    )
+
 
                 # else :
                 #     obj, created = ContactExterne.objects.get_or_create(
@@ -81,6 +99,10 @@ def sync_contacts_externes(contacts_externes):
                 logger.warning(f"[INTEGRITY ERROR] Échec création ContactExterne {role} : {e} → Fallback trouvé pour {data['email']} (id: {obj.id})")
             else:
                 logger.warning(f"[INTEGRITY ERROR] Échec création ContactExterne {role} : {e} → Aucun fallback trouvé pour {data['email']}")
+
+        except Exception as e :
+            logger.error(f"{e}")
+
 
         result_ids[role] = obj.id
 

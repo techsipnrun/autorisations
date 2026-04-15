@@ -6,6 +6,7 @@ from typing import Optional
 import unicodedata
 import smbclient
 from smbprotocol import exceptions as smb_exceptions
+from pathlib import Path
 
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -124,7 +125,7 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
 
 
 
-def write_pj(emplacement, name, url_pj):
+def write_pj(emplacement, name, url_pj, ecrase = False):
     """
     Télécharge une pièce jointe depuis une URL et l’enregistre dans le dossier demandé.
 
@@ -145,7 +146,7 @@ def write_pj(emplacement, name, url_pj):
     # loggerApp.info(f"chemin_fichier : {chemin_fichier}")
 
     try:
-        if smbclient.path.exists(chemin_fichier):
+        if smbclient.path.exists(chemin_fichier) and not ecrase:
             # loggerApp.warning(f"safe_name : {safe_name}  --- chemin_fichier : {chemin_fichier}")
             loggerApp.error(f"[FICHIER EXISTANT] La pièce jointe {chemin_fichier} existe déjà. Aucune écriture effectuée.")
             return
@@ -451,3 +452,99 @@ def nettoyer_nom_fichier(nom_dossier):
 
     # Mettre en minuscule
     return nom.lower()
+
+
+
+def rendre_titres_uniques(documents):
+    """
+    Garantit l’unicité des titres de documents en ajoutant un suffixe si nécessaire.
+
+    Principe :
+    - Le premier titre rencontré est conservé tel quel.
+    - Si un titre est déjà utilisé, on ajoute un suffixe du type : __copie01, __copie02, etc.
+
+    Exemple :
+        BILAN.pdf
+        BILAN.pdf       → BILAN__copie01.pdf
+        BILAN.pdf       → BILAN__copie02.pdf
+
+    Args:
+        documents (list[dict]): liste de dictionnaires contenant au minimum la clé "titre"
+
+    Returns:
+        list[dict]: la liste modifiée (modification en place des titres)
+    """
+
+    # Ensemble des titres déjà attribués pour éviter les doublons
+    titres_deja_pris = set()
+
+    # Parcours des documents dans l’ordre
+    for doc in documents:
+
+        # Récupération et nettoyage du titre
+        titre_original = (doc.get("titre") or "").strip()
+
+        # Si pas de titre → on ignore
+        if not titre_original:
+            continue
+
+        path = Path(titre_original)
+        base = path.stem
+        extension = path.suffix
+
+        # Candidat initial = titre d’origine
+        candidat = titre_original
+
+        # Compteur pour générer les suffixes __copieXX
+        compteur = 1
+
+        # Tant que le titre existe déjà, on génère un nouveau nom
+        while candidat in titres_deja_pris:
+            candidat = f"{base}__copie{compteur:02d}{extension}"
+            compteur += 1
+
+        doc["titre"] = candidat
+        titres_deja_pris.add(candidat)
+
+    return documents
+
+
+
+def rendre_titre_unique_dans_liste(titre: str, titres_existants: list[str]) -> str:
+    """
+    Retourne un titre unique en normalisant les suffixes __copieXX.
+
+    Exemple :
+        "xx.pdf" -> "xx__copie01.pdf"
+        "xx__copie01.pdf" -> "xx__copie02.pdf"
+
+    Args:
+        titre (str): titre à vérifier
+        titres_existants (list[str]): liste des titres déjà utilisés
+
+    Returns:
+        str: titre unique
+    """
+    titre = (titre or "").strip()
+    if not titre:
+        return titre
+
+    titres_deja_pris = {t.strip() for t in titres_existants if t and t.strip()}
+
+    path = Path(titre)
+    base = path.stem
+    extension = path.suffix
+
+    # Regex pour enlever un éventuel suffixe __copieXX
+    base_sans_copie = re.sub(r"__copie\d{2}$", "", base)
+
+    # Si le titre original n'existe pas, on le garde
+    if titre not in titres_deja_pris:
+        return titre
+
+    compteur = 1
+    while True:
+        candidat = f"{base_sans_copie}__copie{compteur:02d}{extension}"
+        if candidat not in titres_deja_pris:
+            return candidat
+        compteur += 1

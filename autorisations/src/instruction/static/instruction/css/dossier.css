@@ -712,7 +712,7 @@ h2 {
     min-width: 0;
     padding: 1rem;
     font-size: clamp(0.9rem, 0.8vw, 1.2rem);
-    overflow: hidden;
+    /* overflow: hidden; */
     text-overflow: ellipsis;
     white-space: nowrap;
     transition: background-color 0.3s ease;
