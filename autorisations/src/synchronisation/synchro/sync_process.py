@@ -25,7 +25,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
     if os.getenv("SYNCHRO_DM", "false") == "True" :
         
         t_dm = time.perf_counter()
-        if demarche_obj.type.lower() == 'manifestations sportives':
+        if demarche_obj.type.lower() == 'manifestations sportives' and dico["manif_sportives"] :
 
             try:
                 logger.info(f"------ SYNCHRONISATION Déclaration Manifestations ------")

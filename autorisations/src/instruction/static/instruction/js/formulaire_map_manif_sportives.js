@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     cartes.forEach((div) => {
-        // console.info(`Nombre de cartes : ${cartes.length}`);
+
         const data = div.dataset.geojson;
 
         // ---------------------------------
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------------------------------
         // Initialisation de la carte Leaflet
         // ---------------------------------
-        const map = L.map(div).setView([-21.1, 55.5], 10);
+        const map = L.map(div).setView([-21.1, 55.5], 11);
 
         // Attacher l’instance Leaflet au <div> DOM (pour le téléchargement pdf)
         div._leaflet_map = map;
@@ -668,16 +668,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // (helper) fitBounds sur les courses visibles
         function fitToVisibleCourses() {
-        const visibleGroups = [];
-        layersByCourse.forEach((g) => { if (map.hasLayer(g)) visibleGroups.push(g); });
+            const visibleGroups = [];
+            layersByCourse.forEach((g) => { if (map.hasLayer(g)) visibleGroups.push(g); });
 
-        if (visibleGroups.length === 0) return;
+            if (visibleGroups.length === 0) return;
 
-        const all = L.featureGroup(visibleGroups);
-        const b = all.getBounds();
-        if (b.isValid()) {
-            map.fitBounds(b, { padding: [20, 20], maxZoom: 12 });
-        }
+            const all = L.featureGroup(visibleGroups);
+            const b = all.getBounds();
+            if (b.isValid()) {
+                map.fitBounds(b, { padding: [20, 20], maxZoom: 15 });
+            }
         }
 
         // 5) Remplir la liste de checkboxes
@@ -822,9 +822,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Centrer sur la géométrie pétitionnaire
         // --------------------------------------
         map.fitBounds(allCoursesGroup.getBounds(), {
-            maxZoom: 12,
-            padding: [20, 20]
+            maxZoom: 15, padding: [20, 20]
         });
+
 
     });
 });

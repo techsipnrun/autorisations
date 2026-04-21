@@ -5,7 +5,7 @@ import logging
 from django.utils import timezone
 
 from django.shortcuts import redirect
-from autorisations.models.models_instruction import ActionsPossibles, Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, Message, SynchronisationEtat
+from autorisations.models.models_instruction import ActionsPossibles, AvisManifSportive, Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, Message, SynchronisationEtat
 from django.contrib import messages
 
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur
@@ -853,3 +853,80 @@ def actualisation_demarche_est_bloquee(demarche, delai_minutes=30):
         return True
 
     return timezone.now() - demarche.actualisation_date > timedelta(minutes=delai_minutes)
+
+
+
+
+
+def check_si_on_casse_liaison_dm(dossier:Dossier, dossier_dm:DossierManifSportive, liaison:DossierManifestationLiaison, logger):
+    """
+    Vérifie si la liaison entre un Dossier et un DossierManifSportive doit être cassée.
+
+    Règles métier :
+    - Le traitement ne s'applique que si le dossier n'est plus présent sur DN (dossier.present_sur_ds == False).
+    - Si un avis a déjà été rendu sur DM (AvisManifSportive.date_reponse non nulle), on ne fait rien.
+    - Si aucun avis n'a encore été rendu sur DM : 
+        on vérifie que dossier_dm.archive == False ;
+        on supprime la DossierManifestationLiaison entre les deux dossiers.
+
+    Args:
+        dossier (Dossier)
+        dossier_dm (DossierManifSportive)
+
+    Returns:
+        bool:
+            - True si la liaison a été supprimée,
+            - False sinon.
+    """
+
+    if not dossier or not dossier_dm:
+        logger.error(f"[DOSSIER {dossier_numero} SUPPRIMÉ DE DN] check_si_on_casse_liaison_dm appelée avec un objet dossier ou dossier_dm manquant.")
+        return False
+    
+    if not liaison:
+        logger.warning(f"[DOSSIER {dossier_numero} SUPPRIMÉ DE DN] Aucune liaison DM trouvée à supprimer avec le dossier DM {dossier_dm_numero}.")
+        return False
+    
+
+    dossier_numero = dossier.numero
+    dossier_dm_numero = dossier_dm.numero_dossier_declaration_manifestations
+
+    etape_dossier = dossier.id_etape_dossier.etape
+
+    # Récupération de l'avis DM
+    avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
+    avis_dm_numero = avis_dm.id_avis_manif_sportive
+
+    # ----------------------
+    # AVIS DEJA RENDU SUR DM
+    # ----------------------
+    if avis_dm and avis_dm.date_reponse is not None:
+        logger.info(f"[DOSSIER {dossier_numero} SUPPRIMÉ DE DN] Liaison DM conservée avec le dossier DM {dossier_dm_numero} : "
+                    f"Avis DM {avis_dm_numero} a déjà été rendu le {avis_dm.date_reponse}.")
+        return False
+    
+    # ----------------------
+    # AVIS NON RENDU SUR DM
+    # ----------------------
+    etapes_bloquantes = ["Accepté", "Refusé", "Non soumis", "À publier au RAA"]
+    if etape_dossier in etapes_bloquantes:
+        logger.warning(
+            f"[DOSSIER {dossier_numero} SUPPRIMÉ DE DN] Rupture de liaison DM alors que le dossier est à l'étape "
+            f"'{etape_dossier}'. Or, l'avis DM {avis_dm_numero} n'a pas encore été déposé (Dossier DM {dossier_dm_numero}, archive={dossier_dm.archive})."
+        )
+
+    # Vérification archive
+    if dossier_dm.archive:
+        logger.warning(
+            f"[DOSSIER {dossier_numero} SUPPRIMÉ DE DN] Avis DM {avis_dm_numero} non rendu, or le dossier DM {dossier_dm_numero} "
+            f"est archivé (archive=True). On remet archive à False avant de supprimer la liaison."
+        )
+        dossier_dm.archive = False
+        dossier_dm.save()
+ 
+    
+    # Suppression de la liaison
+    liaison.delete()
+    logger.info(f"[DOSSIER {dossier_numero} SUPPRIMÉ DE DN] Liaison DM supprimée (dossier DM {dossier_dm_numero})")
+
+    return True

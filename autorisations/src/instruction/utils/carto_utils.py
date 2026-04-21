@@ -16,8 +16,6 @@ def intersecte_coeur_de_parc(geometrie_dm, coeur_geojson):
         geom_dm = _geojson_to_shapely(geometrie_dm)
         geom_coeur = _geojson_to_shapely(coeur_geojson)
 
-        print(geom_coeur)
-
         if geom_dm is None or geom_coeur is None:
             return False
 

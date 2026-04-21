@@ -6,7 +6,7 @@
          title="Télécharger le document">
 
         <span class="doc-titre-no-download">
-            {% if doc.id_nature.nature == "Annexe instructeur" %}
+            {% if doc.id_nature.nature == "Annexe instructeur" or doc.id_nature.nature == "Annexe instructeur DM" %}
                 Annexe
             {% else %}
                 {{ doc.id_nature.nature }}

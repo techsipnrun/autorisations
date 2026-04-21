@@ -1,8 +1,8 @@
 import logging
 
-from autorisations.models.models_instruction import Dossier
+from autorisations.models.models_instruction import Dossier, DossierManifestationLiaison
 from autorisations.models.models_utilisateurs import Instructeur
-from instruction.utils.dossier_utils import safe_enregistrer_action
+from instruction.utils.dossier_utils import check_si_on_casse_liaison_dm, safe_enregistrer_action
 from .sync_dossier import sync_doss
 from .sync_contacts_externes import sync_contacts_externes
 from .sync_dossier_interlocuteur import sync_dossier_interlocuteur
@@ -63,6 +63,19 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
                 # On enregistre l'action
                 if instructeur:
                     safe_enregistrer_action(dossier, instructeur, "Dossier supprimé de Démarche Numérique", request=None)
+
+      
+                # -----------------------------------------------------------------------
+                # DOSSIER DN SUPPRIMÉ : ON REGARDE SI ON CASSE LA LIAISON (MANIF SPORTIVE)
+                # -----------------------------------------------------------------------
+
+                liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+                if liaison_dossDN :
+                    dossier_dm = liaison_dossDN.id_dossier_manif
+                    try :
+                        check_si_on_casse_liaison_dm(dossier, dossier_dm, liaison_dossDN, logger)
+                    except Exception as e :
+                        logger.warning(f"[DOSSIER {dossier.numero} SUPPRIMÉ DE DN] Erreur lors de la tentative de suppression de la DossierManifestationLiaison. On continue la synchro.")
                
 
 

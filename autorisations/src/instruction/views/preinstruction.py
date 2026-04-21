@@ -15,6 +15,7 @@ from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
+from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
@@ -359,7 +360,8 @@ def preinstruction_dossier(request, numero):
     ####################################
     doss_manif_sportive = None
     avis_manif_sportive = None
-    pjs_demandeur_DM = None
+    docs_DM = {}
+    # pjs_demandeur_DM = None
     liaison = None
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
@@ -368,9 +370,12 @@ def preinstruction_dossier(request, numero):
 
             # Récupération de l'avis lié (OneToOne → un seul)
             avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+            
+            # Récupération des PJ sur DM + emplacement NAS
+            docs_DM = documents_deposes_sur_DM(doss_manif_sportive)
 
             # Les PJ du demandeur sur Déclaration Manifestations
-            pjs_demandeur_DM = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive)
+            # pjs_demandeur_DM = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive, id_nature__nature="Pièce jointe demandeur")
 
 
     ###############################
@@ -414,7 +419,7 @@ def preinstruction_dossier(request, numero):
                         else:
                             dossier_dm_meme_numero_pas_lie_acte_pas_archive = dossier_dm_meme_numero
 
-
+    
     dossiers_DM_manif_sportive_non_lie_en_reception = (
         DossierManifSportive.objects
         .filter(
@@ -444,7 +449,8 @@ def preinstruction_dossier(request, numero):
         "champs": champs_prepares,
         "doss_manif_sportive": doss_manif_sportive,
         "avis_manif_sportive": avis_manif_sportive,
-        "pjs_demandeur_DM": pjs_demandeur_DM,
+        # "pjs_demandeur_DM": pjs_demandeur_DM,
+        **docs_DM,
         "notes": notes,
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
@@ -485,6 +491,7 @@ def preinstruction_dossier(request, numero):
         "is_messagerie_active": False,
         "preinstruction_message": request.session.pop("preinstruction_message", None),
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
+        "now": timezone.now(),
     })
 
 
@@ -567,192 +574,208 @@ def changer_groupe_instructeur(request):
 
 
 
-@login_required
-def dossier_manif_sportive_sans_ds(request, numero):
-    """
-    Affichage en Reception des Dossiers DM (qui ne sont pas liés à un Dossier DN)
-    """
+# @login_required
+# def dossier_manif_sportive_sans_ds(request, numero):
+#     """
+#     Affichage en Reception des Dossiers DM (qui ne sont pas liés à un Dossier DN)
+#     """
 
-    doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
+#     doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
 
-     # Récupération de l'avis lié (OneToOne → un seul)
-    try:
-        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
-    except Exception:
-        avis_manif_sportive = None  # Aucun avis encore associé
+#      # Récupération de l'avis lié (OneToOne → un seul)
+#     try:
+#         avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+#     except Exception:
+#         avis_manif_sportive = None  # Aucun avis encore associé
 
-    # Charger le fond de carte GeoJSON (une seule fois)
-    fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
-    with open(fond_coeur_de_parc, encoding="utf-8") as f:
-        fond_coeur_de_parc = json.load(f)
+#     # Charger le fond de carte GeoJSON (une seule fois)
+#     fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+#     with open(fond_coeur_de_parc, encoding="utf-8") as f:
+#         fond_coeur_de_parc = json.load(f)
 
-    fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
-    with open(fond_aire_adhesion, encoding="utf-8") as f:
-        fond_aire_adhesion = json.load(f)
+#     fond_aire_adhesion = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/aire_adhesion.geojson")
+#     with open(fond_aire_adhesion, encoding="utf-8") as f:
+#         fond_aire_adhesion = json.load(f)
 
-    pois_json = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/pois.json")
-    with open(pois_json, encoding="utf-8") as f:
-        pois_json = json.load(f)
+#     pois_json = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/pois.json")
+#     with open(pois_json, encoding="utf-8") as f:
+#         pois_json = json.load(f)
 
-    # Les PJ du demandeur sur Déclaration Manifestations
-    pjs_demandeur_DM = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive)
+#     # Les PJ du demandeur sur Déclaration Manifestations
+#     pjs_demandeur_DM = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive)
 
 
-    # -------------------------------------------------------------------
-    # CLASSIFICATION DES DOSSIERS DN (lié/pas lié, acte envoyé/pas envoyé)
-    # -------------------------------------------------------------------
-    dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
+#     # -------------------------------------------------------------------
+#     # CLASSIFICATION DES DOSSIERS DN (lié/pas lié, acte envoyé/pas envoyé)
+#     # -------------------------------------------------------------------
+#     dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
 
-    etapes_avec_acte_deja_envoye = ["À publier au RAA", "Non soumis à autorisation", "Refusé", "Accepté",]
+#     etapes_avec_acte_deja_envoye = ["À publier au RAA", "Non soumis à autorisation", "Refusé", "Accepté",]
     
-    dossiers_DN_manif_sportive_non_lie = (
-        Dossier.objects
-        .filter(id_demarche__type="Manifestations sportives", date_depot__gte=timezone.now() - timedelta(days=365))
-        .exclude(id__in=dossiers_deja_lies_ids)
-        .exclude(id_etape_dossier__etape__in=etapes_avec_acte_deja_envoye)
-        .select_related("id_demarche", "id_etape_dossier")
-        .order_by("date_depot")
-    )
-
-    for d in dossiers_DN_manif_sportive_non_lie :
-        champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
-        d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+#     # DOSSIER DN PAS ARCHIVÉ, PAS LIÉ
+#     dossiers_DN_manif_sportive_non_lie = (
+#         Dossier.objects
+#         .filter(id_demarche__type="Manifestations sportives", date_depot__gte=timezone.now() - timedelta(days=365))
+#         .exclude(id__in=dossiers_deja_lies_ids)
+#         .exclude(id_etape_dossier__etape__in=etapes_avec_acte_deja_envoye)
+#         .select_related("id_demarche", "id_etape_dossier")
+#         .order_by("date_depot")
+#     )
+#     for d in dossiers_DN_manif_sportive_non_lie :
+#         champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
+#         d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
     
-    champ_num_dm = Champ.objects.get(nom="Numéro du dossier sur la plateforme déclaration-manifestations")
 
-    dossier_dn_meme_numero = (
-        Dossier.objects
-        .filter(
-            id_demarche__type="Manifestations sportives",
-            dossierchamp__id_champ=champ_num_dm,
-            dossierchamp__valeur=str(doss_manif_sportive.numero_dossier_declaration_manifestations),
-        )
-        .select_related("id_etape_dossier")
-        .distinct()
-        .first()
-    )
-
-    dossier_dn_meme_numero_deja_lie = None
-    dossier_dn_meme_numero_pas_lie_acte_envoye = None
-    dossier_dn_meme_numero_pas_lie_acte_pas_envoye = None
-
-    if dossier_dn_meme_numero:
-        est_deja_lie = DossierManifestationLiaison.objects.filter(id_dossier=dossier_dn_meme_numero).exists()
-
-        if est_deja_lie:
-            dossier_dn_meme_numero_deja_lie = dossier_dn_meme_numero
-        else:
-            if dossier_dn_meme_numero.id_etape_dossier.etape in etapes_avec_acte_deja_envoye:
-                dossier_dn_meme_numero_pas_lie_acte_envoye = dossier_dn_meme_numero
-            else:
-                dossier_dn_meme_numero_pas_lie_acte_pas_envoye = dossier_dn_meme_numero
-
-
-    # On récupère le path du Dossier
-    chemin_complet = doss_manif_sportive.emplacement
-    if not chemin_complet.startswith(os.getenv('NAS_ROOT')):
-        chemin_complet = os.path.join(os.getenv('NAS_ROOT'), chemin_complet)
-    chemin_complet = _normalize_unc_path(chemin_complet)
-
-    # Actions possibles
-    actions_possibles = get_actions_possibles_DM(doss_manif_sportive)
-
-
-    # On récupère les actes/annexe déposées sur DM
-    documents_DM = [ d.id_document for d in DossierManifSportiveDocument.objects.filter( id_dossier_manif_sportive=doss_manif_sportive)]
-
-    actes_natures = {"Avis conforme", "Avis simple", "Déliberation CA", "Arrêté directeur",}
-
-    actes_deposes_sur_DM = [
-        doc for doc in documents_DM
-        if doc.id_nature.nature in actes_natures
-    ]
-
-    annexes_deposees_sur_DM = [
-        doc for doc in documents_DM
-        if doc.id_nature.nature == "Annexe instructeur"
-    ]
+#     # DOSSIER DN ARCHIVÉ, PAS LIÉ
+#     dossiers_DN_archive_manif_sportive_non_lie = (
+#         Dossier.objects
+#         .filter(id_demarche__type="Manifestations sportives", date_depot__gte=timezone.now() - timedelta(days=365), id_etape_dossier__etape__in=etapes_avec_acte_deja_envoye)
+#         .exclude(id__in=dossiers_deja_lies_ids)
+#         .select_related("id_demarche", "id_etape_dossier")
+#         .order_by("date_depot")
+#     )
+#     for d in dossiers_DN_archive_manif_sportive_non_lie :
+#         champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
+#         d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
 
 
 
-    return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
-        "doss_manif_sportive": doss_manif_sportive,
-        "pjs_demandeur_DM": pjs_demandeur_DM,
-        "avis_manif_sportive": avis_manif_sportive,
-        "coeurData": fond_coeur_de_parc,
-        "adhesionData": fond_aire_adhesion,
-        "pois_json": pois_json,
-        "dossiers_DN_manif_sportive_non_lie": dossiers_DN_manif_sportive_non_lie,
-        "chemin_complet": chemin_complet,
-        "dossier_dn_meme_numero_deja_lie" : dossier_dn_meme_numero_deja_lie,
-        "dossier_dn_meme_numero_pas_lie_acte_envoye" : dossier_dn_meme_numero_pas_lie_acte_envoye,
-        "dossier_dn_meme_numero_pas_lie_acte_pas_envoye" : dossier_dn_meme_numero_pas_lie_acte_pas_envoye,
-        "actions_possibles": actions_possibles,
-        "actes_deposes_sur_DM": actes_deposes_sur_DM,
-        "annexes_deposees_sur_DM": annexes_deposees_sur_DM,
-    })
+#     champ_num_dm = Champ.objects.get(nom="Numéro du dossier sur la plateforme déclaration-manifestations")
+
+#     dossier_dn_meme_numero = (
+#         Dossier.objects
+#         .filter(
+#             id_demarche__type="Manifestations sportives",
+#             dossierchamp__id_champ=champ_num_dm,
+#             dossierchamp__valeur=str(doss_manif_sportive.numero_dossier_declaration_manifestations),
+#         )
+#         .select_related("id_etape_dossier")
+#         .distinct()
+#         .first()
+#     )
+
+#     dossier_dn_meme_numero_deja_lie = None
+#     dossier_dn_meme_numero_pas_lie_acte_envoye = None
+#     dossier_dn_meme_numero_pas_lie_acte_pas_envoye = None
+
+#     if dossier_dn_meme_numero:
+#         est_deja_lie = DossierManifestationLiaison.objects.filter(id_dossier=dossier_dn_meme_numero).exists()
+
+#         if est_deja_lie:
+#             dossier_dn_meme_numero_deja_lie = dossier_dn_meme_numero
+#         else:
+#             if dossier_dn_meme_numero.id_etape_dossier.etape in etapes_avec_acte_deja_envoye:
+#                 dossier_dn_meme_numero_pas_lie_acte_envoye = dossier_dn_meme_numero
+#             else:
+#                 dossier_dn_meme_numero_pas_lie_acte_pas_envoye = dossier_dn_meme_numero
+
+
+#     # On récupère le path du Dossier
+#     chemin_complet = doss_manif_sportive.emplacement
+#     if not chemin_complet.startswith(os.getenv('NAS_ROOT')):
+#         chemin_complet = os.path.join(os.getenv('NAS_ROOT'), chemin_complet)
+#     chemin_complet = _normalize_unc_path(chemin_complet)
+
+#     # Actions possibles
+#     actions_possibles = get_actions_possibles_DM(doss_manif_sportive)
+
+
+#     # On récupère les actes/annexe déposées sur DM
+#     documents_DM = [ d.id_document for d in DossierManifSportiveDocument.objects.filter( id_dossier_manif_sportive=doss_manif_sportive)]
+
+#     actes_natures = {"Avis conforme", "Avis simple", "Déliberation CA", "Arrêté directeur",}
+
+#     actes_deposes_sur_DM = [
+#         doc for doc in documents_DM
+#         if doc.id_nature.nature in actes_natures
+#     ]
+
+#     annexes_deposees_sur_DM = [
+#         doc for doc in documents_DM
+#         if doc.id_nature.nature == "Annexe instructeur"
+#     ]
+
+
+
+#     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
+#         "doss_manif_sportive": doss_manif_sportive,
+#         "pjs_demandeur_DM": pjs_demandeur_DM,
+#         "avis_manif_sportive": avis_manif_sportive,
+#         "coeurData": fond_coeur_de_parc,
+#         "adhesionData": fond_aire_adhesion,
+#         "pois_json": pois_json,
+#         "dossiers_DN_manif_sportive_non_lie": dossiers_DN_manif_sportive_non_lie,
+#         "dossiers_DN_archive_manif_sportive_non_lie": dossiers_DN_archive_manif_sportive_non_lie,
+#         "chemin_complet": chemin_complet,
+#         "dossier_dn_meme_numero_deja_lie" : dossier_dn_meme_numero_deja_lie,
+#         "dossier_dn_meme_numero_pas_lie_acte_envoye" : dossier_dn_meme_numero_pas_lie_acte_envoye,
+#         "dossier_dn_meme_numero_pas_lie_acte_pas_envoye" : dossier_dn_meme_numero_pas_lie_acte_pas_envoye,
+#         "actions_possibles": actions_possibles,
+#         "actes_deposes_sur_DM": actes_deposes_sur_DM,
+#         "annexes_deposees_sur_DM": annexes_deposees_sur_DM,
+#     })
 
 
 
 
-@login_required
-@require_POST
-def lier_dossier_manif_sportive_a_DN(request):
-    """
-    Lier manuellement un Dossier DM à un Dossier DN
-    """
+# @login_required
+# @require_POST
+# def lier_dossier_manif_sportive_a_DN(request):
+#     """
+#     Lier manuellement un Dossier DM à un Dossier DN
+#     """
     
-    id_dossier_dm = request.POST.get("id_dossier_dm")
-    id_dossier_dn = request.POST.get("id_dossier_dn")
+#     id_dossier_dm = request.POST.get("id_dossier_dm")
+#     id_dossier_dn = request.POST.get("id_dossier_dn")
 
-    # ---------------------------------------------------------
-    # Liaison faite depuis un Dossier Déclaration Manifestations
-    # ---------------------------------------------------------
-    if id_dossier_dm :
-        # --- Récupération du dossier DM ---
-        dossier_manif = get_object_or_404(DossierManifSportive, id=id_dossier_dm)
-        # --- Récupération du dossier DN sélectionné ---
-        id_dossier_dn = request.POST.get("dossier_dn_id")
+#     # ---------------------------------------------------------
+#     # Liaison faite depuis un Dossier Déclaration Manifestations
+#     # ---------------------------------------------------------
+#     if id_dossier_dm :
+#         # --- Récupération du dossier DM ---
+#         dossier_manif = get_object_or_404(DossierManifSportive, id=id_dossier_dm)
+#         # --- Récupération du dossier DN sélectionné ---
+#         id_dossier_dn = request.POST.get("dossier_dn_id")
 
-        if not id_dossier_dn :
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+#         if not id_dossier_dn :
+#             return redirect(request.META.get("HTTP_REFERER", "/"))
         
-        dossier_dn = get_object_or_404(Dossier, id=id_dossier_dn)
+#         dossier_dn = get_object_or_404(Dossier, id=id_dossier_dn)
 
     
-    # ------------------------------------------------------
-    # Liaison faite depuis un Dossier Démarche Numérique
-    # ------------------------------------------------------
-    elif id_dossier_dn :
-        # --- Récupération du dossier DM ---
-        id_dossier_dm = request.POST.get("dossier_dm_id")
-        # --- Récupération du dossier DN sélectionné ---
-        dossier_dn= get_object_or_404(Dossier, id=id_dossier_dn)
+#     # ------------------------------------------------------
+#     # Liaison faite depuis un Dossier Démarche Numérique
+#     # ------------------------------------------------------
+#     elif id_dossier_dn :
+#         # --- Récupération du dossier DM ---
+#         id_dossier_dm = request.POST.get("dossier_dm_id")
+#         # --- Récupération du dossier DN sélectionné ---
+#         dossier_dn= get_object_or_404(Dossier, id=id_dossier_dn)
 
-        if not id_dossier_dm:
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+#         if not id_dossier_dm:
+#             return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        dossier_manif = get_object_or_404(DossierManifSportive, id=id_dossier_dm)
-
-
-    else :
-        logger.error((f"[RECEPTION] User {request.user} : Tentative de liaison manuelle échouée (Manifestations Sportives). La vue lier_dossier_manif_sportive_a_DN a été appelée sans fournir l'id du Dossier ou l'id du DossierManifSportive"))
-        return redirect_error(request, f"Erreur lors de la liaison entre les deux dossiers. Contactez le support.")
-
-    # --- Sécurité : vérifier que Dossier DN "Manifestations sportives" + "À affecter" ---
-    if (dossier_dn.id_demarche.type != "Manifestations sportives" or dossier_dn.id_etape_dossier.etape != "À affecter"):
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+#         dossier_manif = get_object_or_404(DossierManifSportive, id=id_dossier_dm)
 
 
-    # --- Création liaison + Déplacement/Suppression des fichiers (0 - En attente d'un dossier Démarche Numérique) ---
-    logger.info(f"[RECEPTION] User {request.user} : Tentative de liaison manuelle entre le Dossier DM {dossier_manif.numero_dossier_declaration_manifestations} et le Dossier DN  {dossier_dn.numero} ({dossier_manif.nom_dossier})")
-    success = lier_dossier_dm_au_dossier_dn(dossier_manif, dossier_dn, dossier_dn.emplacement, logger)
+#     else :
+#         logger.error((f"[RECEPTION] User {request.user} : Tentative de liaison manuelle échouée (Manifestations Sportives). La vue lier_dossier_manif_sportive_a_DN a été appelée sans fournir l'id du Dossier ou l'id du DossierManifSportive"))
+#         return redirect_error(request, f"Erreur lors de la liaison entre les deux dossiers. Contactez le support.")
 
-    if not success :
-        return redirect_error(request, f"Erreur lors de la liaison entre les deux dossiers. Contactez le support.")
+#     # --- Sécurité : vérifier que Dossier DN "Manifestations sportives" + "À affecter" ---
+#     if (dossier_dn.id_demarche.type != "Manifestations sportives" or dossier_dn.id_etape_dossier.etape != "À affecter"):
+#         return redirect(request.META.get("HTTP_REFERER", "/"))
 
-    # logger.info(f"[RECEPTION] User {request.user} : Liaison manuelle créée entre le Dossier DM {dossier_manif.numero_dossier_declaration_manifestations} et le Dossier DN  {dossier_dn.numero} ({dossier_manif.nom_dossier})")
 
-    # --- Redirection ---
-    messages.info(request, f"Liaison créée entre le dossier Déclaration Manifestations {dossier_manif.numero_dossier_declaration_manifestations} et le dossier Démarche Numérique {dossier_dn.numero} ")
-    return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier_dn.numero}))
+#     # --- Création liaison + Déplacement/Suppression des fichiers (0 - En attente d'un dossier Démarche Numérique) ---
+#     logger.info(f"[RECEPTION] User {request.user} : Tentative de liaison manuelle entre le Dossier DM {dossier_manif.numero_dossier_declaration_manifestations} et le Dossier DN  {dossier_dn.numero} ({dossier_manif.nom_dossier})")
+#     success = lier_dossier_dm_au_dossier_dn(dossier_manif, dossier_dn, dossier_dn.emplacement, logger)
+
+#     if not success :
+#         return redirect_error(request, f"Erreur lors de la liaison entre les deux dossiers. Contactez le support.")
+
+#     # logger.info(f"[RECEPTION] User {request.user} : Liaison manuelle créée entre le Dossier DM {dossier_manif.numero_dossier_declaration_manifestations} et le Dossier DN  {dossier_dn.numero} ({dossier_manif.nom_dossier})")
+
+#     # --- Redirection ---
+#     messages.info(request, f"Liaison créée entre le dossier Déclaration Manifestations {dossier_manif.numero_dossier_declaration_manifestations} et le dossier Démarche Numérique {dossier_dn.numero} ")
+#     return redirect(reverse("preinstruction_dossier", kwargs={"numero": dossier_dn.numero}))

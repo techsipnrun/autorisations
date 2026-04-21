@@ -23,13 +23,122 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     
 </head>
 <body>
 
     <div class="page-container">
         <div class="formulaire">
-            <div class="titre-manif"><h1>Dossier Déclaration Manifestations : {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</h1></div>
+
+            <!-- Copier le chemin d'accès du dossier -->
+            <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet_DM }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+                <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+            </button>
+
+
+            <div class="titre-manif">
+                <h1>
+                    Dossier Déclaration Manifestations n° {{ doss_manif_sportive.numero_dossier_declaration_manifestations }} - {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}
+                </h1>
+            </div>
+
+            <!-- Etape du dossier DM -->
+            {% if doss_manif_sportive.archive %}
+                <div class="etat-badge-container">
+                    <div class="etat-badge-menu-dropdown">
+
+                        <div class="etat-badge-label" id="etapeMenuToggle">
+                            {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
+                        </div>
+    
+                    </div>
+                </div>
+            {% endif %}
+
+
+            <!----------------------->
+            <!-- Ajouter PJ sur DM -->
+            <!----------------------->
+            {% if doss_manif_sportive.archive and doss_manif_sportive.date_fin_evenement and doss_manif_sportive.date_fin_evenement > now %}
+                
+                <button type="button" class="btn_ajouter_pj_DM" onclick="afficherFormulaireDeposerPJ_DeclarationManifestations()">
+                    <img src="{% static 'instruction/img/trombone.png' %}" alt="PJ" class="annexe-icon">
+                    <span>Déposer des pièces jointes sur Déclaration Manifestations</span>
+                </button>
+
+            {% endif %}
+            
+
+            <!--------------------------------------------------------------------->
+            <!-- Zone masquée pour déposer des PJ sur Déclaration Manifestations -->
+            <!--------------------------------------------------------------------->
+            <div id="formulaire-deposer-pj-dm" class="zone-complement zone-envoyer-pour-validation">
+                <form id="form-deposer-pj-dm" method="post" enctype="multipart/form-data" action="{% url 'ajouter_annexe_sur_DM' id_dm=doss_manif_sportive.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+
+                    <h2>Déposer des pièces jointes sur Déclaration Manifestations</h2>
+
+                    <!-- <div class="zone-pj-complement">
+                        <label for="acte-dm">Joindre un acte :</label>
+                        <input type="file" id="acte-dm" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p> -->
+
+                    <div class="zone-pj-complement">
+                        <label for="files-dm">Joindre une ou plusieurs annexes :</label>
+                        <input type="file" id="files-dm" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx" required>
+                    </div>
+
+                    <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
+
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerDeposer_PJ_DM(this)">Confirmer</button>
+                    </div>
+
+                </form>
+            </div>
+
+
+
+
+            <!---------------------------------------------------->
+            <!-- Les PJ envoyées sur Déclaration Manifestations -->
+            <!---------------------------------------------------->
+
+            <!-- Acte -->
+            {% if actes_deposes_sur_DM %}
+                <div class="validation-documents liste_docs_dm">
+                    <h2>Acte déposé sur Déclaration Manifestations</h2>
+                    <form method="post" action="#">
+                        {% csrf_token %}
+                        <ul class="doc_deposes_sur_DM">
+                            {% for doc in actes_deposes_sur_DM %}
+                                {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
+                            {% endfor %}
+                        </ul>
+                    </form>
+                </div>
+            {% endif %}
+
+            <!-- Annexes -->
+            {% if annexes_deposees_sur_DM %}
+                <div class="validation-documents liste_docs_dm">
+                    <h2>Annexes déposées sur Déclaration Manifestations</h2>
+                    <form method="post" action="#">
+                        {% csrf_token %}
+                        <ul class="doc_deposes_sur_DM">
+                            {% for doc in annexes_deposees_sur_DM %}
+                                {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=False %}
+                            {% endfor %}
+                        </ul>
+                    </form>
+                </div>
+            {% endif %}
+
 
             <h2>Organisateur.trice</h2>
             <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"Non renseigné" }}</p></div>
@@ -158,20 +267,44 @@
         </div>
     </div>
 
+    <script>
+        function confirmerDeposer_PJ_DM(button) {
+            const form = document.getElementById("form-deposer-pj-dm");
+            // const acteInput = document.getElementById("acte-dm");
+            const filesInput = document.getElementById("files-dm");
 
-    <!-- 1. Données JSON pour le fond de carte -->
-    <!-- {{ coeurData|json_script:"fond-data" }}
-    {{ adhesionData|json_script:"adhesion-data" }} -->
+            if (!form || !filesInput) {
+                alert("Erreur : formulaire de dépôt introuvable.");
+                return;
+            }
 
-    <!-- 2. Variables globales accessibles à ton JS -->
-    <!-- <script> 
-        window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
-        window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
-    </script> -->
 
-    <!-- 3. Script Leaflet personnalisé -->
-    <!-- <script src="{% static 'instruction/js/formulaire_map.js' %}"></script> -->
-  
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+
+            const confirmation = confirm(
+                "Confirmez-vous le dépôt des pièces jointes sur Déclaration Manifestations ?"
+            );
+            if (!confirmation) {
+                return;
+            }
+
+
+            const boutons = form.querySelectorAll('button, input[type="submit"]');
+            boutons.forEach(btn => {
+                btn.disabled = true;
+            });
+
+            if (button) {
+                button.innerText = "Traitement en cours...";
+            }
+
+            form.submit();
+        }
+    </script>
 
 </body>
 </html>

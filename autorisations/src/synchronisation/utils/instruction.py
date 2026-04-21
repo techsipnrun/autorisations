@@ -391,3 +391,56 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement, logger_ar
     except Exception as e:
         logger_arg.exception(f"[LIAISON DM/DN] Erreur lors de la liaison du dossier DM {getattr(dossier_dm, 'pk', '?')} avec le dossier DN {getattr(dossier_dn, 'pk', '?')} : {e}")
         return False
+    
+
+
+def archive_lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, logger_arg):
+    """
+    Crée une liaison DossierManifSportive <=> Dossier,
+
+    Args:
+        dossier_dm: instance DossierManifSportive
+        dossier_dn: instance Dossier
+        logger_arg: logger
+
+
+    Returns: True si OK, False si Erreur
+    """
+
+    docs_deplaces = 0
+
+    try:
+        with transaction.atomic():
+            # Verrouille les lignes si besoin de robustesse en concurrence
+            dossier_dn = Dossier.objects.select_for_update().get(pk=dossier_dn.pk)
+            dossier_dm = DossierManifSportive.objects.select_for_update().get(pk=dossier_dm.pk)
+
+            num_DM = dossier_dm.numero_dossier_declaration_manifestations
+            num_DN = dossier_dn.numero
+
+
+            # Vérification si des liaisons existent
+            liaison_existe_dossDM = DossierManifestationLiaison.objects.filter(id_dossier_manif=dossier_dm).exists()
+            liaison_existe_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier_dn).exists()
+            
+
+            if liaison_existe_dossDM :
+                logger_arg.warning(f"Échec de la création de la Liaison Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier}). Le Dossier DM est déjà lié à un autre dossier DN.")
+                return False
+            
+            elif liaison_existe_dossDN :
+                logger_arg.warning(f"Échec de la création de la Liaison Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier}). Le Dossier DN est déjà lié à un autre dossier DN.")
+                return False
+            
+            else :
+                liaison = DossierManifestationLiaison.objects.create(id_dossier_manif=dossier_dm, id_dossier=dossier_dn)
+                logger_arg.info(f"[CREATE LIAISON] Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier})")
+                # Nom + parlant = Nom de la manif
+                dossier_dn.nom_dossier_plus_parlant = dossier_dm.nom_dossier
+                dossier_dn.save()
+
+        return True
+    
+    except Exception as e :
+        logger_arg.error(f"[LIAISON DM/DN] Erreur lors de la liaison du dossier DM {getattr(dossier_dm, 'pk', '?')} avec le dossier DN {getattr(dossier_dn, 'pk', '?')} : {e}")
+        return False

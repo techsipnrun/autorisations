@@ -79,12 +79,43 @@
             
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
+
+                <!-- DOSSIER Manif Sportive, absent de DN, lié -->
+                {% if dossier.id_demarche.type == "Manifestations sportives" and not dossier.present_sur_ds and dossier_lie_manif_sportive and avis_manif_sportive and doss_manif_sportive %}
+                    <!-- Dossier DN : Acte pas encore envoyé -->
+                    {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                        
+                        {% if avis_manif_sportive.date_reponse %}
+                            <div class="en_attente_DS">
+                                <div class="en_attente_DS_message"> 
+                                    <p class="message_info_liaison">
+                                        Le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_deja_lie.numero_dossier_declaration_manifestations}} 
+                                        ne sera pas impacté par l'archivage puisqu'un avis a déjà été rendu sur la plateforme.
+                                    </p>
+                                </div>
+                            </div>
+                        {% else %}
+
+                            <div class="en_attente_DS">
+                                <div class="en_attente_DS_message"> 
+                                    <p class="message_info_liaison">
+                                        Aucun avis n'a été rendu pour le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_deja_lie.numero_dossier_declaration_manifestations}}.
+                                        Hors le dossier Démarche Numérique {{dossier.numero}} a été supprimé par le demandeur.
+                                        Si vous archivez le dossier, aucun avis ne sera rendu sur Déclaration Manifestations, contactez le support.
+                                    </p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+
+                <!-- DOSSIER Manif Sportive, présent sur DN, non lié -->
                 {% if dossier.id_demarche.type == "Manifestations sportives" and dossier.present_sur_ds and not dossier_lie_manif_sportive %}
                     <div class="en_attente_DS">
                         <div class="en_attente_DS_message">
                             <p>En attente d'un dossier Déclaration Manifestations</p>
 
-                            <!-- dossier_dm_meme_numero_deja_lie -->
+                            <!-- Si Dossier DM déjà lié -->
                             {% if dossier_dm_meme_numero_deja_lie %}
                                 <p class="message_info_liaison">
                                     Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_deja_lie.numero_dossier_declaration_manifestations}} existe, mais celui-ci est déjà lié 
@@ -92,7 +123,7 @@
                                 </p>
                             {% endif %}
 
-                            <!-- dossier_dm_meme_numero_pas_lie_archive -->
+                            <!-- Si Dossier DM pas lié mais archivé -->
                             {% if dossier_dm_meme_numero_pas_lie_archive %}
                                 <p class="message_info_liaison">
                                     Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_archive.numero_dossier_declaration_manifestations}} existe, 
@@ -101,7 +132,7 @@
                                 </p>
                             {% endif %}
 
-                            <!-- dossier_dm_meme_numero_pas_lie_acte_pas_archive -->
+                            <!-- Si Dossier DM pas lié et pas archivé -->
                             {% if dossier_dm_meme_numero_pas_lie_acte_pas_archive %}
                                 <p class="message_info_liaison">
                                     Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_acte_pas_archive.numero_dossier_declaration_manifestations}} existe. 
@@ -167,6 +198,17 @@
                     <h1> Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
                 {% endif %}
 
+                {% if messages %}
+                    <div class="django-messages">
+                        {% for message in messages %}
+                            <div class="message {{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+
                 {% if not dossier.present_sur_ds %}
                     <p class="info-message">⚠️ Ce dossier n'est plus sur Démarche Numérique
 
@@ -191,6 +233,10 @@
 
                                         {% if actions_possibles %}
                                             {% for label in actions_possibles %}
+
+                                            <!-- ============================================= -->
+                                            <!-- SI DOSSIER DM LIÉ : IL FAUT PRENDRE EN COMPTE -->
+                                            <!-- ============================================= -->
 
                                                 {% if label == "Archiver le dossier comme non soumis à autorisation" %}
                                                     {% if not dossier.present_sur_ds %}
@@ -562,15 +608,6 @@
                     </div>
                 </div>
 
-                {% if messages %}
-                    <div class="django-messages">
-                        {% for message in messages %}
-                            <div class="message {{ message.tags }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
                 
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
@@ -753,7 +790,7 @@
         </div>
 
         {% if doss_manif_sportive %}
-            {% include "dossier_manif_sportive.html" with doss_manif_sportive=doss_manif_sportive pjs_demandeur_DM=pjs_demandeur_DM %}
+            {% include "dossier_manif_sportive.html" %}
         {% endif %}
 
     </div>
@@ -778,7 +815,10 @@
 <script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
 
 <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
-<script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
+
+{% if doss_manif_sportive %}
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
+{% endif %}
 
     
 <!----------- Emplacements des docs du dossier ------------->
@@ -834,50 +874,5 @@
     }
 </script>
 
-
-<!-- Menu déroulant pour relier 2 Dossiers (DM - DN) -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const toggleBtn = document.getElementById("toggle-liaison-ds");
-        const formBloc = document.getElementById("form-liaison-ds");
-
-        if (!toggleBtn || !formBloc) return;
-
-        // Ouvrir / fermer avec le bouton
-        toggleBtn.addEventListener("click", function (e) {
-            e.stopPropagation(); // empêche fermeture immédiate
-            formBloc.classList.toggle("open");
-        });
-
-        // Empêche fermeture quand on clique DANS le menu
-        formBloc.addEventListener("click", function (e) {
-            e.stopPropagation();
-        });
-
-        // Fermer si clic ailleurs
-        document.addEventListener("click", function () {
-            formBloc.classList.remove("open");
-        });
-    });
-</script>
-
-<!-- POP UP de confirmation pour la création d'une liaison -->
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const formLiaison = document.getElementById("form-liaison-manif-dn");
-
-        if (!formLiaison) return;
-
-        formLiaison.addEventListener("submit", function (e) {
-            const confirmation = confirm(
-                "Êtes-vous sûr de vouloir lier ces deux dossiers ?\n\nCette action sera irréversible."
-            );
-
-            if (!confirmation) {
-                e.preventDefault();
-            }
-        });
-    });
-</script>
 
 </html>

@@ -454,3 +454,89 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+
+
+// ------------------------------------------------------------------
+// --------------------- RELIER DOSSIER DM et DN --------------------
+// ------------------------------------------------------------------
+// Menu déroulant pour relier 2 Dossiers (DM - DN)
+document.addEventListener("DOMContentLoaded", function () {
+    const toggleBtn = document.getElementById("toggle-liaison-ds");
+    const formBloc = document.getElementById("form-liaison-ds");
+
+    if (!toggleBtn || !formBloc) return;
+
+    // Ouvrir / fermer avec le bouton
+    toggleBtn.addEventListener("click", function (e) {
+        e.stopPropagation(); // empêche fermeture immédiate
+        formBloc.classList.toggle("open");
+    });
+
+    // Empêche fermeture quand on clique DANS le menu
+    formBloc.addEventListener("click", function (e) {
+        e.stopPropagation();
+    });
+
+    // Fermer si clic ailleurs
+    document.addEventListener("click", function () {
+        formBloc.classList.remove("open");
+    });
+});
+
+
+// POP UP de confirmation pour la création d'une liaison
+document.addEventListener("DOMContentLoaded", function () {
+    const formLiaison = document.getElementById("form-liaison-manif-dn");
+
+    if (!formLiaison) return;
+
+    formLiaison.addEventListener("submit", function (e) {
+        const confirmation = confirm(
+            "Êtes-vous sûr de vouloir lier ces deux dossiers ?\n\nCette action sera irréversible."
+        );
+
+        if (!confirmation) {
+            e.preventDefault();
+        }
+    });
+});
+
+
+// ------------------------------------------------------------------
+// ------------------------ AJOUTER PJ SUR DM -----------------------
+// ------------------------------------------------------------------
+
+function masquerToutesZonesComplementaires() {
+    const zones = document.querySelectorAll(".zone-complement");
+    zones.forEach(zone => zone.classList.remove("show"));
+}
+
+function fermerMenuEtape() {
+    const menuContent = document.getElementById("etapeMenuContent");
+    const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
+
+    if (menuContent && menuWrapper) {
+        menuContent.classList.remove("show");
+        menuWrapper.classList.remove("open");
+        menuWrapper.style.marginBottom = "";
+    }
+}
+
+function afficherFormulaireDeposerPJ_DeclarationManifestations() {
+    const formulaire = document.getElementById("formulaire-deposer-pj-dm");
+
+    if (formulaire.classList.contains("show")) {
+        // Déjà ouvert → on ferme
+        formulaire.classList.remove("show");
+    } else {
+        // Fermé → on ouvre
+        masquerToutesZonesComplementaires();
+        formulaire.classList.add("show");
+        fermerMenuEtape();
+    }
+}
+
+
+
+
+

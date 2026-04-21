@@ -16,6 +16,10 @@
     margin: 0;
 }
 
+
+
+
+
 .formulaire_dm {
     position: relative;
     /* flex: 1 1 70%; */
@@ -63,8 +67,10 @@
 }
 
 
-
-
+/* Listes annexes - actes déposés*/
+.liste_docs_dm{
+    margin-top: 2rem;
+}
 
 
 
@@ -414,7 +420,7 @@
 
 .zone-envoyer-pour-validation label {
     font-weight: bold;
-    margin-top: 1rem;
+    /* margin-top: 1rem;  ca decalle instruction */
 }
 
 .zone-envoyer-pour-validation select {
@@ -447,17 +453,26 @@
   margin: 2rem 0 1rem 0;
 }
 
-.zone-complement h2 {
+/* .zone-complement h2 {
   margin: 0;
-}
+} */
 
 .zone-pj-complement {
     display: flex;
-    align-items: left;
+    align-items: start;
     flex-direction: column;
     margin-top: 1rem;
     gap: 1rem;
 }
 
+
+.info_accepte_refuse_dm_reception {
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+#dossier_dn_accepte_id {
+  margin-left: 0;
+}
 
 

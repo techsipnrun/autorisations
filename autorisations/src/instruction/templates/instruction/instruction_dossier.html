@@ -100,6 +100,137 @@
             <!-- Colonne gauche : formulaire -->
             <div class="formulaire">
                 
+                <!-- DOSSIER Manif Sportive, absent de DN, lié -->
+                {% if dossier.id_demarche.type == "Manifestations sportives" and not dossier.present_sur_ds and dossier_lie_manif_sportive and avis_manif_sportive and doss_manif_sportive %}
+                    <!-- Dossier DN : Acte pas encore envoyé -->
+                    {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                        
+                        {% if avis_manif_sportive.date_reponse %}
+                            <div class="en_attente_DS">
+                                <div class="en_attente_DS_message"> 
+                                    <p class="message_info_liaison">
+                                        Le dossier Déclaration Manifestations N°{{doss_manif_sportive.numero_dossier_declaration_manifestations}} 
+                                        ne sera pas impacté par l'archivage puisqu'un avis a déjà été rendu sur la plateforme.
+                                    </p>
+                                </div>
+                            </div>
+                        {% else %}
+
+                            <div class="en_attente_DS">
+                                <div class="en_attente_DS_message"> 
+                                    <p class="message_info_liaison">
+                                        Aucun avis n'a été rendu pour le dossier Déclaration Manifestations N°{{doss_manif_sportive.numero_dossier_declaration_manifestations}}.
+                                        Hors le dossier Démarche Numérique {{dossier.numero}} a été supprimé par le demandeur.
+                                        Si vous archivez le dossier, aucun avis ne sera rendu sur Déclaration Manifestations, contactez le support.
+                                    </p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+
+                <!-- DOSSIER Manif Sportive, présent sur DN, non lié -->
+                {% if dossier.id_demarche.type == "Manifestations sportives" and dossier.present_sur_ds and not dossier_lie_manif_sportive %}
+                    <div class="en_attente_DS">
+                        <div class="en_attente_DS_message">
+
+                            <!-- Si Dossier DM déjà lié -->
+                            {% if dossier_dm_meme_numero_deja_lie %}
+                                <p class="message_info_liaison">
+                                    Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_deja_lie.numero_dossier_declaration_manifestations}} existe, mais celui-ci est déjà lié 
+                                    à une autre dossier Démarche Numérique. Si cela pose problème, contactez le support.
+                                </p>
+                            {% endif %}
+
+                            <!-- Si Dossier DM pas lié mais archivé -->                         
+                            {% if dossier_dm_meme_numero_pas_lie_archive %}
+
+                                <!-- Dossier DN : Acte pas encore envoyé -->
+                                {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                                    <p class="message_info_liaison">
+                                        Pour information, le dossier archivé Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_archive.numero_dossier_declaration_manifestations}} existe, 
+                                        mais un avis a déjà été rendu sur la plateforme. Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver ce dossier 
+                                        Démarche Numérique N°{{dossier.numero}}.
+                                    </p>
+
+                                <!-- Dossier DN : Archivé ou Acte déjà envoyé -->
+                                {% else %}
+                                    <p class="message_info_liaison">
+                                        Pour information, le dossier archivé Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_acte_pas_archive.numero_dossier_declaration_manifestations}} existe. 
+                                        Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
+                                    </p>
+                                {% endif %}
+
+                            {% endif %}
+
+                            <!-- Si Dossier DM pas lié et pas archivé -->
+                            {% if dossier_dm_meme_numero_pas_lie_acte_pas_archive %}
+
+                                <!-- Dossier DN : Acte pas encore envoyé -->
+                                {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                                    <p class="message_info_liaison">
+                                        Pour information, le dossier archivé Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_acte_pas_archive.numero_dossier_declaration_manifestations}} existe. 
+                                        Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
+                                    </p>
+
+                                <!-- Dossier DN : Archivé ou Acte déjà envoyé -->
+                                {% else %}
+                                    <p class="message_info_liaison">
+                                        Pour information, le dossier Déclaration Manifestations N°{{dossier_dm_meme_numero_pas_lie_acte_pas_archive.numero_dossier_declaration_manifestations}} existe. 
+                                        Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver le dossier sur Déclaration Manifestations.
+                                    </p>
+                                {% endif %}
+
+                            {% endif %}
+
+                        </div>
+
+                        {% if dossier.id_etape_dossier.etape == "Accepté" or dossier.id_etape_dossier.etape == "Refusé" or dossier.id_etape_dossier.etape == "Non soumis à autorisation" or dossier.id_etape_dossier.etape == "À publier au RAA" %}
+                                 
+                            <div class="bloc_liaison_ds">
+                                <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
+                                    Relier à un dossier Déclaration Manifestations archivé
+                                </button>
+
+                                <div class="form-liaison-ds" id="form-liaison-ds">
+                                    <form method="post" id="form-liaison-manif-dn" action="{% url 'lier_dossier_archive_manif_sportive_a_DN'%}">
+                                        {% csrf_token %}
+
+                                        <!-- <input type="hidden" name="id_dossier_dm" value=None> -->
+                                        <input type="hidden" name="id_dossier_dn" value="{{ dossier.id }}">
+
+                                        <p class="info_liaison">
+                                            Dans certains cas, la liaison entre un dossier Déclaration Manifestations et un dossier Démarche Numérique peut ne pas se faire toute seule. 
+                                            <br><br>
+                                            C'est par exemple le cas si en remplissant son formulaire Démarche Numérique, le pétitionnaire s'est trompé en renseignant son "numéro de dossier Déclaration Manifestations". 
+                                            <br><br>
+                                            Dans ce cas là, vous devez relier ces deux dossiers manuellement.
+                                        </p>
+
+                                        <label for="dossier_dm_id">Choisir un dossier DM archivé</label>
+                                        <select name="dossier_dm_id" id="dossier_dm_id" required>
+                                            <option value="" selected disabled>-- Sélectionner un dossier --</option>
+                                            {% for dossier in dossiers_DM_manif_sportive_non_lie_archive %}
+                                                <option value="{{ dossier.id }}">
+                                                    {{ dossier.numero_dossier_declaration_manifestations }} — {{ dossier.nom_dossier }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+
+                                        <button type="submit" class="btn-valider-liaison">
+                                            Confirmer la liaison
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endif %}
+                    
+                    </div>
+                {% endif %}
+
+
+
+                
                 <!-- Copier le chemin d'accès du dossier -->
                 <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
                     <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
@@ -205,6 +336,11 @@
                                             {% elif label == "Archiver le dossier comme non soumis à autorisation" %}
                                                 {% if dossier.present_sur_ds %}
                                                     <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
+                                                
+                                                <!-- Cas ou Doss plus sur DN mais encore sur DM et avis pas donné -->
+                                                {% elif dossier_lie_manif_sportive and doss_manif_sportive and not doss_manif_sportive.archive %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
+
                                                 {% else %}
                                                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement-2">
                                                         {% csrf_token %}
@@ -213,6 +349,7 @@
                                                     </form>
                                                 {% endif %}
                                             
+
                                             {% elif label == "Archiver le dossier comme refusé" %}
 
                                                 {% if etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "refuse" %}
@@ -273,7 +410,7 @@
                     {% endif %}
 
                     <!-- Lien DM -->
-                    {% if demarche.type|lower == "manifestations sportives" %}
+                    {% if demarche.type|lower == "manifestations sportives" and dossier_lie_manif_sportive %}
                         <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
                             <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                                 alt="Visualiser le dossier sur Déclaration manifestations"
@@ -772,7 +909,41 @@ Le délai d’instruction ne commencera qu’à la date de réception par le Par
                     <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
+                        
+                        <!---------------->
+                        <!-- PRESENT DN -->
+                        <!---------------->
+                        {% if dossier.present_sur_ds %}
+
+                            <!-- Lié à un dossier DM -->
+                            {% if dossier_lie_manif_sportive and doss_manif_sportive %}
+
+                                <!-- Dossier DM archivé -->
+                                {% if doss_manif_sportive.archive %}
+                                    <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique. 
+                                        Aucune mise à jour ne sera faite sur Déclaration Manifestations car un avis a déjà été rendu.
+                                    </p> <br>
+                                <!-- Dossier DM pas encore archivé -->
+                                {% else %}
+                                    <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique et Déclaration Manifestations.</p> <br>
+                                {% endif %}
+
+                            {% else %}
+                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
+                            {% endif %}
+
+                        <!--------------->
+                        <!-- ABSENT DN -->
+                        <!--------------->
+                        {% else %}
+
+                            <!-- PRESENT DM (NON ARCHIVÉ) -->
+                            {% if dossier_lie_manif_sportive and doss_manif_sportive and not doss_manif_sportive.archive %}
+                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Déclaration Manifestations.</p> <br>
+                            {% endif %}
+                        {% endif %}
+
+
                         <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
 
 [Préciser les raisons].</textarea>
@@ -2360,8 +2531,9 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
         <!-- ############################# FORMULAIRE MANIF SPORTIVES ############################# -->
         {% if doss_manif_sportive %}
-            {% include "dossier_manif_sportive.html" with doss_manif_sportive=doss_manif_sportive %}
+            {% include "dossier_manif_sportive.html" %}
         {% endif %}
+
         
     </div>
 

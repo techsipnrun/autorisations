@@ -234,7 +234,12 @@ def est_autorise_a_changer_etape(user, dossier):
     # On vérifie si l'instructeur connecté à le droit de changer l'étape du dossier
     etape_du_doss = dossier.id_etape_dossier.etape
 
-    if etape_du_doss in ["Non soumis à autorisation", "Refusé", "Accepté", "En instruction", "En pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"] :
+    if etape_du_doss in ["Non soumis à autorisation", "Refusé", "Accepté"] :
+        valideurs = set(DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True))
+        instructeurs_du_doss = set(DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True))
+        instructeurs = valideurs | instructeurs_du_doss
+
+    elif etape_du_doss in ["En instruction", "En pré-instruction", "En attente réponse d'avis", "En attente de compléments", "Avis à envoyer"] :
         instructeurs = DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True)
 
     elif etape_du_doss in ["À valider avant signature", "À valider avant demande d'avis"] :

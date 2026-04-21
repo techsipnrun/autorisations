@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path
-from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert, synchro
+from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert, synchro, declaration_manifestations
 from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
@@ -36,7 +36,6 @@ urlpatterns = [
     path("instruction/supprimer_avis", avis.supprimer_avis, name="supprimer_avis"),
     path("instruction/envoyer_message_avis/", avis.envoyer_message_avis, name="envoyer_message_avis"),
     path('message/<int:id>/supprimer_message_avis/', messagerie.supprimer_message_avis, name='supprimer_message_avis'),
-    # path("avis/<int:avis_id>/supprimer-doc/<str:champ>/", avis.supprimer_document_avis, name="supprimer_document_avis"),
     path("avis/remplacer_document_avis/", avis.remplacer_document_avis, name="remplacer_document_avis"),
 
 
@@ -59,7 +58,6 @@ urlpatterns = [
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
     path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
-    # path('passer-en-instruction/', preinstruction.passer_en_instruction, name='passer_en_instruction'),
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
     path('changer-relecteur/', views.changer_relecteur, name='changer_relecteur'),
@@ -68,9 +66,6 @@ urlpatterns = [
     path('changer_publieur_raa/', views.changer_publieur_raa, name='changer_publieur_raa'),
     path("instruction/dossier-precedent/<int:num_dossier_precedent>/", views.rediriger_vers_dossier_precedent, name="rediriger_vers_dossier_precedent"),
     path("instruction/<int:num_dossier>/nom-plus-parlant/", views.update_nom_plus_parlant, name="dossier_update_nom_plus_parlant"),
-    path('instruction/declaration_manifestations/<int:numero>/', preinstruction.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds_archive'),
-
-    
     
     path("instruction/ajouter-relecteur/", instruction.ajouter_relecteur_dossier, name="ajouter_relecteur_dossier"),
     path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),
@@ -78,6 +73,7 @@ urlpatterns = [
     path("email/<int:email_id>/preview/", messagerie.previsualiser_email, name="preview_email"),
     path("email/<int:email_id>/envoyer/", messagerie.envoyer_mail_en_copie, name="envoyer_mail_en_copie"),
     path("email/<int:email_id>/supprimer/", messagerie.supprimer_mail, name="supprimer_mail"),
+
 
     # MES DOSSIERS
     path('', instruction.mesdossiers, name='mesdossiers_view'),
@@ -89,8 +85,7 @@ urlpatterns = [
     path('preinstruction/<int:numero>/', preinstruction.preinstruction_dossier, name='preinstruction_dossier'),
     path('preinstruction/<int:numero>/messagerie', messagerie.preinstruction_dossier_messagerie, name='preinstruction_dossier_messagerie'),
     path('preinstruction/<int:numero>/messagerie/envoyer/', messagerie.envoyer_message_dossier, name='envoyer_message_dossier'),
-    path('preinstruction/declaration_manifestations/<int:numero>/', preinstruction.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
-    path("manif-sportive/lier-dn/",preinstruction.lier_dossier_manif_sportive_a_DN,name="lier_dossier_manif_sportive_a_DN"),
+    
 
     # ACTUALISATION
     path("actualiser/", synchro.actualiser_donnees, name="actualiser_donnees"),
@@ -117,11 +112,9 @@ urlpatterns = [
     # ANNEXE, NOTE, RELECTURE
     path('ajouter_annexe/<int:dossier_id>/', views.ajouter_annexe_dossier, name='ajouter_annexe_dossier'),
     path('supprimer_annexe/', views.supprimer_annexe_instructeur, name='supprimer_annexe_instructeur'),
-    # path("annexe/<path:chemin>", views.afficher_annexe, name="afficher_annexe"),
     path('annexe/<path:chemin>/<str:titre>/', views.afficher_annexe, name='afficher_annexe'),
     path('instruction/note/', instruction.sauvegarder_note_dossier, name='sauvegarder_note_dossier'),
     path('instruction/supprimer_note/', instruction.supprimer_note_dossier, name='supprimer_note_dossier'),
-    # path("instruction/relecture/", instruction.mettre_a_jour_relecture, name="mettre_a_jour_relecture"),
         
     
     # REQUÊTES
@@ -157,9 +150,17 @@ urlpatterns = [
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
 
-    path("changer-etape/accepte-declaration-manifestations/", changement_etape.declaration_manifestations_accepter, name="declaration_manifestations_accepter_url"),
-    path("changer-etape/refuse-declaration-manifestations/", changement_etape.declaration_manifestations_refuser, name="declaration_manifestations_refuser_url"),
-    path("changer-etape/non-soumis-declaration-manifestations/", changement_etape.declaration_manifestations_non_soumis, name="declaration_manifestations_non_soumis_url"),
-    path("changer-etape/non-repondu-declaration-manifestations/", changement_etape.declaration_manifestations_non_repondu, name="declaration_manifestations_non_repondu_url"),
+
+    # MANIF SPORTIVE
+    path('preinstruction/declaration_manifestations/<int:numero>/', declaration_manifestations.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
+    path("manif-sportive/lier-dn/",declaration_manifestations.lier_dossier_manif_sportive_a_DN,name="lier_dossier_manif_sportive_a_DN"),
+    path("changer-etape/accepte-declaration-manifestations/", declaration_manifestations.declaration_manifestations_accepter, name="declaration_manifestations_accepter_url"),
+    path("changer-etape/refuse-declaration-manifestations/", declaration_manifestations.declaration_manifestations_refuser, name="declaration_manifestations_refuser_url"),
+    path("changer-etape/non-soumis-declaration-manifestations/", declaration_manifestations.declaration_manifestations_non_soumis, name="declaration_manifestations_non_soumis_url"),
+    path("changer-etape/non-repondu-declaration-manifestations/", declaration_manifestations.declaration_manifestations_non_repondu, name="declaration_manifestations_non_repondu_url"),
+    path('instruction/declaration_manifestations/<int:numero>/', declaration_manifestations.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds_archive'),
+    path("manif-sportive/lier-dn-archive/",declaration_manifestations.archive_lier_dossier_manif_sportive_a_DN, name="lier_dossier_archive_manif_sportive_a_DN"),
+    path("manif-sportive/ajouter_annexe/<int:id_dm>/", declaration_manifestations.ajouter_annexe_sur_DM, name="ajouter_annexe_sur_DM"),
+
 
 ]

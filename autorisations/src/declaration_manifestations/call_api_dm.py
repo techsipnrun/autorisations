@@ -58,9 +58,16 @@ def recup_avis_et_dossiers():
     #     )
     # ]
 
+    """
+    avant : 103791, 99265, 105963, 109421, 109834
 
-    # Filtre pour le dev
-    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [103791, 99265, 105963, 109421, 109834] )]  # 105963, 99265, 109421, 109834
+    # FILTRE AVIS POUR LE DEV
+    108034, 114426, 98151, 101156, 112748, 116432, 113846
+
+    905129, 950865, 916809, 942445, 942560, 960095, 942823
+    """
+    
+    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108034, 114426, 98151, 101156, 112748, 116432, 113846] )]   #905129, 950865, 916809, 942445, 942560, 960095, 942823
 
 
 
@@ -68,51 +75,52 @@ def recup_avis_et_dossiers():
     loggerSynchro.info(f"{len(avis_filtres)} avis récupéré(s) après filtre sur Déclaration manifestations")
 
     loggerDM.info(f"On récupère les dossiers en cours, de ces avis non rendus.")
-    for avis in avis_filtres:
+    if avis_filtres :
+        for avis in avis_filtres:
 
-        manif_id = avis["manif_id"]
-        date_demande = avis.get("date_demande", "")
+            manif_id = avis["manif_id"]
+            date_demande = avis.get("date_demande", "")
 
 
-        dossier = get_dossier_by_id(token, manif_id)
+            dossier = get_dossier_by_id(token, manif_id)
 
-        if dossier:
-            if "description" in dossier and dossier["description"]:
-                dossier["description"] = dossier["description"].replace("\n", " ").replace("\r", "") 
-            
-            if dossier["pk"] not in unique_numeros:
-
-                unique_numeros.append(dossier["pk"])
-                # On récupère le geojson
-                geojson = get_geojson(token, manif_id)
-
-                # Formattage du geojson
-                if geojson :
-                    geojson = formattage_geojson(geojson)
-                    dossier["geometrie"] = geojson
-                else :
-                    loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier['nom']} ({dossier['pk']}) : Geojson vide")
-                    dossier["geometrie"] = None
-
-                # # Récupération des pjs
-                # dossier["liste_pj"] = get_pj_dossier(token, manif_id)
-
-                # Log si : date du jour > date de fin de la manif  ET  etat dossier != annulée
-                date_fin_evenement =  parse_datetime_with_tz(dossier.get("date_fin"))
-                etat_dossier = dossier.get("etat")
+            if dossier:
+                if "description" in dossier and dossier["description"]:
+                    dossier["description"] = dossier["description"].replace("\n", " ").replace("\r", "") 
                 
-                if (date_fin_evenement and date_fin_evenement < timezone.now() and (timezone.now() - date_fin_evenement) < timedelta(days=100) and etat_dossier != "annulée") :
-                    nom_dossier = dossier.get("nom")
-                    numero_dossier_declaration_manifestations = dossier.get("pk")
+                if dossier["pk"] not in unique_numeros:
 
-                    loggerSynchro.warning(f"Récupération infos sur Déclaration manifestations : Dossier {numero_dossier_declaration_manifestations} " +
-                        f"({nom_dossier}) n'a aucun avis rendu, or le dossier est toujours en cours sur DM et la manifestation est déjà passée ({date_fin_evenement})."
-                    )
+                    unique_numeros.append(dossier["pk"])
+                    # On récupère le geojson
+                    geojson = get_geojson(token, manif_id)
 
-                dossiers.append(dossier)
+                    # Formattage du geojson
+                    if geojson :
+                        geojson = formattage_geojson(geojson)
+                        dossier["geometrie"] = geojson
+                    else :
+                        loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier['nom']} ({dossier['pk']}) : Geojson vide")
+                        dossier["geometrie"] = None
 
-            else :
-                loggerDM.warning(f"Le dossier {dossier['nom']} ({dossier['pk']}) est en double sur Déclaration Manifestations")
+                    # # Récupération des pjs
+                    # dossier["liste_pj"] = get_pj_dossier(token, manif_id)
+
+                    # Log si : date du jour > date de fin de la manif  ET  etat dossier != annulée
+                    date_fin_evenement =  parse_datetime_with_tz(dossier.get("date_fin"))
+                    etat_dossier = dossier.get("etat")
+                    
+                    if (date_fin_evenement and date_fin_evenement < timezone.now() and (timezone.now() - date_fin_evenement) < timedelta(days=100) and etat_dossier != "annulée") :
+                        nom_dossier = dossier.get("nom")
+                        numero_dossier_declaration_manifestations = dossier.get("pk")
+
+                        loggerSynchro.warning(f"Récupération infos sur Déclaration manifestations : Dossier {numero_dossier_declaration_manifestations} " +
+                            f"({nom_dossier}) n'a aucun avis rendu, or le dossier est toujours en cours sur DM et la manifestation est déjà passée ({date_fin_evenement})."
+                        )
+
+                    dossiers.append(dossier)
+
+                else :
+                    loggerDM.warning(f"Le dossier {dossier['nom']} ({dossier['pk']}) est en double sur Déclaration Manifestations")
     
 
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
@@ -121,7 +129,7 @@ def recup_avis_et_dossiers():
     """
     ---------------------------------
     plutot que retoruner 'avis_filtres', ce serait mieux de retourner tous les avis de la dernière année par exemple, 
-    afin d'etre bien raccord en BDD pour les AvisManifSportive.
+    afin d'etre bien raccord en BDD pour les AvisManifSportive. ?
     ---------------------------------
     """
     return dossiers, avis_filtres

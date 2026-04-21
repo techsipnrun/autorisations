@@ -21,7 +21,7 @@ from autorisations.models.models_utilisateurs import Instructeur
 
 
 from declaration_manifestations.call_api_dm import recup_un_seul_dossier
-from instruction.utils.dossier_utils import actualisation_demarche_est_bloquee, actualisation_dossier_est_bloquee, clear_etat_actualisation_demarche, clear_etat_actualisation_dossier, get_etat_actualisation_demarche, get_etat_actualisation_dossier, redirect_error, safe_enregistrer_action, set_etat_actualisation_demarche, set_etat_actualisation_dossier
+from instruction.utils.dossier_utils import actualisation_demarche_est_bloquee, actualisation_dossier_est_bloquee, check_si_on_casse_liaison_dm, clear_etat_actualisation_demarche, clear_etat_actualisation_dossier, get_etat_actualisation_demarche, get_etat_actualisation_dossier, redirect_error, safe_enregistrer_action, set_etat_actualisation_demarche, set_etat_actualisation_dossier
 
 from synchronisation.main import lancer_normalisation_et_synchronisation_pour_une_demarche
 from synchronisation.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -302,6 +302,20 @@ def actualiser_dossier_job(num_dossier, user_display):
                     safe_enregistrer_action(dossier, instructeur, "Dossier supprimé de Démarche Numérique", request=None)
 
                 loggerSynchro.warning(f"[ACTUALISER DOSSIER {num_dossier}] Le dossier n'existe plus sur Démarche Numérique : BDD mise à jour")
+
+
+                # -----------------------------------------------------------------------
+                # DOSSIER DN SUPPRIMÉ : ON REGARDE SI ON CASSE LA LIAISON (MANIF SPORTIVE)
+                # -----------------------------------------------------------------------
+
+                liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+                if liaison_dossDN :
+                    dossier_dm = liaison_dossDN.id_dossier_manif
+                    try :
+                        check_si_on_casse_liaison_dm(dossier, dossier_dm, liaison_dossDN, loggerSynchro)
+                    except Exception as e :
+                        logger.warning(f"[ACTUALISER DOSSIER {num_dossier}] Erreur lors de la tentative de suppression de la DossierManifestationLiaison. On continue la synchro.")
+
                 set_etat_actualisation_dossier(num_dossier, statut="success", message="Le dossier n'existe plus sur Démarche Numérique.")
                 return
 

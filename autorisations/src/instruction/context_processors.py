@@ -1,5 +1,5 @@
 from urllib.parse import unquote
-from autorisations.models.models_instruction import Dossier, Demarche
+from autorisations.models.models_instruction import Dossier, Demarche, DossierManifSportive
 
 
 def get_demarche_from_num_dossier(num_dossier):
@@ -8,6 +8,20 @@ def get_demarche_from_num_dossier(num_dossier):
         return dossier.id_demarche
     except Dossier.DoesNotExist:
         return None
+    
+def get_demarche_from_type(type_):
+    try:
+        demarche = Demarche.objects.get(type__iexact=type_)
+        return demarche
+    except Demarche.DoesNotExist:
+        return None
+    
+# def get_archive_from_num_dossier_DM(numero):
+#     try:
+#         dossierDM = DossierManifSportive.objects.get(numero=numero)
+#         return dossierDM.archive
+#     except Dossier.DoesNotExist:
+#         return None
 
 
 def breadcrumb_context(request):
@@ -33,7 +47,18 @@ def breadcrumb_context(request):
         items.append({"label": "Réception", "url": "/preinstruction/"})
         numero = kwargs.get("numero")
         if numero:
-            items.append({"label": f"Dossier déclaration-manifestations n°{numero}", "url": ""})
+            items.append({"label": f"Dossier DM n°{numero}", "url": ""})
+
+    if view_name == "dossier_manif_sportive_sans_ds_archive":
+        numero = kwargs.get("numero")
+        # archive = get_archive_from_num_dossier_DM(numero)
+        demarche = get_demarche_from_type("manifestations sportives")
+
+        items.append({"label": "Instruction", "url": "/instruction/"})
+        items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
+
+        if numero:
+            items.append({"label": f"Dossier DM n°{numero}", "url": ""})
 
     elif view_name == "preinstruction_dossier_messagerie":
         items.append({"label": "Réception", "url": "/preinstruction/"})

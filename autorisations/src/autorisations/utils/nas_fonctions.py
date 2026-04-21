@@ -8,6 +8,8 @@ import subprocess
 import re
 import ntpath
 
+from instruction.utils.document_utils import normaliser_emplacement
+
 
 loggerApp = logging.getLogger("APP")
 
@@ -60,11 +62,11 @@ def ecrire_file_sur_nas(source, chemin_destination):
         # loggerApp.warning(f"dossier_parent: {dossier_parent}")
         if not smbclient.path.exists(dossier_parent):
             smbclient.makedirs(dossier_parent)
-            loggerApp.info(f"[NAS] 📁 Dossier créé sur le NAS : {dossier_parent}")
+            loggerApp.info(f"[NAS] Dossier créé sur le NAS : {normaliser_emplacement(dossier_parent)}")
 
         # --- Écriture selon le type de source ---
         if isinstance(source, UploadedFile):
-            # ✅ Cas 1 : Fichier uploadé via Django
+            # Cas 1 : Fichier uploadé via Django
             with smbclient.open_file(chemin_destination, mode="wb") as dst:
                 for chunk in source.chunks():
                     dst.write(chunk)
@@ -72,7 +74,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
             src_label = source.name
 
         elif isinstance(source, str):
-            # ✅ Cas 2 : Chemin local
+            # Cas 2 : Chemin local
             src_label = os.path.basename(source)
 
             if not smbclient.path.exists(source):
@@ -83,7 +85,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
                 for chunk in iter(lambda: src.read(4096), b""):
                     dst.write(chunk)
 
-            loggerApp.info(f"[NAS] ✅ Fichier {src_label} écrit sur {chemin_destination}")
+            loggerApp.info(f"[NAS] Fichier {src_label} écrit sur {chemin_destination}")
 
         elif isinstance(source, bytes):
             src_label = chemin_destination.split("/")[-1]
@@ -91,7 +93,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
             with smbclient.open_file(chemin_destination, mode="wb") as dst:
                 dst.write(source)
 
-            loggerApp.info(f"[NAS] ✅ Fichier {src_label} écrit sur {chemin_destination}")
+            loggerApp.info(f"[NAS] Fichier {src_label} écrit sur {chemin_destination}")
 
 
         else:
@@ -129,7 +131,7 @@ def creer_dossier_sur_nas(chemin_dossier):
     try:
         if not smbclient.path.exists(chemin_dossier):
             smbclient.makedirs(chemin_dossier)
-            loggerApp.info(f"[NAS] 📁 Dossier créé sur le NAS : {chemin_dossier}")
+            loggerApp.info(f"[NAS] Dossier créé sur le NAS : {normaliser_emplacement(chemin_dossier)}")
         return True
     except Exception as e:
         loggerApp.exception(f"[NAS] ⚠️ Erreur lors de la création du dossier NAS : {e}")

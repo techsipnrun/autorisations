@@ -484,7 +484,6 @@ def requete_dossiers(request):
 
         structure = d.structure.strip() if d.structure and d.structure.strip() else ""
         beneficiaire = nom_complet or structure or ""
-        print(beneficiaire)
 
         url_name = ("dossier_manif_sportive_sans_ds_archive" if d.archive else "dossier_manif_sportive_sans_ds")
 

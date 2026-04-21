@@ -375,6 +375,8 @@ class DossierNote(models.Model):
 def get_default_etape_en_reception():
         return EtapeDossier.objects.get(etape="En réception").id
 
+
+
 class DossierManifSportive(models.Model):
     id = models.AutoField(primary_key=True)
     id_etape = models.ForeignKey(EtapeDossier, models.RESTRICT, db_column="id_etape", default=get_default_etape_en_reception)

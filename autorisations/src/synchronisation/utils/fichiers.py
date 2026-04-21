@@ -12,6 +12,7 @@ import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, donner_droits_ecriture_groupe, ecrire_file_sur_nas
+from instruction.utils.document_utils import normaliser_emplacement
 from synchronisation.utils.conversion import formater_nom_personne_morale, parse_datetime_with_tz
 
 
@@ -108,7 +109,7 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
     """
 
     
-
+    chemin_rel_pour_log = normaliser_emplacement(os.path.join(emplacement, nom_geojson))
     chemin_fichier = ensure_dossier_root(emplacement)
     chemin_complet = os.path.join(chemin_fichier, nom_geojson)
 
@@ -117,7 +118,7 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
         with smbclient.open_file(chemin_complet, mode="w", encoding="utf-8") as f:
             json.dump(contenu_geojson, f, ensure_ascii=False, indent=2)
             
-        loggerApp.info(f"[GEOJSON] Fichier écrit : {chemin_complet}")
+        loggerApp.info(f"[GEOJSON] Fichier écrit : {chemin_rel_pour_log}")
     except Exception as e:
         loggerApp.error(f"[GEOJSON] Erreur lors de l'écriture du fichier GeoJSON {chemin_complet} : {e}")
 

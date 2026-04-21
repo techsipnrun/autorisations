@@ -17,6 +17,7 @@ from autorisations.models.models_documents import Document, DocumentFormat, Docu
 from autorisations.models.models_avis import AvisDocument, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
+from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
@@ -627,17 +628,36 @@ def instruction_dossier(request, num_dossier):
     # Dossier Déclaration Manifestations
     ####################################
     doss_manif_sportive = None
+    avis_manif_sportive = None
+    docs_DM = {}
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
 
-    # Récupération de l'avis lié (OneToOne → un seul)
-    try:
-        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
-    except Exception:
-        avis_manif_sportive = None  # Aucun avis encore associé
- 
+            # Récupération de l'avis lié (OneToOne → un seul)
+            try:
+                avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+            except Exception:
+                avis_manif_sportive = None  # Aucun avis encore associé
+
+            # Récupération des PJ sur DM + emplacement NAS
+            docs_DM = documents_deposes_sur_DM(doss_manif_sportive)
+    
+    dossiers_deja_lies_dm_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
+    limite_deux_mois = timezone.now() - timedelta(days=60)
+    dossiers_DM_manif_sportive_non_lie_archive = (
+        DossierManifSportive.objects
+        .filter(archive=True,)
+        .filter(
+            Q(date_fin_evenement__gte=limite_deux_mois) |
+            Q(date_fin_evenement__isnull=True)
+        )
+        .exclude(id__in=dossiers_deja_lies_dm_ids)
+        .order_by("-date_debut_evenement")
+    )
+
+
 
     ################
     #    Emails
@@ -685,13 +705,18 @@ def instruction_dossier(request, num_dossier):
         # "etapes_custom": etapes_custom,
         "dossier_actions": dossier_actions,
         "notes": notes,
-        "doss_manif_sportive": doss_manif_sportive,
-        "avis_manif_sportive": avis_manif_sportive,
         "emails_uniques": emails_uniques,
         "emails_dossiers": emails_dossiers,
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         "actions_possibles": actions_possibles,
+
+        # Manif Sportive
+        "dossier_lie_manif_sportive": liaison is not None,
+        "doss_manif_sportive": doss_manif_sportive,
+        "avis_manif_sportive": avis_manif_sportive,
+        **docs_DM,
+        "dossiers_DM_manif_sportive_non_lie_archive": dossiers_DM_manif_sportive_non_lie_archive,
 
         # Carto
         "coeurData": fond_coeur_de_parc,
@@ -723,6 +748,7 @@ def instruction_dossier(request, num_dossier):
         "changer_valideur_message": request.session.pop("changer_valideur_message", None),
         "changer_relecteur_qualite_message": request.session.pop("changer_relecteur_qualite_message", None),
         "relecteur_message": request.session.pop("relecteur_message", None),
+        "now": timezone.now(),
 
         **roles,
         **avis_data,

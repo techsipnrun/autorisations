@@ -1374,6 +1374,10 @@ textarea[name="note"] {
 }
 
 
+/* Listes annexes - actes déposés*/
+.liste_docs_dm{
+    margin-top: 2rem;
+}
 
 /* ----------------------------------------------------------------*/
 /* Bloc pour Relier 2 dossiers Manifestation Sportive manuellement */
@@ -1477,3 +1481,35 @@ textarea[name="note"] {
     color: #9e0000;
 }
 
+
+.btn_ajouter_pj_DM {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+
+    background: #ccc;
+    color: rgb(0, 0, 0);
+
+    border: none;
+    border-radius: 8px;
+
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+}
+
+.btn_ajouter_pj_DM:hover {
+    background: #b9b9b9;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Click */
+.btn_ajouter_pj_DM:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}

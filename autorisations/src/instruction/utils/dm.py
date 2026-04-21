@@ -9,7 +9,7 @@ import smbclient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
 from autorisations.models.models_instruction import AvisManifSportive, DossierManifSportive, EtapeDossier
 from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
-from autorisations.utils.nas_fonctions import copier_dossier_smb, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
+from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.document_utils import normaliser_emplacement
 from instruction.utils.dossier_utils import redirect_error
@@ -80,6 +80,9 @@ def reception_lire_donnees_formulaire_avis_dm(request, *, acte_obligatoire=False
     dossier_dm_id = request.POST.get("dossierDM_id")
     fichiers = request.FILES.getlist("files")
     acte = request.FILES.get("acte")
+    dossier_dn_accepte_id = request.POST.get("dossier_dn_accepte_id")
+    dossier_dn_refuse_id = request.POST.get("dossier_dn_refuse_id")
+    
 
     fichiers_a_traiter = list(fichiers)
 
@@ -98,6 +101,8 @@ def reception_lire_donnees_formulaire_avis_dm(request, *, acte_obligatoire=False
         "fichiers": fichiers,
         "acte": acte,
         "fichiers_a_traiter": fichiers_a_traiter,
+        "dossier_dn_accepte_id": dossier_dn_accepte_id,
+        "dossier_dn_refuse_id": dossier_dn_refuse_id,
     }
 
     return donnees, None
@@ -249,7 +254,9 @@ def reception_rendre_avis_et_mettre_a_jour_dm(*, prescriptions, code_avis_dm, re
     
     # Récupération du token API
     token = get_access_token()
-
+    
+    if not prescriptions :
+        prescriptions = ""
     # 0-None, 1-favorable, 2-défavorable, 3-non concerné
     response_avis = rendre_avis(token, avis_id, code_avis_dm, prescriptions)
     logger.info(f"Avis '{reponse_avis_bdd}' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}")
@@ -576,3 +583,49 @@ def reception_traiter_fichier_avis_dm(request, *, fichier, token, avis_id, dossi
     DossierManifSportiveDocument.objects.get_or_create(id_dossier_manif_sportive=dossier_dm, id_document=doc,)
 
     return None
+
+
+
+# Documents déposés dur DM par instructeur
+def documents_deposes_sur_DM(doss_manif_sportive):
+    """
+    Args:
+        doss_manif_sportive (DossierManifSportive): Dossier DM
+    
+    Returns:
+        pjs_demandeur_DM (list Document) : Liste des PJ du demandeur sur DM
+        actes_deposes_sur_DM (list Document) : Liste des actes déposés par l'instructeur sur DM
+        annexes_deposees_sur_DM (list Document) : Liste des annexes déposées par l'instructeur sur DM
+    """
+
+    actes_natures = {"Avis conforme", "Avis simple", "Déliberation CA", "Arrêté directeur",}
+    documents_DM = [ d.id_document for d in DossierManifSportiveDocument.objects.filter( id_dossier_manif_sportive=doss_manif_sportive)]
+
+    pjs_demandeur_DM = [
+        doc for doc in documents_DM
+        if doc.id_nature.nature == "Pièce jointe demandeur"
+    ]
+    
+    actes_deposes_sur_DM = [
+        doc for doc in documents_DM
+        if doc.id_nature.nature in actes_natures
+    ]
+
+    annexes_deposees_sur_DM = [
+        doc for doc in documents_DM
+        if doc.id_nature.nature == "Annexe instructeur" or doc.id_nature.nature == "Annexe instructeur DM"
+    ]
+
+    # On récupère le path du Dossier
+    chemin_complet_DM = doss_manif_sportive.emplacement
+    if not chemin_complet_DM.startswith(os.getenv('NAS_ROOT')):
+        chemin_complet_DM = os.path.join(os.getenv('NAS_ROOT'), chemin_complet_DM)
+    chemin_complet_DM = _normalize_unc_path(chemin_complet_DM)
+
+
+    return {
+            'annexes_deposees_sur_DM': annexes_deposees_sur_DM,
+            'actes_deposes_sur_DM': actes_deposes_sur_DM,
+            'pjs_demandeur_DM': pjs_demandeur_DM,
+            'chemin_complet_DM': chemin_complet_DM,
+            }

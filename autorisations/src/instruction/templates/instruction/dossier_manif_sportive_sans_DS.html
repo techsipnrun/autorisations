@@ -60,7 +60,8 @@
                             <p>Cette manifestation n'intersecte pas le cœur de parc</p>
                         {% endif %}
                     {% endif %}
-
+                    
+                    <!-- Dossier DN déjà lié -->
                     {% if dossier_dn_meme_numero_deja_lie %}
                         <p class="message_info_liaison">
                             Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_deja_lie.numero}} possède pour le champ 
@@ -68,26 +69,56 @@
                             Toutefois ce dossier est déjà lié à un autre dossier Déclaration Manifestations. Si cela pose problème, contactez le support.
                         </p>
                     {% endif %}
-
+                    
+                    <!-- Dossier DN pas lié mais acte envoyé -->
                     {% if dossier_dn_meme_numero_pas_lie_acte_envoye %}
-                        <p class="message_info_liaison">
-                            Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_envoye.numero}} a son champ 
-                            « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
-                            Toutefois ce dossier Démarche Numérique est déjà à l'étape {{dossier_dn_meme_numero_pas_lie_acte_envoye.id_etape.etape}}. 
-                            Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver le dossier {{doss_manif_sportive.nom_dossier}} sur Déclaration Manifestations.
-                        </p>
+
+                        <!-- Si Dossier DM pas encore archivé -->
+                        {% if not doss_manif_sportive.archive %}
+                            <p class="message_info_liaison">
+                                Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_envoye.numero}} a son champ 
+                                « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                                Toutefois ce dossier Démarche Numérique est déjà à l'étape {{dossier_dn_meme_numero_pas_lie_acte_envoye.id_etape.etape}}.
+                            </p>
+
+                        <!-- Si Dossier DM archivé -->
+                        {% else %}
+                            <p class="message_info_liaison">
+                                Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_envoye.numero}} a son champ 
+                                « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                                Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
+                            </p>
+                        {% endif %}
                     {% endif %}
 
+                    <!-- Si Dossier DN pas lié et acte pas encore envoyé -->
                     {% if dossier_dn_meme_numero_pas_lie_acte_pas_envoye %}
-                        <p class="message_info_liaison">
-                            Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_pas_envoye.numero}} a son champ 
-                            « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
-                            Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
-                        </p>
+
+                    <!-- Si Dossier DM pas encore archivé -->
+                        {% if not doss_manif_sportive.archive %}
+                            <p class="message_info_liaison">
+                                Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_pas_envoye.numero}} a son champ 
+                                « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                                Si ces deux dossiers concernent la même manifestation, vous pouvez les relier.
+                            </p>
+
+                        <!-- Si Dossier DM archivé -->
+                        {% else %}
+                            <p class="message_info_liaison">
+                                Pour information, le dossier Démarche Numérique N°{{dossier_dn_meme_numero_pas_lie_acte_envoye.numero}} a son champ 
+                                « Numéro du dossier sur la plateforme déclaration-manifestations » qui vaut {{doss_manif_sportive.numero_dossier_declaration_manifestations}}. 
+                                Toutefois ce dossier Démarche Numérique n'est qu'à l'étape {{dossier_dn_meme_numero_pas_lie_acte_envoye.id_etape.etape}}. 
+                                Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver le dossier sur Démarche Numérique.
+                            </p>
+                        {% endif %}
+
+
                     {% endif %}
 
                 </div>
+                
 
+                <!-- DOSSIER NON ARCHIVÉ : RELIER DN ET DM -->
                 {% if not doss_manif_sportive.archive %}
                     <div class="bloc_liaison_ds">
 
@@ -128,7 +159,50 @@
                     </div>
                 {% endif %}
 
-                <!-- Faire un bloc du même style 'Relier à un dossier Démarche Numérique déjà traité' -->
+
+
+                <!-- DOSSIER ARCHIVÉ : RELIER DN ET DM -->
+                {% if doss_manif_sportive.archive %}
+                    <div class="bloc_liaison_ds">
+
+                        <button type="button" class="btn-liaison-ds" id="toggle-liaison-ds">
+                            Relier à un dossier Démarche Numérique archivé
+                        </button>
+
+                        <div class="form-liaison-ds" id="form-liaison-ds">
+                            <form method="post" id="form-liaison-manif-dn" action="{% url 'lier_dossier_archive_manif_sportive_a_DN' %}">
+                                {% csrf_token %}
+
+                                <input type="hidden" name="id_dossier_dm" value="{{ doss_manif_sportive.id }}">
+                                <!-- <input type="hidden" name="id_dossier_dn" value=None> -->
+
+                                <p class="info_liaison">
+                                    Dans certains cas, la liaison entre un dossier Déclaration Manifestations et un dossier Démarche Numérique peut ne pas se faire toute seule. 
+                                    <br><br>
+                                    C'est par exemple le cas si en remplissant son formulaire Démarche Numérique, le pétitionnaire s'est trompé en renseignant son "numéro de dossier Déclaration Manifestations". 
+                                    <br><br>
+                                    Dans ce cas là, vous devez relier ces deux dossiers manuellement.
+                                </p>
+
+                                <label for="dossier_dn_id">Choisir un dossier DN archivé</label>
+                                <select name="dossier_dn_id" id="dossier_dn_id" required>
+                                    <option value="" selected disabled>-- Sélectionner un dossier --</option>
+                                    {% for dossier in dossiers_DN_archive_manif_sportive_non_lie %}
+                                        <option value="{{ dossier.id }}">
+                                            {{ dossier.numero }} — {{ dossier.nom_manifestation }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+
+                                <button type="submit" class="btn-valider-liaison">
+                                    Confirmer la liaison
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+
+
             </div>
 
             {% if messages %}
@@ -145,53 +219,53 @@
                 <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
             </div>
 
-                <!-- Etape du dossier DM -->
-                <div class="etat-badge-container">
-                    <div class="etat-badge-menu-dropdown">
+            <!-- Etape du dossier DM -->
+            <div class="etat-badge-container">
+                <div class="etat-badge-menu-dropdown">
 
-                        <div class="etat-badge-label" id="etapeMenuToggle" 
-                        {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
-                            {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
-                            <span class="dropdown-arrow">&#9660;</span>
-                        </div>
-                        {% if not doss_manif_sportive.archive %}
-                            {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive %}
-                                <div class="etat-badge-menu-content" id="etapeMenuContent">
-
-                                        {% if actions_possibles %}
-                                            {% for label in actions_possibles %}
-                                            
-                                                {% if label == "Déclaration Manifestations - Accepter" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAccepterDeclarationManifestations()">Donner un avis favorable sur Déclaration Manifestations</button>
-
-                                                {% elif label == "Déclaration Manifestations - Refuser" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefuserDeclarationManifestations()">Rendre un avis défavorable sur Déclaration Manifestations</button>
-
-                                                {% elif label == "Déclaration Manifestations - Non Soumis" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonSoumisDeclarationManifestations()">Préciser que le Parc n'est pas concerné par ce dossier</button>
-                                                
-                                                {% elif label == "Déclaration Manifestations - Non répondu" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonReponduDeclarationManifestations()">Ne pas rendre d'avis</button>
-                                                
-                                                {% endif %}
-
-                                            {% endfor %}
-                                        {% else %}
-                                            <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
-                                        {% endif %}
-
-                                </div>
-                            {% endif %}
-                        {% endif %}
+                    <div class="etat-badge-label" id="etapeMenuToggle" 
+                    {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
+                        {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
+                        <span class="dropdown-arrow">&#9660;</span>
                     </div>
+                    {% if not doss_manif_sportive.archive or doss_manif_sportive.id_etape.etape != "En réception" %}
+                        {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive %}
+                            <div class="etat-badge-menu-content" id="etapeMenuContent">
 
-                    <!-- Lien DM -->
-                    <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
-                        <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
-                            alt="Visualiser le dossier sur Déclaration manifestations"
-                            title="Visualiser le dossier sur Déclaration manifestations">
-                    </a>
+                                    {% if actions_possibles %}
+                                        {% for label in actions_possibles %}
+                                        
+                                            {% if label == "Déclaration Manifestations - Accepter" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAccepterDeclarationManifestations()">Rendre un avis favorable sur Déclaration Manifestations</button>
+
+                                            {% elif label == "Déclaration Manifestations - Refuser" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefuserDeclarationManifestations()">Rendre un avis défavorable sur Déclaration Manifestations</button>
+
+                                            {% elif label == "Déclaration Manifestations - Non Soumis" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonSoumisDeclarationManifestations()">Préciser que le Parc n'est pas concerné par ce dossier</button>
+                                            
+                                            {% elif label == "Déclaration Manifestations - Non répondu" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonReponduDeclarationManifestations()">Ne pas rendre d'avis</button>
+                                            
+                                            {% endif %}
+
+                                        {% endfor %}
+                                    {% else %}
+                                        <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
+                                    {% endif %}
+
+                            </div>
+                        {% endif %}
+                    {% endif %}
                 </div>
+
+                <!-- Lien DM -->
+                <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
+                    <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
+                        alt="Visualiser le dossier sur Déclaration manifestations"
+                        title="Visualiser le dossier sur Déclaration manifestations">
+                </a>
+            </div>
             
 
         
@@ -204,18 +278,40 @@
                     <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
 
                     <h2>Dépôt d'un avis favorable sur Déclaration Manifestations</h2>
+
+                    <p class="info_accepte_refuse_dm_reception">
+                        ⚠️ Pour rendre un avis favorable sur Déclaration Manifestations depuis la réception, il est impératif qu’un dossier ait préalablement 
+                        été déposé et accepté sur Démarche Numérique.
+                    </p>
+                    
+                    <h4>Renseigner le dossier Démarche Numérique lié et accepté</h4>
+
+                    <select name="dossier_dn_accepte_id" id="dossier_dn_accepte_id" required>
+                        <option value="" selected disabled>-- Sélectionner le dossier Démarche Numérique --</option>
+
+                        {% for dossier in dossiers_DN_accepte_manif_sportive_non_lie %}
+                            <option value="{{ dossier.id }}">
+                                {{ dossier.numero }} — {{ dossier.nom_manifestation }}
+                            </option>
+                        {% empty %}
+                            <option value="" disabled>
+                                Aucun dossier Démarche Numérique de Manifestations sportives au statut Accepté et qui n'est pas déjà lié.
+                            </option>
+                        {% endfor %}
+                    </select>
+
                     <h4>Prescriptions transmises au demandeur :</h4>
                     <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions" required>Avis favorable.</textarea>
                     
-                    <div class="zone-pj-complement">
+                    <!-- <div class="zone-pj-complement">
                         <label for="acte-accepte">Joindre l'acte :</label>
                         <input type="file" id="acte-accepte" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
                     </div>
-                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p>
+                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p> -->
 
                     <div class="zone-pj-complement">
-                        <label for="files-accepte">Joindre une ou plusieurs pièces jointes (taille max par document 5Mo) :</label>
-                        <input type="file" id="files-accepte" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                        <label for="files-accepte">Joindre une ou plusieurs pièces jointes sur Déclaration Manifestations :</label>
+                        <input type="file" id="files-accepte" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx" required>
                     </div>
 
                     <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
@@ -237,18 +333,41 @@
                     <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
 
                     <h2>Dépôt d'un avis défavorable sur Déclaration Manifestations</h2>
+
+                    <p class="info_accepte_refuse_dm_reception">
+                        ⚠️ Pour rendre un avis défavorable sur Déclaration Manifestations depuis la réception, il est impératif qu’un dossier ait préalablement 
+                        été déposé et refusé sur Démarche Numérique.
+                    </p>
+                    
+                    <h4>Renseigner le dossier Démarche Numérique lié et refusé</h4>
+
+                    <select name="dossier_dn_refuse_id" id="dossier_dn_refuse_id" required>
+                        <option value="" selected disabled>-- Sélectionner le dossier Démarche Numérique --</option>
+
+                        {% for dossier in dossiers_DN_refuse_manif_sportive_non_lie %}
+                            <option value="{{ dossier.id }}">
+                                {{ dossier.numero }} — {{ dossier.nom_manifestation }}
+                            </option>
+                        {% empty %}
+                            <option value="" disabled>
+                                Aucun dossier Démarche Numérique de Manifestations sportives au statut Refusé et qui n'est pas déjà lié.
+                            </option>
+                        {% endfor %}
+                    </select>
+
+
                     <h4>Prescriptions transmises au demandeur :</h4>
                     <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions" required>Avis défavorable.</textarea>
                     
-                    <div class="zone-pj-complement">
+                    <!-- <div class="zone-pj-complement">
                         <label for="acte-refuse">Joindre l'acte :</label>
                         <input type="file" id="acte-refuse" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx" required>
                     </div>
-                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p>
+                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p> -->
 
                     <div class="zone-pj-complement">
                         <label for="files-refuse">Joindre une ou plusieurs pièces jointes :</label>
-                        <input type="file" id="files-refuse" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                        <input type="file" id="files-refuse" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx" required>
                     </div>
                     <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
 
@@ -291,15 +410,21 @@ Le Parc national de La Réunion</textarea>
 
 
             <!-------------------------------------------------------------------------------------------->
-            <!-- Zone masquée pour archivé un dossier sur Déclaration Manifestations sans donner d'avis -->
+            <!-- Zone masquée pour archivé un dossier sur Déclaration Manifestations sans rendre d'avis -->
             <!-------------------------------------------------------------------------------------------->
             <div id="formulaire-non-repondu-dm" class="zone-complement zone-envoyer-pour-validation">
                 <form id="form-non-repondu-dm" method="post" enctype="multipart/form-data" action="{% url 'declaration_manifestations_non_repondu_url' %}">
                     {% csrf_token %}
                     <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
                     <h2>Archiver ce dossier sur Déclaration Manifestations sans rendre d'avis</h2>
-                    <h4>Prescriptions transmises au demandeur :</h4>
-                    <textarea name="prescriptions" class="textarea-complement" placeholder="Prescriptions"></textarea>
+
+                    <p class="info_accepte_refuse_dm_reception">
+                        Dans certains cas, vous pouvez décider de ne pas rendre d’avis, en particulier lorsqu’un dossier Démarche Numérique 
+                        n’a pas été transmis ou l’a été hors délai, malgré les relances effectuées auprès du demandeur.
+                    </p>
+
+                    <h4>Message transmis au demandeur :</h4>
+                    <textarea name="prescriptions" class="textarea-complement" placeholder="Vous n'êtes pas obligé de transmettre un message."></textarea>
                     
                     <div class="zone-confirmer-formulaire">
                         <button type="button" class="btn-confirmer-formulaire" onclick="confirmerNonReponduDM(this)">Confirmer</button>
@@ -308,15 +433,63 @@ Le Parc national de La Réunion</textarea>
             </div>
 
             
+            <!----------------------->
+            <!-- Ajouter PJ sur DM -->
+            <!----------------------->
+            {% if doss_manif_sportive.archive and doss_manif_sportive.date_fin_evenement and doss_manif_sportive.date_fin_evenement > now %}
+                
+                <button type="button" class="btn_ajouter_pj_DM" onclick="afficherFormulaireDeposerPJ_DeclarationManifestations()">
+                    <img src="{% static 'instruction/img/trombone.png' %}" alt="PJ" class="annexe-icon">
+                    <span>Déposer des pièces jointes sur Déclaration Manifestations</span>
+                </button>
+
+            {% endif %}
+            
+
+            <!--------------------------------------------------------------------->
+            <!-- Zone masquée pour déposer des PJ sur Déclaration Manifestations -->
+            <!--------------------------------------------------------------------->
+            <div id="formulaire-deposer-pj-dm" class="zone-complement zone-envoyer-pour-validation">
+                <form id="form-deposer-pj-dm" method="post" enctype="multipart/form-data" action="{% url 'ajouter_annexe_sur_DM' id_dm=doss_manif_sportive.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+
+                    <h2>Déposer des pièces jointes sur Déclaration Manifestations</h2>
+
+                    <!-- <div class="zone-pj-complement">
+                        <label for="acte-dm">Joindre un acte :</label>
+                        <input type="file" id="acte-dm" name="acte" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
+                    </div>
+                    <p class="hint-text">Taille maximale de la pièce jointe : <strong>5Mo</strong></p> -->
+
+                    <div class="zone-pj-complement">
+                        <label for="files-dm">Joindre une ou plusieurs annexes :</label>
+                        <input type="file" id="files-dm" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx" required>
+                    </div>
+
+                    <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
+
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerDeposer_PJ_DM(this)">Confirmer</button>
+                    </div>
+
+                </form>
+            </div>
+
+
 
             <!---------------------------------------------------->
             <!-- Les PJ envoyées sur Déclaration Manifestations -->
             <!---------------------------------------------------->
-
+            
             <!-- Acte -->
             {% if actes_deposes_sur_DM %}
-                <div class="validation-documents">
-                    <h2>Acte déposé sur Déclaration Manifestations</h2>
+                <div class="liste_docs_dm validation-documents">
+                    <h2>
+                        Acte{% if actes_deposes_sur_DM|length > 1 %}s{% endif %}
+                        déposé{% if actes_deposes_sur_DM|length > 1 %}s{% endif %}
+                        sur Déclaration Manifestations
+                    </h2>
                     <form method="post" action="#">
                         {% csrf_token %}
                         <ul class="doc_deposes_sur_DM">
@@ -330,7 +503,7 @@ Le Parc national de La Réunion</textarea>
 
             <!-- Annexes -->
             {% if annexes_deposees_sur_DM %}
-                <div class="validation-documents">
+                <div class="validation-documents liste_docs_dm">
                     <h2>Annexes déposées sur Déclaration Manifestations</h2>
                     <form method="post" action="#">
                         {% csrf_token %}
@@ -493,52 +666,6 @@ Le Parc national de La Réunion</textarea>
     <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=2"></script>
 
 
-    <!-- Menu déroulant pour relier 2 Dossiers (DM - DN) -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const toggleBtn = document.getElementById("toggle-liaison-ds");
-            const formBloc = document.getElementById("form-liaison-ds");
-
-            if (!toggleBtn || !formBloc) return;
-
-            // Ouvrir / fermer avec le bouton
-            toggleBtn.addEventListener("click", function (e) {
-                e.stopPropagation(); // empêche fermeture immédiate
-                formBloc.classList.toggle("open");
-            });
-
-            // Empêche fermeture quand on clique DANS le menu
-            formBloc.addEventListener("click", function (e) {
-                e.stopPropagation();
-            });
-
-            // Fermer si clic ailleurs
-            document.addEventListener("click", function () {
-                formBloc.classList.remove("open");
-            });
-        });
-    </script>
-
-    <!-- POP UP de confirmation pour la création d'une liaison -->
-    <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const formLiaison = document.getElementById("form-liaison-manif-dn");
-
-        if (!formLiaison) return;
-
-        formLiaison.addEventListener("submit", function (e) {
-            const confirmation = confirm(
-                "Êtes-vous sûr de vouloir lier ces deux dossiers ?\n\nCette action sera irréversible."
-            );
-
-            if (!confirmation) {
-                e.preventDefault();
-            }
-        });
-    });
-</script>
-
-
 
 <!------------------------------------------------------------------------------->
 <!------------------ Afficher Formulaires Changement Etape  --------------------->
@@ -584,6 +711,21 @@ Le Parc national de La Réunion</textarea>
         document.getElementById("formulaire-non-repondu-dm").classList.add("show");
         fermerMenuEtape();
     }
+
+    // function afficherFormulaireDeposerPJ_DeclarationManifestations() {
+    //     const formulaire = document.getElementById("formulaire-deposer-pj-dm");
+
+    //     if (formulaire.classList.contains("show")) {
+    //         // 👉 Déjà ouvert → on ferme
+    //         formulaire.classList.remove("show");
+    //     } else {
+    //         // 👉 Fermé → on ouvre
+    //         masquerToutesZonesComplementaires();
+    //         formulaire.classList.add("show");
+    //         fermerMenuEtape();
+    //     }
+    // }
+
 
  </script>
 
@@ -672,14 +814,14 @@ Le Parc national de La Réunion</textarea>
         const form = document.getElementById(formId);
         if (!form) return;
 
-        const confirmation = confirm(messageConfirmation);
-        if (!confirmation) {
+        if (!form.checkValidity()) {
+            form.reportValidity();
             fermerMenuEtape();
             return;
         }
 
-        if (!form.checkValidity()) {
-            form.reportValidity();
+        const confirmation = confirm(messageConfirmation);
+        if (!confirmation) {
             fermerMenuEtape();
             return;
         }
@@ -690,11 +832,6 @@ Le Parc national de La Réunion</textarea>
             btn.disabled = true;
         });
 
-        // Désactiver aussi les inputs file pour éviter toute modif pendant l’envoi
-        const champsFichier = form.querySelectorAll('input[type="file"]');
-        champsFichier.forEach(champ => {
-            champ.disabled = true;
-        });
 
         if (button) {
             button.innerText = texteBoutonPendantTraitement;
@@ -735,6 +872,47 @@ Le Parc national de La Réunion</textarea>
             messageConfirmation: "Confirmez-vous ne pas répondre à la demande et archiver le dossier sur Déclaration Manifestations ?\n\nPour rappel, aucun dossier Démarche Numérique n'est encore associé."
         });
     }
+
+    function confirmerDeposer_PJ_DM(button) {
+        const form = document.getElementById("form-deposer-pj-dm");
+        // const acteInput = document.getElementById("acte-dm");
+        const filesInput = document.getElementById("files-dm");
+
+        if (!form || !filesInput) {
+            alert("Erreur : formulaire de dépôt introuvable.");
+            return;
+        }
+
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+
+        const confirmation = confirm(
+            "Confirmez-vous le dépôt des pièces jointes sur Déclaration Manifestations ?"
+        );
+        if (!confirmation) {
+            return;
+        }
+
+
+        const boutons = form.querySelectorAll('button, input[type="submit"]');
+        boutons.forEach(btn => {
+            btn.disabled = true;
+        });
+
+        if (button) {
+            button.innerText = "Traitement en cours...";
+        }
+
+        form.submit();
+    }
+
+
+
+    
 </script>
 
 
