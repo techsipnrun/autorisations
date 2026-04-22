@@ -35,7 +35,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
                 token = get_access_token()
 
                 for doss in dico["manif_sportives"] :
-                    doss_manif_sportive, doss_lie = sync_declaration_manifestations(doss, logger)
+                    doss_manif_sportive, doss_lie = sync_declaration_manifestations(doss, logger, dico_notifs)
                     manif_id = doss_manif_sportive.numero_dossier_declaration_manifestations
 
                     # Récupération des Documents du DossierManifSportive

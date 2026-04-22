@@ -22,7 +22,7 @@
 
 .formulaire_dm {
     position: relative;
-    /* flex: 1 1 70%; */
+    flex: 0 0 70%;
     width: 80%;
     min-width: 300px;
     padding: 4rem 2rem 3rem 2rem;
@@ -251,7 +251,7 @@
 }
 
 
-/* Test pannel couches fond de carte */
+/* pannel couches fond de carte */
 /* --- Control discret (2 icônes) --- */
 .leaflet-control.or-mini {
   border: none !important;
@@ -465,7 +465,6 @@
     gap: 1rem;
 }
 
-
 .info_accepte_refuse_dm_reception {
   font-style: italic;
   margin: 1rem 0;
@@ -476,3 +475,113 @@
 }
 
 
+
+
+/* ---------------------------------------------------------------- */
+/*                        PARTIE DROITE                             */
+/* ---------------------------------------------------------------- */
+.nav_preinstruction {
+    flex: 0 1 30%;
+    width: auto;
+    min-width: 260px;
+}
+
+
+/* ----------------------------- */
+/* --- Bloc Mail de relance --- */
+/* ----------------------------- */
+.mails_dossier {
+    margin: 1rem 0;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-left: 4px solid #003366;
+    font-size: 0.95rem;
+    flex-direction: column;
+}
+
+.nav_dm_sans_dn .logo_instructeur {
+    margin-left: 0;
+}
+
+
+@media (max-width: 1300px) {
+  .nav_dm_sans_dn .mails_dossier h4 {
+      font-size: 0.8rem
+  }
+}
+
+
+.mails_dossier h3 {
+    font-size: 1.4rem;
+    color: #003366;
+    margin-bottom: 2rem;
+}
+
+.un_mail {
+    position: relative;
+    padding-bottom: 1rem;
+    border-bottom: #003366 solid 1px;
+}
+
+.un_mail:hover {
+    background-color: #f8f8f8;
+}
+
+.titre_mail_dossier {
+    display: flex;
+    align-items: center;
+    margin-top: 1.3rem;
+    margin-bottom: 0.4rem;
+}
+
+.mails_dossier p {
+    font-style: italic;
+    margin: 0.2rem 0;
+}
+
+.btn_envoi_mail {
+    background-color: #e0e0e0;
+    color: #222;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 0.3rem 0;
+}
+
+.btn_envoi_mail:hover {
+    background-color: #ccc;
+}
+
+.logo_oeil{
+    height: 20px; 
+    margin-left: 0.6rem;
+    transition: transform 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.logo_oeil:hover {
+  transform: scale(1.2); 
+}
+
+.un_mail .croix-retirer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: red;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.un_mail:hover .croix-retirer {
+    opacity: 1;
+}
+
+.un_mail .croix-retirer:hover {
+    cursor: pointer;
+    transform: scale(1.3);
+}

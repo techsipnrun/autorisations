@@ -353,7 +353,8 @@ def actualiser_dossier_job(num_dossier, user_display):
             loggerSynchro.info(f"###### SYNCHRONISATION {doss_dm_norma[0]['nom_dossier']} (Déclaration Manifestations) ######")
 
             for ddm in doss_dm_norma:
-                doss_manif_sportive, doss_lie = sync_declaration_manifestations(ddm, loggerSynchro)
+                dico_notifs = {}
+                doss_manif_sportive, doss_lie = sync_declaration_manifestations(ddm, loggerSynchro, dico_notifs)
 
             loggerSynchro.info("---")
             loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")

@@ -13,11 +13,11 @@ from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
-from instruction.utils.dm import reception_charger_contexte_avis_dm, reception_copier_sous_dossier_dm, reception_deplacer_documents_dossier_dm, reception_lire_donnees_formulaire_avis_dm, reception_mettre_a_jour_emplacement_dossier_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_supprimer_ancien_dossier_dm_si_necessaire, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
+from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_copier_sous_dossier_dm, reception_deplacer_documents_dossier_dm, reception_lire_donnees_formulaire_avis_dm, reception_mettre_a_jour_emplacement_dossier_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_supprimer_ancien_dossier_dm_si_necessaire, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
 from instruction.utils.document_utils import normaliser_emplacement
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
-from instruction.utils.utilisateurs_utils import get_instructeur_or_redirect
+from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail, get_instructeur_or_redirect
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.services.messagerie_service import envoyer_message_ds, prepare_temp_file, enregistrer_message_bdd
 from django.views.decorators.http import require_POST
@@ -250,10 +250,10 @@ def dossier_non_soumis_a_autorisation(request):
 
 
     # ==============================================
-    # --- DOSSIER DECLARATION MANIFESTATIONS LIÉ ---
+    # --- DOSSIER DECLARATION MANIFESTATIONS LIÉ --- 
     # ==============================================
     try :
-
+        """
         if dossier.id_demarche.type.lower() == 'manifestations sportives':
             # Vérification si liaison existante
             liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
@@ -328,6 +328,40 @@ def dossier_non_soumis_a_autorisation(request):
                     dossier_dm.id_etape = etape_cible
                     dossier_dm.save(update_fields=["archive", "id_etape"])
                     logger.info(f"Dossier DM {num_dossier_dm} mis à jour en base (etape : {etape_cible.etape}, archive : True)")
+        """
+
+        # ----------------------------------
+        # Récupération Dossier DM et Avis DM
+        # ----------------------------------
+        contexte_dm, erreur = _get_contexte_dossier_dm(
+            dossier=dossier,
+            request=request,
+            logger=logger,
+            action_log="Classement comme 'Non soumis à autorisation'",
+            message_succes_dn="Le dossier a bien été classé comme non soumis sur Démarche Numérique",
+            message_erreur_dm="une erreur est survenue lors du classement sur Déclaration Manifestations",
+        )
+        if erreur:
+            return erreur
+
+        # -------------------------------------
+        # Rendre l'avis sur DM + maj de la base
+        # -------------------------------------
+        if contexte_dm:
+            resultat_dm, erreur = _soumettre_avis_dm(
+                dossier=dossier,
+                request=request,
+                logger=logger,
+                action_log="Classement comme 'Non soumis à autorisation'",
+                message_succes_dn="Le dossier a bien été classé comme non soumis sur Démarche Numérique",
+                contexte_dm=contexte_dm,
+                code_avis_dm=3,  # 0-None, 1-favorable, 2-défavorable, 3-non concerné
+                libelle_avis_dm="non concerné",
+                etape_cible_label="Non soumis à autorisation",
+                motivation=motivation,
+            )
+            if erreur:
+                return erreur
 
 
     except Exception as e:
@@ -2050,7 +2084,11 @@ def classer_le_dossier_comme_refuse(request):
 
 
 
+"""
 
+A FACTORISER AVEC FONCTION envoyer_l_acte_de_refus()
+
+"""
 ####################################################
 ###             ACTE D'ACCEPTATION               ###
 ####################################################
@@ -2247,16 +2285,11 @@ def envoyer_l_acte(request):
 
 
 
-        
-        
-
-
-
-
 
         # ==============================================
         #     Envoyer une copie de l'acte par Mail
         # ==============================================
+        """
         partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
         emails = request.POST.getlist("emails_copie[]")
 
@@ -2267,7 +2300,22 @@ def envoyer_l_acte(request):
         types = request.POST.getlist("type_contact[]")
         raisons = request.POST.getlist("raison_sociale[]")
         motivation_copie_mail = request.POST.get("motivation_copie_mail")
+        """
 
+        erreur = envoyer_copie_document_par_mail(
+            request=request,
+            dossier=dossier,
+            document=document,
+            nature_document=nature_document,
+            logger=logger,
+            type_mail="Envoi de l'acte",
+            libelle_log="Envoi acte",
+            template_name="mail_en_copie",
+        )
+        if erreur:
+            return erreur
+
+        """
         if partager_par_mail == "oui" :
 
             # =======================================
@@ -2374,12 +2422,12 @@ def envoyer_l_acte(request):
                     logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec envoi en copie de l'acte par Mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
                     return redirect_error(request, f"L'envoi en copie de l'acte par Mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
         
-
+        """
 
         """
         ###############################################
         ###############################################
-        A TESTER
+        A TESTER 
         ###############################################
         ###############################################
         """
@@ -2387,7 +2435,8 @@ def envoyer_l_acte(request):
         # --- RENDRE AVIS + DÉPOSER ACTE SUR DECLARATION MANIFESTATIONS ---
         # =================================================================
         try :
-
+            
+            """
             if dossier.id_demarche.type.lower() == 'manifestations sportives':
                 # Vérification si liaison existante
                 liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
@@ -2469,6 +2518,61 @@ def envoyer_l_acte(request):
                     erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=dossier_dm.emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Arrêté directeur", description_document="Acte envoyé sur Déclaration Manifestations.", message_erreur_metier="L'acte' a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
                     if erreur:
                         return erreur
+            """
+
+            # ----------------------------------
+            # Récupération Dossier DM et Avis DM
+            # ----------------------------------
+            contexte_dm, erreur = _get_contexte_dossier_dm(
+                dossier=dossier,
+                request=request,
+                logger=logger,
+                action_log="Envoi acte d'acceptation",
+                message_succes_dn="Le dossier a bien été accepté sur Démarche Numérique",
+                message_erreur_dm="un problème est survenu lors du dépôt de l'avis favorable sur Déclaration Manifestations",
+            )
+            if erreur:
+                return erreur
+
+            # -------------------------------------
+            # Rendre l'avis sur DM + maj de la base
+            # -------------------------------------
+            if contexte_dm:
+                resultat_dm, erreur = _soumettre_avis_dm(
+                    dossier=dossier,
+                    request=request,
+                    logger=logger,
+                    action_log="Envoi acte d'acceptation",
+                    message_succes_dn="Le dossier a bien été accepté sur Démarche Numérique",
+                    contexte_dm=contexte_dm,
+                    code_avis_dm=1,  # 0-None, 1-favorable, 2-défavorable, 3-non concerné
+                    libelle_avis_dm="favorable",
+                    etape_cible_label="Accepté",
+                    motivation=motivation,
+                )
+                if erreur:
+                    return erreur
+                
+                # ---------------------------------
+                # DÉPOSER ACTE SUR DM ET SUR LE NAS
+                # ---------------------------------
+                erreur = reception_traiter_fichier_avis_dm(
+                    request,
+                    fichier=fichier,
+                    token=resultat_dm["token"],
+                    avis_id=resultat_dm["avis_id"],
+                    dossier_dm=resultat_dm["dossier_dm"],
+                    root_folder=root_folder,
+                    nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
+                    sous_dossier_cible="Annexes/Declaration Manifestations/",
+                    nature_document="Arrêté directeur",
+                    description_document="Acte envoyé sur Déclaration Manifestations.",
+                    message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
+                    logger=logger,
+                )
+                if erreur:
+                    return erreur
+        
 
 
         except Exception as e:
@@ -2480,9 +2584,6 @@ def envoyer_l_acte(request):
             
 
 
-
-
-
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier par {instructeur.email}: {str(e)}")
         return redirect_error(request, f"[DOSSIER {dossier_numero}] Erreur lors de l’acceptation du dossier sur DS par {instructeur.email}: {str(e)}")
@@ -2492,7 +2593,11 @@ def envoyer_l_acte(request):
 
 
 
+"""
 
+A FACTORISER AVEC FONCTION envoyer_l_acte()
+
+"""
 ###############################################
 ###             ACTE DE REFUS               ###
 ###############################################
@@ -2693,6 +2798,7 @@ def envoyer_l_acte_de_refus(request):
         # ==============================================
         #     Envoyer une copie de l'acte par Mail
         # ==============================================
+        """
         partager_par_mail = request.POST.get("partager_par_mail")  # "oui" ou "non"
         emails = request.POST.getlist("emails_copie[]")
 
@@ -2703,7 +2809,22 @@ def envoyer_l_acte_de_refus(request):
         types = request.POST.getlist("type_contact[]")
         raisons = request.POST.getlist("raison_sociale[]")
         motivation_copie_mail = request.POST.get("motivation_copie_mail")
+        """
 
+        erreur = envoyer_copie_document_par_mail(
+            request=request,
+            dossier=dossier,
+            document=document,
+            nature_document=nature_document,
+            logger=logger,
+            type_mail="Envoi de l'acte",
+            libelle_log="Envoi acte",
+            template_name="mail_en_copie",
+        )
+        if erreur:
+            return erreur
+
+        """
         if partager_par_mail == "oui" :
 
             # =======================================
@@ -2810,7 +2931,7 @@ def envoyer_l_acte_de_refus(request):
                     logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec envoi en copie de l'acte par Mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
                     return redirect_error(request, f"L'envoi en copie de l'acte par Mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
         
-
+        """
 
 
         
@@ -2818,7 +2939,7 @@ def envoyer_l_acte_de_refus(request):
         """
         ###############################################
         ###############################################
-        A TESTER
+        A TESTER 
         ###############################################
         ###############################################
         """
@@ -2826,7 +2947,8 @@ def envoyer_l_acte_de_refus(request):
         # --- RENDRE AVIS + DÉPOSER ACTE SUR DECLARATION MANIFESTATIONS ---
         # =================================================================
         try :
-
+            
+            """
             if dossier.id_demarche.type.lower() == 'manifestations sportives':
                 # Vérification si liaison existante
                 liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
@@ -2909,7 +3031,60 @@ def envoyer_l_acte_de_refus(request):
                         if erreur:
                             return erreur
                 
+            """
 
+            # ----------------------------------
+            # Récupération Dossier DM et Avis DM
+            # ----------------------------------
+            contexte_dm, erreur = _get_contexte_dossier_dm(
+                dossier=dossier,
+                request=request,
+                logger=logger,
+                action_log="Envoi acte de refus",
+                message_succes_dn="Le dossier a bien été refusé sur Démarche Numérique",
+                message_erreur_dm="un problème est survenu lors du dépôt de l'avis défavorable sur Déclaration Manifestations",
+            )
+            if erreur:
+                return erreur
+
+            # -------------------------------------
+            # Rendre l'avis sur DM + maj de la base
+            # -------------------------------------
+            if contexte_dm:
+                resultat_dm, erreur = _soumettre_avis_dm(
+                    dossier=dossier,
+                    request=request,
+                    logger=logger,
+                    action_log="Envoi acte de refus",
+                    message_succes_dn="Le dossier a bien été refusé sur Démarche Numérique",
+                    contexte_dm=contexte_dm,
+                    code_avis_dm=2,  # 0-None, 1-favorable, 2-défavorable, 3-non concerné
+                    libelle_avis_dm="défavorable",
+                    etape_cible_label="Refusé",
+                    motivation=motivation,
+                )
+                if erreur:
+                    return erreur
+
+                # ---------------------------------
+                # DÉPOSER ACTE SUR DM ET SUR LE NAS
+                # ---------------------------------
+                erreur = reception_traiter_fichier_avis_dm(
+                    request,
+                    fichier=fichier,
+                    token=resultat_dm["token"],
+                    avis_id=resultat_dm["avis_id"],
+                    dossier_dm=resultat_dm["dossier_dm"],
+                    root_folder=root_folder,
+                    nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
+                    sous_dossier_cible="Annexes/Declaration Manifestations/",
+                    nature_document="Arrêté directeur",
+                    description_document="Acte envoyé sur Déclaration Manifestations.",
+                    message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
+                    logger=logger,
+                )
+                if erreur:
+                    return erreur
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "

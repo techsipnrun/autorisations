@@ -12,6 +12,7 @@ from django.contrib import messages
 from autorisations.models.models_instruction import Champ, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierManifSportiveDocument
+from autorisations.models.models_utilisateurs import ContactExterne, EmailOutbox, Instructeur
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas
 from declaration_manifestations.get_methods import get_access_token
 from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_copier_sous_dossier_dm, reception_deplacer_documents_dossier_dm, reception_lire_donnees_formulaire_avis_dm, reception_mettre_a_jour_emplacement_dossier_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_supprimer_ancien_dossier_dm_si_necessaire, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm
@@ -168,6 +169,25 @@ def dossier_manif_sportive_sans_ds(request, numero):
     docs_DM = documents_deposes_sur_DM(doss_manif_sportive)
 
 
+    ################
+    #    Emails
+    ################
+    # emails_contacts = ContactExterne.objects.filter(
+    #     email__isnull=False
+    # ).exclude(email__exact="").values_list("email", flat=True).distinct()
+
+    # emails_instructeurs = Instructeur.objects.filter(
+    #     email__isnull=False
+    # ).exclude(email__exact="").values_list("email", flat=True).distinct()
+
+    # Fusionner et dédoublonner
+    # emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
+
+
+    # Les emails de relance concernent les doss DM (non lié) qui intersecte le coeur de parc
+    emails_relance = EmailOutbox.objects.filter(id_dossier_dm=doss_manif_sportive.id, type_mail="Relance").order_by("-date_creation")
+
+
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
         # "pjs_demandeur_DM": pjs_demandeur_DM,
@@ -185,6 +205,8 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "dossiers_DN_accepte_manif_sportive_non_lie": dossiers_DN_accepte_manif_sportive_non_lie,
         "actions_possibles": actions_possibles,
         "now": timezone.now(),
+        # "emails_uniques": emails_uniques,
+        "emails_relance": emails_relance,
         # "actes_deposes_sur_DM": actes_deposes_sur_DM,
         # "annexes_deposees_sur_DM": annexes_deposees_sur_DM,
         **docs_DM,
@@ -848,6 +870,16 @@ def declaration_manifestations_non_soumis(request):
                 erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
                 if erreur:
                     return erreur
+                
+
+
+
+            """
+            #####################
+            ENVOI MAIL A AJOUTER
+            #####################
+            """
+        
 
         # Redirection
         messages.info(request, f"Le dossier Déclaration Manifestations « {dossier_dm.nom_dossier} » a bien été classé comme non soumis à autorisations.")
@@ -946,7 +978,18 @@ def declaration_manifestations_non_repondu(request):
 
         # MAJ Dossier DM (emplacement) en BDD
         reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
-     
+
+
+
+
+        """
+        #####################
+        ENVOI MAIL A AJOUTER
+        #####################
+        """
+
+
+
         # Redirection
         messages.info(request, f"Le dossier Déclaration Manifestations « {dossier_dm.nom_dossier} » a bien été archivé.")
         return redirect(reverse("dossier_manif_sportive_sans_ds_archive", kwargs={"numero": num_dossier_dm}))

@@ -131,6 +131,8 @@ def sync_doss(dossier, dico_notifs, dossiers_champs=None):
         # NOTIFICATION PAR MAIL 
         #######################
         # dem = template_mail_name_from_etape(type_demarche)
+        if demarche.type.lower() == 'manifestations sportives':
+            type_demarche = "Manifestations sportives (Démarche Numérique)"
         if type_demarche in dico_notifs:
             dico_notifs[type_demarche] += 1
         else:

@@ -1,12 +1,18 @@
 import logging
+import os
 
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.shortcuts import redirect
 from autorisations.models.models_documents import DossierDocument
-from autorisations.models.models_instruction import Dossier
+from autorisations.models.models_instruction import Dossier, DossierManifSportive
 from django.contrib import messages
 
-from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
+from instruction.utils.dossier_utils import redirect_error
+from notifications.service import compute_dedupe_key, create_EmailOutbox, create_EmailOutbox_DM, envoi_mail
 
 logger = logging.getLogger("ORM_DJANGO")
 
@@ -157,4 +163,311 @@ def build_roles_for_dossier(dossier):
 
 
 
+
+
+def extraire_donnees_copie_mail(request):
+    """
+    Extrait du POST les données liées à l'envoi en copie par mail.
+
+    Returns:
+        dict: {
+            "partager_par_mail": str,
+            "emails": list[str],
+            "emails_nouveaux": list[str],
+            "emails_selectionnes_lower": set[str],
+            "noms": list[str],
+            "prenoms": list[str],
+            "types": list[str],
+            "raisons": list[str],
+            "motivation_copie_mail": str | None,
+        }
+    """
+    emails = request.POST.getlist("emails_copie[]")
+
+    return {
+        "partager_par_mail": request.POST.get("partager_par_mail"),
+        "emails": emails,
+        "emails_nouveaux": request.POST.getlist("email_contact[]"),
+        "emails_selectionnes_lower": {(e or "").strip().lower() for e in emails},
+        "noms": request.POST.getlist("nom_contact[]"),
+        "prenoms": request.POST.getlist("prenom_contact[]"),
+        "types": request.POST.getlist("type_contact[]"),
+        "raisons": request.POST.getlist("raison_sociale[]"),
+        "motivation_copie_mail": request.POST.get("motivation_copie_mail"),
+    }
+
+
+
+
+def creer_nouveaux_contacts_externes_depuis_formulaire(*, request, dossier_numero, emails_nouveaux, emails_selectionnes_lower, noms, prenoms, types, raisons, logger,):
+    """
+    Crée les nouveaux ContactExterne saisis dans le formulaire, uniquement
+    s'ils sont encore sélectionnés pour l'envoi.
+
+    Ne lève pas d'exception métier si un email est invalide : il est ignoré.
+    """
+    for i, email in enumerate(emails_nouveaux):
+        email_clean = (email or "").strip()
+        if not email_clean:
+            continue
+
+        try:
+            validate_email(email_clean)
+        except ValidationError:
+            logger.warning(f"[DOSSIER {dossier_numero}] Envoi document ({request.user}) - Email invalide ignoré : {email}")
+            continue
+
+        # Si la chip a été supprimée, on ignore
+        if email_clean.lower() not in emails_selectionnes_lower:
+            continue
+
+        nom = (noms[i] if i < len(noms) else "").strip()
+        prenom = (prenoms[i] if i < len(prenoms) else "").strip()
+        raison = (raisons[i] if i < len(raisons) else "").strip()
+        type_id = types[i] if i < len(types) else None
+
+        type_obj = None
+        if type_id:
+            type_obj = TypeContactExterne.objects.filter(id=type_id).first()
+
+        if not type_obj:
+            type_obj, _ = TypeContactExterne.objects.get_or_create(type="Autre")
+
+        contact, created = ContactExterne.objects.get_or_create(
+            email=email_clean,
+            id_type=type_obj,
+            defaults={
+                "nom": nom,
+                "prenom": prenom,
+                "raison_sociale": raison,
+            }
+        )
+
+        if created:
+            logger.info(f"[DOSSIER {dossier_numero}] Envoi document par mail : Nouveau ContactExterne créé via formulaire : {contact}")
+
+
+
+
+def normaliser_emails_destinataires(*, request, dossier_numero, emails, logger):
+    """
+    Nettoie, valide et dédoublonne une liste d'emails.
+
+    Returns:
+        list[str]: emails valides, nettoyés, sans doublons.
+    """
+    emails_norm = []
+    seen = set()
+
+    for e in emails:
+        e_norm = (e or "").strip()
+        if not e_norm:
+            continue
+
+        e_key = e_norm.lower()
+        if e_key in seen:
+            continue
+
+        try:
+            validate_email(e_norm)
+        except ValidationError:
+            logger.warning(f"[DOSSIER {dossier_numero}] Envoi document ({request.user}) - Email invalide ignoré : {e_norm}")
+            continue
+
+        seen.add(e_key)
+        emails_norm.append(e_norm)
+
+    return emails_norm
+
+
+
+def envoyer_copie_document_par_mail( *, request, dossier, document, nature_document, logger, type_mail="Envoi du document", libelle_log="Envoi document", template_name="mail_en_copie",):
+    """
+    Gère l'envoi en copie par mail d'un document depuis les données du formulaire.
+
+    Étapes :
+    - extraction des données POST
+    - création éventuelle de nouveaux contacts externes
+    - normalisation/dédoublonnage des emails
+    - création EmailOutbox
+    - envoi du mail
+
+    Returns:
+        HttpResponseRedirect | None:
+            - None si tout va bien ou si aucun envoi demandé
+            - redirect_error(...) en cas d'erreur métier bloquante
+    """
+    donnees_mail = extraire_donnees_copie_mail(request)
+
+    if donnees_mail["partager_par_mail"] != "oui":
+        return None
+
+    creer_nouveaux_contacts_externes_depuis_formulaire(
+        request=request,
+        dossier_numero=dossier.numero,
+        emails_nouveaux=donnees_mail["emails_nouveaux"],
+        emails_selectionnes_lower=donnees_mail["emails_selectionnes_lower"],
+        noms=donnees_mail["noms"],
+        prenoms=donnees_mail["prenoms"],
+        types=donnees_mail["types"],
+        raisons=donnees_mail["raisons"],
+        logger=logger,
+    )
+
+    emails_norm = normaliser_emails_destinataires(
+        request=request,
+        dossier_numero=dossier.numero,
+        emails=donnees_mail["emails"],
+        logger=logger,
+    )
+
+    if not emails_norm:
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - "
+            f"Aucun email valide sélectionné pour l’envoi en copie. "
+            f"Liste des emails transmis : {donnees_mail['emails']}"
+        )
+        return None
+
+    sujet = f"{nature_document} – Dossier {dossier.numero}"
+    context = {"body": donnees_mail["motivation_copie_mail"]}
+    emails_txt = ", ".join(emails_norm)
+
+    try:
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+    except Exception as e:
+        logger.error(
+            f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - "
+            f"Échec de la création de la clé unique (compute_dedupe_key) : {e}"
+        )
+        return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
+
+    outbox = create_EmailOutbox(
+        emails_norm,
+        sujet,
+        template_name,
+        dedupe,
+        context,
+        dossier,
+        type_mail=type_mail,
+        document=document,
+    )
+
+    if not outbox:
+        logger.error(
+            f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - "
+            f"Erreur lors de la création de l'EmailOutbox. "
+            f"Destinataires non notifiés : {emails_txt}"
+        )
+        return redirect_error( request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
+
+    ok, err = envoi_mail(outbox.id)
+
+    if ok:
+        logger.info(f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - Envoi en copie par mail ({outbox.id}) à {', '.join(outbox.to)}")
+        return None
+
+    logger.error(f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - Échec envoi mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
+    return redirect_error(request, f"L'envoi en copie par mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
+
+
+
+
+
+
+
+
+def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
+    """
+    --------
+    A TESTER
+    --------
+
+
+    Envoi automatique du mail de relance pour les nouveaux dossiers DM non liés et qui intersecte le coeur de parc.
+
+    returns :
+        True si bien envoyé, False sinon
+    
+    """
+    try :
+        numero_dossier_dm = None
+        nom_manif = dossier_dm.nom_dossier
+        LIEN_FORM_MANIF_SPORTIVE = os.getenv('LIEN_FORM_MANIF_SPORTIVE')
+
+        if not LIEN_FORM_MANIF_SPORTIVE :
+            logger.error(
+                f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Erreur lors de l'envoi du mail de relance : "
+                f"Échec de la récupération de la variable d'environnement LIEN_FORM_MANIF_SPORTIVE"
+            )
+            return False
+
+        if NOTIFS_PROD :
+            # emails_norm = [dossier_dm.email_structure]
+            emails_norm = []
+        else :
+            emails_norm = [EMAIL_NOTIF_TEST]
+
+        sujet = f"{nom_manif} : formulaire du Parc national de La Réunion à compléter"
+        # context = {
+        #             "date_depot": dossier_dm.date_depot,
+        #             "nom_manif": nom_manif,
+        #             "date_debut": dossier_dm.date_debut_evenement,
+        #             "lien_formulaire": LIEN_FORM_MANIF_SPORTIVE,
+        #         }
+        
+        context = {
+            "date_depot": dossier_dm.date_depot.strftime("%d/%m/%Y") if dossier_dm.date_depot else "",
+            "nom_manif": nom_manif,
+            "date_debut": dossier_dm.date_debut_evenement.strftime("%d/%m/%Y") if dossier_dm.date_debut_evenement else "",
+            "lien_formulaire": LIEN_FORM_MANIF_SPORTIVE,
+        }
+        
+        emails_txt = ", ".join(emails_norm)
+        template_name = "mail_relance_manif_sportive"
+        type_mail = "Relance"
+
+        numero_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
+        try:
+            # Contraintes unicité que pour les mails 'À envoyer' ou 'Échec'
+            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+        except Exception as e:
+            logger.error(
+                f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Erreur lors de l'envoi du mail de relance : "
+                f"Échec de la création de la clé unique (compute_dedupe_key) : {e}"
+            )
+            return False
+
+        outbox = create_EmailOutbox_DM(
+            emails_norm,
+            sujet,
+            template_name,
+            dedupe,
+            context,
+            dossier_dm,
+            type_mail=type_mail,
+            # document=document,
+        )
+
+        if not outbox:
+            logger.error(
+                f"[DOSSIER DM {numero_dossier_dm}] Email de relance automatique - "
+                f"Erreur lors de la création de l'EmailOutbox. Destinataires non notifiés : {emails_txt}"
+            )
+            return False
+
+        ok, err = envoi_mail(outbox.id)
+
+        if ok:
+            logger.info(f"[DOSSIER DM {numero_dossier_dm}]  - Envoi automatique mail de relance ({outbox.id}) à {', '.join(outbox.to)}")
+            return True
+
+        logger.error(f"[DOSSIER DM {numero_dossier_dm}]  - Échec envoi mail de relance automatique ({outbox.id}) à {', '.join(outbox.to)} : {err}")
+        return False
+    
+
+    except Exception as e :
+        logger.error(f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Erreur lors de l'envoi du mail de relance : {e}")
+        return False
 

@@ -11,7 +11,7 @@ from synchronisation.utils.model_helpers import foreign_keys_add_suffixe_id, upd
 
 
 
-def sync_declaration_manifestations(dossier, logger):
+def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
     """
     Synchronise un objet DossierManifSportive à partir des données de déclaration-manifestations.
 
@@ -61,6 +61,9 @@ def sync_declaration_manifestations(dossier, logger):
         logger.error(f"Erreur lors du get_or_create DossierManifSportive : {e}")
         return None
 
+    # TEST
+    if manif_id == 116432 :
+        logger.warning(dossier)
 
     # ----------------------------
     # NOUVEAU DossierManifSportive
@@ -129,6 +132,16 @@ def sync_declaration_manifestations(dossier, logger):
             write_geojson(f"{obj.emplacement}/Carto/", f"{nom_courses_clean}.geojson", obj.geometrie)
         else :
             logger.warning(f"[CREATE] DossierManifSportive numéro {manif_id} : Aucune géométrie récupérée")
+
+
+        #######################
+        # NOTIFICATION PAR MAIL 
+        #######################
+        type_demarche = "Manifestations sportives (Déclaration Manifestations)"
+        if type_demarche in dico_notifs:
+            dico_notifs[type_demarche] += 1
+        else:
+            dico_notifs[type_demarche] = 1
 
 
 

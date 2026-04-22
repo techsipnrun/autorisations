@@ -15,9 +15,10 @@ from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
-from instruction.utils.dm import documents_deposes_sur_DM
+from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances
 from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
+from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
 import logging
@@ -124,9 +125,31 @@ def preinstruction(request):
 
     # Intersection Coeur de Parc
     for dm in dossiers_manif_sportive_DM :
+        dm.nb_relances = 0
+
         if dm.coeur_de_parc is None :
             dm.coeur_de_parc = intersecte_coeur_de_parc(dm.geometrie, coeur_geojson)
             dm.save(update_fields=["coeur_de_parc"])
+
+            # ----------------------------------------------------------------------------
+            # Si le dossier DM est nouveau et intersecte le coeur de parc : MAIL DE RELANCE
+            # ----------------------------------------------------------------------------
+            if dm.coeur_de_parc == True and dm.email_structure :
+                if not envoi_auto_mail_relance(dm) :
+                    messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
+                                              f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
+                    
+        
+        # if dm.nom_dossier == "TRAIL DE MINUIT 2026" and dm.email_structure :
+        #     if not envoi_auto_mail_relance(dm) :
+        #             messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
+        #                                       f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
+
+        if dm.coeur_de_parc == True :
+            nb_relances = get_nb_relances(dm)  # ta logique ici
+            dm.nb_relances = nb_relances
+            
+
             # nb_inter+=1
 
     # end = time.time()
@@ -134,7 +157,7 @@ def preinstruction(request):
     # print(f"⏱ Temps d'exécution : {end - start:.3f} secondes")
 
     # ----------------------------------------------
-    # Dossiers DS non liés à un Dossier DM
+    # Dossiers DN non liés à un Dossier DM
     # ----------------------------------------------
     dossiers_manif_sportive_DS = (
         Dossier.objects.filter(id_demarche__type="Manifestations sportives")
@@ -179,7 +202,7 @@ def preinstruction(request):
 
 
     # -------------------------------------
-    # Dossiers DS liés à un Dossier DM
+    # Dossiers DN liés à un Dossier DM
     # -------------------------------------
     dossiers_manif_sportive_complet = Dossier.objects.filter(
         id_demarche__type="Manifestations sportives",
@@ -201,8 +224,8 @@ def preinstruction(request):
         # Intersection Coeur de parc
         dossier_dm = liaison.id_dossier_manif
         if dossier_dm.coeur_de_parc is None :
-           dossier_dm.coeur_de_parc = intersecte_coeur_de_parc(dossier_dm.geometrie, coeur_geojson)
-           dossier_dm.save(update_fields=["coeur_de_parc"])
+            dossier_dm.coeur_de_parc = intersecte_coeur_de_parc(dossier_dm.geometrie, coeur_geojson)
+            dossier_dm.save(update_fields=["coeur_de_parc"])
 
     dossiers_manif_sportive_complet_map = { liaison.id_dossier: liaison.id_dossier_manif for liaison in liaisons }
 

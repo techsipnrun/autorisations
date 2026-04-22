@@ -7,8 +7,8 @@ from django.utils import timezone
 import smbclient
 
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
-from autorisations.models.models_instruction import AvisManifSportive, DossierManifSportive, EtapeDossier
-from autorisations.models.models_utilisateurs import Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_instruction import AvisManifSportive, DossierManifSportive, DossierManifestationLiaison, EtapeDossier
+from autorisations.models.models_utilisateurs import EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.document_utils import normaliser_emplacement
@@ -629,3 +629,175 @@ def documents_deposes_sur_DM(doss_manif_sportive):
             'pjs_demandeur_DM': pjs_demandeur_DM,
             'chemin_complet_DM': chemin_complet_DM,
             }
+
+
+
+
+def _get_contexte_dossier_dm(dossier, request, logger, action_log, message_succes_dn, message_erreur_dm):
+    """
+    Récupère le dossier Déclaration Manifestations lié au dossier DN ainsi que l'avis associé.
+
+    Args:
+        dossier (Dossier): Dossier DN en cours de traitement.
+        request: Requête HTTP Django.
+        logger: Logger à utiliser.
+        action_log (str): Libellé métier pour les logs (ex: "Envoi acte d'acceptation", "Envoi acte de refus","Classement comme 'Non soumis à autorisation'").
+        message_succes_dn (str): Début du message métier côté DN (ex: "Le dossier a bien été accepté sur Démarche Numérique").
+        message_erreur_dm (str): Partie spécifique du message d'erreur DM.
+
+    Returns:
+        tuple:
+            - dict | None : {
+                "liaison": liaison_dossDN,
+                "dossier_dm": dossier_dm,
+                "num_dossier_dm": num_dossier_dm,
+                "avis_dm": avis_dm,
+                "avis_id": avis_id,
+              }
+            - HttpResponseRedirect | None : redirect_error si anomalie métier
+    """
+    if dossier.id_demarche.type.lower() != "manifestations sportives":
+        return None, None
+
+    liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+    if not liaison_dossDN:
+        return None, None
+
+    dossier_dm_id = liaison_dossDN.id_dossier_manif.id
+
+    dossier_dm = DossierManifSportive.objects.filter(id=dossier_dm_id).first()
+    if not dossier_dm:
+        logger.error(f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : Dossier Déclaration Manifestations (id={dossier_dm_id}) introuvable en base.")
+        return None, redirect_error(request, f"{message_succes_dn}, mais {message_erreur_dm}. Contactez le support.")
+
+    num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
+
+    avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
+    if not avis_dm:
+        logger.error(f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : Aucun Avis DM associé au Dossier DM {num_dossier_dm}.")
+        return None, redirect_error(
+            request,
+            f"{message_succes_dn}, mais l'avis n'a pas pu être rendu sur Déclaration Manifestations pour le dossier n° {num_dossier_dm} "
+            f"(aucun avis associé en base). Contactez le support."
+        )
+
+    return {
+        "liaison": liaison_dossDN,
+        "dossier_dm": dossier_dm,
+        "num_dossier_dm": num_dossier_dm,
+        "avis_dm": avis_dm,
+        "avis_id": avis_dm.id_avis_manif_sportive,
+    }, None
+
+
+
+def _soumettre_avis_dm(*, dossier, request, logger, action_log, message_succes_dn, contexte_dm, code_avis_dm, libelle_avis_dm, etape_cible_label, motivation=None,):
+    """
+    Rend un avis sur Déclaration Manifestations et met à jour la base locale.
+
+    Args:
+        dossier (Dossier): Dossier DN.
+        request: Requête HTTP Django.
+        logger: Logger à utiliser.
+        action_log (str): Libellé métier pour les logs.
+        message_succes_dn (str): Message d'introduction pour redirect_error.
+        contexte_dm (dict): Résultat de _get_contexte_dossier_dm.
+        code_avis_dm (int): Code API DM (1=favorable, 2=défavorable, 3=non concerné).
+        libelle_avis_dm (str): Libellé stocké en base ("favorable", "défavorable", "non concerné").
+        etape_cible_label (str): Libellé exact de l'étape cible ("Accepté", "Refusé", "Non soumis à autorisation").
+        motivation (str | None): Motivation/prescriptions.
+
+    Returns:
+        tuple:
+            - dict | None :
+                {
+                    "token": token,
+                    "avis_id": avis_id,
+                    "avis_dm": avis_dm,
+                    "dossier_dm": dossier_dm,
+                    "num_dossier_dm": num_dossier_dm,
+                    "deja_rendu": bool,
+                }
+          
+            - HttpResponseRedirect | None : redirect_error si erreur métier/technique
+    """
+    avis_dm = contexte_dm["avis_dm"]
+    avis_id = contexte_dm["avis_id"]
+    dossier_dm = contexte_dm["dossier_dm"]
+    num_dossier_dm = contexte_dm["num_dossier_dm"]
+
+    if avis_dm.date_reponse:
+        logger.warning(f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : Avis (avis_id={avis_id}) déjà soumis sur DM.")
+
+        messages.info(request, f"Aucun changement sur Déclaration Manifestations, un avis '{avis_dm.reponse_avis}' a déjà été rendu.")
+
+        if not dossier_dm.archive:
+            dossier_dm.archive = True
+            dossier_dm.save(update_fields=["archive"])
+
+        return {
+            "token": None,
+            "avis_id": avis_id,
+            "avis_dm": avis_dm,
+            "dossier_dm": dossier_dm,
+            "num_dossier_dm": num_dossier_dm,
+            "deja_rendu": True,
+        }, None
+
+    try:
+        token = get_access_token()
+        motivation = motivation or ""
+
+        response_avis = rendre_avis(token, avis_id, code_avis_dm, motivation)
+        logger.info(
+            f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : "
+            f"Avis '{libelle_avis_dm}' soumis avec succès sur DM (avis_id={avis_id}). "
+            f"Réponse API : {response_avis}"
+        )
+
+        avis_dm.date_reponse = timezone.now()
+        avis_dm.reponse_avis = libelle_avis_dm
+        avis_dm.prescriptions = motivation
+        avis_dm.save(update_fields=["date_reponse", "prescriptions", "reponse_avis"])
+        logger.info(f"Avis DM {avis_id} mis à jour en base.")
+
+        etape_cible = EtapeDossier.objects.get(etape=etape_cible_label)
+        dossier_dm.archive = True
+        dossier_dm.id_etape = etape_cible
+        dossier_dm.save(update_fields=["archive", "id_etape"])
+        logger.info(f"Dossier DM {num_dossier_dm} mis à jour en base (etape : {etape_cible.etape}, archive : True)")
+
+        return {
+            "token": token,
+            "avis_id": avis_id,
+            "avis_dm": avis_dm,
+            "dossier_dm": dossier_dm,
+            "num_dossier_dm": num_dossier_dm,
+            "deja_rendu": False,
+        }, None
+
+    except Exception as e:
+        logger.error(
+            f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : "
+            f"Erreur lors de la soumission de l'avis '{libelle_avis_dm}' sur Déclaration Manifestations : {e}"
+        )
+        return None, redirect_error(request, f"{message_succes_dn}, mais l'avis n'a pas pu être rendu sur Déclaration Manifestations. Contactez le support.")
+    
+
+
+
+def get_nb_relances(dm):
+    """
+    Retourne le nombre de mails de relance envoyés pour un dossierDéclaration Manifestations.
+
+    Args:
+        dm (DossierManifSportive): le dossier DM concerné
+
+    Returns:
+        int: nombre de relances envoyées
+    """
+    return EmailOutbox.objects.filter(
+        id_dossier_dm=dm.id,
+        type_mail="Relance",
+        statut="Envoyé"
+    ).count()

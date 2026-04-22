@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
-from autorisations.models.models_instruction import Dossier, Message
+from autorisations.models.models_instruction import Dossier, DossierManifSportive, Message
 from autorisations.models.models_documents import MessageDocument
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
 from autorisations.models.models_avis import DossierAvis
@@ -613,6 +613,49 @@ def envoyer_mail_en_copie(request, email_id):
         logger.info(f"[DOSSIER {dossier.numero}] Email ({email.id}) envoyé par {request.user} à {', '.join(email.to)} ")
     else:
         logger.error(f"[DOSSIER {dossier.numero}] Tentative {email.try_count} : Échec envoi email par {request.user} à {', '.join(email.to)} : {err}")
+
+        if email.try_count < 3 :
+            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez le support.")
+        else :
+            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez le support.")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+@login_required
+@require_POST
+def renvoyer_mail_relance(request, email_id):
+
+    # email = get_object_or_404(EmailOutbox, pk=email_id)
+    email = EmailOutbox.objects.filter(id=email_id).first()
+    if not email:
+        logger.error(f"[ENVOI MAIL COPIE] EmailOutbox {email_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Email introuvable en base. Contactez le support.")
+
+    # dossier = Dossier.objects.filter(id=email.id_dossier.id).first()
+    dossier_dm = DossierManifSportive.objects.filter(id=email.id_dossier_dm_id).first()
+    if not dossier_dm:
+        logger.error(f"[ENVOI MAIL COPIE] Email {email_id} : dossier DM {email.id_dossier_dm_id} introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le dossier DM lié à cet email est introuvable. Contactez le support.")
+    
+    numero_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
+    
+    
+    # Tentative >=3 et dernière tentative date de moins de 2h
+    limite_temps = timedelta(hours=2)
+
+    if email.try_count >= 3 and (timezone.now() - email.derniere_tentative_envoi) < limite_temps :
+
+        logger.error(f"[DOSSIER DM {numero_dossier_dm}] {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}.")
+        return redirect_error(request, f"Déjà {email.try_count} tentatives d'envoi de mail échouées à {', '.join(email.to)}. Contactez le support.")
+
+    ok, err = envoi_mail(email_id)
+
+    if ok:
+        logger.info(f"[DOSSIER DM {numero_dossier_dm}] Email ({email.id}) envoyé par {request.user} à {', '.join(email.to)} ")
+    else:
+        logger.error(f"[DOSSIER DM {numero_dossier_dm}] Tentative {email.try_count} : Échec envoi email par {request.user} à {', '.join(email.to)} : {err}")
 
         if email.try_count < 3 :
             messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez le support.")

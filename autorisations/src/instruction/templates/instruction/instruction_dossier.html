@@ -333,7 +333,7 @@
                                                 </form>
                                             
                                             
-                                            {% elif label == "Archiver le dossier comme non soumis à autorisation" %}
+                                            {% elif label == "Archiver le dossier comme non soumis à autorisation" %} 
                                                 {% if dossier.present_sur_ds %}
                                                     <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
                                                 
@@ -2146,7 +2146,7 @@ En conséquence, la demande est refusée.</textarea>
 
 
                 <!-- ############################# MAILS ENVOYÉS ############################# -->
-                {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' %}
+                {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' or etape_actuelle.etape == 'Refusé' or etape_actuelle.etape == 'Non soumis à autorisation' %}
                     {% if emails_dossiers %}
                         <div class="mails_dossier">
                             <h3>Les envois de mails</h3>

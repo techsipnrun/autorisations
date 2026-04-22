@@ -36,6 +36,9 @@
     <!-- Pour le menu déroulant des étapes -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
 
+    <!-- Partager par mail -->
+    <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
+
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -201,8 +204,6 @@
                         </div>
                     </div>
                 {% endif %}
-
-
             </div>
 
             {% if messages %}
@@ -379,9 +380,9 @@
             </div>
 
 
-            <!------------------------------------------------------------------------------------------>
-            <!-- Zone masquée pour mettre en 'Non Concerné' un dossier sur Déclaration Manifestations -->
-            <!------------------------------------------------------------------------------------------>
+            <!------------------------------------------------------------------------------------------------------->
+            <!-- Zone masquée pour mettre en 'Non Concerné' un dossier sur Déclaration Manifestations (Hors coeur) -->
+            <!------------------------------------------------------------------------------------------------------->
             <div id="formulaire-non-soumis-dm" class="zone-complement zone-envoyer-pour-validation">
                 <form id="form-non-soumis-dm" method="post" enctype="multipart/form-data" action="{% url 'declaration_manifestations_non_soumis_url' %}">
                     {% csrf_token %}
@@ -400,6 +401,12 @@ Le Parc national de La Réunion</textarea>
                         <input type="file" id="files-non-soumis" name="files" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,.xls,.xlsx">
                     </div>
                     <p class="hint-text">Taille maximale pour une pièce jointe : <strong>5Mo</strong></p>
+                    
+
+                    <!-- Partager par mail -->
+                    <!-- A CHANGER acceptation par non soumis (partage_par_mail.html à ré adapter) -->
+                    <!-- include "instruction/refacto/partage_par_mail.html" with mode_mail="acceptation" -->
+
 
 
                     <div class="zone-confirmer-formulaire">
@@ -518,13 +525,13 @@ Le Parc national de La Réunion</textarea>
              
 
             <h2>Organisateur.trice</h2>
-            <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Prénom de l'organisateur</strong> : {{ doss_manif_sportive.prenom_organisateur|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Qualité du déclarant</strong> : {{ doss_manif_sportive.qualite_declarant|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Structure</strong> : {{ doss_manif_sportive.structure|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Prénom de l'organisateur</strong> : {{ doss_manif_sportive.prenom_organisateur|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Qualité du déclarant</strong> : {{ doss_manif_sportive.qualite_declarant|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Structure</strong> : {{ doss_manif_sportive.structure|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"---" }}</p></div>
+            <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"---" }}</p></div>
             
             <h2>Tracé de la manifestation</h2>
             <div class="carto-banner"></div>
@@ -548,67 +555,67 @@ Le Parc national de La Réunion</textarea>
             {% endif %}
 
             <h2>Caractéristiques</h2>
-            <div class="champs"><p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Numéro du dossier</strong> : {{ doss_manif_sportive.numero_dossier_declaration_manifestations|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>État du dossier</strong> : {{ doss_manif_sportive.etat_dossier|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Date de dépôt</strong> : {{ doss_manif_sportive.date_depot|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Date de début</strong> : {{ doss_manif_sportive.date_debut_evenement|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Date de fin</strong> : {{ doss_manif_sportive.date_fin_evenement|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Emprise sur voie publique</strong> : {{ doss_manif_sportive.emprise_voie_publique|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Évènement est une compétition</strong> : {{ doss_manif_sportive.evenement_competition|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Description</strong> : {{ doss_manif_sportive.description|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Observation</strong> : {{ doss_manif_sportive.observation|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Activité</strong> : {{ doss_manif_sportive.activite|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Affilié fédération délégataire</strong> : {{ doss_manif_sportive.affilie_federation_delegataire|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Nombre de participants</strong> : {{ doss_manif_sportive.nombre_participants|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Nombre max. de spectateurs</strong> : {{ doss_manif_sportive.nombre_max_spectateurs|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Nombre d'organisateurs</strong> : {{ doss_manif_sportive.nombre_organisateurs|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Nombre de véhicules d'accompagnement</strong> : {{ doss_manif_sportive.nombre_vehicules_accompagnement|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Départ groupé des participants</strong> : {{ doss_manif_sportive.depart_groupe_participants|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Circulation groupée des participants</strong> : {{ doss_manif_sportive.circulation_groupee_participants|yesno:"Oui,Non,Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Numéro du dossier</strong> : {{ doss_manif_sportive.numero_dossier_declaration_manifestations|default:"---" }}</p></div>
+            <div class="champs"><p><strong>État du dossier</strong> : {{ doss_manif_sportive.etat_dossier|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Date de dépôt</strong> : {{ doss_manif_sportive.date_depot|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Date de début</strong> : {{ doss_manif_sportive.date_debut_evenement|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Date de fin</strong> : {{ doss_manif_sportive.date_fin_evenement|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Emprise sur voie publique</strong> : {{ doss_manif_sportive.emprise_voie_publique|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Évènement est une compétition</strong> : {{ doss_manif_sportive.evenement_competition|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Description</strong> : {{ doss_manif_sportive.description|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Observation</strong> : {{ doss_manif_sportive.observation|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Activité</strong> : {{ doss_manif_sportive.activite|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Affilié fédération délégataire</strong> : {{ doss_manif_sportive.affilie_federation_delegataire|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Nombre de participants</strong> : {{ doss_manif_sportive.nombre_participants|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Nombre max. de spectateurs</strong> : {{ doss_manif_sportive.nombre_max_spectateurs|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Nombre d'organisateurs</strong> : {{ doss_manif_sportive.nombre_organisateurs|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Nombre de véhicules d'accompagnement</strong> : {{ doss_manif_sportive.nombre_vehicules_accompagnement|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Départ groupé des participants</strong> : {{ doss_manif_sportive.depart_groupe_participants|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Circulation groupée des participants</strong> : {{ doss_manif_sportive.circulation_groupee_participants|yesno:"Oui,Non,---" }}</p></div>
             
             <h2>Régime de circulation publique</h2>
-            <div class="champs"><p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"---" }}</p></div>
             
             <h2>Coordinateur sécurité</h2>
-            <div class="champs"><p><strong>Nom coordinateur sécurité</strong> : {{ doss_manif_sportive.nom_coordinateur_securite|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Prénom coordinateur sécurité</strong> : {{ doss_manif_sportive.prenom_coordinateur_securite|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Téléphone coordinateur sécurité</strong> : {{ doss_manif_sportive.telephone_coordinateur_securite|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Email coordinateur sécurité</strong> : {{ doss_manif_sportive.email_coordinateur_securite|default:"Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Nom coordinateur sécurité</strong> : {{ doss_manif_sportive.nom_coordinateur_securite|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Prénom coordinateur sécurité</strong> : {{ doss_manif_sportive.prenom_coordinateur_securite|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Téléphone coordinateur sécurité</strong> : {{ doss_manif_sportive.telephone_coordinateur_securite|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Email coordinateur sécurité</strong> : {{ doss_manif_sportive.email_coordinateur_securite|default:"---" }}</p></div>
             
             <h2>Personne à contacter sur place</h2>
-            <div class="champs"><p><strong>Nom du contact</strong> : {{ doss_manif_sportive.nom_contact|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Prénom du contact</strong> : {{ doss_manif_sportive.prenom_contact|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Téléphone du contact</strong> : {{ doss_manif_sportive.telephone_contact|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Autres contacts utiles</strong> : {{ doss_manif_sportive.autres_contacts_utiles|default:"Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Nom du contact</strong> : {{ doss_manif_sportive.nom_contact|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Prénom du contact</strong> : {{ doss_manif_sportive.prenom_contact|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Téléphone du contact</strong> : {{ doss_manif_sportive.telephone_contact|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Autres contacts utiles</strong> : {{ doss_manif_sportive.autres_contacts_utiles|default:"---" }}</p></div>
             
             <h2>Zones protégées</h2>
-            <div class="champs"><p><strong>Budget > 100 000 €</strong> : {{ doss_manif_sportive.budget_depasse_100k|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Manifestation lucrative +1500 personnes</strong> : {{ doss_manif_sportive.manifestation_lucrative_plus_1500|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Titre national/international</strong> : {{ doss_manif_sportive.manifestation_titre_national_international|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Engagement véhicules hors voies ouvertes</strong> : {{ doss_manif_sportive.manifestation_vehicules_hors_voies_ouvertes|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Charte Natura 2000 signée</strong> : {{ doss_manif_sportive.charte_dispense_natura_2000|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Lieux PDESI</strong> : {{ doss_manif_sportive.lieux_pdesi|default:"Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Budget > 100 000 €</strong> : {{ doss_manif_sportive.budget_depasse_100k|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Manifestation lucrative +1500 personnes</strong> : {{ doss_manif_sportive.manifestation_lucrative_plus_1500|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Titre national/international</strong> : {{ doss_manif_sportive.manifestation_titre_national_international|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Engagement véhicules hors voies ouvertes</strong> : {{ doss_manif_sportive.manifestation_vehicules_hors_voies_ouvertes|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Charte Natura 2000 signée</strong> : {{ doss_manif_sportive.charte_dispense_natura_2000|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Lieux PDESI</strong> : {{ doss_manif_sportive.lieux_pdesi|default:"---" }}</p></div>
 
             <h2>Balisage</h2>
-            <div class="champs"><p><strong>Signataire charte balisage</strong> : {{ doss_manif_sportive.signataire_charte_balisage|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Description du balisage</strong> : {{ doss_manif_sportive.description_balisage|default:"Non renseigné" }}</p></div>
+            <div class="champs"><p><strong>Signataire charte balisage</strong> : {{ doss_manif_sportive.signataire_charte_balisage|yesno:"Oui,Non,---" }}</p></div>
+            <div class="champs"><p><strong>Description du balisage</strong> : {{ doss_manif_sportive.description_balisage|default:"---" }}</p></div>
             
 
             <h2>Avis du Parc sur Déclaration Manifestations</h2>
@@ -645,7 +652,94 @@ Le Parc national de La Réunion</textarea>
             {% endif %}
 
         </div>
-    </div>
+
+        
+
+        <!-- 
+            ####################################################################
+            ######################## PARTIE DE DROITE ##########################
+            ####################################################################
+        -->
+
+        <!-- ############### Form / Messagerie / Consultation ############### -->
+        <div class="nav_preinstruction nav_dm_sans_dn">
+            
+            <!-- ############################# MAILS DE RELANCE ############################# -->
+            {% if doss_manif_sportive.coeur_de_parc %}
+                <div class="mails_dossier">
+                    <h3>Les mails de relance</h3>
+                    {% for email in emails_relance %}
+                        <div class="un_mail">
+                            {% if email.statut != 'Envoyé' %}
+                                <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
+                                    {% csrf_token %}
+                                    <button type="submit" class="croix-retirer" title="Supprimer ce mail">✕</button>
+                                </form>
+                            {% endif %}
+
+                            {% if email.statut == 'Envoyé' %}
+                                <div class="titre_mail_dossier">
+                                    <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Mail envoyé avec succès" title="Mail envoyé avec succès" class="logo_instructeur">      
+                                    <h4>{{ email.sujet }}</h4>
+                                    
+                                    <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                    </a>
+                                </div>
+
+                                <h4>Mail envoyé le {{ email.derniere_tentative_envoi }}</h4>
+                            {% elif email.statut == 'À envoyer' %}
+                                <div class="titre_mail_dossier">
+                                    <img src="{% static 'instruction/img/en_attente.png' %}" alt="Mail en attente d'envoi" title="Mail en attente d'envoi" class="logo_instructeur">      
+                                    <h4>{{ email.sujet }}</h4>
+
+                                    <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                    </a>
+                                </div>
+                                <h4>Mail en attente d'envoi</h4>
+                            {% else  %}
+                                <div class="titre_mail_dossier">
+                                    <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Échec de l'envoi du mail" title="Échec de l'envoi du mail" class="logo_instructeur">      
+                                    <h4>{{ email.sujet }}</h4>
+
+                                    <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                        <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                    </a>
+                                </div>
+                                <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
+                            {% endif %}
+                            
+                            {% for mail in email.to %}
+                                <p>{{ mail }}</p>
+                            {% endfor %}
+
+                            {% if email.statut != 'Envoyé' %}
+                                <form action="{% url 'renvoyer_mail_relance' email.id %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
+                                        {% if email.statut == 'À envoyer' %}
+                                            Lancer l'envoi
+                                        {% else %}
+                                            Retenter l'envoi
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <p>Aucun mail de relance envoyé pour ce dossier.</p>
+                    {% endfor %}
+
+
+                <!-- TO DO -->
+                <!-- Envoyer un nouveau mail de relance -->
+
+                </div>
+            {% endif %}
+
+
+        </div>
 
     <!-- 1. Données JSON pour le fond de carte -->
     {{ coeurData|json_script:"fond-data" }}

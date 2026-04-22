@@ -25,6 +25,12 @@ def dossiers_declaration_manifestations_normalize(d):
                     "numero_telephone": doss.get("structure_organisatrice_fk").get("telephone_s"),
                     "email_structure": doss.get("structure_organisatrice_fk").get("email_s"),
 
+                    # Organisateur technique
+                    # technique_nom
+                    # technique_prenom
+                    # technique_tel
+                    # technique_email    (peut être identque à email_structure)
+
                     "nom_dossier": doss.get("nom"),
                     "numero_dossier_declaration_manifestations": doss.get("pk"),
                     "etat_dossier": doss.get("etat"),

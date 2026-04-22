@@ -360,7 +360,7 @@ class DossierIntermediaireSignature(models.Model):
 class EmailOutbox(models.Model):
 
     STATUT_CHOICES = [("À envoyer", "À envoyer"), ("Envoyé", "Envoyé"), ("Échec", "Échec"),]
-    TYPE_CHOICES = [("Notification", "Notification"), ("Envoi de l'acte", "Envoi de l'acte"),]
+    TYPE_CHOICES = [("Notification", "Notification"), ("Envoi de l'acte", "Envoi de l'acte"), ("Relance", "Relance"),]
 
     to = ArrayField(models.TextField())
     email_from = models.EmailField()
@@ -375,6 +375,7 @@ class EmailOutbox(models.Model):
     derniere_erreur = models.TextField(blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)  # pas utilisé pour le moment
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier', blank=True, null=True)
+    id_dossier_dm = models.ForeignKey('autorisations.DossierManifSportive', models.CASCADE, db_column='id_dossier_dm', blank=True, null=True)
     id_document = models.ForeignKey('autorisations.Document', models.SET_NULL, db_column='id_document', blank=True, null=True)
 
     class Meta:

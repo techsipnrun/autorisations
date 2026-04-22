@@ -630,6 +630,8 @@ def instruction_dossier(request, num_dossier):
     doss_manif_sportive = None
     avis_manif_sportive = None
     docs_DM = {}
+    liaison = None
+    
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
@@ -676,6 +678,13 @@ def instruction_dossier(request, num_dossier):
     # Liste tous les emails (envoi acte en copie) liés à ce dossier
     emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id, type_mail="Envoi de l'acte").order_by("-date_creation")
 
+    # On ajoute les mails de Relance du dossier DM (s'il y en a)
+    if liaison :
+        emails_relance_dm = EmailOutbox.objects.filter(id_dossier_dm=doss_manif_sportive, type_mail="Relance", statut="Envoyé")
+        emails_dossiers = (emails_dossiers | emails_relance_dm).order_by("-date_creation")
+    else :
+        
+        emails_dossiers = emails_dossiers.order_by("-date_creation")
 
     ##################
     #  AVIS 
