@@ -162,7 +162,7 @@ urlpatterns = [
     path("manif-sportive/lier-dn-archive/",declaration_manifestations.archive_lier_dossier_manif_sportive_a_DN, name="lier_dossier_archive_manif_sportive_a_DN"),
     path("manif-sportive/ajouter_annexe/<int:id_dm>/", declaration_manifestations.ajouter_annexe_sur_DM, name="ajouter_annexe_sur_DM"),
     path("manif-sportive/email/<int:email_id>/envoyer/", messagerie.renvoyer_mail_relance, name="renvoyer_mail_relance"),
-    
+    path("manif-sportive/<int:id_dm>/relance-mail/",messagerie.envoi_manuel_mail_relance,name="envoi_manuel_mail_relance"),
 
 
 

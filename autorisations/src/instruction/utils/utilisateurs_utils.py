@@ -379,10 +379,6 @@ def envoyer_copie_document_par_mail( *, request, dossier, document, nature_docum
 
 def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
     """
-    --------
-    A TESTER
-    --------
-
 
     Envoi automatique du mail de relance pour les nouveaux dossiers DM non liés et qui intersecte le coeur de parc.
 
@@ -403,18 +399,11 @@ def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
             return False
 
         if NOTIFS_PROD :
-            # emails_norm = [dossier_dm.email_structure]
-            emails_norm = []
+            emails_norm = [dossier_dm.email_structure]
         else :
             emails_norm = [EMAIL_NOTIF_TEST]
 
         sujet = f"{nom_manif} : formulaire du Parc national de La Réunion à compléter"
-        # context = {
-        #             "date_depot": dossier_dm.date_depot,
-        #             "nom_manif": nom_manif,
-        #             "date_debut": dossier_dm.date_debut_evenement,
-        #             "lien_formulaire": LIEN_FORM_MANIF_SPORTIVE,
-        #         }
         
         context = {
             "date_depot": dossier_dm.date_depot.strftime("%d/%m/%Y") if dossier_dm.date_depot else "",

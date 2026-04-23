@@ -1,7 +1,7 @@
 import os
 from autorisations.models.models_documents import Document
 from declaration_manifestations.call_api_dm import recup_pj_dossiers
-from declaration_manifestations.get_methods import get_access_token
+from declaration_manifestations.get_methods import get_access_token, get_access_token_prod
 from .sync_declaration_manifestations import sync_declaration_manifestations
 from .sync_avis_declaration_manifestations import sync_avis_declaration_manifestations
 from .sync_demarche import sync_demarche
@@ -33,6 +33,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
                 logger.info("------- Dossiers Manif sportives -------")
 
                 token = get_access_token()
+                token_prod = get_access_token_prod()
 
                 for doss in dico["manif_sportives"] :
                     doss_manif_sportive, doss_lie = sync_declaration_manifestations(doss, logger, dico_notifs)
@@ -46,7 +47,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
 
                     # Récupération et Synchronisation des PJ du DossierManifSportive
                     try :
-                        recup_pj_dossiers(doss_manif_sportive, docs, token, doss_lie)
+                        recup_pj_dossiers(doss_manif_sportive, docs, token, doss_lie, token_prod)
                     except Exception as e:
                         logger.error(f"Erreur lors de la récupération et synchronisation des PJ du DossierManifSportive {manif_id}  sur Déclaration Manifestations : {e}")
                 

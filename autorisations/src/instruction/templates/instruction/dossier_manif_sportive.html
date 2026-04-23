@@ -148,6 +148,14 @@
             <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
+            
+            {% if doss_manif_sportive.technique_nom != None or doss_manif_sportive.technique_prenom != None or doss_manif_sportive.technique_tel != None or doss_manif_sportive.technique_email != None %}
+                <h2>Organisateur.trice technique</h2>
+                <div class="champs"><p><strong>Nom</strong> : {{ doss_manif_sportive.technique_nom|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Prénom</strong> : {{ doss_manif_sportive.technique_prenom|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.technique_tel|default:"---" }}</p></div>
+                <div class="champs"><p><strong>E-mail</strong> : {{ doss_manif_sportive.technique_email|default:"---" }}</p></div>
+            {% endif %}
 
             <h2>Tracé de la manifestation</h2>
             <div class="carto-banner"></div>
@@ -188,26 +196,28 @@
             <div class="champs"><p><strong>Nombre de véhicules d'accompagnement</strong> : {{ doss_manif_sportive.nombre_vehicules_accompagnement|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Départ groupé des participants</strong> : {{ doss_manif_sportive.depart_groupe_participants|yesno:"Oui,Non,Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Circulation groupée des participants</strong> : {{ doss_manif_sportive.circulation_groupee_participants|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            
-            <h2>Régime de circulation publique</h2>
-            <div class="champs"><p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"Non renseigné" }}</p></div>
-            
+                
+            {% if doss_manif_sportive.respect_code_route != None or doss_manif_sportive.priorite_passage != None or doss_manif_sportive.usage_exclusif_temporaire_chaussee != None or doss_manif_sportive.usage_privatif_chaussee != None or doss_manif_sportive.precisions_voies_et_horaires or doss_manif_sportive.vehicule_ouverture != None or doss_manif_sportive.vehicule_tete_course != None or doss_manif_sportive.vehicule_fin_course != None or doss_manif_sportive.autres_vehicules_organisation != None or doss_manif_sportive.nombre_signaleurs != None or doss_manif_sportive.signaleurs_postes_fixes != None or doss_manif_sportive.signaleurs_mobiles_voitures != None or doss_manif_sportive.signaleurs_mobiles_motos != None or doss_manif_sportive.encadrement_police_municipale != None or doss_manif_sportive.details_encadrement_police_municipale or doss_manif_sportive.convention_police_nationale != None or doss_manif_sportive.details_convention_police_nationale %}
+                <h2>Régime de circulation publique</h2>
+                <div class="champs"><p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,Non renseigné" }}</p></div>
+                <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"Non renseigné" }}</p></div>
+            {% endif %}
+
             <h2>Coordinateur sécurité</h2>
             <div class="champs"><p><strong>Nom coordinateur sécurité</strong> : {{ doss_manif_sportive.nom_coordinateur_securite|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Prénom coordinateur sécurité</strong> : {{ doss_manif_sportive.prenom_coordinateur_securite|default:"Non renseigné" }}</p></div>

@@ -127,6 +127,7 @@ def preinstruction(request):
     for dm in dossiers_manif_sportive_DM :
         dm.nb_relances = 0
 
+        # En théorie on devrait jamais etre dans ce cas là
         if dm.coeur_de_parc is None :
             dm.coeur_de_parc = intersecte_coeur_de_parc(dm.geometrie, coeur_geojson)
             dm.save(update_fields=["coeur_de_parc"])
@@ -140,13 +141,23 @@ def preinstruction(request):
                                               f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
                     
         
+        # TEST
         # if dm.nom_dossier == "TRAIL DE MINUIT 2026" and dm.email_structure :
         #     if not envoi_auto_mail_relance(dm) :
         #             messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
         #                                       f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
 
-        if dm.coeur_de_parc == True :
-            nb_relances = get_nb_relances(dm)  # ta logique ici
+        elif dm.coeur_de_parc == True and hasattr(dm, "avis") :
+            nb_relances = get_nb_relances(dm)
+
+            # Calcul coeur de parc se fait à la synchro en théorie : Si 0 relances 
+            if nb_relances == 0 :
+                if not envoi_auto_mail_relance(dm) :
+                    messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
+                                              f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
+                else :
+                    nb_relances +=1
+
             dm.nb_relances = nb_relances
             
 

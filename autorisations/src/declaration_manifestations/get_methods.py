@@ -16,10 +16,12 @@ PASSWORD = os.getenv("DM_PASSWORD")
 CLIENT_ID = os.getenv("DM_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DM_CLIENT_SECRET")
 API_URL = os.getenv("DM_API_URL_PREPROD")
+API_URL_PROD = os.getenv("DM_API_URL_PROD")
 
 
 # ==== URLS ====
 TOKEN_URL = f"{API_URL}o/token/"
+TOKEN_URL_PROD = f"{API_URL_PROD}o/token/"
 AVIS_LIST_URL = f"{API_URL}api/Avis/"
 AVIS_DETAIL_URL = f"{API_URL}" + "api/Avis/{}/"
 DOSSIER_DETAIL_URL = f"{API_URL}" + "api/Dossier/{}/"
@@ -66,6 +68,43 @@ def get_access_token():
         
     loggerDM.info("")
     loggerDM.info("Token récupéré")
+    return response.json()['access_token']
+
+
+# Récupération de l'access token
+def get_access_token_prod():
+    data = {
+        "grant_type": "password",
+        "username": USERNAME,
+        "password": PASSWORD,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(TOKEN_URL_PROD, json=data, headers=headers)
+    if response.status_code != 200:
+
+        # Extraction d’un message clair
+        content_type = response.headers.get("Content-Type", "")
+        if "application/json" in content_type:
+            try:
+                err = response.json()
+                msg = err.get("error_description") or err.get("error") or err
+            except Exception:
+                msg = "Réponse JSON invalide"
+        else:
+            msg = (
+                response.text[:200].replace("\n", " ") + "..."
+                if response.text else "Aucune réponse renvoyée"
+            )
+
+        # loggerDM.error(f"[{response.status_code}] Erreur lors de la récupération du token : {response.text}")
+        loggerDM.error(f"[{response.status_code}] Erreur lors de la récupération du token : {msg}")
+        response.raise_for_status()
+        
+    loggerDM.info("")
+    loggerDM.info("Token PROD récupéré")
     return response.json()['access_token']
 
 
@@ -204,7 +243,7 @@ def get_file(token, media_path):
     if media_path.startswith("http"):
         media_path = media_path[media_path.index("/media/"):]
 
-    url = f"{API_URL.rstrip('/')}{media_path}"
+    url = f"{API_URL_PROD.rstrip('/')}{media_path}"
 
     response = requests.get(url, headers=headers, stream=True)
     _check_response(response, f"GET File {media_path}")

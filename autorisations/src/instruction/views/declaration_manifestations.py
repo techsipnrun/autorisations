@@ -172,18 +172,6 @@ def dossier_manif_sportive_sans_ds(request, numero):
     ################
     #    Emails
     ################
-    # emails_contacts = ContactExterne.objects.filter(
-    #     email__isnull=False
-    # ).exclude(email__exact="").values_list("email", flat=True).distinct()
-
-    # emails_instructeurs = Instructeur.objects.filter(
-    #     email__isnull=False
-    # ).exclude(email__exact="").values_list("email", flat=True).distinct()
-
-    # Fusionner et dédoublonner
-    # emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
-
-
     # Les emails de relance concernent les doss DM (non lié) qui intersecte le coeur de parc
     emails_relance = EmailOutbox.objects.filter(id_dossier_dm=doss_manif_sportive.id, type_mail="Relance").order_by("-date_creation")
 
@@ -207,6 +195,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "now": timezone.now(),
         # "emails_uniques": emails_uniques,
         "emails_relance": emails_relance,
+        "lien_form_manif_sportive": os.getenv('LIEN_FORM_MANIF_SPORTIVE'),
         # "actes_deposes_sur_DM": actes_deposes_sur_DM,
         # "annexes_deposees_sur_DM": annexes_deposees_sur_DM,
         **docs_DM,

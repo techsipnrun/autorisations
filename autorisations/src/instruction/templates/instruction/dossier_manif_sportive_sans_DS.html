@@ -37,7 +37,10 @@
     <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
 
     <!-- Partager par mail -->
-    <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
+    <!-- <script src="{% static 'instruction/js/partage_mails.js' %}"></script> -->
+
+    <!-- Mail de relance -->
+    <script src="{% static 'instruction/js/mail_relance.js' %}"></script>
 
 </head>
 <body>
@@ -114,7 +117,6 @@
                                 Pour effectuer une liaison entre les deux dossiers, vous devez d'abord archiver le dossier sur Démarche Numérique.
                             </p>
                         {% endif %}
-
 
                     {% endif %}
 
@@ -213,6 +215,16 @@
                             {{ message }}
                         </div>
                     {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Message error Si incohérence en Réception (Avis deja rendu) -->
+            {% if not doss_manif_sportive.archive and avis_manif_sportive.date_reponse %}
+                <div class="django-messages" style="margin-bottom: 1rem;">
+                    <div class="message error">
+                        Le dossier est en Réception alors qu'un avis a déjà été rendu sur Déclaration Manifestations le {{ avis_manif_sportive.date_reponse|date:"d/m/Y" }}.
+                        Contactez le support.
+                    </div>
                 </div>
             {% endif %}
 
@@ -533,6 +545,15 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"---" }}</p></div>
             <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"---" }}</p></div>
             
+            {% if doss_manif_sportive.technique_nom != None or doss_manif_sportive.technique_prenom != None or doss_manif_sportive.technique_tel != None or doss_manif_sportive.technique_email != None %}
+                <h2>Organisateur.trice technique</h2>
+                <div class="champs"><p><strong>Nom</strong> : {{ doss_manif_sportive.technique_nom|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Prénom</strong> : {{ doss_manif_sportive.technique_prenom|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.technique_tel|default:"---" }}</p></div>
+                <div class="champs"><p><strong>E-mail</strong> : {{ doss_manif_sportive.technique_email|default:"---" }}</p></div>
+            {% endif %}
+
+
             <h2>Tracé de la manifestation</h2>
             <div class="carto-banner"></div>
             <div class="carte-container-trail">
@@ -573,26 +594,28 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Nombre de véhicules d'accompagnement</strong> : {{ doss_manif_sportive.nombre_vehicules_accompagnement|default:"---" }}</p></div>
             <div class="champs"><p><strong>Départ groupé des participants</strong> : {{ doss_manif_sportive.depart_groupe_participants|yesno:"Oui,Non,---" }}</p></div>
             <div class="champs"><p><strong>Circulation groupée des participants</strong> : {{ doss_manif_sportive.circulation_groupee_participants|yesno:"Oui,Non,---" }}</p></div>
-            
-            <h2>Régime de circulation publique</h2>
-            <div class="champs"><p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"---" }}</p></div>
-            
+                
+            {% if doss_manif_sportive.respect_code_route != None or doss_manif_sportive.priorite_passage != None or doss_manif_sportive.usage_exclusif_temporaire_chaussee != None or doss_manif_sportive.usage_privatif_chaussee != None or doss_manif_sportive.precisions_voies_et_horaires or doss_manif_sportive.vehicule_ouverture != None or doss_manif_sportive.vehicule_tete_course != None or doss_manif_sportive.vehicule_fin_course != None or doss_manif_sportive.autres_vehicules_organisation != None or doss_manif_sportive.nombre_signaleurs != None or doss_manif_sportive.signaleurs_postes_fixes != None or doss_manif_sportive.signaleurs_mobiles_voitures != None or doss_manif_sportive.signaleurs_mobiles_motos != None or doss_manif_sportive.encadrement_police_municipale != None or doss_manif_sportive.details_encadrement_police_municipale or doss_manif_sportive.convention_police_nationale != None or doss_manif_sportive.details_convention_police_nationale %}
+                <h2>Régime de circulation publique</h2>
+                <div class="champs"><p><strong>Respect code de la route</strong> : {{ doss_manif_sportive.respect_code_route|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Autres véhicules d'organisation</strong> : {{ doss_manif_sportive.autres_vehicules_organisation|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Nombre de signaleurs</strong> : {{ doss_manif_sportive.nombre_signaleurs|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Signaleurs en postes fixes</strong> : {{ doss_manif_sportive.signaleurs_postes_fixes|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,---" }}</p></div>
+                <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"---" }}</p></div>
+            {% endif %}
+
             <h2>Coordinateur sécurité</h2>
             <div class="champs"><p><strong>Nom coordinateur sécurité</strong> : {{ doss_manif_sportive.nom_coordinateur_securite|default:"---" }}</p></div>
             <div class="champs"><p><strong>Prénom coordinateur sécurité</strong> : {{ doss_manif_sportive.prenom_coordinateur_securite|default:"---" }}</p></div>
@@ -732,8 +755,118 @@ Le Parc national de La Réunion</textarea>
                     {% endfor %}
 
 
-                <!-- TO DO -->
-                <!-- Envoyer un nouveau mail de relance -->
+                <!-- 
+                    ###################################
+                    ##### NOUVEAU MAIL DE RELANCE #####
+                    ###################################
+                -->
+                {% if not doss_manif_sportive.archive %}
+                    <div class="relance-actions">
+                        <button type="button" class="btn-relance-demandeur" onclick="afficherFormulaireRelanceDemandeur()">
+                            Relancer l’organisateur·rice
+                        </button>
+                    
+
+                        <div id="formulaire-relance-demandeur" class="zone-complement zone-relance-demandeur">
+
+                            <button type="button" class="btn-close-relance" onclick="fermerFormulaireRelanceDemandeur()">×</button>
+                            
+                            <form method="post" action="{% url 'envoi_manuel_mail_relance' doss_manif_sportive.id %}" class="form-relance-demandeur">
+                                {% csrf_token %}
+
+                                <h4>Nouveau mail de relance</h4>
+
+                                <div class="champ-mail">
+                                    <label for="destinataires-relance">À :</label>
+
+                                    <div class="destinataires-relance-box">
+                                        <div id="selected-chips-relance" class="selected-chips">
+                                            {% if doss_manif_sportive.email_structure %}
+                                                <span class="chip" data-email="{{ doss_manif_sportive.email_structure }}">
+                                                    {{ doss_manif_sportive.email_structure }}
+                                                    <button type="button" onclick="retirerEmailRelance(this)">×</button>
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="search-wrapper">
+                                            <input
+                                                type="email"
+                                                id="nouvel-email-relance"
+                                                class="search-contacts"
+                                                placeholder="Ajouter une adresse email">
+                                            <button type="button" id="add-email-relance-btn" class="add-email-btn" onclick="ajouterEmailRelance()">+</button>
+                                        </div>
+                                    </div>
+
+                                    {% if doss_manif_sportive.email_structure %}
+                                        <input type="hidden" name="emails[]" value="{{ doss_manif_sportive.email_structure }}" class="hidden-email-relance">
+                                    {% endif %}
+                                    <div id="hidden-emails-relance"></div>
+                                </div>
+
+                                <div class="champ-mail">
+                                    <label for="objet-relance">Objet :</label>
+                                    <input
+                                        type="text"
+                                        id="objet-relance"
+                                        name="objet"
+                                        class="input-mail-relance"
+                                        value="{{ doss_manif_sportive.nom_dossier }} : formulaire du Parc national de La Réunion à compléter"
+                                        required>
+                                </div>
+
+                                <div class="apercu-mail-relance">
+                                    <p>Bonjour,</p>
+
+                                    <!-- REMPLACER LE BODY PAR default -->
+                                    <!-- <textarea
+                                        id="body-relance"
+                                        name="body"
+                                        class="textarea-mail-relance"
+                                        required>Votre dossier est actuellement en attente du formulaire du Parc national de La Réunion.
+
+    Merci de bien vouloir compléter et transmettre les éléments attendus dans les meilleurs délais.</textarea> -->
+
+                                    <textarea
+                                        id="body-relance"
+                                        name="body"
+                                        class="textarea-mail-relance"
+                                        required>Le {{ doss_manif_sportive.date_depot|date:"d F Y" }}, vous avez déposé un dossier sur Déclaration Manifestations concernant la manifestation sportive « {{ doss_manif_sportive.nom_dossier }} » organisé le {{ doss_manif_sportive.date_debut_evenement|date:"d F Y" }}.
+    Après analyse de votre dossier, la manifestation sportive intersecte le cœur du Parc national de La Réunion.
+
+    Par conséquent, nous vous demandons de bien vouloir procéder à la complétude du formulaire en ligne :
+
+    {{ lien_form_manif_sportive }}
+
+    Ce formulaire est indispensable à la réalisation de l’instruction de votre dossier. 
+    Il est précisé que le délai d’instruction ne pourra commencer à courir qu’à compter de la réception du dossier complet par l’établissement du Parc national de La Réunion.
+
+    Dans l'attente de vos compléments,</textarea>
+
+                                    <p>Cordialement,</p>
+
+                                    <div class="signature-relance">
+                                        <p>
+                                            Le Parc national de La Réunion<br>
+                                            258 rue de la République 97431 La Plaine-des-Palmistes<br>
+                                            Tél : +262 (0)2 62 90 11 35 <br>
+                                            <a href="https://www.reunion-parcnational.fr" target="_blank">
+                                                www.reunion-parcnational.fr
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="zone-confirmer-formulaire">
+                                    <button type="button" class="btn-confirmer-formulaire" onclick="confirmerRelanceDemandeur(this)">
+                                        Envoyer le mail
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
 
                 </div>
             {% endif %}

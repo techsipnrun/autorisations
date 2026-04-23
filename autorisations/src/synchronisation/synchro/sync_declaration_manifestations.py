@@ -5,6 +5,9 @@ from django.db import models
 from django.utils import timezone
 
 from autorisations.models.models_instruction import Champ, Dossier, DossierManifSportive, DossierManifestationLiaison
+from instruction.utils.carto_utils import intersecte_coeur_de_parc
+from instruction.utils.files_utils import load_geojson
+from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
 from synchronisation.utils.fichiers import create_emplacement, create_emplacement_manif_sportive, nettoyer_nom_fichier, write_geojson
 from synchronisation.utils.model_helpers import foreign_keys_add_suffixe_id, update_fields
 
@@ -61,15 +64,25 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
         logger.error(f"Erreur lors du get_or_create DossierManifSportive : {e}")
         return None
 
-    # TEST
-    if manif_id == 116432 :
-        logger.warning(dossier)
+    """
+    si obj.etat_dossier = caduc ou obj.etat_dossier = termine :
+        On peut quand meme rendre un avis sur DM.
+    """
 
     # ----------------------------
     # NOUVEAU DossierManifSportive
     # ----------------------------
     if created:
         logger.info(f"[CREATE] DossierManifSportive numéro {manif_id} ({obj.nom_dossier}).")
+
+        # CALCUL INTERSECTION COEUR DE PARC
+        if obj.coeur_de_parc is None :
+            coeur_geojson = load_geojson("instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
+
+            obj.coeur_de_parc = intersecte_coeur_de_parc(obj.geometrie, coeur_geojson)
+            obj.save(update_fields=["coeur_de_parc"])
+            # Mail de relance envoyé depuis la Réception
+  
 
         #On regarde si un dossier DN (de - d'un an, non lié, non archivé) existe deja pour cette manifestation
         dossier_dn = (

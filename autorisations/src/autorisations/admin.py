@@ -846,13 +846,21 @@ class LiaisonDossierFilter(admin.SimpleListFilter):
 
 @admin.register(DossierManifSportive)
 class DossierManifSportiveAdmin(admin.ModelAdmin):
-    list_display = ('nom_dossier', 'etat_dossier', 'numero_affiche', 'est_lie',)
+    list_display = ('nom_dossier', 'etat_dossier', 'etape', 'avis_colonne', 'numero_affiche', 'est_lie',)
     list_filter = ('etat_dossier', LiaisonDossierFilter)
     search_fields = ('nom_dossier', 'numero_dossier_declaration_manifestations')
 
     def numero_affiche(self, obj):
         return obj.numero_dossier_declaration_manifestations
     numero_affiche.short_description = "Numéro"
+
+    def etape(self, obj):
+        return obj.id_etape.etape if obj.id_etape else "-"
+    etape.short_description = "Étape"
+
+    def avis_colonne(self, obj):
+        return obj.avis.reponse_avis if hasattr(obj, "avis") and obj.avis and obj.avis.reponse_avis else "-"
+    avis_colonne.short_description = "Avis"
 
     @admin.display(boolean=True, description="Lié")
     def est_lie(self, obj):

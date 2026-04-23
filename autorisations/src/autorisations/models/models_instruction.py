@@ -392,6 +392,12 @@ class DossierManifSportive(models.Model):
     adresse = models.TextField(blank=True, null=True)
     numero_telephone = models.TextField(blank=True, null=True)
     email_structure = models.TextField(blank=True, null=True)
+
+    technique_nom = models.TextField(blank=True, null=True)
+    technique_prenom = models.TextField(blank=True, null=True)
+    technique_tel = models.TextField(blank=True, null=True)
+    technique_email = models.TextField(blank=True, null=True)
+
     nom_dossier = models.TextField(blank=True, null=True)
     numero_dossier_declaration_manifestations = models.IntegerField(unique=True)
     etat_dossier = models.TextField(blank=True, null=True)
@@ -515,7 +521,7 @@ class AvisManifSportive(models.Model):
     service = models.TextField(null=True, blank=True)
     date_demande = models.DateTimeField(null=True, blank=True)
     date_reponse = models.DateTimeField(null=True, blank=True)
-    reponse_avis = models.TextField(null=True, blank=True)
+    reponse_avis = models.TextField(null=True, blank=True)  #favorable, défavorable, non concerné, null
     prescriptions = models.TextField(null=True, blank=True)
     objet_demande = models.TextField(null=True, blank=True)
 

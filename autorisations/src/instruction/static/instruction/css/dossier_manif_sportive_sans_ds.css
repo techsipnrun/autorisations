@@ -491,7 +491,7 @@
 /* --- Bloc Mail de relance --- */
 /* ----------------------------- */
 .mails_dossier {
-    margin: 1rem 0;
+    margin: 0 0 1rem 0;
     padding: 1rem;
     background-color: #f9f9f9;
     border-left: 4px solid #003366;
@@ -584,4 +584,195 @@
 .un_mail .croix-retirer:hover {
     cursor: pointer;
     transform: scale(1.3);
+}
+
+
+
+/* ---------------------------------- */
+/* --- Nouveau mail de relance DM --- */
+/* ---------------------------------- */
+
+.relance-actions {
+    margin-top: 1rem;
+    position: relative;
+}
+
+.btn-relance-demandeur {
+    background-color: #003366;
+    color: white;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-relance-demandeur:hover {
+    background-color: #00264d;
+}
+
+/* .zone-relance-demandeur {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #ffffff;
+    border: 1px solid #d7d7d7;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+} */
+
+.zone-relance-demandeur {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+
+    width: 720px;
+    max-width: calc(100dvw - 2rem);
+    box-sizing: border-box;
+    /* max-width: min(720px, calc(100vw - 3rem)); */
+    z-index: 99999;
+
+    display: none;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #d7d7d7;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+}
+
+
+
+
+.zone-relance-demandeur.show {
+    display: block;
+}
+
+.form-relance-demandeur {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-relance-demandeur h4 {
+    margin: 0 0 0.5rem 0;
+    color: #003366;
+}
+
+.champ-mail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.champ-mail label {
+    font-weight: bold;
+    color: #222;
+}
+
+.destinataires-relance-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.input-mail-relance {
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.textarea-mail-relance {
+    width: 100%;
+    min-height: 220px;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.apercu-mail-relance {
+    padding: 1rem;
+    background: #fafafa;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+}
+
+.apercu-mail-relance p {
+    margin: 0 0 1rem 0;
+    font-style: normal;
+}
+
+.signature-relance {
+    margin-top: 1rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid #ddd;
+}
+
+.signature-relance p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.4;
+}
+
+.zone-relance-demandeur .search-wrapper {
+    width: 100%;
+}
+
+.zone-relance-demandeur .search-contacts {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+}
+
+.add-email-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+
+    border-radius: 50%;
+}
+
+#nouvel-email-relance {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.95rem;
+}
+
+
+.btn-close-relance {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+
+    background: transparent;
+    border: none;
+
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 1;
+
+    cursor: pointer;
+    color: #666;
+
+    transition: all 0.2s ease;
+}
+
+.btn-close-relance:hover {
+    color: #000;
+    transform: scale(1.2);
 }

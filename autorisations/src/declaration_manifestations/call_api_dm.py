@@ -3,11 +3,12 @@ import logging
 import os
 
 from django.utils import timezone
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 
 import smbclient
 
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
+from autorisations.models.models_instruction import DossierManifSportive
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas
 from instruction.utils.document_utils import normaliser_emplacement
 from synchronisation.utils.conversion import parse_datetime_with_tz
@@ -20,67 +21,137 @@ loggerDM = logging.getLogger("API_DM")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
 logger = logging.getLogger("ORM_DJANGO")
 
+
+def date_demande_inferieure_un_an(avis):
+    date_demande = avis.get("date_demande")
+    if not date_demande:
+        return False
+
+    if isinstance(date_demande, str):
+        val = datetime.fromisoformat(date_demande)
+    else:
+        val = date_demande
+
+    # Si c’est un objet date simple (sans heure)
+    if isinstance(val, date) and not isinstance(val, datetime):
+        val = datetime.combine(val, datetime.min.time())
+
+    # Rendre aware dans le fuseau local si nécessaire
+    if timezone.is_naive(val):
+        val = timezone.make_aware(val, timezone.get_current_timezone())
+
+    """
+    ######################
+    TO DO
+    #365 a remettre à la place de 20
+    #####################
+    """  
+
+    return val >= timezone.now() - timedelta(days=20)
+
+
+
+def parser_date_dm(val):
+    """
+    Convertit une valeur date/datetime/str en datetime aware.
+    Retourne None si vide.
+    """
+    if not val:
+        return None
+
+    if isinstance(val, str):
+        val = datetime.fromisoformat(val)
+
+    if isinstance(val, date) and not isinstance(val, datetime):
+        val = datetime.combine(val, datetime.min.time())
+
+    if timezone.is_naive(val):
+        val = timezone.make_aware(val, timezone.get_current_timezone())
+
+    return val
+
+
+def doit_traiter_dossier_dm(manif_id):
+    """
+    Retourne True si :
+    - le dossier DM n'existe pas encore en base
+    - ou s'il existe et que sa date de fin d'évènement est dans le futur
+    - ou s'il existe et que sa date de fin d'évènement date de moins de 7 jours
+    """
+    dossier_bdd = DossierManifSportive.objects.filter(numero_dossier_declaration_manifestations=manif_id).first()
+
+    # Nouveau dossier DM
+    if not dossier_bdd:
+        return True
+
+    date_fin = parser_date_dm(dossier_bdd.date_fin_evenement)
+
+    # Pas de date de fin : on choisit de continuer
+    if not date_fin:
+        return True
+
+    maintenant = timezone.now()
+
+    # Date fin dans le futur
+    if date_fin >= maintenant:
+        return True
+
+    # Date fin passée depuis moins de 7 jours
+    if date_fin >= maintenant - timedelta(days=7):
+        return True
+
+    return False
+
+
 def recup_avis_et_dossiers():
+    """
+    Récupère les avis et dossiers sur Déclaration Manifestations.
+    """
 
     # Récupère le token
     token = get_access_token()
 
     # Récupération de tous les avis
     avis_list = get_all_avis(token)
-    """
-    [
-        {
-            "id": 877770,
-            "etat": "termine",
-            "reponse_avis": "favorable",
-            "service": "PN La Réunion (974)",
-            "date_demande": "2026-02-23T08:26:22.828663+01:00",
-            "date_reponse": "2026-03-06",
-            "manif_id": 106328,
-            "objet_demande_str": null
-        }, ...
-    ]
-    """
+    # [{ "id": int, "etat": "termine", "reponse_avis": "favorable", "service": "PN La Réunion (974)", "date_demande": date, "date_reponse": date, "manif_id": 106328, "objet_demande_str": null }, ...]
+
     loggerDM.info(f"{len(avis_list)} avis au total")
     loggerSynchro.info(f"{len(avis_list)} avis au total")
 
     # Détails pour chaque dossier
     dossiers = []
-    # avis_echantillon = []
     unique_numeros = []
 
-    # Filtre seulement les avis non rendus sur des demandes en cours
-    # avis_filtres = [
-    #     avis for avis in avis_list
-    #     if not (
-    #         avis.get("reponse_avis") is not None
-    #         or avis.get("etat") in ["caduc", "termine"]
-    #     )
-    # ]
 
-    """
-    avant : 103791, 99265, 105963, 109421, 109834
+    ##############################################
+    # FILTRE : Les demandes datant de moins d'un an
+    ##############################################
+    avis_filtres = [
+        avis for avis in avis_list
+        if (
+            # avis.get("reponse_avis") is None
+            # and avis.get("etat") != "termine" and
+            date_demande_inferieure_un_an(avis)  # demande date de - d'un an
+            and doit_traiter_dossier_dm(avis["manif_id"]) # date de fin d'évènement est dans le futur ou date de moins de 7 jours
+        )
+    ]
 
     # FILTRE AVIS POUR LE DEV
-    108034, 114426, 98151, 101156, 112748, 116432, 113846
-
-    905129, 950865, 916809, 942445, 942560, 960095, 942823
-    """
-    
-    avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108034, 114426, 98151, 101156, 112748, 116432, 113846, 110346, 108237] )]   #905129, 950865, 916809, 942445, 942560, 960095, 942823
-
+    # avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108034] )]   
+    # avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108034, 114426, 98151, 101156, 112748, 116432, 113846, 110346, 108237] )]   
 
 
     loggerDM.info(f"{len(avis_filtres)} avis récupéré(s) après filtre sur Déclaration manifestations")
     loggerSynchro.info(f"{len(avis_filtres)} avis récupéré(s) après filtre sur Déclaration manifestations")
-
     loggerDM.info(f"On récupère les dossiers en cours, de ces avis non rendus.")
+
+    # ---------------------------------------------------
+    # Récupération des dossiers et géojson associé sur DM
+    # ---------------------------------------------------
     if avis_filtres :
         for avis in avis_filtres:
 
             manif_id = avis["manif_id"]
-            date_demande = avis.get("date_demande", "")
-
 
             dossier = get_dossier_by_id(token, manif_id)
 
@@ -102,19 +173,18 @@ def recup_avis_et_dossiers():
                         loggerDM.error(f"Problème lors de la récupération du Geojson sur Déclaration Manifestations {dossier['nom']} ({dossier['pk']}) : Geojson vide")
                         dossier["geometrie"] = None
 
-                    # # Récupération des pjs
-                    # dossier["liste_pj"] = get_pj_dossier(token, manif_id)
-
                     # Log si : date du jour > date de fin de la manif  ET  etat dossier != annulée
                     date_fin_evenement =  parse_datetime_with_tz(dossier.get("date_fin"))
                     etat_dossier = dossier.get("etat")
                     
-                    if (date_fin_evenement and date_fin_evenement < timezone.now() and (timezone.now() - date_fin_evenement) < timedelta(days=100) and etat_dossier != "annulée") :
+                    # Si evenement a eu lieu il y a moins de 100 jours ET avis pas rendu
+                    avis_rendu = True if avis['reponse_avis'] or avis['etat'] == "termine" else False
+                    if (date_fin_evenement and date_fin_evenement < timezone.now() and (timezone.now() - date_fin_evenement) < timedelta(days=100) and not avis_rendu) :
                         nom_dossier = dossier.get("nom")
                         numero_dossier_declaration_manifestations = dossier.get("pk")
 
-                        loggerSynchro.warning(f"Récupération infos sur Déclaration manifestations : Dossier {numero_dossier_declaration_manifestations} " +
-                            f"({nom_dossier}) n'a aucun avis rendu, or le dossier est toujours en cours sur DM et la manifestation est déjà passée ({date_fin_evenement})."
+                        loggerSynchro.warning(f"Récupération infos sur DM : Dossier {numero_dossier_declaration_manifestations} " +
+                            f"({nom_dossier}) n'a aucun avis rendu, or la manifestation est déjà passée ({date_fin_evenement})."
                         )
 
                     dossiers.append(dossier)
@@ -126,17 +196,14 @@ def recup_avis_et_dossiers():
     loggerDM.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
     loggerSynchro.info(f"{len(dossiers)} dossier(s) récupéré(s) sur Déclaration manifestations")
 
-    """
-    ---------------------------------
-    plutot que retoruner 'avis_filtres', ce serait mieux de retourner tous les avis de la dernière année par exemple, 
-    afin d'etre bien raccord en BDD pour les AvisManifSportive. ?
-    ---------------------------------
-    """
     return dossiers, avis_filtres
 
 
 
 def recup_un_seul_dossier(manif_id):
+    """
+    Récupère un dossier sur Déclaration Manifestations.
+    """
 
     # Récupère le token
     token = get_access_token()
@@ -163,7 +230,8 @@ def recup_un_seul_dossier(manif_id):
     return [dossier]
 
 
-def recup_pj_dossiers(doss, docs, token, doss_lie):
+
+def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
     """
     doss = DossierManifSportive
     docs = [Document] du doss
@@ -358,7 +426,7 @@ def recup_pj_dossiers(doss, docs, token, doss_lie):
             try :
 
                 # Récupération du fichier sur DM
-                file = get_file(token, url)  #Bytes
+                file = get_file(token_prod, url)  #Bytes
 
             except Exception as e:
                 loggerDM.warning(f"[DOSSIER MANIF SPORTIVE {manif_id} - {doss.nom_dossier}] Erreur lors du téléchargement de '{description}' ({url}) : {e}")

@@ -6,7 +6,9 @@ import json
 import logging
 from django.db import models
 
-from autorisations.models.models_instruction import AvisManifSportive, DossierManifSportive, DossierManifestationLiaison
+from autorisations.models.models_instruction import AvisManifSportive, DossierManifSportive, DossierManifestationLiaison, EtapeDossier
+from instruction.utils.dm import get_nb_relances
+from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
 from synchronisation.utils.model_helpers import update_fields
 
 
@@ -77,6 +79,42 @@ def sync_avis_declaration_manifestations(avis, logger):
     # Nouvel Avis
     if created:
         logger.info(f"[CREATE] AvisManifSportive numéro {obj.id_avis_manif_sportive} ({obj.id_dossier_manif_sportive.nom_dossier}).")
+
+        # Si nouveau Avis en base et avis deja rendu : on vérifie que Dossier archive = True
+        if obj.date_reponse or obj.etat == "termine" :
+            if dossier.archive == False :
+                dossier.archive = True
+
+            # Avis rendu = MAJ etape Dossier
+            if obj.reponse_avis :
+                etape_non_soumis = EtapeDossier.objects.filter(etape="Non soumis").first()
+                etape_accepte = EtapeDossier.objects.filter(etape="Accepté").first()
+                etape_refuse = EtapeDossier.objects.filter(etape="Refusé").first()
+
+                if obj.reponse_avis == "non concerné" :
+                    dossier.id_etape = etape_non_soumis
+                elif obj.reponse_avis == "favorable":
+                    dossier.id_etape = etape_accepte
+                elif obj.reponse_avis == "défavorable":
+                    dossier.id_etape = etape_refuse
+                # Par contre emplacement dossier va rester dans 0 - En attente (pas grave)
+            
+            dossier.save()
+        # Si nouveau Avis en base et avis pas rendu sur DM e
+        else :
+
+            dossier_lie =DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+            # si dossier pas lié, pas archivé, intersecte le coeur de parc
+            if not dossier.archive and dossier.coeur_de_parc and not dossier_lie :
+                # Mail de relance
+                nb_relances = get_nb_relances(dossier)
+
+                # Calcul coeur de parc se fait à la synchro en théorie : Si 0 relances 
+                if nb_relances == 0 :
+                    if not envoi_auto_mail_relance(dossier) :
+                        logger.warning(f"[SYNCHRO AVIS {obj.id_avis_manif_sportive}] Echec de l'envoi du mail de relance automatique "
+                                       f"pour le Dossier DM {dossier.numero_dossier_declaration_manifestations}.")
+
 
     # Avis existant
     else:

@@ -9,9 +9,10 @@ from autorisations.models.models_instruction import Dossier, DossierManifSportiv
 from autorisations.models.models_documents import MessageDocument
 from autorisations.models.models_utilisateurs import ContactExterne, DossierInstructeur, Instructeur, DossierInterlocuteur, DossierBeneficiaire
 from autorisations.models.models_avis import DossierAvis
+from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from instruction.utils.avis_utils import count_avis_with_unread_messages_for_dossier
 from instruction.utils.dossier_utils import redirect_error
-from notifications.service import _render_message, envoi_mail
+from notifications.service import _render_message, compute_dedupe_key, create_EmailOutbox, create_EmailOutbox_DM, envoi_mail
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils_instru import format_etat_dossier
 from DS.call_DS import suppr_msg_DS, get_msg_DS
@@ -641,7 +642,7 @@ def renvoyer_mail_relance(request, email_id):
     
     numero_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
     
-    
+
     # Tentative >=3 et dernière tentative date de moins de 2h
     limite_temps = timedelta(hours=2)
 
@@ -663,6 +664,111 @@ def renvoyer_mail_relance(request, email_id):
             messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+
+
+@login_required
+@require_POST
+def envoi_manuel_mail_relance(request, id_dm):
+    """
+    Envoyer un autre mail de relance manuellement depuis l'application
+
+    Args :
+        id_dm : DossierManifSportive.id
+
+    """
+
+    ########################
+    # Récupération des infos
+    ########################
+
+    dossier_dm = DossierManifSportive.objects.filter(id=id_dm).first()
+    if not dossier_dm:
+        logger.error(f"[ENVOI MAIL RELANCE DM] DossierManifSportive (id = {id_dm}) introuvable — User {request.user}")
+        return redirect_error(request, "❌ Le dossier Déclaration Manifestations est introuvable. Contactez le support.")
+
+    numero_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
+
+
+    if NOTIFS_PROD :
+        emails_norm = [e.strip() for e in request.POST.getlist("emails[]") if e and e.strip()]
+
+    else :
+        emails_norm = [EMAIL_NOTIF_TEST]
+
+    emails_txt = ", ".join(emails_norm)
+
+    sujet = (request.POST.get("objet") or "").strip()
+    body = (request.POST.get("body") or "").strip()
+    context = {"body": body}
+    template_name = "mail_relance_manif_sportive_2"
+
+    ##################
+    # Vérifications
+    ##################
+    if not emails_norm:
+        logger.warning(f"[DOSSIER DM {numero_dossier_dm}] Envoi manuel mail relance sans destinataire — User {request.user}")
+        return redirect_error(request, "❌ Veuillez renseigner au moins un destinataire.")
+
+    if not sujet:
+        logger.warning(f"[DOSSIER DM {numero_dossier_dm}] Envoi manuel mail relance sans sujet — User {request.user}")
+        return redirect_error(request, "❌ Veuillez renseigner un objet de mail.")
+
+    if not body:
+        logger.warning(f"[DOSSIER DM {numero_dossier_dm}] Envoi manuel mail relance sans corps — User {request.user}")
+        return redirect_error(request, "❌ Veuillez renseigner le corps du mail.")
+
+
+    # PRINT DEBUG
+    print({
+        "to": emails_norm,
+        "sujet": sujet,
+        "body": body,
+    })
+
+
+    ##################
+    # Envoi du mail
+    ##################
+    try :
+        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+
+    except Exception as e:
+        messages.error(request, f"L'email de relance à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        logger.error(f"[DOSSIER DM {numero_dossier_dm}] Échec de l'envoi du mail de relance à {emails_txt} par {request.user} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
+        return
+    
+
+    outbox = create_EmailOutbox_DM(emails_norm, sujet, template_name, dedupe, context, dossier_dm, type_mail = "Relance")
+        
+    if outbox :
+        ok, err = envoi_mail(outbox.id)
+    else :
+        logger.error(f"[DOSSIER DM {numero_dossier_dm}] Échec de l'envoi du mail de relance à {emails_txt} par {request.user} : Erreur lors de la création de l'EmailOutbox")
+        messages.error(request, f"L'email de relance à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        return
+    
+    if ok:
+        logger.info(f"[DOSSIER DM {numero_dossier_dm}] Email de relance envoyé par {request.user} à {emails_txt}")
+        messages.success(request, f"Mail de relance envoyé à {emails_txt}.")
+    else:
+        logger.error(f"[DOSSIER DM {numero_dossier_dm}] Échec de l'envoi du mail de relance par {request.user} à {emails_txt} : {err}")
+
+
+        # ici email.try_count n’est plus fiable en mémoire après update dans envoi_mail()
+        outbox.refresh_from_db()
+
+        if outbox.try_count < 3:
+            messages.error(request, f"Tentative {outbox.try_count} : échec de l'envoi du mail à {emails_txt}. "
+                                    f"Réessayez dans quelques minutes, si l'erreur persiste contactez le support."
+                            )
+        else:
+            messages.error(request, f"Tentative {outbox.try_count} : échec de l'envoi du mail à {emails_txt}. Contactez le support.")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
 
 
 
