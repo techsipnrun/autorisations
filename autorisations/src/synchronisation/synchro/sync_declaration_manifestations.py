@@ -65,7 +65,8 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
         return None
 
     """
-    si obj.etat_dossier = caduc ou obj.etat_dossier = termine :
+    Pour info :
+    Si obj.etat_dossier = caduc ou obj.etat_dossier = termine :
         On peut quand meme rendre un avis sur DM.
     """
 
@@ -128,7 +129,6 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
                 logger.info(f"[CREATE] Liaison créée entre DossierManifSportive {manif_id} et Dossier DN {dossier_dn.numero}.")
                 doss_lie = True
                 
-
             obj.emplacement = dossier_dn.emplacement
             obj.save()
 
@@ -138,6 +138,8 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
             # DOSSIER DM RECU AVANT DN (cas majoritaire)
             # -------------------------
             # Création des folders
+
+            # emplacement = f"Manifestations_sportives/2026/Declaration Manifestations/NomManif/"
             create_emplacement_manif_sportive(obj.emplacement)
 
         # Write geojson

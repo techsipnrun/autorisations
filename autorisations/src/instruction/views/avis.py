@@ -800,7 +800,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         if pj_rapport_cs :
             extension = Path(pj_rapport_cs.name).suffix.lower()
             if extension != ".pdf" :
-                logger.warning(f"[CONFIRMER AJOUT AVIS] Le projet d'acte a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
+                logger.warning(f"[CONFIRMER AJOUT AVIS] Le rapport au CS a tenté d'être déposé au format {extension} par {request.user}. Format autorisé : .pdf")
                 return redirect_error(request, f"❌ Le rapport de l'instance doit etre au format .pdf --> Type de fichier non autorisé : {extension}")
                 
             
@@ -812,28 +812,33 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 emplacement_avis = emplacement,
             )
 
-            # Autres PJ
-            if liste_autres_pj :
-                try :
-                
-                    # Ecriture physique
-                    for pj in liste_autres_pj :
-                        
-                        doc_pj = enregistrer_document(
-                            fichier=pj,
-                            nature_str="Annexe avis",
-                            description=f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis.id}",
-                            request=request,
-                            emplacement_avis = emplacement,
-                        )
+        # # Autres PJ
+        # if liste_autres_pj :
+        #     try :
+            
+        #         # Ecriture physique
+        #         for pj in liste_autres_pj :
 
-                        # Création AvisDocument
-                        if doc_pj:
-                            AvisDocument.objects.create(id_avis=avis, id_document=doc_pj)
+        #             if avis_id:
+        #                 description = f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis_id}"
+        #             else:
+        #                 description = f"Pièce jointe déposée par {request.user}"
+                    
+        #             doc_pj = enregistrer_document(
+        #                 fichier=pj,
+        #                 nature_str="Annexe avis",
+        #                 description=description,
+        #                 request=request,
+        #                 emplacement_avis = emplacement,
+        #             )
 
-                except Exception as e:
-                    logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Echec du rattachement des autres pièces jointes à la demande d'avis par {request.user} : {e}")
-                    return redirect_error(request, f"Erreur lors du rattachement des pièces jointes annexes à la demande d'avis. Contactez le support.")
+        #             # Création AvisDocument
+        #             if doc_pj:
+        #                 AvisDocument.objects.create(id_avis=avis, id_document=doc_pj)
+
+        #     except Exception as e:
+        #         logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis_id} : Echec du rattachement des autres pièces jointes à la demande d'avis par {request.user} : {e}")
+        #         return redirect_error(request, f"Erreur lors du rattachement des pièces jointes annexes à la demande d'avis. Contactez le support.")
                        
 
 
@@ -869,8 +874,8 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 updated_fields = update_fields(brouillon_avis, fields_to_update)
                 if updated_fields:
                     brouillon_avis.save(update_fields=updated_fields)
-                    avis = brouillon_avis
                     logger.info(f"[DOSSIER {dossier.numero}] Brouillon d'avis ({brouillon_avis}) mis à jour. Changements: {', '.join(updated_fields)}")
+                avis = brouillon_avis
 
             except Exception as e:
                 logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Erreur lors de la mise à jour de l'avis : {e}")
@@ -965,6 +970,34 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Demande d'avis de {request.user} non transmise à {avis.id_expert} - Erreur lors de la création du message par défaut (formulation avis) : {e}")
                     return redirect_error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
 
+        # Autres PJ
+        if liste_autres_pj :
+            try :
+            
+                # Ecriture physique
+                for pj in liste_autres_pj :
+
+                    if avis_id:
+                        description = f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis_id}"
+                    else:
+                        description = f"Pièce jointe déposée par {request.user}"
+                    
+                    doc_pj = enregistrer_document(
+                        fichier=pj,
+                        nature_str="Annexe avis",
+                        description=description,
+                        request=request,
+                        emplacement_avis = emplacement,
+                    )
+
+                    # Création AvisDocument
+                    if doc_pj:
+                        AvisDocument.objects.create(id_avis=avis, id_document=doc_pj)
+
+            except Exception as e:
+                logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Echec du rattachement des autres pièces jointes à la demande d'avis par {request.user} : {e}")
+                return redirect_error(request, f"Erreur lors du rattachement des pièces jointes annexes à la demande d'avis. Contactez le support.")
+            
 
         #################################
         # NOTIFICATION PAR MAIL à l'expert

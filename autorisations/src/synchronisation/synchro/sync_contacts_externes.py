@@ -30,7 +30,7 @@ def sync_contacts_externes(contacts_externes):
             prenom = data.get("prenom")
             email = data.get("email")
 
-            # Normalement on recupère TOUJOURS un email
+            # Normalement on recupère TOUJOURS un email (et bien non en fait)
             if not email :
                 logger.warning(f"Lors de la synchronisation du contact externe ({role}) ---> Aucun email n'a été récupéré sur Démarche Numérique pour {data.get('nom')} {data.get('prenom')}")
                 # return None
@@ -80,7 +80,7 @@ def sync_contacts_externes(contacts_externes):
                 return None
 
             if created:
-                logger.info(f"[CREATE] ContactExterne {role} - {obj} (email: {obj.email}) créé.")
+                logger.info(f"[CREATE] ContactExterne {role} - {obj} créé.")
 
             else:
                 
@@ -92,13 +92,35 @@ def sync_contacts_externes(contacts_externes):
                     champs = ", ".join(updated_fields).replace("'", " ").replace("’", " ")
                     logger.info(f"[SAVE] {role} - {obj} mis à jour. Champs modifiés : {champs}.")
       
-
         except IntegrityError as e:
-            obj = ContactExterne.objects.filter(email=data["email"]).first()
-            if obj:
-                logger.warning(f"[INTEGRITY ERROR] Échec création ContactExterne {role} : {e} → Fallback trouvé pour {data['email']} (id: {obj.id})")
+            email = data.get("email")
+            obj = None
+
+            if email:
+                obj = ContactExterne.objects.filter(
+                    email=email,
+                    id_type_id=data.get("id_type")
+                ).first()
+                cible = email
             else:
-                logger.warning(f"[INTEGRITY ERROR] Échec création ContactExterne {role} : {e} → Aucun fallback trouvé pour {data['email']}")
+                obj = ContactExterne.objects.filter(
+                    id_type_id=data.get("id_type"),
+                    nom=data.get("nom"),
+                    prenom=data.get("prenom"),
+                    siret=data.get("siret") or None,
+                ).first()
+                cible = f"{data.get('nom')} {data.get('prenom')}"
+
+            if obj:
+                logger.warning(
+                    f"[INTEGRITY ERROR] Échec création ContactExterne {role} : {e} "
+                    f"→ Fallback trouvé pour {cible} (id: {obj.id})"
+                )
+            else:
+                logger.warning(
+                    f"[INTEGRITY ERROR] Échec création ContactExterne {role} : {e} "
+                    f"→ Aucun fallback trouvé pour {cible}"
+                )
 
         except Exception as e :
             logger.error(f"{e}")

@@ -45,9 +45,9 @@ def date_demande_inferieure_un_an(avis):
     TO DO
     #365 a remettre à la place de 20
     #####################
-    """  
+    """
 
-    return val >= timezone.now() - timedelta(days=20)
+    return val >= timezone.now() - timedelta(days=50)
 
 
 

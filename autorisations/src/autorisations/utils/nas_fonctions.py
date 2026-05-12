@@ -111,7 +111,10 @@ def ecrire_file_sur_nas(source, chemin_destination):
     except smb_exceptions.LogonFailure as e:
         loggerApp.error(f"[NAS] ❌ Échec d’authentification SMB (admin_auto) lors de l'écriture du fichier {str(source)} : {e}")
     except smb_exceptions.SMBOSError as e:
-        loggerApp.error(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {str(source)} : {e}")
+        if "being used by another process" in str(e) :
+            loggerApp.warning(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {str(source)} : Le fichier était ouvert et donc bloqué par un utilisateur.")
+        else :
+            loggerApp.error(f"[NAS] ⚠️ Erreur SMB lors de l'écriture du fichier {str(source)} : {e}")
     except PermissionError as e:
         loggerApp.error(f"[NAS] ⛔ Permission refusée sur {chemin_destination} : {e}")
     except FileNotFoundError as e:
@@ -246,7 +249,7 @@ def donner_droits_ecriture_groupe(dossier_work: str) -> bool:
         dossier_work_unc = _normalize_unc_path(dossier_work)
 
 
-        if system == "Windows":
+        if system == "Windows": 
             # Ici on attend un UNC utilisable par icacls
             if not creer_dossier_sur_nas(dossier_work_unc):
                 loggerApp.error(f"[ACL][Windows] ❌ Le dossier {dossier_work_unc} n'existe pas.")

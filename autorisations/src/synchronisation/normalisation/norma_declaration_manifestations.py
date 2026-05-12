@@ -12,7 +12,7 @@ def dossiers_declaration_manifestations_normalize(d):
     for doss in d :
 
             emplacement = f"Manifestations_sportives/{doss.get('date_debut')[:4]}/0 - En attente d'un dossier Démarche Numérique/{nettoyer_nom_fichier(doss.get('nom'))}/"
-            
+            # emplacement = f"Manifestations_sportives/{doss.get('date_debut')[:4]}/Declaration Manifestations/{nettoyer_nom_fichier(doss.get('nom'))}/"
             
 
             dossiers_manifs_sportives.append(
