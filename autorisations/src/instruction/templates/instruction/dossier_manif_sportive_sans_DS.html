@@ -37,7 +37,7 @@
     <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
 
     <!-- Partager par mail -->
-    <!-- <script src="{% static 'instruction/js/partage_mails.js' %}"></script> -->
+    <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
     <!-- Mail de relance -->
     <script src="{% static 'instruction/js/mail_relance.js' %}"></script>
@@ -146,7 +146,7 @@
                                     Dans ce cas là, vous devez relier ces deux dossiers manuellement.
                                 </p>
 
-                                <label for="dossier_dn_id">Choisir un dossier DN en réception</label>
+                                <label for="dossier_dn_id">Choisir un dossier Démarche Numérique</label>
                                 <select name="dossier_dn_id" id="dossier_dn_id" required>
                                     <option value="" selected disabled>-- Sélectionner un dossier --</option>
                                     {% for dossier in dossiers_DN_manif_sportive_non_lie %}
@@ -273,7 +273,7 @@
                 </div>
 
                 <!-- Lien DM -->
-                <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
+                <a class="icon_DM" href="{{ DM_API_URL }}instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
                     <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                         alt="Visualiser le dossier sur Déclaration manifestations"
                         title="Visualiser le dossier sur Déclaration manifestations">
@@ -416,9 +416,8 @@ Le Parc national de La Réunion</textarea>
                     
 
                     <!-- Partager par mail -->
-                    <!-- A CHANGER acceptation par non soumis (partage_par_mail.html à ré adapter) -->
-                    <!-- include "instruction/refacto/partage_par_mail.html" with mode_mail="acceptation" -->
-
+                    <!--  include "instruction/refacto/partage_par_mail.html" with mode_mail="non soumis dm"  -->
+                    
 
 
                     <div class="zone-confirmer-formulaire">
@@ -833,16 +832,16 @@ Le Parc national de La Réunion</textarea>
                                         name="body"
                                         class="textarea-mail-relance"
                                         required>Le {{ doss_manif_sportive.date_depot|date:"d F Y" }}, vous avez déposé un dossier sur Déclaration Manifestations concernant la manifestation sportive « {{ doss_manif_sportive.nom_dossier }} » organisé le {{ doss_manif_sportive.date_debut_evenement|date:"d F Y" }}.
-    Après analyse de votre dossier, la manifestation sportive intersecte le cœur du Parc national de La Réunion.
+Après analyse de votre dossier, la manifestation sportive intersecte le cœur du Parc national de La Réunion.
 
-    Par conséquent, nous vous demandons de bien vouloir procéder à la complétude du formulaire en ligne :
+Par conséquent, nous vous demandons de bien vouloir procéder à la complétude du formulaire en ligne :
 
-    {{ lien_form_manif_sportive }}
+{{ lien_form_manif_sportive }}
 
-    Ce formulaire est indispensable à la réalisation de l’instruction de votre dossier. 
-    Il est précisé que le délai d’instruction ne pourra commencer à courir qu’à compter de la réception du dossier complet par l’établissement du Parc national de La Réunion.
+Ce formulaire est indispensable à la réalisation de l’instruction de votre dossier. 
+Il est précisé que le délai d’instruction ne pourra commencer à courir qu’à compter de la réception du dossier complet par l’établissement du Parc national de La Réunion.
 
-    Dans l'attente de vos compléments,</textarea>
+Dans l'attente de vos compléments,</textarea>
 
                                     <p>Cordialement,</p>
 

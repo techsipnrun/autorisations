@@ -258,9 +258,19 @@ def reception_rendre_avis_et_mettre_a_jour_dm(*, prescriptions, code_avis_dm, re
     if not prescriptions :
         prescriptions = ""
     # 0-None, 1-favorable, 2-défavorable, 3-non concerné
-    response_avis = rendre_avis(token, avis_id, code_avis_dm, prescriptions)
-    logger.info(f"Avis '{reponse_avis_bdd}' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}")
+    '''
 
+    A DECOMMENTER APRES
+    
+    response_avis = rendre_avis(token, avis_id, code_avis_dm, prescriptions)
+
+    logger.info(f"Avis '{reponse_avis_bdd}' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}")
+    '''
+
+
+    
+
+  
     # ------------------
     # MAJ Avis DM en BDD
     # ------------------
@@ -360,7 +370,7 @@ def reception_preparer_emplacements_dossier_dm(request, *, dossier_dm, sous_doss
 
 
 
-
+'''
 # ==========================================================
 # DÉPLACEMENT DES DOCUMENTS DÉJÀ LIÉS AU DOSSIER DM SUR LE NAS
 # ==========================================================
@@ -415,10 +425,10 @@ def reception_deplacer_documents_dossier_dm(*, dossier_dm, root_folder, nouvel_e
         docs_deplaces += 1
 
     return docs_deplaces
+'''
 
 
-
-
+'''
 # ==========================================
 # COPIE D'UN SOUS-DOSSIER DU DOSSIER DM SUR LE NAS
 # ==========================================
@@ -455,8 +465,9 @@ def reception_copier_sous_dossier_dm(*, ancien_emplacement_full_path, nouvel_emp
                     f"COPIE {label_log} : Echec de l'écriture d'un fichier "
                     f"(source={ancien_sous_dossier_full_path}, cible={nouveau_sous_dossier_full_path}) : {e}"
                 )
+'''
 
-
+'''
 # ==========================================
 # SUPPRESSION DE L'ANCIEN DOSSIER DM SI BESOIN
 # ==========================================
@@ -480,9 +491,9 @@ def reception_supprimer_ancien_dossier_dm_si_necessaire(*, ancien_emplacement_dm
             logger.info(f"Ancien dossier supprimé : {ancien_emplacement_dm}")
         except Exception as e:
             logger.warning(f"Impossible de supprimer l'ancien dossier {ancien_emplacement_dm} : {e}")
+'''
 
-
-
+'''
 # ==========================================
 # MISE À JOUR DE L'EMPLACEMENT DU DOSSIER DM
 # ==========================================
@@ -505,7 +516,7 @@ def reception_mettre_a_jour_emplacement_dossier_dm(*, dossier_dm, nouvel_emplace
         dossier_dm.save(update_fields=["emplacement"])
 
         logger.info(f"Dossier DM mis à jour -> emplacement : {nouvel_emplacement}")
-
+'''
 
 
 # ==========================================================
@@ -527,7 +538,7 @@ def reception_traiter_fichier_avis_dm(request, *, fichier, token, avis_id, dossi
         dossier_dm (DossierManifSportive): Dossier DM concerné.
         root_folder (str): Racine absolue du NAS.
         nouvel_emplacement (str): Emplacement relatif cible du dossier DM.
-        sous_dossier_cible (str): Sous-dossier cible dans lequel enregistrer le fichier (ex: "Actes/", "Annexes/Declaration Manifestations/").
+        sous_dossier_cible (str): Sous-dossier cible dans lequel enregistrer le fichier (ex: "Actes/", "Annexes/Instruction/").
         nature_document (str): Nature documentaire à rechercher en base (ex: "Arrêté directeur", "Annexe instructeur DM").
         description_document (str): Description à enregistrer sur le Document créé.
         message_erreur_metier (str): Message métier à afficher si l'écriture NAS échoue.

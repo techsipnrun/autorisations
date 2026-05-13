@@ -186,7 +186,9 @@
                                     <td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}</td>
                                     <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
                                     <td>{{ d.numero_dossier_declaration_manifestations }}</td>
-                                    <td>{{ d.date_debut_evenement|date:"d F Y" }}</td>
+                                    <td class="{% if d.date_evenement_passee %}date-passee{% endif %}">
+                                        {{ d.date_debut_evenement|date:"d F Y" }}
+                                    </td>
                                     <td>
                                         {% if d.coeur_de_parc is None %}
                                             <span class="coeur-null">?</span>

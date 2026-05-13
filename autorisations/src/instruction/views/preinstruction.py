@@ -125,6 +125,12 @@ def preinstruction(request):
 
     # Intersection Coeur de Parc
     for dm in dossiers_manif_sportive_DM :
+        
+        dm.date_evenement_passee = (
+            dm.date_debut_evenement
+            and dm.date_debut_evenement.date() < timezone.localdate()
+        )
+
         dm.nb_relances = 0
 
         # En théorie on devrait jamais etre dans ce cas là
@@ -141,11 +147,6 @@ def preinstruction(request):
                                               f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
                     
         
-        # TEST
-        # if dm.nom_dossier == "TRAIL DE MINUIT 2026" and dm.email_structure :
-        #     if not envoi_auto_mail_relance(dm) :
-        #             messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
-        #                                       f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
 
         elif dm.coeur_de_parc == True and hasattr(dm, "avis") :
             nb_relances = get_nb_relances(dm)
@@ -168,10 +169,10 @@ def preinstruction(request):
     # print(f"⏱ Temps d'exécution : {end - start:.3f} secondes")
 
     # ----------------------------------------------
-    # Dossiers DN non liés à un Dossier DM
+    # Dossiers DN 'A affecter' et non liés à un Dossier DM
     # ----------------------------------------------
     dossiers_manif_sportive_DS = (
-        Dossier.objects.filter(id_demarche__type="Manifestations sportives")
+        Dossier.objects.filter(id_demarche__type="Manifestations sportives", id_etape_dossier__etape="À affecter")
         .exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True))
         .order_by("date_depot")
     )
@@ -264,6 +265,7 @@ def preinstruction(request):
         "django_env" : settings.ENVIRONMENT,
         "etat_actualisation_manif": etat_actualisation_manif,
         "etat_global": etat_global,
+        "today": timezone.localdate(),
         })
 
 
@@ -470,6 +472,8 @@ def preinstruction_dossier(request, numero):
     actions_possibles = get_actions_possibles(dossier)
 
 
+    DM_API_URL = os.getenv('DM_API_URL')
+
 
     return render(request, 'instruction/preinstruction_dossier.html', {
         # Dossier
@@ -526,6 +530,7 @@ def preinstruction_dossier(request, numero):
         "preinstruction_message": request.session.pop("preinstruction_message", None),
         "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
         "now": timezone.now(),
+        "DM_API_URL": DM_API_URL,
     })
 
 

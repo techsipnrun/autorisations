@@ -317,3 +317,8 @@ input:checked + .slider:before {
     color: #000000;   /* noir */
     font-weight: bold;
 }
+
+.date-passee {
+    color: #c82333;
+    font-weight: bold;
+}

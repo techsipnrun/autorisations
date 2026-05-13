@@ -215,6 +215,7 @@ def type_demande_from_nom_demarche(nom_demarche: str, champs: list):
         "Documents de planification et d'urbanisme": "Documents de planification et d'urbanisme",
         "Manifestations publiques": "Manifestations publiques",
         "Manifestations sportives": "Manifestations sportives",
+        "Manœuvres militaires": "Manœuvres militaires",
         "Types Champ": "Test"
     }
 
@@ -279,7 +280,7 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement, logger_ar
                 dossier_dn.nom_dossier_plus_parlant = dossier_dm.nom_dossier
                 dossier_dn.save()
 
-
+            '''
             # ----------------------------------------------------
             # Récupération des documents liés au dossier DM
             # ----------------------------------------------------
@@ -384,6 +385,7 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement, logger_ar
             dossier_dm.save(update_fields=["emplacement"])
 
             logger_arg.info(f"[LIAISON DM/DN] Emplacement du dossier DM {num_DM} mis à jour -> {nouvel_emplacement}")
+            '''
 
             
             return True

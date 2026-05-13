@@ -5,6 +5,9 @@ import os
 import logging
 import mimetypes
 import smbclient
+from requests import Session
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 loggerDM = logging.getLogger("API_DM")
 
@@ -34,6 +37,25 @@ RENDRE_AVIS_URL = f"{API_URL}" + "api/Avis/{}/rendre/"  #POST
 AJOUTER_PJ_AVIS_URL = f"{API_URL}" + "api/Avis/{}/ajouter_pj/"  #POST
 
 
+# Session
+def build_session():
+    retry = Retry(
+        total=5,
+        connect=5,
+        read=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+    )
+
+    session = Session()
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    return session
+
+SESSION = build_session()
+
+
 # Récupération de l'access token
 def get_access_token():
     data = {
@@ -45,7 +67,7 @@ def get_access_token():
     }
 
     headers = {"Content-Type": "application/json"}
-    response = requests.post(TOKEN_URL, json=data, headers=headers)
+    response = SESSION.post(TOKEN_URL, json=data, headers=headers, timeout=(5, 30))
     if response.status_code != 200:
 
         # Extraction d’un message clair
@@ -82,7 +104,7 @@ def get_access_token_prod():
     }
 
     headers = {"Content-Type": "application/json"}
-    response = requests.post(TOKEN_URL_PROD, json=data, headers=headers)
+    response = SESSION.post(TOKEN_URL_PROD, json=data, headers=headers, timeout=(5, 30))
     if response.status_code != 200:
 
         # Extraction d’un message clair
@@ -220,7 +242,7 @@ def rendre_avis(token, avis_id, reponse_avis, prescriptions=""):
         "prescriptions": prescriptions
     }
 
-    response = requests.post(url, headers=headers, json=payload)
+    response = SESSION.post(url, headers=headers, json=payload)
     _check_response(response, f"POST Rendre Avis {avis_id}")
 
     if response.content:
@@ -271,7 +293,7 @@ def ajouter_pj_avis_with_file_path(token, avis_id, file_path, demande_de_remonte
             file = (os.path.basename(file_path), f, mime_type)
             files = {"fichier": file}
 
-            response = requests.post(url, headers=headers, data=data, files=files)
+            response = SESSION.post(url, headers=headers, data=data, files=files)
 
         _check_response(response, f"POST Ajouter PJ Avis {avis_id}")
 
@@ -282,7 +304,7 @@ def ajouter_pj_avis_with_file_path(token, avis_id, file_path, demande_de_remonte
                 return response.text
     
     else:
-        loggerDM(f"AJOUTER PJ AVIS {avis_id} : Échec fichier introuvable : {file_path}")
+        loggerDM.error(f"AJOUTER PJ AVIS {avis_id} : Échec fichier introuvable : {file_path}")
 
     return {"success": True}
 
@@ -307,7 +329,7 @@ def ajouter_pj_avis(token, avis_id, fichier, demande_de_remonte_en_doc_officiel_
 
     files = {"fichier": (fichier.name, fichier, mime_type)}
 
-    response = requests.post(url, headers=headers, data=data, files=files)
+    response = SESSION.post(url, headers=headers, data=data, files=files)
     _check_response(response, f"POST Ajouter PJ Avis {avis_id}")
 
     if response.content:

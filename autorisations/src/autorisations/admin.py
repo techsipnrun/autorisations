@@ -912,7 +912,10 @@ class EmailOutboxAdmin(admin.ModelAdmin):
 class AvisManifSportiveAdmin(admin.ModelAdmin):
     list_display = ('id', 'id_avis_manif_sportive', 'id_dossier_manif_sportive', 'etat', 'date_demande', 'date_reponse', 'reponse_avis',)
     list_filter = ('etat',)
-    search_fields = ('id_avis_manif_sportive', 'id_dossier_manif_sportive',)
+    # search_fields = (
+    #     'id_dossier_manif_sportive__nom_dossier',
+    #     'id_dossier_manif_sportive__numero',
+    # )
     date_hierarchy = 'date_demande'
     ordering = ('-date_demande',)
 

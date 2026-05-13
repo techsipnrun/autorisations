@@ -12,11 +12,12 @@ from django.contrib import messages
 from autorisations.models.models_instruction import Champ, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierManifSportiveDocument
-from autorisations.models.models_utilisateurs import ContactExterne, EmailOutbox, Instructeur
+from autorisations.models.models_utilisateurs import ContactExterne, EmailOutbox, Instructeur, TypeContactExterne
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas
 from declaration_manifestations.get_methods import get_access_token
-from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_copier_sous_dossier_dm, reception_deplacer_documents_dossier_dm, reception_lire_donnees_formulaire_avis_dm, reception_mettre_a_jour_emplacement_dossier_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_supprimer_ancien_dossier_dm_si_necessaire, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm
+from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm
 from instruction.utils.dossier_utils import get_actions_possibles_DM, redirect_error
+from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail
 from synchronisation.utils.instruction import archive_lier_dossier_dm_au_dossier_dn, lier_dossier_dm_au_dossier_dn
 
 import logging
@@ -175,6 +176,30 @@ def dossier_manif_sportive_sans_ds(request, numero):
     # Les emails de relance concernent les doss DM (non lié) qui intersecte le coeur de parc
     emails_relance = EmailOutbox.objects.filter(id_dossier_dm=doss_manif_sportive.id, type_mail="Relance").order_by("-date_creation")
 
+    # Les emails de notifications concernent les doss DM (non lié) qui ont notifié des personnes suite à un classement comme 'non soumis' ou 'non répondu'
+    emails_notifs = EmailOutbox.objects.filter(id_dossier_dm=doss_manif_sportive.id, type_mail="Envoi de l'acte").order_by("-date_creation")
+
+    emails_contacts = ContactExterne.objects.filter(
+        email__isnull=False
+    ).exclude(email__exact="").values_list("email", flat=True).distinct()
+
+    emails_instructeurs = Instructeur.objects.filter(
+        email__isnull=False
+    ).exclude(email__exact="").values_list("email", flat=True).distinct()
+
+    # Fusionner et dédoublonner
+    emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
+
+    # Liste tous les emails (envoi acte en copie) liés à ce dossier
+    # emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id, type_mail="Envoi de l'acte").order_by("-date_creation")
+
+
+    # Type contacts externes
+    types_contacts = TypeContactExterne.objects.all()
+
+    DM_API_URL = os.getenv('DM_API_URL')
+
+    
 
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
@@ -195,10 +220,16 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "now": timezone.now(),
         # "emails_uniques": emails_uniques,
         "emails_relance": emails_relance,
+        "emails_notifs": emails_notifs,
         "lien_form_manif_sportive": os.getenv('LIEN_FORM_MANIF_SPORTIVE'),
         # "actes_deposes_sur_DM": actes_deposes_sur_DM,
         # "annexes_deposees_sur_DM": annexes_deposees_sur_DM,
         **docs_DM,
+
+        "types_contacts": types_contacts,
+        "emails_uniques": emails_uniques,
+        # "emails_dossiers": emails_dossiers,
+        "DM_API_URL": DM_API_URL,
     })
 
 
@@ -388,7 +419,7 @@ def ajouter_annexe_sur_DM(request, id_dm):
         if annexes :
             for fichier in annexes:
 
-                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=doss_manif_sportive, root_folder=root_folder, nouvel_emplacement=doss_manif_sportive.emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
+                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=doss_manif_sportive, root_folder=root_folder, nouvel_emplacement=doss_manif_sportive.emplacement, sous_dossier_cible="Annexes/Instruction/", nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
                 if erreur:
                     return erreur
 
@@ -439,7 +470,7 @@ def declaration_manifestations_accepter(request):
     #######################################
     ###         VÉRIFICATIONS           ###
     #######################################
-    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers_a_traiter, label_action="Avis favorable", logger=logger, doss_accepte=True)
+    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers_a_traiter, label_action="Avis favorable", logger=logger)
     if erreur:
         return erreur
 
@@ -465,7 +496,7 @@ def declaration_manifestations_accepter(request):
         #########################################################################
         ###    DÉPLACEMENT DANS LE DOSSIER > Manifestations_sportives/2026    ###
         #########################################################################
-
+        '''
         # --- Ancien et Nouvel emplacement ---
         paths, erreur = reception_preparer_emplacements_dossier_dm(request, dossier_dm=dossier_dm, sous_dossier_cible=None, label_action="Avis favorable", logger=logger,)
         if erreur:
@@ -505,14 +536,14 @@ def declaration_manifestations_accepter(request):
         # -----------------------------------------------------------------------------------
         # Si ancien dossier dans "0 - En attente d'un dossier Démarche Numérique", on le supprime
         # -----------------------------------------------------------------------------------
-        reception_supprimer_ancien_dossier_dm_si_necessaire(ancien_emplacement_dm=ancien_emplacement_dm, ancien_emplacement_full_path=ancien_emplacement_full_path, logger=logger,)
+        # reception_supprimer_ancien_dossier_dm_si_necessaire(ancien_emplacement_dm=ancien_emplacement_dm, ancien_emplacement_full_path=ancien_emplacement_full_path, logger=logger,)
 
 
         # -----------------------------------
         # MAJ Dossier DM (emplacement) en BDD
         # -----------------------------------
-        reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
-
+        # reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
+        '''
 
 
         #########################################################
@@ -528,8 +559,11 @@ def declaration_manifestations_accepter(request):
 
         if fichiers :
             for fichier in fichiers:
+                root_folder = os.environ.get("NAS_ROOT")
+                nouvel_emplacement = dossier_dm.emplacement
+                sous_dossier_cible = "Annexes/Instruction/"
 
-                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
+                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible=sous_dossier_cible, nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
                 if erreur:
                     return erreur
                 
@@ -627,7 +661,7 @@ def declaration_manifestations_refuser(request):
         #########################################################################
         ###    DÉPLACEMENT DANS LE DOSSIER > Manifestations_sportives/2026    ###
         #########################################################################
-
+        '''
         # Récupération des documents liés au dossier DM
         # docs_dm = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=dossier_dm)
 
@@ -673,14 +707,14 @@ def declaration_manifestations_refuser(request):
         # -----------------------------------------------------------------------------------
         # Si ancien dossier dans "0 - En attente d'un dossier Démarche Numérique", on le supprime
         # -----------------------------------------------------------------------------------
-        reception_supprimer_ancien_dossier_dm_si_necessaire(ancien_emplacement_dm=ancien_emplacement_dm, ancien_emplacement_full_path=ancien_emplacement_full_path, logger=logger,)
+        # reception_supprimer_ancien_dossier_dm_si_necessaire(ancien_emplacement_dm=ancien_emplacement_dm, ancien_emplacement_full_path=ancien_emplacement_full_path, logger=logger,)
 
 
         # -----------------------------------
         # MAJ Dossier DM (emplacement) en BDD
         # -----------------------------------
-        reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
-
+        # reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
+        '''
 
 
         #########################################################
@@ -690,9 +724,12 @@ def declaration_manifestations_refuser(request):
 
 
         if fichiers :
+            root_folder = os.environ.get("NAS_ROOT")
+            nouvel_emplacement = dossier_dm.emplacement
+            sous_dossier_cible = "Annexes/Instruction/"
             for fichier in fichiers:
 
-                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
+                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible=sous_dossier_cible, nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
                 if erreur:
                     return erreur
                 
@@ -792,6 +829,7 @@ def declaration_manifestations_non_soumis(request):
         ###        DÉPLACEMENT DANS LE DOSSIER > 1 - Hors coeur        ###
         ##################################################################
 
+        '''
         # Récupération des documents liés au dossier DM
         # docs_dm = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=dossier_dm)
 
@@ -837,14 +875,14 @@ def declaration_manifestations_non_soumis(request):
         # -----------------------------------------------------------------------------------
         # Si ancien dossier dans "0 - En attente d'un dossier Démarche Numérique", on le supprime
         # -----------------------------------------------------------------------------------
-        reception_supprimer_ancien_dossier_dm_si_necessaire(ancien_emplacement_dm=ancien_emplacement_dm, ancien_emplacement_full_path=ancien_emplacement_full_path, logger=logger,)
+        # reception_supprimer_ancien_dossier_dm_si_necessaire(ancien_emplacement_dm=ancien_emplacement_dm, ancien_emplacement_full_path=ancien_emplacement_full_path, logger=logger,)
 
 
         # -----------------------------------
         # MAJ Dossier DM (emplacement) en BDD
         # -----------------------------------
-        reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
-
+        # reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
+        '''
   
 
         #########################################################
@@ -853,21 +891,32 @@ def declaration_manifestations_non_soumis(request):
 
         if fichiers :
             logger.info(f"{len(fichiers)} pièce(s) jointe(s) à transmettre sur DM.")
-           
+
+            root_folder = os.environ.get("NAS_ROOT")
+            nouvel_emplacement = dossier_dm.emplacement
+            sous_dossier_cible = "Annexes/Instruction/"
+  
             for fichier in fichiers:
 
-                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
+                erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=nouvel_emplacement, sous_dossier_cible=sous_dossier_cible, nature_document="Annexe instructeur DM", description_document="Annexe envoyée sur Déclaration Manifestations.", message_erreur_metier="Le fichier a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
                 if erreur:
                     return erreur
                 
 
-
-
-            """
-            #####################
-            ENVOI MAIL A AJOUTER
-            #####################
-            """
+            """ ENVOI MAIL A AJOUTER SI BESOIN """
+            # erreur = envoyer_notif_mail_dm(
+            #     request=request,
+            #     dossier=dossier,
+            #     document=document,
+            #     nature_document=nature_document,
+            #     logger=logger,
+            #     type_mail="Envoi de l'acte",
+            #     libelle_log="Envoi acte",
+            #     template_name="mail_en_copie",
+            # )
+            # if erreur:
+            #     return erreur
+        
         
 
         # Redirection
@@ -931,6 +980,7 @@ def declaration_manifestations_non_repondu(request):
 
 
         # ---------- DÉPLACEMENT DANS LE DOSSIER > 2 - Non répondu ----------
+        '''
         # Ancien et Nouvel emplacement
         paths, erreur = reception_preparer_emplacements_dossier_dm(request, dossier_dm=dossier_dm, sous_dossier_cible="2 - Non répondu", label_action="Non Répondu", logger=logger,)
         if erreur:
@@ -967,15 +1017,23 @@ def declaration_manifestations_non_repondu(request):
 
         # MAJ Dossier DM (emplacement) en BDD
         reception_mettre_a_jour_emplacement_dossier_dm(dossier_dm=dossier_dm, nouvel_emplacement=nouvel_emplacement, logger=logger,)
+        '''
 
 
 
-
-        """
-        #####################
-        ENVOI MAIL A AJOUTER
-        #####################
-        """
+        """ ENVOI MAIL A AJOUTER SI BESOIN """
+        # erreur = envoyer_notif_mail_dm(
+            #     request=request,
+            #     dossier=dossier,
+            #     document=document,
+            #     nature_document=nature_document,
+            #     logger=logger,
+            #     type_mail="Envoi de l'acte",
+            #     libelle_log="Envoi acte",
+            #     template_name="mail_en_copie",
+            # )
+            # if erreur:
+            #     return erreur
 
 
 

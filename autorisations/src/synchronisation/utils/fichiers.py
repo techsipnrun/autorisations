@@ -461,6 +461,8 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
         type_autorisation = "Manifestations_sportives"
     elif "planification et d'urbanisme" in titre:
         type_autorisation = "Documents_planification_urbanisme"
+    elif "manœuvres militaires" in titre:
+        type_autorisation = "Manoeuvres_militaires"
     else:
         type_autorisation = "Autre"
 
@@ -478,6 +480,9 @@ def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre
             type_demarche = "Coeur_de_parc"
         elif "espèces protégées" in titre:
             type_demarche = "Especes_protegees"
+
+    elif type_autorisation == "Manifestations_sportives" :
+        type_demarche = "Demarche Numerique"
 
     # 3. Année
     try:

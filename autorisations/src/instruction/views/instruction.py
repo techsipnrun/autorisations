@@ -22,6 +22,7 @@ from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
+from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from synchronisation.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.synchro.sync_declaration_manifestations import sync_declaration_manifestations
 from synchronisation.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -701,6 +702,7 @@ def instruction_dossier(request, num_dossier):
     # Actions possibles
     actions_possibles = get_actions_possibles(dossier)
 
+    DM_API_URL = os.getenv('DM_API_URL')
 
     return render(request, 'instruction/instruction_dossier.html', {
         # Dossier
@@ -758,6 +760,7 @@ def instruction_dossier(request, num_dossier):
         "changer_relecteur_qualite_message": request.session.pop("changer_relecteur_qualite_message", None),
         "relecteur_message": request.session.pop("relecteur_message", None),
         "now": timezone.now(),
+        "DM_API_URL": DM_API_URL,
 
         **roles,
         **avis_data,

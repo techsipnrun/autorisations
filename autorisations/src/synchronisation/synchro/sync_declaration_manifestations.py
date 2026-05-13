@@ -129,7 +129,7 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
                 logger.info(f"[CREATE] Liaison créée entre DossierManifSportive {manif_id} et Dossier DN {dossier_dn.numero}.")
                 doss_lie = True
                 
-            obj.emplacement = dossier_dn.emplacement
+            # obj.emplacement = dossier_dn.emplacement
             obj.save()
 
 

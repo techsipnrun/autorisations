@@ -87,7 +87,7 @@ def sync_avis_declaration_manifestations(avis, logger):
 
             # Avis rendu = MAJ etape Dossier
             if obj.reponse_avis :
-                etape_non_soumis = EtapeDossier.objects.filter(etape="Non soumis").first()
+                etape_non_soumis = EtapeDossier.objects.filter(etape="Non soumis à autorisation").first()
                 etape_accepte = EtapeDossier.objects.filter(etape="Accepté").first()
                 etape_refuse = EtapeDossier.objects.filter(etape="Refusé").first()
 
@@ -100,10 +100,11 @@ def sync_avis_declaration_manifestations(avis, logger):
                 # Par contre emplacement dossier va rester dans 0 - En attente (pas grave)
             
             dossier.save()
-        # Si nouveau Avis en base et avis pas rendu sur DM e
+
+        # Si nouveau Avis en base et avis pas rendu sur DM
         else :
 
-            dossier_lie =DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+            dossier_lie =DossierManifestationLiaison.objects.filter(id_dossier_manif=dossier).first()
             # si dossier pas lié, pas archivé, intersecte le coeur de parc
             if not dossier.archive and dossier.coeur_de_parc and not dossier_lie :
                 # Mail de relance

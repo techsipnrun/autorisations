@@ -281,7 +281,7 @@ def normaliser_emails_destinataires(*, request, dossier_numero, emails, logger):
 
 
 
-def envoyer_copie_document_par_mail( *, request, dossier, document, nature_document, logger, type_mail="Envoi du document", libelle_log="Envoi document", template_name="mail_en_copie",):
+def envoyer_copie_document_par_mail( *, request, dossier, document, nature_document, logger, type_mail="Envoi de l'acte", libelle_log="Envoi acte", template_name="mail_en_copie",):
     """
     Gère l'envoi en copie par mail d'un document depuis les données du formulaire.
 
@@ -372,6 +372,97 @@ def envoyer_copie_document_par_mail( *, request, dossier, document, nature_docum
 
 
 
+# Pas fini
+# def envoyer_notif_mail_dm( *, request, dossier_dm, document, nature_document, logger, type_mail="Envoi du document", libelle_log="Envoi notification", template_name="mail_en_copie",):
+#     """
+#     Gère l'envoi du mail de notif suite au classement comme 'non soumis' ou 'non repondu' d'un dossier DM.
+
+#     Étapes :
+#     - extraction des données POST
+#     - création éventuelle de nouveaux contacts externes
+#     - normalisation/dédoublonnage des emails
+#     - création EmailOutbox
+#     - envoi du mail
+
+#     Returns:
+#         HttpResponseRedirect | None:
+#             - None si tout va bien ou si aucun envoi demandé
+#             - redirect_error(...) en cas d'erreur métier bloquante
+#     """
+#     donnees_mail = extraire_donnees_copie_mail(request)
+
+#     num_doss_dm = dossier_dm.numero_dossier_declaration_manifestations
+
+#     if donnees_mail["partager_par_mail"] != "oui":
+#         return None
+
+#     creer_nouveaux_contacts_externes_depuis_formulaire(
+#         request=request,
+#         dossier_numero=num_doss_dm,
+#         emails_nouveaux=donnees_mail["emails_nouveaux"],
+#         emails_selectionnes_lower=donnees_mail["emails_selectionnes_lower"],
+#         noms=donnees_mail["noms"],
+#         prenoms=donnees_mail["prenoms"],
+#         types=donnees_mail["types"],
+#         raisons=donnees_mail["raisons"],
+#         logger=logger,
+#     )
+
+#     emails_norm = normaliser_emails_destinataires(
+#         request=request,
+#         dossier_numero=num_doss_dm,
+#         emails=donnees_mail["emails"],
+#         logger=logger,
+#     )
+
+#     if not emails_norm:
+#         logger.warning(
+#             f"[DOSSIER DM {num_doss_dm}] {libelle_log} ({request.user}) - "
+#             f"Aucun email valide sélectionné pour l’envoi en copie. "
+#             f"Liste des emails transmis : {donnees_mail['emails']}"
+#         )
+#         return None
+
+#     sujet = f"{nature_document} – Dossier {num_doss_dm}"
+#     context = {"body": donnees_mail["motivation_copie_mail"]}
+#     emails_txt = ", ".join(emails_norm)
+
+#     try:
+#         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+#     except Exception as e:
+#         logger.error(
+#             f"[DOSSIER DM {num_doss_dm}] {libelle_log} ({request.user}) - "
+#             f"Échec de la création de la clé unique (compute_dedupe_key) : {e}"
+#         )
+#         return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
+
+#     outbox = create_EmailOutbox_DM(
+#         emails_norm,
+#         sujet,
+#         template_name,
+#         dedupe,
+#         context,
+#         dossier_dm,
+#         type_mail=type_mail,
+#         document=document,
+#     )
+
+#     if not outbox:
+#         logger.error(
+#             f"[DOSSIER DM {num_doss_dm}] {libelle_log} ({request.user}) - "
+#             f"Erreur lors de la création de l'EmailOutbox. "
+#             f"Destinataires non notifiés : {emails_txt}"
+#         )
+#         return redirect_error( request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
+
+#     ok, err = envoi_mail(outbox.id)
+
+#     if ok:
+#         logger.info(f"[DOSSIER DM {num_doss_dm}] {libelle_log} ({request.user}) - Envoi en copie par mail ({outbox.id}) à {', '.join(outbox.to)}")
+#         return None
+
+#     logger.error(f"[DOSSIER DM {num_doss_dm}] {libelle_log} ({request.user}) - Échec envoi mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
+#     return redirect_error(request, f"L'envoi en copie par mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
 
 
 

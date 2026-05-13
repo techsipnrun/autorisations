@@ -13,7 +13,7 @@ from autorisations import settings
 from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
-from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_copier_sous_dossier_dm, reception_deplacer_documents_dossier_dm, reception_lire_donnees_formulaire_avis_dm, reception_mettre_a_jour_emplacement_dossier_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_supprimer_ancien_dossier_dm_si_necessaire, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
+from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
 from instruction.utils.document_utils import normaliser_emplacement
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
@@ -2564,7 +2564,7 @@ def envoyer_l_acte(request):
                     dossier_dm=resultat_dm["dossier_dm"],
                     root_folder=root_folder,
                     nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
-                    sous_dossier_cible="Annexes/Declaration Manifestations/",
+                    sous_dossier_cible="Annexes/Instruction/",
                     nature_document="Arrêté directeur",
                     description_document="Acte envoyé sur Déclaration Manifestations.",
                     message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
@@ -3077,7 +3077,7 @@ def envoyer_l_acte_de_refus(request):
                     dossier_dm=resultat_dm["dossier_dm"],
                     root_folder=root_folder,
                     nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
-                    sous_dossier_cible="Annexes/Declaration Manifestations/",
+                    sous_dossier_cible="Annexes/Instruction/",
                     nature_document="Arrêté directeur",
                     description_document="Acte envoyé sur Déclaration Manifestations.",
                     message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",

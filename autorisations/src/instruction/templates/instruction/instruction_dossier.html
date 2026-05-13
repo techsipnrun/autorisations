@@ -411,7 +411,7 @@
 
                     <!-- Lien DM -->
                     {% if demarche.type|lower == "manifestations sportives" and dossier_lie_manif_sportive %}
-                        <a class="icon_DM" href="https://declaration-manifestations.gouv.fr/instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
+                        <a class="icon_DM" href="{{ DM_API_URL }}instructions/avis/{{ avis_manif_sportive.id_avis_manif_sportive }}/#parcours" target="_blank">
                             <img src="{% static 'instruction/img/prefet_icon_color.svg' %}"
                                 alt="Visualiser le dossier sur Déclaration manifestations"
                                 title="Visualiser le dossier sur Déclaration manifestations">

@@ -42,8 +42,7 @@ def date_demande_inferieure_un_an(avis):
 
     """
     ######################
-    TO DO
-    #365 a remettre à la place de 20
+    #365 a remettre ?  Pour le moment : demi-année
     #####################
     """
 
@@ -137,7 +136,7 @@ def recup_avis_et_dossiers():
     ]
 
     # FILTRE AVIS POUR LE DEV
-    # avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108034] )]   
+    # avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108318] )]   
     # avis_filtres = [ avis for avis in avis_list if ( avis.get("manif_id") in [108034, 114426, 98151, 101156, 112748, 116432, 113846, 110346, 108237] )]   
 
 
@@ -237,6 +236,7 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
     docs = [Document] du doss
     token = Token API Déclaration Manifestations
     doss_lie = True si Dossier DM lié à un dossier DN, False sinon
+    token_prod = Token API PROD
 
     Récupération des Pj associées au dossier sur Déclaration Manifestations.
     Synchronisation NAS et BDD
