@@ -62,7 +62,8 @@
             <!----------------------->
             <!-- Ajouter PJ sur DM -->
             <!----------------------->
-            {% if doss_manif_sportive.archive and doss_manif_sportive.date_fin_evenement and doss_manif_sportive.date_fin_evenement > now %}
+            <!-- and doss_manif_sportive.date_fin_evenement and doss_manif_sportive.date_fin_evenement > now -->
+            {% if doss_manif_sportive.archive %}
                 
                 <button type="button" class="btn_ajouter_pj_DM" onclick="afficherFormulaireDeposerPJ_DeclarationManifestations()">
                     <img src="{% static 'instruction/img/trombone.png' %}" alt="PJ" class="annexe-icon">

@@ -187,7 +187,6 @@ def get_geojson(token, dossier_id):
     return response.json()
 
 
-# A VERIF
 def _extract_error_message(response):
     content_type = response.headers.get("Content-Type", "")
     if "application/json" in content_type:

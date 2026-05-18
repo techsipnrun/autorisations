@@ -347,6 +347,7 @@ def dossier_non_soumis_a_autorisation(request):
         # -------------------------------------
         # Rendre l'avis sur DM + maj de la base
         # -------------------------------------
+        
         if contexte_dm:
             resultat_dm, erreur = _soumettre_avis_dm(
                 dossier=dossier,
@@ -2315,211 +2316,12 @@ def envoyer_l_acte(request):
         if erreur:
             return erreur
 
-        """
-        if partager_par_mail == "oui" :
 
-            # =======================================
-            # 1) AJOUT DES NOUVEAUX CONTACTS EXTERNES
-            # =======================================
-            for i, email in enumerate(emails_nouveaux):
-                email_clean = (email or "").strip()
-                if not email_clean:
-                    continue
-
-                try:
-                    validate_email(email_clean)
-                except ValidationError:
-                    logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {email}")
-                    continue
-
-                # chip supprimée => on ignore (pas de création, pas d'envoi)
-                if email_clean.lower() not in emails_selectionnes_lower:
-                    continue
-
-                nom = (noms[i] if i < len(noms) else "").strip()
-                prenom = (prenoms[i] if i < len(prenoms) else "").strip()
-                raison = (raisons[i] if i < len(raisons) else "").strip()
-                type_id = types[i] if i < len(types) else None
-
-                type_obj = None
-                if type_id:
-                    type_obj = TypeContactExterne.objects.filter(id=type_id).first()
-                if not type_obj:
-                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="Autre")
-
-                contact, created = ContactExterne.objects.get_or_create(
-                    email=email_clean,
-                    id_type= type_obj,
-                    defaults={
-                        "nom": nom,
-                        "prenom": prenom,
-                        "raison_sociale": raison
-                    }
-                )
-                if created:
-                    logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {contact}")
-
-                # Ajouter ce mail aux destinataires
-                # emails.append(email)
-
-
-            # ================================
-            # 2) NORMALISATION + DEDOUBLONNAGE
-            # ================================
-            emails_norm = []
-            seen = set()
-
-            for e in emails:
-                e_norm = (e or "").strip()
-                if not e_norm:
-                    continue
-
-                e_key = e_norm.lower()
-                if e_key in seen:
-                    continue
-
-                try:
-                    validate_email(e_norm)
-                except ValidationError:
-                    logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {e_norm}")
-                    continue
-
-                seen.add(e_key)
-                emails_norm.append(e_norm)
-
-            if not emails_norm:
-                logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Aucun email valide sélectionné pour l’envoi de l'acte en copie. Liste des emails transmis : {emails}")
-            
-            else:
-                # =========================
-                # 3) ENVOI DE L'EMAIL
-                # =========================
-                sujet = f"{nature_document} – Dossier {dossier.numero}"
-                context = {"body": motivation_copie_mail}
-                template_name = "mail_en_copie"
-                emails_txt = ", ".join(emails_norm)
-
-                try :
-                    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-
-                except Exception as e:
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec de l'envoi de l'acte en copie par mail - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
-
-                # return None si Erreur 
-                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Envoi de l'acte", document=document)
-                
-                if outbox :
-                    ok, err = envoi_mail(outbox.id)
-
-                else :
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Erreur lors de la création de l'EmailOutbox, Les users qui n'ont pas été notifiés par mail : {emails_txt}")
-                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
-
-                if ok:
-                    logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Envoi en copie de l'acte par Mail ({outbox.id}) envoyée à {', '.join(outbox.to)} ")
-                else:
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec envoi en copie de l'acte par Mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
-                    return redirect_error(request, f"L'envoi en copie de l'acte par Mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
-        
-        """
-
-        """
-        ###############################################
-        ###############################################
-        A TESTER 
-        ###############################################
-        ###############################################
-        """
         # =================================================================
         # --- RENDRE AVIS + DÉPOSER ACTE SUR DECLARATION MANIFESTATIONS ---
         # =================================================================
         try :
             
-            """
-            if dossier.id_demarche.type.lower() == 'manifestations sportives':
-                # Vérification si liaison existante
-                liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
-
-                if liaison_dossDN :
-                    dossier_dm_id = liaison_dossDN.id_dossier_manif.id
-
-                    # Récupération du dossier DM
-                    dossier_dm = DossierManifSportive.objects.filter(id=dossier_dm_id).first()
-                    if not dossier_dm:
-                        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte d'acceptation ({request.user}) : "
-                                    f"Dossier Déclaration Manifestations (id={dossier_dm_id}) introuvable en base.")
-                        return redirect_error(request, "Le dossier a bien été accepté sur Démarche Numérique, "
-                                    "mais un problème est survenu lors du dépôt de l'avis favorable sur Déclaration Manifestations. Contactez le support.")
-                    
-                    num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
-
-                    # Récupération de l'avis associé
-                    avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
-                    if not avis_dm:
-                        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte d'acceptation ({request.user}) : "
-                                    f"Aucun Avis DM associé au Dossier DM {num_dossier_dm}.")
-
-                        return redirect_error(request, "Le dossier a bien été accepté sur Démarche Numérique, "
-                                    f"mais l'avis n'a pas pu être rendu sur Déclaration Manifestations pour le dossier n° {num_dossier_dm} (aucun avis associé en base). Contactez le support.")
-            
-                    avis_id = avis_dm.id_avis_manif_sportive
-
-                    if avis_dm.date_reponse :
-                        # ------------------
-                        # AVIS DM DEJA RENDU
-                        # ------------------
-                        logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte d'acceptation ({request.user}) : "
-                                    f"Avis (avis_id={avis_id}) déjà soumis sur DM.")
-                        
-                        messages.info(request, f"Aucun changement sur Déclaration Manifestations, un avis '{avis_dm.reponse_avis}' a déjà été rendu.")
-                        
-                        if not dossier_dm.archive :
-                            dossier_dm.archive = True
-                            dossier_dm.save(update_fields=["archive"])
-                    
-                    else :
-                        # -------------------------------------
-                        # RENDRE UN AVIS FAVORABLE SUR DM
-                        # -------------------------------------
-                        # Récupération du token API
-                        token = get_access_token()
-                        
-                        if not motivation :
-                            motivation = ""
-
-                        # 0-None, 1-favorable, 2-défavorable, 3-non concerné  (lève exception si erreur)
-                        response_avis = rendre_avis(token, avis_id, 1, motivation)
-                        logger.info(f"[DOSSIER {dossier_numero}] Envoi acte d'acceptation ({request.user}) : "
-                                    f"Avis 'favorable' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}")
-
-                        # ------------------
-                        # MAJ Avis DM en BDD
-                        # ------------------
-                        avis_dm.date_reponse = timezone.now()
-                        avis_dm.reponse_avis = "favorable"
-                        avis_dm.prescriptions = motivation
-                        avis_dm.save(update_fields=["date_reponse", "prescriptions", "reponse_avis"])
-                        logger.info(f"Avis DM {avis_id} mis à jour en base.")
-
-                        # ---------------------
-                        # MAJ Dossier DM en BDD
-                        # ---------------------
-                        etape_cible = EtapeDossier.objects.get(etape="Accepté")
-                        dossier_dm.archive = True
-                        dossier_dm.id_etape = etape_cible
-                        dossier_dm.save(update_fields=["archive", "id_etape"])
-                        logger.info(f"Dossier DM {num_dossier_dm} mis à jour en base (etape : {etape_cible.etape}, archive : True)")
-
-
-                    #######################################################
-                    ###        DÉPOSER ACTE SUR DM ET SUR LE NAS        ###
-                    #######################################################
-                    erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=dossier_dm.emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Arrêté directeur", description_document="Acte envoyé sur Déclaration Manifestations.", message_erreur_metier="L'acte' a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
-                    if erreur:
-                        return erreur
-            """
-
             # ----------------------------------
             # Récupération Dossier DM et Avis DM
             # ----------------------------------
@@ -2556,22 +2358,26 @@ def envoyer_l_acte(request):
                 # ---------------------------------
                 # DÉPOSER ACTE SUR DM ET SUR LE NAS
                 # ---------------------------------
-                erreur = reception_traiter_fichier_avis_dm(
-                    request,
-                    fichier=fichier,
-                    token=resultat_dm["token"],
-                    avis_id=resultat_dm["avis_id"],
-                    dossier_dm=resultat_dm["dossier_dm"],
-                    root_folder=root_folder,
-                    nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
-                    sous_dossier_cible="Annexes/Instruction/",
-                    nature_document="Arrêté directeur",
-                    description_document="Acte envoyé sur Déclaration Manifestations.",
-                    message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
-                    logger=logger,
-                )
-                if erreur:
-                    return erreur
+                if resultat_dm :
+                    erreur = reception_traiter_fichier_avis_dm(
+                        request,
+                        fichier=fichier,
+                        token=resultat_dm["token"],
+                        avis_id=resultat_dm["avis_id"],
+                        dossier_dm=resultat_dm["dossier_dm"],
+                        root_folder=root_folder,
+                        nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
+                        sous_dossier_cible="Annexes/Instruction/",
+                        nature_document="Arrêté directeur",
+                        description_document="Acte envoyé sur Déclaration Manifestations.",
+                        message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
+                        logger=logger,
+                    )
+                    if erreur:
+                        return erreur
+                    
+                else :
+                    messages.info(request, f"L'acte n'a pas été déposé sur Déclaration Manifestations. Vous pourrez le faire une fois l'acte publié au RAA.")
         
 
 
@@ -2593,11 +2399,6 @@ def envoyer_l_acte(request):
 
 
 
-"""
-
-A FACTORISER AVEC FONCTION envoyer_l_acte()
-
-"""
 ###############################################
 ###             ACTE DE REFUS               ###
 ###############################################
@@ -2790,11 +2591,6 @@ def envoyer_l_acte_de_refus(request):
             return redirect_error(request, "Acte de refus bien envoyé sur Démarche Numérique mais erreur lors de la mise à jour de la base locale. Contactez le support.")
 
 
-            
-
-
-
-
         # ==============================================
         #     Envoyer une copie de l'acte par Mail
         # ==============================================
@@ -2824,215 +2620,12 @@ def envoyer_l_acte_de_refus(request):
         if erreur:
             return erreur
 
-        """
-        if partager_par_mail == "oui" :
-
-            # =======================================
-            # 1) AJOUT DES NOUVEAUX CONTACTS EXTERNES
-            # =======================================
-            for i, email in enumerate(emails_nouveaux):
-                email_clean = (email or "").strip()
-                if not email_clean:
-                    continue
-
-                try:
-                    validate_email(email_clean)
-                except ValidationError:
-                    logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {email}")
-                    continue
-
-                # chip supprimée => on ignore (pas de création, pas d'envoi)
-                if email_clean.lower() not in emails_selectionnes_lower:
-                    continue
-
-                nom = (noms[i] if i < len(noms) else "").strip()
-                prenom = (prenoms[i] if i < len(prenoms) else "").strip()
-                raison = (raisons[i] if i < len(raisons) else "").strip()
-                type_id = types[i] if i < len(types) else None
-
-                type_obj = None
-                if type_id:
-                    type_obj = TypeContactExterne.objects.filter(id=type_id).first()
-                if not type_obj:
-                    type_obj, _ = TypeContactExterne.objects.get_or_create(type="Autre")
-
-                contact, created = ContactExterne.objects.get_or_create(
-                    email=email_clean,
-                    id_type= type_obj,
-                    defaults={
-                        "nom": nom,
-                        "prenom": prenom,
-                        "raison_sociale": raison
-                    }
-                )
-                if created:
-                    logger.info(f"[DOSSIER {dossier_numero}] Envoi de l'acte par mail : Nouveau ContactExterne créé via formulaire : {contact}")
-
-                # Ajouter ce mail aux destinataires
-                # emails.append(email)
-
-
-            # ================================
-            # 2) NORMALISATION + DEDOUBLONNAGE
-            # ================================
-            emails_norm = []
-            seen = set()
-
-            for e in emails:
-                e_norm = (e or "").strip()
-                if not e_norm:
-                    continue
-
-                e_key = e_norm.lower()
-                if e_key in seen:
-                    continue
-
-                try:
-                    validate_email(e_norm)
-                except ValidationError:
-                    logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Email invalide ignoré: {e_norm}")
-                    continue
-
-                seen.add(e_key)
-                emails_norm.append(e_norm)
-
-            if not emails_norm:
-                logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Aucun email valide sélectionné pour l’envoi de l'acte en copie. Liste des emails transmis : {emails}")
-            
-            else:
-                # =========================
-                # 3) ENVOI DE L'EMAIL
-                # =========================
-                sujet = f"{nature_document} – Dossier {dossier.numero}"
-                context = {"body": motivation_copie_mail}
-                template_name = "mail_en_copie"
-                emails_txt = ", ".join(emails_norm)
-
-                try :
-                    dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-
-                except Exception as e:
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec de l'envoi de l'acte en copie par mail - Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
-
-                # return None si Erreur 
-                outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Envoi de l'acte", document=document)
-                
-                if outbox :
-                    ok, err = envoi_mail(outbox.id)
-
-                else :
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Erreur lors de la création de l'EmailOutbox, Les users qui n'ont pas été notifiés par mail : {emails_txt}")
-                    return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
-
-                if ok:
-                    logger.info(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Envoi en copie de l'acte par Mail ({outbox.id}) envoyée à {', '.join(outbox.to)} ")
-                else:
-                    logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Échec envoi en copie de l'acte par Mail ({outbox.id}) à {', '.join(outbox.to)} : {err}")
-                    return redirect_error(request, f"L'envoi en copie de l'acte par Mail à {', '.join(outbox.to)} a échoué. Contactez le support.")
-        
-        """
-
-
-        
-
-        """
-        ###############################################
-        ###############################################
-        A TESTER 
-        ###############################################
-        ###############################################
-        """
+       
         # =================================================================
         # --- RENDRE AVIS + DÉPOSER ACTE SUR DECLARATION MANIFESTATIONS ---
         # =================================================================
         try :
             
-            """
-            if dossier.id_demarche.type.lower() == 'manifestations sportives':
-                # Vérification si liaison existante
-                liaison_dossDN = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
-
-                if liaison_dossDN :
-                    dossier_dm_id = liaison_dossDN.id_dossier_manif.id
-
-                    # Récupération du dossier DM
-                    dossier_dm = DossierManifSportive.objects.filter(id=dossier_dm_id).first()
-                    if not dossier_dm:
-                        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "
-                                    f"Dossier Déclaration Manifestations (id={dossier_dm_id}) introuvable en base.")
-                        return redirect_error(request, "Le dossier a bien été refusé sur Démarche Numérique, "
-                                    "mais un problème est survenu lors du dépôt de l'avis défavorable sur Déclaration Manifestations. Contactez le support.")
-                    
-                    num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
-
-                    # Récupération de l'avis associé
-                    avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
-                    if not avis_dm:
-                        logger.error(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "
-                                    f"Aucun Avis DM associé au Dossier DM {num_dossier_dm}.")
-
-                        return redirect_error(request, "Le dossier a bien été refusé sur Démarche Numérique, "
-                                    f"mais l'avis n'a pas pu être rendu sur Déclaration Manifestations pour le dossier n° {num_dossier_dm} (aucun avis associé en base). Contactez le support.")
-            
-                    avis_id = avis_dm.id_avis_manif_sportive
-
-                    if avis_dm.date_reponse :
-                        # ------------------
-                        # AVIS DM DEJA RENDU
-                        # ------------------
-                        logger.warning(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "
-                                    f"Avis (avis_id={avis_id}) déjà soumis sur DM.")
-                        
-                        messages.info(request, f"Aucun changement sur Déclaration Manifestations, un avis '{avis_dm.reponse_avis}' a déjà été rendu.")
-                        
-                        if not dossier_dm.archive :
-                            dossier_dm.archive = True
-                            dossier_dm.save(update_fields=["archive"])
-                    
-                    else :
-                        # -------------------------------------
-                        # RENDRE UN AVIS DÉFAVORABLE SUR DM
-                        # -------------------------------------
-                        # Récupération du token API
-                        token = get_access_token()
-                        
-                        if not motivation :
-                            motivation = ""
-
-                        # 0-None, 1-favorable, 2-défavorable, 3-non concerné  (lève exception si erreur)
-                        response_avis = rendre_avis(token, avis_id, 2, motivation)
-                        logger.info(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "
-                                    f"Avis 'défavorable' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}")
-
-                        # ------------------
-                        # MAJ Avis DM en BDD
-                        # ------------------
-                        avis_dm.date_reponse = timezone.now()
-                        avis_dm.reponse_avis = "défavorable"
-                        avis_dm.prescriptions = motivation
-                        avis_dm.save(update_fields=["date_reponse", "prescriptions", "reponse_avis"])
-                        logger.info(f"Avis DM {avis_id} mis à jour en base.")
-
-                        # ---------------------
-                        # MAJ Dossier DM en BDD
-                        # ---------------------
-                        etape_cible = EtapeDossier.objects.get(etape="Refusé")
-                        dossier_dm.archive = True
-                        dossier_dm.id_etape = etape_cible
-                        dossier_dm.save(update_fields=["archive", "id_etape"])
-                        logger.info(f"Dossier DM {num_dossier_dm} mis à jour en base (etape : {etape_cible.etape}, archive : True)")
-
-
-                        #######################################################
-                        ###        DÉPOSER ACTE SUR DM ET SUR LE NAS        ###
-                        #######################################################
-                        erreur = reception_traiter_fichier_avis_dm(request, fichier=fichier, token=token, avis_id=avis_id, dossier_dm=dossier_dm, root_folder=root_folder, nouvel_emplacement=dossier_dm.emplacement, sous_dossier_cible="Annexes/Declaration Manifestations/", nature_document="Arrêté directeur", description_document="Acte envoyé sur Déclaration Manifestations.", message_erreur_metier="L'acte' a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.", logger=logger,)
-                        if erreur:
-                            return erreur
-                
-            """
-
             # ----------------------------------
             # Récupération Dossier DM et Avis DM
             # ----------------------------------
@@ -3069,22 +2662,26 @@ def envoyer_l_acte_de_refus(request):
                 # ---------------------------------
                 # DÉPOSER ACTE SUR DM ET SUR LE NAS
                 # ---------------------------------
-                erreur = reception_traiter_fichier_avis_dm(
-                    request,
-                    fichier=fichier,
-                    token=resultat_dm["token"],
-                    avis_id=resultat_dm["avis_id"],
-                    dossier_dm=resultat_dm["dossier_dm"],
-                    root_folder=root_folder,
-                    nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
-                    sous_dossier_cible="Annexes/Instruction/",
-                    nature_document="Arrêté directeur",
-                    description_document="Acte envoyé sur Déclaration Manifestations.",
-                    message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
-                    logger=logger,
-                )
-                if erreur:
-                    return erreur
+                if resultat_dm :
+                    erreur = reception_traiter_fichier_avis_dm(
+                        request,
+                        fichier=fichier,
+                        token=resultat_dm["token"],
+                        avis_id=resultat_dm["avis_id"],
+                        dossier_dm=resultat_dm["dossier_dm"],
+                        root_folder=root_folder,
+                        nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
+                        sous_dossier_cible="Annexes/Instruction/",
+                        nature_document="Arrêté directeur",
+                        description_document="Acte envoyé sur Déclaration Manifestations.",
+                        message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
+                        logger=logger,
+                    )
+                    if erreur:
+                        return erreur
+                
+                else :
+                    messages.info(request, f"L'acte n'a pas été déposé sur Déclaration Manifestations. Vous pourrez le faire une fois l'acte publié au RAA.")
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "
@@ -3092,7 +2689,6 @@ def envoyer_l_acte_de_refus(request):
             
             return redirect_error(request, "Le dossier a bien été refusé sur Démarche Numérique, "
                                     f"mais l'avis n'a pas pu être rendu sur Déclaration Manifestations. Contactez le support.")
-
 
 
 

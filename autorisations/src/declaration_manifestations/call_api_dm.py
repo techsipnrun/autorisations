@@ -40,13 +40,7 @@ def date_demande_inferieure_un_an(avis):
     if timezone.is_naive(val):
         val = timezone.make_aware(val, timezone.get_current_timezone())
 
-    """
-    ######################
-    #365 a remettre ?  Pour le moment : demi-année
-    #####################
-    """
-
-    return val >= timezone.now() - timedelta(days=50)
+    return val >= timezone.now() - timedelta(days=365)
 
 
 
@@ -128,8 +122,8 @@ def recup_avis_et_dossiers():
     avis_filtres = [
         avis for avis in avis_list
         if (
-            # avis.get("reponse_avis") is None
-            # and avis.get("etat") != "termine" and
+            avis.get("reponse_avis") is None
+            and avis.get("etat") != "termine" and
             date_demande_inferieure_un_an(avis)  # demande date de - d'un an
             and doit_traiter_dossier_dm(avis["manif_id"]) # date de fin d'évènement est dans le futur ou date de moins de 7 jours
         )

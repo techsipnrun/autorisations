@@ -12,7 +12,7 @@ from autorisations.models.models_utilisateurs import EmailOutbox, Groupeinstruct
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.document_utils import normaliser_emplacement
-from instruction.utils.dossier_utils import redirect_error
+from instruction.utils.dossier_utils import redirect_error, redirect_info
 from instruction.utils.files_utils import sanitiser_nom_fichier, valider_fichiers_dm
 from synchronisation.utils.fichiers import get_nom_disponible
 
@@ -257,20 +257,12 @@ def reception_rendre_avis_et_mettre_a_jour_dm(*, prescriptions, code_avis_dm, re
     
     if not prescriptions :
         prescriptions = ""
-    # 0-None, 1-favorable, 2-défavorable, 3-non concerné
-    '''
 
-    A DECOMMENTER APRES
-    
+    # 0-None, 1-favorable, 2-défavorable, 3-non concerné
     response_avis = rendre_avis(token, avis_id, code_avis_dm, prescriptions)
 
     logger.info(f"Avis '{reponse_avis_bdd}' soumis avec succès sur DM (avis_id={avis_id}). Réponse API : {response_avis}")
-    '''
 
-
-    
-
-  
     # ------------------
     # MAJ Avis DM en BDD
     # ------------------
@@ -368,155 +360,6 @@ def reception_preparer_emplacements_dossier_dm(request, *, dossier_dm, sous_doss
 
     return contexte_paths, None
 
-
-
-'''
-# ==========================================================
-# DÉPLACEMENT DES DOCUMENTS DÉJÀ LIÉS AU DOSSIER DM SUR LE NAS
-# ==========================================================
-def reception_deplacer_documents_dossier_dm(*, dossier_dm, root_folder, nouvel_emplacement, logger):
-    """
-    Déplace sur le NAS les documents déjà liés au dossier DM vers le dossier
-    cible "Annexes/Declaration Manifestations/" et met à jour leur emplacement
-    en base.
-
-    Args:
-        dossier_dm (DossierManifSportive): Dossier DM concerné.
-        root_folder (str): Racine NAS absolue.
-        nouvel_emplacement (str): Emplacement relatif cible du dossier DM.
-        logger (logging.Logger): Logger utilisé pour tracer les événements.
-
-    Returns:
-        int: Nombre de documents effectivement déplacés.
-    """
-    docs_dm = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=dossier_dm)
-
-    docs_deplaces = 0
-    for doc in docs_dm:
-        if not doc.emplacement:
-            logger.warning(f"Document {doc.id} ({doc.titre}) ignoré : emplacement vide en BDD.")
-            continue
-
-        ancien_emplacement_doc_full_path = os.path.join(root_folder, doc.emplacement, doc.titre)
-        nouvel_emplacement_doc = os.path.join(nouvel_emplacement, "Annexes", "Declaration Manifestations/")
-        nouvel_emplacement_doc_full_path = os.path.join(root_folder, nouvel_emplacement_doc, doc.titre)
-
-        # Si le fichier source n'existe pas
-        if not smbclient.path.exists(ancien_emplacement_doc_full_path):
-            logger.warning(f"Déplacements des fichiers DM : Fichier introuvable pour le document {doc.id} ({doc.titre}) : {ancien_emplacement_doc_full_path}")
-            continue
-
-        # Si le fichier cible existe déjà
-        if smbclient.path.exists(nouvel_emplacement_doc_full_path):
-            logger.warning(f"Déplacements des fichiers DM : Le fichier cible existe déjà pour le document {doc.id} ({doc.titre}) : {nouvel_emplacement_doc_full_path}")
-
-            if doc.emplacement != nouvel_emplacement_doc:
-                doc.emplacement = nouvel_emplacement_doc
-                doc.save(update_fields=["emplacement"])
-
-            continue
-
-        # Déplacement physique sur le NAS
-        smbclient.rename(ancien_emplacement_doc_full_path, nouvel_emplacement_doc_full_path)
-
-        # Mise à jour emplacement document en base
-        doc.emplacement = nouvel_emplacement_doc
-        doc.save(update_fields=["emplacement"])
-        docs_deplaces += 1
-
-    return docs_deplaces
-'''
-
-
-'''
-# ==========================================
-# COPIE D'UN SOUS-DOSSIER DU DOSSIER DM SUR LE NAS
-# ==========================================
-def reception_copier_sous_dossier_dm(*, ancien_emplacement_full_path, nouvel_emplacement_full_path, nom_sous_dossier, label_log, logger):
-    """
-    Copie un sous-dossier du dossier DM vers son nouvel emplacement sur le NAS.
-
-    Args:
-        ancien_emplacement_full_path (str): Chemin absolu de l'ancien dossier DM sur le NAS.
-        nouvel_emplacement_full_path (str): Chemin absolu du nouveau dossier DM sur le NAS.
-        nom_sous_dossier (str): Nom du sous-dossier à copier (ex: "Carto", "Work").
-        label_log (str): Libellé utilisé dans les logs (ex: "CARTO", "DOSSIER WORK").
-        logger (logging.Logger): Logger utilisé pour tracer les événements.
-
-    Returns:
-        None
-    """
-    ancien_sous_dossier_full_path = os.path.join(ancien_emplacement_full_path, nom_sous_dossier)
-    nouveau_sous_dossier_full_path = os.path.join(nouvel_emplacement_full_path, nom_sous_dossier)
-
-    if ancien_sous_dossier_full_path != nouveau_sous_dossier_full_path:
-        try:
-            copier_dossier_smb(ancien_sous_dossier_full_path, nouveau_sous_dossier_full_path, logger)
-        except Exception as e:
-            msg = str(e)
-
-            if "being used by another process" in msg:
-                logger.warning(
-                    f"COPIE {label_log} : fichier non copié car verrouillé par un autre processus "
-                    f"(source={ancien_sous_dossier_full_path}, cible={nouveau_sous_dossier_full_path})"
-                )
-            else:
-                logger.error(
-                    f"COPIE {label_log} : Echec de l'écriture d'un fichier "
-                    f"(source={ancien_sous_dossier_full_path}, cible={nouveau_sous_dossier_full_path}) : {e}"
-                )
-'''
-
-'''
-# ==========================================
-# SUPPRESSION DE L'ANCIEN DOSSIER DM SI BESOIN
-# ==========================================
-def reception_supprimer_ancien_dossier_dm_si_necessaire(*, ancien_emplacement_dm, ancien_emplacement_full_path, logger):
-    """
-    Supprime l'ancien dossier DM sur le NAS s'il provient d'un répertoire
-    temporaire d'attente.
-
-    Args:
-        ancien_emplacement_dm (str): Emplacement relatif de l'ancien dossier DM.
-        ancien_emplacement_full_path (str): Chemin absolu de l'ancien dossier DM sur le NAS.
-        logger (logging.Logger): Logger utilisé pour tracer les événements.
-
-    Returns:
-        None
-    """
-    supprimer_ancien_dossier = "En attente" in ancien_emplacement_dm
-    if supprimer_ancien_dossier:
-        try:
-            supprimer_dossier_smb_recursif(ancien_emplacement_full_path, logger)
-            logger.info(f"Ancien dossier supprimé : {ancien_emplacement_dm}")
-        except Exception as e:
-            logger.warning(f"Impossible de supprimer l'ancien dossier {ancien_emplacement_dm} : {e}")
-'''
-
-'''
-# ==========================================
-# MISE À JOUR DE L'EMPLACEMENT DU DOSSIER DM
-# ==========================================
-def reception_mettre_a_jour_emplacement_dossier_dm(*, dossier_dm, nouvel_emplacement, logger):
-    """
-    Met à jour en base l'emplacement du dossier DM après son déplacement sur le NAS.
-
-    Args:
-        dossier_dm (DossierManifSportive): Dossier DM concerné.
-        nouvel_emplacement (str): Nouvel emplacement relatif du dossier DM.
-        logger (logging.Logger): Logger utilisé pour tracer les événements.
-
-    Returns:
-        None
-    """
-    nouvel_emplacement_normalise = normaliser_emplacement(nouvel_emplacement)
-
-    if dossier_dm.emplacement != nouvel_emplacement_normalise:
-        dossier_dm.emplacement = nouvel_emplacement_normalise
-        dossier_dm.save(update_fields=["emplacement"])
-
-        logger.info(f"Dossier DM mis à jour -> emplacement : {nouvel_emplacement}")
-'''
 
 
 # ==========================================================
@@ -788,11 +631,21 @@ def _soumettre_avis_dm(*, dossier, request, logger, action_log, message_succes_d
         }, None
 
     except Exception as e:
+        erreur = str(e)
+
         logger.error(
             f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : "
             f"Erreur lors de la soumission de l'avis '{libelle_avis_dm}' sur Déclaration Manifestations : {e}"
         )
-        return None, redirect_error(request, f"{message_succes_dn}, mais l'avis n'a pas pu être rendu sur Déclaration Manifestations. Contactez le support.")
+
+        if "406 Client Error" in erreur:
+            return None, redirect_info(
+                request, f"{message_succes_dn}, en revanche l'avis n'a pas pu être rendu sur Déclaration Manifestations "
+                         f"puisqu'il a déjà été rendu. Vous pouvez, si vous le souhaitez, déposer l'acte sur la plateforme via le bouton : 'Déposer des pièces jointes sur Déclaration Manifestations'"
+            )
+        else :
+
+            return None, redirect_error(request, f"{message_succes_dn}, mais l'avis n'a pas pu être rendu sur Déclaration Manifestations. Contactez le support.")
     
 
 
