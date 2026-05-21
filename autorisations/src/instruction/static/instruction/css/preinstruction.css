@@ -322,3 +322,8 @@ input:checked + .slider:before {
     color: #c82333;
     font-weight: bold;
 }
+
+.date-moins-un-mois {
+    color: #cc6e16;
+    font-weight: bold;
+}

@@ -20,7 +20,6 @@ venv.bak/
 .env.dev
 .env.prod
 
-
 # MkDocs build
 docs/site/
 
@@ -31,3 +30,7 @@ docs/site/
 .vscode
 .vscode/
 
+# Tests
+synchronisation/save_prod/*
+synchronisation/testDev/*
+synchronisation/testprod/*

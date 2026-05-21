@@ -35,7 +35,7 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
         loggerSynchro.error(f" Erreur lors de la normalisation du Dossier {doss['number']} : Le demandeur n'est ni une personne physique ni une personne morale")
 
     # Log synchro
-    loggerSynchro.info(f"Dossier {nom_dossier}")
+    # loggerSynchro.info(f"Dossier {nom_dossier}")
 
 
 

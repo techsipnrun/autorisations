@@ -32,8 +32,6 @@ def lancer_normalisation_et_synchronisation():
                 logger.info('')
                 logger.info('')
                 if demarche_obj.type.lower() == 'manifestations sportives':
-                    # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
-                    # continue
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} (Démarche Numérique) ######")
                 else:
                     logger.info(f"###### DÉMARCHE {demarche_obj.type.upper()} ######")
@@ -46,14 +44,22 @@ def lancer_normalisation_et_synchronisation():
             t0 = time.perf_counter()
             datas_DS = recup_data_DS(num)
             t_API_ds = time.perf_counter() - t0
-            logger.info(f"-- Récupération des données (API DS) faite en {t_API_ds:.2f} sec --")
+            logger.info(f"-- Récupération des données (API DN) faite en {t_API_ds:.2f} sec --")
 
             if datas_DS == False:
                 logger.error("ERREUR LORS DE LA RÉCUPÉRATION DES DONNÉES SUR Démarche Numérique")
                 success = False
                 continue  # ne pas lever d'erreur globale, on continue les autres démarches
             
+            t1 = time.perf_counter()
             resultats = normalize_process(datas_DS["demarche"], demarche_obj)
+            t_norma = time.perf_counter() - t1
+
+            dossiers = resultats.get("dossiers") or []
+            manif_sportives = resultats.get("manif_sportives") or []
+            nb_dossier = len(dossiers) + len(manif_sportives)
+            logger.info(f"-- Normalisation faite en {t_norma:.2f} sec ({nb_dossier} dossiers) --")
+            
             if not resultats or not resultats.get("statut") :
                 success = False
                 logger.error("Erreur lors de la normalisation des données Démarche Numérique - Déclaration Manifestations")
@@ -112,12 +118,12 @@ def lancer_normalisation_et_synchronisation_pour_une_demarche(num_demarche):
 
         logger.info(f"###### ACTUALISATION DÉMARCHE {demarche.type} ######")
 
-        # --- Récupération des données DS ---
+        # --- Récupération des données DN ---
         try:
             t0 = time.perf_counter()
             datas_DS = recup_data_DS(num_demarche)
             t_API_ds = time.perf_counter() - t0
-            logger.info(f"-- Récupération des données (API DS) faite en {t_API_ds:.2f} sec --")
+            logger.info(f"-- Récupération des données (API DN) faite en {t_API_ds:.2f} sec --")
 
             if datas_DS == False:
                 logger.error(f"Erreur lors de la récupération des données sur Démarche Numérique ({demarche.type})")

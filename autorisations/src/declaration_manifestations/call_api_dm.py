@@ -85,11 +85,7 @@ def doit_traiter_dossier_dm(manif_id):
 
     maintenant = timezone.now()
 
-    # Date fin dans le futur
-    if date_fin >= maintenant:
-        return True
-
-    # Date fin passée depuis moins de 7 jours
+    # Date fin dans le futur ou passée depuis moins de 7 jours
     if date_fin >= maintenant - timedelta(days=7):
         return True
 
@@ -119,12 +115,15 @@ def recup_avis_et_dossiers():
     ##############################################
     # FILTRE : Les demandes datant de moins d'un an
     ##############################################
+
+    numeros_dossiers_a_exclure = [88594, 87044]
     avis_filtres = [
         avis for avis in avis_list
         if (
             avis.get("reponse_avis") is None
-            and avis.get("etat") != "termine" and
-            date_demande_inferieure_un_an(avis)  # demande date de - d'un an
+            and avis["manif_id"] not in numeros_dossiers_a_exclure
+            and avis.get("etat") not in ["termine", "caduc"]
+            and date_demande_inferieure_un_an(avis)  # demande date de - d'un an
             and doit_traiter_dossier_dm(avis["manif_id"]) # date de fin d'évènement est dans le futur ou date de moins de 7 jours
         )
     ]

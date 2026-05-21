@@ -88,7 +88,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
         statut = False
 
     t_synchro = time.perf_counter() - t_ds
-    logger.info(f"-- Synchronisation DS faite en {t_synchro:.2f} sec --")
+    logger.info(f"-- Synchronisation DN faite en {t_synchro:.2f} sec --")
 
 
 

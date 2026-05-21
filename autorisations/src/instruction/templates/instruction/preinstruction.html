@@ -186,7 +186,7 @@
                                     <td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}</td>
                                     <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
                                     <td>{{ d.numero_dossier_declaration_manifestations }}</td>
-                                    <td class="{% if d.date_evenement_passee %}date-passee{% endif %}">
+                                    <td class="{% if d.date_evenement_passee %}date-passee{% elif d.date_evenement_dans_moins_un_mois %}date-moins-un-mois{% endif %}">
                                         {{ d.date_debut_evenement|date:"d F Y" }}
                                     </td>
                                     <td>

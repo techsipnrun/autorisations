@@ -269,9 +269,9 @@ def sync_dossier_champs(dossier_champs, id_dossier):
                             # Vérifie si une liaison existe déjà
                             liaison_existe = DossierManifestationLiaison.objects.filter(id_dossier_manif=dossier_dm).exists()
 
-                            if liaison_existe:
-                                logger.error(f"[Dossier {dossier.numero}] DossierManifSportive numéro {num_doss_dm} est déjà lié à un dossier DS alors que le DossierChamp 'Numéro du dossier sur la plateforme déclaration-manifestations' apparaît en création ici.")
-                            else:
+                            # if liaison_existe:
+                            #     logger.error(f"[Dossier {dossier.numero}] DossierManifSportive numéro {num_doss_dm} est déjà lié à un dossier DS alors que le DossierChamp 'Numéro du dossier sur la plateforme déclaration-manifestations' apparaît en création ici.")
+                            if not liaison_existe:
                                 DossierManifestationLiaison.objects.create(id_dossier_id=id_dossier,id_dossier_manif=dossier_dm)
                                 logger.info(f"[CREATE] Lien DossierManifSportive ({num_doss_dm}) <--> Dossier DS ({dossier.numero})")
 
@@ -434,4 +434,3 @@ def sync_dossier_champs(dossier_champs, id_dossier):
             loggerMail.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Dossier modifié suite à une demande de compléments) à {', '.join(outbox.to)} : {err}")
 
 
-    logger.info(' ----- ')

@@ -18,8 +18,9 @@ USERNAME = os.getenv("DM_USERNAME")
 PASSWORD = os.getenv("DM_PASSWORD")
 CLIENT_ID = os.getenv("DM_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DM_CLIENT_SECRET")
-API_URL = os.getenv("DM_API_URL_PREPROD")
+API_URL = os.getenv("DM_API_URL")
 API_URL_PROD = os.getenv("DM_API_URL_PROD")
+
 
 
 # ==== URLS ====

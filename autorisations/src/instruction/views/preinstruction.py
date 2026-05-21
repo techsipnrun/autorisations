@@ -125,11 +125,19 @@ def preinstruction(request):
 
     # Intersection Coeur de Parc
     for dm in dossiers_manif_sportive_DM :
+        today = timezone.localdate()
         
         dm.date_evenement_passee = (
             dm.date_debut_evenement
-            and dm.date_debut_evenement.date() < timezone.localdate()
+            and dm.date_debut_evenement.date() < today
         )
+
+        dm.date_evenement_dans_moins_un_mois = (
+            dm.date_debut_evenement
+            and today <= dm.date_debut_evenement.date() <= today + timedelta(days=30)
+        )
+
+
 
         dm.nb_relances = 0
 
@@ -141,14 +149,14 @@ def preinstruction(request):
             # ----------------------------------------------------------------------------
             # Si le dossier DM est nouveau et intersecte le coeur de parc : MAIL DE RELANCE
             # ----------------------------------------------------------------------------
-            if dm.coeur_de_parc == True and dm.email_structure :
+            if dm.coeur_de_parc == True and dm.email_structure and not dm.date_evenement_passee :
                 if not envoi_auto_mail_relance(dm) :
                     messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
                                               f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
                     
         
 
-        elif dm.coeur_de_parc == True and hasattr(dm, "avis") :
+        elif dm.coeur_de_parc == True and hasattr(dm, "avis") and not dm.date_evenement_passee :
             nb_relances = get_nb_relances(dm)
 
             # Calcul coeur de parc se fait à la synchro en théorie : Si 0 relances 
