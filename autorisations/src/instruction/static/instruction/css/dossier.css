@@ -1705,12 +1705,15 @@ textarea[name="note"] {
     color: #9e0000;
 }
 
+#deposer_pj_dm {
+    margin-top: 1rem;
+}
 
 .btn_ajouter_pj_DM {
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
-
+    margin-top: 1rem;
     background: #ccc;
     color: rgb(0, 0, 0);
 

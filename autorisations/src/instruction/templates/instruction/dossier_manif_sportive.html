@@ -63,14 +63,14 @@
             <!-- Ajouter PJ sur DM -->
             <!----------------------->
             <!-- and doss_manif_sportive.date_fin_evenement and doss_manif_sportive.date_fin_evenement > now -->
-            {% if doss_manif_sportive.archive %}
+            <!-- if doss_manif_sportive.archive  -->
                 
                 <button type="button" class="btn_ajouter_pj_DM" onclick="afficherFormulaireDeposerPJ_DeclarationManifestations()">
                     <img src="{% static 'instruction/img/trombone.png' %}" alt="PJ" class="annexe-icon">
                     <span>Déposer des pièces jointes sur Déclaration Manifestations</span>
                 </button>
 
-            {% endif %}
+            <!-- endif -->
             
 
             <!--------------------------------------------------------------------->
@@ -81,7 +81,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
 
-                    <h2>Déposer des pièces jointes sur Déclaration Manifestations</h2>
+                    <h2 id="deposer_pj_dm">Déposer des pièces jointes sur Déclaration Manifestations</h2>
 
                     <!-- <div class="zone-pj-complement">
                         <label for="acte-dm">Joindre un acte :</label>
