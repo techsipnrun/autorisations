@@ -5,6 +5,7 @@ import os
 import smtplib
 from django.contrib.auth.models import User
 from django.db import DatabaseError, IntegrityError, transaction
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.serializers.json import DjangoJSONEncoder
@@ -30,6 +31,9 @@ def compute_dedupe_key(to, sujet, template, context) -> str:
     """
 
     try :
+        # Convertit les QuerySet en listes JSON-serializable
+        if isinstance(to, QuerySet):
+            to = list(to)
 
         payload = json.dumps(
             {"to": to, "sujet": sujet, "template": template, "context": context},

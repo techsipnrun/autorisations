@@ -104,10 +104,10 @@ def avis(request):
         
         # Demandes à publier au RAA (CONSEIL SCIENTIFIQUE)
         demandes_avis_a_publier_au_RAA = Avis.objects.filter(favorable=True, id_expert__est_interne=False, id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique"
-                                        ).exclude(publie_au_raa=True
-                                        ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
-                                        ).distinct()
-
+                                        ).exclude(publie_au_raa=True).distinct()
+                                        # ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
+                                        
+   
 
         # Années disponibles
         annees_disponibles_demandeur = list(

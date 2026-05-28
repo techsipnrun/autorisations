@@ -18,7 +18,7 @@
 
     {% include 'navbar.html' %}
 
-    {% if not demandes_en_cours and not demandes_traitees and not avis_a_rendre and not avis_rendus %}
+    {% if not demandes_en_cours and not demandes_traitees and not demandes_avis_a_publier_au_RAA and not avis_a_rendre and not avis_rendus %}
         <div class="pas_concerne">
             Vous n'êtes concerné.e par aucun avis.
         </div>
@@ -174,7 +174,7 @@
         {% endif %}
 
 
-        {% if demandes_en_cours or demandes_traitees %}
+        {% if demandes_en_cours or demandes_traitees or demandes_avis_a_publier_au_RAA %}
             <div class="vision_demandeur">
                 <h2 class="section-title">Vision Demandeur</h2>
 

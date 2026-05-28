@@ -203,7 +203,7 @@ def _extract_error_message(response):
 
 
 def _check_response(response, contexte):
-    if response.status_code != 200:
+    if response.status_code != 200 and response.status_code != 201 :
         msg = _extract_error_message(response)
         loggerDM.error(f"[{response.status_code}] {contexte} : {msg}")
         response.raise_for_status()
