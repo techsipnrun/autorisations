@@ -37,7 +37,8 @@ def _normalize_unc_path(p: str) -> str:
 GROUPE_NAS = "autorisations"
 GROUPE_NAS_LINUX = r"PNRUN\autorisations"
 GROUPE_NAS_SMB = "PNRUN\\autorisations"
-NAS_UNC_PREFIX = _normalize_unc_path(r"\\x-wing\autodev_data")
+NAS_ROOT = os.getenv('NAS_ROOT').rstrip("\\/")
+NAS_UNC_PREFIX = _normalize_unc_path(f"{NAS_ROOT}")
 NAS_MOUNT_POINT = "/mnt/nas_autorisations"  # point de montage sur Linux
 
 
