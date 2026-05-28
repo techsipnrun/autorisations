@@ -34,3 +34,7 @@ docs/site/
 synchronisation/save_prod/*
 synchronisation/testDev/*
 synchronisation/testprod/*
+
+autorisations/src/synchronisation/save_prod/
+autorisations/src/synchronisation/testDev/
+autorisations/src/synchronisation/testprod/

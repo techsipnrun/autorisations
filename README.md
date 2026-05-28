@@ -1,10 +1,24 @@
 # Projet Autorisations
 
-Application Django visant à simplifier le **suivi**, **l'instruction** et **l’archivage** des demandes d'autorisation faites au **Parc national de La Réunion**, notamment via la plateforme [Démarche Numérique](https://www.demarches-simplifiees.fr/).
+Application Django visant à simplifier le **suivi**, **l'instruction** et **l’archivage** des demandes d'autorisation faites au **Parc national de La Réunion**, notamment via les plateformes [Démarche Numérique](https://demarche.numerique.gouv.fr/) et [Déclaration Manifestations](https://declaration-manifestations.gouv.fr/).
 
 ---
 
-## 🔁 Logigramme de l'instruction des dossiers
+## Aperçu de l'application
+
+![Interface dossier](medias/interface_dossier1.png)
+
+---
+
+## Architecture
+
+Le projet s’organise autour de plusieurs modules internes (synchronisation, normalisation, messagerie, suivi), et interagit avec des outils tiers.
+
+![Architecture](medias/architecture_projet1.png)
+
+---
+
+## L'instruction des dossiers
 
 Le processus d’instruction suit une séquence définie, du dépôt initial jusqu’à l’archivage :
 
@@ -12,36 +26,28 @@ Le processus d’instruction suit une séquence définie, du dépôt initial jus
 
 ---
 
-## 🏗️ Architecture de l'application
-
-Le projet s’organise autour de plusieurs modules internes (synchronisation, normalisation, messagerie, suivi), et interagit avec des outils tiers comme Démarche Numérique (via GraphQL) ou Active Directory.
-
-![Architecture](medias/architecture_projet.png)
-
----
-
 ## 📁 Structure du projet
 
+Soit DM = Déclaration Manifestations et DN = Démarche Numérique.  
 Voici une vue simplifiée de l’arborescence du projet :
 
 ```plaintext
 autorisations/
 ├── src/
-│   ├── authent/               # Authentification Active Directory
-│   ├── autorisations/         # App Django principale (models, fichiers de configuration..) 
-│   ├── BDD/                   # Interactions avec Postgres (ORM et Swagger)
-│   ├── DS/                    # Intégration API Démarche Numérique (GraphQL)
-│   ├── instruction/           # Fonctionnalités liées à l’instruction des dossiers
-│   ├── logs/                  # Les différents fichiers de log
-│   ├── synchronisation/       # Traitements de normalisation et synchronisation entre Postgres et Démarche Numérique
-│   ├── tests/                 # Tests unitaires
+│   ├── authent/                     # Authentification Active Directory
+│   ├── autorisations/               # App Django principale (models, fichiers de configuration..) 
+│   ├── BDD/                         # Interactions avec Postgres (ORM et Swagger)
+│   ├── DS/                          # Intégration API DN (GraphQL)
+│   ├── declaration_manifestations/  # Intégration API DM (Rest)
+│   ├── instruction/                 # Fonctionnalités liées à l’instruction des dossiers
+│   ├── logs/                        # Les différents fichiers de log
+│   ├── synchronisation/             # Traitements de normalisation et synchronisation entre Postgres, DN et DM
+│   ├── tests/                       # Tests unitaires
 
 ```
 
-## 🛢️ Diagramme de classe
 
-![Logigramme de l'instruction](medias/diag_de_classe_11aout.svg)
 
 ## 📬 Contact
-En cours de développement par le Parc national de La Réunion\
+Développement par le Parc national de La Réunion\
 Responsable technique : CALU Louis (louis.calu@reunion-parcnational.fr)
