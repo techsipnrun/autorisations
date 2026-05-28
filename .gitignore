@@ -23,8 +23,12 @@ venv.bak/
 # MkDocs build
 docs/site/
 
-#Doc pas utiles
+# Docs pas utiles
 *.json
+
+# MAIS on garde les fixtures
+!autorisations/fixtures/
+!autorisations/fixtures/*.json
 
 # Vscode
 .vscode
