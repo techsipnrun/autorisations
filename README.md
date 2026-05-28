@@ -6,10 +6,10 @@ Application Django visant à simplifier le **suivi**, **l'instruction** et **l�
 
 ## Aperçu de l'application
 
-<img src="medias/interface_dossier1.png" alt="Interface dossier" width="80%">
-<img src="medias/interface_carto.png" alt="Interface carto" width="80%">
-<img src="medias/interface_messagerie.png" alt="Interface messagerie" width="80%">
-<img src="medias/interface_requetes.png" alt="Interface requetes" width="80%">
+<img src="medias/interface_dossier1.png" alt="Interface dossier" width="90%">
+<img src="medias/interface_carto.png" alt="Interface carto" width="90%">
+<img src="medias/interface_messagerie.png" alt="Interface messagerie" width="90%">
+<img src="medias/interface_requetes.png" alt="Interface requetes" width="90%">
 
 ---
 
