@@ -1,0 +1,1560 @@
+[
+{
+  "model": "autorisations.champtype",
+  "pk": 1,
+  "fields": {
+    "type": "header_section"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 2,
+  "fields": {
+    "type": "repetition"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 3,
+  "fields": {
+    "type": "dossier_link"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 4,
+  "fields": {
+    "type": "explication"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 5,
+  "fields": {
+    "type": "civilite"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 6,
+  "fields": {
+    "type": "email"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 7,
+  "fields": {
+    "type": "phone"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 8,
+  "fields": {
+    "type": "address"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 9,
+  "fields": {
+    "type": "communes"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 10,
+  "fields": {
+    "type": "departements"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 11,
+  "fields": {
+    "type": "regions"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 12,
+  "fields": {
+    "type": "pays"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 13,
+  "fields": {
+    "type": "epci"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 14,
+  "fields": {
+    "type": "iban"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 15,
+  "fields": {
+    "type": "siret"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 16,
+  "fields": {
+    "type": "text"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 17,
+  "fields": {
+    "type": "textarea"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 18,
+  "fields": {
+    "type": "decimal_number"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 19,
+  "fields": {
+    "type": "integer_number"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 20,
+  "fields": {
+    "type": "date"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 21,
+  "fields": {
+    "type": "datetime"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 22,
+  "fields": {
+    "type": "piece_justificative"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 23,
+  "fields": {
+    "type": "titre_identite"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 24,
+  "fields": {
+    "type": "checkbox"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 25,
+  "fields": {
+    "type": "drop_down_list"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 26,
+  "fields": {
+    "type": "multiple_drop_down_list"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 27,
+  "fields": {
+    "type": "linked_drop_down_list"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 28,
+  "fields": {
+    "type": "yes_no"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 29,
+  "fields": {
+    "type": "annuaire_education"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 30,
+  "fields": {
+    "type": "rna"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 31,
+  "fields": {
+    "type": "rnf"
+  }
+},
+{
+  "model": "autorisations.champtype",
+  "pk": 32,
+  "fields": {
+    "type": "carte"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 4,
+  "fields": {
+    "nom": "accepte"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 5,
+  "fields": {
+    "nom": "en_construction"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 6,
+  "fields": {
+    "nom": "en_instruction"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 7,
+  "fields": {
+    "nom": "refuse"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 8,
+  "fields": {
+    "nom": "sans_suite"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 9,
+  "fields": {
+    "nom": "en_attente_validation"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 10,
+  "fields": {
+    "nom": "en_attente_demandeur"
+  }
+},
+{
+  "model": "autorisations.etatdemande",
+  "pk": 11,
+  "fields": {
+    "nom": "en_attente_avis"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 1,
+  "fields": {
+    "nom": "brouillon"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 2,
+  "fields": {
+    "nom": "close"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 3,
+  "fields": {
+    "nom": "depubliee"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 4,
+  "fields": {
+    "nom": "publiee"
+  }
+},
+{
+  "model": "autorisations.etatdossier",
+  "pk": 4,
+  "fields": {
+    "nom": "accepte"
+  }
+},
+{
+  "model": "autorisations.etatdossier",
+  "pk": 5,
+  "fields": {
+    "nom": "en_construction"
+  }
+},
+{
+  "model": "autorisations.etatdossier",
+  "pk": 6,
+  "fields": {
+    "nom": "en_instruction"
+  }
+},
+{
+  "model": "autorisations.etatdossier",
+  "pk": 7,
+  "fields": {
+    "nom": "refuse"
+  }
+},
+{
+  "model": "autorisations.etatdossier",
+  "pk": 8,
+  "fields": {
+    "nom": "sans_suite"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 1,
+  "fields": {
+    "etape": "En attente de compléments"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 2,
+  "fields": {
+    "etape": "En attente réponse d'avis"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 3,
+  "fields": {
+    "etape": "Acte à envoyer"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 4,
+  "fields": {
+    "etape": "À valider avant demande d'avis"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 5,
+  "fields": {
+    "etape": "À publier au RAA"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 6,
+  "fields": {
+    "etape": "En attente de signature"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 7,
+  "fields": {
+    "etape": "En relecture qualité"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 9,
+  "fields": {
+    "etape": "En pré-instruction"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 10,
+  "fields": {
+    "etape": "À affecter"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 11,
+  "fields": {
+    "etape": "En instruction"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 12,
+  "fields": {
+    "etape": "Accepté"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 13,
+  "fields": {
+    "etape": "Refusé"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 14,
+  "fields": {
+    "etape": "Non soumis à autorisation"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 15,
+  "fields": {
+    "etape": "À valider avant signature"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 16,
+  "fields": {
+    "etape": "Avis à envoyer"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 17,
+  "fields": {
+    "etape": "En réception"
+  }
+},
+{
+  "model": "autorisations.etapedossier",
+  "pk": 18,
+  "fields": {
+    "etape": "Non répondu"
+  }
+},
+{
+  "model": "autorisations.priorite",
+  "pk": 1,
+  "fields": {
+    "niveau": "urgent"
+  }
+},
+{
+  "model": "autorisations.priorite",
+  "pk": 2,
+  "fields": {
+    "niveau": "normal"
+  }
+},
+{
+  "model": "autorisations.priorite",
+  "pk": 3,
+  "fields": {
+    "niveau": "faible"
+  }
+},
+{
+  "model": "autorisations.priorite",
+  "pk": 4,
+  "fields": {
+    "niveau": "traite"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 1,
+  "fields": {
+    "type": "Survol drone"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 2,
+  "fields": {
+    "type": "Prise de vue et de son"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 3,
+  "fields": {
+    "type": "Arêtes"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 4,
+  "fields": {
+    "type": "Travaux"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 5,
+  "fields": {
+    "type": "Missions scientifiques"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 6,
+  "fields": {
+    "type": "Activités agricoles"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 7,
+  "fields": {
+    "type": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 8,
+  "fields": {
+    "type": "Manifestations publiques"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 9,
+  "fields": {
+    "type": "Survol hélicoptère"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 11,
+  "fields": {
+    "type": "Documents de planification et d'urbanisme"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 12,
+  "fields": {
+    "type": "Manifestations sportives"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 13,
+  "fields": {
+    "type": "Test"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 14,
+  "fields": {
+    "type": "Manœuvres militaires"
+  }
+},
+{
+  "model": "autorisations.dossiertype",
+  "pk": 1,
+  "fields": {
+    "type": "nouveau"
+  }
+},
+{
+  "model": "autorisations.dossiertype",
+  "pk": 2,
+  "fields": {
+    "type": "renouvellement"
+  }
+},
+{
+  "model": "autorisations.dossiertype",
+  "pk": 3,
+  "fields": {
+    "type": "modification"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 1,
+  "fields": {
+    "format": "pdf"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 2,
+  "fields": {
+    "format": "jpg"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 3,
+  "fields": {
+    "format": "jpeg"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 4,
+  "fields": {
+    "format": "png"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 5,
+  "fields": {
+    "format": "doc"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 6,
+  "fields": {
+    "format": "docx"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 7,
+  "fields": {
+    "format": "csv"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 8,
+  "fields": {
+    "format": "gpx"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 9,
+  "fields": {
+    "format": "shp"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 10,
+  "fields": {
+    "format": "kml"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 11,
+  "fields": {
+    "format": "json"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 12,
+  "fields": {
+    "format": "xml"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 13,
+  "fields": {
+    "format": "gif"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 14,
+  "fields": {
+    "format": "svg"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 15,
+  "fields": {
+    "format": "txt"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 16,
+  "fields": {
+    "format": "xlsx"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 17,
+  "fields": {
+    "format": "ods"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 18,
+  "fields": {
+    "format": "pptx"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 19,
+  "fields": {
+    "format": "rtf"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 20,
+  "fields": {
+    "format": "odt"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 21,
+  "fields": {
+    "format": "odp"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 22,
+  "fields": {
+    "format": "odc"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 23,
+  "fields": {
+    "format": "pages"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 24,
+  "fields": {
+    "format": "numbers"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 25,
+  "fields": {
+    "format": "tex"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 26,
+  "fields": {
+    "format": "latex"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 27,
+  "fields": {
+    "format": "tiff"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 28,
+  "fields": {
+    "format": "tif"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 29,
+  "fields": {
+    "format": "bmp"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 30,
+  "fields": {
+    "format": "webp"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 31,
+  "fields": {
+    "format": "heic"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 32,
+  "fields": {
+    "format": "psd"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 33,
+  "fields": {
+    "format": "ai"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 34,
+  "fields": {
+    "format": "eps"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 35,
+  "fields": {
+    "format": "geojson"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 36,
+  "fields": {
+    "format": "gml"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 37,
+  "fields": {
+    "format": "kmz"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 38,
+  "fields": {
+    "format": "tab"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 39,
+  "fields": {
+    "format": "mif"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 40,
+  "fields": {
+    "format": "dxf"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 41,
+  "fields": {
+    "format": "dwg"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 42,
+  "fields": {
+    "format": "sbn"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 43,
+  "fields": {
+    "format": "sbx"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 44,
+  "fields": {
+    "format": "dbf"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 45,
+  "fields": {
+    "format": "prj"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 46,
+  "fields": {
+    "format": "shx"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 47,
+  "fields": {
+    "format": "log"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 48,
+  "fields": {
+    "format": "ini"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 49,
+  "fields": {
+    "format": "yaml"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 50,
+  "fields": {
+    "format": "yml"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 51,
+  "fields": {
+    "format": "toml"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 52,
+  "fields": {
+    "format": "md"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 53,
+  "fields": {
+    "format": "rst"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 54,
+  "fields": {
+    "format": "sql"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 55,
+  "fields": {
+    "format": "zip"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 56,
+  "fields": {
+    "format": "tar"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 57,
+  "fields": {
+    "format": "gz"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 58,
+  "fields": {
+    "format": "7z"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 59,
+  "fields": {
+    "format": "rar"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 60,
+  "fields": {
+    "format": "mp3"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 61,
+  "fields": {
+    "format": "wav"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 62,
+  "fields": {
+    "format": "ogg"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 63,
+  "fields": {
+    "format": "flac"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 64,
+  "fields": {
+    "format": "mp4"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 65,
+  "fields": {
+    "format": "avi"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 66,
+  "fields": {
+    "format": "mov"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 67,
+  "fields": {
+    "format": "webm"
+  }
+},
+{
+  "model": "autorisations.documentformat",
+  "pk": 68,
+  "fields": {
+    "format": "mkv"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 1,
+  "fields": {
+    "nature": "Pièce jointe demandeur"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 2,
+  "fields": {
+    "nature": "Capture mail"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 3,
+  "fields": {
+    "nature": "Arrêté directeur"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 4,
+  "fields": {
+    "nature": "Déliberation CA"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 5,
+  "fields": {
+    "nature": "Avis simple"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 6,
+  "fields": {
+    "nature": "Avis conforme"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 7,
+  "fields": {
+    "nature": "Avis instance"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 8,
+  "fields": {
+    "nature": "CERFA"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 9,
+  "fields": {
+    "nature": "Formulaire parc"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 10,
+  "fields": {
+    "nature": "Résumé dossier"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 11,
+  "fields": {
+    "nature": "Pièce jointe message"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 12,
+  "fields": {
+    "nature": "Annexe instructeur"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 13,
+  "fields": {
+    "nature": "Pièce jointe à relire"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 14,
+  "fields": {
+    "nature": "Annexe avis"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 15,
+  "fields": {
+    "nature": "Rapport CA"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 16,
+  "fields": {
+    "nature": "Projet Rapport CA"
+  }
+},
+{
+  "model": "autorisations.documentnature",
+  "pk": 17,
+  "fields": {
+    "nature": "Annexe instructeur DM"
+  }
+},
+{
+  "model": "autorisations.avisnature",
+  "pk": 2,
+  "fields": {
+    "nature": "Demande à une instance"
+  }
+},
+{
+  "model": "autorisations.avisnature",
+  "pk": 3,
+  "fields": {
+    "nature": "Consultation en interne"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 1,
+  "fields": {
+    "thematique": "Autre",
+    "demarche": "Autre"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 2,
+  "fields": {
+    "thematique": "Faune",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 3,
+  "fields": {
+    "thematique": "Flore",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 6,
+  "fields": {
+    "thematique": "Utilisation produits phyto ou biocide",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 7,
+  "fields": {
+    "thematique": "Culture",
+    "demarche": "Activités agricoles"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 8,
+  "fields": {
+    "thematique": "Élevage",
+    "demarche": "Activités agricoles"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 9,
+  "fields": {
+    "thematique": "Hébergement",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 10,
+  "fields": {
+    "thematique": "Gîtes",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 11,
+  "fields": {
+    "thematique": "Camping",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 12,
+  "fields": {
+    "thematique": "Chambre d'hôtes",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 13,
+  "fields": {
+    "thematique": "Vente",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 14,
+  "fields": {
+    "thematique": "Commerce de proximité",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 15,
+  "fields": {
+    "thematique": "Artisanat",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 16,
+  "fields": {
+    "thematique": "Prestation de service touristique",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 17,
+  "fields": {
+    "thematique": "Restauration",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 18,
+  "fields": {
+    "thematique": "Table d’hôtes",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 19,
+  "fields": {
+    "thematique": "Restauration légère",
+    "demarche": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 20,
+  "fields": {
+    "thematique": "plan de paysage",
+    "demarche": "Documents de planification et d'urbanisme"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 21,
+  "fields": {
+    "thematique": "Aménagement forestier",
+    "demarche": "Documents de planification et d'urbanisme"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 22,
+  "fields": {
+    "thematique": "Archéologie",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 23,
+  "fields": {
+    "thematique": "Géologie",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 24,
+  "fields": {
+    "thematique": "Milieu aquatique",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 25,
+  "fields": {
+    "thematique": "Expédition scientifique",
+    "demarche": "Mission scientifique"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 26,
+  "fields": {
+    "thematique": "Construction et réhabilitation de bâtiments",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 27,
+  "fields": {
+    "thematique": "Aménagement de sentiers",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 28,
+  "fields": {
+    "thematique": "Confortement et sécurisation de voiries",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 29,
+  "fields": {
+    "thematique": "Approvisionnement en eau",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 30,
+  "fields": {
+    "thematique": "Aire d’accueil du public",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 31,
+  "fields": {
+    "thematique": "Equipements énergétiques",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 32,
+  "fields": {
+    "thematique": "Communication",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 33,
+  "fields": {
+    "thematique": "DFCI",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 34,
+  "fields": {
+    "thematique": "Équipements de surveillance, de mesures et de suivi",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 35,
+  "fields": {
+    "thematique": "Travaux préparatoires",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 36,
+  "fields": {
+    "thematique": "Sentiers",
+    "demarche": "Travaux"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 37,
+  "fields": {
+    "thematique": "Survol hélicoptère",
+    "demarche": "Survol hélicoptère"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 38,
+  "fields": {
+    "thematique": "Courses d'arêtes",
+    "demarche": "Courses d'arêtes"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 39,
+  "fields": {
+    "thematique": "Drone - Prise de vue",
+    "demarche": "Drone - Prise de vue"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 40,
+  "fields": {
+    "thematique": "Manifestations publiques",
+    "demarche": "Manifestations publiques"
+  }
+},
+{
+  "model": "autorisations.avisthematique",
+  "pk": 41,
+  "fields": {
+    "thematique": "Manifestations sportives",
+    "demarche": "Manifestations sportives"
+  }
+},
+{
+  "model": "autorisations.typecontactexterne",
+  "pk": 1,
+  "fields": {
+    "type": "Bénéficiaire"
+  }
+},
+{
+  "model": "autorisations.typecontactexterne",
+  "pk": 2,
+  "fields": {
+    "type": "Demandeur intermédiaire"
+  }
+},
+{
+  "model": "autorisations.typecontactexterne",
+  "pk": 3,
+  "fields": {
+    "type": "Instance"
+  }
+},
+{
+  "model": "autorisations.typecontactexterne",
+  "pk": 7,
+  "fields": {
+    "type": "Autre"
+  }
+},
+{
+  "model": "autorisations.typecontactexterne",
+  "pk": 10,
+  "fields": {
+    "type": "autre"
+  }
+}
+]
