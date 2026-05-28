@@ -6,7 +6,10 @@ Application Django visant à simplifier le **suivi**, **l'instruction** et **l�
 
 ## Aperçu de l'application
 
-![Interface dossier](medias/interface_dossier1.png)
+<img src="medias/interface_dossier1.png" alt="Interface dossier" width="80%">
+<img src="medias/interface_carto.png" alt="Interface carto" width="80%">
+<img src="medias/interface_messagerie.png" alt="Interface messagerie" width="80%">
+<img src="medias/interface_requetes.png" alt="Interface requetes" width="80%">
 
 ---
 
@@ -15,14 +18,6 @@ Application Django visant à simplifier le **suivi**, **l'instruction** et **l�
 Le projet s’organise autour de plusieurs modules internes (synchronisation, normalisation, messagerie, suivi), et interagit avec des outils tiers.
 
 ![Architecture](medias/architecture_projet1.png)
-
----
-
-## L'instruction des dossiers
-
-Le processus d’instruction suit une séquence définie, du dépôt initial jusqu’à l’archivage :
-
-![Logigramme de l'instruction](medias/LogigrammeV2.png)
 
 ---
 
