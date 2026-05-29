@@ -1288,6 +1288,10 @@ def afficher_annexe(request, chemin, titre=None):
     except Http404:
         raise
     except Exception as e:
+        if "0xc0000043" in str(e):
+            raise Http404("Erreur d'accès au fichier. Il semblerait que le fichier est actuellement utilisé par un autre processus. " \
+                         f"Merci de réessayer dans quelques minutes ou d'aller consulter le document directement à : {chemin_entier} \n {str(e)}")
+              
         raise Http404("Erreur d'accès au fichier : " + str(e))
 
 
