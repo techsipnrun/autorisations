@@ -139,9 +139,15 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
         )
         return True, ""
 
+def normalize_emails(emails):
+    if isinstance(emails, str):
+        return [emails]
+    return list(emails or [])
 
 
 def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, dossier, type_mail, document=None) :
+
+    emails_norm = normalize_emails(emails_norm)
 
     try:
         outbox = EmailOutbox.objects.create(
@@ -200,6 +206,8 @@ def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, doss
 
 
 def create_EmailOutbox_DM (emails_norm, sujet, template_name, dedupe, context, dossier_dm : DossierManifSportive, type_mail, document=None) :
+
+    emails_norm = normalize_emails(emails_norm)
 
     try:
         outbox = EmailOutbox.objects.create(
