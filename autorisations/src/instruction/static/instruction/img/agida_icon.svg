@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Icône Agida">
+  <defs>
+    <style>
+      .stroke{fill:none;stroke:#0b5f35;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;}
+      .thin{fill:none;stroke:#0b5f35;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;}
+    </style>
+  </defs>
+
+  <!-- Cercle ouvert inspiré du croquis -->
+  <path class="stroke" d="M242 78 C215 38 142 24 87 55 C35 84 21 156 53 211 C85 267 179 278 230 230"/>
+
+  <!-- A central -->
+  <path class="stroke" d="M84 220 C109 154 133 91 158 55 C187 111 211 166 235 220"/>
+  <path class="thin" d="M112 151 C141 146 170 146 202 151"/>
+
+  <!-- petite boucle façon g, sans feuille -->
+  <path class="stroke" d="M211 196 C222 173 256 177 258 203 C260 234 218 235 217 207 C216 185 250 187 258 204"/>
+</svg>

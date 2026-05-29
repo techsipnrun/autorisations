@@ -59,7 +59,7 @@ tbody tr:hover {
 }
 
 /* Empty state */
-tbody td[colspan="5"] {
+tbody td[colspan="5"], tbody td[colspan="7"], tbody td[colspan="8"] {
     text-align: center;
     font-style: italic;
     color: #555;

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from . import views
 from .custom_admin import custom_admin_site
@@ -17,4 +18,5 @@ urlpatterns = [
     path('', include('authent.urls')),
     path('', include('instruction.urls')),
     path('', include('BDD.urls')),
+    path("favicon.ico", RedirectView.as_view(url="/static/instruction/img/agida_icon.ico", permanent=True),),
 ]

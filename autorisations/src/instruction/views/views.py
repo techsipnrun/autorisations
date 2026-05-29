@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import posixpath
 from django.utils import timezone
 import json
 import os
@@ -6,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 import urllib
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
@@ -1236,25 +1237,56 @@ def ajouter_annexe_dossier(request, dossier_id):
 
 
 
+# @login_required
+# def afficher_annexe(request, chemin, titre=None):
+#     try:
+#         if titre :
+#             chemin_entier = os.path.join(os.environ.get("NAS_ROOT"), chemin, titre)
+#         else :
+#             chemin_entier = os.path.join(os.environ.get("NAS_ROOT"), chemin)
+
+#         if not smbclient.path.exists(chemin_entier):
+#             raise Http404("Fichier introuvable")
+
+#         content_type, _ = guess_type(chemin_entier)
+#         if not content_type:
+#             content_type = 'application/octet-stream'  # type par défaut
+        
+#         response = FileResponse(smbclient.open_file(chemin_entier, 'rb'), content_type=content_type)
+#         return response
+
+
+    # except Exception as e:
+    #     raise Http404("Erreur d'accès au fichier : " + str(e))
+
+
 @login_required
 def afficher_annexe(request, chemin, titre=None):
     try:
-        if titre :
-            chemin_entier = os.path.join(os.environ.get("NAS_ROOT"), chemin, titre)
-        else :
-            chemin_entier = os.path.join(os.environ.get("NAS_ROOT"), chemin)
+        nas_root = os.environ.get("NAS_ROOT")
+
+        if titre:
+            chemin_relatif = posixpath.join(chemin, titre)
+        else:
+            chemin_relatif = chemin
+
+        chemin_entier = os.path.normpath(os.path.join(nas_root, chemin_relatif.lstrip("/\\")))
 
         if not smbclient.path.exists(chemin_entier):
             raise Http404("Fichier introuvable")
 
         content_type, _ = guess_type(chemin_entier)
-        if not content_type:
-            content_type = 'application/octet-stream'  # type par défaut
-        
-        response = FileResponse(smbclient.open_file(chemin_entier, 'rb'), content_type=content_type)
+        content_type = content_type or "application/octet-stream"
+
+        with smbclient.open_file(chemin_entier, "rb") as f:
+            contenu = f.read()
+
+        response = HttpResponse(contenu, content_type=content_type)
+        response["Content-Disposition"] = f'inline; filename="{os.path.basename(chemin_entier)}"'
         return response
 
-
+    except Http404:
+        raise
     except Exception as e:
         raise Http404("Erreur d'accès au fichier : " + str(e))
 
