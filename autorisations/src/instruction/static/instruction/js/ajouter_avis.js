@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function mettreDefaultFormulationSiVide() {
         // Ne jamais écraser un texte déjà écrit (avis existant ou saisi par l'utilisateur)
 
-        // if (formulation.value.trim() !== "") return;
+        if (formulation.value.trim() !== "") return;
 
         const selected = nature.options[nature.selectedIndex]?.text.trim();
         console.log({selected})
@@ -211,11 +211,31 @@ function copierChemin(chemin) {
     }
 }
 
-function supprimerDoc(avisId, champ) {
+// function supprimerDoc(avisId, champ) {
+//     if (!confirm("Supprimer ce document ?")) return;
+//     fetch(`/avis/${avisId}/supprimer-doc/${champ}/`, {
+//         method: "POST",
+//         headers: { "X-CSRFToken": "{{ csrf_token }}" }
+//     })
+//     .then(resp => resp.ok ? location.reload() : alert("Erreur suppression : " + resp.status))
+//     .catch(err => alert("Erreur réseau : " + err));
+// }
+
+function getCookie(name) {
+    return document.cookie
+        .split("; ")
+        .find(row => row.startsWith(name + "="))
+        ?.split("=")[1];
+}
+
+function supprimerDoc(avisId, documentId) {
     if (!confirm("Supprimer ce document ?")) return;
-    fetch(`/avis/${avisId}/supprimer-doc/${champ}/`, {
+
+    fetch(`/avis/${avisId}/pj/${documentId}/supprimer/`, {
         method: "POST",
-        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken")
+        }
     })
     .then(resp => resp.ok ? location.reload() : alert("Erreur suppression : " + resp.status))
     .catch(err => alert("Erreur réseau : " + err));

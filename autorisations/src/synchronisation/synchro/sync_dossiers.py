@@ -93,7 +93,7 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
         except Exception as e:
             logger.error(f"ERROR dans sync_dossier_champs : {e}")
 
-            sync_dossier_document(doss['dossier_document'], id_dossier)
+        sync_dossier_document(doss['dossier_document'], id_dossier)
 
         sync_messages(doss['messages'], id_dossier)
         sync_demandes(doss['demandes'], id_dossier)

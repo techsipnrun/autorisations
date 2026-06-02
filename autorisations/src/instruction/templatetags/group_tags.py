@@ -122,7 +122,7 @@ def est_concerne_par_demande_avis(user, avis):
     dossier_ids = (
         DossierAvis.objects
         .filter(id_avis=avis)
-        .values_list("id_demande__id_dossier_id", flat=True)
+        .values_list("id_dossier_id", flat=True)
     )
 
     if not dossier_ids:

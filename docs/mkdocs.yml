@@ -69,10 +69,9 @@ nav:
         - Ajouter un avis existant: dossier/consultation/ajouter-avis-existant.md
       - Stockage physique: dossier/stockage.md
       - Notifications: dossier/notifications.md
-  - Administrateur:
-      - Gestion des groupes: administrateur/gestion-groupes.md
-      - Gestion des contacts: administrateur/gestion-contacts.md
-      - Page admin: administrateur/page-admin.md
+  - Les manifestations sportives:
+      - Réception: manif_sportive/reception_manif_sportive.md
+      - Dossier Déclaration Manifestations: manif_sportive/dossier_dm.md
   - Developpeur:
       - Structure du projet: developer/structure-projet.md
       - Django: developer/django.md

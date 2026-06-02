@@ -645,9 +645,15 @@ def supprimer_pj_avis(request, avis_id, document_id):
         return redirect_error(request, "L'avis est introuvable en base. Contactez le support.")
     
     avis_doc = AvisDocument.objects.filter(id_avis=avis, id_document_id=document_id).first()
+    
     if not avis_doc:
         logger.warning(f"[SUPPR PJ AVIS] Relation AvisDocument introuvable — Avis {avis_id}, Document {document_id}")
-        return redirect_error(request, "La pièce jointe est introuvable. Contactez le support.")
+        doc = Document.objects.get(id=document_id)
+        doc.delete()
+        logger.info(f"[SUPPR PJ AVIS] Le Document {document_id} a quand même été supprimé.")
+        # return redirect_error(request, "La pièce jointe est introuvable. Contactez le support.")
+        
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
     # Supprime le lien Avis ↔ Document

@@ -100,7 +100,7 @@
                                 <a href="{% url 'afficher_annexe' chemin=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}" target="_blank">
                                     {{ avis.id_projet_avis.titre }}
                                 </a>
-                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, 'id_projet_avis'); return false;">
+                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, {{ avis.id_projet_avis.id }}); return false;">
                                     ✕
                                 </a>
 
@@ -118,7 +118,7 @@
                                 <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" target="_blank">
                                     {{ avis.id_projet_acte.titre }}
                                 </a>
-                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, 'id_projet_acte'); return false;">
+                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, {{ avis.id_projet_acte.id }}); return false;">
                                     ✕
                                 </a>
                             </p>
@@ -134,7 +134,7 @@
                                 <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}" target="_blank">
                                     {{ avis.id_rapport_instance.titre }}
                                 </a>
-                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, 'id_rapport_instance'); return false;">
+                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, {{ avis.id_rapport_instance.id }}); return false;">
                                     ✕
                                 </a>
                             </p>

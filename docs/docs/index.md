@@ -1,9 +1,12 @@
 # Sommaire
 
-Bienvenue dans la documentation de l'application **Autorisations**.  
+Bienvenue dans la documentation utilisateur de l'application **AGIDA**.
+
+
+<img src="agida_logo.png" alt="Logo AGIDA" width="500">
 
 !!! info "Information"
-    Date de la dernière mise à jour : **20/03/2026**
+    Date de la dernière mise à jour : **29/05/2026**
 
 
 ---
@@ -71,10 +74,9 @@ Bienvenue dans la documentation de l'application **Autorisations**.
 
 ---
 
-## Administrateur
-- [Gestion des groupes](administrateur/gestion-groupes.md)
-- [Gestion des contacts](administrateur/gestion-contacts.md)
-- [Page admin](administrateur/page-admin.md)
+## Manifestations sportives
+- [Réception](manif_sportive/reception_manif_sportive.md)
+- [Dossier Déclaration Manifestations](manif_sportive/dossier_dm.md)
 
 ---
 
