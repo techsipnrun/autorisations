@@ -9,6 +9,7 @@ Points clés :
 """
 
 import logging
+import os
 from smtplib import SMTPAuthenticationError, SMTPException
 import ssl
 from django.core.management.base import BaseCommand
@@ -122,6 +123,7 @@ class Command(BaseCommand):
             msg = EmailMultiAlternatives(
                 subject=item.subject,
                 body=text,
+                from_email=item.email_from or os.getenv("DEFAULT_FROM_EMAIL"),
                 to=item.to,  #Liste de mails destinataires
                 connection=conn,
             )

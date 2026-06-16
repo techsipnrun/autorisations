@@ -116,8 +116,8 @@ def recup_avis_et_dossiers():
     # FILTRE : Les demandes datant de moins d'un an
     ##############################################
 
-    numeros_dossiers_a_exclure = [88594, 87044, 114082, 101156, 107139, 118148, 117715, 113846, 121088]
-
+    numeros_dossiers_a_exclure = [88594, 87044, 114082, 101156, 107139, 118148, 117715, 113846, 121088, 122154]
+    # 105963
     avis_filtres = [
         avis for avis in avis_list
         if (
@@ -283,11 +283,10 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
             description = pj.get("nom")
             date_televersement = parse_datetime_with_tz(pj.get("date_televersement"))
             
-            if doss_lie :
-                emplacement_doc = os.path.join(doss.emplacement, "Annexes/Déclaration Manifestations/")
-            else :
-                emplacement_doc = os.path.join(doss.emplacement, "Annexes/")
-                
+            # if doss_lie :
+            #     emplacement_doc = os.path.join(doss.emplacement, "Annexes/Déclaration Manifestations/")
+            # else :
+            emplacement_doc = os.path.join(doss.emplacement, "Annexes/")
             emplacement_file = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc, titre)
 
 

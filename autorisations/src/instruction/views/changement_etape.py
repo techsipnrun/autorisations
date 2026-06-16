@@ -2084,12 +2084,6 @@ def classer_le_dossier_comme_refuse(request):
 
 
 
-
-"""
-
-A FACTORISER AVEC FONCTION envoyer_l_acte_de_refus()
-
-"""
 ####################################################
 ###             ACTE D'ACCEPTATION               ###
 ####################################################

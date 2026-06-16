@@ -662,7 +662,7 @@ class ActionsPossiblesAdmin(admin.ModelAdmin):
     def etape(self, obj):
         return obj.id_etape
 
-    @admin.display(ordering="id_changement_etape__action", description="Action possible")
+    @admin.display(ordering="id_changement_etape__action", description="Changement étape")
     def action(self, obj):
         return obj.id_changement_etape
 

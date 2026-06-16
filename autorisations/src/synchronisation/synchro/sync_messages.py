@@ -1,8 +1,10 @@
 from datetime import date
 import os
+from pathlib import Path
+import re
 
 from django.contrib.auth.models import User
-from autorisations.models.models_documents import Document, MessageDocument
+from autorisations.models.models_documents import Document, DocumentNature, MessageDocument
 from autorisations.models.models_instruction import Dossier, Message
 from autorisations.models.models_utilisateurs import DossierInstructeur, EmailOutbox
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -63,7 +65,7 @@ def sync_messages(messages, id_dossier):
                 "body": message_data["body"],
                 "date_envoi": message_data["date_envoi"],
                 "piece_jointe": message_data["piece_jointe"],
-                #si email_emetteur existe deja et != autorisations@reunion-parcnational.fr  alors on ecrase pas (sinon louis devient auto par ex...)
+                #  si email_emetteur existe deja et != autorisations@reunion-parcnational.fr  alors on ecrase pas (sinon louis devient auto par ex...)
                 # "email_emetteur": message_data["email_emetteur"],  
             }, date_fields=["date_envoi"])
 
@@ -71,35 +73,135 @@ def sync_messages(messages, id_dossier):
                 msg_obj.save()
                 logger.info(f"[SAVE] Message {msg_obj.id_ds} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
+  
+        # A CORRIGER : AJD ca créé des copie__01, 02, 03... à l'infini comme si la nature "Pièce jointe message" n'était pas reconnu ?
+        # AUTRE INDICE :  Le pb de cohérence de titre/emplacement est entre ce fichier et le fichier sync_dossier_champs. 
+        #                 Les 2 erreurs à ce sujet persisteront surement dans sync_dossier_champs si je ne supprime les Documents des Messages 
+
         if message_data["piece_jointe"]:
             for doc in docs:
-                doc_obj, doc_created = Document.objects.get_or_create(
-                    emplacement=doc["emplacement"], id_format_id=doc["id_format"], titre=doc["titre"],
-                    defaults={
-                        "url_ds": doc["url_ds"],
-                        "description": doc["description"],
-                        "id_nature_id": doc["id_nature"],
-                    }
-                )
+                
+                # "id_nature_id": doc["id_nature"],
+                nature_doc_obj = DocumentNature.objects.filter(id=doc["id_nature"]).first()
+                nature_doc = nature_doc_obj.nature if nature_doc_obj else None
 
-                if doc_created:
-                    logger.info(f"[CREATE] Document joint à Message {msg_obj.id_ds} créé.")
+                doc_meme_nom = (Document.objects.filter(emplacement=doc["emplacement"],titre=doc["titre"],).select_related("id_nature").first())
+                
+                # Aucun document avec ce nom => on peut créer
+                if not doc_meme_nom:
+                    doc_obj = Document.objects.create(
+                        emplacement=doc["emplacement"],
+                        titre=doc["titre"],
+                        id_format_id=doc["id_format"],
+                        id_nature_id=doc["id_nature"],
+                        url_ds=doc["url_ds"],
+                        description=doc["description"],
+                    )
 
                     write_pj(doc["emplacement"], doc["titre"], doc["url_ds"])
 
-                else:
-                    updated_fields = update_fields(doc_obj, {"url_ds": doc["url_ds"], "id_nature_id": doc["id_nature"]})
-                    if updated_fields and updated_fields != ['url_ds']: # url_ds est recalculée à chaque fois, on evite de surcharger les logs
-                        doc_obj.save()
-                        logger.info(f"[SAVE] Document {doc_obj.id} ({doc_obj.id_nature.nature}) mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
-                msg_doc_obj, link_created = MessageDocument.objects.get_or_create(
-                    id_message_id=msg_obj.id,
-                    id_document_id=doc_obj.id
-                )
+                # Document trouvé avec même emplacement + même titre
+                else :
 
-                if link_created:
-                    logger.info(f"[CREATE] Lien MessageDocument créé (Message: {msg_obj.id}, Document: {doc_obj.id}).")
+                    # Si Nature du doc existant = PJ message
+                    if doc_meme_nom.id_nature.nature == nature_doc :
+                        doc_obj = doc_meme_nom
+
+                        updated_fields = update_fields(doc_obj, {"url_ds": doc["url_ds"], "id_nature_id": doc["id_nature"]})
+                        if updated_fields and updated_fields != ['url_ds']: # url_ds est recalculée à chaque fois, on evite de surcharger les logs
+                            doc_obj.save()
+                            logger.info(f"[SAVE] Document {doc_obj.id} ({doc_obj.id_nature.nature}) mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
+
+
+                    # Document trouvé mais nature différente => on tente __copie01, __copie02, etc.
+                    else:
+
+                        # J'aimerai regarder si un doc existe avec meme titre et suffixe __copie01, 
+                        # si oui on regarde si nature doc = "Pièce jointe message", si oui on update le doc, sinon on regarde __copie02 etc... j
+                        # usqu'à éventuellement arrivé sur un titre qui n'existe pas encore auquel cas on créé le Document et le MessageDocument
+
+                        path = Path(doc["titre"])
+                        base = path.stem
+                        extension = path.suffix
+
+                        # Au cas où le titre reçu serait déjà xxx__copie01.pdf
+                        base_sans_copie = re.sub(r"__copie\d{2}$", "", base)
+
+                        compteur = 1
+                        doc_obj = None
+
+                        while True:
+                            titre_copie = f"{base_sans_copie}__copie{compteur:02d}{extension}"
+
+                            doc_copie = (
+                                Document.objects
+                                .filter(
+                                    emplacement=doc["emplacement"],
+                                    titre=titre_copie,
+                                )
+                                .select_related("id_nature")
+                                .first()
+                            )
+
+                            # Aucun document avec ce titre copie => on crée
+                            if not doc_copie:
+                                doc_obj = Document.objects.create(
+                                    emplacement=doc["emplacement"],
+                                    titre=titre_copie,
+                                    id_format_id=doc["id_format"],
+                                    id_nature_id=doc["id_nature"],
+                                    url_ds=doc["url_ds"],
+                                    description=doc["description"],
+                                )
+
+                                write_pj(doc["emplacement"], titre_copie, doc["url_ds"])
+
+                                logger.warning(
+                                    f"[MESSAGE {msg_obj.id_ds}] Document renommé car même nom déjà utilisé "
+                                    f"par une autre nature : {doc['titre']} -> {titre_copie}"
+                                )
+
+                                break
+
+                            # Le __copieXX existe et c'est déjà une "Pièce jointe message" ou "Annexe instructeur" => on réutilise
+                            if doc_copie.id_nature.nature == nature_doc:
+                                doc_obj = doc_copie
+
+                                updated_fields = update_fields(doc_obj, {
+                                    "url_ds": doc["url_ds"],
+                                    "id_nature_id": doc["id_nature"],
+                                    "description": doc["description"],
+                                })
+
+                                if updated_fields:
+                                    doc_obj.save()
+                                    if updated_fields != ["url_ds"]:
+                                        logger.info(
+                                            f"[SAVE] Document {doc_obj.id} ({doc_obj.id_nature.nature}) mis à jour. "
+                                            f"Champs modifiés : {', '.join(updated_fields)}."
+                                        )
+                                break
+
+                            # Le __copieXX existe mais avec une autre nature => on teste le suivant
+                            compteur += 1
+
+
+                # Création du lien Message - Document pour les nouvelles PJ
+                if doc_obj:
+
+                    msg_doc_obj, link_created = MessageDocument.objects.get_or_create(
+                        id_message_id=msg_obj.id,
+                        id_document_id=doc_obj.id
+                    )
+
+                    if link_created:
+                        logger.info(
+                            f"[CREATE] Lien MessageDocument créé "
+                            f"(Message: {msg_obj.id}, Document: {doc_obj.id})."
+                        )
+
+                        
 
 
     #######################

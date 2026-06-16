@@ -113,7 +113,7 @@
             </div>
 
 
-            {% if est_expert and avis.favorable != None %}
+            {% if avis.favorable != None %}
                 {% if avis_signes %}
                     <div class="avis_signes">
                         {% for as in avis_signes %}
@@ -127,7 +127,7 @@
                                         <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon-avis-signe">
                                     </a>
                                     
-                                    {% if request.user|est_concerne_par_avis:avis %}
+                                    {% if est_expert or request.user.is_superuser %}
                                         <form id="form-remplacer-{{ avis.id }}-{{ as.id }}" 
                                             action="{% url 'remplacer_avis_signe' %}" 
                                             method="post" 
@@ -153,25 +153,27 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="deposer_mon_avis">
-                        <!-- Formulaire caché -->
-                        <form id="form-deposer-{{ avis.id }}"
-                            action="{% url 'deposer_avis_signe' %}"
-                            method="post"
-                            enctype="multipart/form-data"
-                            style="display:none;">
-                            {% csrf_token %}
-                            <input type="hidden" name="avis_id" value="{{ avis.id }}">
-                            <input type="file" name="fichier" accept=".pdf" onchange="confirmerDepotAvis(this)">
-                        </form>
+                    {% if est_expert or request.user.is_superuser %}
+                        <div class="deposer_mon_avis">
+                            <!-- Formulaire caché -->
+                            <form id="form-deposer-{{ avis.id }}"
+                                action="{% url 'deposer_avis_signe' %}"
+                                method="post"
+                                enctype="multipart/form-data"
+                                style="display:none;">
+                                {% csrf_token %}
+                                <input type="hidden" name="avis_id" value="{{ avis.id }}">
+                                <input type="file" name="fichier" accept=".pdf" onchange="confirmerDepotAvis(this)">
+                            </form>
 
-                        <!-- Bouton principal -->
-                        <button type="button"
-                                class="btn-deposer-avis"
-                                onclick="ouvrirDepotAvis('{{ avis.id }}')">
-                            Déposer mon avis signé
-                        </button>
-                    </div>
+                            <!-- Bouton principal -->
+                            <button type="button"
+                                    class="btn-deposer-avis"
+                                    onclick="ouvrirDepotAvis('{{ avis.id }}')">
+                                Déposer mon avis signé
+                            </button>
+                        </div>
+                    {% endif %}
                 {% endif %}
             {% endif %}
 

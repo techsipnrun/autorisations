@@ -72,3 +72,96 @@ def format_periode_evenement(date_debut, date_fin):
         return f"le {d1.strftime('%d/%m/%Y')}"
 
     return f"du {d1.strftime('%d/%m/%Y')} au {d2.strftime('%d/%m/%Y')}"
+
+
+
+
+DOCUMENTS = (
+    ".doc", ".docx",
+    ".odt", ".ott",
+    ".rtf",
+)
+
+TABLEURS = (
+    ".xls", ".xlsx",
+    ".ods", ".ots",
+    ".csv",
+)
+
+PRESENTATIONS = (
+    ".ppt", ".pptx",
+    ".odp", ".otp",
+)
+
+IMAGES = (
+    ".png", ".jpg", ".jpeg",
+    ".gif", ".bmp", ".tif", ".tiff",
+    ".svg", ".webp",
+)
+
+CARTO = (
+    ".kml", ".kmz",
+    ".gpx",
+    ".shp",
+    ".geojson",
+)
+
+CODE = (
+    ".xml",
+    ".json",
+    ".yaml", ".yml",
+)
+
+ARCHIVES = (
+    ".zip", ".rar", ".7z",
+    ".tar", ".gz",
+)
+
+
+@register.filter
+def file_icon(filename):
+    filename = filename.lower()
+
+    if filename.endswith(".pdf"):
+        return "logo_pdf.png"
+
+    elif filename.endswith(DOCUMENTS):
+        return "logo_word.png"
+
+    elif filename.endswith(TABLEURS):
+        return "excel.png"
+
+    elif filename.endswith(PRESENTATIONS):
+        return "powerpoint.png"
+
+    elif filename.endswith(IMAGES):
+        return "image.png"
+
+    elif filename.endswith(CARTO):
+        return "map.png"
+
+    elif filename.endswith(CODE):
+        return "code.png"
+
+    elif filename.endswith(ARCHIVES):
+        return "archive.png"
+
+    elif filename.endswith(".txt"):
+        return "text.png"
+
+    return "file.png"
+
+
+# @register.filter
+# def filesize_fr(value):
+#     if not value:
+#         return ""
+
+#     value = int(value)
+
+#     for unit in ["o", "Ko", "Mo", "Go"]:
+#         if value < 1024:
+#             return f"{value:.1f} {unit}" if unit != "o" else f"{value} {unit}"
+#         value /= 1024
+
+#     return f"{value:.1f} To"

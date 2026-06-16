@@ -56,9 +56,9 @@
     color: #006131;
 }
 
-.avis_signes a:hover::after {
+/* .avis_signes a:hover::after {
     width: 90%;
-}
+} */
 
 .doc-icon-avis-signe{
     height: 25px;

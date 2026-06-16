@@ -253,6 +253,27 @@ def rendre_avis(token, avis_id, reponse_avis, prescriptions=""):
 
     return {"success": True}
 
+# def rendre_avis_prod(token, avis_id, reponse_avis, prescriptions=""):
+#     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json",}
+#     url = RENDRE_AVIS_URL.format(avis_id)
+
+#     # 0-None, 1-favorable, 2-défavorable, 3-non concerné
+#     payload = {
+#         "favorable": reponse_avis,
+#         "prescriptions": prescriptions
+#     }
+
+#     response = SESSION.post(url, headers=headers, json=payload)
+#     _check_response(response, f"POST Rendre Avis {avis_id}")
+
+#     if response.content:
+#         try:
+#             return response.json()
+#         except Exception:
+#             return response.text
+
+#     return {"success": True}
+
 
 
 def get_file(token, media_path):

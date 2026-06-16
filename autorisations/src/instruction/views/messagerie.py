@@ -99,22 +99,50 @@ def preinstruction_dossier_messagerie(request, numero):
 
 
         # Recherche de la pièce jointe liée au message
-        pj = None
-        if msg.piece_jointe:
+        # pj = None
+        # if msg.piece_jointe:
 
-            message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
+        #     message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
 
-            if message_doc and message_doc.id_document:
-                pj = {
-                    "url": message_doc.id_document.url_ds,
-                    "titre": message_doc.id_document.titre,
-                    "emplacement": message_doc.id_document.emplacement,
-                }
+        #     if message_doc and message_doc.id_document:
+        #         pj = {
+        #             "url": message_doc.id_document.url_ds,
+        #             "titre": message_doc.id_document.titre,
+        #             "emplacement": message_doc.id_document.emplacement,
+        #         }
                 
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, 
-                            "pj_url": pj["url"] if pj else None, "pj_title": pj["titre"] if pj else None, "pj_emplacement": pj["emplacement"] if pj else None, 
-                            "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
+        # messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, 
+        #                     "pj_url": pj["url"] if pj else None, "pj_title": pj["titre"] if pj else None, "pj_emplacement": pj["emplacement"] if pj else None, 
+        #                     "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
+
+        pjs = []
+
+        if msg.piece_jointe:
+            message_docs = (
+                MessageDocument.objects
+                .filter(id_message=msg)
+                .select_related("id_document")
+            )
+
+            for message_doc in message_docs:
+                if message_doc.id_document:
+                    pjs.append({
+                        "url": message_doc.id_document.url_ds,
+                        "titre": message_doc.id_document.titre,
+                        "emplacement": message_doc.id_document.emplacement,
+                    })
+
+        messages_fmt.append({
+            "id": msg.id,
+            "body": msg.body,
+            "date_envoi": date_fmt,
+            "align": align,
+            "pjs": pjs,
+            "nouv_mess": "oui" if est_nouveau else "non",
+            "emetteur": emetteur_obj,
+        })
+
     
     # -----------------------------------
     # 4. Bénéficiaire & demandeur
@@ -129,6 +157,7 @@ def preinstruction_dossier_messagerie(request, numero):
             beneficiaire = benef.id_beneficiaire
         else:
             logger.warning(f"[DOSSIER {dossier.numero}] Affichage Pré-Instruction Messagerie : Bénéficaire non renseigné")
+
 
     return render(request, 'instruction/preinstruction_dossier_messagerie.html', {
         "dossier": dossier,
@@ -215,21 +244,51 @@ def instruction_dossier_messagerie(request, num_dossier):
 
         # Recherche de la pièce jointe liée au message
         pj = None
-        if msg.piece_jointe:
 
-            message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
+        # if msg.piece_jointe:
 
-            if message_doc and message_doc.id_document:
-                pj = {
-                    "url": message_doc.id_document.url_ds,
-                    "titre": message_doc.id_document.titre,
-                    "emplacement": message_doc.id_document.emplacement,
-                }
+        #     message_doc = MessageDocument.objects.filter(id_message=msg).select_related("id_document").first()
+
+        #     if message_doc and message_doc.id_document:
+        #         pj = {
+        #             "url": message_doc.id_document.url_ds,
+        #             "titre": message_doc.id_document.titre,
+        #             "emplacement": message_doc.id_document.emplacement,
+        #         }
                 
 
-        messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, 
-                            "pj_url": pj["url"] if pj else None, "pj_title": pj["titre"] if pj else None, "pj_emplacement": pj["emplacement"] if pj else None, 
-                            "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
+        # messages_fmt.append({"id": msg.id, "body": msg.body, "date_envoi": date_fmt, "align": align, 
+        #                     "pj_url": pj["url"] if pj else None, "pj_title": pj["titre"] if pj else None, "pj_emplacement": pj["emplacement"] if pj else None, 
+        #                     "nouv_mess": "oui" if est_nouveau else "non", "emetteur": emetteur_obj})
+
+        pjs = []
+
+        if msg.piece_jointe:
+            message_docs = (
+                MessageDocument.objects
+                .filter(id_message=msg)
+                .select_related("id_document")
+            )
+
+            for message_doc in message_docs:
+                if message_doc.id_document:
+                    pjs.append({
+                        "url": message_doc.id_document.url_ds,
+                        "titre": message_doc.id_document.titre,
+                        "emplacement": message_doc.id_document.emplacement,
+                    })
+
+        messages_fmt.append({
+            "id": msg.id,
+            "body": msg.body,
+            "date_envoi": date_fmt,
+            "align": align,
+            "pjs": pjs,
+            "nouv_mess": "oui" if est_nouveau else "non",
+            "emetteur": emetteur_obj,
+        })
+
+        
 
 
     # -----------------------------------

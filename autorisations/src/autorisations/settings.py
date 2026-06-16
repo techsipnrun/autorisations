@@ -72,6 +72,7 @@ TEMPLATES = [
                 'instruction.views.views.mes_dossiers_a_receptionner_count',
                 'instruction.views.views.mes_avis_action_a_faire',
                 'instruction.context_processors.breadcrumb_context',
+                'instruction.context_processors.dn_token_expiration',
             ],
         },
     },
@@ -338,6 +339,7 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 25))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL_DEMANDEUR = os.environ.get("DEFAULT_FROM_EMAIL_DEMANDEUR")
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 10))
 # EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 # EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")

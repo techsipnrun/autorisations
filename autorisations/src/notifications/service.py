@@ -83,6 +83,7 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
                 msg = EmailMultiAlternatives(
                     subject=item.sujet,
                     body=text,
+                    from_email=item.email_from or os.getenv("DEFAULT_FROM_EMAIL"),
                     to=item.to,
                     connection=conn,
                 )
@@ -149,10 +150,15 @@ def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, doss
 
     emails_norm = normalize_emails(emails_norm)
 
+    if template_name == "mail_en_copie":
+        email_from = os.getenv("DEFAULT_FROM_EMAIL_DEMANDEUR")
+    else :
+        email_from = os.getenv("DEFAULT_FROM_EMAIL")
+
     try:
         outbox = EmailOutbox.objects.create(
             to=emails_norm,
-            email_from=os.getenv("DEFAULT_FROM_EMAIL"),
+            email_from=email_from,
             sujet=sujet,
             type_mail=type_mail,
             # statut = "À envoyer" par défaut

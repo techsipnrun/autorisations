@@ -1,5 +1,8 @@
 from urllib.parse import unquote
 from autorisations.models.models_instruction import Dossier, Demarche, DossierManifSportive
+from datetime import datetime
+import os
+from django.utils import timezone
 
 
 def get_demarche_from_num_dossier(num_dossier):
@@ -175,3 +178,27 @@ def breadcrumb_context(request):
 
 
     return {"breadcrumb_items": items}
+
+
+
+def dn_token_expiration(request):
+
+    date_str = os.getenv("DN_DATE_EXPIRATION_TOKEN")
+
+    if not date_str:
+        return {}
+
+    try:
+        expiration = datetime.strptime(date_str, "%Y-%m-%d").date()
+        aujourd_hui = timezone.localdate()
+
+        jours_restants = (expiration - aujourd_hui).days
+
+        return {
+            "dn_token_expiration": expiration,
+            "dn_token_jours_restants": jours_restants,
+            "dn_token_expire_bientot": jours_restants <= 40,
+        }
+
+    except ValueError:
+        return {}

@@ -1,0 +1,10 @@
+{% if dn_token_expire_bientot %}
+    <div class="dn-token-warning">
+        ⚠️ Le token de l'API Démarche Numérique expire le
+        <strong>{{ dn_token_expiration|date:"d/m/Y" }}</strong>. <br>
+
+        Contactez un administrateur afin de renouveler ce token. <br>
+
+        Sans renouvellement, la communication entre AGIDA et Démarche Numérique ne fonctionnera plus à la date indiquée.
+    </div>
+{% endif %}

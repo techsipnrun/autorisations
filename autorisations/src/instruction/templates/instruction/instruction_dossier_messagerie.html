@@ -1,6 +1,7 @@
 {% load static %}
 {% load breadcrumb_tags %}
 {% load group_tags %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -61,14 +62,33 @@
                         <div class="msg-body">
                             <p>{{ msg.body|safe|linebreaksbr }}</p>
 
-                            {% if msg.pj_url %}
+                            {% if msg.pjs %}
                                 <div class="pj-download">
-                                    <!-- <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a> -->
-                                    <a href="{% url 'afficher_annexe' chemin=msg.pj_emplacement titre=msg.pj_title %}" target="_blank" rel="noopener noreferrer">{{ msg.pj_title }}</a>
-                                
+                                    <div class="pj-title">
+                                        📎 {{ msg.pjs|length }} pièce{{ msg.pjs|length|pluralize }} jointe{{ msg.pjs|length|pluralize }}
+                                    </div>
+
+                                    {% for pj in msg.pjs %}
+                                        <a class="pj-card"
+                                        href="{% url 'afficher_annexe' chemin=pj.emplacement titre=pj.titre %}"
+                                        target="_blank"
+                                        rel="noopener noreferrer">
+
+                                            <img src="{% static 'instruction/img/filetypes/' %}{{ pj.titre|file_icon }}"
+                                                class="file-icon"
+                                                alt="Type fichier">
+
+                                            <span class="pj-card-name">{{ pj.titre }}</span>
+                                            <img src="{% static 'instruction/img/download.png' %}"
+                                                class="download-icon"
+                                                alt="Télécharger"
+                                                title="Ouvrir le document">
+                                        </a>
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
+
                         <span class="timestamp">
                             <span class="emetteur_message">
                                 {% if msg.emetteur %}
