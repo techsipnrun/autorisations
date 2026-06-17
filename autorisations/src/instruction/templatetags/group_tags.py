@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 from autorisations.models.models_avis import DossierAvis
 
-from autorisations.models.models_instruction import DossierManifSportive
+from autorisations.models.models_instruction import Dossier, DossierManifSportive
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, Groupeinstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur
 from django.db.models import Q
 
@@ -47,6 +47,10 @@ def est_concerne_par_le_dossier(user, dossier):
     # 2 superuser → toujours concerné
     if user.is_superuser:
         return True
+
+    # Si on est sur un dossier DM
+    if not isinstance(dossier, Dossier):
+        return False
 
     # 3 recherche d’un Instructeur par email exact (champ email du modèle Instructeur)
     instructeur = Instructeur.objects.filter(email__iexact=user.email).first()
