@@ -224,6 +224,118 @@
   }
 },
 {
+  "model": "autorisations.demandetype",
+  "pk": 1,
+  "fields": {
+    "type": "Survol drone"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 2,
+  "fields": {
+    "type": "Prise de vue et de son"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 3,
+  "fields": {
+    "type": "Arêtes"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 4,
+  "fields": {
+    "type": "Travaux"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 5,
+  "fields": {
+    "type": "Missions scientifiques"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 6,
+  "fields": {
+    "type": "Activités agricoles"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 7,
+  "fields": {
+    "type": "Activités commerciales"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 8,
+  "fields": {
+    "type": "Manifestations publiques"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 9,
+  "fields": {
+    "type": "Survol hélicoptère"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 11,
+  "fields": {
+    "type": "Documents de planification et d'urbanisme"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 12,
+  "fields": {
+    "type": "Manifestations sportives"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 13,
+  "fields": {
+    "type": "Test"
+  }
+},
+{
+  "model": "autorisations.demandetype",
+  "pk": 14,
+  "fields": {
+    "type": "Man?uvres militaires"
+  }
+},
+{
+  "model": "autorisations.dossiertype",
+  "pk": 1,
+  "fields": {
+    "type": "nouveau"
+  }
+},
+{
+  "model": "autorisations.dossiertype",
+  "pk": 2,
+  "fields": {
+    "type": "renouvellement"
+  }
+},
+{
+  "model": "autorisations.dossiertype",
+  "pk": 3,
+  "fields": {
+    "type": "modification"
+  }
+},
+{
   "model": "autorisations.etatdemande",
   "pk": 4,
   "fields": {
@@ -280,34 +392,6 @@
   }
 },
 {
-  "model": "autorisations.etatdemarche",
-  "pk": 1,
-  "fields": {
-    "nom": "brouillon"
-  }
-},
-{
-  "model": "autorisations.etatdemarche",
-  "pk": 2,
-  "fields": {
-    "nom": "close"
-  }
-},
-{
-  "model": "autorisations.etatdemarche",
-  "pk": 3,
-  "fields": {
-    "nom": "depubliee"
-  }
-},
-{
-  "model": "autorisations.etatdemarche",
-  "pk": 4,
-  "fields": {
-    "nom": "publiee"
-  }
-},
-{
   "model": "autorisations.etatdossier",
   "pk": 4,
   "fields": {
@@ -343,38 +427,66 @@
   }
 },
 {
+  "model": "autorisations.etatdemarche",
+  "pk": 1,
+  "fields": {
+    "nom": "brouillon"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 2,
+  "fields": {
+    "nom": "close"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 3,
+  "fields": {
+    "nom": "depubliee"
+  }
+},
+{
+  "model": "autorisations.etatdemarche",
+  "pk": 4,
+  "fields": {
+    "nom": "publiee"
+  }
+},
+{
   "model": "autorisations.etapedossier",
   "pk": 1,
   "fields": {
-    "etape": "En attente de complÃ©ments"
+    "etape": "En attente de compléments"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 2,
   "fields": {
-    "etape": "En attente rÃ©ponse d'avis"
+    "etape": "En attente réponse d'avis"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 3,
   "fields": {
-    "etape": "Acte Ã  envoyer"
+    "etape": "Acte à envoyer"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 4,
   "fields": {
-    "etape": "Ã€ valider avant demande d'avis"
+    "etape": "À valider avant demande d'avis"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 5,
   "fields": {
-    "etape": "Ã€ publier au RAA"
+    "etape": "À publier au RAA"
   }
 },
 {
@@ -388,21 +500,21 @@
   "model": "autorisations.etapedossier",
   "pk": 7,
   "fields": {
-    "etape": "En relecture qualitÃ©"
+    "etape": "En relecture qualité"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 9,
   "fields": {
-    "etape": "En prÃ©-instruction"
+    "etape": "En pré-instruction"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 10,
   "fields": {
-    "etape": "Ã€ affecter"
+    "etape": "À affecter"
   }
 },
 {
@@ -416,49 +528,49 @@
   "model": "autorisations.etapedossier",
   "pk": 12,
   "fields": {
-    "etape": "AcceptÃ©"
+    "etape": "Accepté"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 13,
   "fields": {
-    "etape": "RefusÃ©"
+    "etape": "Refusé"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 14,
   "fields": {
-    "etape": "Non soumis Ã  autorisation"
+    "etape": "Non soumis à autorisation"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 15,
   "fields": {
-    "etape": "Ã€ valider avant signature"
+    "etape": "À valider avant signature"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 16,
   "fields": {
-    "etape": "Avis Ã  envoyer"
+    "etape": "Avis à envoyer"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 17,
   "fields": {
-    "etape": "En rÃ©ception"
+    "etape": "En réception"
   }
 },
 {
   "model": "autorisations.etapedossier",
   "pk": 18,
   "fields": {
-    "etape": "Non rÃ©pondu"
+    "etape": "Non répondu"
   }
 },
 {
@@ -490,115 +602,407 @@
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 1,
   "fields": {
-    "type": "Survol drone"
+    "action": "Affectation au groupe"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 2,
   "fields": {
-    "type": "Prise de vue et de son"
+    "action": "Repassage en instruction"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 3,
   "fields": {
-    "type": "ArÃªtes"
+    "action": "Passage en instruction"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 4,
   "fields": {
-    "type": "Travaux"
+    "action": "Relecture"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 5,
   "fields": {
-    "type": "Missions scientifiques"
+    "action": "Validé avant signature"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 6,
   "fields": {
-    "type": "ActivitÃ©s agricoles"
+    "action": "Relecture qualité"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 7,
   "fields": {
-    "type": "ActivitÃ©s commerciales"
+    "action": "Envoyé pour signature"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 8,
   "fields": {
-    "type": "Manifestations publiques"
+    "action": "Publié au RAA"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 9,
   "fields": {
-    "type": "Survol hÃ©licoptÃ¨re"
+    "action": "Validé avant demande d'avis"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
+  "pk": 10,
+  "fields": {
+    "action": "Acte envoyé"
+  }
+},
+{
+  "model": "autorisations.action",
   "pk": 11,
   "fields": {
-    "type": "Documents de planification et d'urbanisme"
+    "action": "Acte signé"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 12,
   "fields": {
-    "type": "Manifestations sportives"
+    "action": "Avis demandé"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 13,
   "fields": {
-    "type": "Test"
+    "action": "Avis reçu"
   }
 },
 {
-  "model": "autorisations.demandetype",
+  "model": "autorisations.action",
   "pk": 14,
   "fields": {
-    "type": "ManÅ“uvres militaires"
+    "action": "Demande de compléments"
   }
 },
 {
-  "model": "autorisations.dossiertype",
+  "model": "autorisations.action",
+  "pk": 15,
+  "fields": {
+    "action": "Classé comme accepté"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 16,
+  "fields": {
+    "action": "Classé comme refusé"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 17,
+  "fields": {
+    "action": "Classé sans suite"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 18,
+  "fields": {
+    "action": "Instructeur.e ajouté.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 19,
+  "fields": {
+    "action": "Instructeur.e retiré.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 20,
+  "fields": {
+    "action": "Dossier reçu"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 21,
+  "fields": {
+    "action": "Passage en pré-instruction"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 22,
+  "fields": {
+    "action": "Envoyé pour validation"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 23,
+  "fields": {
+    "action": "Envoyé pour relecture qualité"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 24,
+  "fields": {
+    "action": "Validant.e changé.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 25,
+  "fields": {
+    "action": "Relecteur.rice changé.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 26,
+  "fields": {
+    "action": "Prêt à la signature"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 27,
+  "fields": {
+    "action": "Intermédiaire signature changé.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 28,
+  "fields": {
+    "action": "Envoyeur.se d'acte changé.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 29,
+  "fields": {
+    "action": "Publieur.se RAA changé.e"
+  }
+},
+{
+  "model": "autorisations.action",
+  "pk": 31,
+  "fields": {
+    "action": "Dossier supprimé de Démarche Numérique"
+  }
+},
+{
+  "model": "autorisations.changementetape",
   "pk": 1,
   "fields": {
-    "type": "nouveau"
+    "action": "Passer en pré-instruction",
+    "code": "passer_en_pre_instruction"
   }
 },
 {
-  "model": "autorisations.dossiertype",
+  "model": "autorisations.changementetape",
   "pk": 2,
   "fields": {
-    "type": "renouvellement"
+    "action": "Demander des compléments",
+    "code": "demander_des_complements"
   }
 },
 {
-  "model": "autorisations.dossiertype",
+  "model": "autorisations.changementetape",
   "pk": 3,
   "fields": {
-    "type": "modification"
+    "action": "Passer en instruction",
+    "code": "passer_en_instruction"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 4,
+  "fields": {
+    "action": "Faire valider avant l'envoi d'une demande d'avis à une instance",
+    "code": "faire_valider_une_demande_d_avis"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 5,
+  "fields": {
+    "action": "Faire valider le projet d'acte",
+    "code": "faire_valider_le_projet_d_acte"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 6,
+  "fields": {
+    "action": "Repasser en instruction",
+    "code": "repasser_en_instruction"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 7,
+  "fields": {
+    "action": "Valider le modèle de demande d'avis et le projet d'acte",
+    "code": "valider_le_modele_de_demande_d_avis_et_le_projet_d_acte"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 8,
+  "fields": {
+    "action": "Valider et envoyer pour relecture qualité",
+    "code": "valider_et_envoyer_pour_relecture_qualite"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 9,
+  "fields": {
+    "action": "Prêt à la signature",
+    "code": "pret_a_la_signature"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 10,
+  "fields": {
+    "action": "Envoyer les modifications de l'acte pour validation",
+    "code": "envoyer_les_modifications_de_l_acte_pour_validation"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 11,
+  "fields": {
+    "action": "Acte inchangé, envoyer pour relecture qualité",
+    "code": "acte_inchange_envoyer_pour_relecture_qualite"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 12,
+  "fields": {
+    "action": "Avis envoyé",
+    "code": "avis_envoye"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 13,
+  "fields": {
+    "action": "Acte prêt à être envoyé",
+    "code": "acte_pret_a_etre_envoye"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 14,
+  "fields": {
+    "action": "Envoyer l'acte d'acceptation",
+    "code": "envoyer_l_acte"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 15,
+  "fields": {
+    "action": "Envoyer l'acte de refus",
+    "code": "envoyer_l_acte_de_refus"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 16,
+  "fields": {
+    "action": "Archiver le dossier comme refusé",
+    "code": "classer_le_dossier_comme_refuse"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 17,
+  "fields": {
+    "action": "Archiver le dossier comme accepté",
+    "code": "classer_le_dossier_comme_accepte"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 18,
+  "fields": {
+    "action": "Archiver le dossier comme non soumis à autorisation",
+    "code": "dossier_non_soumis_a_autorisation"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 19,
+  "fields": {
+    "action": "Raccourci SPPN - Acte prêt à la signature",
+    "code": "acte_pret_a_la_signature"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 20,
+  "fields": {
+    "action": "Déclaration Manifestations - Accepter",
+    "code": "declaration_manifestations_accepter"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 21,
+  "fields": {
+    "action": "Déclaration Manifestations - Refuser",
+    "code": "declaration_manifestations_refuser"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 22,
+  "fields": {
+    "action": "Déclaration Manifestations - Non Soumis",
+    "code": "declaration_manifestations_non_soumis"
+  }
+},
+{
+  "model": "autorisations.changementetape",
+  "pk": 23,
+  "fields": {
+    "action": "Déclaration Manifestations - Non répondu",
+    "code": "declaration_manifestations_non_repondu"
+  }
+},
+{
+  "model": "autorisations.synchronisationetat",
+  "pk": 1,
+  "fields": {
+    "en_cours": false,
+    "date_maj": null,
+    "date_derniere_tentative": null,
+    "dernier_statut": "inconnu"
   }
 },
 {
@@ -1081,7 +1485,7 @@
   "model": "autorisations.documentnature",
   "pk": 1,
   "fields": {
-    "nature": "PiÃ¨ce jointe demandeur"
+    "nature": "Pièce jointe demandeur"
   }
 },
 {
@@ -1095,14 +1499,14 @@
   "model": "autorisations.documentnature",
   "pk": 3,
   "fields": {
-    "nature": "ArrÃªtÃ© directeur"
+    "nature": "Arrêté directeur"
   }
 },
 {
   "model": "autorisations.documentnature",
   "pk": 4,
   "fields": {
-    "nature": "DÃ©liberation CA"
+    "nature": "Déliberation CA"
   }
 },
 {
@@ -1144,14 +1548,14 @@
   "model": "autorisations.documentnature",
   "pk": 10,
   "fields": {
-    "nature": "RÃ©sumÃ© dossier"
+    "nature": "Résumé dossier"
   }
 },
 {
   "model": "autorisations.documentnature",
   "pk": 11,
   "fields": {
-    "nature": "PiÃ¨ce jointe message"
+    "nature": "Pièce jointe message"
   }
 },
 {
@@ -1165,7 +1569,7 @@
   "model": "autorisations.documentnature",
   "pk": 13,
   "fields": {
-    "nature": "PiÃ¨ce jointe Ã  relire"
+    "nature": "Pièce jointe à relire"
   }
 },
 {
@@ -1197,10 +1601,52 @@
   }
 },
 {
+  "model": "autorisations.documentstatut",
+  "pk": 1,
+  "fields": {
+    "statut": "À valider"
+  }
+},
+{
+  "model": "autorisations.documentstatut",
+  "pk": 2,
+  "fields": {
+    "statut": "À relire"
+  }
+},
+{
+  "model": "autorisations.documentstatut",
+  "pk": 3,
+  "fields": {
+    "statut": "À signer"
+  }
+},
+{
+  "model": "autorisations.documentstatut",
+  "pk": 4,
+  "fields": {
+    "statut": "À envoyer"
+  }
+},
+{
+  "model": "autorisations.documentstatut",
+  "pk": 5,
+  "fields": {
+    "statut": "Envoyé"
+  }
+},
+{
+  "model": "autorisations.documentstatut",
+  "pk": 6,
+  "fields": {
+    "statut": "Validé avant demande d'avis"
+  }
+},
+{
   "model": "autorisations.avisnature",
   "pk": 2,
   "fields": {
-    "nature": "Demande Ã  une instance"
+    "nature": "Demande à une instance"
   }
 },
 {
@@ -1247,31 +1693,31 @@
   "pk": 7,
   "fields": {
     "thematique": "Culture",
-    "demarche": "ActivitÃ©s agricoles"
+    "demarche": "Activités agricoles"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 8,
   "fields": {
-    "thematique": "Ã‰levage",
-    "demarche": "ActivitÃ©s agricoles"
+    "thematique": "Élevage",
+    "demarche": "Activités agricoles"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 9,
   "fields": {
-    "thematique": "HÃ©bergement",
-    "demarche": "ActivitÃ©s commerciales"
+    "thematique": "Hébergement",
+    "demarche": "Activités commerciales"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 10,
   "fields": {
-    "thematique": "GÃ®tes",
-    "demarche": "ActivitÃ©s commerciales"
+    "thematique": "Gîtes",
+    "demarche": "Activités commerciales"
   }
 },
 {
@@ -1279,15 +1725,15 @@
   "pk": 11,
   "fields": {
     "thematique": "Camping",
-    "demarche": "ActivitÃ©s commerciales"
+    "demarche": "Activités commerciales"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 12,
   "fields": {
-    "thematique": "Chambre d'hÃ´tes",
-    "demarche": "ActivitÃ©s commerciales"
+    "thematique": "Chambre d'hôtes",
+    "demarche": "Activités commerciales"
   }
 },
 {
@@ -1295,15 +1741,15 @@
   "pk": 13,
   "fields": {
     "thematique": "Vente",
-    "demarche": "ActivitÃ©s commerciales"
+    "demarche": "Activités commerciales"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 14,
   "fields": {
-    "thematique": "Commerce de proximitÃ©",
-    "demarche": "ActivitÃ©s commerciales"
+    "thematique": "Commerce de proximité",
+    "demarche": "Activités commerciales"
   }
 },
 {
@@ -1311,7 +1757,7 @@
   "pk": 15,
   "fields": {
     "thematique": "Artisanat",
-    "demarche": "ActivitÃ©s commerciales"
+    "demarche": "Activités commerciales"
   }
 },
 {
@@ -1319,7 +1765,7 @@
   "pk": 16,
   "fields": {
     "thematique": "Prestation de service touristique",
-    "demarche": "ActivitÃ©s commerciales"
+    "demarche": "Activités commerciales"
   }
 },
 {
@@ -1327,23 +1773,23 @@
   "pk": 17,
   "fields": {
     "thematique": "Restauration",
-    "demarche": "ActivitÃ©s commerciales"
+    "demarche": "Activités commerciales"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 18,
   "fields": {
-    "thematique": "Table dâ€™hÃ´tes",
-    "demarche": "ActivitÃ©s commerciales"
+    "thematique": "Table d'hôtes",
+    "demarche": "Activités commerciales"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 19,
   "fields": {
-    "thematique": "Restauration lÃ©gÃ¨re",
-    "demarche": "ActivitÃ©s commerciales"
+    "thematique": "Restauration légère",
+    "demarche": "Activités commerciales"
   }
 },
 {
@@ -1358,7 +1804,7 @@
   "model": "autorisations.avisthematique",
   "pk": 21,
   "fields": {
-    "thematique": "AmÃ©nagement forestier",
+    "thematique": "Aménagement forestier",
     "demarche": "Documents de planification et d'urbanisme"
   }
 },
@@ -1366,7 +1812,7 @@
   "model": "autorisations.avisthematique",
   "pk": 22,
   "fields": {
-    "thematique": "ArchÃ©ologie",
+    "thematique": "Archéologie",
     "demarche": "Mission scientifique"
   }
 },
@@ -1374,7 +1820,7 @@
   "model": "autorisations.avisthematique",
   "pk": 23,
   "fields": {
-    "thematique": "GÃ©ologie",
+    "thematique": "Géologie",
     "demarche": "Mission scientifique"
   }
 },
@@ -1390,7 +1836,7 @@
   "model": "autorisations.avisthematique",
   "pk": 25,
   "fields": {
-    "thematique": "ExpÃ©dition scientifique",
+    "thematique": "Expédition scientifique",
     "demarche": "Mission scientifique"
   }
 },
@@ -1398,7 +1844,7 @@
   "model": "autorisations.avisthematique",
   "pk": 26,
   "fields": {
-    "thematique": "Construction et rÃ©habilitation de bÃ¢timents",
+    "thematique": "Construction et réhabilitation de bâtiments",
     "demarche": "Travaux"
   }
 },
@@ -1406,7 +1852,7 @@
   "model": "autorisations.avisthematique",
   "pk": 27,
   "fields": {
-    "thematique": "AmÃ©nagement de sentiers",
+    "thematique": "Aménagement de sentiers",
     "demarche": "Travaux"
   }
 },
@@ -1414,7 +1860,7 @@
   "model": "autorisations.avisthematique",
   "pk": 28,
   "fields": {
-    "thematique": "Confortement et sÃ©curisation de voiries",
+    "thematique": "Confortement et sécurisation de voiries",
     "demarche": "Travaux"
   }
 },
@@ -1430,7 +1876,7 @@
   "model": "autorisations.avisthematique",
   "pk": 30,
   "fields": {
-    "thematique": "Aire dâ€™accueil du public",
+    "thematique": "Aire d'accueil du public",
     "demarche": "Travaux"
   }
 },
@@ -1438,7 +1884,7 @@
   "model": "autorisations.avisthematique",
   "pk": 31,
   "fields": {
-    "thematique": "Equipements Ã©nergÃ©tiques",
+    "thematique": "Equipements énergétiques",
     "demarche": "Travaux"
   }
 },
@@ -1462,7 +1908,7 @@
   "model": "autorisations.avisthematique",
   "pk": 34,
   "fields": {
-    "thematique": "Ã‰quipements de surveillance, de mesures et de suivi",
+    "thematique": "Équipements de surveillance, de mesures et de suivi",
     "demarche": "Travaux"
   }
 },
@@ -1470,7 +1916,7 @@
   "model": "autorisations.avisthematique",
   "pk": 35,
   "fields": {
-    "thematique": "Travaux prÃ©paratoires",
+    "thematique": "Travaux préparatoires",
     "demarche": "Travaux"
   }
 },
@@ -1486,16 +1932,16 @@
   "model": "autorisations.avisthematique",
   "pk": 37,
   "fields": {
-    "thematique": "Survol hÃ©licoptÃ¨re",
-    "demarche": "Survol hÃ©licoptÃ¨re"
+    "thematique": "Survol hélicoptère",
+    "demarche": "Survol hélicoptère"
   }
 },
 {
   "model": "autorisations.avisthematique",
   "pk": 38,
   "fields": {
-    "thematique": "Courses d'arÃªtes",
-    "demarche": "Courses d'arÃªtes"
+    "thematique": "Courses d'arêtes",
+    "demarche": "Courses d'arêtes"
   }
 },
 {
@@ -1526,14 +1972,14 @@
   "model": "autorisations.typecontactexterne",
   "pk": 1,
   "fields": {
-    "type": "BÃ©nÃ©ficiaire"
+    "type": "Bénéficiaire"
   }
 },
 {
   "model": "autorisations.typecontactexterne",
   "pk": 2,
   "fields": {
-    "type": "Demandeur intermÃ©diaire"
+    "type": "Demandeur intermédiaire"
   }
 },
 {
@@ -1548,13 +1994,6 @@
   "pk": 7,
   "fields": {
     "type": "Autre"
-  }
-},
-{
-  "model": "autorisations.typecontactexterne",
-  "pk": 10,
-  "fields": {
-    "type": "autre"
   }
 }
 ]

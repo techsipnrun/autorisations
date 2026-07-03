@@ -26,6 +26,7 @@ class AvisAdmin(admin.ModelAdmin):
         'thematique',
         'nom_dossier',
         'avis_favorable',
+        'publie_au_raa_affichage',
         'expert_nom_prenom',
         'instructeur_nom_prenom',
     )
@@ -71,6 +72,11 @@ class AvisAdmin(admin.ModelAdmin):
         agent = obj.id_instructeur.id_agent_autorisations if obj.id_instructeur else None
         return f"{agent.nom} {agent.prenom}" if agent else "-"
     instructeur_nom_prenom.short_description = "Instructeur"
+
+    def publie_au_raa_affichage(self, obj):
+        return "Oui" if obj.publie_au_raa else "Non"
+    publie_au_raa_affichage.short_description = "Publié au RAA"
+    publie_au_raa_affichage.admin_order_field = "publie_au_raa"
 
 
 admin.site.register(AvisNature)
@@ -474,7 +480,12 @@ class DemandeAdmin(admin.ModelAdmin):
 
 
 
-admin.site.register(Demarche)
+# admin.site.register(Demarche)
+@admin.register(Demarche)
+class DemarcheAdmin(admin.ModelAdmin):
+    list_display = ('type', 'numero', 'service', 'delais_jours_instruction')
+    search_fields = ['type']
+    list_per_page = 20
 
 
 admin.site.register(ChampType)

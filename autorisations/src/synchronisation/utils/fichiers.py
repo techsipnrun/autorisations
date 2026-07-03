@@ -4,6 +4,7 @@ import os
 import re
 from typing import Optional
 import unicodedata
+from requests.exceptions import ChunkedEncodingError
 import smbclient
 from smbprotocol import exceptions as smb_exceptions
 from pathlib import Path
@@ -11,7 +12,7 @@ from pathlib import Path
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from autorisations.utils.nas_fonctions import creer_dossier_sur_nas, donner_droits_ecriture_groupe, ecrire_file_sur_nas
+from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, donner_droits_ecriture_groupe, ecrire_file_sur_nas
 from instruction.utils.document_utils import normaliser_emplacement
 from synchronisation.utils.conversion import formater_nom_personne_morale, parse_datetime_with_tz
 
@@ -69,8 +70,8 @@ def write_resume_pdf(emplacement, name, url_du_pdf):
     if not nas_root:
         loggerApp.error("[NAS] ❌ Variable d'environnement NAS_ROOT non définie.")
         return None
-    chemin_fichier = ensure_dossier_root(emplacement)
-    chemin_complet = os.path.join(chemin_fichier, name)
+    chemin_fichier = _normalize_unc_path(ensure_dossier_root(emplacement))
+    chemin_complet = _normalize_unc_path(os.path.join(chemin_fichier, name))
 
     try:
         # --- Téléchargement du PDF ---
@@ -110,8 +111,8 @@ def write_geojson(emplacement, nom_geojson, contenu_geojson):
 
     
     chemin_rel_pour_log = normaliser_emplacement(os.path.join(emplacement, nom_geojson))
-    chemin_fichier = ensure_dossier_root(emplacement)
-    chemin_complet = os.path.join(chemin_fichier, nom_geojson)
+    chemin_fichier = _normalize_unc_path(ensure_dossier_root(emplacement))
+    chemin_complet = _normalize_unc_path(os.path.join(chemin_fichier, nom_geojson))
 
     try:
         # with open(chemin_complet, "w", encoding="utf-8") as f:
@@ -138,10 +139,10 @@ def write_pj(emplacement, name, url_pj, ecrase = False):
     Returns:
         Optional[str]: Chemin absolu du fichier enregistré, ou None si le fichier existe déjà ou en cas d’erreur.
     """
-    chemin_dossier = ensure_dossier_root(emplacement)
+    chemin_dossier = _normalize_unc_path(ensure_dossier_root(emplacement))
 
     safe_name = os.path.basename(name)
-    chemin_fichier = os.path.join(chemin_dossier, safe_name)
+    chemin_fichier = _normalize_unc_path(os.path.join(chemin_dossier, safe_name))
 
     # chemin_final = get_nom_disponible(chemin_dossier, safe_name)
     # loggerApp.info(f"chemin_fichier : {chemin_fichier}")
@@ -202,80 +203,209 @@ def write_pj_volumineuse(emplacement, name, url_pj, ecrase=False):
         - En cas d’échec, un nettoyage automatique du fichier partiel est tenté.
 
     """
-    chemin_dossier = ensure_dossier_root(emplacement)
+    chemin_dossier = _normalize_unc_path(ensure_dossier_root(emplacement))
     safe_name = os.path.basename(name)
-    chemin_fichier = os.path.join(chemin_dossier, safe_name)
+    chemin_fichier = _normalize_unc_path(os.path.join(chemin_dossier, safe_name))
 
-    try:
-        if smbclient.path.exists(chemin_fichier) and not ecrase:
-            loggerApp.error(f"[FICHIER EXISTANT] {chemin_fichier} existe déjà.")
-            return None
+    max_retries = 3
 
+    for tentative in range(1, max_retries + 1):
+        bytes_written = 0
+        total_size = None
+        total_mo = None
         start_time = time.time()
 
-        with requests.get(url_pj, stream=True, timeout=(10, 400)) as response:
-            response.raise_for_status()
+        try:
+            if smbclient.path.exists(chemin_fichier) and not ecrase:
+                loggerApp.error(f"[FICHIER EXISTANT] {chemin_fichier} existe déjà.")
+                return None
 
-            # Taille totale (si connue)
-            total_size = response.headers.get("Content-Length")
-            total_size = int(total_size) if total_size and total_size.isdigit() else None
+            # start_time = time.time()
 
-            if total_size:
-                total_mo = round(total_size / (1024 * 1024), 2)
-                if total_mo and total_mo > 20:
-                    loggerApp.info(f"[PJ DOWNLOAD] Début téléchargement '{name}' ({total_mo} Mo)")
-            else:
-                loggerApp.info(f"[PJ DOWNLOAD] Début téléchargement '{name}' (taille inconnue)")
+            with requests.get(url_pj, stream=True, timeout=(10, 400)) as response:
+                response.raise_for_status()
 
-            bytes_written = 0
-            last_log_percent = 0
+                # Taille totale (si connue)
+                total_size = response.headers.get("Content-Length")
+                total_size = int(total_size) if total_size and total_size.isdigit() else None
+                
+                if total_size:
+                    total_mo = round(total_size / (1024 * 1024), 2)
+                    if total_mo and total_mo > 10:
+                        loggerApp.info(f"[PJ DOWNLOAD] Tentative {tentative}/{max_retries} - Début téléchargement '{name}' ({total_mo} Mo)")
+                else:
+                    loggerApp.info(f"[PJ DOWNLOAD] Début téléchargement '{name}' (taille inconnue)")
 
-            with smbclient.open_file(chemin_fichier, mode="wb") as dst:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1 Mo
-                    if chunk:
-                        dst.write(chunk)
-                        bytes_written += len(chunk)
+                bytes_written = 0
+                last_log_percent = 0
 
-                        # --- LOG PROGRESSION POUR LES FICHIERS LOURDS ---
-                        if total_mo > 20 and total_size :
-                            percent = int((bytes_written / total_size) * 100)
+                with smbclient.open_file(chemin_fichier, mode="wb") as dst:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1 Mo
+                        if chunk:
+                            dst.write(chunk)
+                            bytes_written += len(chunk)
 
-                            # log tous les 20%
-                            if percent >= last_log_percent + 20:
-                                loggerApp.info(
-                                    f"[PJ DOWNLOAD] {name} : {percent}% ({round(bytes_written / (1024*1024), 2)} Mo)"
-                                )
-                                last_log_percent = percent
-                        # else:
-                        #     # si taille inconnue → log tous les 5 Mo
-                        #     if bytes_written % (5 * 1024 * 1024) < 1024 * 1024:
-                        #         loggerApp.info(
-                        #             f"[PJ DOWNLOAD] {name} : {round(bytes_written / (1024*1024), 2)} Mo écrits"
-                        #         )
+                            # --- LOG PROGRESSION POUR LES FICHIERS LOURDS ---
+                            if total_size and total_mo and total_mo > 10 :
+                                percent = int((bytes_written / total_size) * 100)
 
-        duration = round(time.time() - start_time, 2)
-        size_mo = round(bytes_written / (1024 * 1024), 2)
+                                # log tous les 20%
+                                if percent >= last_log_percent + 20:
+                                    loggerApp.info(
+                                        f"[PJ DOWNLOAD] {name} : {percent}% ({round(bytes_written / (1024*1024), 2)} Mo)"
+                                    )
+                                    last_log_percent = percent
+                            # else:
+                            #     # si taille inconnue → log tous les 5 Mo
+                            #     if bytes_written % (5 * 1024 * 1024) < 1024 * 1024:
+                            #         loggerApp.info(
+                            #             f"[PJ DOWNLOAD] {name} : {round(bytes_written / (1024*1024), 2)} Mo écrits"
+                            #         )   
+            
+            if total_size and bytes_written != total_size:
+                raise ValueError(f"Téléchargement incomplet : {bytes_written} octets écrits / {total_size} attendus")
+            
+            duration = round(time.time() - start_time, 2)
+            size_mo = round(bytes_written / (1024 * 1024), 2)
 
-        loggerApp.info(f"[PJ OK] {name} téléchargé ({size_mo} Mo) en {duration}s → {chemin_fichier}")
+            loggerApp.info(f"[PJ OK] {name} téléchargé ({size_mo} Mo) en {duration}s → {chemin_fichier}")
 
-        return chemin_fichier
+            return chemin_fichier
 
-    except requests.exceptions.RequestException as e:
-        loggerORM.error(f"[HTTP ERROR] {name} : {e}")
+        except requests.exceptions.RequestException as e:
+                if "IncompleteRead" in str(e):
+                    loggerORM.warning(
+                        f"[HTTP INCOMPLETE READ] Tentative {tentative}/{max_retries} pour '{name}' : téléchargement interrompu avant la fin. "
+                        f"URL={url_pj} - {e}")
+                else:
+                    loggerORM.warning(f"[HTTP ERROR] Tentative {tentative}/{max_retries} pour '{name}' : URL={url_pj} - {e}")
 
-    except Exception as e:
-        loggerORM.error(f"[ECRITURE PJ] {name} : {e}")
+        except ValueError as e:
+            loggerORM.warning(f"[HTTP INCOMPLETE READ] Tentative {tentative}/{max_retries} pour '{name}' : {e}")
 
-    # nettoyage fichier partiel
-    try:
-        if smbclient.path.exists(chemin_fichier):
-            smbclient.remove(chemin_fichier)
-            loggerApp.warning(f"[CLEANUP] Fichier partiel supprimé : {chemin_fichier}")
-    except Exception:
-        pass
+        except Exception as e:
+            loggerORM.warning(f"[ECRITURE PJ] Tentative {tentative}/{max_retries} pour '{name}' : {e}")
+
+        # Nettoyage du fichier partiel après échec
+        try:
+            if smbclient.path.exists(chemin_fichier):
+                smbclient.remove(chemin_fichier)
+                loggerApp.warning(f"[CLEANUP] Fichier partiel supprimé : {chemin_fichier}")
+        except Exception as cleanup_error:
+            loggerORM.warning(f"[CLEANUP ERROR] {name} : {cleanup_error}")
+
+        # Retry ou échec final
+        if tentative < max_retries:
+            attente = 2 ** tentative
+            loggerApp.info(f"[RETRY] Nouvelle tentative dans {attente}s ({tentative + 1}/{max_retries}) pour '{name}'.")
+            time.sleep(attente)
+        else:
+            loggerORM.error(f"[ECHEC DEFINITIF] Impossible de télécharger '{name}' après {max_retries} tentatives. URL={url_pj}")
+            return None
 
     return None
 
+# from requests.exceptions import RequestException, ChunkedEncodingError, ConnectionError
+
+# def write_pj_volumineuse(emplacement, name, url_pj, ecrase=False, max_retries=3):
+#     chemin_dossier = ensure_dossier_root(emplacement)
+#     safe_name = os.path.basename(name)
+#     chemin_fichier = os.path.join(chemin_dossier, safe_name)
+
+#     for tentative in range(1, max_retries + 1):
+#         bytes_written = 0
+#         total_mo = None
+
+#         try:
+#             if smbclient.path.exists(chemin_fichier) and not ecrase:
+#                 loggerApp.error(f"[FICHIER EXISTANT] {chemin_fichier} existe déjà.")
+#                 return None
+
+#             start_time = time.time()
+
+#             with requests.get(url_pj, stream=True, timeout=(10, 400)) as response:
+#                 response.raise_for_status()
+
+#                 total_size = response.headers.get("Content-Length")
+#                 total_size = int(total_size) if total_size and total_size.isdigit() else None
+
+#                 if total_size:
+#                     total_mo = round(total_size / (1024 * 1024), 2)
+#                     loggerApp.info(
+#                         f"[PJ DOWNLOAD] Tentative {tentative}/{max_retries} - "
+#                         f"Début téléchargement '{name}' ({total_mo} Mo)"
+#                     )
+#                 else:
+#                     loggerApp.info(
+#                         f"[PJ DOWNLOAD] Tentative {tentative}/{max_retries} - "
+#                         f"Début téléchargement '{name}' (taille inconnue)"
+#                     )
+
+#                 last_log_percent = 0
+
+#                 with smbclient.open_file(chemin_fichier, mode="wb") as dst:
+#                     for chunk in response.iter_content(chunk_size=1024 * 1024):
+#                         if chunk:
+#                             dst.write(chunk)
+#                             bytes_written += len(chunk)
+
+#                             if total_size and total_mo and total_mo > 20:
+#                                 percent = int((bytes_written / total_size) * 100)
+#                                 if percent >= last_log_percent + 20:
+#                                     loggerApp.info(
+#                                         f"[PJ DOWNLOAD] {name} : {percent}% "
+#                                         f"({round(bytes_written / (1024 * 1024), 2)} Mo)"
+#                                     )
+#                                     last_log_percent = percent
+
+#             if total_size and bytes_written != total_size:
+#                 raise IOError(
+#                     f"Taille téléchargée incomplète : {bytes_written} octets écrits "
+#                     f"/ {total_size} attendus"
+#                 )
+
+#             duration = round(time.time() - start_time, 2)
+#             size_mo = round(bytes_written / (1024 * 1024), 2)
+
+#             loggerApp.info(
+#                 f"[PJ OK] {name} téléchargé ({size_mo} Mo) en {duration}s → {chemin_fichier}"
+#             )
+
+#             return chemin_fichier
+
+#         except (RequestException, ChunkedEncodingError, ConnectionError, IOError) as e:
+#             loggerORM.warning(
+#                 f"[PJ RETRY] Tentative {tentative}/{max_retries} échouée pour {name} : {e}"
+#             )
+
+#             try:
+#                 if smbclient.path.exists(chemin_fichier):
+#                     smbclient.remove(chemin_fichier)
+#                     loggerApp.warning(f"[CLEANUP] Fichier partiel supprimé : {chemin_fichier}")
+#             except Exception as cleanup_error:
+#                 loggerORM.warning(f"[CLEANUP ERROR] {name} : {cleanup_error}")
+
+#             if tentative == max_retries:
+#                 loggerORM.error(
+#                     f"[PJ ECHEC] {name} non téléchargé après {max_retries} tentatives."
+#                 )
+#                 return None
+
+#             time.sleep(5 * tentative)
+
+#         except Exception as e:
+#             loggerORM.exception(f"[ECRITURE PJ] {name} : {e}")
+
+#             try:
+#                 if smbclient.path.exists(chemin_fichier):
+#                     smbclient.remove(chemin_fichier)
+#                     loggerApp.warning(f"[CLEANUP] Fichier partiel supprimé : {chemin_fichier}")
+#             except Exception:
+#                 pass
+
+#             return None
+
+#     return None
 
 
 
@@ -305,7 +435,7 @@ def create_emplacement(emplacement_dossier):
     Returns:
         bool: True si les dossiers ont été créés ou existent déjà, False en cas d’erreur.
     """
-    chemin_complet = ensure_dossier_root(emplacement_dossier)
+    chemin_complet = _normalize_unc_path(ensure_dossier_root(emplacement_dossier))
 
     try:
 
@@ -346,7 +476,7 @@ def create_emplacement_manif_sportive(emplacement_dossier):
     Returns:
         bool: True si les dossiers ont été créés ou existent déjà, False en cas d’erreur.
     """
-    chemin_complet = ensure_dossier_root(emplacement_dossier)
+    chemin_complet = _normalize_unc_path(ensure_dossier_root(emplacement_dossier))
 
     try:
 

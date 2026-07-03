@@ -116,8 +116,8 @@ def recup_avis_et_dossiers():
     # FILTRE : Les demandes datant de moins d'un an
     ##############################################
 
-    numeros_dossiers_a_exclure = [88594, 87044, 114082, 101156, 107139, 118148, 117715, 113846, 121088, 122154]
-    # 105963
+    numeros_dossiers_a_exclure = [88594, 87044, 114082, 107139, 118148, 117715, 113846, 121088, 122154]
+    # 105963, 101156
     avis_filtres = [
         avis for avis in avis_list
         if (
