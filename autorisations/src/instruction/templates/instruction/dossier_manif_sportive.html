@@ -148,8 +148,17 @@
             <div class="champs"><p><strong>Structure</strong> : {{ doss_manif_sportive.structure|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"Non renseigné" }}</p></div>
             <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"Non renseigné" }}</p></div>
-            <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div>
-            
+            <!-- <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div> -->
+            <div class="champs">
+                <p>
+                    <strong>E-mail de la structure</strong> :
+                    {% if doss_manif_sportive.email_structure %}
+                        {{ doss_manif_sportive.email_structure }}
+                    {% else %}
+                        <span class="non-renseigne">Non renseigné</span>
+                    {% endif %}
+                </p>
+            </div>
             {% if doss_manif_sportive.technique_nom != None or doss_manif_sportive.technique_prenom != None or doss_manif_sportive.technique_tel != None or doss_manif_sportive.technique_email != None %}
                 <h2>Organisateur.trice technique</h2>
                 <div class="champs"><p><strong>Nom</strong> : {{ doss_manif_sportive.technique_nom|default:"---" }}</p></div>

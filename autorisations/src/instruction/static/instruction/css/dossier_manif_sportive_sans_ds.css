@@ -670,6 +670,23 @@
     color: #222;
 }
 
+.non-renseigne {
+    color: red;
+    font-weight: bold;
+}
+
+/* Bouton Relance Mail Disable */
+.btn-relance-demandeur:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #ccc;
+    color: #666;
+}
+
+.btn-relance-demandeur:disabled:hover {
+    transform: none;
+}
+
 .destinataires-relance-box {
     display: flex;
     flex-direction: column;

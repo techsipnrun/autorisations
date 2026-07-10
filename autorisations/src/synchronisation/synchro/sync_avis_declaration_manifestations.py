@@ -111,7 +111,7 @@ def sync_avis_declaration_manifestations(avis, logger):
                 nb_relances = get_nb_relances(dossier)
 
                 # Calcul coeur de parc se fait à la synchro en théorie : Si 0 relances 
-                if nb_relances == 0 and dossier.date_debut_evenement and dossier.date_debut_evenement.date() > timezone.localdate() :
+                if nb_relances == 0 and dossier.date_debut_evenement and dossier.date_debut_evenement.date() > timezone.localdate() and dossier.email_structure :
 
                     if not envoi_auto_mail_relance(dossier) :
                         logger.warning(f"[SYNCHRO AVIS {obj.id_avis_manif_sportive}] Echec de l'envoi du mail de relance automatique "

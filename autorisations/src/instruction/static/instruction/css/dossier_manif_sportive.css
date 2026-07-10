@@ -1,3 +1,8 @@
 #deposer_pj_dm {
     margin-top: 1rem;
 }
+
+.non-renseigne {
+    color: red;
+    font-weight: bold;
+}

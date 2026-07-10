@@ -161,11 +161,12 @@ def preinstruction(request):
 
             # Calcul coeur de parc se fait à la synchro en théorie : Si 0 relances 
             if nb_relances == 0 :
-                if not envoi_auto_mail_relance(dm) :
-                    messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
-                                              f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
-                else :
-                    nb_relances +=1
+                if dm.email_structure :    
+                    if not envoi_auto_mail_relance(dm) :
+                        messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
+                                                f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
+                    else :
+                        nb_relances +=1
 
             dm.nb_relances = nb_relances
             

@@ -478,6 +478,9 @@ def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
     
     """
     try :
+        logger.info(dossier_dm.email_structure)
+        logger.warning(dossier_dm.email_structure)
+        
         numero_dossier_dm = None
         nom_manif = dossier_dm.nom_dossier
         LIEN_FORM_MANIF_SPORTIVE = os.getenv('LIEN_FORM_MANIF_SPORTIVE')
@@ -490,8 +493,15 @@ def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
             return False
 
         if NOTIFS_PROD :
+            if not dossier_dm.email_structure :
+                logger.info(f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Aucun email de structure renseigné. Pas d'envoi de mail de relance.")
+                return False
             emails_norm = [dossier_dm.email_structure]
         else :
+            
+            if not dossier_dm.email_structure :
+                logger.info(f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Aucun email de structure renseigné. Pas d'envoi de mail de relance.")
+                return False
             emails_norm = [EMAIL_NOTIF_TEST]
 
         sujet = f"{nom_manif} : formulaire du Parc national de La Réunion à compléter"

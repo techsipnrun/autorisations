@@ -542,7 +542,17 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Structure</strong> : {{ doss_manif_sportive.structure|default:"---" }}</p></div>
             <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"---" }}</p></div>
             <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"---" }}</p></div>
-            <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"---" }}</p></div>
+            <!-- <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div> -->
+            <div class="champs">
+                <p>
+                    <strong>E-mail de la structure</strong> :
+                    {% if doss_manif_sportive.email_structure %}
+                        {{ doss_manif_sportive.email_structure }}
+                    {% else %}
+                        <span class="non-renseigne">Non renseigné</span>
+                    {% endif %}
+                </p>
+            </div>
             
             {% if doss_manif_sportive.technique_nom != None or doss_manif_sportive.technique_prenom != None or doss_manif_sportive.technique_tel != None or doss_manif_sportive.technique_email != None %}
                 <h2>Organisateur.trice technique</h2>
@@ -761,10 +771,21 @@ Le Parc national de La Réunion</textarea>
                 -->
                 {% if not doss_manif_sportive.archive %}
                     <div class="relance-actions">
-                        <button type="button" class="btn-relance-demandeur" onclick="afficherFormulaireRelanceDemandeur()">
+                        <!-- <button type="button" class="btn-relance-demandeur" onclick="afficherFormulaireRelanceDemandeur()">
                             Relancer l’organisateur·rice
-                        </button>
-                    
+                        </button> -->
+                        <span {% if not doss_manif_sportive.email_structure %}
+                                 title="Impossible de relancer l'organisateur : aucune adresse e-mail n'est renseignée."
+                              {% endif %}>
+                            <button
+                                type="button"
+                                class="btn-relance-demandeur"
+                                onclick="afficherFormulaireRelanceDemandeur()"
+                                {% if not doss_manif_sportive.email_structure %}disabled{% endif %}>
+                                Relancer l’organisateur·rice
+                            </button>
+                        </span>
+                                                    
 
                         <div id="formulaire-relance-demandeur" class="zone-complement zone-relance-demandeur">
 
