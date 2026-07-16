@@ -488,6 +488,12 @@ class DossierManifestationLiaison(models.Model):
         db_table = '"instruction"."dossier_manifestation_liaison"'
         managed = False
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Dossier.objects.filter(pk=self.id_dossier_id).update(
+            nom_dossier_plus_parlant=self.id_dossier_manif.nom_dossier
+        )
+
     def __str__(self):
         return f"Lien {self.id_dossier} ↔ {self.id_dossier_manif}"
 

@@ -23,11 +23,9 @@
                 </span>
             {% endif %}
 
-            : {{ doc.titre }}
+            :
         </span>
 
-        <img class="doc-copy-icon"
-             src="{% static 'instruction/img/download.png' %}"
-             alt="Télécharger">
+        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=doc.emplacement fichier_titre=doc.titre %}
     </div>
 </li>

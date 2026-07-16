@@ -408,10 +408,19 @@ def preinstruction_dossier(request, numero):
     docs_DM = {}
     # pjs_demandeur_DM = None
     liaison = None
+    date_evenement_passee = False
+    date_evenement_dans_moins_un_mois = False
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
+            today = timezone.localdate()
+            if doss_manif_sportive.date_debut_evenement:
+                date_evenement = doss_manif_sportive.date_debut_evenement.date()
+                date_evenement_passee = date_evenement < today
+                date_evenement_dans_moins_un_mois = (
+                    today <= date_evenement <= today + timedelta(days=30)
+                )
 
             # Récupération de l'avis lié (OneToOne → un seul)
             avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
@@ -506,6 +515,8 @@ def preinstruction_dossier(request, numero):
         # Manif sportive
         "dossiers_DM_manif_sportive_a_affecter": dossiers_DM_manif_sportive_non_lie_en_reception,
         "dossier_lie_manif_sportive": liaison is not None,
+        "date_evenement_passee": date_evenement_passee,
+        "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         "dossier_dm_meme_numero_deja_lie" : dossier_dm_meme_numero_deja_lie,
         "dossier_dm_meme_numero_pas_lie_archive" : dossier_dm_meme_numero_pas_lie_archive,
         "dossier_dm_meme_numero_pas_lie_acte_pas_archive" : dossier_dm_meme_numero_pas_lie_acte_pas_archive,

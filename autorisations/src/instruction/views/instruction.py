@@ -188,6 +188,30 @@ def get_role_sur_dossier(dossier, instructeur, action_a_faire=False):
     return "Inconnu"
 
 
+def get_dates_debut_manifestation(dossiers):
+    """Retourne la date de début DM indexée par identifiant de dossier DN."""
+    dossier_ids = [dossier.id for dossier in dossiers]
+    return {
+        liaison.id_dossier_id: liaison.id_dossier_manif.date_debut_evenement
+        for liaison in DossierManifestationLiaison.objects.filter(
+            id_dossier_id__in=dossier_ids
+        ).select_related("id_dossier_manif")
+    }
+
+
+def get_indicateurs_date_manifestation(date_debut):
+    """Indique si la manifestation est passée ou commence dans les 30 jours."""
+    if not date_debut:
+        return False, False
+
+    today = timezone.localdate()
+    date_evenement = date_debut.date()
+    return (
+        date_evenement < today,
+        today <= date_evenement <= today + timedelta(days=30),
+    )
+
+
 
 @login_required
 def accueil(request):
@@ -245,9 +269,14 @@ def mesdossiers(request):
     dossier_action_a_faire = dossiers_action_a_faire(base_query, instructeur)
 
     dossiers = dossiers.union(dossier_action_a_faire)
+    dates_debut_manifestation = get_dates_debut_manifestation(dossiers)
 
     dossiers_par_demarche = {}
     for dossier in dossiers:
+        date_debut_manifestation = dates_debut_manifestation.get(dossier.id)
+        date_evenement_passee, date_evenement_dans_moins_un_mois = (
+            get_indicateurs_date_manifestation(date_debut_manifestation)
+        )
 
         # Bénéficiaire
         # beneficiaire = get_beneficiaire_for_dossier(dossier)
@@ -270,6 +299,9 @@ def mesdossiers(request):
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
+            "date_debut_manifestation": date_debut_manifestation,
+            "date_evenement_passee": date_evenement_passee,
+            "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
             "mon_role": role,
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
@@ -318,8 +350,13 @@ def instruction_demarche(request, num_demarche):
         .order_by("date_depot")
     )
 
+    dates_debut_manifestation = get_dates_debut_manifestation(dossiers)
     dossier_infos = []
     for dossier in dossiers:
+        date_debut_manifestation = dates_debut_manifestation.get(dossier.id)
+        date_evenement_passee, date_evenement_dans_moins_un_mois = (
+            get_indicateurs_date_manifestation(date_debut_manifestation)
+        )
 
         # Bénéficiaire
         # beneficiaire = get_beneficiaire_for_dossier(dossier)
@@ -337,6 +374,9 @@ def instruction_demarche(request, num_demarche):
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
+            "date_debut_manifestation": date_debut_manifestation,
+            "date_evenement_passee": date_evenement_passee,
+            "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier.etape else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
@@ -375,6 +415,7 @@ def instruction_demarche(request, num_demarche):
         date_depot__year=annee_selectionnee
     ).select_related("id_groupeinstructeur").order_by("-date_depot")
 
+    dates_debut_manifestation_archives = get_dates_debut_manifestation(dossiers_archives)
     for dossier in dossiers_archives:
 
         # Bénéficiaire
@@ -394,6 +435,7 @@ def instruction_demarche(request, num_demarche):
             "numero": dossier.numero,
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
+            "date_debut_manifestation": dates_debut_manifestation_archives.get(dossier.id),
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
@@ -434,6 +476,7 @@ def instruction_demarche(request, num_demarche):
                 "numero": dossier_dm.numero_dossier_declaration_manifestations,
                 "demandeur": demandeur,
                 "date_depot": dossier_dm.date_depot,
+                "date_debut_manifestation": dossier_dm.date_debut_evenement,
                 "groupe": groupe_manif.nom if groupe_manif else "Manifestations sportives",
                 "etape": dossier_dm.id_etape.etape if dossier_dm.id_etape else "Non défini",
                 "nb_messages_non_lus": 0,
@@ -632,11 +675,16 @@ def instruction_dossier(request, num_dossier):
     avis_manif_sportive = None
     docs_DM = {}
     liaison = None
+    date_evenement_passee = False
+    date_evenement_dans_moins_un_mois = False
     
     if dossier.id_demarche.type == "Manifestations sportives":
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
+            date_evenement_passee, date_evenement_dans_moins_un_mois = (
+                get_indicateurs_date_manifestation(doss_manif_sportive.date_debut_evenement)
+            )
 
             # Récupération de l'avis lié (OneToOne → un seul)
             try:
@@ -725,6 +773,8 @@ def instruction_dossier(request, num_dossier):
         # Manif Sportive
         "dossier_lie_manif_sportive": liaison is not None,
         "doss_manif_sportive": doss_manif_sportive,
+        "date_evenement_passee": date_evenement_passee,
+        "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         "avis_manif_sportive": avis_manif_sportive,
         **docs_DM,
         "dossiers_DM_manif_sportive_non_lie_archive": dossiers_DM_manif_sportive_non_lie_archive,

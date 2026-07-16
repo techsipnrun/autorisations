@@ -26,6 +26,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
 
@@ -35,6 +36,7 @@
 
     <!-- Pour le menu déroulant des étapes -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
+    <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
 
     <!-- Partager par mail -->
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
@@ -48,7 +50,7 @@
     {% breadcrumb breadcrumb_items %}
 
     <div class="page-container">
-        <div class="formulaire_dm">
+        <div class="formulaire_dm formulaire-dm-details">
             
             <!-- Copier le chemin d'accès du dossier -->
             <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
@@ -535,6 +537,17 @@ Le Parc national de La Réunion</textarea>
             {% endif %}
              
 
+            <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
+                <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
+                <div>
+                    <span class="date-manifestation-label">Début de la manifestation</span>
+                    <strong class="date-manifestation-valeur">
+                        {{ doss_manif_sportive.date_debut_evenement|date:"d F Y"|default:"---" }}
+                    </strong>
+                </div>
+            </div>
+
+
             <h2>Organisateur.trice</h2>
             <div class="champs"><p><strong>Nom de l'organisateur</strong> : {{ doss_manif_sportive.nom_organisateur|default:"---" }}</p></div>
             <div class="champs"><p><strong>Prénom de l'organisateur</strong> : {{ doss_manif_sportive.prenom_organisateur|default:"---" }}</p></div>
@@ -576,9 +589,7 @@ Le Parc national de La Réunion</textarea>
                     <div class="champs">
                         <p>
                             <strong>{{ doc.description }}</strong> : 
-                            <a href="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
-                                {{ doc.titre }}
-                            </a>
+                            {% include "instruction/refacto/document_hover_preview.html" with doc=doc %}
                         </p>
                     </div>
                 {% endfor %}
@@ -586,7 +597,7 @@ Le Parc national de La Réunion</textarea>
 
             <h2>Caractéristiques</h2>
             <div class="champs"><p><strong>Nom du dossier</strong> : {{ doss_manif_sportive.nom_dossier|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Numéro du dossier</strong> : {{ doss_manif_sportive.numero_dossier_declaration_manifestations|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Numéro du dossier</strong> : <span class="numero-dossier-dm">{{ doss_manif_sportive.numero_dossier_declaration_manifestations|default:"---" }}</span></p></div>
             <div class="champs"><p><strong>État du dossier</strong> : {{ doss_manif_sportive.etat_dossier|default:"---" }}</p></div>
             <div class="champs"><p><strong>Date de dépôt</strong> : {{ doss_manif_sportive.date_depot|default:"---" }}</p></div>
             <div class="champs"><p><strong>Date de début</strong> : {{ doss_manif_sportive.date_debut_evenement|default:"---" }}</p></div>

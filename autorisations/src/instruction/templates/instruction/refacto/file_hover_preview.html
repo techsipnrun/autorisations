@@ -1,0 +1,29 @@
+{% load static %}
+{% url 'afficher_annexe' chemin=fichier_emplacement titre=fichier_titre as document_url %}
+{% with titre_lower=fichier_titre|lower %}
+    <span class="document-avec-apercu">
+        <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
+            {{ fichier_titre }}
+        </a>
+
+        <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" class="document-download-link" title="Télécharger le document" aria-label="Télécharger {{ fichier_titre }}">
+            <img src="{% static 'instruction/img/download.png' %}" alt="" class="document-action-icon">
+        </a>
+
+        {% if ".pdf" in titre_lower or ".png" in titre_lower or ".jpg" in titre_lower or ".jpeg" in titre_lower or ".gif" in titre_lower or ".webp" in titre_lower or ".svg" in titre_lower or ".bmp" in titre_lower %}
+            <button
+                type="button"
+                class="document-apercu-trigger"
+                data-preview-url="{{ document_url }}"
+                data-preview-type="{% if '.pdf' in titre_lower %}pdf{% else %}image{% endif %}"
+                aria-label="Afficher un aperçu de {{ fichier_titre }}"
+                title="Aperçu du document">
+                <img src="{% static 'instruction/img/loupe.png' %}" alt="" class="document-action-icon">
+            </button>
+            <span class="document-apercu-pont" aria-hidden="true"></span>
+            <span class="document-apercu-popover" role="tooltip">
+                <span class="document-apercu-chargement">Chargement de l’aperçu…</span>
+            </span>
+        {% endif %}
+    </span>
+{% endwith %}

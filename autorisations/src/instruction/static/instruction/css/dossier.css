@@ -92,9 +92,42 @@
 }
 
 
+.identites-dossier {
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .identite_demandeur {
-    padding-left: 1rem;
-    border-left: #006131 solid 4px;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 2rem;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid #9bbca8;
+    border-left: 5px solid #006131;
+    border-radius: 8px;
+    background-color: #f1f7f3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.identite_demandeur h2 {
+    margin-top: 0;
+    color: #006131;
+}
+
+.identite-titre {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    gap: 1rem;
+}
+
+.identite-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    object-fit: contain;
 }
 
 
@@ -102,9 +135,21 @@
 /*    Nom du dossier    */
 /* -------------------- */
 .nom_du_dossier {
-  padding-left: 1rem;
-  border-left: 4px solid #003366;
-  position: relative;
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 2rem;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid #9cacc0;
+    border-left: 5px solid #003366;
+    border-radius: 8px;
+    background-color: #f1f4f8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.nom_du_dossier h2 {
+    margin-top: 0;
+    color: #003366;
 }
 
 .champs .nom_du_dossier p{

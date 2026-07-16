@@ -78,3 +78,59 @@
     background-color: #0e4c27;
 }
 
+.date-manifestation-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: fit-content;
+    margin: 0 0 2rem;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid #9bbca8;
+    border-left: 5px solid #155a32;
+    border-radius: 8px;
+    background-color: #f1f7f3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.date-manifestation-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.date-manifestation-label,
+.date-manifestation-valeur {
+    display: block;
+}
+
+.date-manifestation-label {
+    margin-bottom: 0.2rem;
+    color: #4b4b4b;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.date-manifestation-valeur {
+    color: #155a32;
+    font-size: 1.15rem;
+}
+
+.date-manifestation-card.date-manifestation-passee {
+    border-color: #e1a4aa;
+    border-left-color: #c82333;
+    background-color: #fff3f4;
+}
+
+.date-manifestation-passee .date-manifestation-valeur {
+    color: #c82333;
+}
+
+.date-manifestation-card.date-manifestation-proche {
+    border-color: #e7bf98;
+    border-left-color: #cc6e16;
+    background-color: #fff7ef;
+}
+
+.date-manifestation-proche .date-manifestation-valeur {
+    color: #cc6e16;
+}

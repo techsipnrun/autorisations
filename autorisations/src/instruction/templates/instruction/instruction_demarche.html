@@ -107,6 +107,9 @@
                 <th>Numéro</th>
                 <th>Demandeur</th>
                 <th>Reçu le</th>
+                {% if demarche.type|lower == "manifestations sportives" %}
+                    <th>Début de la manifestation</th>
+                {% endif %}
                 <th>Groupe Instructeur</th>
                 <th>Étape</th>
             </tr>
@@ -128,6 +131,11 @@
                     <td>{{ d.numero }}</td>
                     <td>{{ d.demandeur }}</td>
                     <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                    {% if demarche.type|lower == "manifestations sportives" %}
+                        <td class="{% if d.date_evenement_passee %}date-passee{% elif d.date_evenement_dans_moins_un_mois %}date-moins-un-mois{% endif %}">
+                            {{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}
+                        </td>
+                    {% endif %}
                     <td>{{ d.groupe }}</td>
                     <td {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
                         {% if d.action_a_faire %}
@@ -137,7 +145,7 @@
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="6" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
+                <tr><td colspan="{% if demarche.type|lower == 'manifestations sportives' %}7{% else %}6{% endif %}" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
             {% endfor %}
             </tbody>
         </table>
@@ -173,6 +181,9 @@
                         <th>Numéro</th>
                         <th>Demandeur</th>
                         <th>Déposé le</th>
+                        {% if demarche.type|lower == "manifestations sportives" %}
+                            <th>Début de la manifestation</th>
+                        {% endif %}
                         <th>Groupe Instructeur</th>
                         <th>Étape</th>
                     </tr>
@@ -193,6 +204,9 @@
                             <td>{{ d.numero }}</td>
                             <td>{{ d.demandeur }}</td>
                             <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                            {% if demarche.type|lower == "manifestations sportives" %}
+                                <td>{{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}</td>
+                            {% endif %}
                             <td>{{ d.groupe }}</td>
                             <td {% if d.action_a_faire %} title="Nouveau message sur le dossier archivé" {% endif %}>
                                 {% if d.action_a_faire %}
@@ -202,7 +216,7 @@
                             </td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="6" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
+                        <tr><td colspan="{% if demarche.type|lower == 'manifestations sportives' %}7{% else %}6{% endif %}" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

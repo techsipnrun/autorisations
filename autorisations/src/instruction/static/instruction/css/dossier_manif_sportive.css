@@ -6,3 +6,228 @@
     color: red;
     font-weight: bold;
 }
+
+.formulaire-dm-details > h2 {
+    margin: 2.5rem 0 0.8rem;
+    padding: 0 0 0.55rem;
+    border-bottom: 2px solid #9bbca8;
+    color: #006131;
+    font-size: 1.25rem;
+}
+
+.formulaire-dm-details > .champs {
+    margin-left: 1rem;
+    padding: 0.35rem 0.75rem;
+    border-left: 3px solid #d1ded5;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.formulaire-dm-details > .champs:hover {
+    border-left-color: #006131;
+    background-color: #f5f8f6;
+}
+
+.formulaire-dm-details > .champs p {
+    margin: 0;
+}
+
+.formulaire-dm-details > .champs strong {
+    color: #244b35;
+}
+
+.formulaire-dm-details > h2 + .champs {
+    padding-top: 0.65rem;
+}
+
+.numero-dossier-dm {
+    display: inline-block;
+    margin-left: 0.25rem;
+    padding: 0.2rem 0.65rem;
+    border: 1px solid #006131;
+    border-radius: 6px;
+    background-color: #006131;
+    color: white;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+}
+
+.formulaire-dm-details > .date-manifestation-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 2rem 0;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid #9bbca8;
+    border-left: 5px solid #155a32;
+    border-radius: 8px;
+    background-color: #f1f7f3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.formulaire-dm-details .date-manifestation-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.formulaire-dm-details .date-manifestation-label,
+.formulaire-dm-details .date-manifestation-valeur {
+    display: block;
+}
+
+.formulaire-dm-details .date-manifestation-label {
+    margin-bottom: 0.2rem;
+    color: #4b4b4b;
+    font-size: 0.85rem;
+}
+
+.formulaire-dm-details .date-manifestation-valeur {
+    color: #155a32;
+    font-size: 1.15rem;
+}
+
+.formulaire-dm-details > .date-manifestation-passee {
+    border-color: #e1a4aa;
+    border-left-color: #c82333;
+    background-color: #fff3f4;
+}
+
+.formulaire-dm-details .date-manifestation-passee .date-manifestation-valeur {
+    color: #c82333;
+}
+
+.formulaire-dm-details > .date-manifestation-proche {
+    border-color: #e7bf98;
+    border-left-color: #cc6e16;
+    background-color: #fff7ef;
+}
+
+.formulaire-dm-details .date-manifestation-proche .date-manifestation-valeur {
+    color: #cc6e16;
+}
+
+@media (max-width: 700px) {
+    .formulaire-dm-details > .champs {
+        margin-left: 0.35rem;
+    }
+}
+
+.document-avec-apercu {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.document-apercu-trigger {
+    padding: 0;
+    border: 0;
+    cursor: zoom-in;
+}
+
+.document-action-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    object-fit: contain;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.validation-documents .document-action-icon {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.document-download-link,
+.document-apercu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background-color: #f1f1f1;
+    box-shadow: inset 0 0 0 1px #dedede;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.document-download-link:hover,
+.document-apercu-trigger:hover,
+.document-apercu-trigger:focus-visible {
+    background-color: #e7eee9;
+    box-shadow: inset 0 0 0 1px #b8c9bd;
+}
+
+.document-download-link:hover .document-action-icon,
+.document-apercu-trigger:hover .document-action-icon,
+.document-apercu-trigger:focus-visible .document-action-icon {
+    opacity: 0.75;
+    transform: scale(1.12);
+}
+
+.document-apercu-popover {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    width: min(520px, 60vw);
+    height: min(650px, 70vh);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    box-sizing: border-box;
+    padding: 0.5rem;
+    border: 1px solid #9bbca8;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.document-apercu-pont {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    background-color: transparent;
+}
+
+.document-avec-apercu.is-preview-open .document-apercu-pont {
+    display: block;
+}
+
+.document-avec-apercu.is-preview-open .document-apercu-popover {
+    display: block;
+}
+
+.document-apercu-contenu {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: contain;
+}
+
+.document-apercu-chargement {
+    display: grid;
+    height: 100%;
+    place-items: center;
+    color: #555;
+}
+
+.document-apercu-erreur {
+    display: grid;
+    height: 100%;
+    place-items: center;
+    color: #a11b26;
+    font-weight: bold;
+}
+
+@media (max-width: 800px) {
+    .document-apercu-popover {
+        width: 90vw;
+        height: 70vh;
+    }
+}

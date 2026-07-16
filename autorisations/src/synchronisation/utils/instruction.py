@@ -276,9 +276,6 @@ def lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, emplacement, logger_ar
             else :
                 liaison = DossierManifestationLiaison.objects.create(id_dossier_manif=dossier_dm, id_dossier=dossier_dn)
                 logger_arg.info(f"[CREATE LIAISON] Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier})")
-                # Nom + parlant = Nom de la manif
-                dossier_dn.nom_dossier_plus_parlant = dossier_dm.nom_dossier
-                dossier_dn.save()
 
             '''
             # ----------------------------------------------------
@@ -437,9 +434,6 @@ def archive_lier_dossier_dm_au_dossier_dn(dossier_dm, dossier_dn, logger_arg):
             else :
                 liaison = DossierManifestationLiaison.objects.create(id_dossier_manif=dossier_dm, id_dossier=dossier_dn)
                 logger_arg.info(f"[CREATE LIAISON] Dossier DM {num_DM} <=> Dossier DN {num_DN} ({dossier_dm.nom_dossier})")
-                # Nom + parlant = Nom de la manif
-                dossier_dn.nom_dossier_plus_parlant = dossier_dm.nom_dossier
-                dossier_dn.save()
 
         return True
     

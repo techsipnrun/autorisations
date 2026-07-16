@@ -81,6 +81,9 @@
                                 <th>Numéro</th>
                                 <th>Demandeur</th>
                                 <th>Reçu le</th>
+                                {% if demarche|lower == "manifestations sportives" %}
+                                    <th>Début de la manifestation</th>
+                                {% endif %}
                                 <th>Mon rôle</th>
                                 <th>Étape</th>
                             </tr>
@@ -104,6 +107,11 @@
                                     <td>{{ d.numero }}</td>
                                     <td>{{ d.demandeur }}</td>
                                     <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                                    {% if demarche|lower == "manifestations sportives" %}
+                                        <td class="{% if d.date_evenement_passee %}date-passee{% elif d.date_evenement_dans_moins_un_mois %}date-moins-un-mois{% endif %}">
+                                            {{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}
+                                        </td>
+                                    {% endif %}
                                     <td>{{ d.mon_role }}</td>
                                     <td>
                                         {% if d.action_a_faire %}
@@ -114,7 +122,7 @@
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="6" class="aucun_doss">Aucun dossier trouvé pour cette démarche.</td>
+                                    <td colspan="{% if demarche|lower == 'manifestations sportives' %}7{% else %}6{% endif %}" class="aucun_doss">Aucun dossier trouvé pour cette démarche.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
