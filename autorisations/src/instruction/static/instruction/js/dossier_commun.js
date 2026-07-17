@@ -484,6 +484,91 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+// Afficher le formulaire de correction d'un acte signé uniquement sur demande
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".remplacer-acte-toggle").forEach(function (toggleBtn) {
+        const formId = toggleBtn.getAttribute("aria-controls");
+        const form = document.getElementById(formId);
+
+        if (!form) return;
+
+        toggleBtn.addEventListener("click", function (event) {
+            event.stopPropagation();
+            const doitAfficher = form.hidden;
+            form.hidden = !doitAfficher;
+            toggleBtn.setAttribute("aria-expanded", String(doitAfficher));
+        });
+    });
+});
+
+
+// Activer l'édition d'une note appartenant à l'utilisateur connecté
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".note-edit-toggle").forEach(function (editButton) {
+        editButton.addEventListener("click", function () {
+            const noteItem = editButton.closest(".note-item");
+            const textarea = noteItem?.querySelector('textarea[name="note"]');
+
+            if (!noteItem || !textarea) return;
+
+            if (noteItem.classList.contains("is-editing")) {
+                textarea.value = textarea.dataset.valeurInitiale || textarea.value;
+                textarea.readOnly = true;
+                noteItem.classList.remove("is-editing");
+                editButton.setAttribute("aria-label", "Modifier la note");
+                editButton.setAttribute("title", "Modifier la note");
+                ajusterHauteurNote(textarea);
+                return;
+            }
+
+            textarea.dataset.valeurInitiale = textarea.value;
+            noteItem.classList.add("is-editing");
+            textarea.readOnly = false;
+            editButton.setAttribute("aria-label", "Fermer l'édition sans enregistrer");
+            editButton.setAttribute("title", "Fermer l'édition sans enregistrer");
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        });
+    });
+
+    function ajusterHauteurNote(textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+
+    document.querySelectorAll('.note-item textarea[name="note"]').forEach(function (textarea) {
+        ajusterHauteurNote(textarea);
+        textarea.addEventListener("input", function () {
+            ajusterHauteurNote(textarea);
+        });
+    });
+});
+
+
+// Conserver la position de la page après l'enregistrement ou la suppression d'une note
+document.addEventListener("DOMContentLoaded", function () {
+    const scrollKey = `notes-scroll:${window.location.pathname}`;
+
+    document.querySelectorAll(".notes_instructeurs form.form-note").forEach(function (form) {
+        form.addEventListener("submit", function () {
+            sessionStorage.setItem(scrollKey, String(window.scrollY));
+        });
+    });
+
+    const savedScroll = sessionStorage.getItem(scrollKey);
+    if (savedScroll === null) return;
+
+    sessionStorage.removeItem(scrollKey);
+    window.addEventListener("load", function () {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                window.scrollTo(0, Number(savedScroll));
+            });
+        });
+    }, { once: true });
+});
+
+
 // POP UP de confirmation pour la création d'une liaison
 document.addEventListener("DOMContentLoaded", function () {
     const formLiaison = document.getElementById("form-liaison-manif-dn");

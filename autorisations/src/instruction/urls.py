@@ -148,6 +148,7 @@ urlpatterns = [
     path("changer-etape/acte-envoye/", changement_etape.envoyer_l_acte, name="envoyer_l_acte_url"),
     path("changer-etape/acte-refus-envoye/", changement_etape.envoyer_l_acte_de_refus, name="envoyer_l_acte_de_refus_url"),
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
+    path("changer-etape/remplacer-acte-signe/", changement_etape.remplacer_acte_signe, name="remplacer_acte_signe_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
 
 

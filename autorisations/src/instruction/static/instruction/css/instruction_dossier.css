@@ -421,6 +421,83 @@
     border-left: 3px solid #006131;
 }
 
+.remplacer-acte-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 0 0.8rem 0.6rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #d8e4dc;
+    border-radius: 7px;
+    background: #f3f7f5;
+}
+
+.remplacer-acte-form[hidden] {
+    display: none;
+}
+
+.remplacer-acte-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background-color: #f1f1f1;
+    box-shadow: inset 0 0 0 1px #dedede;
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.doc-download-row:hover .remplacer-acte-toggle,
+.remplacer-acte-toggle:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.remplacer-acte-toggle:hover,
+.remplacer-acte-toggle:focus-visible {
+    background-color: #e7eee9;
+    box-shadow: inset 0 0 0 1px #b8c9bd;
+}
+
+.remplacer-acte-toggle:hover .document-action-icon,
+.remplacer-acte-toggle:focus-visible .document-action-icon {
+    opacity: 0.75;
+    transform: scale(1.12);
+}
+
+.remplacer-acte-form label {
+    color: #006131;
+    font-weight: 700;
+}
+
+.remplacer-acte-form input[type="file"] {
+    max-width: min(100%, 23rem);
+}
+
+.remplacer-acte-form button {
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #006131;
+    border-radius: 5px;
+    background: #006131;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.remplacer-acte-form button:hover {
+    background: #004d27;
+}
+
 
 
 /* Liste des validants */

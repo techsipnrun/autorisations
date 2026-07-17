@@ -4,11 +4,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const closePreview = (container) => {
         if (!container) return;
         container.classList.remove("is-preview-open");
+        delete container.dataset.apercuOuvertParClic;
         if (activeContainer === container) activeContainer = null;
     };
 
     const positionPreview = (trigger, popover, bridge) => {
         const margin = 12;
+        const navbar = document.querySelector(".navigation_header");
+        const topLimit = Math.max(margin, (navbar?.getBoundingClientRect().bottom || 0) + margin);
+        const availableHeight = Math.max(0, window.innerHeight - topLimit - margin);
+        const previewHeight = Math.min(650, window.innerHeight * 0.7, availableHeight);
+
+        popover.style.height = `${previewHeight}px`;
+        popover.style.maxHeight = `${availableHeight}px`;
+
         const triggerRect = trigger.getBoundingClientRect();
         const popoverRect = popover.getBoundingClientRect();
 
@@ -20,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
         left = Math.max(margin, Math.min(left, window.innerWidth - popoverRect.width - margin));
 
         let top = triggerRect.top + triggerRect.height / 2 - popoverRect.height / 2;
-        top = Math.max(margin, Math.min(top, window.innerHeight - popoverRect.height - margin));
+        top = Math.max(topLimit, Math.min(top, window.innerHeight - popoverRect.height - margin));
 
         popover.style.left = `${left}px`;
         popover.style.top = `${top}px`;
@@ -43,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = trigger.closest(".document-avec-apercu");
         const popover = container?.querySelector(".document-apercu-popover");
         const bridge = container?.querySelector(".document-apercu-pont");
+        const correctionButton = container?.querySelector(".remplacer-acte-toggle");
         let previewLoaded = false;
         let closeTimeout = null;
 
@@ -54,7 +64,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const scheduleClose = () => {
             cancelScheduledClose();
-            closeTimeout = setTimeout(() => closePreview(container), 250);
+            closeTimeout = setTimeout(() => {
+                const sourisDansLeScope = (
+                    container.matches(":hover")
+                    || bridge?.matches(":hover")
+                    || popover.matches(":hover")
+                );
+
+                if (!sourisDansLeScope) closePreview(container);
+            }, 250);
         };
 
         const loadPreview = async () => {
@@ -112,15 +130,24 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         };
 
-        trigger.addEventListener("mouseenter", openPreview);
-        trigger.addEventListener("focus", openPreview);
         trigger.addEventListener("click", () => {
-            if (container.classList.contains("is-preview-open")) {
+            if (
+                container.classList.contains("is-preview-open")
+                && container.dataset.apercuOuvertParClic === "true"
+            ) {
                 closePreview(container);
-            } else {
-                openPreview();
+                return;
             }
+
+            container.dataset.apercuOuvertParClic = "true";
+            openPreview();
         });
+
+        const closeFromCorrection = () => {
+            closePreview(container);
+        };
+        correctionButton?.addEventListener("mouseenter", closeFromCorrection);
+        correctionButton?.addEventListener("focus", closeFromCorrection);
 
         container.addEventListener("mouseenter", cancelScheduledClose);
         container.addEventListener("mouseleave", scheduleClose);

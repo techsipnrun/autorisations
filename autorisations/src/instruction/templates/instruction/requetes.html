@@ -98,6 +98,17 @@
                 </div>
 
                 <div class="form-field">
+                    <label for="mots_cles">Mots-clés :</label>
+                    <input
+                        type="text"
+                        name="mots_cles"
+                        id="mots_cles"
+                        value="{{ mots_cles_remplis }}"
+                        placeholder="Ex: Mafate hélicoptère">
+                    <small>Il peut y avoir plusieurs mots-clés espacés</small>
+                </div>
+
+                <div class="form-field">
                     <label for="groupe">Groupe Instructeur :</label>
                     <select name="groupe" id="groupe">
                         <option value="" {% if not request.GET.groupe %}selected{% endif %}> - - - </option>

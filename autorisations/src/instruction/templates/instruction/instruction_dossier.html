@@ -893,11 +893,14 @@ Bonne réception.</textarea>
                         <input type="hidden" name="numero_dossier" value="{{ dossier.numero }}">
                         <input type="hidden" name="correction" value='True'>
                         <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
-                        <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required>Après analyse de la complétude de votre dossier, il s’avère que les pièces suivantes sont manquantes : [les lister]
+                        <textarea name="body" class="textarea-complement" placeholder="Écrire la demande de compléments..." required>Bonjour,
 
+Après analyse de la complétude de votre dossier, il s’avère que les pièces suivantes sont manquantes : [les lister]
 Or, ces pièces/éléments sont indispensables à la réalisation de l’instruction de votre dossier. Par conséquent, nous vous demandons de bien vouloir nous les faire suivre avant le [date].
+Le délai d’instruction ne commencera qu’à la date de réception par le Parc national de La Réunion du dossier complet.
 
-Le délai d’instruction ne commencera qu’à la date de réception par le Parc national de La Réunion du dossier complet.</textarea>
+Cordialement,
+Le Parc national de La Réunion</textarea>
                         <div class="zone-pj-complement">
                             <input type="file" name="piece_jointe" accept=".pdf,.jpg,.png,.doc,.docx">
                             <button type="submit" class="btn-envoyer-complement">Envoyer</button>
@@ -1291,18 +1294,38 @@ En conséquence, la demande est refusée.</textarea>
                 {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
                     <div class="validation-documents">
                         <h2>Documents à envoyer</h2>
-                        <form method="post" action="#">
-                            {% csrf_token %}
-                            <ul class="doc-a-valider-liste">
-                                {% for doc in doc_a_envoyer %}
+                        <ul class="doc-a-valider-liste">
+                            {% for doc in doc_a_envoyer %}
+                                {% if peut_remplacer_acte_signe %}
+                                    {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True correction_form_id=doc.id %}
+                                    <li>
+                                        <form id="remplacer-acte-form-{{ doc.id }}"
+                                              class="remplacer-acte-form"
+                                              method="post"
+                                              enctype="multipart/form-data"
+                                              action="{% url 'remplacer_acte_signe_url' %}"
+                                              hidden
+                                              onsubmit="return confirm('Remplacer définitivement le PDF signé actuel par ce fichier ?');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                            <input type="hidden" name="document_id" value="{{ doc.id }}">
+                                            <label for="acte-signe-{{ doc.id }}">Correction :</label>
+                                            <input id="acte-signe-{{ doc.id }}"
+                                                   type="file"
+                                                   name="acte_signe"
+                                                   accept=".pdf,application/pdf"
+                                                   required>
+                                            <button type="submit">Remplacer l'acte signé</button>
+                                        </form>
+                                    </li>
+                                {% else %}
                                     {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
-
                                     <span class="rappel-numero-acte">
-                                        Si vous constatez une erreur sur le document à envoyer, contactez le support.
+                                        Si vous constatez une erreur sur le document à envoyer, contactez la personne chargée de l'envoi pour signature.
                                     </span>
-                                {% endfor %}
-                            </ul>
-                        </form>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
                     </div>
                 {% endif %}
 
@@ -2266,6 +2289,39 @@ En conséquence, la demande est refusée.</textarea>
                             {% endfor %}
                         </ul>
 
+                        {% if autres_instructeurs_du_dossier %}
+                            <div class="autres-instructeurs">
+                                <h3>Autres instructeur.ices</h3>
+                                <ul class="groupe-instructeur-liste">
+                                    {% for instructeur in autres_instructeurs_du_dossier %}
+                                        <li class="instructeur_du_dossier">
+                                            {% if instructeur.id_agent_autorisations %}
+                                                {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+                                            {% else %}
+                                                {{ instructeur.email }}
+                                            {% endif %}
+                                            <img src="{% static 'instruction/img/instructeur.png' %}"
+                                                 alt="Instructeur.rice du dossier hors du groupe actuel"
+                                                 title="Instructeur.rice du dossier hors du groupe actuel"
+                                                 class="logo_instructeur logo_groupe_instru">
+
+                                            {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                                <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                    <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+
+                                                    <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.rice du dossier">
+                                                        <span class="croix-retirer">✕</span>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
                         <!-- Changer le groupe instructeur -->
                         {% if groupes_instructeurs|length > 1 %}
                             {% if request.user|est_concerné_par_le_dossier:dossier %}
@@ -2488,20 +2544,39 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                     {% for n in notes %}
                         <div class="note-item">
                             <p class="note-meta">
-                                <strong>{{ n.instructeur }}</strong> – {{ n.date|date:"d/m/Y H:i" }}
+                                <strong>{{ n.instructeur }}</strong>
+                                <span class="note-date">– {{ n.date|date:"d/m/Y H:i" }}</span>
                             </p>
+
+                            {% if n.instructeur_id == instructeur_connecte.id %}
+                                <button type="button"
+                                        class="note-edit-toggle"
+                                        aria-label="Modifier la note"
+                                        title="Modifier la note">
+                                    <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                                </button>
+                            {% endif %}
 
                             <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form-note">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <input type="hidden" name="noteId" value="{{ n.id }}">
-                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
+                                <textarea name="note" rows="1" readonly>{{ n.note }}</textarea>
                                 {% if n.instructeur_id == instructeur_connecte.id %}
                                     <div class="btn_maj_suppr">
-                                        <button type="submit" class="valider-btn">Mettre à jour</button>
-                                        <button type="submit" formaction="{% url 'supprimer_note_dossier' %}" class="supprimer-btn"
+                                        <button type="submit"
+                                                class="note-action-btn note-action-save"
+                                                aria-label="Mettre à jour la note"
+                                                title="Mettre à jour la note">
+                                            <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                        </button>
+                                        <button type="submit"
+                                                formaction="{% url 'supprimer_note_dossier' %}"
+                                                class="note-action-btn note-action-delete"
+                                                aria-label="Supprimer la note"
+                                                title="Supprimer la note"
                                                 onclick="return confirm('Voulez-vous vraiment supprimer cette note ?');">
-                                            Supprimer
+                                            <img src="{% static 'instruction/img/trash.svg' %}" alt="">
                                         </button>
                                     </div>
                                 {% endif %}
@@ -2519,7 +2594,12 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <textarea name="note" rows="4" id="nouvelle-note-textarea" data-user="{{ request.user.email }}" data-dossier="{{ dossier.id_ds }}"></textarea>
-                                <button type="submit" class="valider-btn">Enregistrer</button>
+                                <button type="submit"
+                                        class="note-action-btn note-action-save nouvelle-note-save"
+                                        aria-label="Enregistrer la nouvelle note"
+                                        title="Enregistrer la nouvelle note">
+                                    <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                </button>
                             </form>
                         </div>
                     {% endif %}
@@ -2560,7 +2640,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
     <script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
 
     <script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
-    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}"></script>
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=3"></script>
 
 
     <!----------- Emplacements des docs du dossier ------------->

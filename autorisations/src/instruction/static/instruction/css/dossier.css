@@ -186,6 +186,11 @@
   height: 32px;
 }
 
+#btnEditNom img {
+  width: 22px;
+  height: 22px;
+}
+
 .btn-icon:hover {
   transform: scale(1.08);
 }
@@ -769,20 +774,26 @@ h2 {
 }
 
 .leaflet-container {
-    height: 70vh;
+    height: 60vh;
     width: 80%;
-    border: 1px solid #ccc;
+    border: 1px solid #000000;
     margin: 0;
     border-radius: 8px;
 }
 
 @media (max-width: 2200px) {
     .leaflet-container, .carto-banner {
+        width: 80%;
+    }
+}
+
+@media (max-width: 1600px) {
+    .leaflet-container, .carto-banner {
         width: 90%;
     }
 }
 
-@media (max-width: 2000px) {
+@media (max-width: 1100px) {
     .leaflet-container, .carto-banner {
         width: 100%;
     }
@@ -1152,6 +1163,13 @@ h2 {
     cursor: pointer;
 }
 
+.autres-instructeurs {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #d7dfda;
+}
+
+
 .logo_instructeur {
     height: 18px; 
     vertical-align: text-bottom; 
@@ -1339,20 +1357,96 @@ textarea[name="note"] {
 
 /* Boutons modifier/envoyer/supprimer (modernisés) */
 .btn_maj_suppr {
-    display: flex;
+    display: none;
     gap: 0.5rem;
     margin-top: 0.5rem;
     justify-content: flex-start;
-    opacity: 0.3;
-    transition: opacity 0.3s ease;
 }
 
-.ajouter-note .valider-btn {
-    opacity: 0.4;
+.note-item.is-editing .btn_maj_suppr {
+    display: flex;
 }
 
-.note-item:hover .btn_maj_suppr, .ajouter-note:hover .valider-btn {
-    opacity: 1;
+.note-edit-toggle {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid #d2d7d4;
+    border-radius: 8px;
+    background-color: #e7ebe9;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.note-edit-toggle img {
+    width: 16px;
+    height: 16px;
+}
+
+.note-edit-toggle:hover,
+.note-edit-toggle:focus-visible {
+    transform: translateY(-1px);
+    background-color: #dbe5df;
+    border-color: #aebdb4;
+}
+
+.nouvelle-note-save {
+    align-self: flex-end;
+}
+
+.note-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.note-action-btn img {
+    width: 18px;
+    height: 18px;
+}
+
+.note-action-btn:hover,
+.note-action-btn:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.13);
+}
+
+.note-action-save {
+    background-color: #e8f5e9;
+    border-color: #b7d9c0;
+    color: #006131;
+}
+
+.note-action-save:hover,
+.note-action-save:focus-visible {
+    background-color: #cfe8d4;
+    border-color: #86b894;
+}
+
+.note-action-delete {
+    background-color: #fdecea;
+    border-color: #f2c2c4;
+    color: #b4232c;
+}
+
+.note-action-delete:hover,
+.note-action-delete:focus-visible {
+    background-color: #f8d7da;
+    border-color: #df9da2;
 }
 
 .valider-btn,
@@ -1405,17 +1499,39 @@ textarea[name="note"] {
 }
 
 .note-item {
+    position: relative;
     margin-bottom: 1.5rem;
-    padding: 1rem;
+    padding: 1rem 3.5rem 1rem 1rem;
     background-color: #f1f1f1;
     border-left: 1px solid #006131;
     border-radius: 4px;
 }
 
+.note-item textarea[readonly] {
+    border-color: transparent;
+    background-color: transparent;
+    resize: none;
+    cursor: default;
+    overflow: hidden;
+}
+
+.note-item.is-editing textarea {
+    border-color: #86b894;
+    background-color: #fff;
+    resize: vertical;
+    cursor: text;
+    box-shadow: 0 0 0 3px rgba(0, 97, 49, 0.08);
+}
+
 .note-meta {
-    font-weight: bold;
+    font-weight: normal;
     color: #333;
     margin-bottom: 0.6rem;
+}
+
+.note-date {
+    font-style: italic;
+    font-weight: normal;
 }
 
 .note-aucune {

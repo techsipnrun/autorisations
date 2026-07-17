@@ -710,6 +710,7 @@ LOGO_MAPPING = {
     "Avis reçu": "recu.png",
     "Avis demandé": "acte-envoye.png",
     "Acte signé": "acte-signe.png",
+    "Modification de l'acte": "acte-signe.png",
     "Acte envoyé": "acte-envoye.png",
     "Validé avant demande d'avis": "valide.png",
     "Publié au RAA": "publie_au_raa.png",

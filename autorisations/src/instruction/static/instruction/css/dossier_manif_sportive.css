@@ -174,12 +174,14 @@
 .document-apercu-popover {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 2147483000;
     width: min(520px, 60vw);
     height: min(650px, 70vh);
     max-width: calc(100vw - 24px);
     max-height: calc(100vh - 24px);
     box-sizing: border-box;
+    overflow: auto;
+    overscroll-behavior: contain;
     padding: 0.5rem;
     border: 1px solid #9bbca8;
     border-radius: 8px;
@@ -190,7 +192,7 @@
 .document-apercu-pont {
     display: none;
     position: fixed;
-    z-index: 999;
+    z-index: 2147482999;
     background-color: transparent;
 }
 

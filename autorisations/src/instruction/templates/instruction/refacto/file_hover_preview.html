@@ -25,5 +25,16 @@
                 <span class="document-apercu-chargement">Chargement de l’aperçu…</span>
             </span>
         {% endif %}
+
+        {% if correction_form_id %}
+            <button type="button"
+                    class="remplacer-acte-toggle"
+                    aria-expanded="false"
+                    aria-controls="remplacer-acte-form-{{ correction_form_id }}"
+                    aria-label="Corriger ou remplacer l'acte signé"
+                    title="Corriger ou remplacer l'acte signé">
+                <img src="{% static 'instruction/img/modifier.svg' %}" alt="" class="document-action-icon">
+            </button>
+        {% endif %}
     </span>
 {% endwith %}

@@ -704,19 +704,41 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // 6) Boutons tout afficher/masquer
-        panel.querySelector(".btn-show-all").addEventListener("click", () => {
-        panel.querySelectorAll("input[type='checkbox']").forEach((cb) => {
-            if (!cb.checked) cb.checked = true;
-            // déclencher “change”
-            cb.dispatchEvent(new Event("change"));
-        });
+        panel.querySelector(".btn-show-all").addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            map.stop();
+
+            panel.querySelectorAll("input[type='checkbox']").forEach((cb) => {
+                cb.checked = true;
+            });
+
+            layersByCourse.forEach((group) => {
+                if (!map.hasLayer(group)) group.addTo(map);
+            });
+
+            const allBounds = allCoursesGroup.getBounds();
+            if (allBounds.isValid()) {
+                map.fitBounds(allBounds, {
+                    padding: [20, 20],
+                    maxZoom: 15,
+                    animate: false
+                });
+            }
         });
 
-        panel.querySelector(".btn-hide-all").addEventListener("click", () => {
-        panel.querySelectorAll("input[type='checkbox']").forEach((cb) => {
-            if (cb.checked) cb.checked = false;
-            cb.dispatchEvent(new Event("change"));
-        });
+        panel.querySelector(".btn-hide-all").addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            map.stop();
+
+            panel.querySelectorAll("input[type='checkbox']").forEach((cb) => {
+                cb.checked = false;
+            });
+
+            layersByCourse.forEach((group) => {
+                if (map.hasLayer(group)) map.removeLayer(group);
+            });
         });
 
 

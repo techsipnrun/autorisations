@@ -23,6 +23,58 @@ def clean_int(value):
     return value if value and value.isdigit() else None
 
 
+def filtrer_dossiers_par_mots_cles(dossiers, dossiers_dm, recherche):
+    """
+    Applique une recherche multi-mots aux dossiers DN et aux dossiers DM non liés.
+    Chaque mot doit être présent dans au moins un des champs recherchés.
+    """
+    mots_cles = [mot for mot in (recherche or "").split() if mot]
+
+    for mot in mots_cles:
+        recherche_dn = (
+            Q(nom_dossier__icontains=mot) |
+            Q(nom_dossier_plus_parlant__icontains=mot) |
+            Q(dossierchamp__valeur__icontains=mot) |
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom__icontains=mot) |
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom__icontains=mot) |
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__icontains=mot) |
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__icontains=mot) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__nom__icontains=mot) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__prenom__icontains=mot) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale__icontains=mot) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__organisation__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__nom_dossier__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__nom_organisateur__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__prenom_organisateur__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__description__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__observation__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__activite__icontains=mot) |
+            Q(dossiermanifestationliaison__id_dossier_manif__structure__icontains=mot)
+        )
+
+        recherche_dm = (
+            Q(nom_dossier__icontains=mot) |
+            Q(nom_organisateur__icontains=mot) |
+            Q(prenom_organisateur__icontains=mot) |
+            Q(description__icontains=mot) |
+            Q(observation__icontains=mot) |
+            Q(activite__icontains=mot) |
+            Q(structure__icontains=mot)
+        )
+
+        if mot.isdigit():
+            numero_dm = int(mot)
+            recherche_dn |= Q(
+                dossiermanifestationliaison__id_dossier_manif__numero_dossier_declaration_manifestations=numero_dm
+            )
+            recherche_dm |= Q(numero_dossier_declaration_manifestations=numero_dm)
+
+        dossiers = dossiers.filter(recherche_dn)
+        dossiers_dm = dossiers_dm.filter(recherche_dm)
+
+    return dossiers.distinct(), dossiers_dm.distinct()
+
+
 # Export Excel Dossiers
 # def _export_dossiers_xlsx(dossiers_qs):
 #     wb = Workbook()
@@ -270,6 +322,7 @@ def requete_dossiers(request):
     groupe = request.GET.get("groupe")
     etape = request.GET.get("etape")
     nom = request.GET.get("nom")
+    mots_cles = request.GET.get("mots_cles", "").strip()
     annee = request.GET.get("d_annee")
     instructeur = request.GET.get("instructeur")
 
@@ -367,6 +420,12 @@ def requete_dossiers(request):
             raison_sociale__iexact=nom
         ).exists()
 
+        # Vérifier si le nom existe en tant qu'organisation
+        exists_organisation = ContactExterne.objects.filter(
+            dossierbeneficiaire__isnull=False,
+            organisation__iexact=nom
+        ).exists()
+
         # Vérifier si le nom existe comme Nom Prénom
         exists_nom_prenom = ContactExterne.objects.annotate(
             nom_complet=Concat(
@@ -379,7 +438,7 @@ def requete_dossiers(request):
             nom_complet__iexact=nom
         ).exists()
 
-        nom_valide = exists_raison or exists_nom_prenom
+        nom_valide = exists_raison or exists_organisation or exists_nom_prenom
         if nom_valide:
             dossiers = dossiers.annotate(
                 nom_complet_beneficiaire=Concat(
@@ -389,6 +448,7 @@ def requete_dossiers(request):
                 )
             ).filter(
                 Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
+                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__iexact=nom) |
                 Q(nom_complet_beneficiaire__iexact=nom)
             ).distinct()
 
@@ -415,6 +475,13 @@ def requete_dossiers(request):
             Q(nom_organisateur__icontains=nom) |
             Q(prenom_organisateur__icontains=nom) |
             Q(structure__icontains=nom)
+        )
+
+    if mots_cles:
+        dossiers, dossiers_dm = filtrer_dossiers_par_mots_cles(
+            dossiers,
+            dossiers_dm,
+            mots_cles,
         )
         
  
@@ -454,6 +521,8 @@ def requete_dossiers(request):
                 b = db.id_beneficiaire
                 if getattr(b, "raison_sociale", None):
                     beneficiaire = b.raison_sociale
+                elif getattr(b, "organisation", None):
+                    beneficiaire = b.organisation
                 elif getattr(b, "nom", None) and getattr(b, "prenom", None):
                     beneficiaire = f"{b.nom} {b.prenom}"
 
@@ -532,6 +601,7 @@ def requete_dossiers(request):
 
         # Champs nettoyés pour pré-remplissage propre
         "nom_rempli": nom or "",
+        "mots_cles_remplis": mots_cles,
         "instructeur_rempli": instructeur or "",
         "numero_rempli": numero or "",
         "date_debut_reception_rempli": date_debut_reception or "",
@@ -862,17 +932,24 @@ def autocomplete_nom_beneficiaire(request):
         .filter(dossierbeneficiaire__isnull=False)
         .filter(
             Q(raison_sociale__icontains=query) |
+            Q(organisation__icontains=query) |
             Q(nom__icontains=query) |
             Q(prenom__icontains=query)
         )
-        .values("raison_sociale", "nom", "prenom")
+        .values("raison_sociale", "organisation", "nom", "prenom")
         .distinct()[:10]
     )
 
     for b in beneficiaires:
-        if b["raison_sociale"]:
+        if b["raison_sociale"] and query.lower() in b["raison_sociale"].lower():
             add_value(b["raison_sociale"])
-        elif b["nom"] and b["prenom"]:
+
+        if b["organisation"] and query.lower() in b["organisation"].lower():
+            add_value(b["organisation"])
+
+        if b["nom"] and b["prenom"] and (
+            query.lower() in b["nom"].lower() or query.lower() in b["prenom"].lower()
+        ):
             add_value(f"{b['nom']} {b['prenom']}")
 
     # ---------------------------------

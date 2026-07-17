@@ -569,6 +569,14 @@ def instruction_dossier(request, num_dossier):
                 .select_related("id_instructeur__id_agent_autorisations")
         ]
 
+    membres_groupe_ids = {instructeur.id for instructeur in membres_groupe}
+    autres_instructeurs_du_dossier = list(
+        Instructeur.objects
+        .filter(id__in=instructeurs_dossier - membres_groupe_ids)
+        .select_related("id_agent_autorisations")
+        .order_by("id_agent_autorisations__nom", "id_agent_autorisations__prenom", "email")
+    )
+
 
     ####################################
     # Bouton 'Se déclarer Instructeur'
@@ -641,6 +649,20 @@ def instruction_dossier(request, num_dossier):
     # Documents
     #############################
     documents_data = build_documents_for_dossier(dossier)
+    peut_remplacer_acte_signe = bool(
+        etape_actuelle
+        and etape_actuelle.etape == "Acte à envoyer"
+        and (
+            request.user.is_superuser
+            or (
+                instructeur_connecte
+                and DossierIntermediaireSignature.objects.filter(
+                    id_dossier=dossier,
+                    id_instructeur=instructeur_connecte,
+                ).exists()
+            )
+        )
+    )
 
    
     ###############################
@@ -790,10 +812,12 @@ def instruction_dossier(request, num_dossier):
         "groupes_instructeurs": groupes_instructeurs,
         "instructeurs": instructeurs,
         "membres_groupe": membres_groupe,
+        "autres_instructeurs_du_dossier": autres_instructeurs_du_dossier,
         "instructeurs_dossier_ids": instructeurs_dossier,
         "instructeurs_du_dossier": instructeurs_du_dossier,
         "peut_se_declarer": peut_se_declarer,
         "instructeur_connecte": instructeur_connecte,
+        "peut_remplacer_acte_signe": peut_remplacer_acte_signe,
         "relecteurs_du_dossier": relecteurs_du_dossier,
 
         # Contacts
@@ -848,8 +872,7 @@ def sauvegarder_note_dossier(request):
                 return redirect_error(request, "Erreur : Vous n'êtes pas autorisé à modifier la note. Contactez le support si besoin.")
 
             note.note = contenu
-            note.date = timezone.now()
-            note.save()
+            note.save(update_fields=["note"])
             logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {instructeur}")
 
         else:  # Création d'une nouvelle note

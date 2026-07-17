@@ -14,7 +14,7 @@ from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
-from instruction.utils.document_utils import normaliser_emplacement
+from instruction.utils.document_utils import NATURES_VALIDES, normaliser_emplacement
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail, get_instructeur_or_redirect
@@ -35,6 +35,10 @@ from synchronisation.utils.fichiers import get_nom_disponible
 
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
+
+
+def _redirect_instruction_dossier(dossier):
+    return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
 @require_POST
@@ -1626,6 +1630,133 @@ def acte_pret_a_la_signature(request):
 
 
 
+
+
+@require_POST
+@login_required
+def remplacer_acte_signe(request):
+    dossier_id = request.POST.get("dossier_id")
+    document_id = request.POST.get("document_id")
+    fichier = request.FILES.get("acte_signe")
+
+    dossier = Dossier.objects.filter(id=dossier_id).select_related("id_etape_dossier").first()
+    if not dossier:
+        logger.warning(f"[REMPLACER ACTE SIGNE] Dossier id={dossier_id} introuvable — User={request.user}")
+        messages.error(request, "❌ Le dossier est introuvable. Contactez le support.")
+        return redirect("instruction")
+
+    redirect_dossier = _redirect_instruction_dossier(dossier)
+    etape = dossier.id_etape_dossier.etape if dossier.id_etape_dossier else ""
+    if etape != "Acte à envoyer":
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Tentative de remplacement de l'acte signé "
+            f"hors étape 'Acte à envoyer' (étape={etape}) — User={request.user}"
+        )
+        messages.error(
+            request,
+            "❌ L'acte signé ne peut être remplacé qu'à l'étape « Acte à envoyer ».",
+        )
+        return redirect_dossier
+
+    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    est_intermediaire_signature = (
+        instructeur
+        and DossierIntermediaireSignature.objects.filter(
+            id_dossier=dossier,
+            id_instructeur=instructeur,
+        ).exists()
+    )
+    if not (request.user.is_superuser or est_intermediaire_signature):
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Remplacement de l'acte signé refusé : "
+            f"User={request.user} n'est pas l'intermédiaire signature affecté au dossier."
+        )
+        messages.error(
+            request,
+            "❌ Seule la personne chargée de l'envoi pour signature peut remplacer l'acte signé.",
+        )
+        return redirect_dossier
+
+    lien_document = (
+        DossierDocument.objects
+        .filter(id_dossier=dossier, id_document_id=document_id)
+        .select_related(
+            "id_document__id_format",
+            "id_document__id_nature",
+            "id_document__id_statut",
+        )
+        .first()
+    )
+    document = lien_document.id_document if lien_document else None
+    document_valide = (
+        document
+        and document.id_statut
+        and document.id_statut.statut.casefold() == "à envoyer"
+        and document.id_nature
+        and document.id_nature.nature in NATURES_VALIDES
+        and document.id_format
+        and document.id_format.format.casefold() == "pdf"
+        and Path(document.titre).suffix.casefold() == ".pdf"
+        and "/" not in document.titre
+        and "\\" not in document.titre
+    )
+    if not document_valide:
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Document id={document_id} non éligible "
+            f"au remplacement de l'acte signé — User={request.user}"
+        )
+        messages.error(request, "❌ L'acte signé à remplacer est introuvable ou invalide.")
+        return redirect_dossier
+
+    if not fichier or Path(fichier.name).suffix.casefold() != ".pdf":
+        messages.error(request, "❌ Vous devez sélectionner un fichier PDF.")
+        return redirect_dossier
+
+    entete = fichier.read(1024)
+    fichier.seek(0)
+    if b"%PDF-" not in entete:
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Fichier non PDF refusé lors du remplacement "
+            f"de l'acte signé — User={request.user}, fichier={fichier.name}"
+        )
+        messages.error(request, "❌ Le fichier sélectionné n'est pas un PDF valide.")
+        return redirect_dossier
+
+    emplacement_document = normaliser_emplacement(document.emplacement)
+    emplacement_dossier = normaliser_emplacement(dossier.emplacement)
+    if not emplacement_document.casefold().startswith(emplacement_dossier.casefold()):
+        logger.error(
+            f"[DOSSIER {dossier.numero}] Emplacement incohérent pour le document "
+            f"id={document.id} : {document.emplacement}"
+        )
+        messages.error(request, "❌ L'emplacement de l'acte est invalide. Contactez le support.")
+        return redirect_dossier
+
+    chemin_acte = _normalize_unc_path(
+        os.path.join(os.environ.get("NAS_ROOT"), document.emplacement, document.titre)
+    )
+    if not smbclient.path.exists(chemin_acte):
+        logger.error(
+            f"[DOSSIER {dossier.numero}] Acte signé absent du NAS : {chemin_acte}"
+        )
+        messages.error(request, "❌ Le PDF actuel est introuvable sur le NAS. Contactez le support.")
+        return redirect_dossier
+
+    if not ecrire_file_sur_nas(fichier, chemin_acte):
+        logger.error(
+            f"[DOSSIER {dossier.numero}] Échec du remplacement de l'acte signé "
+            f"{document.titre} — User={request.user}"
+        )
+        messages.error(request, "❌ Le remplacement de l'acte signé a échoué. Contactez le support.")
+        return redirect_dossier
+
+    safe_enregistrer_action(dossier, instructeur, "Modification de l'acte", request,)
+    logger.info(
+        f"[DOSSIER {dossier.numero}] Acte signé {document.titre} remplacé "
+        f"par {request.user}, sans modification du document en base."
+    )
+    messages.success(request, f"L'acte signé « {document.titre} » a bien été remplacé.",)
+    return redirect_dossier
 
 
 @require_POST
