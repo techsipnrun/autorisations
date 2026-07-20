@@ -279,7 +279,18 @@ def build_champs_prepares(dossier):
                 champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'non pas concerné',})
 
         else:
-            champs_prepares.append({"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné",})
+            champ_prepare = {"type": "champ", "nom": nom, "valeur": champ.valeur or "Non renseigné"}
+            if "Numéro du dossier précédent" in nom:
+                numero_precedent = str(champ.valeur or "").strip()
+                champ_prepare["est_dossier_actuel"] = bool(
+                    numero_precedent and numero_precedent == str(dossier.numero)
+                )
+                champ_prepare["dossier_precedent_existe"] = bool(
+                    numero_precedent
+                    and not champ_prepare["est_dossier_actuel"]
+                    and Dossier.objects.filter(numero=numero_precedent).exists()
+                )
+            champs_prepares.append(champ_prepare)
 
     return champs_prepares, nb_cartes
 

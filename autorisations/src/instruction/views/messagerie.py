@@ -20,6 +20,7 @@ from DS.graphql_client import GraphQLClient
 from synchronisation.normalisation.norma_messages import message_normalize
 from synchronisation.synchro.sync_messages import sync_messages
 import logging, os
+import smbclient
 from django.utils import timezone
 from datetime import timedelta
 
@@ -627,7 +628,32 @@ def previsualiser_email(request, email_id):
         logger.error(f"[PREVIEW EMAIL] Erreur lors dela visualisation de l'email {email_id} par {request.user} : {e}")
         html = f"<p style='color:red;'>Erreur lors du rendu du template : {e}</p>"
 
-    return render(request, "instruction/email_preview.html", {"email": email, "corps_html": html})
+    annexes_supplementaires = []
+    if isinstance(email.context, dict):
+        for annexe in email.context.get("pieces_jointes_supplementaires", []) or []:
+            chemin = annexe.get("chemin", "")
+            emplacement, titre_stockage = os.path.split(chemin)
+            chemin_absolu = os.path.join(os.getenv("NAS_ROOT", ""), chemin)
+            try:
+                disponible = bool(chemin and smbclient.path.exists(chemin_absolu))
+            except Exception as exc:
+                logger.warning(
+                    f"[PREVIEW EMAIL {email_id}] Disponibilité de l'annexe "
+                    f"'{annexe.get('nom', chemin)}' impossible à vérifier : {exc}"
+                )
+                disponible = False
+            annexes_supplementaires.append({
+                **annexe,
+                "emplacement": emplacement,
+                "titre_stockage": titre_stockage,
+                "disponible": disponible,
+            })
+
+    return render(request, "instruction/email_preview.html", {
+        "email": email,
+        "corps_html": html,
+        "annexes_supplementaires": annexes_supplementaires,
+    })
 
 
 

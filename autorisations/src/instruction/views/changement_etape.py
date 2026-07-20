@@ -41,6 +41,67 @@ def _redirect_instruction_dossier(dossier):
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
+def _envoyer_annexes_decision_sur_ds(*, dossier, instructeur, annexes, user_email):
+    """Envoie et archive chaque annexe comme un message distinct sur DN."""
+    for annexe in annexes:
+        chemin_temporaire = None
+        body = "Annexe jointe avec l’acte."
+        try:
+            chemin_temporaire = prepare_temp_file(annexe)
+            if not chemin_temporaire:
+                return f"Impossible de préparer l’annexe « {annexe.name} » pour son envoi."
+
+            result = envoyer_message_ds(
+                dossier.id_ds,
+                instructeur,
+                body,
+                annexe,
+                annexe.content_type,
+                chemin_temporaire,
+                dossier.numero,
+            )
+            message_ds = (result or {}).get("data", {}).get("dossierEnvoyerMessage", {}).get("message")
+            if not message_ds or not message_ds.get("id"):
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] Échec de l'envoi de l'annexe de décision "
+                    f"'{annexe.name}' sur Démarche Numérique : {result}"
+                )
+                return f"L’annexe « {annexe.name} » n’a pas pu être envoyée sur Démarche Numérique."
+
+            message_id_ds = message_ds["id"]
+            try:
+                url_ds = get_msg_DS(int(dossier.numero), message_id_ds)
+            except Exception as exc:
+                logger.warning(
+                    f"[DOSSIER {dossier.numero}] URL DN introuvable pour l'annexe "
+                    f"'{annexe.name}' du message {message_id_ds} : {exc}"
+                )
+                url_ds = None
+
+            enregistrer_message_bdd(
+                dossier,
+                user_email,
+                body,
+                annexe,
+                id_ds=message_id_ds,
+                url_ds=url_ds,
+            )
+        except Exception as exc:
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Erreur lors de l'envoi ou de l'archivage "
+                f"de l'annexe de décision '{annexe.name}' : {exc}"
+            )
+            return f"Erreur lors du traitement de l’annexe « {annexe.name} ». Contactez le support."
+        finally:
+            if chemin_temporaire and os.path.exists(chemin_temporaire):
+                try:
+                    os.remove(chemin_temporaire)
+                except OSError as exc:
+                    logger.warning(f"Impossible de supprimer le fichier temporaire {chemin_temporaire} : {exc}")
+
+    return None
+
+
 @require_POST
 @login_required
 def passer_en_pre_instruction(request):
@@ -2230,6 +2291,46 @@ def envoyer_l_acte(request):
     nature_document = request.POST.get("nature_document")
     publieur_raa_id = request.POST.get("choix-publieur-raa") # id Instructeur
 
+    partager_par_mail = (
+        request.POST.get("partager_par_mail_choice")
+        or request.POST.get("partager_par_mail")
+    ) == "oui"
+    if partager_par_mail:
+        emails_mail_valides = []
+        for email in request.POST.getlist("emails_copie[]"):
+            email = (email or "").strip()
+            if not email:
+                continue
+            try:
+                validate_email(email)
+            except ValidationError:
+                continue
+            emails_mail_valides.append(email)
+
+        if not emails_mail_valides:
+            return redirect_error(
+                request,
+                "❌ Vous devez renseigner au moins un destinataire valide pour partager l’acte par mail.",
+            )
+
+        taille_max_annexe_mail = 10 * 1024 * 1024
+        for annexe_mail in request.FILES.getlist("annexes_mail"):
+            if annexe_mail.size > taille_max_annexe_mail:
+                return redirect_error(
+                    request,
+                    f"❌ La pièce jointe « {annexe_mail.name} » dépasse la taille maximale autorisée de 10 Mo.",
+                )
+
+    transmettre_annexes_ds = request.POST.get("transmettre_annexes_ds") == "oui"
+    annexes_ds = request.FILES.getlist("annexes_ds") if transmettre_annexes_ds else []
+    taille_max_annexe_ds = 10 * 1024 * 1024
+    for annexe_ds in annexes_ds:
+        if annexe_ds.size > taille_max_annexe_ds:
+            return redirect_error(
+                request,
+                f"❌ L’annexe « {annexe_ds.name} » dépasse la taille maximale autorisée de 10 Mo.",
+            )
+
     root_folder = os.path.join(os.environ.get("NAS_ROOT"))
 
     # ============================
@@ -2245,6 +2346,12 @@ def envoyer_l_acte(request):
     dossier, err = get_dossier_or_redirect(request, "ENVOYER ACTE", id_ds=dossier_id_ds)
     if err:
         return err
+
+    if annexes_ds and not dossier.present_sur_ds:
+        return redirect_error(
+            request,
+            "❌ Impossible de transmettre les annexes : ce dossier n’est pas présent sur Démarche Numérique.",
+        )
 
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Envoyer l'acte")
@@ -2305,6 +2412,22 @@ def envoyer_l_acte(request):
         emplacement_doc = os.path.join(emplacement_relatif_dossier_acte, f"{document.titre}")
         full_path_doc = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc)
 
+        if partager_par_mail:
+            taille_max_mail_mo = int(os.getenv("EMAIL_MAX_MESSAGE_SIZE_MB", "10"))
+            taille_max_mail = taille_max_mail_mo * 1024 * 1024
+            taille_acte = smbclient.path.getsize(full_path_doc)
+            taille_annexes = sum(
+                annexe.size for annexe in request.FILES.getlist("annexes_mail")
+            )
+            # Les pièces jointes MIME en base64 ajoutent environ 33 % de volume.
+            taille_estimee = int((taille_acte + taille_annexes) * 4 / 3) + 512 * 1024
+            if taille_estimee > taille_max_mail:
+                return redirect_error(
+                    request,
+                    "❌ L’acte et les annexes dépassent la taille totale autorisée pour un mail "
+                    f"({taille_max_mail_mo} Mo).",
+                )
+
 
         # Définir le Content Type à partir du Format du Doc
         format_str = document.id_format.format.lower()
@@ -2343,6 +2466,15 @@ def envoyer_l_acte(request):
         
             if result["success"]:
                 loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur}")
+
+                erreur_annexes_ds = _envoyer_annexes_decision_sur_ds(
+                    dossier=dossier,
+                    instructeur=instructeur,
+                    annexes=annexes_ds,
+                    user_email=request.user.email,
+                )
+                if erreur_annexes_ds:
+                    return redirect_error(request, erreur_annexes_ds)
 
             else:
                 logger.error(f"[DOSSIER {dossier_numero}] Erreur lors de l'acceptation du dossier sur DS par {instructeur} : {result['message']}")
@@ -2539,6 +2671,44 @@ def envoyer_l_acte_de_refus(request):
     nature_document = request.POST.get("nature_document")
     publieur_raa_id = request.POST.get("choix-publieur-raa") # id Instructeur
 
+    partager_par_mail = (
+        request.POST.get("partager_par_mail_choice")
+        or request.POST.get("partager_par_mail")
+    ) == "oui"
+    if partager_par_mail:
+        emails_mail_valides = []
+        for email in request.POST.getlist("emails_copie[]"):
+            email = (email or "").strip()
+            if not email:
+                continue
+            try:
+                validate_email(email)
+            except ValidationError:
+                continue
+            emails_mail_valides.append(email)
+
+        if not emails_mail_valides:
+            return redirect_error(
+                request,
+                "❌ Vous devez renseigner au moins un destinataire valide pour partager l’acte par mail.",
+            )
+
+        for annexe_mail in request.FILES.getlist("annexes_mail"):
+            if annexe_mail.size > 10 * 1024 * 1024:
+                return redirect_error(
+                    request,
+                    f"❌ La pièce jointe « {annexe_mail.name} » dépasse la taille maximale autorisée de 10 Mo.",
+                )
+
+    transmettre_annexes_ds = request.POST.get("transmettre_annexes_ds") == "oui"
+    annexes_ds = request.FILES.getlist("annexes_ds") if transmettre_annexes_ds else []
+    for annexe_ds in annexes_ds:
+        if annexe_ds.size > 10 * 1024 * 1024:
+            return redirect_error(
+                request,
+                f"❌ L’annexe « {annexe_ds.name} » dépasse la taille maximale autorisée de 10 Mo.",
+            )
+
     root_folder = os.path.join(os.environ.get("NAS_ROOT"))
 
     # ============================
@@ -2554,6 +2724,12 @@ def envoyer_l_acte_de_refus(request):
     dossier, err = get_dossier_or_redirect(request, "ENVOYER ACTE", id_ds=dossier_id_ds)
     if err:
         return err
+
+    if annexes_ds and not dossier.present_sur_ds:
+        return redirect_error(
+            request,
+            "❌ Impossible de transmettre les annexes : ce dossier n’est pas présent sur Démarche Numérique.",
+        )
 
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Envoyer l'acte")
@@ -2611,6 +2787,21 @@ def envoyer_l_acte_de_refus(request):
         emplacement_doc = os.path.join(emplacement_relatif_dossier_acte, f"{document.titre}")
         full_path_doc = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc)
 
+        if partager_par_mail:
+            taille_max_mail_mo = int(os.getenv("EMAIL_MAX_MESSAGE_SIZE_MB", "10"))
+            taille_max_mail = taille_max_mail_mo * 1024 * 1024
+            taille_acte = smbclient.path.getsize(full_path_doc)
+            taille_annexes = sum(
+                annexe.size for annexe in request.FILES.getlist("annexes_mail")
+            )
+            taille_estimee = int((taille_acte + taille_annexes) * 4 / 3) + 512 * 1024
+            if taille_estimee > taille_max_mail:
+                return redirect_error(
+                    request,
+                    "❌ L’acte et les annexes dépassent la taille totale autorisée pour un mail "
+                    f"({taille_max_mail_mo} Mo, encodage compris). Retirez une ou plusieurs annexes.",
+                )
+
 
         # Définir le Content Type à partir du Format du Doc
         format_str = document.id_format.format.lower()
@@ -2653,6 +2844,14 @@ def envoyer_l_acte_de_refus(request):
             if not result["success"]:
                 logger.error(f"[DOSSIER {dossier_numero}] Erreur lors du refus du dossier sur DS par {instructeur} : {result['message']}")
                 return redirect_error(request, f"Erreur lors du refus du dossier sur Démarche Numérique. Contactez le support.")
+            erreur_annexes_ds = _envoyer_annexes_decision_sur_ds(
+                dossier=dossier,
+                instructeur=instructeur,
+                annexes=annexes_ds,
+                user_email=request.user.email,
+            )
+            if erreur_annexes_ds:
+                return redirect_error(request, erreur_annexes_ds)
 
 
         try :

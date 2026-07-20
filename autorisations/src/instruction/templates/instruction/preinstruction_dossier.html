@@ -399,6 +399,13 @@
                     <div class="nom_du_dossier" id="nomDossierBloc"
                         data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
 
+                        <span class="nom-dossier-info" tabindex="0" aria-describedby="nom-dossier-info-bulle">
+                            <span class="nom-dossier-info-icon" aria-hidden="true">i</span>
+                            <span class="nom-dossier-info-bulle" id="nom-dossier-info-bulle" role="tooltip">
+                                Ce nom est généré automatiquement et utilisé pour identifier le dossier dans les tableaux. S’il n’est pas suffisamment explicite, nous vous conseillons de le remplacer par un nom plus parlant.
+                            </span>
+                        </span>
+
                         <h2>Nom du dossier</h2>
 
                         <div class="nom_dossier_ligne">
@@ -486,9 +493,18 @@
                                 <p>
                                     <strong>{{ champ.nom }}</strong> :
                                     {% if champ.valeur|default_if_none:"" and champ.valeur != "Non renseigné" %}
-                                        <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
-                                            Voir le dossier précédent
-                                        </a>
+                                        <span>{{ champ.valeur }}</span>
+                                        {% if champ.est_dossier_actuel %}
+                                            <span class="dossier-precedent-actuel">Il s’agit du dossier affiché actuellement.</span>
+                                        {% elif champ.dossier_precedent_existe %}
+                                            <a href="{% url 'instruction_dossier' num_dossier=champ.valeur %}"
+                                               class="lien-dossier-precedent"
+                                               title="Voir le dossier précédent">
+                                                <img src="{% static 'instruction/img/lien-externe.png' %}"
+                                                     alt="Voir le dossier précédent"
+                                                     class="lien-dossier-precedent-icon">
+                                            </a>
+                                        {% endif %}
                                     {% else %}
                                         Non renseigné
                                     {% endif %}

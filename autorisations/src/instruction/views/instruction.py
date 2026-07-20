@@ -649,6 +649,22 @@ def instruction_dossier(request, num_dossier):
     # Documents
     #############################
     documents_data = build_documents_for_dossier(dossier)
+    taille_acte_mail_octets = None
+    doc_a_envoyer = (documents_data.get("doc_a_envoyer") or [None])[0]
+    if doc_a_envoyer:
+        try:
+            chemin_acte = os.path.join(
+                os.getenv("NAS_ROOT", ""),
+                dossier.emplacement,
+                "Actes",
+                doc_a_envoyer.titre,
+            )
+            taille_acte_mail_octets = smbclient.path.getsize(chemin_acte)
+        except Exception as exc:
+            logger.warning(
+                f"[DOSSIER {dossier.numero}] Taille de l'acte à envoyer indisponible "
+                f"pour le contrôle du formulaire : {exc}"
+            )
     peut_remplacer_acte_signe = bool(
         etape_actuelle
         and etape_actuelle.etape == "Acte à envoyer"
@@ -835,6 +851,8 @@ def instruction_dossier(request, num_dossier):
         "relecteur_message": request.session.pop("relecteur_message", None),
         "now": timezone.now(),
         "DM_API_URL": DM_API_URL,
+        "taille_acte_mail_octets": taille_acte_mail_octets,
+        "taille_max_mail_mo": int(os.getenv("EMAIL_MAX_MESSAGE_SIZE_MB", "10")),
 
         **roles,
         **avis_data,

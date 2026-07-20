@@ -60,7 +60,7 @@ def _render_message(item):
 
 
 # Envoi_mail
-def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
+def envoi_mail(item_id: int, pieces_jointes_supplementaires=None) -> tuple[bool, str]:  #item_id = EmailOutbox_id
     """
     Envoie IMMÉDIATEMENT l'email outbox donné.
     - Pas de backoff ni de réessais : Envoyé si succès, Échec sinon.
@@ -114,6 +114,31 @@ def envoi_mail(item_id: int) -> tuple[bool, str]:  #item_id = EmailOutbox_id
                             return False, f"Mail non envoyé (Dossier {item.id_dossier}): La pièce jointe (Document {doc.id}) n'a pas été trouvé à l'emplacement {chemin_fichier}"
                         else :
                             return False, f"Mail non envoyé : La pièce jointe (Document {doc.id}) n'a pas été trouvé à l'emplacement {chemin_fichier}"
+
+                for piece_jointe in pieces_jointes_supplementaires or []:
+                    piece_jointe.seek(0)
+                    mimetype = getattr(piece_jointe, "content_type", None)
+                    if not mimetype:
+                        mimetype, _ = mimetypes.guess_type(piece_jointe.name)
+                    msg.attach(
+                        piece_jointe.name,
+                        piece_jointe.read(),
+                        mimetype or "application/octet-stream",
+                    )
+
+                pieces_jointes_persistantes = item.context.get("pieces_jointes_supplementaires", [])
+                for piece_jointe in pieces_jointes_persistantes:
+                    chemin = os.path.join(os.getenv("NAS_ROOT", ""), piece_jointe["chemin"])
+                    if not smbclient.path.exists(chemin):
+                        raise FileNotFoundError(f"Pièce jointe du mail introuvable : {chemin}")
+
+                    with smbclient.open_file(chemin, mode="rb") as fichier:
+                        contenu = fichier.read()
+                    msg.attach(
+                        piece_jointe["nom"],
+                        contenu,
+                        piece_jointe.get("content_type") or "application/octet-stream",
+                    )
 
                 msg.send(fail_silently=False)
 

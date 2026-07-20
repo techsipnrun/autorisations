@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const container = form.querySelector(".nouveaux-contacts-container");
         const tmpl = form.querySelector(".nouveau-contact-template");
+        const erreurValidation = form.querySelector(".mail-validation-erreur");
 
         if (!radios.length || !hidden || !bloc || !select || !search || !chips || !addBtn || !container || !tmpl) return;
 
@@ -28,10 +29,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (val === "oui") {
                 bloc.classList.add("show");
+                form.querySelector(".annexes-mail-input")?.dispatchEvent(new CustomEvent("verifier-volume"));
             } else {
                 bloc.classList.remove("show");
                 if (select) Array.from(select.options).forEach(o => o.selected = false);
                 if (chips) chips.innerHTML = "";
+                if (erreurValidation) erreurValidation.hidden = true;
             }
         }
 
@@ -257,5 +260,275 @@ document.addEventListener("DOMContentLoaded", () => {
         // ----- Init -----
         rebuildOptions(originalOptions);
         renderChips();
+
+        form.addEventListener("submit", (event) => {
+            const partageActif = form.querySelector(
+                'input[name="partager_par_mail_choice"]:checked'
+            )?.value === "oui";
+            if (!partageActif) return;
+
+            const destinataires = chips.querySelectorAll('input[name="emails_copie[]"]');
+            if (!destinataires.length) {
+                event.preventDefault();
+                if (erreurValidation) {
+                    erreurValidation.textContent = "Ajoutez au moins un destinataire pour partager l’acte par mail.";
+                    erreurValidation.hidden = false;
+                }
+                search.focus();
+                return;
+            }
+
+            if (erreurValidation) erreurValidation.hidden = true;
+
+            const inputAnnexesMail = form.querySelector(".annexes-mail-input");
+            if (inputAnnexesMail?.dataset.volumeValide === "non") {
+                event.preventDefault();
+                inputAnnexesMail.focus();
+            }
+        });
     });
-}); 
+
+    document.querySelectorAll(".annexes-piece-jointe-input").forEach((input) => {
+        const liste = input.closest(".pieces-jointes-composeur")?.querySelector(".annexes-mail-liste");
+        if (!liste) return;
+
+        let fichiers = [];
+        const estInputMail = input.classList.contains("annexes-mail-input");
+        const moduleMail = input.closest(".module-partage-mail");
+        const indicateurVolume = input.closest(".pieces-jointes-composeur")?.querySelector(".mail-pj-volume");
+        const tailleActe = Number.parseInt(moduleMail?.dataset.tailleActe || "", 10);
+        const tailleMaxMailMo = Number.parseInt(moduleMail?.dataset.tailleMaxMailMo || "10", 10);
+        const tailleMaxMail = tailleMaxMailMo * 1024 * 1024;
+
+        const calculerTailleMailEstimee = (listeFichiers) => {
+            if (!estInputMail || !Number.isFinite(tailleActe)) return null;
+            const tailleAnnexes = listeFichiers.reduce((total, fichier) => total + fichier.size, 0);
+            return Math.trunc((tailleActe + tailleAnnexes) * 4 / 3) + 512 * 1024;
+        };
+
+        const afficherVolumeMail = (listeFichiers) => {
+            if (!estInputMail) return true;
+            const tailleEstimee = calculerTailleMailEstimee(listeFichiers);
+            const estValide = tailleEstimee === null || tailleEstimee <= tailleMaxMail;
+            input.dataset.volumeValide = estValide ? "oui" : "non";
+
+            if (indicateurVolume) {
+                indicateurVolume.classList.toggle("est-invalide", !estValide);
+                if (tailleEstimee === null) {
+                    indicateurVolume.textContent = "Le volume total sera vérifié avant l’envoi.";
+                } else {
+                    const tailleMo = (tailleEstimee / (1024 * 1024)).toFixed(2).replace(".", ",");
+                    indicateurVolume.textContent = estValide
+                        ? `Volume total estimé du mail : ${tailleMo} Mo sur ${tailleMaxMailMo} Mo.`
+                        : `Volume total estimé du mail : ${tailleMo} Mo sur ${tailleMaxMailMo} Mo. Retirez une ou plusieurs annexes.`;
+                }
+            }
+            return estValide;
+        };
+
+        const synchroniserInput = () => {
+            const transfert = new DataTransfer();
+            fichiers.forEach((fichier) => transfert.items.add(fichier));
+            input.files = transfert.files;
+            afficherVolumeMail(fichiers);
+            if (input.classList.contains("annexes-ds-input")) {
+                document.dispatchEvent(new CustomEvent("annexes-ds-modifiees"));
+            }
+        };
+
+        const afficherFichiers = () => {
+            liste.innerHTML = "";
+            fichiers.forEach((fichier, index) => {
+                const url = URL.createObjectURL(fichier);
+                const ligne = document.createElement("div");
+                ligne.className = "annexe-mail-row";
+
+                const nom = document.createElement("a");
+                nom.href = url;
+                nom.target = "_blank";
+                nom.rel = "noopener noreferrer";
+                nom.textContent = fichier.name;
+                nom.title = "Visualiser l’annexe";
+
+                const infos = document.createElement("span");
+                infos.className = "annexe-mail-infos";
+                const taille = document.createElement("span");
+                taille.className = "annexe-mail-taille";
+                const tailleMo = fichier.size / (1024 * 1024);
+                taille.textContent = tailleMo >= 0.1
+                    ? `(${tailleMo.toFixed(2).replace(".", ",")} Mo)`
+                    : `(${Math.max(1, Math.ceil(fichier.size / 1024))} Ko)`;
+                infos.append(nom, taille);
+
+                const telecharger = document.createElement("a");
+                telecharger.href = url;
+                telecharger.download = fichier.name;
+                telecharger.className = "annexe-mail-action";
+                telecharger.title = "Télécharger l’annexe";
+                telecharger.setAttribute("aria-label", `Télécharger ${fichier.name}`);
+                const iconeTelechargement = document.createElement("img");
+                iconeTelechargement.src = input.dataset.downloadIcon;
+                iconeTelechargement.alt = "";
+                telecharger.appendChild(iconeTelechargement);
+
+                const extension = fichier.name.split(".").pop()?.toLowerCase() || "";
+                const estPdf = fichier.type === "application/pdf" || extension === "pdf";
+                const extensionsImage = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"]);
+                const estImage = fichier.type.startsWith("image/") || extensionsImage.has(extension);
+
+                let apercuContainer = null;
+                if (estPdf || estImage) {
+                    apercuContainer = document.createElement("span");
+                    apercuContainer.className = "document-avec-apercu";
+
+                    const apercu = document.createElement("button");
+                    apercu.type = "button";
+                    apercu.className = "annexe-mail-action document-apercu-trigger";
+                    apercu.dataset.previewUrl = url;
+                    apercu.dataset.previewType = estPdf ? "pdf" : "image";
+                    apercu.title = "Visualiser l’annexe";
+                    apercu.setAttribute("aria-label", `Visualiser ${fichier.name}`);
+
+                    const iconeApercu = document.createElement("img");
+                    iconeApercu.src = input.dataset.previewIcon;
+                    iconeApercu.alt = "";
+                    apercu.appendChild(iconeApercu);
+
+                    const pont = document.createElement("span");
+                    pont.className = "document-apercu-pont";
+                    pont.setAttribute("aria-hidden", "true");
+
+                    const popover = document.createElement("span");
+                    popover.className = "document-apercu-popover";
+                    popover.setAttribute("role", "tooltip");
+                    const chargement = document.createElement("span");
+                    chargement.className = "document-apercu-chargement";
+                    chargement.textContent = "Chargement de l’aperçu…";
+                    popover.appendChild(chargement);
+
+                    apercuContainer.append(apercu, pont, popover);
+                }
+
+                const retirer = document.createElement("button");
+                retirer.type = "button";
+                retirer.className = "annexe-mail-retirer";
+                retirer.title = "Retirer cette annexe";
+                retirer.setAttribute("aria-label", `Retirer ${fichier.name}`);
+                retirer.textContent = "×";
+                retirer.addEventListener("click", () => {
+                    URL.revokeObjectURL(url);
+                    fichiers.splice(index, 1);
+                    synchroniserInput();
+                    afficherFichiers();
+                });
+
+                ligne.append(infos, telecharger);
+                if (apercuContainer) ligne.appendChild(apercuContainer);
+                ligne.appendChild(retirer);
+                liste.appendChild(ligne);
+
+                if (apercuContainer && window.initialiserApercuDocument) {
+                    window.initialiserApercuDocument(
+                        apercuContainer.querySelector(".document-apercu-trigger")
+                    );
+                }
+            });
+        };
+
+        const ajouterFichiers = (nouveauxFichiers) => {
+            const fichierTropLourd = nouveauxFichiers.find((fichier) => fichier.size > 10 * 1024 * 1024);
+            if (fichierTropLourd) {
+                alert(`La pièce jointe « ${fichierTropLourd.name} » dépasse la taille maximale de 10 Mo.`);
+                input.value = "";
+                synchroniserInput();
+                return false;
+            }
+
+            const fichiersCandidats = [...fichiers];
+            nouveauxFichiers.forEach((nouveauFichier) => {
+                const dejaPresent = fichiersCandidats.some((fichier) => (
+                    fichier.name === nouveauFichier.name
+                    && fichier.size === nouveauFichier.size
+                    && fichier.lastModified === nouveauFichier.lastModified
+                ));
+                if (!dejaPresent) fichiersCandidats.push(nouveauFichier);
+            });
+
+            if (!afficherVolumeMail(fichiersCandidats)) {
+                alert(
+                    `L’acte et les annexes dépassent la taille totale autorisée pour un mail `
+                    + `(${tailleMaxMailMo} Mo, encodage compris). Retirez une ou plusieurs annexes.`
+                );
+                input.value = "";
+                synchroniserInput();
+                return false;
+            }
+
+            fichiers = fichiersCandidats;
+            synchroniserInput();
+            afficherFichiers();
+            return true;
+        };
+
+        input.addEventListener("change", () => {
+            ajouterFichiers(Array.from(input.files));
+        });
+
+        input.addEventListener("ajouter-fichiers", (event) => {
+            ajouterFichiers(Array.from(event.detail?.fichiers || []));
+        });
+        input.addEventListener("verifier-volume", () => afficherVolumeMail(fichiers));
+        afficherVolumeMail(fichiers);
+    });
+
+    document.querySelectorAll("form").forEach((form) => {
+        const zoneAnnexesDs = form.querySelector(".zone-annexes-ds");
+        const inputAnnexesDs = form.querySelector(".annexes-ds-input");
+        if (!zoneAnnexesDs || !inputAnnexesDs) return;
+
+        const radiosAnnexesDs = form.querySelectorAll('input[name="transmettre_annexes_ds"]');
+        radiosAnnexesDs.forEach((radio) => {
+            radio.addEventListener("change", () => {
+                const transmettre = form.querySelector(
+                    'input[name="transmettre_annexes_ds"]:checked'
+                )?.value === "oui";
+                zoneAnnexesDs.hidden = !transmettre;
+            });
+        });
+
+        const inputAnnexesMail = form.querySelector(".annexes-mail-input");
+        const reprendreAnnexesDs = form.querySelector(".mail-reprendre-annexes-ds");
+        const actualiserRaccourciAnnexesDs = () => {
+            if (reprendreAnnexesDs) {
+                reprendreAnnexesDs.hidden = !(inputAnnexesDs.files?.length > 0);
+            }
+        };
+
+        document.addEventListener("annexes-ds-modifiees", actualiserRaccourciAnnexesDs);
+        reprendreAnnexesDs?.addEventListener("click", () => {
+            if (!inputAnnexesMail || !inputAnnexesDs.files?.length) return;
+            inputAnnexesMail.dispatchEvent(new CustomEvent("ajouter-fichiers", {
+                detail: { fichiers: Array.from(inputAnnexesDs.files) }
+            }));
+        });
+        actualiserRaccourciAnnexesDs();
+    });
+
+    const ajusterTextarea = (textarea) => {
+        textarea.style.height = "auto";
+        textarea.style.height = `${Math.max(textarea.scrollHeight + 4, 128)}px`;
+    };
+
+    document.querySelectorAll(".form-acceptation-textarea").forEach((textarea) => {
+        ajusterTextarea(textarea);
+        textarea.addEventListener("input", () => ajusterTextarea(textarea));
+    });
+
+    const formulaireAcceptation = document.getElementById("formulaire-acceptation");
+    if (formulaireAcceptation) {
+        new MutationObserver(() => {
+            if (!formulaireAcceptation.classList.contains("show")) return;
+            formulaireAcceptation.querySelectorAll(".form-acceptation-textarea").forEach(ajusterTextarea);
+        }).observe(formulaireAcceptation, { attributes: true, attributeFilter: ["class"] });
+    }
+});

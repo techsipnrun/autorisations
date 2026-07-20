@@ -193,6 +193,10 @@
 }
 
 .mail_entier{
+    display: inline-block;
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
     border: solid 1px rgb(88, 88, 88);
     padding: 1rem;
 }
@@ -212,6 +216,391 @@
 .nature_du_doc {
     display: flex;
     gap: 0.7rem;
+}
+
+.acte-acceptation-resume {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem;
+}
+
+#formulaire-acceptation .module-depot-demarche-numerique {
+    box-sizing: border-box;
+    width: min(72rem, 100%);
+    margin: 0 0 2rem;
+    border: 1px solid #12427e;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(31, 58, 91, 0.09);
+}
+
+#formulaire-acceptation .module-depot-demarche-numerique-titre {
+    margin: 0;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid #cdd9e6;
+    border-radius: 10px 10px 0 0;
+    color: #274e78;
+    background: #eaf2fa;
+    font-size: 1.05rem;
+}
+
+#formulaire-acceptation .module-depot-demarche-numerique-contenu {
+    padding: 1.15rem;
+}
+
+#formulaire-acceptation .module-depot-demarche-numerique .acte-acceptation-resume {
+    margin-bottom: 1.25rem;
+}
+
+#formulaire-acceptation .form-acceptation-textarea {
+    box-sizing: border-box;
+    width: min(42rem, 100%);
+    min-width: min(32rem, 100%);
+    max-width: 100%;
+    min-height: 8rem;
+    resize: both;
+}
+
+#formulaire-acceptation .module-partage-mail-acceptation,
+#formulaire-envoyer-acte-refus .module-partage-mail-acceptation {
+    box-sizing: border-box;
+    width: min(72rem, 100%);
+    max-width: 100%;
+    margin: 2rem 0;
+    border: 1px solid #155a32;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(32, 55, 43, 0.1);
+}
+
+#formulaire-acceptation .module-partage-mail-acceptation .copie_par_mail,
+#formulaire-envoyer-acte-refus .module-partage-mail-acceptation .copie_par_mail {
+    align-items: center;
+    margin: 0;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid #dbe2de;
+    border-radius: 10px 10px 0 0;
+    background: #edf3ef;
+}
+
+#formulaire-acceptation .module-partage-mail-acceptation .zone-partage-mails,
+#formulaire-envoyer-acte-refus .module-partage-mail-acceptation .zone-partage-mails {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 1.15rem;
+}
+
+#formulaire-acceptation .emails-multiselect,
+#formulaire-envoyer-acte-refus .emails-multiselect {
+    align-self: flex-start;
+    width: fit-content;
+    min-width: min(22rem, 100%);
+    max-width: 100%;
+}
+
+#formulaire-acceptation .mail_entier,
+#formulaire-envoyer-acte-refus .mail_entier {
+    width: min(64rem, 100%);
+}
+
+#formulaire-acceptation .mail_entier .form-acceptation-textarea,
+#formulaire-envoyer-acte-refus .mail_entier .form-acceptation-textarea {
+    width: 100%;
+    min-width: 0;
+}
+
+.mail-objet,
+.mail-pieces-jointes {
+    margin-top: 1.5rem;
+}
+
+.mail-objet label,
+.mail-pieces-jointes > label {
+    display: block;
+    margin-bottom: 0.6rem;
+}
+
+.mail-objet input {
+    box-sizing: border-box;
+    width: min(44rem, 100%);
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+}
+
+.mail-pj-obligatoire,
+.annexe-mail-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.45rem 0;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #d4ddd7;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.annexes-mail-liste {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.mail-pj-lignes {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.mail-pj-lignes .mail-pj-obligatoire,
+.mail-pj-lignes .annexe-mail-row {
+    margin: 0.45rem 0 0;
+}
+
+.mail-pj-statut {
+    color: #155a32;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.annexes-piece-jointe-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.mail-ajouter-pj {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.45rem;
+    width: fit-content;
+    margin-top: 0.8rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #aebdb4;
+    border-radius: 7px;
+    color: #155a32;
+    background: #f5f8f6;
+    cursor: pointer;
+}
+
+.mail-ajouter-pj span {
+    font-size: 1.35rem;
+    line-height: 0.8;
+}
+
+.mail-ajouter-pj:hover,
+.mail-ajouter-pj:focus-within {
+    border-color: #6f9780;
+    background: #eaf2ed;
+}
+
+.mail-ajouter-pj-ds {
+    border-color: #9fb4cc;
+    color: #274e78;
+    background: #edf4fb;
+}
+
+.mail-ajouter-pj-ds:hover,
+.mail-ajouter-pj-ds:focus-within {
+    border-color: #6f8ead;
+    background: #dfeefa;
+}
+
+.mail-pj-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-top: 0.8rem;
+}
+
+#formulaire-envoyer-acte-refus .module-depot-demarche-numerique {
+    box-sizing: border-box;
+    width: min(72rem, 100%);
+    margin: 0 0 2rem;
+    border: 1px solid #12427e;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(31, 58, 91, 0.09);
+}
+
+#formulaire-envoyer-acte-refus .module-depot-demarche-numerique-titre {
+    margin: 0;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid #cdd9e6;
+    border-radius: 10px 10px 0 0;
+    color: #274e78;
+    background: #eaf2fa;
+    font-size: 1.05rem;
+}
+
+#formulaire-envoyer-acte-refus .module-depot-demarche-numerique-contenu {
+    padding: 1.15rem;
+}
+
+#formulaire-envoyer-acte-refus .form-acceptation-textarea {
+    box-sizing: border-box;
+    width: min(42rem, 100%);
+    min-width: min(32rem, 100%);
+    max-width: 100%;
+    min-height: 8rem;
+    resize: both;
+}
+
+.titre-envoi-acte-acceptation {
+    color: #16713b;
+}
+
+.titre-envoi-acte-refus {
+    color: #b42318;
+}
+
+.mail-pj-lignes > .annexes-mail-liste {
+    display: contents;
+}
+
+.mail-pj-boutons {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.mail-pj-boutons .mail-ajouter-pj {
+    margin-top: 0;
+}
+
+.mail-pj-limite {
+    margin-left: 0.6rem;
+    color: #68736c;
+    font-size: 0.85rem;
+}
+
+.mail-pj-volume {
+    display: block;
+    margin: -0.35rem 0 0.65rem;
+    color: #155a32;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.annexe-mail-infos {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.annexe-mail-taille {
+    color: #155a32;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.mail-pj-volume.est-invalide,
+.mail-validation-erreur {
+    color: #a31313;
+}
+
+.mail-validation-erreur {
+    margin-top: 0.45rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.partage-annexes-ds {
+    margin-top: 1.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid #d8e1eb;
+}
+
+.partage-annexes-ds-question {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.partage-annexes-ds-question label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+}
+
+.zone-annexes-ds {
+    margin-top: 0.9rem;
+}
+
+.mail-reprendre-annexes-ds {
+    box-sizing: border-box;
+    min-height: 2.15rem;
+    margin: 0;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #a9ada9;
+    border-radius: 7px;
+    color: #303330;
+    background: #f1f2f1;
+    font-weight: 700;
+    font-style: italic;
+    cursor: pointer;
+}
+
+.mail-reprendre-annexes-ds:hover {
+    border-color: #777c78;
+    background: #e2e4e2;
+}
+
+.annexe-mail-action,
+.annexe-mail-retirer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid #d3d8d5;
+    border-radius: 7px;
+    background: #edf0ee;
+    cursor: pointer;
+}
+
+.annexe-mail-action img {
+    width: 17px;
+    height: 17px;
+}
+
+.annexe-mail-retirer {
+    color: #9d1c1c;
+    font-size: 1.25rem;
+    line-height: 1;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.85);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.annexe-mail-row:hover .annexe-mail-retirer,
+.annexe-mail-row:focus-within .annexe-mail-retirer {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    color: #bd1515;
+    border-color: #e2b6b6;
+    background: #fff1f1;
 }
 
 
@@ -1051,4 +1440,91 @@
 .un_mail .croix-retirer:hover {
     cursor: pointer;
     transform: scale(1.3);
+}
+.envoi-acte-attente {
+    position: fixed;
+    inset: 0;
+    z-index: 1000000;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(2px);
+}
+
+.mails-dossier-titre {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.55rem;
+}
+
+.lien-dossier-precedent {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+
+.lien-dossier-precedent-icon {
+    width: 1rem;
+    height: 1rem;
+    object-fit: contain;
+    transition: transform 0.15s ease;
+}
+
+.lien-dossier-precedent:hover .lien-dossier-precedent-icon,
+.lien-dossier-precedent:focus-visible .lien-dossier-precedent-icon {
+    transform: scale(1.15);
+}
+
+.dossier-precedent-actuel {
+    margin-left: 0.45rem;
+    color: #7f1d1d;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.mails-dossier-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    color: #fff;
+    background: #315a86;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.envoi-acte-attente[hidden] {
+    display: none;
+}
+
+.envoi-acte-attente-contenu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    max-width: 30rem;
+    padding: 1.5rem 2rem;
+    border: 1px solid #b7c9bd;
+    border-radius: 10px;
+    color: #194f31;
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    text-align: center;
+}
+
+.envoi-acte-spinner {
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 0.32rem solid #dce8e0;
+    border-top-color: #176b3a;
+    border-radius: 50%;
+    animation: envoi-acte-rotation 0.75s linear infinite;
+}
+
+@keyframes envoi-acte-rotation {
+    to { transform: rotate(360deg); }
 }

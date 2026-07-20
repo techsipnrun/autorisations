@@ -1,12 +1,13 @@
 {% load static %}
 {% url 'afficher_annexe' chemin=fichier_emplacement titre=fichier_titre as document_url %}
+{% with libelle=fichier_libelle|default:fichier_titre %}
 {% with titre_lower=fichier_titre|lower %}
     <span class="document-avec-apercu">
         <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
-            {{ fichier_titre }}
+            {{ libelle }}
         </a>
 
-        <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" class="document-download-link" title="Télécharger le document" aria-label="Télécharger {{ fichier_titre }}">
+        <a href="{{ document_url }}?download=1" class="document-download-link" title="Télécharger le document" aria-label="Télécharger {{ libelle }}">
             <img src="{% static 'instruction/img/download.png' %}" alt="" class="document-action-icon">
         </a>
 
@@ -16,7 +17,7 @@
                 class="document-apercu-trigger"
                 data-preview-url="{{ document_url }}"
                 data-preview-type="{% if '.pdf' in titre_lower %}pdf{% else %}image{% endif %}"
-                aria-label="Afficher un aperçu de {{ fichier_titre }}"
+                aria-label="Afficher un aperçu de {{ libelle }}"
                 title="Aperçu du document">
                 <img src="{% static 'instruction/img/loupe.png' %}" alt="" class="document-action-icon">
             </button>
@@ -37,4 +38,5 @@
             </button>
         {% endif %}
     </span>
+{% endwith %}
 {% endwith %}

@@ -48,7 +48,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    document.querySelectorAll(".document-apercu-trigger").forEach((trigger) => {
+    const triggersInitialises = new WeakSet();
+
+    const initialiserApercuDocument = (trigger) => {
+        if (!trigger || triggersInitialises.has(trigger)) return;
+        triggersInitialises.add(trigger);
+
         const container = trigger.closest(".document-avec-apercu");
         const popover = container?.querySelector(".document-apercu-popover");
         const bridge = container?.querySelector(".document-apercu-pont");
@@ -158,7 +163,10 @@ document.addEventListener("DOMContentLoaded", () => {
         container.addEventListener("focusout", (event) => {
             if (!container.contains(event.relatedTarget)) scheduleClose();
         });
-    });
+    };
+
+    window.initialiserApercuDocument = initialiserApercuDocument;
+    document.querySelectorAll(".document-apercu-trigger").forEach(initialiserApercuDocument);
 
     window.addEventListener("resize", () => {
         if (!activeContainer) return;

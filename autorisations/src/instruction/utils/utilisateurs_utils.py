@@ -1,5 +1,7 @@
 import logging
 import os
+from uuid import uuid4
+import smbclient
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -12,9 +14,64 @@ from django.contrib import messages
 from autorisations.models.models_utilisateurs import ContactExterne, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from instruction.utils.dossier_utils import redirect_error
+from instruction.utils.files_utils import sanitiser_nom_fichier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, create_EmailOutbox_DM, envoi_mail
 
 logger = logging.getLogger("ORM_DJANGO")
+
+
+def _mettre_en_attente_annexes_mail(dossier, annexes):
+    """Copie les annexes sur le NAS pour permettre une nouvelle tentative d'envoi."""
+    if not annexes:
+        return []
+
+    repertoire_relatif = os.path.join(
+        dossier.emplacement,
+        "Annexes",
+        "Emails_archives",
+        uuid4().hex,
+    )
+    repertoire_absolu = os.path.join(os.getenv("NAS_ROOT", ""), repertoire_relatif)
+    smbclient.makedirs(repertoire_absolu, exist_ok=True)
+
+    pieces_jointes = []
+    try:
+        for index, annexe in enumerate(annexes, start=1):
+            nom_original = sanitiser_nom_fichier(annexe.name) or f"annexe_{index}"
+            nom_stockage = f"{index}_{nom_original}"
+            chemin_relatif = os.path.join(repertoire_relatif, nom_stockage)
+            chemin_absolu = os.path.join(os.getenv("NAS_ROOT", ""), chemin_relatif)
+
+            annexe.seek(0)
+            with smbclient.open_file(chemin_absolu, mode="wb") as destination:
+                for chunk in annexe.chunks():
+                    destination.write(chunk)
+            annexe.seek(0)
+
+            pieces_jointes.append({
+                "nom": nom_original,
+                "chemin": chemin_relatif,
+                "content_type": getattr(annexe, "content_type", None),
+                "taille": annexe.size,
+            })
+    except Exception:
+        for piece_jointe in pieces_jointes:
+            chemin = os.path.join(os.getenv("NAS_ROOT", ""), piece_jointe["chemin"])
+            if smbclient.path.exists(chemin):
+                smbclient.remove(chemin)
+        raise
+
+    return pieces_jointes
+
+
+def _supprimer_annexes_mail_en_attente(pieces_jointes):
+    for piece_jointe in pieces_jointes:
+        chemin = os.path.join(os.getenv("NAS_ROOT", ""), piece_jointe["chemin"])
+        try:
+            if smbclient.path.exists(chemin):
+                smbclient.remove(chemin)
+        except Exception as e:
+            logger.warning(f"Impossible de supprimer l'annexe de mail en attente {chemin} : {e}")
 
 
 
@@ -185,7 +242,10 @@ def extraire_donnees_copie_mail(request):
     emails = request.POST.getlist("emails_copie[]")
 
     return {
-        "partager_par_mail": request.POST.get("partager_par_mail"),
+        "partager_par_mail": (
+            request.POST.get("partager_par_mail_choice")
+            or request.POST.get("partager_par_mail")
+        ),
         "emails": emails,
         "emails_nouveaux": request.POST.getlist("email_contact[]"),
         "emails_selectionnes_lower": {(e or "").strip().lower() for e in emails},
@@ -194,6 +254,8 @@ def extraire_donnees_copie_mail(request):
         "types": request.POST.getlist("type_contact[]"),
         "raisons": request.POST.getlist("raison_sociale[]"),
         "motivation_copie_mail": request.POST.get("motivation_copie_mail"),
+        "objet_mail": request.POST.get("objet_mail"),
+        "annexes_mail": request.FILES.getlist("annexes_mail"),
     }
 
 
@@ -327,10 +389,28 @@ def envoyer_copie_document_par_mail( *, request, dossier, document, nature_docum
             f"Aucun email valide sélectionné pour l’envoi en copie. "
             f"Liste des emails transmis : {donnees_mail['emails']}"
         )
-        return None
+        return redirect_error(
+            request,
+            "Vous devez renseigner au moins un destinataire valide pour partager l’acte par mail.",
+        )
 
-    sujet = f"{nature_document} – Dossier {dossier.numero}"
-    context = {"body": donnees_mail["motivation_copie_mail"]}
+    sujet = (donnees_mail["objet_mail"] or "").strip() or f"{nature_document} – Dossier {dossier.numero}"
+    try:
+        pieces_jointes_persistantes = _mettre_en_attente_annexes_mail(
+            dossier,
+            donnees_mail["annexes_mail"],
+        )
+    except Exception as e:
+        logger.error(
+            f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - "
+            f"Impossible de conserver les annexes du mail sur le NAS : {e}"
+        )
+        return redirect_error(request, "Les annexes du mail n’ont pas pu être préparées. Contactez le support.")
+
+    context = {
+        "body": donnees_mail["motivation_copie_mail"],
+        "pieces_jointes_supplementaires": pieces_jointes_persistantes,
+    }
     emails_txt = ", ".join(emails_norm)
 
     try:
@@ -340,6 +420,7 @@ def envoyer_copie_document_par_mail( *, request, dossier, document, nature_docum
             f"[DOSSIER {dossier.numero}] {libelle_log} ({request.user}) - "
             f"Échec de la création de la clé unique (compute_dedupe_key) : {e}"
         )
+        _supprimer_annexes_mail_en_attente(pieces_jointes_persistantes)
         return redirect_error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
 
     outbox = create_EmailOutbox(
@@ -359,6 +440,7 @@ def envoyer_copie_document_par_mail( *, request, dossier, document, nature_docum
             f"Erreur lors de la création de l'EmailOutbox. "
             f"Destinataires non notifiés : {emails_txt}"
         )
+        _supprimer_annexes_mail_en_attente(pieces_jointes_persistantes)
         return redirect_error( request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support.")
 
     ok, err = envoi_mail(outbox.id)

@@ -11,6 +11,8 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/email_preview.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
+    <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
 </head>
 <body>
     <div class="preview-container">
@@ -25,12 +27,26 @@
             <p><strong>Dernière tentative :</strong> {{ email.derniere_tentative_envoi }}</p>
         {% endif %}
 
-        {% if email.id_document %}
-            <p><strong>Pièce jointe :</strong>
-                <a href="{% url 'afficher_annexe' chemin=email.id_document.emplacement titre=email.id_document.titre %}" target="_blank">
-                    {{ email.id_document.titre }}
-                </a>
-            </p>
+        {% if email.id_document or annexes_supplementaires %}
+            <div class="email-pieces-jointes">
+                <strong>Pièces jointes :</strong>
+                <ul>
+                    {% if email.id_document %}
+                        <li>
+                            {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=email.id_document.emplacement fichier_titre=email.id_document.titre %}
+                        </li>
+                    {% endif %}
+                    {% for annexe in annexes_supplementaires %}
+                        <li>
+                            {% if annexe.disponible %}
+                                {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=annexe.emplacement fichier_titre=annexe.titre_stockage fichier_libelle=annexe.nom %}
+                            {% else %}
+                                {{ annexe.nom }} <em class="piece-jointe-indisponible">fichier archivé indisponible</em>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
         {% endif %}
 
         <hr>

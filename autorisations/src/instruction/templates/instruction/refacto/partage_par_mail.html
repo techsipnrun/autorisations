@@ -1,3 +1,9 @@
+{% load static %}
+<div class="module-partage-mail{% if mode_mail == 'acceptation' or mode_mail == 'refus' %} module-partage-mail-acceptation{% endif %}"
+     {% if mode_mail == "acceptation" or mode_mail == "refus" %}
+     data-taille-acte="{{ taille_acte_mail_octets|default_if_none:'' }}"
+     data-taille-max-mail-mo="{{ taille_max_mail_mo|default:10 }}"
+     {% endif %}>
 <div class="copie_par_mail">
     <div class="copie_par_mail_label">
         <label class="toggle-label">Partager l’acte par mail :</label>
@@ -75,16 +81,65 @@
     </select>
 
     <div class="selected-chips" aria-live="polite"></div>
+    <div class="mail-validation-erreur" role="alert" hidden></div>
+
+    {% if mode_mail == "acceptation" or mode_mail == "refus" %}
+        <div class="mail-objet">
+            <label for="objet-mail-{{ mode_mail }}">Objet du mail :</label>
+            <input id="objet-mail-{{ mode_mail }}"
+                   type="text"
+                   name="objet_mail"
+                   value="{{ doc_a_envoyer.0.id_nature.nature }} – Dossier {{ dossier.numero }}"
+                   maxlength="255"
+                   required>
+        </div>
+
+        <div class="mail-pieces-jointes pieces-jointes-composeur">
+            <label>Pièces jointes :</label>
+            <span class="mail-pj-volume" aria-live="polite"></span>
+            <div class="mail-pj-lignes">
+                {% if doc_a_envoyer.0 %}
+                    <div class="mail-pj-obligatoire" title="L'acte signé est toujours joint au mail et ne peut pas être retiré">
+                        <span class="mail-pj-statut">Acte signé :</span>
+                        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=doc_a_envoyer.0.emplacement fichier_titre=doc_a_envoyer.0.titre %}
+                    </div>
+                {% endif %}
+
+                <div class="annexes-mail-liste" aria-live="polite"></div>
+            </div>
+
+            <div class="mail-pj-actions">
+                <div class="mail-pj-boutons">
+                    <label class="mail-ajouter-pj mail-ajouter-pj-mail" for="annexes-mail-{{ mode_mail }}">
+                        <span aria-hidden="true">+</span>
+                        Ajouter des pièces jointes
+                    </label>
+                    {% if mode_mail == "acceptation" or mode_mail == "refus" %}
+                        <button type="button" class="mail-reprendre-annexes-ds" hidden>
+                            Reprendre les annexes transmises sur DN
+                        </button>
+                    {% endif %}
+                </div>
+                <span class="mail-pj-limite">
+                    La taille totale des pièces jointes ne doit pas dépasser {{ taille_max_mail_mo|default:10 }} Mo.
+                </span>
+            </div>
+            <input id="annexes-mail-{{ mode_mail }}"
+                   class="annexes-piece-jointe-input annexes-mail-input"
+                   type="file"
+                   name="annexes_mail"
+                   data-preview-icon="{% static 'instruction/img/loupe.png' %}"
+                   data-download-icon="{% static 'instruction/img/download.png' %}"
+                   multiple>
+        </div>
+    {% endif %}
 
     <div class="msg_pour_mail_copie">
-        {% if mode_mail != "non soumis dm" %}
-            <label>Corps du mail (l'acte signé sera en pièce jointe) :</label>
-        {% else %}
-            <label>Corps du mail :</label>
-        {% endif %}
+
+        <label>Corps du mail :</label>
         <div class="mail_entier">
             <div class="debut_fin_mail">Madame, monsieur,</div> <br>
-            <textarea name="motivation_copie_mail" class="textarea-complement">{% if mode_mail == "acceptation" %}L’établissement du Parc national de La Réunion vous notifie l’acceptation du dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
+            <textarea name="motivation_copie_mail" class="textarea-complement{% if mode_mail == 'acceptation' %} form-acceptation-textarea{% endif %}">{% if mode_mail == "acceptation" %}L’établissement du Parc national de La Réunion vous notifie l’acceptation du dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
 Bonne réception.{% elif mode_mail == "refus" %}L’établissement du Parc national de La Réunion vous notifie sa décision relative au dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
 Bonne réception.{% elif mode_mail == "non soumis dm" %}L’établissement du Parc national de La Réunion vous notifie le classement du dossier {{ doss_manif_sportive.numero_dossier_declaration_manifestations }} ({{ doss_manif_sportive.nom_dossier }}) comme non soumis à autorisation.
 Bonne réception.{% endif %}</textarea>
@@ -97,4 +152,5 @@ Bonne réception.{% endif %}</textarea>
             </div>
         </div>
     </div>
+</div>
 </div>

@@ -1282,7 +1282,8 @@ def afficher_annexe(request, chemin, titre=None):
             contenu = f.read()
 
         response = HttpResponse(contenu, content_type=content_type)
-        response["Content-Disposition"] = f'inline; filename="{os.path.basename(chemin_entier)}"'
+        disposition = "attachment" if request.GET.get("download") == "1" else "inline"
+        response["Content-Disposition"] = f'{disposition}; filename="{os.path.basename(chemin_entier)}"'
         return response
 
     except Http404:

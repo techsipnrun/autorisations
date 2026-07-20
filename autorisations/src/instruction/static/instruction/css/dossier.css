@@ -149,6 +149,7 @@
 
 .nom_du_dossier h2 {
     margin-top: 0;
+    padding-right: 2rem;
     color: #003366;
 }
 
@@ -1353,6 +1354,69 @@ textarea[name="note"] {
     font-size: 1.4rem;
     color: #006131;
     margin-bottom: 1rem;
+}
+
+.nom-dossier-info {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.7rem;
+    z-index: 2;
+    display: inline-flex;
+    cursor: help;
+}
+
+.nom-dossier-info-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid #315a86;
+    border-radius: 50%;
+    color: #315a86;
+    background: #fff;
+    font-family: Georgia, serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.nom-dossier-info-bulle {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 0.55rem);
+    width: min(22rem, 75vw);
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #9cacc0;
+    border-radius: 7px;
+    color: #263746;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.16);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.4;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(0.2rem, -50%);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.nom-dossier-info:hover .nom-dossier-info-bulle,
+.nom-dossier-info:focus .nom-dossier-info-bulle,
+.nom-dossier-info:focus-within .nom-dossier-info-bulle {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(0, -50%);
+}
+
+.notes-titre-libelle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.notes-titre-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    object-fit: contain;
 }
 
 /* Boutons modifier/envoyer/supprimer (modernisés) */

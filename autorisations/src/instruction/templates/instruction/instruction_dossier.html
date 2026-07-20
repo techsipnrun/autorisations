@@ -52,6 +52,14 @@
     {% include 'navbar.html' %}
     {% include 'timeline.html' with numero_dossier=dossier.numero %}
 
+    <div id="envoi-acte-attente" class="envoi-acte-attente" role="status" aria-live="assertive" hidden>
+        <div class="envoi-acte-attente-contenu">
+            <span class="envoi-acte-spinner" aria-hidden="true"></span>
+            <strong>Envoi de l’acte en cours…</strong>
+            <span>Veuillez patienter pendant les échanges avec Démarche Numérique et le serveur mail.</span>
+        </div>
+    </div>
+
     <div class="page_instruction_dossier">
         {% breadcrumb breadcrumb_items %}
 
@@ -780,31 +788,69 @@
                 <!-- Zone masquée pour envoyer l'acte d'acceptation -->
                 <!---------------------------------------------------->
                 <div id="formulaire-acceptation" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_url' %}">
+                    <form id="form-envoi-acte-acceptation" method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
 
-                        <h2 class="titre_envoi_acte">ACCEPTATION DE LA DEMANDE</h2>
+                        <h2 class="titre_envoi_acte titre-envoi-acte-acceptation">ACCEPTATION DE LA DEMANDE</h2>
 
-                        <div class="nature_du_doc">
-                            <label for="nature_document">Nature du document :</label>
-                            <p class="valeur-fixe"> {{ doc_a_envoyer.0.id_nature.nature }} </p>
-                        </div>
+                        <section class="module-depot-demarche-numerique">
+                            <h3 class="module-depot-demarche-numerique-titre">Déposer l'acte sur Démarche Numérique</h3>
+                            <div class="module-depot-demarche-numerique-contenu">
+                            {% if doc_a_envoyer.0 %}
+                                <div class="acte-acceptation-resume"
+                                 title="L'acte signé sera déposé sur Démarche Numérique avec le message de prise de décision ci-dessous">
+                                <!-- <strong>{{ doc_a_envoyer.0.id_nature.nature }}</strong>
+                                {% if doc_a_envoyer.0.numero %}
+                                    <strong>
+                                        {% if doc_a_envoyer.0.id_nature.nature == "Déliberation CA" %}CA/{% elif doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc_a_envoyer.0.numero }}
+                                    </strong>
+                                {% endif %} -->
+                                <strong>L'acte signé :</strong>
+                                {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=doc_a_envoyer.0.emplacement fichier_titre=doc_a_envoyer.0.titre %}
+                                </div>
+                            {% endif %}
 
                         <input type="hidden" name="nature_document" value="{{ doc_a_envoyer.0.id_nature.nature }}">
 
-                        <div class="msg_pour_peti">
-                            <label>Message pour le pétitionnaire :</label>
-                            <div class="mail_entier">
-                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
+                            <div class="msg_pour_peti">
+                                <label>Message pour le pétitionnaire :</label>
+                                <div class="mail_entier">
+                                <p style="font-style: italic">Ce message sera visible avec l'acte signé par le demandeur sur son espace Démarche Numérique.</p> <br>
  
-                                <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation de votre dossier {{ dossier.numero }}.
+                                <textarea name="motivation" class="textarea-complement form-acceptation-textarea" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation de votre dossier {{ dossier.numero }}.
 
 Sauf demande de votre part, il n’y aura pas de notification postale.
 Bonne réception.</textarea>
+                                </div>
                             </div>
-                        </div>
+
+                            <div class="partage-annexes-ds">
+                                <div class="partage-annexes-ds-question">
+                                    <strong>Je veux transmettre des annexes au demandeur via la messagerie Démarche Numérique :</strong>
+                                    <label><input type="radio" name="transmettre_annexes_ds" value="non" checked> Non</label>
+                                    <label><input type="radio" name="transmettre_annexes_ds" value="oui"> Oui</label>
+                                </div>
+
+                                <div class="zone-annexes-ds pieces-jointes-composeur" hidden>
+                                    <div class="annexes-ds-liste annexes-mail-liste" aria-live="polite"></div>
+                                    <label class="mail-ajouter-pj mail-ajouter-pj-ds" for="annexes-ds-acceptation">
+                                        <span aria-hidden="true">+</span>
+                                        Ajouter une pièce jointe
+                                    </label>
+                                    <input id="annexes-ds-acceptation"
+                                           class="annexes-piece-jointe-input annexes-ds-input"
+                                           type="file"
+                                           name="annexes_ds"
+                                           data-preview-icon="{% static 'instruction/img/loupe.png' %}"
+                                           data-download-icon="{% static 'instruction/img/download.png' %}"
+                                           multiple>
+                                    <span class="mail-pj-limite">10 Mo maximum par annexe.</span>
+                                </div>
+                            </div>
+                            </div>
+                        </section>
                         
                         <!-- Publieur RAA -->
                         {% include "instruction/refacto/publieur_raa_select.html" %}
@@ -833,33 +879,62 @@ Bonne réception.</textarea>
                 <!-- Zone masquée pour envoyer l'acte de refus -->
                 <!----------------------------------------------->
                 <div id="formulaire-envoyer-acte-refus" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_de_refus_url' %}">
+                    <form id="form-envoi-acte-refus" method="post" enctype="multipart/form-data" action="{% url 'envoyer_l_acte_de_refus_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="dossier_numero" value="{{ dossier.numero }}">
 
-                        <h2 class="titre_envoi_acte">REFUS DE LA DEMANDE</h2>
+                        <h2 class="titre_envoi_acte titre-envoi-acte-refus">REFUS DE LA DEMANDE</h2>
 
-                        <div class="nature_du_doc">
-                            <label for="nature_document">Nature du document :</label>
-                            <p class="valeur-fixe"> {{ doc_a_envoyer.0.id_nature.nature }} </p>
-                        </div>
+                        <section class="module-depot-demarche-numerique">
+                            <h3 class="module-depot-demarche-numerique-titre">Déposer l'acte sur Démarche Numérique</h3>
+                            <div class="module-depot-demarche-numerique-contenu">
+                                {% if doc_a_envoyer.0 %}
+                                    <div class="acte-acceptation-resume"
+                                         title="L'acte signé sera déposé sur Démarche Numérique avec le message de prise de décision ci-dessous">
+                                        <strong>L'acte signé :</strong>
+                                        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=doc_a_envoyer.0.emplacement fichier_titre=doc_a_envoyer.0.titre %}
+                                    </div>
+                                {% endif %}
 
-                        <input type="hidden" name="nature_document" value="{{ doc_a_envoyer.0.id_nature.nature }}">
+                                <input type="hidden" name="nature_document" value="{{ doc_a_envoyer.0.id_nature.nature }}">
 
-                        
-                        <div class="msg_pour_peti">
-                            <label>Message pour le pétitionnaire :</label>
-                            <div class="mail_entier">
-                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
- 
-                                <textarea name="motivation" class="textarea-complement" placeholder="Votre demande a été acceptée.">Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre dossier {{ dossier.numero }}.
+                                <div class="msg_pour_peti">
+                                    <label>Message pour le pétitionnaire :</label>
+                                    <div class="mail_entier">
+                                        <p style="font-style: italic">Ce message sera visible avec l'acte signé par le demandeur sur son espace Démarche Numérique.</p> <br>
+
+                                        <textarea name="motivation" class="textarea-complement form-acceptation-textarea" placeholder="Votre demande a été refusée.">Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre dossier {{ dossier.numero }}.
 
 Sauf demande de votre part, il n’y aura pas de notification postale.
 Bonne réception.</textarea>
-     
+                                    </div>
+                                </div>
+
+                                <div class="partage-annexes-ds">
+                                    <div class="partage-annexes-ds-question">
+                                        <strong>Je veux transmettre des annexes au demandeur via la messagerie Démarche Numérique :</strong>
+                                        <label><input type="radio" name="transmettre_annexes_ds" value="non" checked> Non</label>
+                                        <label><input type="radio" name="transmettre_annexes_ds" value="oui"> Oui</label>
+                                    </div>
+                                    <div class="zone-annexes-ds pieces-jointes-composeur" hidden>
+                                        <div class="annexes-ds-liste annexes-mail-liste" aria-live="polite"></div>
+                                        <label class="mail-ajouter-pj mail-ajouter-pj-ds" for="annexes-ds-refus">
+                                            <span aria-hidden="true">+</span>
+                                            Ajouter une pièce jointe
+                                        </label>
+                                        <input id="annexes-ds-refus"
+                                               class="annexes-piece-jointe-input annexes-ds-input"
+                                               type="file"
+                                               name="annexes_ds"
+                                               data-preview-icon="{% static 'instruction/img/loupe.png' %}"
+                                               data-download-icon="{% static 'instruction/img/download.png' %}"
+                                               multiple>
+                                        <span class="mail-pj-limite">10 Mo maximum par annexe.</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </section>
                         
                         <!-- Publieur RAA -->
                         {% include "instruction/refacto/publieur_raa_select.html" %}
@@ -1638,6 +1713,13 @@ En conséquence, la demande est refusée.</textarea>
                         <div class="nom_du_dossier" id="nomDossierBloc"
                             data-save-url="{% url 'dossier_update_nom_plus_parlant' dossier.numero %}">
 
+                            <span class="nom-dossier-info" tabindex="0" aria-describedby="nom-dossier-info-bulle">
+                                <span class="nom-dossier-info-icon" aria-hidden="true">i</span>
+                                <span class="nom-dossier-info-bulle" id="nom-dossier-info-bulle" role="tooltip">
+                                    Ce nom est généré automatiquement et utilisé pour identifier le dossier dans les tableaux. S’il n’est pas suffisamment explicite, nous vous conseillons de le remplacer par un nom plus parlant.
+                                </span>
+                            </span>
+
                             <h2>Nom du dossier</h2>
                             <div class="nom_dossier_ligne">
                                 <p class="nom_dossier_texte" id="nomDossierTexte">
@@ -1701,9 +1783,18 @@ En conséquence, la demande est refusée.</textarea>
                                 <p>
                                     <strong>{{ champ.nom }}</strong> :
                                     {% if champ.valeur|default_if_none:"" and champ.valeur != "Non renseigné" %}
-                                        <a href="{% url 'rediriger_vers_dossier_precedent' num_dossier_precedent=champ.valeur %}" class="lien-dossier-precedent">
-                                            Voir le dossier précédent
-                                        </a>
+                                        <span>{{ champ.valeur }}</span>
+                                        {% if champ.est_dossier_actuel %}
+                                            <span class="dossier-precedent-actuel">Il s’agit du dossier affiché actuellement.</span>
+                                        {% elif champ.dossier_precedent_existe %}
+                                            <a href="{% url 'instruction_dossier' num_dossier=champ.valeur %}"
+                                               class="lien-dossier-precedent"
+                                               title="Voir le dossier précédent">
+                                                <img src="{% static 'instruction/img/lien-externe.png' %}"
+                                                     alt="Voir le dossier précédent"
+                                                     class="lien-dossier-precedent-icon">
+                                            </a>
+                                        {% endif %}
                                     {% else %}
                                         Non renseigné
                                     {% endif %}
@@ -2171,7 +2262,10 @@ En conséquence, la demande est refusée.</textarea>
                 {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' or etape_actuelle.etape == 'Refusé' or etape_actuelle.etape == 'Non soumis à autorisation' %}
                     {% if emails_dossiers %}
                         <div class="mails_dossier">
-                            <h3>Les envois de mails</h3>
+                            <h3 class="mails-dossier-titre">
+                                <span>Les envois de mails</span>
+                                <span class="mails-dossier-icon" aria-hidden="true">✉</span>
+                            </h3>
                             {% for email in emails_dossiers %}
                                 <div class="un_mail">
                                     {% if email.statut != 'Envoyé' %}
@@ -2490,7 +2584,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 <!-- ############################# NOTES ############################# -->
                 <div class="groupe-instructeur-info notes_instructeurs">
                     <h3 class="notes-titre">
-                        <span>📝 Notes :</span>
+                        <span class="notes-titre-libelle">
+                            <img src="{% static 'instruction/img/notebook-pen.png' %}" alt="" class="notes-titre-icon">
+                            Notes :
+                        </span>
 
                         {% if request.user|est_concerné_par_le_dossier:dossier %}
                             <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
@@ -2665,6 +2762,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
             zones.forEach(form => {
                 form.addEventListener("submit", function (e) {
+                    if (e.defaultPrevented) return;
                     const btn = form.querySelector("button[type='submit'], button.btn-envoyer-complement");
                     if (btn) {
                         // Désactive le bouton immédiatement
@@ -2672,6 +2770,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                         btn.textContent = "Envoi en cours...";
                         btn.style.opacity = "0.6";
                         btn.style.cursor = "not-allowed";
+                    }
+                    if (["form-envoi-acte-acceptation", "form-envoi-acte-refus"].includes(form.id)) {
+                        const attente = document.getElementById("envoi-acte-attente");
+                        if (attente) attente.hidden = false;
                     }
                 });
             });

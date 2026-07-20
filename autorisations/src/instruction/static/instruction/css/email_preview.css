@@ -66,3 +66,35 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+.email-pieces-jointes {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 0.65rem;
+}
+
+.email-pieces-jointes ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.email-pieces-jointes li {
+    margin-bottom: 0.25rem;
+}
+
+.email-pieces-jointes li span {
+    color: #006131;
+    font-size: 0.9rem;
+}
+
+.email-pieces-jointes .document-avec-apercu {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.piece-jointe-indisponible {
+    margin-left: 0.35rem;
+    color: #777;
+    font-size: 0.85rem;
+}
