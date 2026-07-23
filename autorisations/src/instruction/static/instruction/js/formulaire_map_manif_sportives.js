@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------------------------------
         // Initialisation de la carte Leaflet
         // ---------------------------------
-        const map = L.map(div).setView([-21.1, 55.5], 11);
+        const map = L.map(div, { minZoom: 11 }).setView([-21.1, 55.5], 11);
 
         // Attacher l’instance Leaflet au <div> DOM (pour le téléchargement pdf)
         div._leaflet_map = map;

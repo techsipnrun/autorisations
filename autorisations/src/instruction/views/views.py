@@ -1334,6 +1334,11 @@ def supprimer_annexe_instructeur(request):
 
 @login_required
 def gestion_groupes(request):
+    groupes_validants_autorises = ["Validant-e SAADD", "Validant-e SPPN"]
+    peut_ajouter_autres_utilisateurs = request.user.groups.filter(
+        name__in=groupes_validants_autorises
+    ).exists()
+
     if request.method == "POST":
         action = request.POST.get("action")
         type_objet = request.POST.get("type")  # "groupe" ou "groupe_instructeur"
@@ -1365,8 +1370,12 @@ def gestion_groupes(request):
                 elif action == "add":
                     # peut toujours s'ajouter lui-même
                     if cible.id != request.user.id:
-                        # sinon: doit déjà être membre du groupe pour ajouter quelqu'un d'autre
-                        if not groupe.user_set.filter(id=request.user.id).exists():
+                        # Sinon, doit être membre du groupe ciblé ou appartenir à un
+                        # groupe validant autorisé à gérer tous les groupes Django.
+                        if not (
+                            groupe.user_set.filter(id=request.user.id).exists()
+                            or peut_ajouter_autres_utilisateurs
+                        ):
                             return forbid("Vous ne pouvez ajouter des utilisateurs que dans les groupes auxquels vous appartenez.")
             #  Execution
             if action == "add":
@@ -1465,6 +1474,7 @@ def gestion_groupes(request):
         "instructeurs": instructeurs,
         "users": users,  # pour liste déroulante d’ajout
         "show_only_mine": show_only_mine,
+        "peut_ajouter_autres_utilisateurs": peut_ajouter_autres_utilisateurs,
     })
 
 

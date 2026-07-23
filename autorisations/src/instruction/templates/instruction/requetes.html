@@ -77,18 +77,19 @@
 
 
                 <div class="form-field">
-                    <label for="etape">Étape dossier :</label>
-                    <select name="etape" id="etape">
-                        <option value="" {% if not request.GET.etape %}selected{% endif %}> - - - </option>
-                        {% for etape in etapes_dossier %}
-                            {% if etape.etape == "En réception" %}
-                                <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }} (DM)</option>
-                            {% else %}
-                                <option value="{{ etape.etape }}" {% if request.GET.etape == etape.etape %}selected{% endif %}>{{ etape.etape }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-
+                    <label>Étape dossier :</label>
+                    <details class="checkbox-menu">
+                        <summary data-placeholder="- - -">- - -</summary>
+                        <div class="checkbox-menu-options">
+                            {% for etape in etapes_dossier %}
+                                <label>
+                                    <input type="checkbox" name="etape" value="{{ etape.etape }}"
+                                        {% if etape.etape in etapes_selectionnees %}checked{% endif %}>
+                                    {{ etape.etape }}{% if etape.etape == "En réception" %} (DM){% endif %}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </details>
                 </div>
 
                 <div class="form-field">
@@ -119,13 +120,19 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="d_type_demarche">Type de dossier :</label>
-                <select name="d_type_demarche" id="d_type_demarche">
-                        <option value="" {% if not request.GET.type_demarche %}selected{% endif %}> - - - </option>
-                        {% for d in demarches %}
-                            <option value="{{ d.type }}" {% if request.GET.d_type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
-                        {% endfor %}
-                    </select>
+                    <label>Type de dossier :</label>
+                    <details class="checkbox-menu">
+                        <summary data-placeholder="- - -">- - -</summary>
+                        <div class="checkbox-menu-options">
+                            {% for d in demarches %}
+                                <label>
+                                    <input type="checkbox" name="d_type_demarche" value="{{ d.type }}"
+                                        {% if d.type in types_demarche_dossier_selectionnes %}checked{% endif %}>
+                                    {{ d.type }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </details>
                 </div>
 
                 <div class="form-field">
@@ -163,7 +170,7 @@
 
                 {% if dossiers %}
                     <p class="result-count">
-                        {{ dossiers|length }} dossier{{ dossiers|length|pluralize:"s" }} trouvé{{ dossiers|length|pluralize:"s" }} :
+                        {{ nombre_dossiers }} dossier{{ nombre_dossiers|pluralize:"s" }} trouvé{{ nombre_dossiers|pluralize:"s" }} :
                     </p>
                     <!-- Excel -->
                     <div class="export-excel-container">
@@ -181,7 +188,7 @@
                 {% endif %}
 
 
-                <table class="table-resultats">
+                <table class="table-resultats table-resultats-dossiers">
                     <thead>
                         <tr>
                             <th>N°</th>
@@ -199,7 +206,11 @@
                                 <td>{{ dossier.numero }}</td>
                                 <td>
                                     {% if dossier.source == "dossier_dm" %}
-                                        <span class="badge-dm" title="Dossier Déclaration Manifestation">DM</span>
+                                        <span class="badge-source badge-dm" title="Dossier Déclaration Manifestation non lié">DM</span>
+                                    {% elif dossier.source == "dossier_dn" %}
+                                        <span class="badge-source badge-dn" title="Dossier Démarche numérique non lié">DN</span>
+                                    {% elif dossier.source == "dossier_complet" %}
+                                        <span class="badge-source badge-complet" title="Dossier complet">COMPLET</span>
                                     {% endif %}
                                     {{ dossier.nom_dossier|truncatechars:60 }}
                                 </td>
@@ -214,6 +225,13 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if nombre_dossiers > 50 and not afficher_tous %}
+                    <div class="afficher-autres-container">
+                        <a class="btn-afficher-autres" href="{% url 'requetes_dossiers' %}?{{ request.GET.urlencode }}&afficher_tous=1">
+                            Afficher les autres dossiers
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
     </div>
@@ -303,13 +321,19 @@
             </div>
 
             <div class="form-field">
-                <label for="a_type_demarche">Type de dossier :</label>
-                <select name="a_type_demarche" id="a_type_demarche">
-                    <option value=""> - - - </option>
-                    {% for d in demarches %}
-                        <option value="{{ d.type }}" {% if request.GET.a_type_demarche == d.type %}selected{% endif %}>{{ d.type }}</option>
-                    {% endfor %}
-                </select>
+                <label>Type de dossier :</label>
+                <details class="checkbox-menu">
+                    <summary data-placeholder="- - -">- - -</summary>
+                    <div class="checkbox-menu-options">
+                        {% for d in demarches %}
+                            <label>
+                                <input type="checkbox" name="a_type_demarche" value="{{ d.type }}"
+                                    {% if d.type in types_demarche_avis_selectionnes %}checked{% endif %}>
+                                {{ d.type }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </details>
             </div>
 
             <div class="form-field">
@@ -330,7 +354,7 @@
         {% if recherche_avis_effectuee %}
             <div class="resultat">
                 {% if avis_list %}
-                    <p class="result-count">{{ avis_list|length }} avis trouvé{{ avis_list|length|pluralize:"s" }} :</p>
+                    <p class="result-count">{{ nombre_avis }} avis trouvé{{ nombre_avis|pluralize:"s" }} :</p>
                     <!-- Excel -->
                     <div class="export-excel-container">
                         <a href="{% url 'requetes_avis' %}?{{ request.GET.urlencode }}&export=xlsx"
@@ -353,6 +377,7 @@
                             <th>N° Avis</th>
                             <th>Date demande</th>
                             <th>Démarche</th>
+                            <th>Dossier lié</th>
                             <th>Expert</th>
                             <th>Demandeur</th>
                             <th>Réponse</th>
@@ -365,6 +390,7 @@
                                 <td>{{ a.id }}</td>
                                 <td>{{ a.date_demande_avis|date:"d/m/Y" }}</td>
                                 <td>{{ a.id_dossier.id_demarche.type }}</td>
+                                <td>{% for liaison in a.dossieravis_set.all %}{{ liaison.id_dossier.nom_dossier }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                 <td>{{ a.id_expert }}</td>
                                 <td>{{ a.id_instructeur }}</td>
                                 <td>
@@ -387,16 +413,58 @@
                                 </td>
                             </tr>
                         {% empty %}
-                            <tr><td colspan="7">Aucun résultat</td></tr>
+                            <tr><td colspan="8">Aucun résultat</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if nombre_avis > 50 and not afficher_tous %}
+                    <div class="afficher-autres-container">
+                        <a class="btn-afficher-autres" href="{% url 'requetes_avis' %}?{{ request.GET.urlencode }}&afficher_tous=1">
+                            Afficher les autres avis
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
     </div>
 
     
 </body>
+
+<script>
+    document.querySelectorAll(".checkbox-menu").forEach((menu) => {
+        const summary = menu.querySelector("summary");
+        const checkboxes = menu.querySelectorAll('input[type="checkbox"]');
+
+        const updateSummary = () => {
+            checkboxes.forEach((checkbox) => {
+                checkbox.closest("label").classList.toggle("is-selected", checkbox.checked);
+            });
+
+            const selectedLabels = Array.from(checkboxes)
+                .filter((checkbox) => checkbox.checked)
+                .map((checkbox) => checkbox.closest("label").textContent.trim());
+
+            summary.textContent = selectedLabels.length
+                ? selectedLabels.join(", ")
+                : summary.dataset.placeholder;
+        };
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener("change", updateSummary);
+        });
+
+        updateSummary();
+    });
+
+    document.addEventListener("click", (event) => {
+        document.querySelectorAll(".checkbox-menu[open]").forEach((menu) => {
+            if (!menu.contains(event.target)) {
+                menu.removeAttribute("open");
+            }
+        });
+    });
+</script>
 
 <!-- ======================================================= -->
 <!--               AUTOCOMPLETION JS                         -->

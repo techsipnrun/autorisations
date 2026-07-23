@@ -537,15 +537,25 @@
                             <div class="titre-carte-avec-bouton">
                                 <h2>{{ champ.nom }}</h2>
 
-                                {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
-                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                {% if not champ.geometrie_a_saisir %}
+                                    {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
-                            
-                            <div class="carto-banner"></div>
-                            <div class="carte-container">
-                                <div class="carte" data-geojson='{{ champ.geojson|safe }}'></div>
-                            </div>
+
+                            {% if champ.geometrie_a_saisir %}
+                                {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                    <div class="saisie-carto-sous-titre">
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="carto-banner"></div>
+                                <div class="carte-container">
+                                    <div class="carte" data-geojson='{{ champ.geojson|safe }}'></div>
+                                </div>
+                            {% endif %}
 
                     
                         {% elif champ.type == 'piece_justificative' %}

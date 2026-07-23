@@ -47,6 +47,7 @@
                             <tr>
                                 <th>Démarche</th>
                                 <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>N° Dossier lié</th>
                                 <th>Demandeur</th>
                                 <th title="Date de la demande d'avis">Demande</th>
                                 <th title="État de la demande d'avis">État</th>
@@ -63,6 +64,7 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ avis.id }}</td>
+                                    <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>
                                         {{ avis.id_instructeur }}
 
@@ -93,7 +95,7 @@
                                     </td>
                                 </tr>
                             {% empty %}
-                                <tr><td colspan="4" class="aucun_avis">Aucun avis en cours</td></tr>
+                                <tr><td colspan="6" class="aucun_avis">Aucun avis en cours</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -120,6 +122,7 @@
                             <tr>
                                 <th>Démarche</th>
                                 <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>N° Dossier lié</th>
                                 <th>Demandeur</th>
                                 <th title="Date de la demande d'avis">Demande</th>
                                 <th title="Date de la réponse de l'expert">Réponse</th>
@@ -142,6 +145,7 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ avis.id }}</td>
+                                    <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>
                                         {{ avis.id_instructeur }}
 
@@ -165,7 +169,7 @@
                                     </td>
                                 </tr>
                             {% empty %}
-                                <tr><td colspan="5" class="aucun_avis">Aucun avis archivé pour cette année</td></tr>
+                                <tr><td colspan="7" class="aucun_avis">Aucun avis archivé pour cette année</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -191,6 +195,7 @@
                             <tr>
                                 <th>Démarche</th>
                                 <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>N° Dossier lié</th>
                                 <th>Nature</th>
                                 <th>Expert</th>
                                 <th title="Date de la demande d'avis">Demande</th>
@@ -214,6 +219,7 @@
                                     </td>
 
                                     <td>{{ avis.id }}</td>
+                                    <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>{{ avis.id_avis_nature.nature }}</td>
                                     <td>
                                         {{ avis.id_expert }}
@@ -246,7 +252,7 @@
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="5" class="aucun_avis">Aucune demande d'avis effectuée</td>
+                                    <td colspan="7" class="aucun_avis">Aucune demande d'avis effectuée</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -272,6 +278,7 @@
                             <tr>
                                 <th>Démarche</th>
                                 <th title="Numéro de la demande d'avis">N° Avis</th>
+                                <th>N° Dossier lié</th>
                                 <th title="Nature de la demande d'avis">Nature</th>
                                 <th>Expert</th>
                                 <th title="Date de la demande d'avis">Demande</th>
@@ -294,6 +301,7 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ avis.id }}</td>
+                                    <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>{{ avis.id_avis_nature.nature }}</td>
                                     <td>
                                         {{ avis.id_expert }}
@@ -318,7 +326,7 @@
                                     </td>
                                 </tr>
                             {% empty %}
-                                <tr><td colspan="7" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
+                                <tr><td colspan="8" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -334,6 +342,7 @@
                                 <tr>
                                     <th>Démarche</th>
                                     <th title="Numéro de la demande d'avis">N° Avis</th>
+                                    <th>N° Dossier lié</th>
                                     <th title="Nature de la demande d'avis">Nature</th>
                                     <th>Expert</th>
                                     <th title="Date de la demande d'avis">Demande</th>
@@ -352,6 +361,7 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ avis.id }}</td>
+                                        <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                         <td>{{ avis.id_avis_nature.nature }}</td>
                                         <td>
                                             {{ avis.id_expert }}
@@ -376,7 +386,7 @@
                                         </td>
                                     </tr>
                                 {% empty %}
-                                    <tr><td colspan="7" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
+                                    <tr><td colspan="8" class="aucun_avis">Aucune demande traitée pour cette année</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>

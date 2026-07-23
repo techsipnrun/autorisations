@@ -2,8 +2,10 @@ import ast
 from datetime import timedelta
 import json
 import logging
+import os
 from django.utils import timezone
 
+from autorisations.utils.nas_fonctions import _normalize_unc_path
 from django.shortcuts import redirect
 from autorisations.models.models_instruction import ActionsPossibles, AvisManifSportive, Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, Message, SynchronisationEtat
 from django.contrib import messages
@@ -15,6 +17,31 @@ from django.db.models import Q
 
 
 logger = logging.getLogger("ORM_DJANGO")
+
+
+def has_geojson_geometry(geojson):
+    """Indique si un objet GeoJSON contient réellement une géométrie."""
+    if not isinstance(geojson, dict):
+        return False
+
+    geojson_type = geojson.get("type")
+    if geojson_type == "FeatureCollection":
+        return any(has_geojson_geometry(feature) for feature in geojson.get("features") or [])
+    if geojson_type == "Feature":
+        return has_geojson_geometry(geojson.get("geometry"))
+    if geojson_type == "GeometryCollection":
+        return any(has_geojson_geometry(geometry) for geometry in geojson.get("geometries") or [])
+
+    return bool(geojson_type and geojson.get("coordinates"))
+
+
+def get_chemin_complet_dossier(dossier):
+    """Retourne le chemin NAS normalisé associé à un dossier."""
+    chemin_complet = dossier.emplacement or ""
+    nas_root = os.getenv("NAS_ROOT") or ""
+    if nas_root and not chemin_complet.startswith(nas_root):
+        chemin_complet = os.path.join(nas_root, chemin_complet)
+    return _normalize_unc_path(chemin_complet)
 
 
 def redirect_error(request, msg):
@@ -239,10 +266,18 @@ def build_champs_prepares(dossier):
                 "valeur": "Oui" if val == "true" else "Non" if val == "false" else "Non renseigné",
             })
 
-        elif ct == "carte" and champ.geometrie:
-            nb_cartes += 1
+        elif ct == "carte":
             geojson_source = champ.geometrie_modif or champ.geometrie
-            champs_prepares.append({"type": "carte", "nom": nom, "geojson": json.dumps(geojson_source), "id": champ.id})
+            geometrie_presente = has_geojson_geometry(geojson_source)
+            if geometrie_presente:
+                nb_cartes += 1
+            champs_prepares.append({
+                "type": "carte",
+                "nom": nom,
+                "geojson": json.dumps(geojson_source or {}),
+                "geometrie_a_saisir": not geometrie_presente,
+                "id": champ.id,
+            })
 
         elif ct == "header_section":
             champs_prepares.append({"type": "header", "titre": nom})
@@ -271,7 +306,7 @@ def build_champs_prepares(dossier):
         elif ct == "drop_down_list":
             if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in (champ.valeur or ""):
                 geojson_source = champ.geometrie_modif or champ.geometrie
-                if not geojson_source:
+                if not has_geojson_geometry(geojson_source):
                     champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'oui', "geojson": json.dumps({}), "id": champ.id,})
                 else:
                     champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'non', "geojson": json.dumps(geojson_source), "id": champ.id,})

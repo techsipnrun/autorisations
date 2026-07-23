@@ -11,7 +11,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierInst
 from autorisations.models.models_avis import DossierAvis
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from instruction.utils.avis_utils import count_avis_with_unread_messages_for_dossier
-from instruction.utils.dossier_utils import redirect_error
+from instruction.utils.dossier_utils import get_chemin_complet_dossier, redirect_error
 from notifications.service import _render_message, compute_dedupe_key, create_EmailOutbox, create_EmailOutbox_DM, envoi_mail
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils_instru import format_etat_dossier
@@ -162,6 +162,7 @@ def preinstruction_dossier_messagerie(request, numero):
 
     return render(request, 'instruction/preinstruction_dossier_messagerie.html', {
         "dossier": dossier,
+        "chemin_complet": get_chemin_complet_dossier(dossier),
         "messages_doss": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": True,
@@ -319,6 +320,7 @@ def instruction_dossier_messagerie(request, num_dossier):
     return render(request, 'instruction/instruction_dossier_messagerie.html', {
         "NAS_ROOT": os.getenv('NAS_ROOT'),
         "dossier": dossier,
+        "chemin_complet": get_chemin_complet_dossier(dossier),
         "messages_doss": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": True,

@@ -27,7 +27,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche)
-from instruction.utils.dossier_utils import count_unread_messages_for_dossier, redirect_error
+from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
@@ -125,6 +125,7 @@ def instruction_dossier_consultation(request, num_dossier) :
     return render(request, "instruction/instruction_dossier_consultation.html", {
         "NAS_ROOT": os.getenv('NAS_ROOT'),
         "dossier": dossier,
+        "chemin_complet": get_chemin_complet_dossier(dossier),
         "est_instructeur": instructeur,
         "is_formulaire_active": False,
         "is_messagerie_active": False,

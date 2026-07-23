@@ -2324,12 +2324,19 @@ def envoyer_l_acte(request):
     transmettre_annexes_ds = request.POST.get("transmettre_annexes_ds") == "oui"
     annexes_ds = request.FILES.getlist("annexes_ds") if transmettre_annexes_ds else []
     taille_max_annexe_ds = 10 * 1024 * 1024
+    taille_max_totale_annexes_ds = 10 * 1024 * 1024
     for annexe_ds in annexes_ds:
         if annexe_ds.size > taille_max_annexe_ds:
             return redirect_error(
                 request,
                 f"❌ L’annexe « {annexe_ds.name} » dépasse la taille maximale autorisée de 10 Mo.",
             )
+
+    if sum(annexe_ds.size for annexe_ds in annexes_ds) > taille_max_totale_annexes_ds:
+        return redirect_error(
+            request,
+            "❌ La taille totale des annexes dépasse la limite maximale autorisée de 10 Mo.",
+        )
 
     root_folder = os.path.join(os.environ.get("NAS_ROOT"))
 
@@ -2702,12 +2709,18 @@ def envoyer_l_acte_de_refus(request):
 
     transmettre_annexes_ds = request.POST.get("transmettre_annexes_ds") == "oui"
     annexes_ds = request.FILES.getlist("annexes_ds") if transmettre_annexes_ds else []
+    taille_max_totale_annexes_ds = 10 * 1024 * 1024
     for annexe_ds in annexes_ds:
         if annexe_ds.size > 10 * 1024 * 1024:
             return redirect_error(
                 request,
                 f"❌ L’annexe « {annexe_ds.name} » dépasse la taille maximale autorisée de 10 Mo.",
             )
+    if sum(annexe_ds.size for annexe_ds in annexes_ds) > taille_max_totale_annexes_ds:
+        return redirect_error(
+            request,
+            "❌ La taille totale des annexes dépasse la limite maximale autorisée de 10 Mo.",
+        )
 
     root_folder = os.path.join(os.environ.get("NAS_ROOT"))
 

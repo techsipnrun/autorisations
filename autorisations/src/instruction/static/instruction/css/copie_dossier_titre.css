@@ -1,0 +1,72 @@
+.dossier-state-with-copy {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 1rem 0 3rem;
+}
+
+.dossier-state-with-copy .etat-badge-menu {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.dossier-state-with-copy .btn-copy-dossier {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    background: #f7f7f7;
+    cursor: pointer;
+}
+
+.dossier-state-with-copy .btn-copy-dossier:hover {
+    transform: scale(1.06);
+}
+
+.dossier-state-with-copy .btn-copy-dossier img {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.dossier-state-with-copy .icon-default {
+    opacity: 1;
+}
+
+.dossier-state-with-copy .icon-hover {
+    opacity: 0;
+}
+
+.dossier-state-with-copy .btn-copy-dossier:hover .icon-default {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.dossier-state-with-copy .btn-copy-dossier:hover .icon-hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.dossier-state-with-copy .copy-feedback {
+    position: absolute;
+    left: calc(100% + 0.75rem);
+    white-space: nowrap;
+    color: #000;
+    font-size: 0.9rem;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.dossier-state-with-copy .btn-copy-dossier.show-feedback .copy-feedback {
+    opacity: 1;
+}

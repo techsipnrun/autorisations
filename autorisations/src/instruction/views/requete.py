@@ -202,6 +202,7 @@ def _export_avis_xlsx(avis_iterable):
         "N° Avis",
         "Date demande",
         "Démarche",
+        "Dossier lié",
         "Expert",
         "Demandeur",
         "Réponse",
@@ -231,6 +232,12 @@ def _export_avis_xlsx(avis_iterable):
         if dossier and getattr(dossier, "id_demarche", None):
             demarche = dossier.id_demarche.type or ""
 
+        dossiers_lies = ", ".join(
+            liaison.id_dossier.nom_dossier
+            for liaison in a.dossieravis_set.all()
+            if liaison.id_dossier and liaison.id_dossier.nom_dossier
+        )
+
         # Expert / demandeur (dans ton tableau: a.id_expert, a.id_instructeur)
         expert = str(getattr(a, "id_expert", "") or "")
         demandeur = str(getattr(a, "id_instructeur", "") or "")
@@ -254,6 +261,7 @@ def _export_avis_xlsx(avis_iterable):
             a.id,
             date_demande,
             demarche,
+            dossiers_lies,
             expert,
             demandeur,
             reponse,
@@ -261,7 +269,7 @@ def _export_avis_xlsx(avis_iterable):
         ])
 
     # Largeurs de colonnes (simple + lisible)
-    widths = [10, 14, 35, 25, 25, 22, 14, 22]
+    widths = [10, 14, 35, 50, 25, 25, 22, 14]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -318,9 +326,9 @@ def requete_dossiers(request):
     date_debut_instruction = request.GET.get("date_debut_instruction")
     date_fin_instruction = request.GET.get("date_fin_instruction")
 
-    type_demarche = request.GET.get("d_type_demarche")
+    types_demarche = [value for value in request.GET.getlist("d_type_demarche") if value]
     groupe = request.GET.get("groupe")
-    etape = request.GET.get("etape")
+    etapes_selectionnees = [value for value in request.GET.getlist("etape") if value]
     nom = request.GET.get("nom")
     mots_cles = request.GET.get("mots_cles", "").strip()
     annee = request.GET.get("d_annee")
@@ -372,10 +380,13 @@ def requete_dossiers(request):
 
 
 
-    if type_demarche :
-        dossiers = dossiers.filter(id_demarche__type__icontains=type_demarche)
+    if types_demarche:
+        dossiers = dossiers.filter(id_demarche__type__in=types_demarche)
 
-        if "manifestations sportives".find(type_demarche.lower()) == -1:
+        if not any(
+            "manifestations sportives" in type_demarche.lower()
+            for type_demarche in types_demarche
+        ):
             dossiers_dm = dossiers_dm.none()
 
     if groupe :
@@ -383,9 +394,9 @@ def requete_dossiers(request):
         if "manifestations sportives".find(groupe.lower()) == -1:
             dossiers_dm = dossiers_dm.none()
 
-    if etape :
-        dossiers = dossiers.filter(id_etape_dossier__etape__icontains=etape)
-        dossiers_dm = dossiers_dm.filter(id_etape__etape__icontains=etape)
+    if etapes_selectionnees:
+        dossiers = dossiers.filter(id_etape_dossier__etape__in=etapes_selectionnees)
+        dossiers_dm = dossiers_dm.filter(id_etape__etape__in=etapes_selectionnees)
 
     if instructeur:
         exists_instructeur = Instructeur.objects.annotate(
@@ -501,6 +512,9 @@ def requete_dossiers(request):
 
 
     resultats_dossiers = []
+    dossiers_complets_ids = set(
+        DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
+    )
 
 
     # # Ajout du champ 'lien' pour chaque dossier
@@ -513,6 +527,13 @@ def requete_dossiers(request):
 
     # DOSSIERS CLASSIQUES
     for d in dossiers:
+        if d.id in dossiers_complets_ids:
+            source = "dossier_complet"
+        elif d.id_demarche and "manifestations sportives" in d.id_demarche.type.lower():
+            source = "dossier_dn"
+        else:
+            source = "dossier"
+
         beneficiaire = ""
         interlocuteur = d.dossierinterlocuteur_set.first()
         if interlocuteur:
@@ -527,7 +548,7 @@ def requete_dossiers(request):
                     beneficiaire = f"{b.nom} {b.prenom}"
 
         resultats_dossiers.append({
-            "source": "dossier",
+            "source": source,
             "obj": d,
             "numero": d.numero,
             "nom_dossier": getattr(d, "nom_dossier_plus_parlant", None) or d.nom_dossier,
@@ -583,10 +604,17 @@ def requete_dossiers(request):
 
     if request.GET.get("export") == "xlsx":
         return _export_dossiers_xlsx(resultats_dossiers)
+
+    nombre_dossiers = len(resultats_dossiers)
+    afficher_tous = request.GET.get("afficher_tous") == "1"
+    if not afficher_tous:
+        resultats_dossiers = resultats_dossiers[:50]
             
 
     context = {
         "dossiers": resultats_dossiers,
+        "nombre_dossiers": nombre_dossiers,
+        "afficher_tous": afficher_tous,
         "etapes": EtapeDossier.objects.all(),
         "demarches": Demarche.objects.all(),
         'etapes_dossier': etapes_dossier,
@@ -608,6 +636,8 @@ def requete_dossiers(request):
         "date_fin_reception_rempli": date_fin_reception or "",
         "date_debut_instruction_rempli": date_debut_instruction or "",
         "date_fin_instruction_rempli": date_fin_instruction or "",
+        "etapes_selectionnees": etapes_selectionnees,
+        "types_demarche_dossier_selectionnes": types_demarche,
     }
     return render(request, "instruction/requetes.html", context)
 
@@ -620,9 +650,12 @@ def requete_avis(request):
     # --- Base queryset ---
     avis_list = Avis.objects.select_related(
         "id_dossier",
+        "id_dossier__id_demarche",
         "id_demarche",
         "id_instructeur",
         "id_expert",
+    ).prefetch_related(
+        "dossieravis_set__id_dossier",
     ).filter(statut="Envoyé")
 
 
@@ -652,7 +685,7 @@ def requete_avis(request):
     demandeur = request.GET.get("demandeur")
     expert = request.GET.get("expert")
     num_dossier = clean_int(request.GET.get("num_dossier"))
-    type_demarche = request.GET.get("a_type_demarche")
+    types_demarche = [value for value in request.GET.getlist("a_type_demarche") if value]
     publie_raa = request.GET.get("publie_raa")  # Nouveau filtre
 
     # --- Application des filtres ---
@@ -775,8 +808,8 @@ def requete_avis(request):
         ).distinct()
 
 
-    if type_demarche:
-        avis_list = avis_list.filter(id_dossier__id_demarche__type__icontains=type_demarche)
+    if types_demarche:
+        avis_list = avis_list.filter(id_dossier__id_demarche__type__in=types_demarche)
 
     avis_list = avis_list.order_by("-date_demande_avis")
 
@@ -784,10 +817,17 @@ def requete_avis(request):
     if request.GET.get("export") == "xlsx":
         return _export_avis_xlsx(avis_list)
 
+    nombre_avis = avis_list.count()
+    afficher_tous = request.GET.get("afficher_tous") == "1"
+    if not afficher_tous:
+        avis_list = avis_list[:50]
+
 
     # --- Contexte pour le template ---
     context = {
         "avis_list": avis_list,
+        "nombre_avis": nombre_avis,
+        "afficher_tous": afficher_tous,
         "recherche_avis_effectuee": bool(request.GET),
         "recherche_dossier_effectuee": False,
         "annees_avis": annees_avis,
@@ -805,6 +845,7 @@ def requete_avis(request):
         "num_avis_rempli": num_avis or "",
         "date_debut_demande_avis_rempli": date_debut_demande_avis or "",
         "date_fin_demande_avis_rempli": date_fin_demande_avis or "",
+        "types_demarche_avis_selectionnes": types_demarche,
 
     }
 

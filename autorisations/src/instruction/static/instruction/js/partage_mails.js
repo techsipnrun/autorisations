@@ -294,6 +294,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let fichiers = [];
         const estInputMail = input.classList.contains("annexes-mail-input");
+        const estInputAnnexesDs = input.classList.contains("annexes-ds-input");
+        const indicateurVolumeDs = input.closest(".partage-annexes-ds")?.querySelector(".annexes-ds-volume");
         const moduleMail = input.closest(".module-partage-mail");
         const indicateurVolume = input.closest(".pieces-jointes-composeur")?.querySelector(".mail-pj-volume");
         const tailleActe = Number.parseInt(moduleMail?.dataset.tailleActe || "", 10);
@@ -326,11 +328,24 @@ document.addEventListener("DOMContentLoaded", () => {
             return estValide;
         };
 
+        const afficherVolumeAnnexesDs = (listeFichiers) => {
+            if (!estInputAnnexesDs || !indicateurVolumeDs) return;
+            const tailleTotale = listeFichiers.reduce(
+                (total, fichier) => total + fichier.size,
+                0
+            );
+            indicateurVolumeDs.hidden = listeFichiers.length === 0;
+            indicateurVolumeDs.textContent = `Volume total : ${(
+                tailleTotale / (1024 * 1024)
+            ).toFixed(2).replace(".", ",")} Mo sur 10 Mo.`;
+        };
+
         const synchroniserInput = () => {
             const transfert = new DataTransfer();
             fichiers.forEach((fichier) => transfert.items.add(fichier));
             input.files = transfert.files;
             afficherVolumeMail(fichiers);
+            afficherVolumeAnnexesDs(fichiers);
             if (input.classList.contains("annexes-ds-input")) {
                 document.dispatchEvent(new CustomEvent("annexes-ds-modifiees"));
             }
@@ -454,6 +469,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!dejaPresent) fichiersCandidats.push(nouveauFichier);
             });
 
+            if (estInputAnnexesDs) {
+                const tailleTotale = fichiersCandidats.reduce(
+                    (total, fichier) => total + fichier.size,
+                    0
+                );
+                if (tailleTotale > 10 * 1024 * 1024) {
+                    alert(
+                        "La taille totale des annexes dépasse la limite autorisée de 10 Mo. "
+                        + "Retirez une ou plusieurs annexes."
+                    );
+                    input.value = "";
+                    synchroniserInput();
+                    return false;
+                }
+            }
+
             if (!afficherVolumeMail(fichiersCandidats)) {
                 alert(
                     `L’acte et les annexes dépassent la taille totale autorisée pour un mail `
@@ -479,6 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         input.addEventListener("verifier-volume", () => afficherVolumeMail(fichiers));
         afficherVolumeMail(fichiers);
+        afficherVolumeAnnexesDs(fichiers);
     });
 
     document.querySelectorAll("form").forEach((form) => {

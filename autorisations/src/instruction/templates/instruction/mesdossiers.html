@@ -102,6 +102,9 @@
                                                 <div class="pastille_nouv_mess">{{ d.nb_messages_non_lus }}</div>
                                             </div>
                                         {% endif %}
+                                        {% if d.badge_manifestation %}
+                                            <span class="badge-manifestation badge-{{ d.badge_manifestation|lower }}">{{ d.badge_manifestation }}</span>
+                                        {% endif %}
                                         {{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}
                                     </td>
                                     <td>{{ d.numero }}</td>

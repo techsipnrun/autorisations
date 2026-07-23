@@ -843,6 +843,10 @@ h2 {
   margin: 2rem 0;
 }
 
+.saisie-carto-sous-titre {
+  margin-top: 1rem;
+}
+
 .btn-edit-carto:hover {
   background-color: #ddd;
 }

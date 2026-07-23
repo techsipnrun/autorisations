@@ -487,6 +487,24 @@
     font-size: 0.85rem;
 }
 
+.annexes-ds-info {
+    display: block;
+    margin: 0.45rem 0 0;
+    max-width: 52rem;
+    line-height: 1.35;
+}
+
+.annexes-ds-volume {
+    display: block;
+    margin: 0.35rem 0 0.65rem;
+    color: #155a32;
+    font-size: 0.9rem;
+}
+
+.annexes-ds-volume[hidden] {
+    display: none;
+}
+
 .mail-pj-volume {
     display: block;
     margin: -0.35rem 0 0.65rem;

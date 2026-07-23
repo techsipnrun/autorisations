@@ -57,6 +57,7 @@ def avis(request):
         avis_a_rendre = (
             Avis.objects.filter(id_expert=expert, favorable__isnull=True, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
+            .prefetch_related("dossieravis_set__id_dossier")
             .order_by("-date_demande_avis")
         )
 
@@ -64,6 +65,7 @@ def avis(request):
         avis_rendus = (
             Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year_expert, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
+            .prefetch_related("dossieravis_set__id_dossier")
             .order_by("-date_reponse_avis")
         )
 
@@ -94,17 +96,21 @@ def avis(request):
     if instructeur:
         # Demandes en cours
         demandes_en_cours = Avis.objects.filter(id_instructeur=instructeur, favorable__isnull=True, statut="Envoyé"
-                            ).select_related("id_demarche", "id_dossier", "id_expert", "id_avis_nature").order_by("-date_demande_avis")
+                            ).select_related("id_demarche", "id_dossier", "id_expert", "id_avis_nature").prefetch_related(
+                                "dossieravis_set__id_dossier"
+                            ).order_by("-date_demande_avis")
 
         # Demandes traitées
         demandes_traitees = Avis.objects.filter(id_instructeur=instructeur,favorable__isnull=False,date_reponse_avis__year=selected_year_demandeur, statut="Envoyé"
                             ).select_related(
                                 "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
-                            ).order_by("-date_reponse_avis")
+                            ).prefetch_related("dossieravis_set__id_dossier").order_by("-date_reponse_avis")
         
         # Demandes à publier au RAA (CONSEIL SCIENTIFIQUE)
         demandes_avis_a_publier_au_RAA = Avis.objects.filter(favorable=True, id_expert__est_interne=False, id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique"
-                                        ).exclude(publie_au_raa=True).distinct()
+                                        ).exclude(publie_au_raa=True).select_related(
+                                            "id_demarche", "id_expert", "id_avis_nature"
+                                        ).prefetch_related("dossieravis_set__id_dossier").distinct()
                                         # ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
                                         
    

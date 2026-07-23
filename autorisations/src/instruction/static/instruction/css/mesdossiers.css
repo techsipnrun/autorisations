@@ -387,6 +387,23 @@ tbody tr.row-action-archive::after {
     font-weight: bold;
 }
 
+.badge-manifestation {
+    display: inline-block;
+    margin-right: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.badge-dm { background-color: #006131; }
+.badge-dn { background-color: #2563a9; }
+.badge-complet { background-color: #222; }
+
 .date-moins-un-mois {
     color: #cc6e16;
     font-weight: bold;

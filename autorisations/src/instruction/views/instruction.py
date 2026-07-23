@@ -270,6 +270,9 @@ def mesdossiers(request):
 
     dossiers = dossiers.union(dossier_action_a_faire)
     dates_debut_manifestation = get_dates_debut_manifestation(dossiers)
+    dossiers_complets_ids = set(
+        DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
+    )
 
     dossiers_par_demarche = {}
     for dossier in dossiers:
@@ -293,6 +296,9 @@ def mesdossiers(request):
 
         # Structurer les infos
         dossiers_par_demarche.setdefault(dossier.id_demarche.type, []).append({
+            "badge_manifestation": (
+                "COMPLET" if dossier.id in dossiers_complets_ids else "DN"
+            ) if dossier.id_demarche.type.lower() == "manifestations sportives" else "",
             "nom_dossier": dossier.nom_dossier,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "numero": dossier.numero,
@@ -351,6 +357,9 @@ def instruction_demarche(request, num_demarche):
     )
 
     dates_debut_manifestation = get_dates_debut_manifestation(dossiers)
+    dossiers_complets_ids = set(
+        DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
+    ) if demarche.type.lower() == "manifestations sportives" else set()
     dossier_infos = []
     for dossier in dossiers:
         date_debut_manifestation = dates_debut_manifestation.get(dossier.id)
@@ -367,6 +376,7 @@ def instruction_demarche(request, num_demarche):
         nb_messages_non_lus = count_unread_messages_for_dossier(dossier, dossier.numero)
 
         dossier_infos.append({
+            "badge_manifestation": "COMPLET" if dossier.id in dossiers_complets_ids else "DN",
             "nom_dossier": dossier.nom_dossier,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
@@ -429,6 +439,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_archives_infos.append({
             "source": "dossier",
+            "badge_manifestation": "COMPLET" if dossier.id in dossiers_complets_ids else "DN",
             "nom_dossier": dossier.nom_dossier,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
@@ -470,6 +481,7 @@ def instruction_demarche(request, num_demarche):
 
             dossier_archives_infos.append({
                 "source": "dossier_manif_sportive",
+                "badge_manifestation": "DM",
                 "nom_dossier": dossier_dm.nom_dossier,
                 "nom_dossier_plus_parlant": dossier_dm.nom_dossier,
                 "obj_doss": dossier_dm,
@@ -965,6 +977,11 @@ def ajouter_relecteur_dossier(request):
         logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande de relecture. Relecteur {relecteur_id} introuvable — User : {request.user}")
         return redirect_error(request, "❌ Le relecteur indiqué est introuvable. Contactez le support.")
 
+    demandeur_relecture = Instructeur.objects.filter(email=request.user.email).first()
+    if not demandeur_relecture:
+        logger.error(f"[DOSSIER {dossier.numero}] Nouvelle demande de relecture impossible : aucun profil Instructeur pour {request.user}.")
+        return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
+
 
     for f in files:
         if f.size > 20 * 1024 * 1024:  # 20 Mo
@@ -975,7 +992,10 @@ def ajouter_relecteur_dossier(request):
 
 
     # Évite les doublons
-    existant = DossierRelecteur.objects.filter(id_dossier=dossier, id_instructeur=relecteur).exists()
+    existant = DossierRelecteur.objects.filter(
+        id_dossier=dossier,
+        id_instructeur=relecteur,
+    ).first()
 
     if existant:
         request.session["relecteur_message"] = (
@@ -986,7 +1006,12 @@ def ajouter_relecteur_dossier(request):
 
 
     try : 
-        dossier_relecteur = DossierRelecteur.objects.create(id_dossier=dossier, id_instructeur=relecteur, demande_relecture=objet_demande)
+        dossier_relecteur = DossierRelecteur.objects.create(
+            id_dossier=dossier,
+            id_instructeur=relecteur,
+            id_demandeur_relecture=demandeur_relecture,
+            demande_relecture=objet_demande,
+        )
 
     except Exception as e:
         logger.exception(f"[DOSSIER {dossier.numero}] Nouvelle demande de relecture faite par {request.user} - Erreur création DossierRelecteur : {e}")
@@ -1134,7 +1159,12 @@ def relecture_faite(request):
         logger.error(f"[RELECTURE FAITE] Dossier {dossier_id} introuvable — User : {request.user}")
         return redirect_error(request, "❌ Le dossier est introuvable. Contactez le support.")
     
-    entry = DossierRelecteur.objects.filter(id=relecteur_entry_id, id_dossier=dossier).first()
+    entry = (
+        DossierRelecteur.objects
+        .select_related("id_instructeur", "id_demandeur_relecture")
+        .filter(id=relecteur_entry_id, id_dossier=dossier)
+        .first()
+    )
     if not entry:
         logger.error(f"[DOSSIER {dossier.numero}] Relecture faite par {request.user} - Entrée DossierRelecteur id={relecteur_entry_id} introuvable — User={request.user}")
         return redirect_error(request, "❌ La demande de relecture est introuvable. Contactez le support.")
@@ -1145,18 +1175,79 @@ def relecture_faite(request):
         return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
     
     if request.user.email == entry.id_instructeur.email:
+        if entry.relu:
+            request.session["relecteur_message"] = "Cette relecture a déjà été validée."
+            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
         try:
             entry.relu = True
             entry.reponse_relecture = reponse_demande
             entry.save()
 
             # Dossier Action
-            nom_prenom = instructeur.id_agent_autorisations.nom + " " + instructeur.id_agent_autorisations.prenom
+            nom_prenom = str(instructeur)
             safe_enregistrer_action(dossier, instructeur, "Relecture", request, description = nom_prenom)
 
         except Exception as e:
             logger.exception(f"[DOSSIER {dossier.numero}] Erreur lors de la validation de la relecture (entry={entry.id}) par {request.user} : {e}")
             request.session["relecteur_message"] = ("Une erreur est survenue lors de la validation de la relecture. Contactez le support.")
+            return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+
+        # NOTIFICATION PAR MAIL AU DEMANDEUR DE LA RELECTURE
+        demandeur_relecture = entry.id_demandeur_relecture
+        if demandeur_relecture and demandeur_relecture.email:
+            if NOTIFS_PROD:
+                emails_norm = [demandeur_relecture.email]
+            else:
+                emails_norm = [EMAIL_NOTIF_TEST]
+
+            sujet = f"Dossier {dossier.numero} - Relecture effectuée"
+            template_name = "relecture_faite"
+            context = {
+                "dossier_numero": dossier.numero,
+                "demarche_type": dossier.id_demarche.type,
+                "relecteur": nom_prenom,
+                "reponse_relecture": reponse_demande,
+                "url": f"{os.getenv('URL_APPLI')}instruction/{dossier.numero}/",
+            }
+
+            try:
+                dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
+                outbox = create_EmailOutbox(
+                    emails_norm,
+                    sujet,
+                    template_name,
+                    dedupe,
+                    context,
+                    dossier,
+                    type_mail="Notification",
+                )
+                if not outbox:
+                    raise RuntimeError("La création de l'EmailOutbox a échoué.")
+
+                ok, err = envoi_mail(outbox.id)
+                if ok:
+                    logger.info(
+                        f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} "
+                        f"(Relecture faite) envoyée à {', '.join(outbox.to)}"
+                    )
+                else:
+                    raise RuntimeError(err)
+            except Exception as e:
+                logger.exception(
+                    f"[DOSSIER {dossier.numero}] La personne à l'origine de la demande de relecture "
+                    f"({demandeur_relecture}) n'a pas pu être notifiée : {e}"
+                )
+                request.session["relecteur_message"] = (
+                    "La relecture est enregistrée, mais son demandeur n’a pas pu être notifié par email. "
+                    "Contactez le support."
+                )
+        else:
+            logger.warning(
+                f"[DOSSIER {dossier.numero}] Relecture faite sans notification : "
+                f"aucun demandeur enregistré pour la demande de relecture {entry.id}."
+            )
     else:
         request.session["relecteur_message"] = ("Vous n’êtes pas autorisé.e à valider cette relecture.")
 

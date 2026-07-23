@@ -16,6 +16,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/copie_dossier_titre.css' %}">
 
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
@@ -36,9 +37,16 @@
                 </div>
             {% endif %}
         
-            <div class="etat-badge-menu">
-                {{ dossier.id_etape_dossier }}
-            </div> 
+            <div class="dossier-state-with-copy">
+                <div class="etat-badge-menu">
+                    {{ dossier.id_etape_dossier }}
+                </div>
+                <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+                    <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                    <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                    <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+                </button>
+            </div>
             
             {% if dossier.present_sur_ds %}
                 <div class="refresh-messages">

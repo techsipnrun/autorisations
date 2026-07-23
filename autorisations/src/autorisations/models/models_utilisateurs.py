@@ -252,7 +252,20 @@ class DossierValideur(models.Model):
 class DossierRelecteur(models.Model):
     id = models.AutoField(primary_key=True)
     id_dossier = models.ForeignKey('autorisations.Dossier', models.CASCADE, db_column='id_dossier')
-    id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur')
+    id_instructeur = models.ForeignKey(
+        Instructeur,
+        models.CASCADE,
+        db_column='id_instructeur',
+        related_name='relectures_assignees',
+    )
+    id_demandeur_relecture = models.ForeignKey(
+        Instructeur,
+        models.SET_NULL,
+        db_column='id_demandeur_relecture',
+        blank=True,
+        null=True,
+        related_name='relectures_demandees',
+    )
     demande_relecture = models.TextField()
     reponse_relecture = models.TextField()
     relu = models.BooleanField(default=False)

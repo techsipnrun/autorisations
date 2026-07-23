@@ -832,12 +832,13 @@ Bonne réception.</textarea>
                                     <label><input type="radio" name="transmettre_annexes_ds" value="non" checked> Non</label>
                                     <label><input type="radio" name="transmettre_annexes_ds" value="oui"> Oui</label>
                                 </div>
+                                <strong class="annexes-ds-volume" hidden></strong>
 
                                 <div class="zone-annexes-ds pieces-jointes-composeur" hidden>
                                     <div class="annexes-ds-liste annexes-mail-liste" aria-live="polite"></div>
                                     <label class="mail-ajouter-pj mail-ajouter-pj-ds" for="annexes-ds-acceptation">
                                         <span aria-hidden="true">+</span>
-                                        Ajouter une pièce jointe
+                                        Ajouter des pièces jointes
                                     </label>
                                     <input id="annexes-ds-acceptation"
                                            class="annexes-piece-jointe-input annexes-ds-input"
@@ -846,7 +847,10 @@ Bonne réception.</textarea>
                                            data-preview-icon="{% static 'instruction/img/loupe.png' %}"
                                            data-download-icon="{% static 'instruction/img/download.png' %}"
                                            multiple>
-                                    <span class="mail-pj-limite">10 Mo maximum par annexe.</span>
+                                    <span class="mail-pj-limite annexes-ds-info">
+                                        10 Mo maximum par annexe et 10 Mo maximum au total.<br>
+                                        Si vous souhaitez délivrer d’autres pièces jointes, vous pouvez le faire directement depuis la messagerie.
+                                    </span>
                                 </div>
                             </div>
                             </div>
@@ -917,11 +921,12 @@ Bonne réception.</textarea>
                                         <label><input type="radio" name="transmettre_annexes_ds" value="non" checked> Non</label>
                                         <label><input type="radio" name="transmettre_annexes_ds" value="oui"> Oui</label>
                                     </div>
+                                    <strong class="annexes-ds-volume" hidden></strong>
                                     <div class="zone-annexes-ds pieces-jointes-composeur" hidden>
                                         <div class="annexes-ds-liste annexes-mail-liste" aria-live="polite"></div>
                                         <label class="mail-ajouter-pj mail-ajouter-pj-ds" for="annexes-ds-refus">
                                             <span aria-hidden="true">+</span>
-                                            Ajouter une pièce jointe
+                                            Ajouter des pièces jointes
                                         </label>
                                         <input id="annexes-ds-refus"
                                                class="annexes-piece-jointe-input annexes-ds-input"
@@ -930,7 +935,10 @@ Bonne réception.</textarea>
                                                data-preview-icon="{% static 'instruction/img/loupe.png' %}"
                                                data-download-icon="{% static 'instruction/img/download.png' %}"
                                                multiple>
-                                        <span class="mail-pj-limite">10 Mo maximum par annexe.</span>
+                                        <span class="mail-pj-limite annexes-ds-info">
+                                            10 Mo maximum par annexe et 10 Mo maximum au total.<br>
+                                            Si vous souhaitez délivrer d’autres pièces jointes, vous pouvez le faire directement depuis la messagerie.
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -1850,14 +1858,24 @@ En conséquence, la demande est refusée.</textarea>
                         {% elif champ.type == 'carte' %}
                             <div class="titre-carte-avec-bouton">
                                 <h2>{{ champ.nom }}</h2>
-                                {% if request.user|est_concerné_par_le_dossier:dossier %}
-                                    <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                {% if not champ.geometrie_a_saisir %}
+                                    {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-edit-carto">✎ Modifier la géométrie</a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
-                            
-                            <div class="carte-container">
-                                <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
-                            </div>
+
+                            {% if champ.geometrie_a_saisir %}
+                                {% if request.user|est_concerné_par_le_dossier:dossier %}
+                                    <div class="saisie-carto-sous-titre">
+                                        <a href="{% url 'edit_carto' numero_dossier=dossier.numero id_champ=champ.id%}" class="btn-saisir-carto">✎ Saisir la géométrie à partir des informations à disposition</a>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="carte-container">
+                                    <div class="carte" data-geojson='{{ geometrie_modif|default:champ.geojson }}'></div>
+                                </div>
+                            {% endif %}
                         
 
                         <!-- Champs pièces justificatives -->

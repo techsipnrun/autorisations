@@ -134,3 +134,29 @@
 .date-manifestation-proche .date-manifestation-valeur {
     color: #cc6e16;
 }
+
+.lien-dossier-precedent {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+
+.lien-dossier-precedent-icon {
+    width: 1rem;
+    height: 1rem;
+    object-fit: contain;
+    transition: transform 0.15s ease;
+}
+
+.lien-dossier-precedent:hover .lien-dossier-precedent-icon,
+.lien-dossier-precedent:focus-visible .lien-dossier-precedent-icon {
+    transform: scale(1.15);
+}
+
+.dossier-precedent-actuel {
+    margin-left: 0.45rem;
+    color: #7f1d1d;
+    font-size: 0.9rem;
+    font-style: italic;
+}
