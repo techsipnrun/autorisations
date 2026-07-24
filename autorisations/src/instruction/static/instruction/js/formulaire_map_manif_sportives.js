@@ -99,7 +99,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------------------------------
         // Initialisation de la carte Leaflet
         // ---------------------------------
-        const map = L.map(div, { minZoom: 11 }).setView([-21.1, 55.5], 11);
+        const defaultDisplayZoom = 11;
+        const map = L.map(div).setView([-21.1, 55.5], defaultDisplayZoom);
 
         // Attacher l’instance Leaflet au <div> DOM (pour le téléchargement pdf)
         div._leaflet_map = map;
@@ -846,6 +847,9 @@ document.addEventListener("DOMContentLoaded", () => {
         map.fitBounds(allCoursesGroup.getBounds(), {
             maxZoom: 15, padding: [20, 20]
         });
+        if (map.getZoom() < defaultDisplayZoom) {
+            map.setZoom(defaultDisplayZoom);
+        }
 
 
     });

@@ -382,3 +382,93 @@
 .valider-btn:hover {
     background-color: #0e4c27;
 }
+
+/* Dossiers liés et copie de leur chemin */
+.dossiers-lies-avis {
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+}
+
+.dossiers-lies-avis h2 {
+    margin: 0 0 1rem;
+}
+
+.dossiers-lies-avis ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dossiers-lies-avis li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+}
+
+.dossiers-lies-avis a {
+    color: #222;
+    text-decoration: none;
+}
+
+.dossiers-lies-avis a:hover {
+    color: #006131;
+    text-decoration: underline;
+}
+
+.btn-copy-dossier-avis {
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    background: #f7f7f7;
+    cursor: pointer;
+}
+
+.btn-copy-dossier-avis img {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    transition: opacity 0.2s ease;
+}
+
+.btn-copy-dossier-avis .icon-default {
+    opacity: 1;
+}
+
+.btn-copy-dossier-avis .icon-hover {
+    opacity: 0;
+}
+
+.btn-copy-dossier-avis:hover .icon-default {
+    opacity: 0;
+}
+
+.btn-copy-dossier-avis:hover .icon-hover {
+    opacity: 1;
+}
+
+.btn-copy-dossier-avis .copy-feedback {
+    position: absolute;
+    right: calc(100% + 0.5rem);
+    padding: 0.25rem 0.45rem;
+    border-radius: 4px;
+    background: #333;
+    color: #fff;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.btn-copy-dossier-avis.show-feedback .copy-feedback {
+    opacity: 1;
+}

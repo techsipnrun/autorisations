@@ -1473,6 +1473,17 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
 
+    dossiers_lies = list(
+        Dossier.objects.filter(dossieravis__id_avis=avis)
+        .select_related("id_demarche")
+        .distinct()
+    )
+    if not dossiers_lies:
+        dossiers_lies = [dossier]
+
+    for dossier_lie in dossiers_lies:
+        dossier_lie.chemin_complet = get_chemin_complet_dossier(dossier_lie)
+
     # Nombre d'avis envoyés
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
     # Messages du pétitionnaire non lus pour le dossier
@@ -1496,6 +1507,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "nb_messages_non_lus": nb_messages_non_lus,
         "resume_pdf_titre": resume_pdf_titre,
+        "dossiers_lies": dossiers_lies,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "est_demandeur": est_demandeur,
         "est_expert": est_expert,

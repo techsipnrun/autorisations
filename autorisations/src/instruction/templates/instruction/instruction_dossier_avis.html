@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_avis.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/avis_responsive.css' %}">
 
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
@@ -207,6 +208,39 @@
                 {% if avis.id_avis_thematique and avis.id_avis_thematique.thematique != 'Autre' %}
                     <p> <strong>Thématique :</strong> {{ avis.id_avis_thematique.thematique }} </p>
                 {% endif %}
+            </div>
+
+            <div class="dossiers-lies-avis">
+                <h2>
+                    {% if dossiers_lies|length > 1 %}
+                        Dossiers liés
+                    {% else %}
+                        Dossier lié
+                    {% endif %}
+                </h2>
+
+                <ul>
+                    {% for dossier_lie in dossiers_lies %}
+                        <li>
+                            <a href="{% url 'instruction_dossier' dossier_lie.numero %}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               title="Voir le dossier">
+                                <strong>Dossier n° {{ dossier_lie.numero }}</strong>
+                                – {{ dossier_lie.id_demarche.type|truncatechars:34 }}
+                            </a>
+                            <button type="button"
+                                    class="btn-copy-dossier btn-copy-dossier-avis"
+                                    data-path="{{ dossier_lie.chemin_complet }}"
+                                    aria-label="Copier le chemin d'accès du dossier {{ dossier_lie.numero }}"
+                                    title="Copier le chemin d'accès du dossier">
+                                <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                                <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                                <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+                            </button>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
 
             <div class="infos-docs">

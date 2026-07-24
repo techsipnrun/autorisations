@@ -236,7 +236,16 @@ document.addEventListener("DOMContentLoaded", () => {
         // ---------------------------------
         // Initialisation de la carte Leaflet
         // ---------------------------------
-        const map = L.map(div, { minZoom: 11 }).setView([-21.1, 55.5], 11);
+        const defaultDisplayZoom = 11;
+        const map = L.map(div).setView([-21.1, 55.5], defaultDisplayZoom);
+
+        const updatePointIconScale = () => {
+            const zoomDifference = Math.max(0, defaultDisplayZoom - map.getZoom());
+            const scale = Math.max(0.4, 1 - zoomDifference * 0.18);
+            div.style.setProperty("--petitionnaire-point-scale", scale);
+        };
+        map.on("zoomend", updatePointIconScale);
+        updatePointIconScale();
         
 
         // Attacher l’instance Leaflet au <div> DOM (pour le téléchargement pdf)
@@ -384,19 +393,23 @@ document.addEventListener("DOMContentLoaded", () => {
         // Ajouter le geojson du pétitionnaire + pop up métadonnées 
         // -----------------------------------
         // --- Couches lignes / polygones (pas les points)
+        const isPointGeometry = (feature) =>
+            ["Point", "MultiPoint"].includes(feature.geometry.type);
+
         const coucheTraces = L.geoJSON(geojson, {
-            filter: (feature) => feature.geometry.type !== "Point",  // 👈 filtrer
+            filter: (feature) => !isPointGeometry(feature),
             style: () => ({
-                color: "red",
-                weight: 3,
-                fillColor: "#f03",
-                fillOpacity: 0.5
+                color: "#B84A4A",
+                weight: 2.5,
+                opacity: 0.9,
+                fillColor: "#D97878",
+                fillOpacity: 0.28
             })
         }).addTo(map);
 
         // --- Couches points seulement
         const couchePoints = L.geoJSON(geojson, {
-            filter: (feature) => feature.geometry.type === "Point",  // 👈 filtrer
+            filter: isPointGeometry,
             pointToLayer: (feature, latlng) => {
                 const props = feature.properties;
 
@@ -419,13 +432,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     return L.marker(latlng, { icon: iconSignaleur });
                 }
 
-                return L.circleMarker(latlng, {
-                    radius: 5,
-                    fillColor: "#c27579ff",
-                    color: "#ff000dff",
-                    fillOpacity: 1,
-                    weight: 2
+                const iconPoint = L.divIcon({
+                    className: "petitionnaire-point-icon",
+                    html: `
+                        <svg viewBox="0 0 18 24" width="18" height="24" aria-hidden="true">
+                            <path
+                                d="M9 .75A8.25 8.25 0 0 0 .75 9C.75 14.5 9 23.25 9 23.25S17.25 14.5 17.25 9A8.25 8.25 0 0 0 9 .75Z"
+                                fill="#D97878"
+                                stroke="#9F3F3F"
+                                stroke-width="1.25"
+                            />
+                            <circle cx="9" cy="9" r="3" fill="#fff" fill-opacity=".9" />
+                        </svg>
+                    `,
+                    iconSize: [18, 24],
+                    iconAnchor: [9, 23],
+                    popupAnchor: [0, -22]
                 });
+                return L.marker(latlng, { icon: iconPoint });
             },
             onEachFeature: (feature, layer) => {
                 const props = feature.properties;
@@ -506,8 +530,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 maxZoom: 12,
                 padding: [20, 20]
             });
+            if (map.getZoom() < defaultDisplayZoom) {
+                map.setZoom(defaultDisplayZoom);
+            }
         } else {
-            map.setView([-21.1, 55.5], 11);
+            map.setView([-21.1, 55.5], defaultDisplayZoom);
         }
 
     });

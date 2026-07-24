@@ -55,8 +55,8 @@
     <div id="envoi-acte-attente" class="envoi-acte-attente" role="status" aria-live="assertive" hidden>
         <div class="envoi-acte-attente-contenu">
             <span class="envoi-acte-spinner" aria-hidden="true"></span>
-            <strong>Envoi de l’acte en cours…</strong>
-            <span>Veuillez patienter pendant les échanges avec Démarche Numérique et le serveur mail.</span>
+            <strong id="attente-action-titre">Envoi de l’acte en cours…</strong>
+            <span id="attente-action-detail">Veuillez patienter pendant les échanges avec Démarche Numérique et le serveur mail.</span>
         </div>
     </div>
 
@@ -428,6 +428,30 @@
                         </a>
                     {% endif %}
                 </div>
+
+                {% if etape_actuelle.etape == "Non soumis à autorisation" and justificatifs_classement %}
+                    <div class="justificatifs-classement">
+                        <div class="justificatifs-classement-entete">
+                            <div>
+                                <strong>Justificatif de la décision</strong>
+                                <span>Document joint au classement sans suite</span>
+                            </div>
+                        </div>
+
+                        <ul class="justificatifs-classement-liste">
+                            {% for justificatif in justificatifs_classement %}
+                                <li class="justificatif-classement-item">
+                                    <div class="justificatif-classement-document">
+                                        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=justificatif.emplacement fichier_titre=justificatif.titre %}
+                                    </div>
+                                    <time datetime="{{ justificatif.date|date:'c' }}">
+                                        Déposé le {{ justificatif.date|date:"d/m/Y" }} à {{ justificatif.date|time:"H:i" }}
+                                    </time>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
 
 
                 
@@ -996,7 +1020,7 @@ Le Parc national de La Réunion</textarea>
                 <!-- Zone masquée : justification classement sans suite, refus dossier -->
                 <!----------------------------------------------------------------------->
                 <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
+                    <form id="form-classement-sans-suite" method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         
@@ -1039,6 +1063,11 @@ Le Parc national de La Réunion</textarea>
 [Préciser les raisons].</textarea>
 
                         <div class="zone-pj-complement">
+                            {% if dossier.present_sur_ds %}
+                                <label for="justificatif-classement">Joindre un justificatif (facultatif) :</label>
+                                <input id="justificatif-classement" type="file" name="justificatif" data-taille-max="10485760">
+                                <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+                            {% endif %}
                             <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
                         </div>
                     </form>
@@ -2775,6 +2804,22 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
         // Masquer les boutons submit après clic
         document.addEventListener("DOMContentLoaded", function () {
+            const justificatifClassement = document.getElementById("justificatif-classement");
+            if (justificatifClassement) {
+                justificatifClassement.addEventListener("change", function () {
+                    const fichier = this.files[0];
+                    const tailleMax = Number(this.dataset.tailleMax);
+                    const message = fichier && fichier.size > tailleMax
+                        ? "Le justificatif dépasse la taille maximale autorisée de 10 Mo."
+                        : "";
+
+                    this.setCustomValidity(message);
+                    if (message) {
+                        this.reportValidity();
+                    }
+                });
+            }
+
             // Sélectionne toutes les zones contenant des boutons d'envoi
             const zones = document.querySelectorAll(".zone-envoyer-pour-validation form");
 
@@ -2791,6 +2836,14 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                     }
                     if (["form-envoi-acte-acceptation", "form-envoi-acte-refus"].includes(form.id)) {
                         const attente = document.getElementById("envoi-acte-attente");
+                        if (attente) attente.hidden = false;
+                    }
+                    if (form.id === "form-classement-sans-suite") {
+                        const attente = document.getElementById("envoi-acte-attente");
+                        const titre = document.getElementById("attente-action-titre");
+                        const detail = document.getElementById("attente-action-detail");
+                        if (titre) titre.textContent = "Classement du dossier en cours…";
+                        if (detail) detail.textContent = "Veuillez patienter pendant les échanges avec Démarche Numérique.";
                         if (attente) attente.hidden = false;
                     }
                 });
@@ -2946,6 +2999,13 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 button.textContent = "Traitement...";
                 button.style.opacity = "0.6";
                 button.style.cursor = "not-allowed";
+
+                const attente = document.getElementById("envoi-acte-attente");
+                const titre = document.getElementById("attente-action-titre");
+                const detail = document.getElementById("attente-action-detail");
+                if (titre) titre.textContent = "Retour en instruction en cours…";
+                if (detail) detail.textContent = "Veuillez patienter pendant les échanges avec Démarche Numérique.";
+                if (attente) attente.hidden = false;
 
                 // Envoi du formulaire
                 form.submit();

@@ -17,6 +17,9 @@
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/avis_expert.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/avis_responsive.css' %}">
+
+    <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
     
 </head>
 <body>
@@ -301,7 +304,7 @@
                 {% endif %}
             </div>
 
-            <div class="dossiers_lies">
+            <div class="dossiers-lies-avis">
                 <h2>
                     {% if dossiers_lies|length > 1 %}
                         Dossiers liés
@@ -310,17 +313,25 @@
                     {% endif %}
                 </h2>
 
-                <ul class="liste-dossiers-avis">
-                    {% for dossier in dossiers_lies %}
+                <ul>
+                    {% for dossier_lie in dossiers_lies %}
                         <li>
-                            <div class="doss_et_resume">
-                                <a href="{% url 'instruction_dossier' dossier.numero %}" target="_blank" class="dossier_lien" title="Voir le dossier">
-                                    <strong>Dossier n° {{ dossier.numero }}</strong> – {{ dossier.id_demarche.type|truncatechars:34 }}
-                                </a>
-                                <a href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=dossier.resume_pdf_titre %}" target="_blank" rel="noopener noreferrer">
-                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" title="Télécharger le résumé du dossier" class="doc-icon doc-icon-expert">
-                                </a>
-                            </div>
+                            <a href="{% url 'instruction_dossier' dossier_lie.numero %}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               title="Voir le dossier">
+                                <strong>Dossier n° {{ dossier_lie.numero }}</strong>
+                                – {{ dossier_lie.id_demarche.type|truncatechars:34 }}
+                            </a>
+                            <button type="button"
+                                    class="btn-copy-dossier btn-copy-dossier-avis"
+                                    data-path="{{ dossier_lie.chemin_complet }}"
+                                    aria-label="Copier le chemin d'accès du dossier {{ dossier_lie.numero }}"
+                                    title="Copier le chemin d'accès du dossier">
+                                <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                                <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                                <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+                            </button>
                         </li>
                     {% empty %}
                         <li><em>Aucun dossier lié à cet avis.</em></li>
@@ -371,6 +382,25 @@
                             </a>
                         </li>
                     {% endif %}
+
+                    {% for dossier_lie in dossiers_lies %}
+                        <li class="doc-item">
+                            <p class="doc-item-title">
+                                <strong>
+                                    Résumé du dossier{% if dossiers_lies|length > 1 %} n° {{ dossier_lie.numero }}{% endif %} :
+                                </strong>
+                            </p>
+                            <img src="{% static 'instruction/img/logo_pdf.png' %}"
+                                 alt="PDF"
+                                 title="Télécharger le résumé du dossier"
+                                 class="doc-icon">
+                            <a href="{% url 'afficher_annexe' chemin=dossier_lie.emplacement titre=dossier_lie.resume_pdf_titre %}"
+                               target="_blank"
+                               rel="noopener noreferrer">
+                                {{ dossier_lie.resume_pdf_titre }}
+                            </a>
+                        </li>
+                    {% endfor %}
                     
 
                     {% if avis_documents %}

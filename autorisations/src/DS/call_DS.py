@@ -382,7 +382,7 @@ def passer_en_instruction_ds(dossier_id_ds, instructeur):
 
 
 """ON GARDE LE RETOUR {"success", "message"}"""
-def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
+def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation, fichier=None):
     """
     Classe un dossier comme "sans suite" via l'API Démarche Numérique.
 
@@ -390,15 +390,57 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
         dossier_id_ds (str): ID du dossier D-S.
         instructeur (obj Instructeur)
         motivation (str): Justification du 'classement sans suite'
+        fichier (UploadedFile, optional): Justificatif joint à la décision.
 
     Returns:
         dict: Résultat de la mutation avec 'success' et 'message'.
     """
     client = GraphQLClient()
+    signed_blob_id = None
 
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
     email_instructeur = instructeur.email
     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de classement sans suite sur DN par {email_instructeur}")
+
+    if fichier:
+        try:
+            file_data = fichier.read()
+            byte_size = len(file_data)
+            checksum = base64.b64encode(hashlib.md5(file_data).digest()).decode()
+
+            upload_vars = {
+                "input": {
+                    "filename": fichier.name,
+                    "byteSize": byte_size,
+                    "checksum": checksum,
+                    "contentType": fichier.content_type,
+                    "dossierId": dossier_id_ds
+                }
+            }
+
+            upload_response = client.execute_query("DS/mutations/create_direct_upload.graphql", upload_vars)
+            direct_upload = upload_response["data"]["createDirectUpload"]["directUpload"]
+            signed_blob_id = direct_upload["signedBlobId"]
+
+            response = requests.put(
+                direct_upload["url"],
+                headers=json.loads(direct_upload["headers"]),
+                data=BytesIO(file_data),
+                stream=True
+            )
+
+            if response.status_code not in [200, 201]:
+                loggerDS.error(
+                    f"[DOSSIER {num_dossier_pg}] Réponse inattendue lors de l'upload du justificatif "
+                    f"du classement sans suite sur DN : {response.text}"
+                )
+                raise Exception("Échec de l'upload : " + response.text)
+        except Exception as e:
+            loggerDS.error(
+                f"[DOSSIER {num_dossier_pg}] Échec de l'upload du justificatif "
+                f"du classement sans suite sur DN : {e}"
+            )
+            return {"success": False, "message": str(e)}
 
     try:
         variables = {
@@ -408,6 +450,9 @@ def classer_sans_suite_ds(dossier_id_ds, instructeur, motivation):
                 "motivation": motivation
             }
         }
+
+        if signed_blob_id:
+            variables["input"]["justificatif"] = signed_blob_id
 
         result = client.execute_query("DS/mutations/classer_sans_suite.graphql", variables)
 

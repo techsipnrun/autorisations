@@ -5,6 +5,35 @@
 
 (function main() {
 
+    const PETITIONNAIRE_PATH_STYLE = {
+        color: "#B84A4A",
+        weight: 2.5,
+        opacity: 0.9,
+        fillColor: "#D97878",
+        fillOpacity: 0.28
+    };
+    const PETITIONNAIRE_DEFAULT_ZOOM = 11;
+
+    function createPetitionnairePointIcon() {
+        return L.divIcon({
+            className: "petitionnaire-point-icon",
+            html: `
+                <svg viewBox="0 0 18 24" width="18" height="24" aria-hidden="true">
+                    <path
+                        d="M9 .75A8.25 8.25 0 0 0 .75 9C.75 14.5 9 23.25 9 23.25S17.25 14.5 17.25 9A8.25 8.25 0 0 0 9 .75Z"
+                        fill="#D97878"
+                        stroke="#9F3F3F"
+                        stroke-width="1.25"
+                    />
+                    <circle cx="9" cy="9" r="3" fill="#fff" fill-opacity=".9" />
+                </svg>
+            `,
+            iconSize: [18, 24],
+            iconAnchor: [9, 23],
+            popupAnchor: [0, -22]
+        });
+    }
+
     // ------------------------------------------------------------------------
     // Récupération des données
     // ------------------------------------------------------------------------
@@ -38,6 +67,14 @@
 
         // Initialisation de notre map
         const map = initializeMap(div);
+        const updatePointIconScale = () => {
+            if (typeof map.getZoom() !== "number") return;
+            const zoomDifference = Math.max(0, PETITIONNAIRE_DEFAULT_ZOOM - map.getZoom());
+            const scale = Math.max(0.4, 1 - zoomDifference * 0.18);
+            div.style.setProperty("--petitionnaire-point-scale", scale);
+        };
+        map.on("zoomend", updatePointIconScale);
+        updatePointIconScale();
 
 
         // Ajout des fonds et overlays
@@ -149,6 +186,7 @@
             rotateMode: false,
             removalMode: true
         });
+        map.pm.setPathOptions(PETITIONNAIRE_PATH_STYLE);
         
         // Log Geoman events (debug)
         [
@@ -624,13 +662,9 @@
     function renderExistingGeometry(map, geojson) {
 
         const layer = L.geoJSON(geojson, {
-            style: { color: "red", weight: 3, fillColor: "#f03", fillOpacity: 0.5 },
-            pointToLayer: (f, latlng) => L.circleMarker(latlng, {
-              radius: 3,
-              color: "#800",
-              fillColor: "#d00",
-              fillOpacity: 1,
-              weight: 2
+            style: PETITIONNAIRE_PATH_STYLE,
+            pointToLayer: (feature, latlng) => L.marker(latlng, {
+                icon: createPetitionnairePointIcon()
             })
         }).addTo(map);
         
@@ -652,6 +686,12 @@
 
             // Récupère la géométrie nouvellement dessinée.
             const layer = e.layer;
+
+            if (layer instanceof L.Marker) {
+                layer.setIcon(createPetitionnairePointIcon());
+            } else if (typeof layer.setStyle === "function") {
+                layer.setStyle(PETITIONNAIRE_PATH_STYLE);
+            }
             
             // Ajout de la géométrie à la carte
             layer.addTo(map).bringToFront();

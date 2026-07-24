@@ -20,6 +20,7 @@
 
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
+    <script src="{% static 'instruction/js/apercu_signature_message.js' %}" defer></script>
 
 </head>
 <body>
@@ -139,6 +140,10 @@
                         {% csrf_token %}
                         <!-- <input type="hidden" name="id_dossier" value="{{ dossier.id }}"> -->
                         <textarea name="body" placeholder="Écrire un message..." required></textarea>
+
+                        <div class="signature-preview" aria-live="polite">
+                            <p>{{ signature_message|linebreaksbr }}</p>
+                        </div>
                         
                         <div class="pj-actions">
                             <div class="pj_et_signature">
@@ -149,9 +154,10 @@
 
                                 <!-- Case signature -->
                                 <div class="signature-option">
-                                    <label>
-                                        <input type="checkbox" name="message_signe" value="oui" checked>
-                                        Je veux que mon message soit signé
+                                    <label class="signature-toggle">
+                                        <input class="signature-checkbox" type="checkbox" name="message_signe" value="oui" checked>
+                                        <span class="signature-switch" aria-hidden="true"></span>
+                                        <span>Je veux que mon message soit signé</span>
                                     </label>
                                 </div>
                             </div>

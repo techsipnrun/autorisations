@@ -41,6 +41,83 @@ def _redirect_instruction_dossier(dossier):
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
 
 
+def _archiver_justificatif_classement(dossier, fichier, format_obj, nature_obj, user):
+    """Archive sur le NAS le justificatif déjà transmis avec la décision DN."""
+    anciens_justificatifs = [
+        liaison.id_document
+        for liaison in (
+            DossierDocument.objects
+            .filter(
+                id_dossier=dossier,
+                id_document__description__startswith="Justificatif du classement sans suite",
+            )
+            .select_related("id_document")
+        )
+    ]
+    anciens_chemins = [
+        os.path.join(os.getenv("NAS_ROOT", ""), document.emplacement, document.titre)
+        for document in anciens_justificatifs
+    ]
+
+    repertoire_relatif = normaliser_emplacement(
+        os.path.join(dossier.emplacement, "Annexes", "Decisions")
+    )
+    repertoire_absolu = os.path.join(os.getenv("NAS_ROOT", ""), repertoire_relatif)
+    nom_fichier = sanitiser_nom_fichier(fichier.name) or "justificatif"
+    _, chemin_absolu = generate_unique_filename(
+        repertoire_absolu,
+        repertoire_relatif,
+        nom_fichier,
+    )
+    titre = os.path.basename(chemin_absolu)
+
+    fichier.seek(0)
+    if not ecrire_file_sur_nas(fichier, chemin_absolu):
+        raise OSError("Le justificatif n'a pas pu être écrit sur le NAS.")
+
+    try:
+        with transaction.atomic():
+            document = Document.objects.create(
+                id_format=format_obj,
+                id_nature=nature_obj,
+                titre=titre,
+                emplacement=repertoire_relatif,
+                description=(
+                    f"Justificatif du classement sans suite du dossier {dossier.numero}, "
+                    f"ajouté par {user}"
+                ),
+            )
+            DossierDocument.objects.create(id_dossier=dossier, id_document=document)
+            if anciens_justificatifs:
+                DossierDocument.objects.filter(
+                    id_dossier=dossier,
+                    id_document__in=anciens_justificatifs,
+                ).delete()
+                Document.objects.filter(
+                    id__in=[ancien.id for ancien in anciens_justificatifs]
+                ).delete()
+    except Exception:
+        try:
+            if smbclient.path.exists(chemin_absolu):
+                smbclient.remove(chemin_absolu)
+        except Exception as cleanup_error:
+            logger.warning(
+                f"[DOSSIER {dossier.numero}] Impossible de supprimer le justificatif orphelin "
+                f"{chemin_absolu} : {cleanup_error}"
+            )
+        raise
+
+    for ancien_chemin in anciens_chemins:
+        try:
+            if smbclient.path.exists(ancien_chemin):
+                smbclient.remove(ancien_chemin)
+        except Exception as cleanup_error:
+            logger.warning(
+                f"[DOSSIER {dossier.numero}] Ancien justificatif non supprimé du NAS "
+                f"{ancien_chemin} : {cleanup_error}"
+            )
+
+
 def _envoyer_annexes_decision_sur_ds(*, dossier, instructeur, annexes, user_email):
     """Envoie et archive chaque annexe comme un message distinct sur DN."""
     for annexe in annexes:
@@ -248,6 +325,9 @@ def dossier_non_soumis_a_autorisation(request):
 
     dossier_id_ds = request.POST.get("dossierId")
     motivation = request.POST.get("motivation", "").strip()
+    justificatif = request.FILES.get("justificatif")
+    format_justificatif = None
+    nature_justificatif = None
 
 
     # --- Récupération dossier ---
@@ -260,6 +340,34 @@ def dossier_non_soumis_a_autorisation(request):
     if not motivation and dossier.present_sur_ds :
         logger.warning(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} : Justification manquante.")
         return redirect_error(request, f"Une justification est requise pour classer le dossier comme 'Non soumis à autorisation'.")
+
+    if justificatif and dossier.present_sur_ds:
+        if justificatif.size > 10 * 1024 * 1024:
+            return redirect_error(
+                request,
+                "Le justificatif dépasse la taille maximale autorisée de 10 Mo.",
+            )
+
+        extension = os.path.splitext(justificatif.name)[1].lstrip(".").lower()
+        format_justificatif = DocumentFormat.objects.filter(format__iexact=extension).first()
+        if not format_justificatif:
+            return redirect_error(
+                request,
+                f"Le format du justificatif « {extension or 'sans extension'} » n'est pas reconnu.",
+            )
+
+        nature_justificatif = DocumentNature.objects.filter(
+            nature__iexact="Annexe instructeur"
+        ).first()
+        if not nature_justificatif:
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Nature 'Annexe instructeur' introuvable "
+                "pour archiver le justificatif du classement sans suite."
+            )
+            return redirect_error(
+                request,
+                "Impossible de préparer l'archivage du justificatif. Contactez le support.",
+            )
     
 
     # --- Vérification Instructeur ---
@@ -284,10 +392,35 @@ def dossier_non_soumis_a_autorisation(request):
 
 
         # --- CLASSEMENT SANS SUITE SUR DS ---
-        result = classer_sans_suite_ds(dossier.id_ds, instructeur, motivation)
+        result = classer_sans_suite_ds(
+            dossier.id_ds,
+            instructeur,
+            motivation,
+            justificatif,
+        )
         if not result.get("success"):
             logger.error(f"[DOSSIER {dossier.numero}] Échec du classement sans suite DS par {request.user} : {result.get('message')}")
             return redirect_error(request, f"Erreur lors du classement sans suite sur Démarche Numérique. Contactez le support.")
+
+        if justificatif:
+            try:
+                _archiver_justificatif_classement(
+                    dossier,
+                    justificatif,
+                    format_justificatif,
+                    nature_justificatif,
+                    request.user,
+                )
+            except Exception as e:
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] Le classement sans suite a réussi sur DN, "
+                    f"mais son justificatif n'a pas pu être archivé localement : {e}"
+                )
+                messages.warning(
+                    request,
+                    "Le dossier a été classé sans suite sur Démarche Numérique, mais le "
+                    "justificatif n'a pas pu être archivé sur la page du dossier.",
+                )
 
 
     # ========================

@@ -31,6 +31,18 @@ logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")
 
 
+def _get_message_signature(instructeur):
+    agent = instructeur.id_agent_autorisations if instructeur else None
+    if agent:
+        identite = " ".join(
+            valeur for valeur in [agent.prenom, agent.nom] if valeur
+        )
+    else:
+        identite = str(instructeur) if instructeur else ""
+
+    return f"{identite}\nParc national de La Réunion"
+
+
 @login_required
 def preinstruction_dossier_messagerie(request, numero):
 
@@ -173,6 +185,7 @@ def preinstruction_dossier_messagerie(request, numero):
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "est_receptionniste": est_receptionniste,
         "nb_messages_non_lus": nb_messages_non_lus,
+        "signature_message": _get_message_signature(instructeur),
     })
 
 
@@ -331,6 +344,7 @@ def instruction_dossier_messagerie(request, num_dossier):
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "nb_messages_non_lus": nb_messages_non_lus,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
+        "signature_message": _get_message_signature(instructeur),
     })
 
 
@@ -374,13 +388,7 @@ def envoyer_message_dossier(request, numero):
 
     # Signature du message
     if message_signe:
-        signature = (
-            "\n\n\n"
-            f"{instructeur.id_agent_autorisations.prenom} {instructeur.id_agent_autorisations.nom}\n"
-            "Parc national de La Réunion"
-        )
-
-        body = body + signature
+        body = f"{body}\n\n\n{_get_message_signature(instructeur)}"
 
     # ----------------------------
     # Envoi vers DS

@@ -1,4 +1,18 @@
 
+/* RepÃ¨re discret pour les points saisis dans les dossiers DN */
+.petitionnaire-point-icon {
+  background: transparent;
+  border: 0;
+}
+
+.petitionnaire-point-icon svg {
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+  transform: scale(var(--petitionnaire-point-scale, 1));
+  transform-origin: center bottom;
+  transition: transform 0.15s ease-out;
+}
+
 /* Test pannel couches fond de carte */
 /* --- Control discret (2 icônes) --- */
 .leaflet-control.or-mini {

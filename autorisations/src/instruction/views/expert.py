@@ -18,7 +18,7 @@ import logging
 
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils.avis_utils import get_email_expert, get_expert_from_user
-from instruction.utils.dossier_utils import redirect_error
+from instruction.utils.dossier_utils import get_chemin_complet_dossier, redirect_error
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import enregistrer_document
 
@@ -189,6 +189,7 @@ def avis_expert(request, avis_id):
     # Ajouter un champ virtuel resume_pdf_titre à chaque dossier
     for dossier in dossiers_lies:
         dossier.resume_pdf_titre = f"dossier-{dossier.numero}.pdf"
+        dossier.chemin_complet = get_chemin_complet_dossier(dossier)
 
 
     ##############################################################
