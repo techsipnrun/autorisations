@@ -1,0 +1,73 @@
+{% load static %}
+<div class="projet-acte-identique-option"
+     data-nature-select="{{ nature_select_id }}"
+     data-search-url="{% url 'rechercher_projets_acte' dossier.numero %}"
+     data-demandeur-id="{% if demandeur %}{{ demandeur.id }}{% endif %}">
+    <div class="projet-acte-identique-entete">
+        <label class="projet-acte-identique-label">
+            <input type="checkbox"
+                   name="projet_acte_identique"
+                   onchange="toggleProjetActeIdentique(this)">
+            Utiliser le même numéro de projet d’acte qu’un autre dossier
+        </label>
+        <span class="projet-acte-info"
+              tabindex="0"
+              aria-label="Information sur les projets d’acte identiques">i
+            <span class="projet-acte-info-bulle" role="tooltip">
+                Cochez cette option si l’acte à délivrer doit également être délivré dans 
+                un ou plusieurs autres dossiers, et si un numéro de projet d’acte a déjà été attribué dans 
+                l’un de ces dossiers. Ce numéro sera alors réutilisé pour le présent dossier. 
+                
+            </span>
+        </span>
+    </div>
+    <input type="hidden"
+           name="projet_acte_source_id"
+           class="projet-acte-source-id">
+
+    <section class="recherche-projet-inline" hidden>
+        <h3>Rechercher un projet d’acte</h3>
+        <p class="recherche-projet-rappel">
+            Seul le numéro de l'acte sera repris. Le projet d'acte situé dans le dossier Work actuel ne sera
+            pas modifié. <br> Pour les projets d'actes utilisés dans plusieurs dossiers, c'est donc à vous de vous
+            assurer qu'ils sont bien identiques dans les dossiers Work respectifs.
+        </p>
+        <div class="recherche-projet-filtres">
+            <label>
+                Numéro de dossier
+                <input class="recherche-projet-numero" inputmode="numeric">
+            </label>
+            <label>
+                Type de démarche
+                <select class="recherche-projet-demarche-type">
+                    <option value="">Tous les types</option>
+                    {% for type_demarche in types_demarches %}
+                        <option value="{{ type_demarche }}">{{ type_demarche }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Demandeur
+                <select class="recherche-projet-demandeur">
+                    <option value="">Tous les demandeurs</option>
+                    {% if demandeur %}
+                        <option value="{{ demandeur.id }}" selected>
+                            {{ demandeur_affichage }}
+                        </option>
+                    {% endif %}
+                </select>
+            </label>
+            <button type="button"
+                    class="recherche-projet-bouton"
+                    onclick="rechercherProjetsActeInline(this)"
+                    title="Rechercher"
+                    aria-label="Rechercher">
+                <img src="{% static 'instruction/img/loupe.png' %}" alt="">
+            </button>
+        </div>
+        <p class="recherche-projet-statut" aria-live="polite"></p>
+        <div class="recherche-projet-resultats"></div>
+        <p class="recherche-projet-exclusions" hidden></p>
+        <p class="projet-acte-selection" hidden></p>
+    </section>
+</div>

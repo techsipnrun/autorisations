@@ -100,7 +100,7 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
             geometrie_du_champ = geoareas_to_geojson_text(ch["geoAreas"]) if ch["__typename"] == "CarteChamp" else None
             
             # Si le module carto n'a pas été rempli --> on met l'attribut 'geometrie_a_saisir' à True
-            if ch["label"] == 'Choix de la méthode pour localiser le projet': 
+            if ch["label"].startswith('Choix de la méthode pour localiser'):
                 if 'Remplir le module de cartographie' not in ch["stringValue"] :
                     # Sont concernées : Missions scientifiques (5), Hélico (7), PDV son drone (8), Manifs publiques (11)
                     

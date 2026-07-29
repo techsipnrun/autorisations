@@ -57,6 +57,7 @@ urlpatterns = [
     path('instruction/', instruction.accueil, name='accueil_view'),
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
+    path('instruction/<int:num_dossier>/projets-acte/', instruction.rechercher_projets_acte, name='rechercher_projets_acte'),
     path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),
@@ -149,6 +150,7 @@ urlpatterns = [
     path("changer-etape/acte-refus-envoye/", changement_etape.envoyer_l_acte_de_refus, name="envoyer_l_acte_de_refus_url"),
     path("changer-etape/pret-envoye/", changement_etape.acte_pret_a_etre_envoye, name="acte_pret_a_etre_envoye_url"),
     path("changer-etape/remplacer-acte-signe/", changement_etape.remplacer_acte_signe, name="remplacer_acte_signe_url"),
+    path("changer-etape/remplacer-numero-projet-acte/", changement_etape.remplacer_numero_projet_acte, name="remplacer_numero_projet_acte_url"),
     path("changer-etape/accepte/", changement_etape.classer_le_dossier_comme_accepte, name="classer_le_dossier_comme_accepte_url"),
 
 

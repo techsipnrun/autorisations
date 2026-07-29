@@ -2,11 +2,49 @@ import os
 
 import smbclient
 
-from autorisations.models.models_documents import Document, DossierDocument
+from django.core.exceptions import ValidationError
+from autorisations.models.models_documents import (
+    Document,
+    DossierDocument,
+)
 
 
 NATURES_VALIDES = ['Déliberation CA', 'Arrêté directeur', 'Avis simple', 'Avis conforme']
 NATURES_VALIDES_AVEC_RAPPORT = NATURES_VALIDES + ["Projet Rapport CA"]
+
+
+def get_projet_acte_source(document_id, dossier_courant, nature=None):
+    liaison = (
+        DossierDocument.objects
+        .select_related("id_document__id_nature", "id_dossier")
+        .filter(id_document_id=document_id)
+        .exclude(id_dossier=dossier_courant)
+        .first()
+    )
+    if not liaison or not liaison.id_document.numero:
+        raise ValidationError(
+            "Le projet d’acte sélectionné est introuvable ou ne possède pas de numéro."
+        )
+    if (
+        liaison.id_document.id_nature.nature not in NATURES_VALIDES
+        or (nature and liaison.id_document.id_nature.nature != nature)
+    ):
+        raise ValidationError(
+            "Le projet d’acte sélectionné n’a pas le type d’acte attendu."
+        )
+    return liaison.id_document
+
+
+def reprendre_numero_projet_acte(document, source, dossier, utilisateur):
+    if document.id_nature_id != source.id_nature_id:
+        raise ValidationError(
+            "Les deux projets doivent avoir le même type d’acte."
+        )
+
+    ancien_numero = document.numero
+    document.numero = source.numero
+    document.save(update_fields=["numero"])
+    return ancien_numero
 
 
 def build_documents_for_dossier(dossier):

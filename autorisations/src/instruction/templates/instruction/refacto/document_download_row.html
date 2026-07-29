@@ -1,9 +1,7 @@
 {% load static %}
 
-<li class="doc-item" title="Télécharger le document">
-    <div class="doc-download-row"
-         data-url="{% url 'afficher_annexe' chemin=doc.emplacement titre=doc.titre %}"
-         title="Télécharger le document">
+<li class="doc-item">
+    <div class="doc-download-row">
 
         <span class="doc-titre-no-download">
             {% if doc.id_nature.nature == "Annexe instructeur" or doc.id_nature.nature == "Annexe instructeur DM" %}
@@ -26,6 +24,34 @@
             :
         </span>
 
-        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=doc.emplacement fichier_titre=doc.titre correction_form_id=correction_form_id %}
+        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=doc.emplacement fichier_titre=doc.titre correction_form_id=correction_form_id download_icon_only=True %}
+
+        {% if show_copy_path %}
+            <button type="button"
+                    class="document-copy-trigger"
+                    data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
+                    onclick="event.stopPropagation(); copyPathDocument(this)"
+                    data-tooltip="Copier l'emplacement du document"
+                    aria-label="Copier l'emplacement du document">
+                <img src="{% static 'instruction/img/copy.png' %}" alt="" class="document-action-icon">
+                <span class="copie-feedback-doc">Chemin copié !</span>
+            </button>
+        {% endif %}
+
+        {% if show_share_number and doc.numero and not doc.dossiers_meme_acte %}
+            <button type="button"
+                    class="projet-acte-share-trigger"
+                    onclick="event.stopPropagation(); toggleRechercheProjetRemplacement(this)"
+                    data-tooltip="Utiliser le numéro d’un projet d’acte existant"
+                    aria-label="Utiliser le numéro d’un projet d’acte existant">
+                <img src="{% static 'instruction/img/links.png' %}"
+                     alt=""
+                     class="projet-acte-share-icon">
+            </button>
+        {% endif %}
     </div>
+    {% if show_share_number and doc.numero and not doc.dossiers_meme_acte %}
+        {% include "instruction/refacto/recherche_numero_projet_inline.html" with doc=doc %}
+    {% endif %}
+    {% include "instruction/refacto/dossiers_meme_acte.html" with doc=doc %}
 </li>

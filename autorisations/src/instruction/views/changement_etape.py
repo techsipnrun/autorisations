@@ -5,6 +5,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db import transaction
+from django.db.models import Q
 import smbclient
 from autorisations.models.models_instruction import AvisManifSportive, Dossier, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, DossierAction, Action
 from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierSignataire, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, DossierInstructeur, DossierValideur, TypeContactExterne
@@ -14,7 +15,12 @@ from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
-from instruction.utils.document_utils import NATURES_VALIDES, normaliser_emplacement
+from instruction.utils.document_utils import (
+    NATURES_VALIDES,
+    get_projet_acte_source,
+    normaliser_emplacement,
+    reprendre_numero_projet_acte,
+)
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail, get_instructeur_or_redirect
@@ -39,6 +45,91 @@ loggerDS = logging.getLogger("API_DS")
 
 def _redirect_instruction_dossier(dossier):
     return redirect(reverse("instruction_dossier", kwargs={"num_dossier": dossier.numero}))
+
+
+def _source_numero_partagee(request, dossier, nature):
+    if request.POST.get("projet_acte_identique") != "on":
+        return None
+    source_id = request.POST.get("projet_acte_source_id")
+    if not source_id:
+        raise ValidationError(
+            "Sélectionnez un projet d’acte existant ou décochez l’option."
+        )
+    return get_projet_acte_source(source_id, dossier, nature=nature)
+
+
+def _appliquer_numero_partage(request, dossier, document, nature):
+    source = _source_numero_partagee(request, dossier, nature)
+    if source:
+        reprendre_numero_projet_acte(document, source, dossier, request.user)
+
+
+@require_POST
+@login_required
+def remplacer_numero_projet_acte(request):
+    dossier = get_object_or_404(Dossier, id=request.POST.get("dossier_id"))
+    document = get_object_or_404(
+        Document.objects.select_related("id_nature"),
+        id=request.POST.get("document_id"),
+    )
+    if dossier.id_etape_dossier.etape not in {
+        "À valider avant signature",
+        "En relecture qualité",
+        "En attente de signature",
+    }:
+        return redirect_error(
+            request,
+            "Le numéro du projet d’acte ne peut pas être remplacé à cette étape.",
+        )
+    if not DossierDocument.objects.filter(
+        id_dossier=dossier,
+        id_document=document,
+    ).exists():
+        return redirect_error(
+            request,
+            "Le projet d’acte n’appartient pas à ce dossier.",
+        )
+    if DossierDocument.objects.filter(
+        id_document__id_nature=document.id_nature,
+        id_document__numero=document.numero,
+        id_document__id_statut__statut__in=[
+            "À valider",
+            "À relire",
+            "À signer",
+            "À envoyer",
+            "Envoyé",
+        ],
+    ).exclude(id_dossier=dossier).exists():
+        return redirect_error(
+            request,
+            "Ce projet d’acte est déjà utilisé par un ou plusieurs autres dossiers.",
+        )
+    try:
+        source = get_projet_acte_source(
+            request.POST.get("source_document_id"),
+            dossier,
+            nature=document.id_nature.nature,
+        )
+        reprendre_numero_projet_acte(
+            document,
+            source,
+            dossier,
+            request.user,
+        )
+    except ValidationError as exc:
+        return redirect_error(request, f"❌ {exc.message}")
+
+    logger.info(
+        f"[DOSSIER {dossier.numero}] Numéro du projet d'acte {document.id} "
+        f"remplacé par {source.numero} depuis le document {source.id} "
+        f"par {request.user}."
+    )
+    messages.success(
+        request,
+        f"Le numéro du projet d’acte est maintenant {source.numero}. "
+        "Le fichier Word du dossier n’a pas été modifié.",
+    )
+    return _redirect_instruction_dossier(dossier)
 
 
 def _archiver_justificatif_classement(dossier, fichier, format_obj, nature_obj, user):
@@ -846,9 +937,17 @@ def faire_valider_une_demande_d_avis(request):
             doc.numero = None
             doc.save()
             logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+        _appliquer_numero_partage(request, dossier, doc, nature)
 
+    except ValidationError as e:
+        return redirect_error(request, f"❌ {e.message}")
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] Erreur lors du changement d'étape 'Faire valider une demande d'avis' par {request.user} - Erreur lors de la création ou de la MAJ du Document {nom_fichier} en base : {e}")
+        return redirect_error(
+            request,
+            "❌ Le projet d’acte n’a pas pu être enregistré. "
+            "Le dossier n’a pas été envoyé pour validation.",
+        )
     
 
     ########################
@@ -1026,8 +1125,16 @@ def faire_valider_le_projet_d_acte(request):
             doc.numero = None
             doc.save()
             logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+        _appliquer_numero_partage(request, dossier, doc, nature)
+    except ValidationError as e:
+        return redirect_error(request, f"❌ {e.message}")
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'Faire valider le projet d'acte' par {request.user} - Erreur lors de la création du Document {nom_fichier} en base : {e}")
+        return redirect_error(
+            request,
+            "❌ Le projet d’acte n’a pas pu être enregistré. "
+            "Le dossier n’a pas été envoyé pour validation.",
+        )
 
 
 
@@ -1298,9 +1405,50 @@ def repasser_en_instruction(request):
     DossierValideur.objects.filter(id_dossier=dossier).delete()
 
 
-    # Documents 
+    # Suppression en base des projets d'acte non envoyés. Les fichiers présents
+    # dans le dossier Work ne sont volontairement pas supprimés.
+    projets_acte_a_supprimer = list(
+        DossierDocument.objects
+        .filter(
+            id_dossier=dossier,
+            id_document__id_nature__nature__in=NATURES_VALIDES,
+        )
+        .filter(
+            Q(id_document__id_statut__isnull=True)
+            | ~Q(id_document__id_statut__statut__iexact="Envoyé")
+        )
+        .values_list("id_document_id", flat=True)
+    )
+    if projets_acte_a_supprimer:
+        with transaction.atomic():
+            DossierDocument.objects.filter(
+                id_dossier=dossier,
+                id_document_id__in=projets_acte_a_supprimer,
+            ).delete()
+            documents_encore_lies = set(
+                DossierDocument.objects
+                .filter(id_document_id__in=projets_acte_a_supprimer)
+                .values_list("id_document_id", flat=True)
+            )
+            documents_orphelins = [
+                document_id
+                for document_id in projets_acte_a_supprimer
+                if document_id not in documents_encore_lies
+            ]
+            Document.objects.filter(id__in=documents_orphelins).delete()
+        logger.info(
+            f"[DOSSIER {dossier.numero}] Repassage en instruction par {request.user} : "
+            f"{len(projets_acte_a_supprimer)} projet(s) d'acte non envoyé(s) supprimé(s) de la BDD."
+        )
+
+    # Les autres documents conservent leur réinitialisation historique.
     statuts_cibles = {"à envoyer", "à signer", "à relire", "à valider"}
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = (
+        DossierDocument.objects
+        .filter(id_dossier=dossier)
+        .exclude(id_document__id_nature__nature__in=NATURES_VALIDES)
+        .select_related("id_document__id_statut", "id_document__id_nature")
+    )
 
     for lien in documents_du_dossier:
         doc = lien.id_document
@@ -1699,8 +1847,16 @@ def acte_pret_a_la_signature(request):
             doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
             doc.save()
             logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+        _appliquer_numero_partage(request, dossier, doc, nature)
+    except ValidationError as e:
+        return redirect_error(request, f"❌ {e.message}")
     except Exception as e:
         logger.error(f"[DOSSIER {dossier.numero}] {nature_obj.nature} : Erreur lors du changement d'étape 'En attente de signature' par {request.user} - Erreur lors de la création du Document {nom_fichier} en base : {e}")
+        return redirect_error(
+            request,
+            "❌ Le projet d’acte n’a pas pu être enregistré. "
+            "Le dossier n’a pas été envoyé pour signature.",
+        )
 
 
 

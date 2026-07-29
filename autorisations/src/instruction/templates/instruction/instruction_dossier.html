@@ -44,6 +44,7 @@
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
+    <script src="{% static 'instruction/js/projet_acte_identique.js' %}" defer></script>
 
 </head>
 
@@ -642,6 +643,7 @@
                                 </div>
                             </div>
 
+                            {% include "instruction/refacto/projet_acte_identique_option.html" with nature_select_id="nature_validation" %}
                             <div id="zone-projet-rapport-sppn"></div>
                         </div>
 
@@ -1162,6 +1164,7 @@ En conséquence, la demande est refusée.</textarea>
                                 </div>
                             </div>
 
+                            {% include "instruction/refacto/projet_acte_identique_option.html" with nature_select_id="nature_validation_avant_signa" %}
                             <div id="zone-projet-rapport"></div>
 
                             <div class="envoi-pour-validation-avant-signature">
@@ -1269,6 +1272,7 @@ En conséquence, la demande est refusée.</textarea>
                                 </div>
                             </div>
 
+                            {% include "instruction/refacto/projet_acte_identique_option.html" with nature_select_id="nature_acte_avant_dmd_avis" %}
                             <div id="zone-projet-rapport-avant-dmd-avis"></div>
                         </div>
 
@@ -1330,7 +1334,11 @@ En conséquence, la demande est refusée.</textarea>
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_a_valider %}
-                                        {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
+                                        {% if etape_actuelle.etape == "À valider avant signature" %}
+                                            {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT show_share_number=True %}
+                                        {% else %}
+                                            {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
+                                        {% endif %}
                                     {% endfor %}
                                 </ul>
                             </form>
@@ -1364,7 +1372,7 @@ En conséquence, la demande est refusée.</textarea>
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_a_relire %}
-                                        {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT %}
+                                        {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT show_share_number=True %}
                                         
                                         <!-- Délib CA : L'insertion du numéro se fait plus tard -->
                                         {% if doc.numero and not delibCA %}
@@ -1387,7 +1395,7 @@ En conséquence, la demande est refusée.</textarea>
                             {% csrf_token %}
                             <ul class="doc-a-valider-liste">
                                 {% for doc in doc_a_signer %}
-                                    {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
+                                    {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True show_copy_path=True show_share_number=True NAS_ROOT=NAS_ROOT %}
 
                                     <span class="rappel-numero-acte">
                                         {% if delibCA %}
@@ -3090,6 +3098,8 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
         function confirmerActePretALaSignature() {
             // AJOUTER VERIF RAPPOR CA (si delibCA select)
             const form = document.querySelector('#formulaire-acte-pret-a-la-signature form');
+            effacerErreursFormulaire(form);
+            if (!validerProjetActeIdentique(form)) return;
 
             const inter_dir = form.querySelector('#choix_intermediaire_dir-sppn');
             const inter_ca = form.querySelector('#choix_intermediaire_ca-sppn');
@@ -3115,12 +3125,18 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const nomFichier = fichierChoisi?.value || "";
 
             if (!nature.value) {
-                alert("Veuillez sélectionner la nature du document.");
+                afficherErreurFormulaire(
+                    nature.closest(".nature-acte"),
+                    "Veuillez sélectionner la nature du document."
+                );
                 return;
             }
 
             if (!nomFichier) {
-                alert("Veuillez sélectionner le projet d'acte dans le dossier Work.");
+                afficherErreurFormulaire(
+                    fichierChoisi.closest(".projet_acte_pj"),
+                    "Veuillez sélectionner un fichier du dossier Work."
+                );
                 return;
             }
 
@@ -3136,6 +3152,9 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
         // Pour confirmer l'envoi pour Validation avant signature
         function confirmerValidationAvantSignature() {
+            const form = document.querySelector('#formulaire-validation-signature form');
+            effacerErreursFormulaire(form);
+            if (!validerProjetActeIdentique(form)) return;
             // AJOUTER VERIF RAPPOR CA (si delibCA select)
             const select = document.getElementById("nature_validation_avant_signa");
             const validant = document.getElementById("choix-validant");
@@ -3145,7 +3164,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const nomRapportCA = rapportCA?.value || "";
 
             if (!select.value) {
-                alert("Veuillez sélectionner la nature du document.");
+                afficherErreurFormulaire(
+                    select.closest(".nature-acte"),
+                    "Veuillez sélectionner la nature du document."
+                );
                 return;
             }
 
@@ -3160,23 +3182,32 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
 
             if (!validant.value) {
-                alert("Veuillez sélectionner un.e validant.e.");
+                afficherErreurFormulaire(
+                    validant.closest(".validant"),
+                    "Veuillez sélectionner un.e validant.e."
+                );
                 return;
             }
 
             if (!fichierChoisi.value) {
-                alert("Veuillez sélectionner un fichier du dossier Work.");
+                afficherErreurFormulaire(
+                    fichierChoisi.closest(".projet_acte_pj"),
+                    "Veuillez sélectionner un fichier du dossier Work."
+                );
                 return;
             }
 
             if (confirm("Confirmez-vous l’envoi pour validation avant signature ?")) {
-                document.querySelector('#formulaire-validation-signature form').submit();
+                form.submit();
             }
         }
 
 
         // Pour confirmer l'envoi pour Validation avant demande d'avis
         function confirmerValidationAvantDemandeAvis() {
+            const form = document.querySelector('#formulaire-validation-demande-avis form');
+            effacerErreursFormulaire(form);
+            if (!validerProjetActeIdentique(form)) return;
             const select = document.getElementById("nature_acte_avant_dmd_avis");
             const validant = document.getElementById("choix-validant-avant-dmd-avis");
             const fichierChoisi = document.getElementById("piece_jointe_work_avis");
@@ -3186,7 +3217,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const nomRapportCA = rapportCA?.value || "";
 
             if (!select.value) {
-                alert("Veuillez sélectionner la nature du document.");
+                afficherErreurFormulaire(
+                    select.closest(".nature-acte"),
+                    "Veuillez sélectionner la nature du document."
+                );
                 return;
             }
 
@@ -3206,12 +3240,18 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
 
             if (!validant.value) {
-                alert("Veuillez sélectionner un.e validant.e.");
+                afficherErreurFormulaire(
+                    validant.closest(".validant"),
+                    "Veuillez sélectionner un.e validant.e."
+                );
                 return;
             }
 
             if (!fichierChoisi.value) {
-                alert("Veuillez sélectionner un fichier du dossier Work.");
+                afficherErreurFormulaire(
+                    fichierChoisi.closest(".projet_acte_pj"),
+                    "Veuillez sélectionner un fichier du dossier Work."
+                );
                 return;
             }
 

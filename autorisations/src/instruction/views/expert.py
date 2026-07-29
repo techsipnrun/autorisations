@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 import datetime
+from django.db.models import Q
 from django.utils.timezone import localtime
 from pathlib import Path
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
@@ -24,6 +25,24 @@ from instruction.utils_instru import enregistrer_document
 
 logger = logging.getLogger("ORM_DJANGO")
 loggerDS = logging.getLogger("API_DS")  
+
+
+def filtre_avis_conseil_scientifique():
+    """Filtre l'expert externe représentant le Conseil scientifique."""
+    return Q(
+        id_expert__est_interne=False,
+        id_expert__id_contact_externe__nom__iexact="COLLIN",
+        id_expert__id_contact_externe__prenom__iexact="Gérard",
+        id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique",
+    )
+
+
+def filtre_demandes_avis_visibles(instructeur, est_publicateur_raa_avis_cs):
+    """Étend les demandes personnelles aux avis CS pour les publicateurs RAA."""
+    filtre = Q(id_instructeur=instructeur)
+    if est_publicateur_raa_avis_cs:
+        filtre |= filtre_avis_conseil_scientifique()
+    return filtre
 
 
 @login_required(login_url='/login/')
@@ -94,30 +113,73 @@ def avis(request):
     annees_disponibles_demandeur = []
 
     if instructeur:
+        est_publicateur_raa_avis_cs = request.user.groups.filter(
+            name="Publication RAA Avis CS"
+        ).exists()
+        filtre_demandes_visibles = filtre_demandes_avis_visibles(
+            instructeur,
+            est_publicateur_raa_avis_cs,
+        )
+
+        # Les avis favorables du CS non publiés sont prioritaires : ils ne
+        # doivent apparaître que dans la liste dédiée à la publication RAA.
+        avis_a_publier_ids = Avis.objects.none().values("pk")
+        if est_publicateur_raa_avis_cs:
+            demandes_avis_a_publier_au_RAA = (
+                Avis.objects
+                .filter(filtre_avis_conseil_scientifique(), favorable=True)
+                .exclude(publie_au_raa=True)
+                .select_related(
+                    "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
+                )
+                .prefetch_related("dossieravis_set__id_dossier")
+                .distinct()
+            )
+            avis_a_publier_ids = demandes_avis_a_publier_au_RAA.values("pk")
+
         # Demandes en cours
-        demandes_en_cours = Avis.objects.filter(id_instructeur=instructeur, favorable__isnull=True, statut="Envoyé"
-                            ).select_related("id_demarche", "id_dossier", "id_expert", "id_avis_nature").prefetch_related(
-                                "dossieravis_set__id_dossier"
-                            ).order_by("-date_demande_avis")
+        demandes_en_cours = (
+            Avis.objects
+            .filter(
+                filtre_demandes_visibles,
+                favorable__isnull=True,
+                statut="Envoyé",
+            )
+            .exclude(pk__in=avis_a_publier_ids)
+            .select_related(
+                "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
+            )
+            .prefetch_related("dossieravis_set__id_dossier")
+            .distinct()
+            .order_by("-date_demande_avis")
+        )
 
         # Demandes traitées
-        demandes_traitees = Avis.objects.filter(id_instructeur=instructeur,favorable__isnull=False,date_reponse_avis__year=selected_year_demandeur, statut="Envoyé"
-                            ).select_related(
-                                "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
-                            ).prefetch_related("dossieravis_set__id_dossier").order_by("-date_reponse_avis")
-        
-        # Demandes à publier au RAA (CONSEIL SCIENTIFIQUE)
-        demandes_avis_a_publier_au_RAA = Avis.objects.filter(favorable=True, id_expert__est_interne=False, id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique"
-                                        ).exclude(publie_au_raa=True).select_related(
-                                            "id_demarche", "id_expert", "id_avis_nature"
-                                        ).prefetch_related("dossieravis_set__id_dossier").distinct()
-                                        # ).filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance"
+        demandes_traitees = (
+            Avis.objects
+            .filter(
+                filtre_demandes_visibles,
+                favorable__isnull=False,
+                date_reponse_avis__year=selected_year_demandeur,
+                statut="Envoyé",
+            )
+            .exclude(pk__in=avis_a_publier_ids)
+            .select_related(
+                "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
+            )
+            .prefetch_related("dossieravis_set__id_dossier")
+            .distinct()
+            .order_by("-date_reponse_avis")
+        )
                                         
    
 
         # Années disponibles
         annees_disponibles_demandeur = list(
-            Avis.objects.filter(id_instructeur=instructeur, date_reponse_avis__isnull=False)
+            Avis.objects.filter(
+                filtre_demandes_visibles,
+                date_reponse_avis__isnull=False,
+            )
             .dates("date_reponse_avis", "year", order="DESC")
         )
 

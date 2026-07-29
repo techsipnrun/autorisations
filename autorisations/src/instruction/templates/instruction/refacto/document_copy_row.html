@@ -1,5 +1,5 @@
 {% load static %}
-<li class="doc-item" title="Copier l'emplacement du document">
+<li class="doc-item">
     <div class="doc-copy-row"
         data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
         onclick="copyPathDocument(this)">
@@ -16,10 +16,29 @@
             : {{ doc.titre }}
         </span>
 
-        <img class="doc-copy-icon"
-            src="{% static 'instruction/img/copy.png' %}"
-            alt="Copier">
+        <span class="doc-copy-icon-control"
+              data-tooltip="Copier l'emplacement du document">
+            <img class="doc-copy-icon"
+                 src="{% static 'instruction/img/copy.png' %}"
+                 alt="Copier">
+        </span>
+
+        {% if show_share_number and doc.numero and not doc.dossiers_meme_acte %}
+            <button type="button"
+                    class="projet-acte-share-trigger"
+                    onclick="event.stopPropagation(); toggleRechercheProjetRemplacement(this)"
+                    data-tooltip="Utiliser le numéro d’un projet d’acte existant"
+                    aria-label="Utiliser le numéro d’un projet d’acte existant">
+                <img src="{% static 'instruction/img/links.png' %}"
+                     alt=""
+                     class="projet-acte-share-icon">
+            </button>
+        {% endif %}
 
         <span class="copie-feedback-doc">Chemin copié !</span>
     </div>
+    {% if show_share_number and doc.numero and not doc.dossiers_meme_acte %}
+        {% include "instruction/refacto/recherche_numero_projet_inline.html" with doc=doc %}
+    {% endif %}
+    {% include "instruction/refacto/dossiers_meme_acte.html" with doc=doc %}
 </li>

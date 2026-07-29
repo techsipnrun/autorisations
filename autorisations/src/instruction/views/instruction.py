@@ -527,6 +527,161 @@ def instruction_demarche(request, num_demarche):
 
 
 
+def _numero_acte_affiche(document):
+    prefixes = {
+        "Arrêté directeur": "DIR-I-",
+        "Déliberation CA": "CA/",
+    }
+    return f"{prefixes.get(document.id_nature.nature, '')}{document.numero}"
+
+
+def _cle_identite_demandeur(demandeur):
+    if not demandeur:
+        return None
+    if demandeur.email:
+        return ("email", demandeur.email.strip().lower())
+    if demandeur.siret:
+        return ("siret", demandeur.siret.strip())
+    return (
+        "identite",
+        (demandeur.nom or "").strip().lower(),
+        (demandeur.prenom or "").strip().lower(),
+        (demandeur.raison_sociale or demandeur.organisation or "").strip().lower(),
+    )
+
+
+def _affichage_demandeur(demandeur):
+    if not demandeur:
+        return "Non renseigné"
+    if demandeur.nom and demandeur.prenom and demandeur.email:
+        return f"{demandeur.nom} {demandeur.prenom} ({demandeur.email})"
+    return demandeur.get_display_name()
+
+
+@login_required
+def rechercher_projets_acte(request, num_dossier):
+    dossier_courant = get_object_or_404(Dossier, numero=num_dossier)
+    numero = (request.GET.get("numero") or "").strip()
+    demarche_type = (request.GET.get("demarche_type") or "").strip()
+    demandeur_id = (request.GET.get("demandeur") or "").strip()
+    nature = (request.GET.get("nature") or "").strip()
+    etapes_avec_projet_acte = [
+        "Avis à envoyer",
+        "À valider avant signature",
+        "En relecture qualité",
+        "En attente de signature",
+        "À valider avant demande d'avis",
+        "En attente réponse d'avis",
+    ]
+
+    liaisons = (
+        DossierDocument.objects
+        .select_related(
+            "id_dossier__id_demarche",
+            "id_document__id_nature",
+            "id_document__id_statut",
+        )
+        .filter(
+            id_document__numero__isnull=False,
+            id_document__id_nature__nature__in=[
+                "Arrêté directeur",
+                "Déliberation CA",
+                "Avis simple",
+                "Avis conforme",
+            ],
+            id_document__id_statut__statut__in=[
+                "À valider",
+                "À relire",
+                "À signer",
+                "À envoyer",
+            ],
+            id_dossier__id_etape_dossier__etape__in=etapes_avec_projet_acte,
+        )
+        .exclude(id_document__numero="")
+        .exclude(id_dossier=dossier_courant)
+        .order_by("-id_document__date")
+    )
+    if numero:
+        liaisons = liaisons.filter(id_dossier__numero__icontains=numero)
+    if demarche_type:
+        liaisons = liaisons.filter(id_dossier__id_demarche__type=demarche_type)
+    if nature:
+        liaisons = liaisons.filter(id_document__id_nature__nature=nature)
+    demandeur_filtre = (
+        ContactExterne.objects.filter(id=demandeur_id).first()
+        if demandeur_id
+        else None
+    )
+    cle_demandeur_filtre = _cle_identite_demandeur(demandeur_filtre)
+    actes_deja_presents = set(
+        DossierDocument.objects
+        .filter(
+            id_dossier=dossier_courant,
+            id_document__numero__isnull=False,
+        )
+        .exclude(id_document__numero="")
+        .values_list(
+            "id_document__id_nature_id",
+            "id_document__numero",
+        )
+    )
+
+    resultats = []
+    demandeurs = {}
+    documents_vus = set()
+    projets_exclus = {}
+    for liaison in liaisons:
+        demandeur = get_demandeur_for_dossier(liaison.id_dossier)
+        if (
+            cle_demandeur_filtre
+            and _cle_identite_demandeur(demandeur) != cle_demandeur_filtre
+        ):
+            continue
+        cle_acte = (
+            liaison.id_document.id_nature_id,
+            liaison.id_document.numero,
+        )
+        if cle_acte in actes_deja_presents:
+            projets_exclus[cle_acte] = (
+                f"{liaison.id_document.id_nature.nature} "
+                f"{_numero_acte_affiche(liaison.id_document)}"
+            )
+            continue
+        if demandeur:
+            demandeurs[demandeur.id] = _affichage_demandeur(demandeur)
+        if liaison.id_document_id in documents_vus:
+            continue
+        documents_vus.add(liaison.id_document_id)
+        resultats.append(
+            {
+                "document_id": liaison.id_document_id,
+                "dossier_numero": liaison.id_dossier.numero,
+                "demarche_type": liaison.id_dossier.id_demarche.titre,
+                "demandeur": (
+                    _affichage_demandeur(demandeur)
+                ),
+                "nature": liaison.id_document.id_nature.nature,
+                "numero": liaison.id_document.numero,
+                "numero_affiche": _numero_acte_affiche(liaison.id_document),
+            }
+        )
+        if len(resultats) == 50:
+            break
+
+    return JsonResponse(
+        {
+            "resultats": resultats,
+            "projets_exclus": sorted(projets_exclus.values()),
+            "demandeurs": [
+                {"id": identifiant, "nom": nom}
+                for identifiant, nom in sorted(
+                    demandeurs.items(), key=lambda item: item[1].lower()
+                )
+            ],
+        }
+    )
+
+
 @login_required
 def instruction_dossier(request, num_dossier):
 
@@ -611,6 +766,7 @@ def instruction_dossier(request, num_dossier):
     # Infos sur le bénéficiaire/demandeur intermediaire
     ###################################################
     beneficiaire = get_beneficiaire_for_dossier(dossier)
+    demandeur = get_demandeur_for_dossier(dossier)
     demandeur_intermediaire = None
     interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
     if interlocuteur and interlocuteur.id_demandeur_intermediaire:
@@ -661,6 +817,51 @@ def instruction_dossier(request, num_dossier):
     # Documents
     #############################
     documents_data = build_documents_for_dossier(dossier)
+    documents_numerotes = {
+        liaison.id_document_id: liaison.id_document
+        for liaison in (
+            DossierDocument.objects
+            .filter(
+                id_dossier=dossier,
+                id_document__numero__isnull=False,
+            )
+            .exclude(id_document__numero="")
+            .select_related("id_document__id_nature")
+        )
+    }
+    statuts_projet_acte_actif = [
+        "À valider",
+        "À relire",
+        "À signer",
+        "À envoyer",
+        "Envoyé",
+    ]
+    dossiers_meme_acte_par_document = {}
+    for document in documents_numerotes.values():
+        dossiers_meme_acte_par_document[document.id] = list(
+            DossierDocument.objects
+            .filter(
+                id_document__id_nature=document.id_nature,
+                id_document__numero=document.numero,
+                id_document__id_statut__statut__in=statuts_projet_acte_actif,
+            )
+            .exclude(id_dossier=dossier)
+            .select_related(
+                "id_dossier__id_demarche",
+                "id_dossier__id_etape_dossier",
+                "id_document__id_nature",
+                "id_document__id_statut",
+            )
+            .order_by("id_dossier__numero")
+        )
+    for valeur in documents_data.values():
+        if not isinstance(valeur, (list, tuple)):
+            continue
+        for document in valeur:
+            if isinstance(document, Document):
+                document.dossiers_meme_acte = (
+                    dossiers_meme_acte_par_document.get(document.id, [])
+                )
     taille_acte_mail_octets = None
     doc_a_envoyer = (documents_data.get("doc_a_envoyer") or [None])[0]
     if doc_a_envoyer:
@@ -851,6 +1052,16 @@ def instruction_dossier(request, num_dossier):
         # Contacts
         "beneficiaire": beneficiaire,
         "demandeur_intermediaire": demandeur_intermediaire,
+        "demandeur": demandeur,
+        "demandeur_affichage": _affichage_demandeur(demandeur),
+        "types_demarches": (
+            Demarche.objects
+            .exclude(type__isnull=True)
+            .exclude(type="")
+            .values_list("type", flat=True)
+            .distinct()
+            .order_by("type")
+        ),
         "types_contacts": types_contacts,
         
         # Settings

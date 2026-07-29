@@ -3,9 +3,13 @@
 {% with libelle=fichier_libelle|default:fichier_titre %}
 {% with titre_lower=fichier_titre|lower %}
     <span class="document-avec-apercu">
-        <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
-            {{ libelle }}
-        </a>
+        {% if download_icon_only %}
+            <span>{{ libelle }}</span>
+        {% else %}
+            <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
+                {{ libelle }}
+            </a>
+        {% endif %}
 
         <a href="{{ document_url }}?download=1" class="document-download-link" title="Télécharger le document" aria-label="Télécharger {{ libelle }}">
             <img src="{% static 'instruction/img/download.png' %}" alt="" class="document-action-icon">

@@ -1,7 +1,7 @@
 import os
 import smbclient
 
-# Ta fonction copiée telle quelle
+
 def ecrire_uploadedfile_sur_nas(fichier_django, chemin_destination):
     try:
         username = os.getenv("NAS_USER", "admin_auto")

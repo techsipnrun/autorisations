@@ -1,0 +1,68 @@
+{% load static %}
+<section class="recherche-projet-remplacement"
+         data-search-url="{% url 'rechercher_projets_acte' dossier.numero %}"
+         data-nature="{{ doc.id_nature.nature }}"
+         data-demandeur-id="{% if demandeur %}{{ demandeur.id }}{% endif %}"
+         hidden>
+    <div class="recherche-projet-remplacement-entete">
+        <h3>Utiliser le numéro d’un projet d’acte existant</h3>
+        <button type="button"
+                class="recherche-projet-fermer"
+                onclick="replierRechercheProjetRemplacement(this)"
+                aria-label="Replier la recherche">x</button>
+    </div>
+    <p class="recherche-projet-rappel">
+        Seul le numéro sera repris. Le document Word du dossier actuel ne sera
+        pas modifié : vérifiez que les projets d'acte sont bien identiques dans leurs dossiers Work respectifs.
+    </p>
+    <div class="recherche-projet-filtres">
+        <label>
+            Numéro de dossier
+            <input class="recherche-projet-numero" inputmode="numeric">
+        </label>
+        <label>
+            Type de démarche
+            <select class="recherche-projet-demarche-type">
+                <option value="">Tous les types</option>
+                {% for type_demarche in types_demarches %}
+                    <option value="{{ type_demarche }}">{{ type_demarche }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Demandeur
+            <select class="recherche-projet-demandeur">
+                <option value="">Tous les demandeurs</option>
+                {% if demandeur %}
+                    <option value="{{ demandeur.id }}" selected>
+                        {{ demandeur_affichage }}
+                    </option>
+                {% endif %}
+            </select>
+        </label>
+        <button type="button"
+                class="recherche-projet-bouton"
+                onclick="rechercherProjetsActeRemplacement(this)"
+                title="Rechercher"
+                aria-label="Rechercher">
+            <img src="{% static 'instruction/img/loupe.png' %}" alt="">
+        </button>
+    </div>
+    <p class="recherche-projet-statut" aria-live="polite"></p>
+    <div class="recherche-projet-resultats"></div>
+    <p class="recherche-projet-exclusions" hidden></p>
+    <p class="projet-acte-selection" hidden></p>
+    <div class="remplacer-numero-projet-form"
+         data-submit-url="{% url 'remplacer_numero_projet_acte_url' %}"
+         data-csrf-token="{{ csrf_token }}"
+         data-dossier-id="{{ dossier.id }}"
+         data-document-id="{{ doc.id }}">
+        <input type="hidden" class="source-document-id">
+        <button type="button"
+                class="confirmer-remplacement-numero"
+                onclick="soumettreRemplacementNumero(this)"
+                disabled>
+            Confirmer le remplacement du numéro
+        </button>
+    </div>
+</section>

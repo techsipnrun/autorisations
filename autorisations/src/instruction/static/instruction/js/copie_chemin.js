@@ -95,15 +95,3 @@ function copyPathDocument(rowEl) {
 
   copy().then(showFeedback).catch(console.error);
 }
-
-
-// Dowload document
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".doc-download-row").forEach(row => {
-    row.addEventListener("click", function (e) {
-      if (e.target.closest("a, button")) return;
-      const url = this.dataset.url;
-      if (url) window.open(url, "_blank");
-    });
-  });
-});

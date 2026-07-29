@@ -304,7 +304,7 @@ def build_champs_prepares(dossier):
             champs_prepares.append({"type": "repetition", "nom": nom, "valeur": repetitions or "Non renseigné",})
 
         elif ct == "drop_down_list":
-            if nom == 'Choix de la méthode pour localiser le projet' and 'Remplir le module de cartographie' not in (champ.valeur or ""):
+            if nom.startswith('Choix de la méthode pour localiser') and 'Remplir le module de cartographie' not in (champ.valeur or ""):
                 geojson_source = champ.geometrie_modif or champ.geometrie
                 if not has_geojson_geometry(geojson_source):
                     champs_prepares.append({"type": "drop_down_list", "nom": nom, "valeur": champ.valeur, "geometrie_a_saisir": 'oui', "geojson": json.dumps({}), "id": champ.id,})
@@ -321,7 +321,7 @@ def build_champs_prepares(dossier):
                     numero_precedent and numero_precedent == str(dossier.numero)
                 )
                 champ_prepare["dossier_precedent_existe"] = bool(
-                    numero_precedent
+                    numero_precedent.isdecimal()
                     and not champ_prepare["est_dossier_actuel"]
                     and Dossier.objects.filter(numero=numero_precedent).exists()
                 )

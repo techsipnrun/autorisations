@@ -1,0 +1,45 @@
+{% if doc.dossiers_meme_acte %}
+    <aside class="dossiers-meme-acte">
+        <div class="dossiers-meme-acte-entete">
+            <span class="dossiers-meme-acte-icone" aria-hidden="true">↔</span>
+            <strong>
+                Même numéro d'acte utilisé par {{ doc.dossiers_meme_acte|length }}
+                autre{% if doc.dossiers_meme_acte|length > 1 %}s{% endif %}
+                dossier{% if doc.dossiers_meme_acte|length > 1 %}s{% endif %}
+            </strong>
+        </div>
+        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
+            <p class="dossiers-meme-acte-rappel">
+                Le même numéro d'acte semble être utilisé pour plusieurs dossiers.<br> 
+                Veuillez vérifier que les projets d’acte enregistrés dnas les dossiers Work sont bien identiques.
+            </p>
+        {% endif %}
+        <div class="dossiers-meme-acte-liste">
+            {% for liaison in doc.dossiers_meme_acte %}
+                <a class="dossier-meme-acte-carte" title="Voir le dossier"
+                   href="{% url 'instruction_dossier' liaison.id_dossier.numero %}">
+                    <span class="dossier-meme-acte-identite">
+                        <strong class="dossier-meme-acte-numero">
+                            Dossier {{ liaison.id_dossier.numero }}
+                        </strong>
+                        <span class="dossier-meme-acte-demarche">
+                            ({{ liaison.id_dossier.id_demarche.titre }})
+                        </span>
+                    </span>
+                    <span class="dossier-meme-acte-etape">
+                        {{ liaison.id_dossier.id_etape_dossier.etape }}
+                    </span>
+                    <span class="dossier-meme-acte-document">
+                        {% if liaison.id_document.id_nature.nature == "Arrêté directeur" %}
+                            Arrêté du directeur
+                        {% else %}
+                            {{ liaison.id_document.id_nature.nature }}
+                        {% endif %}
+                        : {{ liaison.id_document.id_statut.statut|lower }}
+                    </span>
+                    <span class="dossier-meme-acte-fleche" aria-hidden="true">→</span>
+                </a>
+            {% endfor %}
+        </div>
+    </aside>
+{% endif %}
