@@ -1196,6 +1196,7 @@
     grid-template-columns:
         minmax(105px, 150px)
         minmax(145px, 205px)
+        minmax(145px, 220px)
         minmax(180px, 280px)
         42px;
     column-gap: 1rem;
@@ -1281,8 +1282,13 @@
 .recherche-projet-resultats {
     display: grid;
     gap: 0.5rem;
+    box-sizing: border-box;
+    width: fit-content;
+    min-width: 50%;
+    max-width: 100%;
     max-height: 330px;
     margin: 0.8rem 0;
+    padding: 0.5rem;
     overflow-y: auto;
     border: solid 1px black;
 }
@@ -1301,13 +1307,29 @@
 .resultat-projet-acte {
     display: grid;
     gap: 0.25rem;
-    width: 100%;
+    width: fit-content;
+    max-width: 100%;
     padding: 0.75rem;
     text-align: left;
     border: 1px solid #ccd8d0;
     border-radius: 7px;
     background: white;
     cursor: pointer;
+}
+
+.resultat-projet-entete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 0.35rem;
+}
+
+.resultat-projet-entete > span {
+    color: #4d5b53;
+    font-size: 0.84rem;
+    font-weight: 500;
+    text-align: left;
 }
 
 .resultat-projet-acte.selected {

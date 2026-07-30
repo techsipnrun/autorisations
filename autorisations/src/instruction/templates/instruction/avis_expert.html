@@ -235,7 +235,7 @@
                 </div>
             {% endif %}
         
-            {% if est_demandeur or est_expert or est_instructeur_du_dossier or request.user.is_superuser %}
+            {% if peut_envoyer_message %}
                 <form class="message-form" method="post" enctype="multipart/form-data" action="{% url 'envoyer_message_avis_vision_expert' %}"> 
                     {% csrf_token %}
                     <input type="hidden" name="avis_id" value="{{ avis.id }}">

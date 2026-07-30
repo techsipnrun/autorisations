@@ -28,6 +28,7 @@ async function rechercherProjetsActeInline(bouton) {
   const params = new URLSearchParams({
     numero: rubrique.querySelector(".recherche-projet-numero").value,
     demarche_type: rubrique.querySelector(".recherche-projet-demarche-type").value,
+    etape: rubrique.querySelector(".recherche-projet-etape").value,
     demandeur: rubrique.querySelector(".recherche-projet-demandeur").value,
     nature: "",
   });
@@ -80,7 +81,10 @@ function creerBoutonResultatProjet(resultat) {
   bouton.type = "button";
   bouton.className = "resultat-projet-acte";
   bouton.innerHTML =
-    `<strong>Dossier ${resultat.dossier_numero}</strong>` +
+    `<span class="resultat-projet-entete">` +
+      `<strong>Dossier ${resultat.dossier_numero}</strong>` +
+      `<span>(${resultat.dossier_etape})</span>` +
+    `</span>` +
     `Projet ${resultat.nature} ${resultat.numero_affiche}` +
     `<small>${resultat.demarche_type} — ${resultat.demandeur}</small>`;
   return bouton;
@@ -158,6 +162,7 @@ async function rechercherProjetsActeRemplacement(bouton) {
   const params = new URLSearchParams({
     numero: section.querySelector(".recherche-projet-numero").value,
     demarche_type: section.querySelector(".recherche-projet-demarche-type").value,
+    etape: section.querySelector(".recherche-projet-etape").value,
     demandeur: section.querySelector(".recherche-projet-demandeur").value,
     nature: section.dataset.nature,
   });

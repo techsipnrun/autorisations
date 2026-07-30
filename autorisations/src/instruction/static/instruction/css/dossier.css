@@ -1602,6 +1602,20 @@ textarea[name="note"] {
     font-weight: normal;
 }
 
+.note-origine-dm {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.35rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.35rem;
+    background: #e8f1fb;
+    color: #185a91;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: help;
+}
+
 .note-aucune {
     font-style: italic;
     color: #666;

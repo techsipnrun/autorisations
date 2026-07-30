@@ -357,24 +357,9 @@ class DossierAction(models.Model):
         return (f"{self.id_action.action} - Dossier {self.id_dossier.numero} par {self.id_instructeur}")
 
 
-class DossierNote(models.Model):
-    id = models.AutoField(primary_key=True)
-    id_dossier = models.ForeignKey(Dossier, models.CASCADE, db_column='id_dossier')
-    id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
-    note = models.TextField()
-    date = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        managed = False
-        db_table = '"instruction"."dossier_notes"'
-
-    def __str__(self):
-        return f"Note - Dossier {self.id_dossier.numero} par {self.id_instructeur}"
-    
 
 def get_default_etape_en_reception():
-        return EtapeDossier.objects.get(etape="En réception").id
-
+    return EtapeDossier.objects.get(etape="En réception").id
 
 
 class DossierManifSportive(models.Model):
@@ -477,6 +462,44 @@ class DossierManifSportive(models.Model):
 
     def __str__(self):
         return f"{self.nom_dossier}"
+
+
+class DossierNote(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier = models.ForeignKey(
+        Dossier, models.CASCADE, db_column='id_dossier', null=True, blank=True
+    )
+    id_dossier_manif_sportive = models.ForeignKey(
+        DossierManifSportive,
+        models.CASCADE,
+        db_column='id_dossier_manif_sportive',
+        null=True,
+        blank=True,
+    )
+    id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column='id_instructeur')
+    note = models.TextField()
+    date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."dossier_notes"'
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(id_dossier__isnull=False, id_dossier_manif_sportive__isnull=True)
+                    | models.Q(id_dossier__isnull=True, id_dossier_manif_sportive__isnull=False)
+                ),
+                name="dossier_notes_exactement_un_dossier_chk",
+            )
+        ]
+
+    def __str__(self):
+        dossier = (
+            f"DN {self.id_dossier.numero}"
+            if self.id_dossier_id
+            else f"DM {self.id_dossier_manif_sportive.numero_dossier_declaration_manifestations}"
+        )
+        return f"Note - Dossier {dossier} par {self.id_instructeur}"
 
 
 class DossierManifestationLiaison(models.Model):

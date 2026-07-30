@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Champ, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Champ, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierManifSportiveDocument
 from autorisations.models.models_utilisateurs import ContactExterne, EmailOutbox, Instructeur, TypeContactExterne
@@ -32,6 +32,25 @@ def dossier_manif_sportive_sans_ds(request, numero):
     """
 
     doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
+    notes_queryset = DossierNote.objects.filter(
+        id_dossier_manif_sportive=doss_manif_sportive
+    ).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
+    notes = [
+        {
+            "id": note.id,
+            "note": note.note,
+            "date": note.date,
+            "instructeur_id": note.id_instructeur_id,
+            "instructeur": (
+                f"{note.id_instructeur.id_agent_autorisations.prenom} "
+                f"{note.id_instructeur.id_agent_autorisations.nom}"
+                if note.id_instructeur.id_agent_autorisations
+                else note.id_instructeur.email
+            ),
+        }
+        for note in notes_queryset
+    ]
+    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
     today = timezone.localdate()
     date_evenement_passee = False
     date_evenement_dans_moins_un_mois = False
@@ -212,6 +231,8 @@ def dossier_manif_sportive_sans_ds(request, numero):
 
     return render(request, 'instruction/dossier_manif_sportive_sans_ds.html', {
         "doss_manif_sportive": doss_manif_sportive,
+        "notes": notes,
+        "instructeur_connecte": instructeur_connecte,
         "date_evenement_passee": date_evenement_passee,
         "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         # "pjs_demandeur_DM": pjs_demandeur_DM,

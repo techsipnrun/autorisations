@@ -47,6 +47,15 @@
                 </select>
             </label>
             <label>
+                Étape du dossier
+                <select class="recherche-projet-etape">
+                    <option value="">Toutes les étapes</option>
+                    {% for etape in etapes_recherche_projet_acte %}
+                        <option value="{{ etape.etape }}">{{ etape.etape }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
                 Demandeur
                 <select class="recherche-projet-demandeur">
                     <option value="">Tous les demandeurs</option>

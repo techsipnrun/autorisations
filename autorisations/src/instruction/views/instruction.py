@@ -563,25 +563,22 @@ def rechercher_projets_acte(request, num_dossier):
     dossier_courant = get_object_or_404(Dossier, numero=num_dossier)
     numero = (request.GET.get("numero") or "").strip()
     demarche_type = (request.GET.get("demarche_type") or "").strip()
+    etape_dossier = (request.GET.get("etape") or "").strip()
     demandeur_id = (request.GET.get("demandeur") or "").strip()
     nature = (request.GET.get("nature") or "").strip()
-    etapes_avec_projet_acte = [
-        "Avis à envoyer",
-        "À valider avant signature",
-        "En relecture qualité",
-        "En attente de signature",
-        "À valider avant demande d'avis",
-        "En attente réponse d'avis",
-    ]
+    date_fin_instruction_minimale = timezone.now() - timedelta(days=365)
 
     liaisons = (
         DossierDocument.objects
         .select_related(
             "id_dossier__id_demarche",
+            "id_dossier__id_etape_dossier",
             "id_document__id_nature",
             "id_document__id_statut",
         )
         .filter(
+            Q(id_dossier__date_fin_instruction__isnull=True)
+            | Q(id_dossier__date_fin_instruction__gte=date_fin_instruction_minimale),
             id_document__numero__isnull=False,
             id_document__id_nature__nature__in=[
                 "Arrêté directeur",
@@ -594,8 +591,8 @@ def rechercher_projets_acte(request, num_dossier):
                 "À relire",
                 "À signer",
                 "À envoyer",
+                "Envoyé",
             ],
-            id_dossier__id_etape_dossier__etape__in=etapes_avec_projet_acte,
         )
         .exclude(id_document__numero="")
         .exclude(id_dossier=dossier_courant)
@@ -605,6 +602,10 @@ def rechercher_projets_acte(request, num_dossier):
         liaisons = liaisons.filter(id_dossier__numero__icontains=numero)
     if demarche_type:
         liaisons = liaisons.filter(id_dossier__id_demarche__type=demarche_type)
+    if etape_dossier:
+        liaisons = liaisons.filter(
+            id_dossier__id_etape_dossier__etape=etape_dossier
+        )
     if nature:
         liaisons = liaisons.filter(id_document__id_nature__nature=nature)
     demandeur_filtre = (
@@ -656,7 +657,8 @@ def rechercher_projets_acte(request, num_dossier):
             {
                 "document_id": liaison.id_document_id,
                 "dossier_numero": liaison.id_dossier.numero,
-                "demarche_type": liaison.id_dossier.id_demarche.titre,
+                "dossier_etape": liaison.id_dossier.id_etape_dossier.etape,
+                "demarche_type": liaison.id_dossier.id_demarche.type,
                 "demandeur": (
                     _affichage_demandeur(demandeur)
                 ),
@@ -798,13 +800,20 @@ def instruction_dossier(request, num_dossier):
     ################################
     #  Notes & Annexes Instructeur
     ################################
-    notes_queryset = DossierNote.objects.filter(id_dossier=dossier).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
+    liaison_notes = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+    filtre_notes = Q(id_dossier=dossier)
+    if liaison_notes:
+        filtre_notes |= Q(id_dossier_manif_sportive=liaison_notes.id_dossier_manif)
+    notes_queryset = DossierNote.objects.filter(filtre_notes).select_related(
+        "id_instructeur__id_agent_autorisations"
+    ).order_by("-date")
     notes = [
         {
             "id": n.id,
             "note": n.note,
             "date": n.date,
             "instructeur_id": n.id_instructeur.id,
+            "origine_dm": n.id_dossier_manif_sportive_id is not None,
             "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" 
                             if n.id_instructeur.id_agent_autorisations 
                             else n.id_instructeur.email,
@@ -1011,6 +1020,11 @@ def instruction_dossier(request, num_dossier):
         "chemin_complet": chemin_complet,
         "champs": champs_prepares,
         "etapes_possibles": etapes_possibles,
+        "etapes_recherche_projet_acte": (
+            EtapeDossier.objects
+            .exclude(etape__in=["À affecter", "En pré-instruction"])
+            .order_by("etape")
+        ),
         "etape_actuelle": etape_actuelle,
         # "etapes_custom": etapes_custom,
         "dossier_actions": dossier_actions,
@@ -1088,45 +1102,66 @@ def instruction_dossier(request, num_dossier):
 def sauvegarder_note_dossier(request):
     
     dossier_id = request.POST.get("dossierId")
+    dossier_dm_id = request.POST.get("dossierManifSportiveId")
     note_id = request.POST.get("noteId")
     contenu = request.POST.get("note")
 
-    dossier = Dossier.objects.filter(id_ds=dossier_id).first()
-    if not dossier:
-        logger.error(f"[SAUVEGARDE NOTE DOSSIER] Dossier (id_ds={dossier_id}) introuvable — User : {request.user}")
+    dossier = Dossier.objects.filter(id_ds=dossier_id).first() if dossier_id else None
+    dossier_dm = DossierManifSportive.objects.filter(id=dossier_dm_id).first() if dossier_dm_id else None
+    if dossier_dm and not dossier:
+        liaison_dm = DossierManifestationLiaison.objects.filter(
+            id_dossier_manif=dossier_dm
+        ).select_related("id_dossier").first()
+        if liaison_dm:
+            dossier = liaison_dm.id_dossier
+    if not dossier and not dossier_dm:
+        logger.error(f"[SAUVEGARDE NOTE DOSSIER] Dossier introuvable — User : {request.user}")
         return redirect_error(request, f"❌ Le dossier est introuvable. Contactez le support.")
+    dossier_libelle = (
+        f"DN {dossier.numero}"
+        if dossier
+        else f"DM {dossier_dm.numero_dossier_declaration_manifestations}"
+    )
     
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
-        logger.warning(f"[DOSSIER {dossier.numero}] Le user {request.user} a tenté de sauvegarder la note sans profil instructeur.")
+        logger.warning(f"[DOSSIER {dossier_libelle}] Le user {request.user} a tenté de sauvegarder la note sans profil instructeur.")
         return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
     
     if not contenu:
-        logger.warning(f"[DOSSIER {dossier.numero}] Le user {request.user} a tenté de sauvegarder une note vide.")
+        logger.warning(f"[DOSSIER {dossier_libelle}] Le user {request.user} a tenté de sauvegarder une note vide.")
         return redirect_error(request, "La note est vide.")
 
     try :
         if note_id:  # Modification d'une note existante
-            note = DossierNote.objects.filter(id=note_id, id_instructeur=instructeur).first()
+            notes_autorisees = Q(id_dossier=dossier) if dossier else Q(id_dossier_manif_sportive=dossier_dm)
+            if dossier:
+                liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+                if liaison:
+                    notes_autorisees |= Q(id_dossier_manif_sportive=liaison.id_dossier_manif)
+            note = DossierNote.objects.filter(
+                notes_autorisees, id=note_id, id_instructeur=instructeur
+            ).first()
             if not note:
-                logger.error(f"[DOSSIER {dossier.numero}] Échec de la modification d'une note existante par {request.user} : Note {note_id} (instructeur={instructeur}) introuvable.")
+                logger.error(f"[DOSSIER {dossier_libelle}] Échec de la modification d'une note existante par {request.user} : Note {note_id} (instructeur={instructeur}) introuvable.")
                 return redirect_error(request, "Erreur : Vous n'êtes pas autorisé à modifier la note. Contactez le support si besoin.")
 
             note.note = contenu
             note.save(update_fields=["note"])
-            logger.info(f"[DOSSIER {dossier.numero}] Note modifiée par {instructeur}")
+            logger.info(f"[DOSSIER {dossier_libelle}] Note modifiée par {instructeur}")
 
         else:  # Création d'une nouvelle note
             DossierNote.objects.create(
                 id_dossier=dossier,
+                id_dossier_manif_sportive=dossier_dm if not dossier else None,
                 id_instructeur=instructeur,
                 note=contenu,
                 date=timezone.now()
             )
-            logger.info(f"[DOSSIER {dossier.numero}] Nouvelle note ajoutée par {instructeur}")
+            logger.info(f"[DOSSIER {dossier_libelle}] Nouvelle note ajoutée par {instructeur}")
 
     except Exception as e:
-        logger.exception(f"[DOSSIER {dossier.numero}] Erreur lors de la sauvegarde de la note {note_id} par {request.user} : {e}")
+        logger.exception(f"[DOSSIER {dossier_libelle}] Erreur lors de la sauvegarde de la note {note_id} par {request.user} : {e}")
         return redirect_error(request, "❌ Une erreur est survenue lors de l’enregistrement de la note. Contactez le support.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
@@ -1136,31 +1171,51 @@ def sauvegarder_note_dossier(request):
 @login_required
 def supprimer_note_dossier(request):
     dossier_id = request.POST.get("dossierId")
+    dossier_dm_id = request.POST.get("dossierManifSportiveId")
     note_id = request.POST.get("noteId")
 
-    dossier = Dossier.objects.filter(id_ds=dossier_id).first()
-    if not dossier:
-        logger.error(f"[SUPPRIMER NOTE] Dossier id_ds={dossier_id} introuvable — User : {request.user}")
+    dossier = Dossier.objects.filter(id_ds=dossier_id).first() if dossier_id else None
+    dossier_dm = DossierManifSportive.objects.filter(id=dossier_dm_id).first() if dossier_dm_id else None
+    if dossier_dm and not dossier:
+        liaison_dm = DossierManifestationLiaison.objects.filter(
+            id_dossier_manif=dossier_dm
+        ).select_related("id_dossier").first()
+        if liaison_dm:
+            dossier = liaison_dm.id_dossier
+    if not dossier and not dossier_dm:
+        logger.error(f"[SUPPRIMER NOTE] Dossier introuvable — User : {request.user}")
         return redirect_error(request, "❌ Le dossier est introuvable. Contactez le support.")
+    dossier_libelle = (
+        f"DN {dossier.numero}"
+        if dossier
+        else f"DM {dossier_dm.numero_dossier_declaration_manifestations}"
+    )
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
-        logger.warning(f"[DOSSIER {dossier.numero}] Le user {request.user} a tenté de supprimer une note sans profil instructeur.")
+        logger.warning(f"[DOSSIER {dossier_libelle}] Le user {request.user} a tenté de supprimer une note sans profil instructeur.")
         return redirect_error(request, "❌ Vous n’avez pas de profil 'Instructeur'. Contactez le support.")
     
 
-    note = DossierNote.objects.filter(id=note_id, id_instructeur=instructeur).first()
+    notes_autorisees = Q(id_dossier=dossier) if dossier else Q(id_dossier_manif_sportive=dossier_dm)
+    if dossier:
+        liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+        if liaison:
+            notes_autorisees |= Q(id_dossier_manif_sportive=liaison.id_dossier_manif)
+    note = DossierNote.objects.filter(
+        notes_autorisees, id=note_id, id_instructeur=instructeur
+    ).first()
     if not note:
-        logger.error(f"[DOSSIER {dossier.numero}] Suppression échouée : note {note_id} introuvable ou non autorisée pour {instructeur}.")
+        logger.error(f"[DOSSIER {dossier_libelle}] Suppression échouée : note {note_id} introuvable ou non autorisée pour {instructeur}.")
         return redirect_error(request, "Vous n'êtes pas autorisé à supprimer cette note. Contactez le support si besoin.")
   
     # Suppression si tout est OK
     try:
         note.delete()
-        logger.info(f"[DOSSIER {dossier.numero}] Note {note_id} supprimée par {instructeur}")
+        logger.info(f"[DOSSIER {dossier_libelle}] Note {note_id} supprimée par {instructeur}")
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de la suppression de la note {note_id} par {request.user} : {e}")
+        logger.error(f"[DOSSIER {dossier_libelle}] Erreur lors de la suppression de la note {note_id} par {request.user} : {e}")
         return redirect_error(request, "❌ Une erreur est survenue lors de la suppression de la note. Contactez le support.")
 
 

@@ -706,7 +706,7 @@ Le Parc national de La Réunion</textarea>
 
         <!-- ############### Form / Messagerie / Consultation ############### -->
         <div class="nav_preinstruction nav_dm_sans_dn">
-            
+
             <!-- ############################# MAILS DE RELANCE ############################# -->
             {% if doss_manif_sportive.coeur_de_parc %}
                 <div class="mails_dossier">
@@ -902,6 +902,79 @@ Dans l'attente de vos compléments,</textarea>
                 </div>
             {% endif %}
 
+            <!-- ############################# NOTES ############################# -->
+            <div class="groupe-instructeur-info notes_instructeurs">
+                <h3 class="notes-titre">
+                    <span class="notes-titre-libelle">
+                        <img src="{% static 'instruction/img/notebook-pen.png' %}" alt="" class="notes-titre-icon">
+                        Notes :
+                    </span>
+                </h3>
+
+                {% for n in notes %}
+                    <div class="note-item">
+                        <p class="note-meta">
+                            <strong>{{ n.instructeur }}</strong>
+                            <span class="note-date">– {{ n.date|date:"d/m/Y H:i" }}</span>
+                        </p>
+
+                        {% if instructeur_connecte and n.instructeur_id == instructeur_connecte.id %}
+                            <button type="button"
+                                    class="note-edit-toggle"
+                                    aria-label="Modifier la note"
+                                    title="Modifier la note">
+                                <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                            </button>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form-note">
+                            {% csrf_token %}
+                            <input type="hidden" name="dossierManifSportiveId" value="{{ doss_manif_sportive.id }}">
+                            <input type="hidden" name="noteId" value="{{ n.id }}">
+                            <textarea name="note" rows="1" readonly>{{ n.note }}</textarea>
+                            {% if instructeur_connecte and n.instructeur_id == instructeur_connecte.id %}
+                                <div class="btn_maj_suppr">
+                                    <button type="submit"
+                                            class="note-action-btn note-action-save"
+                                            aria-label="Mettre à jour la note"
+                                            title="Mettre à jour la note">
+                                        <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                    </button>
+                                    <button type="submit"
+                                            formaction="{% url 'supprimer_note_dossier' %}"
+                                            class="note-action-btn note-action-delete"
+                                            aria-label="Supprimer la note"
+                                            title="Supprimer la note"
+                                            onclick="return confirm('Voulez-vous vraiment supprimer cette note ?');">
+                                        <img src="{% static 'instruction/img/trash.svg' %}" alt="">
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="note-aucune">Aucune note pour ce dossier.</p>
+                {% endfor %}
+
+                {% if instructeur_connecte %}
+                    <div class="ajouter-note">
+                        <h4>Ajouter une nouvelle note :</h4>
+                        <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form_groupe_select form-note">
+                            {% csrf_token %}
+                            <input type="hidden" name="dossierManifSportiveId" value="{{ doss_manif_sportive.id }}">
+                            <textarea name="note" rows="4" id="nouvelle-note-textarea"
+                                data-user="{{ request.user.email }}"
+                                data-dossier="dm-{{ doss_manif_sportive.id }}"></textarea>
+                            <button type="submit"
+                                    class="note-action-btn note-action-save nouvelle-note-save"
+                                    aria-label="Enregistrer la nouvelle note"
+                                    title="Enregistrer la nouvelle note">
+                                <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
 
         </div>
 

@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.db.models import Q
 from autorisations.models.models_instruction import Champ, Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
@@ -366,7 +367,13 @@ def preinstruction_dossier(request, numero):
     ################################
     #  Notes & Annexes Instructeur
     ################################
-    notes_queryset = DossierNote.objects.filter(id_dossier=dossier).select_related("id_instructeur__id_agent_autorisations").order_by("-date")
+    liaison_notes = DossierManifestationLiaison.objects.filter(id_dossier=dossier).first()
+    filtre_notes = Q(id_dossier=dossier)
+    if liaison_notes:
+        filtre_notes |= Q(id_dossier_manif_sportive=liaison_notes.id_dossier_manif)
+    notes_queryset = DossierNote.objects.filter(filtre_notes).select_related(
+        "id_instructeur__id_agent_autorisations"
+    ).order_by("-date")
 
     notes = [
         {
@@ -374,6 +381,7 @@ def preinstruction_dossier(request, numero):
             "note": n.note,
             "date": n.date,
             "instructeur_id": n.id_instructeur.id,
+            "origine_dm": n.id_dossier_manif_sportive_id is not None,
             "instructeur": f"{n.id_instructeur.id_agent_autorisations.prenom} {n.id_instructeur.id_agent_autorisations.nom}" 
                             if n.id_instructeur.id_agent_autorisations 
                             else n.id_instructeur.email

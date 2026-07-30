@@ -18,7 +18,12 @@ from django.contrib import messages
 import logging
 
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
-from instruction.utils.avis_utils import get_email_expert, get_expert_from_user
+from instruction.utils.avis_utils import (
+    avis_est_conseil_scientifique,
+    get_email_expert,
+    get_expert_from_user,
+    utilisateur_est_publicateur_raa_cs,
+)
 from instruction.utils.dossier_utils import get_chemin_complet_dossier, redirect_error
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import enregistrer_document
@@ -277,9 +282,8 @@ def avis_expert(request, avis_id):
         est_expert = True
         est_demandeur = False
 
-    if avis.id_expert and avis.id_expert.id_contact_externe and avis.id_expert.id_contact_externe.raison_sociale :
-        if avis.id_expert.id_contact_externe.raison_sociale.lower() == "conseil scientifique" :
-            expert_is_CS = True
+    expert_is_CS = avis_est_conseil_scientifique(avis)
+    est_publicateur_raa_cs = utilisateur_est_publicateur_raa_cs(request.user)
 
     # --- Instructeur des dossiers ? ---
     est_instructeur_du_dossier = False
@@ -288,6 +292,14 @@ def avis_expert(request, avis_id):
             est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
             if est_instructeur_du_dossier :
                 break
+
+    peut_envoyer_message = bool(
+        est_demandeur
+        or est_expert
+        or est_instructeur_du_dossier
+        or request.user.is_superuser
+        or (expert_is_CS and est_publicateur_raa_cs)
+    )
 
 
     ##############################################################
@@ -410,7 +422,8 @@ def avis_expert(request, avis_id):
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "est_un_instructeur": est_un_instructeur,
         "dossiers_lies": dossiers_lies,
-        "expert_is_CS": expert_is_CS
+        "expert_is_CS": expert_is_CS,
+        "peut_envoyer_message": peut_envoyer_message,
     })
 
 

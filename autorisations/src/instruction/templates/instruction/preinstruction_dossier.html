@@ -745,8 +745,11 @@
                 {% endif %}
 
                 <div class="groupe-instructeur-info notes_instructeurs">
-                     <h3 class="notes-titre">
-                        <span>📝 Notes :</span>
+                    <h3 class="notes-titre">
+                        <span class="notes-titre-libelle">
+                            <img src="{% static 'instruction/img/notebook-pen.png' %}" alt="" class="notes-titre-icon">
+                            Notes :
+                        </span>
 
                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
                             <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
@@ -794,19 +797,42 @@
                     {% for n in notes %}
                         <div class="note-item">
                             <p class="note-meta">
-                                <strong>{{ n.instructeur }}</strong> – {{ n.date|date:"d/m/Y H:i" }}
+                                <strong>{{ n.instructeur }}</strong>
+                                {% if n.origine_dm %}
+                                    <span class="note-origine-dm" title="Cette note a été écrite lorsque le dossier existait uniquement sur Déclaration Manifestations mais pas encore sur Démarche Numérique.">DM</span>
+                                {% endif %}
+                                <span class="note-date">– {{ n.date|date:"d/m/Y H:i" }}</span>
                             </p>
+
+                            {% if n.instructeur_id == instructeur_connecte.id %}
+                                <button type="button"
+                                        class="note-edit-toggle"
+                                        aria-label="Modifier la note"
+                                        title="Modifier la note">
+                                    <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                                </button>
+                            {% endif %}
+
                             <form method="post" action="{% url 'sauvegarder_note_dossier' %}" class="form-note">
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <input type="hidden" name="noteId" value="{{ n.id }}">
-                                <textarea name="note" rows="4" {% if n.instructeur_id != instructeur_connecte.id %}readonly{% endif %}>{{ n.note }}</textarea>
+                                <textarea name="note" rows="1" readonly>{{ n.note }}</textarea>
                                 {% if n.instructeur_id == instructeur_connecte.id %}
                                     <div class="btn_maj_suppr">
-                                        <button type="submit" class="valider-btn">Mettre à jour</button>
-                                        <button type="submit" formaction="{% url 'supprimer_note_dossier' %}" class="supprimer-btn"
+                                        <button type="submit"
+                                                class="note-action-btn note-action-save"
+                                                aria-label="Mettre à jour la note"
+                                                title="Mettre à jour la note">
+                                            <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                        </button>
+                                        <button type="submit"
+                                                formaction="{% url 'supprimer_note_dossier' %}"
+                                                class="note-action-btn note-action-delete"
+                                                aria-label="Supprimer la note"
+                                                title="Supprimer la note"
                                                 onclick="return confirm('Voulez-vous vraiment supprimer cette note ?');">
-                                            Supprimer
+                                            <img src="{% static 'instruction/img/trash.svg' %}" alt="">
                                         </button>
                                     </div>
                                 {% endif %}
@@ -823,7 +849,12 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                 <textarea name="note" rows="4" id="nouvelle-note-textarea" data-user="{{ request.user.email }}" data-dossier="{{ dossier.id_ds }}"></textarea>
-                                <button type="submit" class="valider-btn">Enregistrer</button>
+                                <button type="submit"
+                                        class="note-action-btn note-action-save nouvelle-note-save"
+                                        aria-label="Enregistrer la nouvelle note"
+                                        title="Enregistrer la nouvelle note">
+                                    <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                </button>
                             </form>
                         </div>
                     {% endif %}

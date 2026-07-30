@@ -12,6 +12,33 @@ from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
 logger = logging.getLogger("ORM_DJANGO")
 
+GROUPES_PUBLICATION_RAA_CS = (
+    "Publication RAA CS",
+    "Publication RAA Avis CS",
+)
+
+
+def utilisateur_est_publicateur_raa_cs(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and user.groups.filter(name__in=GROUPES_PUBLICATION_RAA_CS).exists()
+    )
+
+
+def avis_est_conseil_scientifique(avis):
+    expert = getattr(avis, "id_expert", None)
+    contact = getattr(expert, "id_contact_externe", None) if expert else None
+    if not expert or expert.est_interne or not contact:
+        return False
+
+    return (
+        (contact.nom or "").strip().casefold() == "collin"
+        and (contact.prenom or "").strip().casefold() == "gérard"
+        and (contact.raison_sociale or "").strip().casefold()
+        == "conseil scientifique"
+    )
+
 
 def get_expert_label(avis, num_dossier: int) -> str:
     """

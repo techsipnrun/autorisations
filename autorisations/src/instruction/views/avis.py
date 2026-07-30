@@ -26,7 +26,7 @@ from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from instruction.utils.avis_utils import (attach_pj_to_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche)
+from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
@@ -1652,6 +1652,7 @@ def envoyer_message_avis(request):
 
 @require_POST
 @csrf_exempt
+@login_required
 def envoyer_message_avis_vision_expert(request):
     #Cette vue peut etre appelée par l'expert ou le demandeur
 
@@ -1664,6 +1665,45 @@ def envoyer_message_avis_vision_expert(request):
     if not avis:
         logger.error(f"[MSG AVIS VISION EXPERT] Avis {avis_id} introuvable par {request.user}")
         return redirect_error(request, "L'avis demandé est introuvable. Contactez le support.")
+
+    instructeur = Instructeur.objects.filter(email__iexact=request.user.email).first()
+    dossier_ids = DossierAvis.objects.filter(id_avis=avis).values_list(
+        "id_dossier_id",
+        flat=True,
+    )
+    est_instructeur_dossier = bool(
+        instructeur
+        and DossierInstructeur.objects.filter(
+            id_dossier_id__in=dossier_ids,
+            id_instructeur=instructeur,
+        ).exists()
+    )
+    est_demandeur = bool(
+        instructeur and avis.id_instructeur_id == instructeur.id
+    )
+    est_expert = (
+        (get_email_expert(avis, None) or "").strip().casefold()
+        == (request.user.email or "").strip().casefold()
+    )
+    est_publicateur_cs = (
+        avis_est_conseil_scientifique(avis)
+        and utilisateur_est_publicateur_raa_cs(request.user)
+    )
+    if not (
+        request.user.is_superuser
+        or est_demandeur
+        or est_expert
+        or est_instructeur_dossier
+        or est_publicateur_cs
+    ):
+        logger.warning(
+            f"[MSG AVIS VISION EXPERT] Avis {avis.id} : envoi refusé à "
+            f"{request.user} (utilisateur non autorisé)."
+        )
+        return redirect_error(
+            request,
+            "Vous n'êtes pas autorisé à envoyer un message sur cet avis.",
+        )
         
 
     if not body:

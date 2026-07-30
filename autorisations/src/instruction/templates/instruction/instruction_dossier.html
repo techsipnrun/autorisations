@@ -2697,6 +2697,9 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                         <div class="note-item">
                             <p class="note-meta">
                                 <strong>{{ n.instructeur }}</strong>
+                                {% if n.origine_dm %}
+                                    <span class="note-origine-dm" title="Cette note a été écrite lorsque le dossier existait uniquement sur Déclaration Manifestations mais pas encore sur Démarche Numérique.">DM</span>
+                                {% endif %}
                                 <span class="note-date">– {{ n.date|date:"d/m/Y H:i" }}</span>
                             </p>
 
