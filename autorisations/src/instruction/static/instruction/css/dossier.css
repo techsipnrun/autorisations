@@ -138,6 +138,7 @@
     position: relative;
     width: fit-content;
     max-width: 100%;
+    box-sizing: border-box;
     margin-bottom: 2rem;
     padding: 0.85rem 1.1rem;
     border: 1px solid #9cacc0;
@@ -162,10 +163,19 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .nom_dossier_texte {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.nom_dossier_ligne .btn-edit {
+  flex: 0 0 auto;
 }
 
 /* Boutons icône */

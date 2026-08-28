@@ -5,7 +5,9 @@ import smbclient
 def ecrire_uploadedfile_sur_nas(fichier_django, chemin_destination):
     try:
         username = os.getenv("NAS_USER", "admin_auto")
-        password = os.getenv("NAS_PASSWORD", ";A3n_@U:t0!P3n#")
+        password = os.getenv("NAS_PASSWORD")
+        if not password:
+            raise RuntimeError("La variable d'environnement NAS_PASSWORD est obligatoire.")
 
         smbclient.ClientConfig(username=username, password=password)
 

@@ -18,5 +18,5 @@ urlpatterns = [
     path('', include('authent.urls')),
     path('', include('instruction.urls')),
     path('', include('BDD.urls')),
-    path("favicon.ico", RedirectView.as_view(url="/static/instruction/img/agida_icon.ico", permanent=True),),
+    path("favicon.ico", RedirectView.as_view(url="/static/instruction/img/favicon.ico", permanent=True),),
 ]

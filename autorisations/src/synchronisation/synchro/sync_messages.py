@@ -74,10 +74,6 @@ def sync_messages(messages, id_dossier):
                 logger.info(f"[SAVE] Message {msg_obj.id_ds} mis à jour. Champs modifiés : {', '.join(updated_fields)}.")
 
   
-        # A CORRIGER : AJD ca créé des copie__01, 02, 03... à l'infini comme si la nature "Pièce jointe message" n'était pas reconnu ?
-        # AUTRE INDICE :  Le pb de cohérence de titre/emplacement est entre ce fichier et le fichier sync_dossier_champs. 
-        #                 Les 2 erreurs à ce sujet persisteront surement dans sync_dossier_champs si je ne supprime les Documents des Messages 
-
         if message_data["piece_jointe"]:
             for doc in docs:
                 

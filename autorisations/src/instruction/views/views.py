@@ -1577,7 +1577,7 @@ LOG_FILES = {
     "SYNCHRONISATION": "logs/synchronisation.log",
 }
 
-
+@login_required
 def gestion_logs(request):
     log_type = request.GET.get("type", "APP")
     search = request.GET.get("search", "")

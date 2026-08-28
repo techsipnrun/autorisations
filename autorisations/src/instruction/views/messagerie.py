@@ -350,7 +350,7 @@ def instruction_dossier_messagerie(request, num_dossier):
 
 
 @require_POST
-@csrf_exempt
+@login_required
 def envoyer_message_dossier(request, numero):
 
     body = request.POST.get("body")
@@ -602,7 +602,7 @@ def actualiser_messages(request, numero):
     try :
         data_ds = result.get("data", {}).get("dossier", {})
         messages_bruts = data_ds.get("messages", [])
-        messages_norm = message_normalize({"messages": messages_bruts, "number": dossier.numero, "usager": {}, "demandeur": {}}, dossier.emplacement)
+        messages_norm = message_normalize(data_ds, dossier.emplacement)
         
     except Exception as e:
         logger.error(f"[DOSSIER {numero}] Échec de l'actualisation des messages par {request.user} - Erreur lors de normalisation des messages récupérés sur DS : {e}")

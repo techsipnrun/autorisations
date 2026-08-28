@@ -1,13 +1,33 @@
 query dossier($number: Int!) {
   dossier(number: $number) {
-    messages {
-        id
+    number
+
+    usager {
+      email
+    }
+
+    demandeur {
+      __typename
+
+      ... on PersonnePhysique {
         email
-        body
-        createdAt
-        attachments{
-            url
-        }
+      }
+    }
+
+    instructeurs {
+      email
+    }
+
+    messages {
+      id
+      email
+      body
+      createdAt
+
+      attachments {
+        url
+        filename
+      }
     }
   }
 }

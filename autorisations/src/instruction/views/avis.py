@@ -1516,7 +1516,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
 
 
 @require_POST
-@csrf_exempt
+@login_required
 def envoyer_message_avis(request):
     """
     Envoi d’un message dans la messagerie d’un avis.
