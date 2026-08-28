@@ -299,7 +299,7 @@
                                             {% if label == "Demander des compléments" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
                                             
-                                            {% elif label == "Classer le dossier comme refusé" %}
+                                            {% elif label == "Classer le dossier comme refusé" %} <!-- Non utilisé à ce jour -->
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
 
                                             {% elif label == "Envoyer l'acte d'acceptation" %}
@@ -362,9 +362,16 @@
                                             
 
                                             {% elif label == "Archiver le dossier comme refusé" %}
+                                                
+                                                <!-- Dossier présent sur DN et à l'étape "À publier au RAA" mais pour un acte d'acceptation -->
+                                                {% if dossier.present_sur_ds and etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "refuse" %}
+                                                    <!-- pas de bouton -->  
 
-                                                {% if etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "refuse" %}
-                                                    <!-- pas de bouton -->             
+                                                <!-- Dossier présent sur DN mais pas à l'étape "" -->
+                                                {% elif dossier.present_sur_ds and etape_actuelle.etape != "À publier au RAA" %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Archiver le dossier comme refusé</button>
+                                                
+                                                <!-- Dossier absent de DN OU dossier présent sur DN à l'étape "À publier au RAA" pour un acte de refus -->
                                                 {% else %}
                                                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus-2">
                                                         {% csrf_token %}
@@ -441,6 +448,30 @@
 
                         <ul class="justificatifs-classement-liste">
                             {% for justificatif in justificatifs_classement %}
+                                <li class="justificatif-classement-item">
+                                    <div class="justificatif-classement-document">
+                                        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=justificatif.emplacement fichier_titre=justificatif.titre %}
+                                    </div>
+                                    <time datetime="{{ justificatif.date|date:'c' }}">
+                                        Déposé le {{ justificatif.date|date:"d/m/Y" }} à {{ justificatif.date|time:"H:i" }}
+                                    </time>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if etape_actuelle.etape == "Refusé" and justificatifs_refus %}
+                    <div class="justificatifs-classement">
+                        <div class="justificatifs-classement-entete">
+                            <div>
+                                <strong>Justificatif de la décision</strong>
+                                <span>Document joint au refus du dossier</span>
+                            </div>
+                        </div>
+
+                        <ul class="justificatifs-classement-liste">
+                            {% for justificatif in justificatifs_refus %}
                                 <li class="justificatif-classement-item">
                                     <div class="justificatif-classement-document">
                                         {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=justificatif.emplacement fichier_titre=justificatif.titre %}
@@ -1022,7 +1053,7 @@ Le Parc national de La Réunion</textarea>
                 <!-- Zone masquée : justification classement sans suite, refus dossier -->
                 <!----------------------------------------------------------------------->
                 <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
-                    <form id="form-classement-sans-suite" method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}">
+                    <form id="form-classement-sans-suite" method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme non soumis à autorisation ?');">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         
@@ -1080,16 +1111,18 @@ Le Parc national de La Réunion</textarea>
                 <!-- Zone masquée : justification du refus -->
                 <!------------------------------------------->
                 <div id="formulaire-refus" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_refuse_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme refusé ?');">
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre demande. 
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required>[Donner les motifs de refus]
 
-[Donner les motifs de refus].
+L’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre demande.</textarea>
 
-En conséquence, la demande est refusée.</textarea>
                         <div class="zone-pj-complement">
+                            <label for="justificatif-refus">Joindre un justificatif (facultatif) :</label>
+                            <input id="justificatif-refus" type="file" name="justificatif" data-taille-max="10485760">
+                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
                             <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
                         </div>
                     </form>
@@ -2818,6 +2851,22 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const justificatifClassement = document.getElementById("justificatif-classement");
             if (justificatifClassement) {
                 justificatifClassement.addEventListener("change", function () {
+                    const fichier = this.files[0];
+                    const tailleMax = Number(this.dataset.tailleMax);
+                    const message = fichier && fichier.size > tailleMax
+                        ? "Le justificatif dépasse la taille maximale autorisée de 10 Mo."
+                        : "";
+
+                    this.setCustomValidity(message);
+                    if (message) {
+                        this.reportValidity();
+                    }
+                });
+            }
+
+            const justificatifRefus = document.getElementById("justificatif-refus");
+            if (justificatifRefus) {
+                justificatifRefus.addEventListener("change", function () {
                     const fichier = this.files[0];
                     const tailleMax = Number(this.dataset.tailleMax);
                     const message = fichier && fichier.size > tailleMax

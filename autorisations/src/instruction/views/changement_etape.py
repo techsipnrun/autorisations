@@ -132,15 +132,23 @@ def remplacer_numero_projet_acte(request):
     return _redirect_instruction_dossier(dossier)
 
 
-def _archiver_justificatif_classement(dossier, fichier, format_obj, nature_obj, user):
+def _archiver_justificatif_classement(
+    dossier,
+    fichier,
+    format_obj,
+    nature_obj,
+    user,
+    type_decision,
+):
     """Archive sur le NAS le justificatif déjà transmis avec la décision DN."""
+    prefixe_description = f"Justificatif du {type_decision}"
     anciens_justificatifs = [
         liaison.id_document
         for liaison in (
             DossierDocument.objects
             .filter(
                 id_dossier=dossier,
-                id_document__description__startswith="Justificatif du classement sans suite",
+                id_document__description__startswith=prefixe_description,
             )
             .select_related("id_document")
         )
@@ -174,7 +182,7 @@ def _archiver_justificatif_classement(dossier, fichier, format_obj, nature_obj, 
                 titre=titre,
                 emplacement=repertoire_relatif,
                 description=(
-                    f"Justificatif du classement sans suite du dossier {dossier.numero}, "
+                    f"{prefixe_description} du dossier {dossier.numero}, "
                     f"ajouté par {user}"
                 ),
             )
@@ -501,6 +509,7 @@ def dossier_non_soumis_a_autorisation(request):
                     format_justificatif,
                     nature_justificatif,
                     request.user,
+                    type_decision="classement sans suite",
                 )
             except Exception as e:
                 logger.error(
@@ -2507,8 +2516,11 @@ def classer_le_dossier_comme_accepte(request):
 @require_POST
 @login_required
 def classer_le_dossier_comme_refuse(request):
-    
     dossier_id_ds = request.POST.get("dossierId")
+    motivation = request.POST.get("motivation", "").strip()
+    justificatif = request.FILES.get("justificatif")
+    format_justificatif = None
+    nature_justificatif = None
 
     # --- Vérification dossierId ---
     if not dossier_id_ds:
@@ -2520,14 +2532,86 @@ def classer_le_dossier_comme_refuse(request):
     if err:
         return err
 
+    doit_refuser_sur_ds = (dossier.present_sur_ds and dossier.id_etat_dossier.nom != "refuse")
+
+    if doit_refuser_sur_ds and not motivation:
+        logger.warning(f"[DOSSIER {dossier.numero}] Classement comme refusé par {request.user} : justification manquante.")
+        return redirect_error(request, "Une justification est requise pour classer le dossier comme refusé.",)
+
+    if justificatif and doit_refuser_sur_ds:
+        if justificatif.size > 10 * 1024 * 1024:
+            return redirect_error(request, "Le justificatif dépasse la taille maximale autorisée de 10 Mo.",)
+
+        extension = os.path.splitext(justificatif.name)[1].lstrip(".").lower()
+        format_justificatif = DocumentFormat.objects.filter(format__iexact=extension).first()
+        if not format_justificatif:
+            return redirect_error(request, f"Le format du justificatif « {extension or 'sans extension'} » n'est pas reconnu.",)
+
+        nature_justificatif = DocumentNature.objects.filter(nature__iexact="Annexe instructeur").first()
+        if not nature_justificatif:
+            logger.error(f"[DOSSIER {dossier.numero}] Nature 'Annexe instructeur' introuvable pour archiver le justificatif du refus.")
+            return redirect_error(request, "Impossible de préparer l'archivage du justificatif. Contactez le support.",)
+
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Classer comme refusé")
     if err:
         return err
 
+    # ==========================================
+    # --- Actions côté Démarche Numérique ---
+    # ==========================================
+    if doit_refuser_sur_ds:
+        if (
+            dossier.id_etat_dossier.nom == "en_construction"
+            and dossier.id_etape_dossier.etape in ["En pré-instruction", "À affecter"]
+        ):
+            result = passer_en_instruction_ds(dossier.id_ds, instructeur)
+            if not result.get("success"):
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DN "
+                    f"avant refus par {request.user} : {result.get('message')}"
+                )
+                return redirect_error(
+                    request,
+                    "Erreur lors du passage en instruction sur Démarche Numérique. "
+                    "Contactez le support.",
+                )
+
+        result = refuser_dossier_ds(dossier.id_ds, instructeur, motivation, justificatif,)
+        if not result.get("success"):
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Échec du refus sur DN par {request.user} : "
+                f"{result.get('message')}"
+            )
+            return redirect_error(
+                request,
+                "Erreur lors du refus du dossier sur Démarche Numérique. Contactez le support.",
+            )
+
+        if justificatif:
+            try:
+                _archiver_justificatif_classement(
+                    dossier,
+                    justificatif,
+                    format_justificatif,
+                    nature_justificatif,
+                    request.user,
+                    type_decision="refus",
+                )
+            except Exception as e:
+                logger.error(f"[DOSSIER {dossier.numero}] Le refus a réussi sur DN, mais son justificatif n'a pas pu être archivé localement : {e}")
+                messages.warning(
+                    request,
+                    "Le dossier a été refusé sur Démarche Numérique, mais le justificatif "
+                    "n'a pas pu être archivé sur la page du dossier.",
+                )
 
     # --- Mise à jour document publié au RAA ---
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = DossierDocument.objects.none()
+    if dossier.id_etape_dossier.etape == "À publier au RAA":
+        documents_du_dossier = DossierDocument.objects.filter(
+            id_dossier=dossier
+        ).select_related("id_document__id_statut")
 
     for lien in documents_du_dossier:
         doc = lien.id_document
@@ -2556,6 +2640,9 @@ def classer_le_dossier_comme_refuse(request):
     err = safe_update_etape(dossier, "Refusé", request, break_si_erreur=True)
     if err:
         return err
+
+    if dossier.present_sur_ds:
+        safe_update_etat(dossier, "refuse", request, break_si_erreur=False)
 
     # Dossier Action
     safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
