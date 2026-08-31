@@ -32,11 +32,13 @@ def avis_est_conseil_scientifique(avis):
     if not expert or expert.est_interne or not contact:
         return False
 
-    return (
-        (contact.nom or "").strip().casefold() == "collin"
-        and (contact.prenom or "").strip().casefold() == "gérard"
-        and (contact.raison_sociale or "").strip().casefold()
-        == "conseil scientifique"
+    valeurs_identite = (
+        contact.raison_sociale,
+        contact.organisation,
+    )
+    return any(
+        (valeur or "").strip().casefold() == "conseil scientifique"
+        for valeur in valeurs_identite
     )
 
 

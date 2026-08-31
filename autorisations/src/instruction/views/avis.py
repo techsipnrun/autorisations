@@ -1027,6 +1027,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             "dossier_numero": dossier.numero,
             "demarche_type": avis.id_demarche.type,
             "demandeur": str(avis.id_instructeur),
+            "message": avis.formulation,
             "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/",
         }
         template_name = "nouvelle_demande_avis_dossier" 
@@ -2167,6 +2168,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
         "avis_numero": avis.id,
         "demarche_type": avis.id_demarche.type,
         "demandeur": str(avis.id_instructeur),
+        "message": avis.formulation,
         "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
     }
     template_name = "nouvelle_demande_avis_generique" 

@@ -1133,7 +1133,13 @@ def mes_avis_action_a_faire(request):
 
         # On filtre sur les avis du CS uniquement
         avis_en_attente_de_publi_RAA = (
-            Avis.objects.filter(favorable=True, id_expert__est_interne=False, id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique")
+            Avis.objects.filter(favorable=True).filter(
+                Q(id_expert__est_interne=False)
+                & (
+                    Q(id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique")
+                    | Q(id_expert__id_contact_externe__organisation__iexact="Conseil Scientifique")
+                )
+            )
             .exclude(publie_au_raa=True)
             # .filter(avisdocument__id_document__id_nature__nature__iexact="Avis instance")
             .distinct()

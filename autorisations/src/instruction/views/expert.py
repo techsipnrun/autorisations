@@ -2,6 +2,7 @@ import os
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
 import datetime
 from django.db.models import Q
@@ -34,11 +35,17 @@ loggerDS = logging.getLogger("API_DS")
 
 def filtre_avis_conseil_scientifique():
     """Filtre l'expert externe représentant le Conseil scientifique."""
-    return Q(
-        id_expert__est_interne=False,
-        id_expert__id_contact_externe__nom__iexact="COLLIN",
-        id_expert__id_contact_externe__prenom__iexact="Gérard",
-        id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique",
+    return Q(id_expert__est_interne=False) & (
+        Q(
+            id_expert__id_contact_externe__raison_sociale__iexact=(
+                "Conseil Scientifique"
+            )
+        )
+        | Q(
+            id_expert__id_contact_externe__organisation__iexact=(
+                "Conseil Scientifique"
+            )
+        )
     )
 
 
@@ -588,12 +595,20 @@ def donner_son_avis(request, avis_id):
 
     emails_txt = ", ".join(emails_norm)
 
+    if avis.favorable and avis.sous_reserve:
+        reponse_avis = "Favorable sous réserve"
+    elif avis.favorable:
+        reponse_avis = "Favorable"
+    else:
+        reponse_avis = "Défavorable"
+
     sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
     
     context = {
             "avis_numero": avis.id,
             "expert": str(avis.id_expert),
             "demarche_type": avis.id_demarche.type,
+            "reponse_avis": reponse_avis,
             "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
         }
 
@@ -621,6 +636,93 @@ def donner_son_avis(request, avis_id):
     else:
         logger.error(f"[AVIS {avis.id}] Échec envoi notification email {outbox.id} (Avis rendu) à {', '.join(outbox.to)} : {err}")
         messages.error(request, f"L'email de notification à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+
+    # ===================================================================
+    # NOTIFICATION AUX MEMBRES CHARGÉS DE LA PUBLICATION DES AVIS DU CS
+    # ===================================================================
+    if avis_est_conseil_scientifique(avis):
+        if NOTIFS_PROD:
+            utilisateurs_publication_cs = (
+                User.objects.filter(
+                    groups__name="Publication RAA Avis CS",
+                    is_active=True,
+                )
+                .exclude(email__isnull=True)
+                .exclude(email="")
+            )
+            if email_demandeur:
+                utilisateurs_publication_cs = utilisateurs_publication_cs.exclude(
+                    email__iexact=email_demandeur
+                )
+
+            emails_publication_cs = list(
+                utilisateurs_publication_cs
+                .values_list("email", flat=True)
+                .distinct()
+            )
+        else:
+            emails_publication_cs = [EMAIL_NOTIF_TEST]
+
+        if not emails_publication_cs:
+            logger.warning(
+                f"[AVIS {avis.id}] Avis du Conseil scientifique rendu, mais aucun "
+                "destinataire actif avec une adresse mail n'a été trouvé dans le "
+                "groupe 'Publication RAA Avis CS' après exclusion du demandeur."
+            )
+        else:
+            sujet_publication_cs = (
+                f"Avis n° {avis.id} - Conseil scientifique : avis rendu"
+            )
+            template_publication_cs = "avis_cs_rendu"
+            context_publication_cs = {
+                "avis_numero": avis.id,
+                "demarche_type": avis.id_demarche.type,
+                "expert": str(avis.id_expert),
+                "reponse_avis": reponse_avis,
+                "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/",
+            }
+
+            try:
+                dedupe_publication_cs = compute_dedupe_key(
+                    emails_publication_cs,
+                    sujet_publication_cs,
+                    template_publication_cs,
+                    context_publication_cs,
+                )
+                outbox_publication_cs = create_EmailOutbox(
+                    emails_publication_cs,
+                    sujet_publication_cs,
+                    template_publication_cs,
+                    dedupe_publication_cs,
+                    context_publication_cs,
+                    None,
+                    type_mail="Notification",
+                )
+
+                if not outbox_publication_cs:
+                    raise RuntimeError("création de l'EmailOutbox impossible")
+
+                ok_cs, err_cs = envoi_mail(outbox_publication_cs.id)
+                if ok_cs:
+                    logger.info(
+                        f"[AVIS {avis.id}] Notification Email {outbox_publication_cs.id} "
+                        "(Avis CS rendu) envoyée aux membres du groupe "
+                        f"'Publication RAA Avis CS' : {', '.join(outbox_publication_cs.to)}"
+                    )
+                else:
+                    raise RuntimeError(err_cs or "échec inconnu lors de l'envoi")
+
+            except Exception as e:
+                logger.error(
+                    f"[AVIS {avis.id}] Avis du Conseil scientifique rendu, mais la "
+                    "notification du groupe 'Publication RAA Avis CS' a échoué : "
+                    f"{e}"
+                )
+                messages.error(
+                    request,
+                    "L'avis a bien été enregistré, mais les membres chargés de sa "
+                    "publication au RAA n'ont pas pu être notifiés. Contactez le support.",
+                )
 
     return redirect("avis_expert", avis_id=avis.id)
 
