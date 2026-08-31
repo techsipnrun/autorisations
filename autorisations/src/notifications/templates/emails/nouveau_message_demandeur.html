@@ -2,6 +2,11 @@
 
 <p>Vous avez reçu un nouveau message sur la demande d’avis n° {{ avis_numero }} ({{ demarche_type }}) adressée par {{ demandeur }}.</p>
 
+<p><strong>Message :</strong></p>
+<div style="margin: 0 0 16px 16px; padding: 12px; border-left: 3px solid #777; background-color: #f5f5f5;">
+    {{ message|linebreaksbr }}
+</div>
+
 <p>
     Consulter l'avis : 
     <a href="{{ url }}" target="_blank">

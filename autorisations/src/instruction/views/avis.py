@@ -1613,6 +1613,7 @@ def envoyer_message_avis(request):
         "avis_numero": avis.id,
         "demarche_type": avis.id_demarche.type,
         "demandeur": str(avis.id_instructeur),
+        "message": body,
         "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
     }
     template_name = "nouveau_message_demandeur" 
@@ -1772,6 +1773,7 @@ def envoyer_message_avis_vision_expert(request):
             "avis_numero": avis.id,
             "demarche_type": avis.id_demarche.type,
             "expert": str(avis.id_expert),
+            "message": body,
             "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
         }
         template_name = "nouveau_message_expert" 
@@ -1826,6 +1828,7 @@ def envoyer_message_avis_vision_expert(request):
             "avis_numero": avis.id,
             "demarche_type": avis.id_demarche.type,
             "demandeur": str(avis.id_instructeur),
+            "message": body,
             "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
         }
         template_name = "nouveau_message_demandeur" 
