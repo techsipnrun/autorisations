@@ -70,3 +70,138 @@
 .dossier-state-with-copy .btn-copy-dossier.show-feedback .copy-feedback {
     opacity: 1;
 }
+
+/* Bouton rattaché aux onglets Formulaire / Messagerie / Consultation. */
+.nav_top .btn-copy-dossier {
+    position: relative;
+    inset: auto;
+    flex: 0 0 40px;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    background: #f7f7f7;
+    cursor: pointer;
+}
+
+.nav_top .btn-copy-dossier:hover {
+    transform: scale(1.06);
+}
+
+.nav_top .btn-copy-dossier img {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.nav_top .btn-copy-dossier .icon-default {
+    opacity: 1;
+}
+
+.nav_top .btn-copy-dossier .icon-hover {
+    opacity: 0;
+}
+
+.nav_top .btn-copy-dossier:hover .icon-default {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.nav_top .btn-copy-dossier:hover .icon-hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.nav_top .btn-copy-dossier .copy-feedback {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    white-space: nowrap;
+    color: #000;
+    font-size: 0.9rem;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 10;
+}
+
+.nav_top .btn-copy-dossier.show-feedback .copy-feedback {
+    opacity: 1;
+}
+
+/* Ancrage dans la colonne gauche, au bord adjacent à la navigation. */
+.copy-button-container {
+    position: relative;
+}
+
+.copy-button-container > .copy-button-left-edge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    inset-inline-start: auto;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    background: #f7f7f7;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.copy-button-container > .copy-button-left-edge:hover {
+    transform: scale(1.06);
+}
+
+.copy-button-container > .copy-button-left-edge img {
+    position: absolute;
+    width: 60%;
+    height: 60%;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.copy-button-container > .copy-button-left-edge .icon-default {
+    opacity: 1;
+}
+
+.copy-button-container > .copy-button-left-edge .icon-hover {
+    opacity: 0;
+}
+
+.copy-button-container > .copy-button-left-edge:hover .icon-default {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.copy-button-container > .copy-button-left-edge:hover .icon-hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.copy-button-container > .copy-button-left-edge .copy-feedback {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    white-space: nowrap;
+    color: #000;
+    font-size: 0.9rem;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.copy-button-container > .copy-button-left-edge.show-feedback .copy-feedback {
+    opacity: 1;
+}

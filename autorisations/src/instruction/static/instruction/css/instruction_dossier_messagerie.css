@@ -2,13 +2,16 @@
 /*                  Navigation - Partie Droite                      */
 /* ---------------------------------------------------------------- */
 .nav_preinstruction {
-    width: 30%;
+    flex: 0 1 30%;
+    width: auto;
+    min-width: 260px;
 }
 
 .nav_top {
     display: flex;
-    justify-content: left;
-    gap: 3rem;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 2rem;
     margin-bottom: 2rem;
     align-items: center;
 }
@@ -21,8 +24,14 @@
 
 .form_messagerie {
     display: flex;
-    flex-direction: row;
+    min-width: 0;
+    flex: 1 1 auto;
     gap: 8px;
+}
+
+.form_messagerie a {
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .form_msg_box.active {
@@ -35,12 +44,44 @@
     position: relative;
     background-color: #f1f1f1;
     border: 1px solid #585858;
-    padding: 1rem;
     text-align: center;
-    font-size: 1.2rem;
     cursor: pointer;
     border-radius: 6px;
+    min-width: 0;
+    padding: 1rem;
+    font-size: clamp(0.9rem, 0.8vw, 1.2rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
     transition: background-color 0.3s ease;
+}
+
+@media (max-width: 1700px) {
+    .form_msg_box {
+        padding: 1rem 0.6rem;
+    }
+}
+
+@media (max-width: 1400px) {
+    .form_msg_box {
+        font-size: clamp(0.6rem, 1vw, 1rem);
+        padding: 1rem 0.5rem;
+    }
+}
+
+@media (max-width: 1000px) {
+    .form_messagerie {
+        flex-direction: column;
+    }
+
+    .form_messagerie a {
+        flex: 0 0 auto;
+    }
+
+    .form_msg_box {
+        white-space: normal;
+        text-overflow: clip;
+        padding: 1rem;
+    }
 }
 
 .form_msg_box:hover {

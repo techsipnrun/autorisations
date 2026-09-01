@@ -207,6 +207,10 @@ def instruction_dossier_messagerie(request, num_dossier):
     if instructeur:
         est_instructeur_du_dossier = DossierInstructeur.objects.filter(id_dossier=dossier,id_instructeur=instructeur).exists()
 
+    est_receptionniste = request.user.groups.filter(
+        name__in=["Réception SAADD", "Réception SPPN"]
+    ).exists()
+
 
     # -----------------------------------
     # 2. Messages non lus
@@ -223,7 +227,7 @@ def instruction_dossier_messagerie(request, num_dossier):
     nb_messages_non_lus = messages_non_lus.count()
     ids_non_lus = list(messages_non_lus.values_list('id', flat=True))
 
-    if est_instructeur_du_dossier:
+    if est_instructeur_du_dossier or est_receptionniste:
         try:
             nb = messages_non_lus.update(lu=True)
             if nb > 0:
@@ -342,6 +346,7 @@ def instruction_dossier_messagerie(request, num_dossier):
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
         "nb_avis_envoyes": nb_avis_envoyes,
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
+        "est_receptionniste": est_receptionniste,
         "nb_messages_non_lus": nb_messages_non_lus,
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "signature_message": _get_message_signature(instructeur),

@@ -119,6 +119,18 @@ tbody td {
     font-weight: bold;
 }
 
+@media (max-width: 1600px) {
+    .avis h1 {
+        font-size: 1.55rem;
+    }
+}
+
+@media (max-width: 1300px) {
+    .avis h1 {
+        font-size: 1.4rem;
+    }
+}
+
 
 
 

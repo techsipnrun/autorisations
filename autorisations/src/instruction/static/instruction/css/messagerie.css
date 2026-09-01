@@ -5,6 +5,28 @@ h1 {
     color: #006131;
 }
 
+@media (max-width: 1600px) {
+    .messagerie h1 {
+        font-size: 1.55rem;
+    }
+
+    .messagerie .etat-badge-menu {
+        padding: 5px 12px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 1300px) {
+    .messagerie h1 {
+        font-size: 1.4rem;
+    }
+
+    .messagerie .etat-badge-menu {
+        padding: 4px 10px;
+        font-size: 0.9rem;
+    }
+}
+
 .etat-badge-menu {
     display: inline-block;
     margin: 1rem 0 3rem 0;

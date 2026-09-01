@@ -348,6 +348,14 @@ def preinstruction_dossier(request, numero):
                 .select_related("id_instructeur__id_agent_autorisations")
         ]
 
+    membres_groupe_ids = {instructeur.id for instructeur in membres_groupe}
+    autres_instructeurs_du_dossier = list(
+        Instructeur.objects
+        .filter(id__in=instructeurs_dossier - membres_groupe_ids)
+        .select_related("id_agent_autorisations")
+        .order_by("id_agent_autorisations__nom", "id_agent_autorisations__prenom", "email")
+    )
+
 
     ###################################################
     # Infos sur le bénéficiaire/demandeur intermediaire
@@ -541,6 +549,7 @@ def preinstruction_dossier(request, numero):
         # Instructeurs
         "groupes_instructeurs": groupes_instructeurs,
         "membres_groupe": membres_groupe,
+        "autres_instructeurs_du_dossier": autres_instructeurs_du_dossier,
         "instructeurs_dossier_ids": instructeurs_dossier,
         "instructeur_connecte": instructeur_connecte,
 

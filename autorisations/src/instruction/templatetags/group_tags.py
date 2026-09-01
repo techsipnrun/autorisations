@@ -219,10 +219,8 @@ def est_autorise_a_changer_etape(user, dossier):
     """
     Retourne True si le user appartient à la liste des Instructeurs autorisés à changer l'étape du dossier :
 
-    Conditions :
-    - appartient au groupe "Réception SAADD"
-    OU
-    - appartient au groupe instructeur "Manifestations sportives
+    Les membres des groupes de réception SAADD et SPPN peuvent notamment
+    repasser en instruction un dossier archivé.
 
     """
     # Identification de l'instructeur connecté
@@ -239,6 +237,9 @@ def est_autorise_a_changer_etape(user, dossier):
     etape_du_doss = dossier.id_etape_dossier.etape
 
     if etape_du_doss in ["Non soumis à autorisation", "Refusé", "Accepté"] :
+        if user.groups.filter(name__in=["Réception SAADD", "Réception SPPN"]).exists():
+            return True
+
         valideurs = set(DossierValideur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True))
         instructeurs_du_doss = set(DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True))
         instructeurs = valideurs | instructeurs_du_doss

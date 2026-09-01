@@ -72,6 +72,9 @@
 /* ------------------------------------------------------------ */
 .page-container {
     display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
     /* gap: clamp(1rem, 3vw, 3rem); */
     gap: clamp(1rem, 1vw, 2rem);
     padding: 0.5rem 4rem 6rem 2rem;
@@ -83,7 +86,8 @@
 
 .formulaire {
     position: relative;
-    flex: 0 0 70%;
+    box-sizing: border-box;
+    flex: 1 1 70%;
     width: auto;
     min-width: 300px;
     padding: 4rem 2rem 3rem 2rem;
@@ -964,7 +968,8 @@ h2 {
 /*                        PARTIE DROITE                             */
 /* ---------------------------------------------------------------- */
 .nav_preinstruction {
-    flex: 0 1 30%;
+    box-sizing: border-box;
+    flex: 1 1 30%;
     width: auto;
     min-width: 260px;
 }
@@ -1054,6 +1059,102 @@ h2 {
     transform: scale(1.05);
     transition: transform 0.2s ease;
     transform-origin: center;
+}
+
+/* Ajustement typographique pour les écrans affichés à 100 % de zoom. */
+@media (max-width: 1600px) {
+    .formulaire h1 {
+        font-size: 1.4rem;
+    }
+
+    .formulaire h2,
+    .identite-titre,
+    .nom_du_dossier h2,
+    .champs h2 {
+        font-size: 1.15rem;
+    }
+
+    .formulaire h3,
+    .formulaire h4,
+    .champs h3,
+    .champs h4 {
+        font-size: 1rem;
+    }
+
+    .btn-edit-carto,
+    .btn-saisir-carto {
+        font-size: 0.95rem;
+    }
+
+    .etat-badge-label {
+        padding: 7px 14px;
+        font-size: 1rem;
+    }
+
+    .etat-badge-menu {
+        padding: 5px 12px;
+        font-size: 1rem;
+    }
+
+    .groupe-instructeur-info {
+        font-size: 0.85rem;
+    }
+
+    .groupe-instructeur-info h3,
+    .groupe-instructeur-info .notes-titre,
+    .demander-relecture_juridique h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Les libellés des onglets restent toujours contenus dans leur boîte. */
+.form_msg_box {
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;
+}
+
+.form_msg_box .msg-label-wrapper {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 1300px) {
+    .formulaire h1 {
+        font-size: 1.25rem;
+    }
+
+    .formulaire h2,
+    .identite-titre,
+    .nom_du_dossier h2,
+    .champs h2 {
+        font-size: 1.05rem;
+    }
+
+    .btn-edit-carto,
+    .btn-saisir-carto {
+        padding: 5px 8px;
+        font-size: 0.85rem;
+    }
+
+    .etat-badge-label,
+    .groupe-instructeur-info h3,
+    .groupe-instructeur-info .notes-titre,
+    .demander-relecture_juridique h3 {
+        font-size: 0.9rem;
+    }
+
+    .etat-badge-menu {
+        padding: 4px 10px;
+        font-size: 0.9rem;
+    }
+
+    .form_msg_box {
+        padding-inline: 0.35rem;
+        font-size: 0.75rem;
+    }
 }
 
 /* Nouveaux messages pastilles*/
@@ -1370,7 +1471,7 @@ textarea[name="note"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 1.4rem;
+    font-size: clamp(1.2rem, 1vw, 1.4em);
     color: #006131;
     margin-bottom: 1rem;
 }

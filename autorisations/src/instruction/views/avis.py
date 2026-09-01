@@ -239,6 +239,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
 
     return render(request, "instruction/instruction_dossier_ajouter_avis.html", {
         "dossier": dossier,
+        "chemin_complet": get_chemin_complet_dossier(dossier),
         "avis": avis,
         "natures": natures,
         "thematiques": thematiques, 
@@ -380,6 +381,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
 
     return render(request, "instruction/instruction_dossier_ajouter_avis_existant.html", {
         "dossier": dossier,
+        "chemin_complet": get_chemin_complet_dossier(dossier),
         "natures": natures,
         "thematiques": thematiques,
         "instructeurs": instructeurs,

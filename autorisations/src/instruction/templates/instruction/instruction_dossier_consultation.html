@@ -13,10 +13,10 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_consultation.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_consultation.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/copie_dossier_titre.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'instruction/css/copie_dossier_titre.css' %}?v=3">
 
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
@@ -27,7 +27,13 @@
     {% breadcrumb breadcrumb_items %}
 
     <div class="avis-page-container">
-        <div class="avis">
+        <div class="avis copy-button-container">
+
+            <button type="button" class="btn-copy-dossier copy-button-left-edge" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+                <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
+                <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+            </button>
 
             <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
 
@@ -41,11 +47,6 @@
                 <div class="etat-badge-menu">
                     {{ dossier.id_etape_dossier }}
                 </div>
-                <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
-                    <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
-                    <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
-                    <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
-                </button>
             </div>
 
             {% if request.user|est_concerné_par_le_dossier:dossier %}
@@ -176,7 +177,6 @@
         <!-- Colonne droite : navigation -->
         <div class="nav_preinstruction">
             <div class="nav_top" id="nav_top_consult">
-            
                 <div class="form_messagerie">
                     <a href="{% url 'instruction_dossier' num_dossier=dossier.numero %}">
                         <div class="form_msg_box {% if is_formulaire_active %}active{% endif %}">

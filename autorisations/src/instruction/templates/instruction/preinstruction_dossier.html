@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -188,7 +188,7 @@
 
                 <!-- Copier le chemin d'accès du dossier -->
                 <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
-                    <img class="icon-default" src="{% static 'instruction/img/folderv2.png' %}" alt="">
+                    <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
                     <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
                     <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
                 </button>
@@ -655,6 +655,9 @@
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
                         <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
+                        {% if retirer_instructeur_message %}
+                            <div class="instruction-warning">{{ retirer_instructeur_message }}</div>
+                        {% endif %}
                         <ul class="groupe-instructeur-liste">
                             {% for instructeur in membres_groupe %}
                                 {% if instructeur.id in instructeurs_dossier_ids %}
@@ -675,12 +678,6 @@
                                         {% endif %}
                                         
                                     </li>
-                                    {% if retirer_instructeur_message %}
-                                        <div class="instruction-warning">
-                                            {{ retirer_instructeur_message }}
-                                        </div>
-                                    {% endif %}
-
                                 {% else %}
 
                                     <li class="pas_instructeur_du_dossier">
@@ -701,6 +698,39 @@
                                 {% endif %}
                             {% endfor %}
                         </ul>
+
+                        {% if autres_instructeurs_du_dossier %}
+                            <div class="autres-instructeurs">
+                                <h3>Autres instructeur.ices</h3>
+                                <ul class="groupe-instructeur-liste">
+                                    {% for instructeur in autres_instructeurs_du_dossier %}
+                                        <li class="instructeur_du_dossier">
+                                            {% if instructeur.id_agent_autorisations %}
+                                                {{ instructeur.id_agent_autorisations.nom|upper }} {{ instructeur.id_agent_autorisations.prenom|capfirst }}
+                                            {% else %}
+                                                {{ instructeur.email }}
+                                            {% endif %}
+                                            <img src="{% static 'instruction/img/instructeur.png' %}"
+                                                 alt="Instructeur.rice du dossier hors du groupe actuel"
+                                                 title="Instructeur.rice du dossier hors du groupe actuel"
+                                                 class="logo_instructeur logo_groupe_instru">
+
+                                            {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}
+                                                <form method="post" action="{% url 'retirer_instructeur' %}" class="form-retirer-instructeur">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                                                    <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+
+                                                    <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.rice du dossier">
+                                                        <span class="croix-retirer">✕</span>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
 
                         {% if groupes_instructeurs|length > 1 %}
                             {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier %}

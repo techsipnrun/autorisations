@@ -277,6 +277,28 @@
   background-color: rgb(216, 216, 216);
 }
 
+@media (max-width: 1600px) {
+  .settings_menu {
+    min-width: 285px;
+  }
+
+  .settings_menu .dropdown-item {
+    gap: 0.7rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 1300px) {
+  .settings_menu {
+    min-width: 250px;
+  }
+
+  .settings_menu .dropdown-item {
+    font-size: 0.85rem;
+  }
+}
+
 
 /* ---------------------------------------*/
 /*      BREADCRUMB (FIL D'ARIANNE)        */
