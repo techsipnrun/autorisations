@@ -366,3 +366,64 @@
     transform: scale(1.1);
     opacity: 0.85;
 }
+
+/* Filtres compacts sur les écrans de portable */
+@media (max-width: 1400px) {
+    #titre_requete {
+        font-size: 2rem;
+    }
+
+    .recherche_filtre {
+        width: 92%;
+        margin-top: 2.5rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .recherche-form {
+        width: 98%;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.6rem 2rem;
+        margin: 1.25rem;
+    }
+
+    .form-field label,
+    .periode-item span {
+        margin-bottom: 0.25rem;
+        font-size: 0.88rem;
+    }
+
+    .recherche-form input,
+    .recherche-form select,
+    .checkbox-menu summary {
+        padding-top: 0.38rem;
+        padding-bottom: 0.38rem;
+        font-size: 0.88rem;
+    }
+
+    .checkbox-menu-options {
+        padding: 0.3rem;
+    }
+
+    .checkbox-menu-options label {
+        padding: 0.35rem;
+        font-size: 0.85rem;
+    }
+
+    .periode-row {
+        gap: 0.65rem;
+    }
+
+    .periode-item {
+        gap: 0.35rem;
+        min-width: 160px;
+    }
+
+    .form-button-bottom {
+        margin: 0.25rem 1.25rem 0.5rem 0;
+    }
+
+    .form-button-bottom button {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.88rem;
+    }
+}

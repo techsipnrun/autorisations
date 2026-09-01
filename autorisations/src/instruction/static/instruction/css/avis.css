@@ -281,3 +281,63 @@ tbody tr.ligne-non-lue::after {
     box-shadow: 0 0 6px rgba(255, 65, 108, 0.6);
     z-index: 10;
 }
+
+/* Affichage compact sur les écrans de portable */
+@media (max-width: 1400px) {
+    .reception {
+        width: 92%;
+        padding: 0 1rem;
+    }
+
+    .vision_expert,
+    .vision_demandeur {
+        padding: 1.25rem;
+    }
+
+    .section-title {
+        margin-bottom: 2.5rem;
+        font-size: 1.8rem;
+    }
+
+    .reception h1 {
+        margin: 1.5rem 0 1rem 1.5vw;
+        font-size: 1.3rem;
+    }
+
+    .avis_rendus,
+    .avis-demandes-traites,
+    .avis-demandes-a-publier-RAA {
+        margin-top: 4rem;
+    }
+
+    table {
+        width: 98%;
+        margin: 2rem auto;
+        font-size: 0.88rem;
+    }
+
+    thead th {
+        padding: 0.65rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    tbody td {
+        padding: 0.6rem 0.5rem;
+    }
+
+    thead th:first-child,
+    tbody td:first-child {
+        padding-left: 0.75rem;
+    }
+
+    .form-annee-archives {
+        gap: 0.5rem;
+        margin-left: 1.5vw;
+        font-size: 1rem;
+    }
+
+    .form-annee-archives select {
+        padding: 0.25rem 0.45rem;
+        font-size: 0.88rem;
+    }
+}
