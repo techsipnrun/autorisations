@@ -792,6 +792,11 @@ h2 {
     border-radius: 8px;
 }
 
+/* Évite le rectangle de focus SVG affiché par certains navigateurs au clic. */
+.leaflet-container .leaflet-interactive:focus {
+    outline: none;
+}
+
 @media (max-width: 2200px) {
     .leaflet-container, .carto-banner {
         width: 80%;

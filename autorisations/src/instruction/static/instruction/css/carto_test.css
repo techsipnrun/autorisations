@@ -43,6 +43,11 @@ h1 {
   margin: 1.5rem 0;
 }
 
+/* Évite le rectangle de focus SVG affiché par certains navigateurs au clic. */
+.leaflet-container .leaflet-interactive:focus {
+  outline: none;
+}
+
 .carte-container {
   position: relative;
   height: 70vh;

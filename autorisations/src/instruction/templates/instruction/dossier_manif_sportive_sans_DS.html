@@ -24,7 +24,7 @@
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
@@ -981,11 +981,13 @@ Dans l'attente de vos compléments,</textarea>
     <!-- 1. Données JSON pour le fond de carte -->
     {{ coeurData|json_script:"fond-data" }}
     {{ adhesionData|json_script:"adhesion-data" }}
+    {{ secteursData|json_script:"secteurs-data" }}
 
     <!-- 2. Variables globales accessibles à ton JS -->
     <script> 
         window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
         window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
+        window._secteursData = JSON.parse(document.getElementById("secteurs-data").textContent);
     </script>
 
     <!-- On charge les icon (=pois) pour la carto -->
@@ -994,7 +996,7 @@ Dans l'attente de vos compléments,</textarea>
 
 
     <!-- 3. Script Leaflet personnalisé -->
-    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=3"></script>
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=6"></script>
 
 
 

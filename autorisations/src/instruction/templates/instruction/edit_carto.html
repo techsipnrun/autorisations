@@ -13,7 +13,7 @@
   <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="{% static 'instruction/css/carto_test.css' %}">
+  <link rel="stylesheet" href="{% static 'instruction/css/carto_test.css' %}?v=2">
   <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
   <!-- Leaflet -->
@@ -107,11 +107,13 @@
             fetch("{% static 'instruction/carto/fond_coeur_de_parc.geojson' %}").then(res => res.json()),
             fetch("{% static 'instruction/carto/aire_adhesion.geojson' %}").then(res => res.json()),
             fetch("{% static 'instruction/carto/COT_MAFATE.geojson' %}").then(res => res.json()),
+            fetch("{% static 'instruction/carto/perimetre_secteur.geojson' %}").then(res => res.json()),
         ])
-        .then(([fondData, adhesionData, mafateData]) => {
+        .then(([fondData, adhesionData, mafateData, secteursData]) => {
             window._fondDeCarteData = fondData;
             window._adhesionData = adhesionData;
             window._mafateData = mafateData;
+            window._secteursData = secteursData;
 
             const script = document.createElement("script");
             script.src = cartoScriptUrl;

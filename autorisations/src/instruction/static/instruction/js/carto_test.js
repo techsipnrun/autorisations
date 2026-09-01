@@ -40,6 +40,7 @@
     const fondData = window._fondDeCarteData;
     const adhesionData = window._adhesionData;
     const mafateData = window._mafateData;
+    const secteursData = window._secteursData;
     const cartes = document.querySelectorAll(".carte");
 
     if (!cartes.length) {
@@ -78,7 +79,7 @@
 
 
         // Ajout des fonds et overlays
-        const overlayMaps = addBackgroundLayers(map, fondData, adhesionData, mafateData);
+        const overlayMaps = addBackgroundLayers(map, fondData, adhesionData, mafateData, secteursData);
         const baseLayers = buildBaseLayers();
         // Fond de carte par défaut
         let activeBaseLayer = baseLayers.IGN.addTo(map);
@@ -343,7 +344,7 @@
     // ---------------------------------
     // Paramétrage des Fonds de carte
     // ---------------------------------
-    function addBackgroundLayers(map, fond, adhesion, mafate_cot) {
+    function addBackgroundLayers(map, fond, adhesion, mafate_cot, secteurs) {
         const overlays = {};
 
         // Coeur de Parc
@@ -419,6 +420,35 @@
             mafateLayer.pmIgnore = true;
             // Ajoute uniquement dans le panneau de calques, pas sur la carte
             overlays["COT Mafate"] = mafateLayer;
+        }
+
+        if (secteurs) {
+            const sectorColors = {
+                sud: "#e63946",
+                ouest: "#f59e0b",
+                est: "#2563eb",
+                nord: "#7c3aed"
+            };
+            const secteursLayer = L.geoJSON(secteurs, {
+                style: feature => {
+                    const color = sectorColors[feature.properties?.secteur?.toLowerCase()] || "#64748b";
+                    return { color, fillColor: color, weight: 2, opacity: 0.9, fillOpacity: 0.22 };
+                },
+                onEachFeature: (feature, layer) => {
+                    const secteur = feature.properties?.secteur;
+                    if (secteur) {
+                        layer.bindTooltip(`Secteur ${secteur.charAt(0).toUpperCase()}${secteur.slice(1).toLowerCase()}`, {
+                            sticky: true,
+                            direction: "top"
+                        });
+                    }
+                    layer.options._isBackgroundLayer = true;
+                    layer.pmIgnore = true;
+                }
+            });
+            secteursLayer.options._isBackgroundLayer = true;
+            secteursLayer.pmIgnore = true;
+            overlays["Secteurs"] = secteursLayer;
         }
 
         return overlays;

@@ -217,6 +217,32 @@ document.addEventListener("DOMContentLoaded", () => {
             adhesionLayer.eachLayer(l => l.options._isBackgroundLayer = true);
         }
 
+        if (window._secteursData) {
+            const sectorColors = {
+                sud: "#e63946",
+                ouest: "#f59e0b",
+                est: "#2563eb",
+                nord: "#7c3aed"
+            };
+            const secteursLayer = L.geoJSON(window._secteursData, {
+                style: feature => {
+                    const color = sectorColors[feature.properties?.secteur?.toLowerCase()] || "#64748b";
+                    return { color, fillColor: color, weight: 2, opacity: 0.9, fillOpacity: 0.22 };
+                },
+                onEachFeature: (feature, layer) => {
+                    const secteur = feature.properties?.secteur;
+                    if (secteur) {
+                        layer.bindTooltip(`Secteur ${secteur.charAt(0).toUpperCase()}${secteur.slice(1).toLowerCase()}`, {
+                            sticky: true,
+                            direction: "top"
+                        });
+                    }
+                    layer.options._isBackgroundLayer = true;
+                }
+            });
+            overlayMaps["Secteurs"] = secteursLayer;
+        }
+
 
         // ---------------------------
         // Nouveau menu moderne (2 boutons)

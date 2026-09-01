@@ -76,6 +76,10 @@ def dossier_manif_sportive_sans_ds(request, numero):
     with open(fond_aire_adhesion, encoding="utf-8") as f:
         fond_aire_adhesion = json.load(f)
 
+    perimetre_secteurs = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/perimetre_secteur.geojson")
+    with open(perimetre_secteurs, encoding="utf-8") as f:
+        perimetre_secteurs = json.load(f)
+
     pois_json = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/pois.json")
     with open(pois_json, encoding="utf-8") as f:
         pois_json = json.load(f)
@@ -239,6 +243,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "avis_manif_sportive": avis_manif_sportive,
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
+        "secteursData": perimetre_secteurs,
         "pois_json": pois_json,
         "dossiers_DN_manif_sportive_non_lie": dossiers_DN_manif_sportive_non_lie,
         "dossiers_DN_archive_manif_sportive_non_lie": dossiers_DN_archive_manif_sportive_non_lie,

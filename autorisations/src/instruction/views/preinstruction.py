@@ -316,6 +316,7 @@ def preinstruction_dossier(request, numero):
     fond_coeur_de_parc = load_geojson("instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
     fond_aire_adhesion = load_geojson("instruction/static/instruction/carto/aire_adhesion.geojson")
     fond_mafate = load_geojson("instruction/static/instruction/carto/COT_MAFATE.geojson")
+    perimetre_secteurs = load_geojson("instruction/static/instruction/carto/perimetre_secteur.geojson")
     pois_json = load_geojson("instruction/static/instruction/carto/pois.json")
 
 
@@ -533,6 +534,7 @@ def preinstruction_dossier(request, numero):
         "coeurData": fond_coeur_de_parc,
         "adhesionData": fond_aire_adhesion,
         "mafateData": fond_mafate,
+        "secteursData": perimetre_secteurs,
         "nb_cartes": nb_cartes,
         "pois_json": pois_json,
         

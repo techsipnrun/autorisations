@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -876,22 +876,24 @@
 {{ coeurData|json_script:"fond-data" }}
 {{ adhesionData|json_script:"adhesion-data" }}
 {{ mafateData|json_script:"mafate-data" }}
+{{ secteursData|json_script:"secteurs-data" }}
 
 <!-- 2. Variables globales accessibles pour le fichier JS -->
 <script> 
     window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);
     window._adhesionData = JSON.parse(document.getElementById("adhesion-data").textContent);
     window._mafateData = JSON.parse(document.getElementById("mafate-data").textContent);
+    window._secteursData = JSON.parse(document.getElementById("secteurs-data").textContent);
 </script>
 
 <!-- 3. Script Leaflet personnalisé -->
 {{ pois_json|json_script:"pois-data" }}
 <script> window._poisData = JSON.parse(document.getElementById("pois-data").textContent);</script>
 
-<script src="{% static 'instruction/js/formulaire_map.js' %}"></script>
+<script src="{% static 'instruction/js/formulaire_map.js' %}?v=6"></script>
 
 {% if doss_manif_sportive %}
-    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=3"></script>
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=6"></script>
 {% endif %}
 
     
