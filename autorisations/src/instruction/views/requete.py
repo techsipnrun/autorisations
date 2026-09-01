@@ -425,46 +425,25 @@ def requete_dossiers(request):
         dossiers_dm = dossiers_dm.none()
 
     if nom:
-        # Vérifier si le nom existe en tant que raison sociale
-        exists_raison = ContactExterne.objects.filter(
-            dossierbeneficiaire__isnull=False,
-            raison_sociale__iexact=nom
-        ).exists()
-
-        # Vérifier si le nom existe en tant qu'organisation
-        exists_organisation = ContactExterne.objects.filter(
-            dossierbeneficiaire__isnull=False,
-            organisation__iexact=nom
-        ).exists()
-
-        # Vérifier si le nom existe comme Nom Prénom
-        exists_nom_prenom = ContactExterne.objects.annotate(
-            nom_complet=Concat(
-                F("nom"),
+        dossiers = dossiers.annotate(
+            nom_complet_beneficiaire=Concat(
+                F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom"),
                 Value(" "),
-                F("prenom")
-            )
+                F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom")
+            ),
+            nom_complet_demandeur=Concat(
+                F("dossierinterlocuteur__id_demandeur_intermediaire__nom"),
+                Value(" "),
+                F("dossierinterlocuteur__id_demandeur_intermediaire__prenom")
+            ),
         ).filter(
-            dossierbeneficiaire__isnull=False,
-            nom_complet__iexact=nom
-        ).exists()
-
-        nom_valide = exists_raison or exists_organisation or exists_nom_prenom
-        if nom_valide:
-            dossiers = dossiers.annotate(
-                nom_complet_beneficiaire=Concat(
-                    F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom"),
-                    Value(" "),
-                    F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom")
-                )
-            ).filter(
-                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
-                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__iexact=nom) |
-                Q(nom_complet_beneficiaire__iexact=nom)
-            ).distinct()
-
-        else:
-            dossiers = dossiers.none()
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__iexact=nom) |
+            Q(nom_complet_beneficiaire__iexact=nom) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale__iexact=nom) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__organisation__iexact=nom) |
+            Q(nom_complet_demandeur__iexact=nom)
+        ).distinct()
 
         # Dossiers DM non liés
         dossiers_dm = dossiers_dm.annotate(
@@ -966,11 +945,14 @@ def autocomplete_nom_beneficiaire(request):
         results.append({"value": value})
 
     # ---------------------------------
-    # Bénéficiaires classiques
+    # Bénéficiaires et demandeurs intermédiaires classiques
     # ---------------------------------
-    beneficiaires = (
+    contacts_dossiers = (
         ContactExterne.objects
-        .filter(dossierbeneficiaire__isnull=False)
+        .filter(
+            Q(dossierbeneficiaire__isnull=False) |
+            Q(dossierinterlocuteur__isnull=False)
+        )
         .filter(
             Q(raison_sociale__icontains=query) |
             Q(organisation__icontains=query) |
@@ -981,17 +963,18 @@ def autocomplete_nom_beneficiaire(request):
         .distinct()[:10]
     )
 
-    for b in beneficiaires:
-        if b["raison_sociale"] and query.lower() in b["raison_sociale"].lower():
-            add_value(b["raison_sociale"])
+    for contact in contacts_dossiers:
+        if contact["raison_sociale"] and query.lower() in contact["raison_sociale"].lower():
+            add_value(contact["raison_sociale"])
 
-        if b["organisation"] and query.lower() in b["organisation"].lower():
-            add_value(b["organisation"])
+        if contact["organisation"] and query.lower() in contact["organisation"].lower():
+            add_value(contact["organisation"])
 
-        if b["nom"] and b["prenom"] and (
-            query.lower() in b["nom"].lower() or query.lower() in b["prenom"].lower()
+        if contact["nom"] and contact["prenom"] and (
+            query.lower() in contact["nom"].lower()
+            or query.lower() in contact["prenom"].lower()
         ):
-            add_value(f"{b['nom']} {b['prenom']}")
+            add_value(f"{contact['nom']} {contact['prenom']}")
 
     # ---------------------------------
     # Dossiers DM non liés
