@@ -1,0 +1,13 @@
+{% load static %}
+{% with titre_lower=titre|lower %}
+    {% if ".pdf" in titre_lower %}
+        {% url 'afficher_annexe' chemin=emplacement titre=titre as document_url %}
+        <button type="button" class="document-apercu-trigger" data-preview-url="{{ document_url }}" data-preview-type="pdf" aria-label="Visualiser {{ titre }}" title="Visualiser le document PDF">
+            <img src="{% static 'instruction/img/loupe.png' %}" alt="" class="document-action-icon">
+        </button>
+        <span class="document-apercu-pont" aria-hidden="true"></span>
+        <span class="document-apercu-popover" role="tooltip">
+            <span class="document-apercu-chargement">Chargement de l’aperçu…</span>
+        </span>
+    {% endif %}
+{% endwith %}

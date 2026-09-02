@@ -139,14 +139,14 @@
 }
 
 
-.infos-avis-expert {
+/* .infos-avis-expert {
     margin-top: 9rem;
-}
+} */
 
 /* Faire descendre le bloc de droite quand le formulaire est ouvert */
-.infos-avis-expert.with-form {
+/* .infos-avis-expert.with-form {
     margin-top: 21rem;
-}
+} */
 
 .dossiers_lies {
     padding: 1rem;
@@ -198,22 +198,58 @@
 .form-date-cs {
   margin-top: 8px;
 }
+
+.form-date-cs label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.date-cs-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
 .form-date-cs input[type="date"] {
-  padding: 4px 6px;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 2px 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 .btn-valider-date-cs {
-  background: #006131;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #006131;
+  background: #f5faf7;
+  border: 1px solid #8eb29e;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  margin-left: 6px;
+  margin-left: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-valider-date-cs:hover {
-  background: #0a4f29;
+  background: #e6f1ea;
+  border-color: #006131;
+  box-shadow: 0 2px 5px rgba(0, 97, 49, 0.18);
+  transform: translateY(-1px);
+}
+
+.btn-valider-date-cs:focus-visible {
+  outline: 2px solid #006131;
+  outline-offset: 2px;
+}
+
+.btn-valider-date-cs img {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 
@@ -274,12 +310,12 @@
 .btn-donner-avis {
     color: #006131;
     background-color: #fff;
-    border: #006131 solid 3px;
-    padding: 0.7rem 1.5rem;
+    border: #006131 solid 2px;
+    padding: 0.5rem 1rem;
     border-radius: 6px;
-    font-size: 1.3rem;
+    font-size: 1.05rem;
     font-weight: bold;
-    max-width: 240px;
+    max-width: 200px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }

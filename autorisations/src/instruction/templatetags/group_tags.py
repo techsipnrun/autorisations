@@ -23,6 +23,14 @@ def has_any_group(user, group_names):
     return user.groups.filter(name__in=group_list).exists()
 
 
+@register.filter(name="a_profil_instructeur")
+def a_profil_instructeur(user):
+    """Indique si l'utilisateur authentifié possède un profil Instructeur."""
+    if not user or not user.is_authenticated or not user.email:
+        return False
+    return Instructeur.objects.filter(email__iexact=user.email.strip()).exists()
+
+
 
 @register.filter(name="est_concerné_par_le_dossier")
 def est_concerne_par_le_dossier(user, dossier):

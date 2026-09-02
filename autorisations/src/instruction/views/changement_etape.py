@@ -50,6 +50,12 @@ def _redirect_instruction_dossier(dossier):
 def _source_numero_partagee(request, dossier, nature):
     if request.POST.get("projet_acte_identique") != "on":
         return None
+    if not Instructeur.objects.filter(
+        email__iexact=(request.user.email or "").strip()
+    ).exists():
+        raise ValidationError(
+            "Vous devez disposer d’un profil instructeur pour utiliser le numéro d’un projet d’acte existant."
+        )
     source_id = request.POST.get("projet_acte_source_id")
     if not source_id:
         raise ValidationError(
@@ -67,6 +73,18 @@ def _appliquer_numero_partage(request, dossier, document, nature):
 @require_POST
 @login_required
 def remplacer_numero_projet_acte(request):
+    if not Instructeur.objects.filter(
+        email__iexact=(request.user.email or "").strip()
+    ).exists():
+        logger.warning(
+            f"[PROJET ACTE] User {request.user} sans profil instructeur a tenté "
+            "d'utiliser le numéro d'un projet d'acte existant."
+        )
+        return redirect_error(
+            request,
+            "Vous devez disposer d’un profil instructeur pour utiliser le numéro d’un projet d’acte existant.",
+        )
+
     dossier = get_object_or_404(Dossier, id=request.POST.get("dossier_id"))
     document = get_object_or_404(
         Document.objects.select_related("id_nature"),

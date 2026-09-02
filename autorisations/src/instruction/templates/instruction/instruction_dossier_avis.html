@@ -1,6 +1,7 @@
 {% load static %}
 {% load breadcrumb_tags %}
 {% load group_tags %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -20,6 +21,7 @@
 
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
+    <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     
 </head>
 <body>
@@ -70,13 +72,7 @@
 
                         <div class="msg-body">
                             <p>{{ msg.body|safe|linebreaksbr }}</p>
-                            {% if msg.pj_emplacement and msg.pj_title %}
-                                <div class="pj-download">
-                                    <!-- <a href="{{ msg.pj_url }}" target="_blank" download>{{ msg.pj_title }}</a> -->
-                                    <a href="{% url 'afficher_annexe' chemin=msg.pj_emplacement titre=msg.pj_title %}" target="_blank" rel="noopener noreferrer">{{ msg.pj_title }}</a>
-                                
-                                </div>
-                            {% endif %}
+                            {% include "instruction/refacto/message_avis_piece_jointe.html" with msg=msg %}
                         </div>
                         <span class="timestamp">
                             <span class="emetteur_message">
@@ -88,7 +84,7 @@
 
                             {% if msg.align == 'right' and msg.emetteur.email == request.user.email %}
                                 <!-- Formulaire pour supprimer le message -->
-                                <form method="post" action="{% url 'supprimer_message_avis' msg.id %}" class="delete-form" style="display:inline;">
+                                <form method="post" action="{% url 'supprimer_message_avis' msg.id %}" class="delete-form" style="display:inline;" onsubmit="return confirm('Voulez-vous vraiment supprimer ce message ?');">
                                     {% csrf_token %}
                                     <button type="submit" class="delete-button" title="Supprimer le message">
                                         <img src="{% static 'instruction/img/trash.svg' %}" alt="Supprimer" class="trash-icon">
@@ -174,9 +170,14 @@
                     
                     {% if avis.emplacement %}
                         <!-- Lien Avis à droite -->
-                        <a href="#" onclick="copierChemin('{{NAS_ROOT}}{{ avis.emplacement }}')" title="Copier l'emplacement de l'avis">
-                            <img src="{% static 'instruction/img/folderv2.png' %}" alt="Emplacement de l'avis">
-                        </a>
+                        <button type="button" class="btn-copy-dossier btn-copy-dossier-avis"
+                                data-path="{{ NAS_ROOT }}{{ avis.emplacement }}"
+                                aria-label="Copier l'emplacement de l'avis"
+                                title="Copier l'emplacement de l'avis">
+                            <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
+                            <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
+                            <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+                        </button>
                     {% endif %}
                 </div>
 
@@ -248,7 +249,7 @@
                 <h2>Documents</h2>
                 <ul class="liste-documents-avis">
                     {% if avis.id_projet_avis %}
-                        <li class="doc-item">
+                        <li class="doc-item document-avec-apercu">
                             <p class="doc-item-title"><strong>Projet d'avis :</strong></p>
                             {% with avis.id_projet_avis.titre|lower as titre %}
                                 {% if titre|slice:"-4:" == ".pdf" %}
@@ -257,10 +258,11 @@
                                     <img src="{% static 'instruction/img/logo_word.png' %}" alt="Word" class="doc-icon">
                                 {% endif %}
                             {% endwith %}
-                            <a href="{% url 'afficher_annexe' chemin=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}" 
+                            <a href="{% url 'afficher_annexe' chemin=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}?download=1"
                             target="_blank" rel="noopener noreferrer">
                                 {{ avis.id_projet_avis.titre }}
                             </a>
+                            {% include "instruction/refacto/avis_document_apercu_pdf.html" with emplacement=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}
 
                             {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                 <!-- Formulaire remplacement -->
@@ -286,13 +288,24 @@
                     {% endif %}
 
                     {% if avis.id_projet_acte %}
-                        <li class="doc-item">
+                        <li class="doc-item document-avec-apercu">
                             <p class="doc-item-title"><strong>Projet d'acte {% if avis.id_projet_acte.numero %} {{ avis.id_projet_acte.numero }} {% endif %} :</strong></p>
-                            <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
-                            <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" 
+                            {% with format=avis.id_projet_acte.id_format.format|lower %}
+                                {% if format == 'pdf' %}
+                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
+                                {% elif format == 'docx' or format == 'doc' or format == 'odt' %}
+                                    <img src="{% static 'instruction/img/logo_word.png' %}" alt="Document texte" class="doc-icon">
+                                {% elif format == 'png' %}
+                                    <img src="{% static 'instruction/img/logo_png.png' %}" alt="Image PNG" class="doc-icon">
+                                {% else %}
+                                    <img src="{% static 'instruction/img/logo_file.png' %}" alt="Fichier" class="doc-icon">
+                                {% endif %}
+                            {% endwith %}
+                            <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}?download=1"
                             target="_blank" rel="noopener noreferrer">
                                 {{ avis.id_projet_acte.titre }}
                             </a>
+                            {% include "instruction/refacto/avis_document_apercu_pdf.html" with emplacement=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}
 
                             {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                 <!-- Formulaire remplacement -->
@@ -318,13 +331,14 @@
                     {% endif %}
 
                     {% if avis.id_rapport_instance %}
-                        <li class="doc-item">
+                        <li class="doc-item document-avec-apercu">
                             <p><strong>Rapport du conseil :</strong></p>
                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
-                            <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}" 
+                            <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}?download=1"
                             target="_blank" rel="noopener noreferrer">
                                 {{ avis.id_rapport_instance.titre }}
                             </a>
+                            {% include "instruction/refacto/avis_document_apercu_pdf.html" with emplacement=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}
 
                             {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                                 <!-- Formulaire remplacement -->
@@ -349,21 +363,22 @@
                         </li>
                     {% endif %}
 
-                    <li>
+                    <li class="document-avec-apercu">
                         <p><strong>Résumé du dossier :</strong></p>
                         <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" title="Télécharger le résumé du dossier" class="doc-icon">
-                        <a href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=resume_pdf_titre %}"
+                        <a href="{% url 'afficher_annexe' chemin=dossier.emplacement titre=resume_pdf_titre %}?download=1"
                             target="_blank"
                             rel="noopener noreferrer">
                             {{ resume_pdf_titre }}
                         </a>
+                        {% include "instruction/refacto/avis_document_apercu_pdf.html" with emplacement=dossier.emplacement titre=resume_pdf_titre %}
                     </li>
 
                     {% if avis_documents %}
                         <div class="pj_avis">
                             {% for ad in avis_documents %}
-                                    <li class="pj-item">
-                                        <p class="pj_title"><strong>Pièce jointe :</strong></p>
+                                    <li class="pj-item document-avec-apercu">
+                                        <p class="pj_title"><strong>Pièce jointe instructeur :</strong></p>
                                         {% if ad.id_document.id_format.format == 'pdf' %}
                                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                                         {% elif ad.id_document.id_format.format == 'docx' or ad.id_document.id_format.format == 'doc' or ad.id_document.id_format.format == 'odt' %}
@@ -373,9 +388,10 @@
                                         {% else %}
                                             <img src="{% static 'instruction/img/logo_file.png' %}" alt="Word" class="doc-icon">
                                         {% endif %}
-                                        <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}" target="_blank">
+                                        <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}?download=1" target="_blank" title="Télécharger {{ ad.id_document.titre }}">
                                             {{ ad.id_document.titre }}
                                         </a>
+                                        {% include "instruction/refacto/avis_document_apercu_pdf.html" with emplacement=ad.id_document.emplacement titre=ad.id_document.titre %}
 
                                         <!-- Formulaire suppression PJ -->
                                         {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
@@ -389,6 +405,8 @@
                         </div>
                     {% endif %}
                 </ul>
+
+                {% include "instruction/refacto/pieces_jointes_demandeur_avis.html" with pieces_jointes_demandeur=pieces_jointes_demandeur %}
 
                 {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                     <div class="bouton_ajouter_pj">
@@ -412,7 +430,7 @@
 
             </div>
 
-            {% if avis.note %}
+            {% if avis.note and not est_expert %}
                 <div class="infos-note-avis">
                     <h2>Notes des demandeurs</h2>
 

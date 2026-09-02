@@ -4,18 +4,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   copyButtons.forEach(btn => {
 
-    btn.addEventListener("mouseenter", () => {
-      btn.title = "Copier le chemin d'accès du dossier";
-    });
-
-    btn.addEventListener("mouseleave", () => {
-      btn.title = "Voir le dossier";
-    });
-
     btn.addEventListener("click", async () => {
 
-      const path = btn.dataset.path;
+      let path = btn.dataset.path;
       if (!path) return;
+
+      // Uniformiser les chemins NAS au format UNC Windows.
+      path = path.replace(/\//g, "\\");
+      path = path.replace(/\\+/g, "\\");
+      if (!path.startsWith("\\\\")) {
+        path = "\\" + path;
+      }
 
       try {
         // Clipboard API moderne

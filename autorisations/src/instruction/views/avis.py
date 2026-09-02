@@ -26,7 +26,7 @@ from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
+from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
@@ -410,7 +410,10 @@ def lier_dossier_avis(request, num_dossier, avis_id):
         
     
     # --- Récupération avis ---
-    avis = Avis.objects.filter(id=avis_id).first()
+    avis = Avis.objects.filter(id=avis_id).select_related(
+        "id_expert",
+        "id_expert__id_instructeur",
+    ).first()
     if not avis:
         logger.error(f"[LIER AVIS À DOSSIER] Avis {avis_id} introuvable — dossier={num_dossier}")
         return redirect_error(request, f"L'avis {avis_id} est introuvable. Contactez le support.")
@@ -1487,6 +1490,8 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
     for dossier_lie in dossiers_lies:
         dossier_lie.chemin_complet = get_chemin_complet_dossier(dossier_lie)
 
+    pieces_jointes_demandeur = get_pieces_jointes_demandeur(dossiers_lies)
+
     # Nombre d'avis envoyés
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
     # Messages du pétitionnaire non lus pour le dossier
@@ -1502,6 +1507,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "avis_documents": avis_documents,
         "liste_avis_documents": liste_avis_documents,
         "avis_signes": avis_signes,
+        "pieces_jointes_demandeur": pieces_jointes_demandeur,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,
@@ -1909,6 +1915,23 @@ def mettre_a_jour_note_avis(request, avis_id):
     if not instructeur:
         logger.warning(f"[MAJ NOTE AVIS] User {request.user} sans profil instructeur a tenté de modifier la note de l'avis {avis_id}")
         return redirect_error(request, "Vous devez disposer d'un profil instructeur pour modifier cette note. Contactez le support.")
+
+    est_expert_interne = bool(
+        avis.id_expert
+        and avis.id_expert.est_interne
+        and avis.id_expert.id_instructeur_id == instructeur.id
+    )
+    est_demandeur = avis.id_instructeur_id == instructeur.id
+    est_instructeur_dossier = DossierInstructeur.objects.filter(
+        id_instructeur=instructeur,
+        id_dossier__dossieravis__id_avis=avis,
+    ).exists()
+    if est_expert_interne or not (est_demandeur or est_instructeur_dossier or request.user.is_superuser):
+        logger.warning(
+            f"[MAJ NOTE AVIS] User {request.user} non autorisé a tenté de modifier "
+            f"la note de l'avis {avis_id}."
+        )
+        return redirect_error(request, "Vous n'êtes pas autorisé à modifier cette note.")
     
     try :
         note = request.POST.get("note", "").strip()

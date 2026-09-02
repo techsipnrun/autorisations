@@ -582,8 +582,18 @@ def supprimer_message_avis_vision_expert(request, id):
 
 
 
+@require_POST
 @login_required
 def actualiser_messages(request, numero):
+
+    if not Instructeur.objects.filter(email__iexact=(request.user.email or "").strip()).exists():
+        logger.warning(
+            f"[ACTUALISATION MESSAGES] User {request.user} sans profil instructeur "
+            f"a tenté d'actualiser la messagerie du dossier {numero}."
+        )
+        return HttpResponseForbidden(
+            "Vous devez disposer d'un profil instructeur pour actualiser la messagerie."
+        )
 
     dossier = Dossier.objects.filter(numero=numero).first()
     if not dossier:

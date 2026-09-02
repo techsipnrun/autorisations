@@ -458,6 +458,7 @@ Le Parc national de La Réunion</textarea>
             <!----------------------->
              <!-- if doss_manif_sportive.archive and doss_manif_sportive.date_fin_evenement and doss_manif_sportive.date_fin_evenement > now  -->
                 
+            {% if request.user|a_profil_instructeur %}
                 <button type="button" class="btn_ajouter_pj_DM" onclick="afficherFormulaireDeposerPJ_DeclarationManifestations()">
                     <img src="{% static 'instruction/img/trombone.png' %}" alt="PJ" class="annexe-icon">
                     <span>Déposer des pièces jointes sur Déclaration Manifestations</span>
@@ -469,7 +470,7 @@ Le Parc national de La Réunion</textarea>
             <!--------------------------------------------------------------------->
             <!-- Zone masquée pour déposer des PJ sur Déclaration Manifestations -->
             <!--------------------------------------------------------------------->
-            <div id="formulaire-deposer-pj-dm" class="zone-complement zone-envoyer-pour-validation">
+                <div id="formulaire-deposer-pj-dm" class="zone-complement zone-envoyer-pour-validation">
                 <form id="form-deposer-pj-dm" method="post" enctype="multipart/form-data" action="{% url 'ajouter_annexe_sur_DM' id_dm=doss_manif_sportive.id %}">
                     {% csrf_token %}
                     <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
@@ -494,7 +495,8 @@ Le Parc national de La Réunion</textarea>
                     </div>
 
                 </form>
-            </div>
+                </div>
+            {% endif %}
 
 
 

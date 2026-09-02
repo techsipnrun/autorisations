@@ -112,6 +112,8 @@ h1 {
 }
 
 .message {
+    box-sizing: border-box;
+    min-width: 0;
     max-width: 70%;
     padding: 1rem;
     border-radius: 10px;
@@ -119,6 +121,11 @@ h1 {
     word-wrap: break-word;
     font-size: 1rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.msg-body {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .message-left {
@@ -371,6 +378,10 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     margin-top: 0.8rem;
     padding-top: 0.6rem;
     border-top: 1px solid rgba(0, 0, 0, 0.12);
@@ -413,7 +424,9 @@ h1 {
 
 .pj-card-name {
     flex: 1;
+    min-width: 0;
     word-break: break-word;
+    overflow-wrap: anywhere;
     font-size: 0.9rem;
 }
 
@@ -435,6 +448,8 @@ h1 {
     align-items: center;
     gap: 10px;
 
+    box-sizing: border-box;
+    min-width: 0;
     width: fit-content;
     max-width: 100%;
 
@@ -455,6 +470,112 @@ h1 {
     background: white;
     border-color: #006131;
     transform: translateY(-1px);
+}
+
+/* Un parent transformé devient le repère des aperçus en position fixed et
+   enferme alors le PDF dans la bulle du message. */
+.pj-card.document-avec-apercu:hover,
+.pj-card.document-avec-apercu.is-preview-open {
+    transform: none;
+}
+
+.pj-card.document-avec-apercu {
+    position: relative;
+}
+
+.document-download-link,
+.document-apercu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background-color: #f1f1f1;
+    box-shadow: inset 0 0 0 1px #dedede;
+    cursor: pointer;
+}
+
+.document-action-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.document-download-link:hover,
+.document-apercu-trigger:hover,
+.document-apercu-trigger:focus-visible {
+    background-color: #e7eee9;
+    box-shadow: inset 0 0 0 1px #b8c9bd;
+}
+
+.document-download-link:hover .document-action-icon,
+.document-apercu-trigger:hover .document-action-icon,
+.document-apercu-trigger:focus-visible .document-action-icon {
+    opacity: 0.75;
+    transform: scale(1.12);
+}
+
+.document-apercu-popover {
+    display: none;
+    position: fixed;
+    z-index: 2147483000;
+    width: min(520px, 60vw);
+    height: min(650px, 70vh);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 0.5rem;
+    border: 1px solid #9bbca8;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.document-apercu-pont {
+    display: none;
+    position: fixed;
+    z-index: 2147482999;
+    background-color: transparent;
+}
+
+.document-avec-apercu.is-preview-open .document-apercu-pont,
+.document-avec-apercu.is-preview-open .document-apercu-popover {
+    display: block;
+}
+
+.document-apercu-contenu {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: contain;
+}
+
+.document-apercu-chargement,
+.document-apercu-erreur {
+    display: grid;
+    height: 100%;
+    place-items: center;
+}
+
+.document-apercu-erreur {
+    color: #a11b26;
+    font-weight: bold;
+}
+
+@media (max-width: 800px) {
+    .document-apercu-popover {
+        width: 90vw;
+        height: 70vh;
+    }
 }
 
 .download-icon {
@@ -479,8 +600,8 @@ h1 {
 .infos-dossier {
     padding: 1rem;
     margin-top: 8rem;
-    border-radius: 8px;
     background-color: #f9f9f9;
+    border: 1px solid #ccc;
     border-radius: 10px;
 }
 
@@ -488,6 +609,23 @@ h1 {
     margin: 1rem 0;
     color: black;
     font-size: large;
+}
+
+@media (max-width: 1300px) {
+    .infos-dossier p {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .infos-dossier {
+        padding: 0.75rem;
+    }
+
+    .infos-dossier p {
+        margin: 0.75rem 0;
+        font-size: 0.82rem;
+    }
 }
 
 

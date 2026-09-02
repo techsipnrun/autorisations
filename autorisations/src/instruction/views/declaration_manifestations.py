@@ -415,6 +415,16 @@ def ajouter_annexe_sur_DM(request, id_dm):
 
     """
 
+    if not Instructeur.objects.filter(email__iexact=(request.user.email or "").strip()).exists():
+        logger.warning(
+            f"[Dossier DM {id_dm} - Dépôt PJ] User {request.user} sans profil instructeur "
+            "a tenté de déposer des pièces jointes."
+        )
+        return redirect_error(
+            request,
+            "Vous devez disposer d'un profil instructeur pour déposer des pièces jointes sur Déclaration Manifestations.",
+        )
+
     try :
         annexes = request.FILES.getlist("files") # UploadedFile[]
         # acte = request.FILES.get("acte") # UploadedFile

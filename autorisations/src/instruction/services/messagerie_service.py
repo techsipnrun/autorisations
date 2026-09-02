@@ -48,6 +48,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_t
 
     if fichier and chemin_fichier:
         loggerDS.info(f"[DOSSIER {num_dossier}] Tentative envoi du message avec PJ par {email_instructeur}")
+        nom_fichier_original = os.path.basename(fichier.name.replace("\\", "/"))
 
         try:
             if not correction :
@@ -55,6 +56,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_t
                     dossier_id_ds=dossier_id_ds,
                     instructeur=instructeur,
                     chemin_fichier_original=chemin_fichier,
+                    nom_fichier_original=nom_fichier_original,
                     content_type=content_type,
                     body=body,
                 )
@@ -64,6 +66,7 @@ def envoyer_message_ds(dossier_id_ds, instructeur, body, fichier=None, content_t
                     dossier_id_ds=dossier_id_ds,
                     instructeur=instructeur,
                     chemin_fichier_original=chemin_fichier,
+                    nom_fichier_original=nom_fichier_original,
                     content_type=content_type,
                     body=body,
                     correction=True

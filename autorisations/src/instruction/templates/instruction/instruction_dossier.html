@@ -1804,14 +1804,17 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
                                 </p>
 
-                                <!-- Bouton modifier (visible au hover du bloc) -->
-                                <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
-                                    <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
-                                </button>
+                                {% if request.user|a_profil_instructeur %}
+                                    <!-- Bouton modifier (visible au hover du bloc) -->
+                                    <button type="button" class="btn-icon btn-edit" id="btnEditNom" aria-label="Modifier le nom du dossier" title="Changer pour un nom plus parlant">
+                                        <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                                    </button>
+                                {% endif %}
                             </div>
 
-                            <!-- Input d’édition -->
-                            <div class="nom_dossier_edit_zone">
+                            {% if request.user|a_profil_instructeur %}
+                                <!-- Input d’édition -->
+                                <div class="nom_dossier_edit_zone">
                                 <input
                                     type="text"
                                     class="nom_dossier_input"
@@ -1827,7 +1830,8 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 </button>
 
                                 <p class="nom-dossier-exemple"> Exemple : Travaux Piste de la glacière - ONF (10/02/2026) </p>
-                            </div>
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
 

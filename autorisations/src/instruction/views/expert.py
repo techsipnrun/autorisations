@@ -23,6 +23,7 @@ from instruction.utils.avis_utils import (
     avis_est_conseil_scientifique,
     get_email_expert,
     get_expert_from_user,
+    get_pieces_jointes_demandeur,
     utilisateur_est_publicateur_raa_cs,
 )
 from instruction.utils.dossier_utils import get_chemin_complet_dossier, redirect_error
@@ -414,12 +415,15 @@ def avis_expert(request, avis_id):
         )
     )
 
+    pieces_jointes_demandeur = get_pieces_jointes_demandeur(dossiers_lies)
+
     return render(request, 'instruction/avis_expert.html', {
         "NAS_ROOT": os.getenv('NAS_ROOT'),
         "avis": avis,
         "avis_documents": avis_documents,
         "liste_avis_documents": liste_avis_documents,
         "avis_signes": avis_signes,
+        "pieces_jointes_demandeur": pieces_jointes_demandeur,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,

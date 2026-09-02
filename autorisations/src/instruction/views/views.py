@@ -1652,6 +1652,16 @@ def gestion_logs(request):
 @require_POST
 @login_required
 def update_nom_plus_parlant(request, num_dossier):
+    if not Instructeur.objects.filter(email__iexact=(request.user.email or "").strip()).exists():
+        logger.warning(
+            f"[DOSSIER {num_dossier}] User {request.user} sans profil instructeur "
+            "a tenté de modifier le nom du dossier."
+        )
+        return JsonResponse(
+            {"error": "Vous devez disposer d'un profil instructeur pour modifier le nom du dossier."},
+            status=403,
+        )
+
     dossier = get_object_or_404(Dossier, numero=num_dossier)
 
     try:

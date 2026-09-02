@@ -21,6 +21,7 @@
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
     <script src="{% static 'instruction/js/apercu_signature_message.js' %}" defer></script>
+    <script src="{% static 'instruction/js/document_hover_preview.js' %}" defer></script>
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -49,7 +50,7 @@
                 </div>
             </div>
             
-            {% if dossier.present_sur_ds %}
+            {% if dossier.present_sur_ds and request.user|a_profil_instructeur %}
                 <div class="refresh-messages">
                     <form method="post" action="{% url 'actualiser_messages' dossier.numero %}">
                         {% csrf_token %}
@@ -78,21 +79,25 @@
                                     </div>
 
                                     {% for pj in msg.pjs %}
-                                        <a class="pj-card"
-                                        href="{% url 'afficher_annexe' chemin=pj.emplacement titre=pj.titre %}"
-                                        target="_blank"
-                                        rel="noopener noreferrer">
-
+                                        {% url 'afficher_annexe' chemin=pj.emplacement titre=pj.titre as piece_jointe_url %}
+                                        {% with titre_lower=pj.titre|lower %}
+                                        <div class="pj-card{% if '.pdf' in titre_lower %} document-avec-apercu{% endif %}">
                                             <img src="{% static 'instruction/img/filetypes/' %}{{ pj.titre|file_icon }}"
                                                 class="file-icon"
                                                 alt="Type fichier">
-
-                                            <span class="pj-card-name">{{ pj.titre }}</span>
-                                            <img src="{% static 'instruction/img/download.png' %}"
-                                                class="download-icon"
-                                                alt="Télécharger"
-                                                title="Ouvrir le document">
-                                        </a>
+                                            <a class="pj-card-name" href="{{ piece_jointe_url }}" target="_blank" rel="noopener noreferrer" title="Ouvrir {{ pj.titre }}">{{ pj.titre }}</a>
+                                            <a href="{{ piece_jointe_url }}?download=1" class="document-download-link" title="Télécharger le document" aria-label="Télécharger {{ pj.titre }}">
+                                                <img src="{% static 'instruction/img/download.png' %}" alt="" class="document-action-icon">
+                                            </a>
+                                            {% if ".pdf" in titre_lower %}
+                                                <button type="button" class="document-apercu-trigger" data-preview-url="{{ piece_jointe_url }}" data-preview-type="pdf" aria-label="Visualiser {{ pj.titre }}" title="Visualiser le document PDF">
+                                                    <img src="{% static 'instruction/img/loupe.png' %}" alt="" class="document-action-icon">
+                                                </button>
+                                                <span class="document-apercu-pont" aria-hidden="true"></span>
+                                                <span class="document-apercu-popover" role="tooltip"><span class="document-apercu-chargement">Chargement de l’aperçu…</span></span>
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
                                     {% endfor %}
                                 </div>
                             {% endif %}
@@ -109,7 +114,7 @@
 
                             {% if dossier.present_sur_ds and msg.align == 'right' and msg.emetteur.email == request.user.email %}
                                 <!-- Formulaire pour supprimer le message -->
-                                <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form">
+                                <form method="post" action="{% url 'supprimer_message' msg.id %}" class="delete-form" onsubmit="return confirm('Voulez-vous vraiment supprimer ce message ?');">
                                     {% csrf_token %}
                                     <button type="submit" class="delete-button" title="Supprimer le message">
                                         <img src="{% static 'instruction/img/trash.svg' %}" alt="Supprimer" class="trash-icon">
@@ -229,18 +234,6 @@
             messageForm.addEventListener('submit', function() {
                 sendButton.disabled = true;
                 sendButton.innerText = 'Envoi...';
-            });
-
-            // Bouton Suppression
-            const deleteForms = document.querySelectorAll('.delete-form');
-
-            deleteForms.forEach(form => {
-                const deleteButton = form.querySelector("button[type='submit']");
-                
-                form.addEventListener("submit", function () {
-                    deleteButton.disabled = true;
-                    deleteButton.innerText = "Suppression...";
-                });
             });
 
         });

@@ -67,6 +67,11 @@
         width: 30px;
         height: 30px;
     }
+
+    .nav_preinstruction .nature_et_lien_avis .btn-copy-dossier-avis img {
+        width: 14px;
+        height: 14px;
+    }
 }
 
 @media (max-width: 1050px) {

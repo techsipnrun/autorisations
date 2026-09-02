@@ -2,9 +2,10 @@
 import logging
 import os
 from pathlib import Path
-from autorisations.models.models_instruction import Message
+from autorisations.models.models_instruction import DossierChamp, Message
 from autorisations.models.models_avis import AvisDocument, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
+from autorisations.models.models_documents import MessageDocument
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils_instru import enregistrer_document
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
@@ -16,6 +17,56 @@ GROUPES_PUBLICATION_RAA_CS = (
     "Publication RAA CS",
     "Publication RAA Avis CS",
 )
+
+def get_pieces_jointes_demandeur(dossiers):
+    """Retourne, sans doublon, les PJ de formulaire et de messagerie des dossiers."""
+    dossiers = list(dossiers)
+    dossier_ids = [dossier.id for dossier in dossiers]
+    if not dossier_ids:
+        return []
+
+    pieces_par_document = {}
+
+    champs_documents = (
+        DossierChamp.objects.filter(
+            id_dossier_id__in=dossier_ids,
+            id_document__isnull=False,
+            id_champ__id_champ_type__type="piece_justificative",
+        )
+        .select_related("id_dossier", "id_document", "id_document__id_format")
+        .order_by("id_dossier__numero", "ordre", "id")
+    )
+    for champ in champs_documents:
+        document = champ.id_document
+        pieces_par_document.setdefault(document.id, {
+            "document": document,
+            "numero_dossier": champ.id_dossier.numero,
+            "source": "Formulaire",
+        })
+
+    messages_documents = (
+        MessageDocument.objects.filter(
+            id_message__id_dossier_id__in=dossier_ids,
+            id_document__id_nature__nature="Pièce jointe message",
+        )
+        .select_related(
+            "id_message",
+            "id_message__id_dossier",
+            "id_document",
+            "id_document__id_format",
+            "id_document__id_nature",
+        )
+        .order_by("id_message__id_dossier__numero", "id_message__date_envoi", "id")
+    )
+    for liaison in messages_documents:
+        document = liaison.id_document
+        pieces_par_document.setdefault(document.id, {
+            "document": document,
+            "numero_dossier": liaison.id_message.id_dossier.numero,
+            "source": "Messagerie",
+        })
+
+    return list(pieces_par_document.values())
 
 
 def utilisateur_est_publicateur_raa_cs(user):

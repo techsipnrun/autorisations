@@ -74,6 +74,13 @@
 /* ---------------------------------------------------------------- */
 /*             Informations Avis - Partie de droite                 */
 /* ---------------------------------------------------------------- */
+.nav_preinstruction > .infos-avis,
+.nav_preinstruction > .dossiers-lies-avis,
+.nav_preinstruction > .infos-docs,
+.nav_preinstruction > .infos-note-avis {
+    border: 1px solid #ccc;
+}
+
 /* Lien emplacement Avis */
 .nature_et_lien_avis {
     display: flex;
@@ -100,7 +107,7 @@
 
 .infos-avis {
     padding: 1rem;
-    margin-top: 5.3rem;
+    /* margin-top: 5.3rem; */
     border-radius: 8px;
     background-color: #f9f9f9;
     border-radius: 10px;
@@ -182,6 +189,7 @@
 
 .infos-docs {
     position: relative;
+    min-width: 0;
     padding: 1rem;
     margin-top: 1rem;
     border-radius: 8px;
@@ -196,23 +204,43 @@
 .liste-documents-avis {
     list-style: none;
     padding-left: 0;
+    min-width: 0;
     /* margin-top: 0.3rem; */
 }
 
 .liste-documents-avis li {
     display: flex;
     align-items: center;
+    min-width: 0;
+    width: 100%;
     gap: 0.5rem;
     margin-bottom: 0.8rem;
 }
 
+.liste-documents-avis .document-avec-apercu {
+    position: relative;
+}
+
 .liste-documents-avis p {
-    font-size: large;
+    flex: 0 0 auto;
+    margin: 0;
+    font-size: 0.95rem;
 }
 
 .liste-documents-avis a {
+    display: block;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.95rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     text-decoration: none;
     color: #006131;
+}
+
+.message-form .pj-actions button[type="submit"] {
+    padding: 0.5rem 1rem;
 }
 
 .liste-documents-avis a:hover {
@@ -220,14 +248,14 @@
 }
 
 .doc-icon {
+    flex: 0 0 auto;
     height: 20px;
     width: 20px;
 }
 
 .pj_avis{
-    border-top: solid #006131 1px;
-    margin-top: 1rem;
-    padding-top: 1rem;
+    min-width: 0;
+    width: 100%;
 }
 
 .pj_title {
@@ -322,6 +350,7 @@
 }
 
 .btn-supprimer-pj {
+    flex: 0 0 auto;
     background: none;
     border: none;
     color: red;
@@ -330,6 +359,37 @@
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
+}
+
+.pieces-jointes-demandeur-avis {
+    min-width: 0;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #006131;
+}
+
+.pieces-jointes-demandeur-avis h2 {
+    margin: 0 0 1rem;
+}
+
+.pj-demandeur-origine {
+    flex: 0 0 auto;
+    font-size: 0.9rem;
+}
+
+.form-supprimer-pj {
+    flex: 0 0 auto;
+}
+
+@media (min-width: 1051px) {
+    .liste-documents-avis p {
+        white-space: nowrap;
+    }
+
+    .doc-item-title,
+    .pj_title {
+        min-width: auto;
+    }
 }
 
 .pj-item:hover .btn-supprimer-pj {
@@ -373,7 +433,7 @@
     background-color: #006131;
     color: white;
     border: none;
-    padding: 0.5rem 1.5rem;
+    padding: 0.5rem 1rem;
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -424,20 +484,26 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     padding: 0;
     border: 1px solid #bbb;
-    border-radius: 8px;
-    background: #f7f7f7;
+    border-radius: 6px;
+    background: #fff;
     cursor: pointer;
 }
 
+.nature_et_lien_avis .btn-copy-dossier-avis img,
 .btn-copy-dossier-avis img {
     position: absolute;
-    width: 18px;
-    height: 18px;
-    transition: opacity 0.2s ease;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.dossiers-lies-avis .btn-copy-dossier-avis:hover img {
+    transform: scale(1.1);
 }
 
 .btn-copy-dossier-avis .icon-default {
@@ -471,4 +537,157 @@
 
 .btn-copy-dossier-avis.show-feedback .copy-feedback {
     opacity: 1;
+}
+
+/* Pièces jointes des messages d'avis. */
+.pj-card.document-avec-apercu {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+}
+
+.pj-card.document-avec-apercu .pj-card-name {
+    min-width: 0;
+    overflow: hidden;
+    color: #222;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-action-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.document-download-link,
+.document-apercu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    min-width: 28px;
+    max-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background-color: #f1f1f1;
+    box-shadow: inset 0 0 0 1px #dedede;
+    cursor: pointer;
+    line-height: 0;
+    overflow: hidden;
+}
+
+.document-download-link .document-action-icon,
+.document-apercu-trigger .document-action-icon {
+    position: static;
+    flex: 0 0 auto;
+    margin: auto;
+}
+
+/* Surclasse la règle générique `.liste-documents-avis a`, plus spécifique. */
+.liste-documents-avis a.document-download-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    max-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.liste-documents-avis a.document-download-link .document-action-icon {
+    display: block;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    margin: auto;
+}
+
+.document-download-link:hover,
+.document-apercu-trigger:hover,
+.document-apercu-trigger:focus-visible {
+    background-color: #e7eee9;
+    box-shadow: inset 0 0 0 1px #b8c9bd;
+}
+
+.document-download-link:hover .document-action-icon,
+.document-apercu-trigger:hover .document-action-icon,
+.document-apercu-trigger:focus-visible .document-action-icon {
+    opacity: 0.75;
+    transform: scale(1.12);
+}
+
+.document-apercu-popover {
+    display: none;
+    position: fixed;
+    z-index: 2147483000;
+    width: min(520px, 60vw);
+    height: min(650px, 70vh);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 0.5rem;
+    border: 1px solid #9bbca8;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.document-apercu-pont {
+    display: none;
+    position: fixed;
+    z-index: 2147482999;
+    background-color: transparent;
+}
+
+.document-avec-apercu.is-preview-open .document-apercu-pont,
+.document-avec-apercu.is-preview-open .document-apercu-popover {
+    display: block;
+}
+
+.document-apercu-contenu {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: contain;
+}
+
+.document-apercu-chargement,
+.document-apercu-erreur {
+    display: grid;
+    height: 100%;
+    place-items: center;
+}
+
+.document-apercu-chargement {
+    color: #555;
+}
+
+.document-apercu-erreur {
+    color: #a11b26;
+    font-weight: bold;
+}
+
+@media (max-width: 800px) {
+    .document-apercu-popover {
+        width: 90vw;
+        height: 70vh;
+    }
 }

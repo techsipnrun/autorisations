@@ -88,7 +88,7 @@ def recup_data_DS(number):
 
 
 
-def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original, content_type="application/pdf", body=None, correction=False):
+def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original, content_type="application/pdf", body=None, correction=False, nom_fichier_original=None):
     '''
     Envoie un message avec une pièce jointe via l’API Démarche Numérique.
 
@@ -108,7 +108,8 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original,
     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id_ds).values_list("numero", flat=True).first()
     email_instructeur = instructeur.email
 
-    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative envoi de mesasge avec PJ par {email_instructeur} (fichier '{os.path.basename(chemin_fichier_original)}')")
+    nom_fichier_upload = nom_fichier_original or os.path.basename(chemin_fichier_original)
+    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative envoi de mesasge avec PJ par {email_instructeur} (fichier '{nom_fichier_upload}')")
 
     try:
         # Lire le contenu du fichier
@@ -121,7 +122,7 @@ def envoyer_message_avec_pj(dossier_id_ds, instructeur, chemin_fichier_original,
         # Étape 1 : CreateDirectUpload
         create_upload_vars = {
             "input": {
-                "filename": os.path.basename(chemin_fichier_original),
+                    "filename": nom_fichier_upload,
                 "byteSize": byte_size,
                 "checksum": checksum,
                 "contentType": content_type,

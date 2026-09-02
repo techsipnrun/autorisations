@@ -1,0 +1,1231 @@
+{
+  "count": 102,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "5",
+      "type": "default",
+      "def_svg_symbol_id": "42",
+      "html_code": "&#x42",
+      "classes": null,
+      "i18n": "Signaleur (avec permis)",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "1",
+      "type": "default",
+      "def_svg_symbol_id": "41",
+      "html_code": "&#x41",
+      "classes": null,
+      "i18n": "Assistants de parcours",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "2",
+      "type": "default",
+      "def_svg_symbol_id": "43",
+      "html_code": "&#x43",
+      "classes": null,
+      "i18n": "Secours",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "4",
+      "type": "default",
+      "def_svg_symbol_id": "44",
+      "html_code": "&#x44",
+      "classes": null,
+      "i18n": "Secours mobile",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "3",
+      "type": "default",
+      "def_svg_symbol_id": "55",
+      "html_code": "&#x55",
+      "classes": null,
+      "i18n": "Ravitaillement",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "6",
+      "type": "default",
+      "def_svg_symbol_id": "64",
+      "html_code": "&#x64",
+      "classes": null,
+      "i18n": "Point de Contrôle",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "42",
+      "type": "default",
+      "def_svg_symbol_id": "4a",
+      "html_code": "&#x4a",
+      "classes": null,
+      "i18n": "Gendarmerie",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "46",
+      "type": "default",
+      "def_svg_symbol_id": "49",
+      "html_code": "&#x49",
+      "classes": null,
+      "i18n": "Police Nationale",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "44",
+      "type": "default",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "openscop-police-municipale",
+      "i18n": "Police municipale",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "55",
+      "type": "default",
+      "def_svg_symbol_id": "47",
+      "html_code": "&#x47",
+      "classes": null,
+      "i18n": "Médecin",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "43",
+      "type": "default",
+      "def_svg_symbol_id": "4b",
+      "html_code": "&#x4b",
+      "classes": null,
+      "i18n": "SDIS",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "54",
+      "type": "default",
+      "def_svg_symbol_id": "46",
+      "html_code": "&#x46",
+      "classes": null,
+      "i18n": "Défibrillateur",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "51",
+      "type": "default",
+      "def_svg_symbol_id": "4d",
+      "html_code": "&#x4d",
+      "classes": null,
+      "i18n": "Téléphone secours",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "45",
+      "type": "default",
+      "def_svg_symbol_id": "45",
+      "html_code": "&#x45",
+      "classes": null,
+      "i18n": "Dropping Zone ",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "47",
+      "type": "default",
+      "def_svg_symbol_id": "4c",
+      "html_code": "&#x4c",
+      "classes": null,
+      "i18n": "Dropping Zone",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "73",
+      "type": "default",
+      "def_svg_symbol_id": "6f",
+      "html_code": "&#x6f",
+      "classes": null,
+      "i18n": "Départ réel",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "52",
+      "type": "default",
+      "def_svg_symbol_id": "65",
+      "html_code": "&#x65",
+      "classes": null,
+      "i18n": "Chronomètre",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "53",
+      "type": "default",
+      "def_svg_symbol_id": "66",
+      "html_code": "&#x66",
+      "classes": null,
+      "i18n": "Barrière horaire",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "14",
+      "type": "default",
+      "def_svg_symbol_id": "78",
+      "html_code": "&#x78",
+      "classes": null,
+      "i18n": "Danger",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "206",
+      "type": "split",
+      "def_svg_symbol_id": "78",
+      "html_code": "&#x78",
+      "classes": null,
+      "i18n": "Danger",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "15",
+      "type": "default",
+      "def_svg_symbol_id": "79",
+      "html_code": "&#x79",
+      "classes": null,
+      "i18n": "Descente dangereuse",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "105",
+      "type": "default",
+      "def_svg_symbol_id": "67",
+      "html_code": "&#x67",
+      "classes": null,
+      "i18n": "Col",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "62",
+      "type": "default",
+      "def_svg_symbol_id": "68",
+      "html_code": "&#x68",
+      "classes": null,
+      "i18n": "Col 1ère cat.",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "63",
+      "type": "default",
+      "def_svg_symbol_id": "69",
+      "html_code": "&#x69",
+      "classes": null,
+      "i18n": "Col 2ème cat.",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "64",
+      "type": "default",
+      "def_svg_symbol_id": "6a",
+      "html_code": "&#x6a",
+      "classes": null,
+      "i18n": "Col 3ème cat.",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "65",
+      "type": "default",
+      "def_svg_symbol_id": "6b",
+      "html_code": "&#x6b",
+      "classes": null,
+      "i18n": "Col 4ème cat.",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "66",
+      "type": "default",
+      "def_svg_symbol_id": "6c",
+      "html_code": "&#x6c",
+      "classes": null,
+      "i18n": "Col Hors cat.",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "9",
+      "type": "default",
+      "def_svg_symbol_id": "76",
+      "html_code": "&#x76",
+      "classes": null,
+      "i18n": "Succession de virages",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "10",
+      "type": "default",
+      "def_svg_symbol_id": "77",
+      "html_code": "&#x77",
+      "classes": null,
+      "i18n": "Succession de virages",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "109",
+      "type": "default",
+      "def_svg_symbol_id": "32",
+      "html_code": "&#x32",
+      "classes": null,
+      "i18n": "Rétrécissement",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "110",
+      "type": "default",
+      "def_svg_symbol_id": "33",
+      "html_code": "&#x33",
+      "classes": null,
+      "i18n": "Rétrécissement à droite",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "111",
+      "type": "default",
+      "def_svg_symbol_id": "34",
+      "html_code": "&#x34",
+      "classes": null,
+      "i18n": "Rétrécissement à gauche",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "7",
+      "type": "default",
+      "def_svg_symbol_id": "74",
+      "html_code": "&#x74",
+      "classes": null,
+      "i18n": "Virage à droite",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "8",
+      "type": "default",
+      "def_svg_symbol_id": "75",
+      "html_code": "&#x75",
+      "classes": null,
+      "i18n": "Virage à gauche",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "16",
+      "type": "default",
+      "def_svg_symbol_id": "7a",
+      "html_code": "&#x7a",
+      "classes": null,
+      "i18n": "Risque de chute de pierres",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "36",
+      "type": "default",
+      "def_svg_symbol_id": "31",
+      "html_code": "&#x31",
+      "classes": null,
+      "i18n": "Tunnel",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "112",
+      "type": "default",
+      "def_svg_symbol_id": "35",
+      "html_code": "&#x35",
+      "classes": null,
+      "i18n": "Ralentisseur",
+      "categorie": {
+        "id": "CATICO-2",
+        "title_i18n": "Signalisation routière"
+      }
+    },
+    {
+      "id": "20",
+      "type": "default",
+      "def_svg_symbol_id": "51",
+      "html_code": "&#x51",
+      "classes": null,
+      "i18n": "Parking",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "35",
+      "type": "default",
+      "def_svg_symbol_id": "3b",
+      "html_code": "&#x3b",
+      "classes": null,
+      "i18n": "Balise",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "68",
+      "type": "default",
+      "def_svg_symbol_id": "e8",
+      "html_code": "&#xe8",
+      "classes": null,
+      "i18n": "Vestiaires",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "204",
+      "type": "split",
+      "def_svg_symbol_id": "2f",
+      "html_code": "&#x2f",
+      "classes": null,
+      "i18n": "Trail running",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "17",
+      "type": "default",
+      "def_svg_symbol_id": "6d",
+      "html_code": "&#x6d",
+      "classes": null,
+      "i18n": "Meilleur Grimpeur",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "19",
+      "type": "default",
+      "def_svg_symbol_id": "6e",
+      "html_code": "&#x6e",
+      "classes": null,
+      "i18n": "Sprint Meilleur Sprinteur",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "200",
+      "type": "split",
+      "def_svg_symbol_id": "3a",
+      "html_code": "&#x3a",
+      "classes": null,
+      "i18n": "Swmirun début natation",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "201",
+      "type": "split",
+      "def_svg_symbol_id": "2e",
+      "html_code": "&#x2e",
+      "classes": null,
+      "i18n": "Swmirun fin natation",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "202",
+      "type": "split",
+      "def_svg_symbol_id": "f9",
+      "html_code": "&#xf9",
+      "classes": null,
+      "i18n": "Gravel début section",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "203",
+      "type": "split",
+      "def_svg_symbol_id": "25",
+      "html_code": "&#x25",
+      "classes": null,
+      "i18n": "Gravel fin section",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "48",
+      "type": "default",
+      "def_svg_symbol_id": "5a",
+      "html_code": "&#x5a",
+      "classes": null,
+      "i18n": "Epongeage",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "103",
+      "type": "default",
+      "def_svg_symbol_id": "58",
+      "html_code": "&#x58",
+      "classes": null,
+      "i18n": "Oranges",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "104",
+      "type": "default",
+      "def_svg_symbol_id": "57",
+      "html_code": "&#x57",
+      "classes": null,
+      "i18n": "Bouteille d'eau",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "37",
+      "type": "default",
+      "def_svg_symbol_id": "71",
+      "html_code": "&#x71",
+      "classes": null,
+      "i18n": "Point d'eau potable",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "49",
+      "type": "default",
+      "def_svg_symbol_id": "56",
+      "html_code": "&#x56",
+      "classes": null,
+      "i18n": "Ravitaillement chaud",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "50",
+      "type": "default",
+      "def_svg_symbol_id": "59",
+      "html_code": "&#x59",
+      "classes": null,
+      "i18n": "Bananes",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "72",
+      "type": "default",
+      "def_svg_symbol_id": "61",
+      "html_code": "&#x61",
+      "classes": null,
+      "i18n": "Aire de recyclage",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "56",
+      "type": "default",
+      "def_svg_symbol_id": "38",
+      "html_code": "&#x38",
+      "classes": null,
+      "i18n": "Panneau randonneur",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "114",
+      "type": "default",
+      "def_svg_symbol_id": "62",
+      "html_code": "&#x62",
+      "classes": null,
+      "i18n": "Musique",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "60",
+      "type": "default",
+      "def_svg_symbol_id": "63",
+      "html_code": "&#x63",
+      "classes": null,
+      "i18n": "Photographe",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "41",
+      "type": "default",
+      "def_svg_symbol_id": "73",
+      "html_code": "&#x73",
+      "classes": null,
+      "i18n": "Point d'information",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "34",
+      "type": "default",
+      "def_svg_symbol_id": "37",
+      "html_code": "&#x37",
+      "classes": null,
+      "i18n": "Téléphérique",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "67",
+      "type": "default",
+      "def_svg_symbol_id": "e9",
+      "html_code": "&#xe9",
+      "classes": null,
+      "i18n": "Parc à vélos",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "38",
+      "type": "default",
+      "def_svg_symbol_id": "70",
+      "html_code": "&#x70",
+      "classes": null,
+      "i18n": "Poste de dépannage",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "61",
+      "type": "default",
+      "def_svg_symbol_id": "54",
+      "html_code": "&#x54",
+      "classes": null,
+      "i18n": "Massage",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "21",
+      "type": "default",
+      "def_svg_symbol_id": "52",
+      "html_code": "&#x52",
+      "classes": null,
+      "i18n": "Toilettes",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "75",
+      "type": "default",
+      "def_svg_symbol_id": "53",
+      "html_code": "&#x53",
+      "classes": null,
+      "i18n": "Toilettes Handicapés",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "69",
+      "type": "default",
+      "def_svg_symbol_id": "50",
+      "html_code": "&#x50",
+      "classes": null,
+      "i18n": "Douches",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "40",
+      "type": "default",
+      "def_svg_symbol_id": "72",
+      "html_code": "&#x72",
+      "classes": null,
+      "i18n": "Point de vue",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "70",
+      "type": "default",
+      "def_svg_symbol_id": "4e",
+      "html_code": "&#x4e",
+      "classes": null,
+      "i18n": "Navette Bus",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "71",
+      "type": "default",
+      "def_svg_symbol_id": "4f",
+      "html_code": "&#x4f",
+      "classes": null,
+      "i18n": "Arrêt de bus",
+      "categorie": {
+        "id": "CATICO-3",
+        "title_i18n": "Informations touristiques"
+      }
+    },
+    {
+      "id": "205",
+      "type": "split",
+      "def_svg_symbol_id": "30",
+      "html_code": "&#x30",
+      "classes": null,
+      "i18n": "Kayak",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "59",
+      "type": "default",
+      "def_svg_symbol_id": "26",
+      "html_code": "&#x26",
+      "classes": null,
+      "i18n": "Note",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "57",
+      "type": "default",
+      "def_svg_symbol_id": "39",
+      "html_code": "&#x39",
+      "classes": null,
+      "i18n": "POI Générique",
+      "categorie": {
+        "id": "CATICO-1",
+        "title_i18n": "Organisation de course"
+      }
+    },
+    {
+      "id": "300",
+      "type": "number",
+      "def_svg_symbol_id": "39",
+      "html_code": "&#x39",
+      "classes": null,
+      "i18n": "POI Générique",
+      "categorie": {
+        "id": "CATICO-7",
+        "title_i18n": "Numéro et texte"
+      }
+    },
+    {
+      "id": "301",
+      "type": "text",
+      "def_svg_symbol_id": "39",
+      "html_code": "&#x39",
+      "classes": null,
+      "i18n": "POI Générique",
+      "categorie": {
+        "id": "CATICO-7",
+        "title_i18n": "Numéro et texte"
+      }
+    },
+    {
+      "id": "AES",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm AES",
+      "i18n": "AES",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "CH",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm CH",
+      "i18n": "CH",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "CSP",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm CSP",
+      "i18n": "CSP",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "depan",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm depan",
+      "i18n": "Depan",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "DES",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm DES",
+      "i18n": "DES",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "evac_sanitaire",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm evac_sanitaire",
+      "i18n": "Evac sanitaire",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "extincteur",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm extincteur",
+      "i18n": "Extincteur",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "fin_zone",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm fin_zone",
+      "i18n": "Fin zone",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "lignePTT",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm lignePTT",
+      "i18n": "ligne PTT",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "medecin",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm medecin",
+      "i18n": "Medecin",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "panneau-direct-ZP-D",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm panneau-direct-ZP-D",
+      "i18n": "Panneau direct ZP D",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "panneau-direct-ZP-G",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm panneau-direct-ZP-G",
+      "i18n": "Panneau direct ZP G",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "pietons_interdit",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm pietons_interdit",
+      "i18n": "Pietons interdit",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "poste_commissaire",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm poste_commissaire",
+      "i18n": "Poste commissaire",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "presignal_AES",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm presignal_AES",
+      "i18n": "Presignal AES",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "presignal_control_hor",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm presignal_control_hor",
+      "i18n": "Presignal control hor",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "presignal_poste_commissaire",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm presignal_poste_commissaire",
+      "i18n": "Presignal poste commissaire",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "presignal_zebra",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm presignal_zebra",
+      "i18n": "Presignal zebra",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "public_interdit",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm public_interdit",
+      "i18n": "Public interdit",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "zebra-chgt-dir",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm zebra-chgt-dir",
+      "i18n": "Zebra chgt dir",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "zone_casque",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm zone_casque",
+      "i18n": "Zone casque",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "ZP",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm ZP",
+      "i18n": "ZP",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "ZP_interdit_ok",
+      "type": "vtm",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm ZP_interdit_ok",
+      "i18n": "ZP interdit ok",
+      "categorie": {
+        "id": "CATICO-99",
+        "title_i18n": "VTM"
+      }
+    },
+    {
+      "id": "207",
+      "type": "split",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "openscop-debut-epreuve-speciale",
+      "i18n": "Début d'épreuve spéciale",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "208",
+      "type": "split",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "openscop-fin-epreuve-speciale",
+      "i18n": "Fin d'épreuve spéciale",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "209",
+      "type": "split",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "openscop-debut-parcours-liaison",
+      "i18n": "Début de parcours de liaison",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "210",
+      "type": "split",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "openscop-fin-parcours-liaison",
+      "i18n": "Fin de parcours de liaison",
+      "categorie": {
+        "id": "CATICO-6",
+        "title_i18n": "Séparateur de zone"
+      }
+    },
+    {
+      "id": "402",
+      "type": "type_voirie",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm type_exploitation",
+      "i18n": "Type d'exploitation",
+      "categorie": {
+        "id": "CATICO-98",
+        "title_i18n": "Voirie"
+      }
+    },
+    {
+      "id": "401",
+      "type": "regime_circulation",
+      "def_svg_symbol_id": null,
+      "html_code": null,
+      "classes": "picto-vtm regime_circulation",
+      "i18n": "Régime de circulation",
+      "categorie": {
+        "id": "CATICO-98",
+        "title_i18n": "Voirie"
+      }
+    }
+  ]
+}

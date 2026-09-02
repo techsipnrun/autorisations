@@ -1,4 +1,5 @@
 {% load static %}
+{% load group_tags %}
 
 <li class="doc-item">
     <div class="doc-download-row">
@@ -38,7 +39,7 @@
             </button>
         {% endif %}
 
-        {% if show_share_number and doc.numero and not doc.dossiers_meme_acte %}
+        {% if show_share_number and doc.numero and not doc.dossiers_meme_acte and request.user|a_profil_instructeur %}
             <button type="button"
                     class="projet-acte-share-trigger"
                     onclick="event.stopPropagation(); toggleRechercheProjetRemplacement(this)"
@@ -50,7 +51,7 @@
             </button>
         {% endif %}
     </div>
-    {% if show_share_number and doc.numero and not doc.dossiers_meme_acte %}
+    {% if show_share_number and doc.numero and not doc.dossiers_meme_acte and request.user|a_profil_instructeur %}
         {% include "instruction/refacto/recherche_numero_projet_inline.html" with doc=doc %}
     {% endif %}
     {% include "instruction/refacto/dossiers_meme_acte.html" with doc=doc %}

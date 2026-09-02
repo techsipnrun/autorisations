@@ -30,6 +30,9 @@ docs/site/
 !autorisations/fixtures/
 !autorisations/fixtures/*.json
 
+# Données cartographiques statiques nécessaires à l'application
+!autorisations/src/instruction/static/instruction/carto/pois.json
+
 # Vscode
 .vscode
 .vscode/
