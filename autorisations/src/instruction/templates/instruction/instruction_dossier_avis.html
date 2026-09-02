@@ -250,7 +250,7 @@
                 <div class="documents-avis-entete">
                     <h2>Documents</h2>
                     {% if documents_zip_avis|length >= 2 %}
-                        <form class="documents-zip-form" method="post" action="{% url 'telecharger_documents_avis_zip' avis.id %}">
+                        <form id="documents-zip-form-{{ avis.id }}" class="documents-zip-form" method="post" enctype="multipart/form-data" action="{% url 'telecharger_documents_avis_zip' avis.id %}">
                             {% csrf_token %}
                             <button type="button" class="btn-mode-zip">
                                 <span>ZIP</span>
@@ -421,6 +421,15 @@
                 </ul>
 
                 {% include "instruction/refacto/pieces_jointes_demandeur_avis.html" with pieces_jointes_demandeur=pieces_jointes_demandeur %}
+
+                <div class="documents-zip-externes" hidden>
+                    <input class="documents-zip-fichier-input" type="file" name="external_files" form="documents-zip-form-{{ avis.id }}" multiple hidden>
+                    <button type="button" class="documents-zip-depot">
+                        <strong>＋ Ajouter des fichiers externes</strong>
+                        <span>ou les déposer ici</span>
+                    </button>
+                    <ul class="documents-zip-externes-liste"></ul>
+                </div>
 
                 {% if est_demandeur or est_instructeur_du_dossier or request.user.is_superuser %}
                     <div class="bouton_ajouter_pj">

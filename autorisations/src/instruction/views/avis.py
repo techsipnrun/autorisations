@@ -1549,12 +1549,31 @@ def telecharger_documents_avis_zip(request, avis_id):
         for cle in cles_selectionnees
         if cle in documents_autorises
     ]
-    if not selection:
+    fichiers_externes = request.FILES.getlist("external_files")
+    taille_max_fichier = 20 * 1024 * 1024
+    taille_max_totale = 100 * 1024 * 1024
+
+    if any(fichier.size > taille_max_fichier for fichier in fichiers_externes):
+        return redirect_error(request, "Chaque fichier externe doit peser au maximum 20 Mo.")
+    if sum(fichier.size for fichier in fichiers_externes) > taille_max_totale:
+        return redirect_error(request, "Les fichiers externes ne peuvent pas dépasser 100 Mo au total.")
+    if not selection and not fichiers_externes:
         return redirect_error(request, "Sélectionnez au moins un document à compresser.")
 
     fichier_zip = tempfile.SpooledTemporaryFile(max_size=20 * 1024 * 1024)
     noms_utilises = set()
     nombre_fichiers = 0
+
+    def obtenir_nom_archive(nom_fichier):
+        nom_base = Path(nom_fichier.replace("\\", "/")).name or "document"
+        nom_archive = nom_base
+        index = 2
+        while nom_archive.lower() in noms_utilises:
+            chemin_nom = Path(nom_base)
+            nom_archive = f"{chemin_nom.stem}_{index}{chemin_nom.suffix}"
+            index += 1
+        noms_utilises.add(nom_archive.lower())
+        return nom_archive
 
     with zipfile.ZipFile(fichier_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
         for document in selection:
@@ -1563,26 +1582,27 @@ def telecharger_documents_avis_zip(request, avis_id):
                 document["emplacement"],
                 document["titre"],
             )
-            nom_base = Path(document["titre"]).name
-            nom_archive = nom_base
-            index = 2
-            while nom_archive.lower() in noms_utilises:
-                chemin_nom = Path(nom_base)
-                nom_archive = f"{chemin_nom.stem}_{index}{chemin_nom.suffix}"
-                index += 1
+            nom_archive = obtenir_nom_archive(document["titre"])
 
             try:
                 with smbclient.open_file(chemin, mode="rb") as source:
                     with archive.open(nom_archive, mode="w") as destination:
                         while bloc := source.read(1024 * 1024):
                             destination.write(bloc)
-                noms_utilises.add(nom_archive.lower())
                 nombre_fichiers += 1
             except Exception as exc:
+                noms_utilises.discard(nom_archive.lower())
                 logger.warning(
                     f"[AVIS {avis.id}] Document ignoré lors de la création du ZIP "
                     f"({document['titre']}) : {exc}"
                 )
+
+        for fichier in fichiers_externes:
+            nom_archive = obtenir_nom_archive(fichier.name)
+            with archive.open(nom_archive, mode="w") as destination:
+                for bloc in fichier.chunks():
+                    destination.write(bloc)
+            nombre_fichiers += 1
 
     if not nombre_fichiers:
         fichier_zip.close()

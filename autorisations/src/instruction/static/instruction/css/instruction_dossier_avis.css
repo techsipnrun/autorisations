@@ -553,6 +553,90 @@
     cursor: pointer;
 }
 
+.documents-zip-externes {
+    margin-top: 1rem;
+}
+
+.documents-zip-depot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8rem;
+    border: 1px dashed #8cab98;
+    border-radius: 7px;
+    background: #f7faf8;
+    color: #28533a;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.documents-zip-depot span {
+    margin-top: 0.15rem;
+    color: #66756c;
+    font-size: 0.76rem;
+}
+
+.documents-zip-depot:hover,
+.documents-zip-depot.is-drag-over {
+    border-color: #006131;
+    background: #edf6f0;
+}
+
+.documents-zip-externes-liste {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0.65rem 0 0.65rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.document-zip-externe-item {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.5rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid #d6dfd9;
+    border-radius: 6px;
+    background: white;
+}
+
+.document-zip-externe-nom {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.85rem;
+}
+
+.document-zip-externe-taille {
+    flex: 0 0 auto;
+    color: #68716b;
+    font-size: 0.75rem;
+}
+
+.document-zip-externe-retirer {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #9b1c26;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.document-zip-externe-retirer:hover {
+    background: #f8e8ea;
+}
+
 @media (max-width: 600px) {
     .documents-avis-entete {
         align-items: flex-start;
