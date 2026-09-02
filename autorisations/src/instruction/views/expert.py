@@ -21,6 +21,7 @@ import logging
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils.avis_utils import (
     avis_est_conseil_scientifique,
+    get_documents_zip_avis,
     get_email_expert,
     get_expert_from_user,
     get_pieces_jointes_demandeur,
@@ -416,6 +417,7 @@ def avis_expert(request, avis_id):
     )
 
     pieces_jointes_demandeur = get_pieces_jointes_demandeur(dossiers_lies)
+    documents_zip_avis = get_documents_zip_avis(avis, dossiers_lies)
 
     return render(request, 'instruction/avis_expert.html', {
         "NAS_ROOT": os.getenv('NAS_ROOT'),
@@ -424,6 +426,7 @@ def avis_expert(request, avis_id):
         "liste_avis_documents": liste_avis_documents,
         "avis_signes": avis_signes,
         "pieces_jointes_demandeur": pieces_jointes_demandeur,
+        "documents_zip_avis": documents_zip_avis,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,

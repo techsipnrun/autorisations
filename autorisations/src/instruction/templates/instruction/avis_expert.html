@@ -22,6 +22,7 @@
 
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
+    <script src="{% static 'instruction/js/selection_documents_zip.js' %}" defer></script>
     
 </head>
 <body>
@@ -347,10 +348,23 @@
 
             <div class="infos-docs">
                 <!-- === Section Documents === -->
-                <h2>Documents</h2>
+                <div class="documents-avis-entete">
+                    <h2>Documents</h2>
+                    {% if documents_zip_avis|length >= 2 %}
+                        <form class="documents-zip-form" method="post" action="{% url 'telecharger_documents_avis_zip' avis.id %}">
+                            {% csrf_token %}
+                            <button type="button" class="btn-mode-zip">
+                                <span>ZIP</span>
+                                <img src="{% static 'instruction/img/filetypes/archive.png' %}" alt="">
+                            </button>
+                            <button type="submit" class="btn-telecharger-zip" hidden>Compresser</button>
+                            <button type="button" class="btn-annuler-zip" hidden>Annuler</button>
+                        </form>
+                    {% endif %}
+                </div>
                 <ul class="liste-documents-avis">
                     {% if avis.id_projet_avis %}
-                        <li class="document-avec-apercu">
+                        <li class="document-avec-apercu" data-zip-document="document:{{ avis.id_projet_avis.id }}">
                             <p><strong>Projet d'avis :</strong></p>
                             {% with avis.id_projet_avis.titre|lower as titre %}
                                 {% if titre|slice:"-4:" == ".pdf" %}
@@ -368,7 +382,7 @@
                     {% endif %}
 
                     {% if avis.id_projet_acte %}
-                        <li class="document-avec-apercu">
+                        <li class="document-avec-apercu" data-zip-document="document:{{ avis.id_projet_acte.id }}">
                             <p><strong>Projet d'acte {% if avis.id_projet_acte.numero %} {{ avis.id_projet_acte.numero }} {% endif %} :</strong></p>
                             {% with format=avis.id_projet_acte.id_format.format|lower %}
                                 {% if format == 'pdf' %}
@@ -390,7 +404,7 @@
                     {% endif %}
 
                     {% if avis.id_rapport_instance %}
-                        <li class="document-avec-apercu">
+                        <li class="document-avec-apercu" data-zip-document="document:{{ avis.id_rapport_instance.id }}">
                             <p><strong>Rapport du conseil :</strong></p>
                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
                             <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}?download=1"
@@ -402,7 +416,7 @@
                     {% endif %}
 
                     {% for dossier_lie in dossiers_lies %}
-                        <li class="doc-item document-avec-apercu">
+                        <li class="doc-item document-avec-apercu" data-zip-document="resume:{{ dossier_lie.id }}">
                             <p class="doc-item-title">
                                 <strong>
                                     Résumé du dossier{% if dossiers_lies|length > 1 %} n° {{ dossier_lie.numero }}{% endif %} :
@@ -427,7 +441,7 @@
                             {% for ad in avis_documents %}
                                 <!-- On exclu l'avis signé -->
                                 {% if ad.nature != 'Avis Instance' %}
-                                    <li class="pj-item document-avec-apercu">
+                                    <li class="pj-item document-avec-apercu" data-zip-document="document:{{ ad.id_document.id }}">
                                         <p class="pj_title"><strong>Pièce jointe instructeur :</strong></p>
                                         {% if ad.id_document.id_format.format == 'pdf' %}
                                             <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">

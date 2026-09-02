@@ -5,7 +5,7 @@
         <h2>Pièce{% if pieces_jointes_demandeur|length > 1 %}s{% endif %} jointe{% if pieces_jointes_demandeur|length > 1 %}s{% endif %} du demandeur</h2>
         <ul class="liste-documents-avis">
             {% for piece in pieces_jointes_demandeur %}
-                <li class="pj-item document-avec-apercu"
+                <li class="pj-item document-avec-apercu" data-zip-document="document:{{ piece.document.id }}"
                     title="Document transmis via {% if piece.source == 'Formulaire' %}le formulaire{% else %}la messagerie{% endif %}">
                     <p class="pj-demandeur-origine"><strong>Dossier {{ piece.numero_dossier }} :</strong></p>
                     <img src="{% static 'instruction/img/filetypes/' %}{{ piece.document.titre|file_icon }}" class="doc-icon" alt="Type de fichier">

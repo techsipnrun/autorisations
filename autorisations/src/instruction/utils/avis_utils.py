@@ -69,6 +69,47 @@ def get_pieces_jointes_demandeur(dossiers):
     return list(pieces_par_document.values())
 
 
+def get_documents_zip_avis(avis, dossiers):
+    """Construit la liste contrôlée des documents affichés dans le bloc Documents."""
+    dossiers = list(dossiers)
+    documents = []
+    cles_vues = set()
+
+    def ajouter_document(document):
+        if not document or document.id in cles_vues:
+            return
+        cles_vues.add(document.id)
+        documents.append({
+            "cle": f"document:{document.id}",
+            "titre": document.titre,
+            "emplacement": document.emplacement,
+        })
+
+    ajouter_document(avis.id_projet_avis)
+    ajouter_document(avis.id_projet_acte)
+    ajouter_document(avis.id_rapport_instance)
+
+    documents_avis = (
+        AvisDocument.objects.filter(id_avis=avis)
+        .select_related("id_document", "id_document__id_nature")
+        .exclude(id_document__id_nature__nature="Avis instance")
+    )
+    for liaison in documents_avis:
+        ajouter_document(liaison.id_document)
+
+    for dossier in dossiers:
+        documents.append({
+            "cle": f"resume:{dossier.id}",
+            "titre": f"dossier-{dossier.numero}.pdf",
+            "emplacement": dossier.emplacement,
+        })
+
+    for piece in get_pieces_jointes_demandeur(dossiers):
+        ajouter_document(piece["document"])
+
+    return documents
+
+
 def utilisateur_est_publicateur_raa_cs(user):
     return bool(
         user

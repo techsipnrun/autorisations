@@ -26,6 +26,7 @@ urlpatterns = [
     path("instruction/<int:num_dossier>/lier-avis/<int:avis_id>/", avis.lier_dossier_avis, name="lier_dossier_avis"),
     path("avis/<int:avis_id>/pj/<int:document_id>/supprimer/", avis.supprimer_pj_avis,name="supprimer_pj_avis",),
     path("avis/<int:avis_id>/note/", avis.mettre_a_jour_note_avis, name="mettre_a_jour_note_avis"),
+    path("avis/<int:avis_id>/documents.zip", avis.telecharger_documents_avis_zip, name="telecharger_documents_avis_zip"),
     path("instruction/<int:num_dossier>/avis/<int:avis_id>/edit", avis.instruction_dossier_ajouter_avis, name="instruction_dossier_ajouter_avis"),
     path("instruction/<int:num_dossier>/confirmer_ajout_avis", avis.instruction_dossier_confirmer_ajout_avis, name="instruction_dossier_confirmer_ajout_avis"),
     path("instruction/<int:num_dossier>/confirmer-avis/<int:avis_id>/",avis.instruction_dossier_confirmer_ajout_avis,name="instruction_dossier_confirmer_ajout_avis"),

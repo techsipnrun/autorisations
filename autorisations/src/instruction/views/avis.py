@@ -1,7 +1,9 @@
 from datetime import date, timedelta
 import logging
 import os
-from django.http import HttpResponseBadRequest
+import tempfile
+import zipfile
+from django.http import FileResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -26,7 +28,7 @@ from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
+from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, get_documents_zip_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
@@ -1491,6 +1493,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         dossier_lie.chemin_complet = get_chemin_complet_dossier(dossier_lie)
 
     pieces_jointes_demandeur = get_pieces_jointes_demandeur(dossiers_lies)
+    documents_zip_avis = get_documents_zip_avis(avis, dossiers_lies)
 
     # Nombre d'avis envoyés
     nb_avis_envoyes = DossierAvis.objects.filter(id_dossier=dossier, id_avis__statut="Envoyé").count()
@@ -1508,6 +1511,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "liste_avis_documents": liste_avis_documents,
         "avis_signes": avis_signes,
         "pieces_jointes_demandeur": pieces_jointes_demandeur,
+        "documents_zip_avis": documents_zip_avis,
         "messages_avis": messages_fmt,
         "is_formulaire_active": False,
         "is_messagerie_active": False,
@@ -1521,6 +1525,76 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "est_demandeur": est_demandeur,
         "est_expert": est_expert,
     })
+
+
+@require_POST
+@login_required
+def telecharger_documents_avis_zip(request, avis_id):
+    avis = Avis.objects.filter(id=avis_id).first()
+    if not avis:
+        return redirect_error(request, "La demande d'avis est introuvable.")
+
+    dossiers_lies = list(
+        Dossier.objects.filter(dossieravis__id_avis=avis).distinct()
+    )
+    if not dossiers_lies and avis.id_dossier_id:
+        dossiers_lies = [avis.id_dossier]
+    documents_autorises = {
+        document["cle"]: document
+        for document in get_documents_zip_avis(avis, dossiers_lies)
+    }
+    cles_selectionnees = list(dict.fromkeys(request.POST.getlist("documents")))
+    selection = [
+        documents_autorises[cle]
+        for cle in cles_selectionnees
+        if cle in documents_autorises
+    ]
+    if not selection:
+        return redirect_error(request, "Sélectionnez au moins un document à compresser.")
+
+    fichier_zip = tempfile.SpooledTemporaryFile(max_size=20 * 1024 * 1024)
+    noms_utilises = set()
+    nombre_fichiers = 0
+
+    with zipfile.ZipFile(fichier_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for document in selection:
+            chemin = os.path.join(
+                os.getenv("NAS_ROOT", ""),
+                document["emplacement"],
+                document["titre"],
+            )
+            nom_base = Path(document["titre"]).name
+            nom_archive = nom_base
+            index = 2
+            while nom_archive.lower() in noms_utilises:
+                chemin_nom = Path(nom_base)
+                nom_archive = f"{chemin_nom.stem}_{index}{chemin_nom.suffix}"
+                index += 1
+
+            try:
+                with smbclient.open_file(chemin, mode="rb") as source:
+                    with archive.open(nom_archive, mode="w") as destination:
+                        while bloc := source.read(1024 * 1024):
+                            destination.write(bloc)
+                noms_utilises.add(nom_archive.lower())
+                nombre_fichiers += 1
+            except Exception as exc:
+                logger.warning(
+                    f"[AVIS {avis.id}] Document ignoré lors de la création du ZIP "
+                    f"({document['titre']}) : {exc}"
+                )
+
+    if not nombre_fichiers:
+        fichier_zip.close()
+        return redirect_error(request, "Aucun des documents sélectionnés n'est disponible.")
+
+    fichier_zip.seek(0)
+    return FileResponse(
+        fichier_zip,
+        as_attachment=True,
+        filename=f"documents-avis-{avis.id}.zip",
+        content_type="application/zip",
+    )
 
 
 

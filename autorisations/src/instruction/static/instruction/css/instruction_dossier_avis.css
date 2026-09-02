@@ -493,6 +493,73 @@
     cursor: pointer;
 }
 
+.documents-avis-entete {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.documents-avis-entete h2 {
+    margin: 0;
+}
+
+.documents-zip-form {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.documents-zip-form button {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid #b8c9bd;
+    border-radius: 5px;
+    background: #f4f7f5;
+    color: #174d2f;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.documents-zip-form .btn-mode-zip:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.documents-zip-form .btn-mode-zip img {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+}
+
+.documents-zip-form .btn-telecharger-zip {
+    border-color: #006131;
+    background: #006131;
+    color: white;
+}
+
+.documents-zip-form button:hover {
+    filter: brightness(0.95);
+}
+
+.document-zip-checkbox {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 0 0.15rem 0 0;
+    accent-color: #006131;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .documents-avis-entete {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
 .nature_et_lien_avis .btn-copy-dossier-avis img,
 .btn-copy-dossier-avis img {
     position: absolute;
