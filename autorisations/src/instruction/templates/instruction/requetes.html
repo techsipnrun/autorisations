@@ -300,6 +300,7 @@
                     <option value="Favorable" {% if request.GET.reponse == "Favorable" %}selected{% endif %}>Favorable</option>
                     <option value="Favorable sous réserve" {% if request.GET.reponse == "Favorable sous réserve" %}selected{% endif %}>Favorable sous réserve</option>
                     <option value="Défavorable" {% if request.GET.reponse == "Défavorable" %}selected{% endif %}>Défavorable</option>
+                    <option value="Absence d’avis en l’état" {% if request.GET.reponse == "Absence d’avis en l’état" %}selected{% endif %}>Absence d’avis en l’état</option>
                 </select>
             </div>
 
@@ -394,15 +395,7 @@
                                 <td>{{ a.id_expert }}</td>
                                 <td>{{ a.id_instructeur }}</td>
                                 <td>
-                                    {% if a.favorable == True and not a.sous_reserve %}
-                                        Favorable
-                                    {% elif a.favorable == True and a.sous_reserve %}
-                                        Favorable sous réserve
-                                    {% elif a.favorable == False %}
-                                        Défavorable
-                                    {% else %}
-                                        En attente
-                                    {% endif %}
+                                    {{ a.get_reponse_display|default:"En attente" }}
                                 </td>
                                 <td>
                                     {% if a.publie_au_raa %}

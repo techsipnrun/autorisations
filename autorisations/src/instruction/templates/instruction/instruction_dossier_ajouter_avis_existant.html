@@ -167,12 +167,20 @@
                             <label>Réponse de l'avis* :</label>
                             <div class="radio-group">
                                 <label>
-                                    <input type="radio" name="favorable" value="true" checked required>
+                                    <input type="radio" name="reponse" value="favorable" checked required>
                                     Favorable
                                 </label>
                                 <label>
-                                    <input type="radio" name="favorable" value="false" required>
+                                    <input type="radio" name="reponse" value="favorable_sous_reserve" required>
+                                    Favorable sous réserve
+                                </label>
+                                <label>
+                                    <input type="radio" name="reponse" value="defavorable" required>
                                     Défavorable
+                                </label>
+                                <label>
+                                    <input type="radio" name="reponse" value="absence_avis_en_etat" required>
+                                    Absence d’avis en l’état
                                 </label>
                             </div>
                         </div>
@@ -238,10 +246,12 @@
                         </select>
 
 
-                        <select name="favorable" class="select-filtre">
-                            <option value="">-- Avis favorable ? --</option>
-                            <option value="true" {% if request.GET.favorable == "true" %}selected{% endif %}>Oui</option>
-                            <option value="false" {% if request.GET.favorable == "false" %}selected{% endif %}>Non</option>
+                        <select name="reponse" class="select-filtre">
+                            <option value="">-- Réponse --</option>
+                            <option value="favorable" {% if request.GET.reponse == "favorable" %}selected{% endif %}>Favorable</option>
+                            <option value="favorable_sous_reserve" {% if request.GET.reponse == "favorable_sous_reserve" %}selected{% endif %}>Favorable sous réserve</option>
+                            <option value="defavorable" {% if request.GET.reponse == "defavorable" %}selected{% endif %}>Défavorable</option>
+                            <option value="absence_avis_en_etat" {% if request.GET.reponse == "absence_avis_en_etat" %}selected{% endif %}>Absence d’avis en l’état</option>
                         </select>
 
                         <select name="thematique" class="select-filtre">

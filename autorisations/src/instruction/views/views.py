@@ -1058,8 +1058,8 @@ def mes_avis_action_a_faire(request):
     """
     Renvoie un dictionnaire contenant le nombre d'avis où l'utilisateur
     a une action à faire :
-      - Avis où il est expert (interne ou externe) et favorable is null
-      - Avis où il est expert (interne ou externe) et favorable not null
+      - Avis où il est expert (interne ou externe) et reponse is null
+      - Avis où il est expert (interne ou externe) et reponse not null
         mais avec des messages non lus dont il n'est pas l'émetteur
       - Avis où il est demandeur et a des messages non lus de l'expert
     """
@@ -1085,13 +1085,13 @@ def mes_avis_action_a_faire(request):
     # 2️ Cas où l’utilisateur est EXPERT (interne ou externe)
     # ----------------------------------------------------------
     if expert:
-        # (a) Avis à rendre → favorable is null
-        nb_avis_a_rendre = Avis.objects.filter(id_expert=expert, favorable__isnull=True, statut="Envoyé")
+        # (a) Avis à rendre → réponse absente
+        nb_avis_a_rendre = Avis.objects.filter(id_expert=expert, reponse__isnull=True, statut="Envoyé")
 
         liste_avis_avec_action_a_faire.extend(nb_avis_a_rendre)
 
         # (b) Avis rendus avec messages du demandeur non lus
-        avis_rendus = Avis.objects.filter(id_expert=expert, favorable__isnull=False, statut="Envoyé")
+        avis_rendus = Avis.objects.filter(id_expert=expert, reponse__isnull=False, statut="Envoyé")
         for avis in avis_rendus:
             nb_non_lus = Message.objects.filter(
                 id_avis=avis, lu=False
@@ -1133,7 +1133,9 @@ def mes_avis_action_a_faire(request):
 
         # On filtre sur les avis du CS uniquement
         avis_en_attente_de_publi_RAA = (
-            Avis.objects.filter(favorable=True).filter(
+            Avis.objects.filter(
+                reponse__in=[Avis.Reponse.FAVORABLE, Avis.Reponse.FAVORABLE_SOUS_RESERVE]
+            ).filter(
                 Q(id_expert__est_interne=False)
                 & (
                     Q(id_expert__id_contact_externe__raison_sociale__iexact="Conseil Scientifique")

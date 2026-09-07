@@ -25,12 +25,12 @@ class AvisAdmin(admin.ModelAdmin):
         'nature',
         'thematique',
         'nom_dossier',
-        'avis_favorable',
+        'reponse_avis',
         'publie_au_raa_affichage',
         'expert_nom_prenom',
         'instructeur_nom_prenom',
     )
-    list_filter = ('id_avis_nature', 'id_avis_thematique', 'favorable', 'statut')
+    list_filter = ('id_avis_nature', 'id_avis_thematique', 'reponse', 'statut')
     search_fields = (
         'id',
         'id_dossier__nom_dossier',
@@ -52,11 +52,10 @@ class AvisAdmin(admin.ModelAdmin):
         return obj.id_dossier.nom_dossier if obj.id_dossier else "-"
     nom_dossier.short_description = "Nom du dossier"
 
-    def avis_favorable(self, obj):
-        if obj.favorable is None:
-            return "–"
-        return "Oui" if obj.favorable else "Non"
-    avis_favorable.short_description = "Favorable"
+    def reponse_avis(self, obj):
+        return obj.get_reponse_display() if obj.reponse else "–"
+    reponse_avis.short_description = "Réponse"
+    reponse_avis.admin_order_field = "reponse"
 
     def expert_nom_prenom(self, obj):
         if obj.id_expert.est_interne and obj.id_expert.id_instructeur:
@@ -121,7 +120,7 @@ class AvisDocumentAdmin(admin.ModelAdmin):
         'id',
         'numero_document',
         'nature_avis',
-        'avis_favorable',
+        'reponse_avis',
         'expert_nom_prenom',
         'instructeur_nom_prenom',
     )
@@ -131,7 +130,7 @@ class AvisDocumentAdmin(admin.ModelAdmin):
         'id_avis__id_expert__id_contact_externe__nom',
         'id_avis__id_expert__id_instructeur__id_agent_autorisations__nom',
     )
-    list_filter = ('id_avis__favorable', 'id_avis__id_avis_nature')
+    list_filter = ('id_avis__reponse', 'id_avis__id_avis_nature')
     list_per_page = 25
 
     def numero_document(self, obj):
@@ -142,11 +141,9 @@ class AvisDocumentAdmin(admin.ModelAdmin):
         return obj.id_avis.id_avis_nature.nature
     nature_avis.short_description = "Nature de l’avis"
 
-    def avis_favorable(self, obj):
-        if obj.id_avis.favorable is None:
-            return "–"
-        return "Oui" if obj.id_avis.favorable else "Non"
-    avis_favorable.short_description = "Favorable"
+    def reponse_avis(self, obj):
+        return obj.id_avis.get_reponse_display() if obj.id_avis.reponse else "–"
+    reponse_avis.short_description = "Réponse"
 
     def expert_nom_prenom(self, obj):
         expert = obj.id_avis.id_expert

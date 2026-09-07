@@ -1636,10 +1636,8 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                                 {{ da.id_avis.id_expert }}
                                             {% endif %}
 
-                                            {% if da.id_avis.favorable %}
-                                                (Favorable)
-                                            {% elif da.id_avis.favorable == False %}
-                                                (Défavorable)
+                                            {% if da.id_avis.reponse %}
+                                                ({{ da.id_avis.get_reponse_display }})
                                             {% endif %}
                                         </a>
 

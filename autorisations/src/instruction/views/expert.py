@@ -88,7 +88,7 @@ def avis(request):
     if expert :
         # Avis à rendre
         avis_a_rendre = (
-            Avis.objects.filter(id_expert=expert, favorable__isnull=True, statut="Envoyé")
+            Avis.objects.filter(id_expert=expert, reponse__isnull=True, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
             .prefetch_related("dossieravis_set__id_dossier")
             .order_by("-date_demande_avis")
@@ -96,7 +96,7 @@ def avis(request):
 
         # Avis archivés de l’année
         avis_rendus = (
-            Avis.objects.filter(id_expert=expert, favorable__isnull=False, date_reponse_avis__year=selected_year_expert, statut="Envoyé")
+            Avis.objects.filter(id_expert=expert, reponse__isnull=False, date_reponse_avis__year=selected_year_expert, statut="Envoyé")
             .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
             .prefetch_related("dossieravis_set__id_dossier")
             .order_by("-date_reponse_avis")
@@ -141,7 +141,10 @@ def avis(request):
         if est_publicateur_raa_avis_cs:
             demandes_avis_a_publier_au_RAA = (
                 Avis.objects
-                .filter(filtre_avis_conseil_scientifique(), favorable=True)
+                .filter(
+                    filtre_avis_conseil_scientifique(),
+                    reponse__in=[Avis.Reponse.FAVORABLE, Avis.Reponse.FAVORABLE_SOUS_RESERVE],
+                )
                 .exclude(publie_au_raa=True)
                 .select_related(
                     "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
@@ -156,7 +159,7 @@ def avis(request):
             Avis.objects
             .filter(
                 filtre_demandes_visibles,
-                favorable__isnull=True,
+                reponse__isnull=True,
                 statut="Envoyé",
             )
             .exclude(pk__in=avis_a_publier_ids)
@@ -173,7 +176,7 @@ def avis(request):
             Avis.objects
             .filter(
                 filtre_demandes_visibles,
-                favorable__isnull=False,
+                reponse__isnull=False,
                 date_reponse_avis__year=selected_year_demandeur,
                 statut="Envoyé",
             )
@@ -451,9 +454,15 @@ def donner_son_avis(request, avis_id):
         logger.error(f"[DONNER SON AVIS] Avis {avis_id} introuvable — User {request.user}")
         return redirect_error(request, "L'avis demandé est introuvable. Contactez le support.")
 
-    # favorable = request.POST.get("favorable") == "true"
     pj_avis_signe = request.FILES.get("avis_signe")
     reponse = request.POST.get("reponse_expert")
+
+    reponses_valides = {valeur for valeur, _libelle in Avis.Reponse.choices}
+    if reponse not in reponses_valides:
+        logger.warning(
+            f"[AVIS {avis.id}] Réponse invalide '{reponse}' envoyée par {request.user}."
+        )
+        return redirect_error(request, "La réponse sélectionnée n'est pas valide.")
 
 
 
@@ -461,10 +470,9 @@ def donner_son_avis(request, avis_id):
     #  MAJ AVIS (Favorable / Défavorable)
     # ============================
     try :
-        avis.favorable = reponse != "Défavorable"
-        avis.sous_reserve = (reponse == "Favorable sous réserve")
+        avis.reponse = reponse
         avis.date_reponse_avis = timezone.now()
-        avis.save()
+        avis.save(update_fields=["reponse", "date_reponse_avis"])
 
     except Exception as e:
         logger.error(f"[AVIS {avis.id}] Erreur pour Donner son avis (User {request.user}) : Erreur lors de la mise à jour de l'Avis : {e}  ")
@@ -538,7 +546,7 @@ def donner_son_avis(request, avis_id):
     # Message automatique Acceptation/Refus + Avis signé
     try:
         # --- Cas favorable ---
-        if reponse in ["Favorable", "Favorable sous réserve"]:
+        if reponse in [Avis.Reponse.FAVORABLE, Avis.Reponse.FAVORABLE_SOUS_RESERVE]:
 
             if doc_avis_signe:
             
@@ -572,7 +580,10 @@ def donner_son_avis(request, avis_id):
 
         # --- Cas défavorable ---
         else:
-            msg_reponse_expert = "La demande d'avis a reçu une réponse défavorable."
+            if reponse == Avis.Reponse.DEFAVORABLE:
+                msg_reponse_expert = "La demande d'avis a reçu une réponse défavorable."
+            else:
+                msg_reponse_expert = "L'expert indique une absence d'avis en l'état."
             # Message automatique pour le refus
             msg = Message.objects.create(
                 body=msg_reponse_expert,
@@ -602,12 +613,7 @@ def donner_son_avis(request, avis_id):
 
     emails_txt = ", ".join(emails_norm)
 
-    if avis.favorable and avis.sous_reserve:
-        reponse_avis = "Favorable sous réserve"
-    elif avis.favorable:
-        reponse_avis = "Favorable"
-    else:
-        reponse_avis = "Défavorable"
+    reponse_avis = avis.get_reponse_display()
 
     sujet = f"Avis n° {avis.id} - {avis.id_demarche.type} : {avis.id_expert} a rendu son avis"
     

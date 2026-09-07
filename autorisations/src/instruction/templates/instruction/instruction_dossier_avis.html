@@ -35,15 +35,9 @@
         <div class="messagerie">
             <h1>AVIS n° {{ avis.id }} - {{ dossier.id_demarche.type }}</h1>
             
-            <div class="etat-badge-menu {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
+            <div class="etat-badge-menu {% if avis.reponse == 'favorable' or avis.reponse == 'favorable_sous_reserve' %}etat-green{% elif avis.reponse == 'defavorable' %}etat-red{% elif avis.reponse == 'absence_avis_en_etat' %}etat-neutral{% endif %}">
                 {% if avis.date_reponse_avis %}
-                    {% if avis.favorable %}
-                        Avis rendu : Favorable
-                    {% elif not avis.favorable %}
-                        Avis rendu : Défavorable
-                    {% else %}
-                        Avis rendu
-                    {% endif %}
+                    Avis rendu : {{ avis.get_reponse_display }}
                 {% else %}
                     En attente de réponse
                 {% endif %}
@@ -252,7 +246,7 @@
                     {% if documents_zip_avis|length >= 2 %}
                         <form id="documents-zip-form-{{ avis.id }}" class="documents-zip-form" method="post" enctype="multipart/form-data" action="{% url 'telecharger_documents_avis_zip' avis.id %}">
                             {% csrf_token %}
-                            <button type="button" class="btn-mode-zip">
+                            <button type="button" class="btn-mode-zip" title="Compresser les documents de l'avis en un fichier ZIP">
                                 <span>ZIP</span>
                                 <img src="{% static 'instruction/img/filetypes/archive.png' %}" alt="">
                             </button>
@@ -393,15 +387,7 @@
                             {% for ad in avis_documents %}
                                     <li class="pj-item document-avec-apercu" data-zip-document="document:{{ ad.id_document.id }}">
                                         <p class="pj_title"><strong>Pièce jointe instructeur :</strong></p>
-                                        {% if ad.id_document.id_format.format == 'pdf' %}
-                                            <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
-                                        {% elif ad.id_document.id_format.format == 'docx' or ad.id_document.id_format.format == 'doc' or ad.id_document.id_format.format == 'odt' %}
-                                            <img src="{% static 'instruction/img/logo_word.png' %}" alt="Word" class="doc-icon">
-                                        {% elif ad.id_document.id_format.format == 'png' %}
-                                            <img src="{% static 'instruction/img/logo_png.png' %}" alt="Word" class="doc-icon">
-                                        {% else %}
-                                            <img src="{% static 'instruction/img/logo_file.png' %}" alt="Word" class="doc-icon">
-                                        {% endif %}
+                                        <img src="{% static 'instruction/img/filetypes/' %}{{ ad.id_document.titre|file_icon }}" alt="Type de fichier" class="doc-icon">
                                         <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}?download=1" target="_blank" title="Télécharger {{ ad.id_document.titre }}">
                                             {{ ad.id_document.titre }}
                                         </a>

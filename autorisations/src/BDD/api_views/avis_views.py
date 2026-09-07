@@ -126,9 +126,10 @@ class AvisViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter(
-                'favorable', openapi.IN_QUERY, 
-                description="Filtrer les avis selon qu'ils sont favorables (`true`) ou défavorables (`false`).", 
-                type=openapi.TYPE_BOOLEAN
+                'reponse', openapi.IN_QUERY,
+                description="Filtrer par réponse : favorable, favorable_sous_reserve, defavorable ou absence_avis_en_etat.",
+                type=openapi.TYPE_STRING,
+                enum=[valeur for valeur, _libelle in Avis.Reponse.choices],
             ),
             openapi.Parameter(
                 "date_min_reponse", openapi.IN_QUERY,

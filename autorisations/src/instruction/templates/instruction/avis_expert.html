@@ -36,7 +36,7 @@
             <h1>AVIS n° {{ avis.id }} - {{ avis.demarche_effective.type }}</h1>
 
             <div class="badge_et_publi_raa">
-                {% if est_expert and avis.favorable == None %}
+                {% if est_expert and avis.reponse == None %}
                     <div class="joindre_avis_signe">
                         <button type="button" id="toggle-form-avis" class="btn-donner-avis">Je donne mon avis</button>
 
@@ -48,16 +48,20 @@
                                 <label>Votre réponse :</label>
                                 <select name="reponse_expert" id="reponse_expert" required>
                                     <option value="" disabled selected>Sélectionner</option>
-                                    <option value="Favorable">
+                                    <option value="favorable">
                                         Favorable
                                     </option>
 
-                                    <option value="Favorable sous réserve">
+                                    <option value="favorable_sous_reserve">
                                         Favorable sous réserve
                                     </option>
 
-                                    <option value="Défavorable">
+                                    <option value="defavorable">
                                         Défavorable
+                                    </option>
+
+                                    <option value="absence_avis_en_etat">
+                                        Absence d’avis en l’état
                                     </option>
                                 </select>
                             </div>
@@ -71,17 +75,9 @@
                         </form>
                     </div>
                 {% else %}
-                    <div class="etat-badge-menu-avis {% if avis.favorable %}etat-green{% elif avis.favorable is not None %}etat-red{% endif %}">
+                    <div class="etat-badge-menu-avis {% if avis.reponse == 'favorable' or avis.reponse == 'favorable_sous_reserve' %}etat-green{% elif avis.reponse == 'defavorable' %}etat-red{% elif avis.reponse == 'absence_avis_en_etat' %}etat-neutral{% endif %}">
                         {% if avis.date_reponse_avis %}
-                            {% if avis.favorable and not avis.sous_reserve %}
-                                Avis rendu : Favorable
-                            {% elif avis.favorable and avis.sous_reserve %}
-                                Avis rendu : Favorable sous réserve
-                            {% elif avis.favorable == False %}
-                                Avis rendu : Défavorable
-                            {% else %}
-                                Avis rendu
-                            {% endif %}
+                            Avis rendu : {{ avis.get_reponse_display }}
                         {% else %}
                             En attente de réponse
                         {% endif %}
@@ -97,7 +93,7 @@
                 
                 {% if request.user|est_concerne_par_avis:avis and expert_is_CS %}
                     <!-- Publication RAA faite ? -->
-                    {% if avis.favorable and not avis.publie_au_raa %}
+                    {% if avis.reponse == 'favorable' and not avis.publie_au_raa or avis.reponse == 'favorable_sous_reserve' and not avis.publie_au_raa %}
                         {% if not est_expert or request.user|has_group:"Publication RAA Avis CS" %}
                             <div class="publication_raa">
                                 <form id="form-publier-raa-{{ avis.id }}" 
@@ -119,7 +115,7 @@
             </div>
 
 
-            {% if avis.favorable != None %}
+            {% if avis.reponse != None %}
                 {% if avis_signes %}
                     <div class="avis_signes">
                         {% for as in avis_signes %}
@@ -353,7 +349,7 @@
                     {% if documents_zip_avis|length >= 2 %}
                         <form id="documents-zip-form-{{ avis.id }}" class="documents-zip-form" method="post" enctype="multipart/form-data" action="{% url 'telecharger_documents_avis_zip' avis.id %}">
                             {% csrf_token %}
-                            <button type="button" class="btn-mode-zip">
+                            <button type="button" class="btn-mode-zip" title="Compresser les documents de l'avis en un fichier ZIP">
                                 <span>ZIP</span>
                                 <img src="{% static 'instruction/img/filetypes/archive.png' %}" alt="">
                             </button>
@@ -443,15 +439,7 @@
                                 {% if ad.nature != 'Avis Instance' %}
                                     <li class="pj-item document-avec-apercu" data-zip-document="document:{{ ad.id_document.id }}">
                                         <p class="pj_title"><strong>Pièce jointe instructeur :</strong></p>
-                                        {% if ad.id_document.id_format.format == 'pdf' %}
-                                            <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">
-                                        {% elif ad.id_document.id_format.format == 'docx' or ad.id_document.id_format.format == 'doc' or ad.id_document.id_format.format == 'odt' %}
-                                            <img src="{% static 'instruction/img/logo_word.png' %}" alt="Word" class="doc-icon">
-                                        {% elif ad.id_document.id_format.format == 'png' %}
-                                            <img src="{% static 'instruction/img/logo_png.png' %}" alt="Word" class="doc-icon">
-                                        {% else %}
-                                            <img src="{% static 'instruction/img/logo_file.png' %}" alt="Word" class="doc-icon">
-                                        {% endif %}
+                                        <img src="{% static 'instruction/img/filetypes/' %}{{ ad.id_document.titre|file_icon }}" alt="Type de fichier" class="doc-icon">
                                         <a href="{% url 'afficher_annexe' chemin=ad.id_document.emplacement titre=ad.id_document.titre  %}?download=1" target="_blank" title="Télécharger {{ ad.id_document.titre }}">
                                             {{ ad.id_document.titre }}
                                         </a>
@@ -627,22 +615,20 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const inputFile = document.getElementById("avis-signe");
-            const radios = document.querySelectorAll("input[name='favorable']");
+            const selectReponse = document.getElementById("reponse_expert");
             const projetAvisExiste = {{ avis.id_projet_avis|yesno:"true,false" }};  // renvoie true ou false
 
             function updateRequired() {
                 if (!inputFile) return;
-                const checked = document.querySelector("input[name='favorable']:checked");
-                if (projetAvisExiste && checked && checked.value === "true") {
+                const reponseFavorable = ["favorable", "favorable_sous_reserve"].includes(selectReponse?.value);
+                if (projetAvisExiste && reponseFavorable) {
                     inputFile.required = true;
                 } else {
                     inputFile.required = false;
                 }
             }
 
-            radios.forEach(radio => {
-                radio.addEventListener("change", updateRequired);
-            });
+            selectReponse?.addEventListener("change", updateRequired);
 
             // Vérif initiale
             updateRequired();

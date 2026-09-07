@@ -99,7 +99,7 @@ def instruction_dossier_consultation(request, num_dossier) :
             "demandeur": demandeur,
             "date_demande": avis.date_demande_avis,
             "date_reponse": avis.date_reponse_avis,
-            "favorable": reponse,
+            "reponse": reponse,
             "avis_nb_messages_non_lus": nb_messages_non_lus_avis,
         })
 
@@ -337,7 +337,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
             demandeur = request.GET.get("demandeur")
             date_demande = request.GET.get("date_demande")
             date_reponse = request.GET.get("date_reponse")
-            favorable = request.GET.get("favorable")
+            reponse = request.GET.get("reponse")
             thematique = request.GET.get("thematique")
             nature = request.GET.get("nature")
             deja_lie = request.GET.get("deja_lie")
@@ -353,8 +353,8 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
                 avis_list = avis_list.filter(date_demande_avis__date=date_demande)
             if date_reponse:
                 avis_list = avis_list.filter(date_reponse_avis__date=date_reponse)
-            if favorable in ["true", "false"]:
-                avis_list = avis_list.filter(favorable=(favorable == "true"))
+            if reponse in {valeur for valeur, _libelle in Avis.Reponse.choices}:
+                avis_list = avis_list.filter(reponse=reponse)
             if thematique:
                 avis_list = avis_list.filter(id_avis_thematique=thematique)
             if nature:
@@ -459,7 +459,9 @@ def ajouter_avis_hors_appli(request, num_dossier):
             nature_id = request.POST.get("nature")
             thematique_id = request.POST.get("thematique")
             mode_contact = request.POST.get("mode_contact")
-            favorable = request.POST.get("favorable") == "true"
+            reponse = request.POST.get("reponse")
+            if reponse not in {valeur for valeur, _libelle in Avis.Reponse.choices}:
+                return redirect_error(request, "La réponse de l'avis n'est pas valide.")
             note = request.POST.get("note_demandeur")
             date_demande_avis = parse_datetime(request.POST.get("date_demande_avis")) if request.POST.get("date_demande_avis") else None
             date_reponse_avis = parse_datetime(request.POST.get("date_reponse_avis")) if request.POST.get("date_reponse_avis") else None
@@ -540,7 +542,7 @@ def ajouter_avis_hors_appli(request, num_dossier):
                 mode_contact=mode_contact,
                 statut="Envoyé",
                 formulation=formulation,
-                favorable=favorable,
+                reponse=reponse,
                 note=note,
                 date_demande_avis=date_demande_avis,
                 date_reponse_avis=date_reponse_avis,

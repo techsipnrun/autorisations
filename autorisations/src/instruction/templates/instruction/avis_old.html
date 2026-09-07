@@ -34,16 +34,13 @@
                             <td>{{ avis.id_instructeur }}</td>
                             <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
                             <td class="
-                                {% if not avis.date_reponse_avis %}etat-attente
-                                {% elif avis.favorable %}etat-favorable
-                                {% else %}etat-defavorable{% endif %}
+                                {% if not avis.reponse %}etat-attente
+                                {% elif avis.reponse == 'favorable' or avis.reponse == 'favorable_sous_reserve' %}etat-favorable
+                                {% elif avis.reponse == 'defavorable' %}etat-defavorable
+                                {% else %}etat-sans-avis{% endif %}
                             ">
-                                {% if avis.date_reponse_avis %}
-                                    {% if avis.favorable %}
-                                        ✅ Favorable
-                                    {% else %}
-                                        ❌ Défavorable
-                                    {% endif %}
+                                {% if avis.reponse %}
+                                    {{ avis.get_reponse_display }}
                                 {% else %}
                                     ⏳ En attente
                                 {% endif %}
@@ -91,16 +88,13 @@
                             <td>{{ avis.id_expert }}</td>
                             <td>{{ avis.date_demande_avis|date:"d/m/Y" }}</td>
                             <td class="
-                                {% if not avis.date_reponse_avis %}etat-attente
-                                {% elif avis.favorable %}etat-favorable
-                                {% else %}etat-defavorable{% endif %}
+                                {% if not avis.reponse %}etat-attente
+                                {% elif avis.reponse == 'favorable' or avis.reponse == 'favorable_sous_reserve' %}etat-favorable
+                                {% elif avis.reponse == 'defavorable' %}etat-defavorable
+                                {% else %}etat-sans-avis{% endif %}
                             ">
-                                {% if avis.date_reponse_avis %}
-                                    {% if avis.favorable %}
-                                        ✅ Favorable
-                                    {% else %}
-                                        ❌ Défavorable
-                                    {% endif %}
+                                {% if avis.reponse %}
+                                    {{ avis.get_reponse_display }}
                                 {% else %}
                                     ⏳ En attente
                                 {% endif %}

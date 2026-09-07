@@ -242,18 +242,7 @@ def _export_avis_xlsx(avis_iterable):
         expert = str(getattr(a, "id_expert", "") or "")
         demandeur = str(getattr(a, "id_instructeur", "") or "")
 
-        # Réponse (copie exacte de ta logique template)
-        favorable = getattr(a, "favorable", None)
-        sous_reserve = getattr(a, "sous_reserve", None)
-
-        if favorable is True and not sous_reserve:
-            reponse = "Favorable"
-        elif favorable is True and sous_reserve:
-            reponse = "Favorable sous réserve"
-        elif favorable is False:
-            reponse = "Défavorable"
-        else:
-            reponse = "En attente"
+        reponse = a.get_reponse_display() if a.reponse else "En attente"
 
         publie = "Oui" if getattr(a, "publie_au_raa", False) else "Non"
 
@@ -702,13 +691,15 @@ def requete_avis(request):
     if reponse:
         reponse = reponse.strip()
         if reponse == "En attente":
-            avis_list = avis_list.filter(favorable__isnull=True)
+            avis_list = avis_list.filter(reponse__isnull=True)
         elif reponse == "Favorable":
-            avis_list = avis_list.filter(favorable=True, sous_reserve=False)
+            avis_list = avis_list.filter(reponse=Avis.Reponse.FAVORABLE)
         elif reponse == "Favorable sous réserve":
-            avis_list = avis_list.filter(favorable=True, sous_reserve=True)
+            avis_list = avis_list.filter(reponse=Avis.Reponse.FAVORABLE_SOUS_RESERVE)
         elif reponse == "Défavorable":
-            avis_list = avis_list.filter(favorable=False)
+            avis_list = avis_list.filter(reponse=Avis.Reponse.DEFAVORABLE)
+        elif reponse == "Absence d’avis en l’état":
+            avis_list = avis_list.filter(reponse=Avis.Reponse.ABSENCE_AVIS_EN_ETAT)
 
     if publie_raa:
         if publie_raa.lower() == "oui":

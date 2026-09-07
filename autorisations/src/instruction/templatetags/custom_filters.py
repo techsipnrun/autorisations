@@ -120,7 +120,9 @@ ARCHIVES = (
 
 @register.filter
 def file_icon(filename):
-    filename = filename.lower()
+    # La casse de l'extension ne doit pas influencer l'icône affichée
+    # (par exemple : photo.JPG, document.PDF ou archive.ZIP).
+    filename = str(filename or "").casefold()
 
     if filename.endswith(".pdf"):
         return "logo_pdf.png"

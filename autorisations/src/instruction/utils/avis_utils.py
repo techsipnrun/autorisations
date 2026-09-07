@@ -239,12 +239,10 @@ def get_demandeur_label(avis, num_dossier: int) -> str:
 
 def get_reponse_label(avis) -> str:
     """
-    Traduit avis.favorable / statut en libellé lisible.
+    Traduit la réponse de l'avis en libellé lisible.
     """
-    if avis.favorable is True:
-        return "Favorable"
-    if avis.favorable is False:
-        return "Défavorable"
+    if avis.reponse:
+        return avis.get_reponse_display()
     if avis.statut == "Envoyé":
         return "En attente"
     return ""

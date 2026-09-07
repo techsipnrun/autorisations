@@ -82,6 +82,12 @@ class Expert(models.Model):
 
 class Avis(models.Model):
 
+    class Reponse(models.TextChoices):
+        FAVORABLE = "favorable", "Favorable"
+        FAVORABLE_SOUS_RESERVE = "favorable_sous_reserve", "Favorable sous réserve"
+        DEFAVORABLE = "defavorable", "Défavorable"
+        ABSENCE_AVIS_EN_ETAT = "absence_avis_en_etat", "Absence d’avis en l’état"
+
     MODE_CONTACT_CHOICES = [
         ("Application", "Application"),
         ("Mail", "Mail"),
@@ -107,9 +113,8 @@ class Avis(models.Model):
     )
     id_expert_ds = models.CharField(unique=True, blank=True, null=True)
     note = models.CharField(blank=True, null=True)
-    favorable = models.BooleanField(blank=True, null=True)
+    reponse = models.CharField(max_length=30, choices=Reponse.choices, blank=True, null=True)
     publie_au_raa = models.BooleanField(blank=True, null=True)
-    sous_reserve = models.BooleanField(default=False)
     date_limite = models.DateTimeField(blank=True, null=True)
     date_presentation = models.DateTimeField(blank=True, null=True)
     date_demande_avis = models.DateTimeField(blank=True, null=True)
@@ -190,11 +195,11 @@ class Avis(models.Model):
         if self.id_expert.est_interne :
             return (
                 f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_instructeur} "
-                f" (Interne au Parc) {' : Favorable' if self.favorable else ''}"
+                f" (Interne au Parc){' : ' + self.get_reponse_display() if self.reponse else ''}"
             )
         return (
                 f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert} "
-                f"{' : Favorable' if self.favorable else ''}"
+                f"{' : ' + self.get_reponse_display() if self.reponse else ''}"
             )
 
 

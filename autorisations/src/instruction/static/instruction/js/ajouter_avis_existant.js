@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function () {
         window.location.search.includes("demandeur=") ||
         window.location.search.includes("date_demande=") ||
         window.location.search.includes("date_reponse=") ||
-        window.location.search.includes("favorable=") ||
+        window.location.search.includes("reponse=") ||
         window.location.search.includes("thematique=") ||
         window.location.search.includes("nature=") ||
         window.location.search.includes("deja_lie=")) {

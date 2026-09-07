@@ -88,3 +88,8 @@ td.etat-defavorable {
     color: #a00;
     font-weight: bold;
 }
+
+td.etat-sans-avis {
+    color: #6b5b20;
+    font-weight: bold;
+}

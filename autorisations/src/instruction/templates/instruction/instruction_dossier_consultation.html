@@ -134,12 +134,12 @@
 
                                 <td>
                                     <div class="rep_value">
-                                        {{ a.favorable }}
-                                        {% if a.favorable == "Favorable" %}
+                                        {{ a.reponse }}
+                                        {% if a.reponse == "Favorable" or a.reponse == "Favorable sous réserve" %}
                                             <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Demande acceptée" class="avis_reponse_icon">
-                                        {% elif a.favorable == "Défavorable" %}
+                                        {% elif a.reponse == "Défavorable" %}
                                             <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Demande refusée" class="avis_reponse_icon">
-                                        {% elif a.favorable == "En attente" %}
+                                        {% elif a.reponse == "En attente" %}
                                             <img src="{% static 'instruction/img/loader.svg' %}" alt="Demande en attente" class="avis_reponse_icon">
                                         {% endif %}
                                     </div>

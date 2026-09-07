@@ -184,6 +184,11 @@ td.etat-defavorable {
     font-weight: bold;
 }
 
+td.etat-sans-avis {
+    color: #6b5b20;
+    font-weight: bold;
+}
+
 .aucun_avis{
     text-align: center;
 }
