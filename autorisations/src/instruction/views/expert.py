@@ -440,6 +440,19 @@ def avis_expert(request, avis_id):
         "est_un_instructeur": est_un_instructeur,
         "dossiers_lies": dossiers_lies,
         "expert_is_CS": expert_is_CS,
+        "peut_modifier_destinataire": bool(
+            request.user.is_superuser
+            or est_expert
+            or est_demandeur
+            or est_publicateur_raa_cs
+        ),
+        "peut_modifier_date_transmission_cs": bool(
+            request.user.is_superuser or est_expert
+        ),
+        "peut_voir_note_avis": bool(
+            request.user.is_superuser
+            or ((est_demandeur or est_instructeur_du_dossier) and not est_expert)
+        ),
         "peut_envoyer_message": peut_envoyer_message,
     })
 
@@ -955,12 +968,59 @@ def deposer_avis_signe(request):
 
 @require_POST
 @login_required
+def enregistrer_destinataire_avis(request, avis_id):
+    avis = Avis.objects.select_related(
+        "id_expert__id_instructeur",
+        "id_expert__id_contact_externe",
+        "id_instructeur",
+    ).filter(id=avis_id).first()
+    if not avis:
+        return redirect_error(request, "L'avis concerné est introuvable. Contactez le support.")
+
+    if not avis_est_conseil_scientifique(avis):
+        return redirect_error(request, "Le destinataire est réservé aux demandes d'avis du Conseil scientifique.")
+
+    email_user = (request.user.email or "").strip().casefold()
+    email_expert = (get_email_expert(avis) or "").strip().casefold()
+    email_demandeur = (avis.id_instructeur.email or "").strip().casefold()
+    est_publicateur_raa_cs = utilisateur_est_publicateur_raa_cs(request.user)
+    if not request.user.is_superuser and not est_publicateur_raa_cs and email_user not in {email_expert, email_demandeur}:
+        return redirect_error(request, "Vous n'êtes pas autorisé à modifier le destinataire de cet avis.")
+
+    destinataire = (request.POST.get("destinataire") or "").strip().upper()
+    valeurs_valides = {choix for choix, _ in Avis.Destinataire.choices}
+    if destinataire not in valeurs_valides:
+        return redirect_error(request, "Veuillez sélectionner CS ou BCS comme destinataire.")
+
+    avis.destinataire = destinataire
+    avis.save(update_fields=["destinataire"])
+    messages.success(request, "Le destinataire de la demande d'avis a été mis à jour.")
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+@login_required
 def enregistrer_date_transmission_cs(request, avis_id):
 
-    avis = Avis.objects.filter(id=avis_id).first()
+    avis = Avis.objects.select_related(
+        "id_expert__id_instructeur",
+        "id_expert__id_contact_externe",
+        "id_instructeur",
+    ).filter(id=avis_id).first()
     if not avis:
         logger.error(f"[SAVE DATE TRAMISSION CS] Avis {avis_id} introuvable — User {request.user}")
         return redirect_error(request, "L'avis concerné est introuvable. Contactez le support.")
+
+    if not avis_est_conseil_scientifique(avis):
+        return redirect_error(request, "La date de transmission au CS est réservée aux demandes d'avis du Conseil scientifique.")
+
+    email_user = (request.user.email or "").strip().casefold()
+    email_expert = (get_email_expert(avis) or "").strip().casefold()
+    if (
+        not request.user.is_superuser
+        and email_user != email_expert
+    ):
+        return redirect_error(request, "Vous n'êtes pas autorisé à renseigner la date de transmission de cet avis.")
 
     date_str = request.POST.get("date_transmission_cs")
 
@@ -970,7 +1030,7 @@ def enregistrer_date_transmission_cs(request, avis_id):
 
     try:
         avis.date_transmission_cs = timezone.datetime.strptime(date_str, "%Y-%m-%d")
-        avis.save()
+        avis.save(update_fields=["date_transmission_cs"])
     except Exception as e:
         logger.error(f"[AVIS {avis.id}] Erreur enregistrement date_transmission_cs par {request.user} : {e}")
         messages.error(request, "Erreur lors de l'enregistrement de la date. Contactez le support.")

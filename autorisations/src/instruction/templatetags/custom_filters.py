@@ -7,6 +7,17 @@ from django.utils.timezone import localtime
 
 register = template.Library()
 
+
+@register.filter
+def est_contact_conseil_scientifique(contact):
+    return any(
+        (valeur or "").strip().casefold() == "conseil scientifique"
+        for valeur in (
+            getattr(contact, "raison_sociale", None),
+            getattr(contact, "organisation", None),
+        )
+    )
+
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)

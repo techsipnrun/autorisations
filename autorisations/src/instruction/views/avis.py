@@ -28,12 +28,26 @@ from django.utils.timezone import localtime
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, get_documents_zip_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
+from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, expert_est_conseil_scientifique, get_documents_zip_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
 logger = logging.getLogger('ORM_DJANGO')
+
+
+def _destinataire_cs_depuis_formulaire(request, expert, obligatoire=True):
+    """Valide et retourne le destinataire d'une demande adressée au CS."""
+    if not expert_est_conseil_scientifique(expert):
+        return None
+
+    destinataire = (request.POST.get("destinataire") or "").strip().upper()
+    valeurs_valides = {choix for choix, _ in Avis.Destinataire.choices}
+    if destinataire in valeurs_valides:
+        return destinataire
+    if obligatoire:
+        raise ValueError("Le destinataire CS ou BCS est obligatoire pour une demande d'avis au Conseil scientifique.")
+    return None
 
 
 @login_required
@@ -726,6 +740,11 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {num_dossier}, {avis_id} : Erreur lors de la récupération de l'expert (get_or_create_expert_from_form) : {e}")
         return redirect_error(request, f"Erreur lors de la récupération de l’expert. Contactez le support.")
 
+    try:
+        destinataire = _destinataire_cs_depuis_formulaire(request, expert)
+    except ValueError as e:
+        return redirect_error(request, str(e))
+
 
     if request.method == "POST":
         # Champs du formulaire
@@ -868,6 +887,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                 "id_avis_nature": nature,
                 "id_avis_thematique": thematique,
                 "id_expert": expert,
+                "destinataire": destinataire,
                 "id_demarche": dossier.id_demarche,
                 "statut": "Envoyé",
                 "date_demande_avis": timezone.now(),
@@ -940,6 +960,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                         id_dossier=dossier,
                         id_demarche=dossier.id_demarche,
                         id_expert=expert,
+                        destinataire=destinataire,
                         id_instructeur=instructeur,
                         id_projet_acte=doc_projet_acte,
                         id_rapport_instance=doc_rapport_instance,
@@ -1170,6 +1191,8 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
             except Exception as e:
                 logger.error(f"[SAVE BROUILLON AVIS] Expert externe {expert_externe_id} introuvable : {e}")
                 return redirect_error(request, f"Erreur lors de la récupération de l'expert externe. Contactez le suppport.")
+
+        destinataire = _destinataire_cs_depuis_formulaire(request, expert, obligatoire=False)
                 
                 
 
@@ -1254,6 +1277,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 "id_avis_nature": nature,
                 "id_avis_thematique": thematique,
                 "id_expert": expert,
+                "destinataire": destinataire,
                 "note": note,
                 "formulation": formulation_avis,
                 "mode_contact": mode_contact,
@@ -1300,6 +1324,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                         mode_contact=mode_contact,
                         id_dossier=dossier,
                         id_expert=expert,
+                        destinataire=destinataire,
                         id_instructeur=instructeur,
                         id_projet_acte=doc_projet_acte,
                         id_rapport_instance=doc_rapport_instance,
@@ -1526,6 +1551,20 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "est_demandeur": est_demandeur,
         "est_expert": est_expert,
+        "expert_is_CS": avis_est_conseil_scientifique(avis),
+        "peut_modifier_destinataire": bool(
+            request.user.is_superuser
+            or est_expert
+            or est_demandeur
+            or utilisateur_est_publicateur_raa_cs(request.user)
+        ),
+        "peut_modifier_date_transmission_cs": bool(
+            request.user.is_superuser or est_expert
+        ),
+        "peut_voir_note_avis": bool(
+            request.user.is_superuser
+            or ((est_demandeur or est_instructeur_du_dossier) and not est_expert)
+        ),
     })
 
 
@@ -2008,21 +2047,29 @@ def mettre_a_jour_note_avis(request, avis_id):
     
     # --- Validation instructeur ---
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
-    if not instructeur:
+    if not instructeur and not request.user.is_superuser:
         logger.warning(f"[MAJ NOTE AVIS] User {request.user} sans profil instructeur a tenté de modifier la note de l'avis {avis_id}")
         return redirect_error(request, "Vous devez disposer d'un profil instructeur pour modifier cette note. Contactez le support.")
 
     est_expert_interne = bool(
+        instructeur
+        and
         avis.id_expert
         and avis.id_expert.est_interne
         and avis.id_expert.id_instructeur_id == instructeur.id
     )
-    est_demandeur = avis.id_instructeur_id == instructeur.id
-    est_instructeur_dossier = DossierInstructeur.objects.filter(
-        id_instructeur=instructeur,
-        id_dossier__dossieravis__id_avis=avis,
-    ).exists()
-    if est_expert_interne or not (est_demandeur or est_instructeur_dossier or request.user.is_superuser):
+    est_demandeur = bool(instructeur and avis.id_instructeur_id == instructeur.id)
+    est_instructeur_dossier = bool(
+        instructeur
+        and DossierInstructeur.objects.filter(
+            id_instructeur=instructeur,
+            id_dossier__dossieravis__id_avis=avis,
+        ).exists()
+    )
+    if (
+        not request.user.is_superuser
+        and (est_expert_interne or not (est_demandeur or est_instructeur_dossier))
+    ):
         logger.warning(
             f"[MAJ NOTE AVIS] User {request.user} non autorisé a tenté de modifier "
             f"la note de l'avis {avis_id}."
@@ -2032,7 +2079,7 @@ def mettre_a_jour_note_avis(request, avis_id):
     try :
         note = request.POST.get("note", "").strip()
         avis.note = note
-        avis.save()
+        avis.save(update_fields=["note"])
 
     except Exception as e:
         logger.error(f"[MAJ NOTE AVIS] Erreur lors de la mise à jour de la note de l'avis {avis_id} par {request.user} : {e}")
@@ -2139,6 +2186,11 @@ def avis_confirmer_nouvelle_demande_generique(request):
     except Exception as e:
         logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la récupération de l'expert : {e}")
         return redirect_error(request, "Erreur lors de la récupération de l'expert. Contactez le support.")
+
+    try:
+        destinataire = _destinataire_cs_depuis_formulaire(request, expert)
+    except ValueError as e:
+        return redirect_error(request, str(e))
         
     
     # --- Emplacement ---
@@ -2207,6 +2259,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
                 mode_contact="Application",
                 id_demarche = demarche,
                 id_expert=expert,
+                destinataire=destinataire,
                 id_instructeur=instructeur,
                 id_projet_acte=doc_projet_acte,
                 id_rapport_instance=doc_rapport_instance,

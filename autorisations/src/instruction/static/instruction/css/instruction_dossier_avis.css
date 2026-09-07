@@ -262,6 +262,163 @@
     object-position: center;
 }
 
+.form-date-cs {
+    margin-top: 8px;
+}
+
+.form-date-cs label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-destinataire-cs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    column-gap: 8px;
+    row-gap: 5px;
+}
+
+.form-date-cs.form-destinataire-cs label {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+}
+
+.date-cs-controls {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.destinataire-cs:not(.edition-active) .form-destinataire-cs {
+    display: none;
+}
+
+.date-transmission-cs:not(.edition-active) .form-edition-date-cs {
+    display: none;
+}
+
+.destinataire-cs {
+    margin: 1rem 0;
+}
+
+.destinataire-cs.edition-active .destinataire-cs-valeur {
+    display: none;
+}
+
+.date-transmission-cs.edition-active .date-transmission-cs-valeur {
+    display: none;
+}
+
+.destinataire-cs-valeur {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 !important;
+}
+
+.date-transmission-cs {
+    margin: 1rem 0;
+}
+
+.date-transmission-cs-valeur {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 !important;
+}
+
+.date-transmission-cs .form-edition-date-cs {
+    margin: 0;
+}
+
+.destinataire-cs .form-destinataire-cs {
+    margin: 0;
+}
+
+.destinataire-cs .form-destinataire-cs label {
+    color: black;
+    font-size: large;
+}
+
+.btn-modifier-destinataire {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 2px;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.destinataire-cs-valeur:hover .btn-modifier-destinataire,
+.date-transmission-cs-valeur:hover .btn-modifier-destinataire,
+.btn-modifier-destinataire:focus-visible {
+    opacity: 1;
+}
+
+.btn-modifier-destinataire:hover,
+.btn-modifier-destinataire:focus-visible {
+    background-color: #e6f1ea;
+}
+
+.btn-modifier-destinataire img {
+    display: block;
+    width: 14px;
+    height: 14px;
+}
+
+@media (hover: none) {
+    .btn-modifier-destinataire {
+        opacity: 1;
+    }
+}
+
+.form-date-cs select {
+    box-sizing: border-box;
+    height: 28px;
+    padding: 2px 24px 2px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.form-date-cs input[type="date"] {
+    box-sizing: border-box;
+    height: 28px;
+    padding: 2px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.btn-valider-date-cs {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: #f5faf7;
+    border: 1px solid #8eb29e;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-valider-date-cs img {
+    display: block;
+    width: 16px;
+    height: 16px;
+}
+
 .pj_avis{
     min-width: 0;
     width: 100%;

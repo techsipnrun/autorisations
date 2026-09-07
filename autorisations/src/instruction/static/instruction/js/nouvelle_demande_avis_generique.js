@@ -12,6 +12,23 @@ document.addEventListener("DOMContentLoaded", function () {
     const blocExterne  = document.getElementById("bloc_expert_externe");
     const expertInterne = document.getElementById("expert_interne");
     const expertExterne = document.getElementById("expert_externe");
+    const blocDestinataireCS = document.getElementById("bloc_destinataire_cs");
+    const destinataire = document.getElementById("destinataire");
+
+    function toggleDestinataireCS() {
+        const natureSelectionnee = nature.options[nature.selectedIndex]?.text.trim();
+        const visible = natureSelectionnee === "Demande à une instance"
+            && expertExterne?.selectedOptions[0]?.dataset.estCs === "true";
+        blocDestinataireCS.hidden = !visible;
+        blocDestinataireCS.style.display = visible ? "flex" : "none";
+        destinataire.required = visible;
+        if (!visible) {
+            destinataire.value = "";
+        }
+    }
+
+    expertExterne.addEventListener("change", toggleDestinataireCS);
+    toggleDestinataireCS();
 
     // Pièces jointes
     const blocPJ_demandeAvis = document.getElementById("bloc_pj_demande_avis");
@@ -23,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const pjRapportInstance = document.getElementById("pj_rapport_cs");
     const pjDemandeAvis = document.getElementById("pj_demande_avis");
     const pjProjetActe  = document.getElementById("pj_projet_acte");
+    const labelPJDemandeAvis = document.getElementById("label_pj_demande_avis");
 
 
     nature.addEventListener("change", toggleExperts);
@@ -52,19 +70,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         const selected = nature.options[nature.selectedIndex]?.text.trim();
+        labelPJDemandeAvis.textContent = selected === "Demande à une instance"
+            ? "Joindre le projet d'avis de l'instance (Word)* :"
+            : "Joindre le projet d'avis de l'instance (Word) :";
 
         if (selected === "Consultation en interne") {
+            expertExterne.value = "";
             blocInterne.style.display = "flex";
             blocPJ_demandeAvis.style.display = "flex";
             blocPJ_avis.style.display = "flex";
         } 
         else if (selected === "Demande à une instance") {
+            expertInterne.value = "";
             blocExterne.style.display = "flex";
             blocPJ_demandeAvis.style.display = "flex";
             blocPJ_rapportCS.style.display = "flex";
             blocPJ_projetActe.style.display = "flex";
             blocPJ_avis.style.display = "flex";
         }
+        toggleDestinataireCS();
     }
 
 
@@ -105,7 +129,7 @@ Merci d’avance pour votre retour.`;
     function setRequired() {
 
         // Reset des required
-        [expertInterne, expertExterne, pjDemandeAvis, pjProjetActe, pjRapportInstance].forEach(el => {
+        [expertInterne, expertExterne, destinataire, pjDemandeAvis, pjProjetActe, pjRapportInstance].forEach(el => {
             if (el) el.required = false;
         });
 
@@ -122,6 +146,7 @@ Merci d’avance pour votre retour.`;
 
         if (selected === "Demande à une instance") {
             expertExterne.required = true;
+            destinataire.required = expertExterne?.selectedOptions[0]?.dataset.estCs === "true";
             pjDemandeAvis.required = true;
             // pjProjetActe.required = true;
         }

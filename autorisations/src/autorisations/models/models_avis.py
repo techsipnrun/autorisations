@@ -82,6 +82,10 @@ class Expert(models.Model):
 
 class Avis(models.Model):
 
+    class Destinataire(models.TextChoices):
+        CS = "CS", "CS"
+        BCS = "BCS", "BCS"
+
     class Reponse(models.TextChoices):
         FAVORABLE = "favorable", "Favorable"
         FAVORABLE_SOUS_RESERVE = "favorable_sous_reserve", "Favorable sous réserve"
@@ -105,12 +109,8 @@ class Avis(models.Model):
 
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(blank=True, null=True)
-    id_avis_nature = models.ForeignKey(
-        AvisNature, models.RESTRICT, db_column='id_avis_nature'
-    )
-    id_avis_thematique = models.ForeignKey(
-        AvisThematique, models.RESTRICT, db_column='id_avis_thematique'
-    )
+    id_avis_nature = models.ForeignKey(AvisNature, models.RESTRICT, db_column='id_avis_nature')
+    id_avis_thematique = models.ForeignKey(AvisThematique, models.RESTRICT, db_column='id_avis_thematique')
     id_expert_ds = models.CharField(unique=True, blank=True, null=True)
     note = models.CharField(blank=True, null=True)
     reponse = models.CharField(max_length=30, choices=Reponse.choices, blank=True, null=True)
@@ -120,6 +120,7 @@ class Avis(models.Model):
     date_demande_avis = models.DateTimeField(blank=True, null=True)
     date_reponse_avis = models.DateTimeField(blank=True, null=True)
     date_transmission_cs = models.DateTimeField(blank=True, null=True)
+    destinataire = models.CharField(max_length=3, choices=Destinataire.choices, blank=True, null=True)
     mode_contact = models.CharField(
         blank=True, null=True,
         max_length=20,

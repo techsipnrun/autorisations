@@ -281,19 +281,60 @@
 
                 <p> <strong>Date de la demande :</strong> {{ avis.date_demande_avis|date:"d/m/Y" }} </p>
 
-                {% if avis.date_transmission_cs %}
-                    <p><strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
-                {% elif expert_is_CS and est_expert %}
-                    <form method="post" action="{% url 'enregistrer_date_transmission_cs' avis.id %}" class="form-date-cs">
-                        {% csrf_token %}
-                        <label for="date_transmission_cs"><strong>Date de transmission aux membres du CS :</strong></label>
-                        <span class="date-cs-controls">
-                            <input type="date" id="date_transmission_cs" name="date_transmission_cs" required>
-                            <button type="submit" class="btn-valider-date-cs" aria-label="Enregistrer" title="Enregistrer">
-                                <img src="{% static 'instruction/img/save.svg' %}" alt="">
-                            </button>
-                        </span>
-                    </form>
+                {% if expert_is_CS and peut_modifier_destinataire %}
+                    <div class="destinataire-cs {% if not avis.destinataire %}edition-active{% endif %}">
+                        {% if avis.destinataire %}
+                            <p class="destinataire-cs-valeur">
+                                <strong>Destinataire :</strong> {{ avis.get_destinataire_display }}
+                                <button type="button" class="btn-modifier-destinataire" title="Modifier le destinataire" aria-label="Modifier le destinataire" onclick="this.closest('.destinataire-cs').classList.add('edition-active')">
+                                    <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                                </button>
+                            </p>
+                        {% endif %}
+                        <form method="post" action="{% url 'enregistrer_destinataire_avis' avis.id %}" class="form-date-cs form-destinataire-cs">
+                            {% csrf_token %}
+                            <label for="destinataire"><strong>Destinataire :</strong></label>
+                            <span class="date-cs-controls">
+                                <select id="destinataire" name="destinataire" required>
+                                    <option value="" {% if not avis.destinataire %}selected{% endif %}>-- Sélectionner --</option>
+                                    <option value="CS" {% if avis.destinataire == "CS" %}selected{% endif %}>CS</option>
+                                    <option value="BCS" {% if avis.destinataire == "BCS" %}selected{% endif %}>BCS</option>
+                                </select>
+                                <button type="submit" class="btn-valider-date-cs" aria-label="Enregistrer le destinataire" title="Enregistrer le destinataire">
+                                    <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                </button>
+                            </span>
+                        </form>
+                    </div>
+                {% elif expert_is_CS and avis.destinataire %}
+                    <p><strong>Destinataire :</strong> {{ avis.get_destinataire_display }}</p>
+                {% endif %}
+
+                {% if expert_is_CS %}
+                    {% if peut_modifier_date_transmission_cs %}
+                        <div class="date-transmission-cs {% if not avis.date_transmission_cs %}edition-active{% endif %}">
+                            {% if avis.date_transmission_cs %}
+                                <p class="date-transmission-cs-valeur">
+                                    <strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}
+                                    <button type="button" class="btn-modifier-destinataire" title="Modifier la date de transmission" aria-label="Modifier la date de transmission" onclick="this.closest('.date-transmission-cs').classList.add('edition-active')">
+                                        <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+                                    </button>
+                                </p>
+                            {% endif %}
+                            <form method="post" action="{% url 'enregistrer_date_transmission_cs' avis.id %}" class="form-date-cs form-edition-date-cs">
+                                {% csrf_token %}
+                                <label for="date_transmission_cs"><strong>Date de transmission aux membres du CS :</strong></label>
+                                <span class="date-cs-controls">
+                                    <input type="date" id="date_transmission_cs" name="date_transmission_cs" value="{{ avis.date_transmission_cs|date:'Y-m-d' }}" required>
+                                    <button type="submit" class="btn-valider-date-cs" aria-label="Enregistrer" title="Enregistrer">
+                                        <img src="{% static 'instruction/img/save.svg' %}" alt="">
+                                    </button>
+                                </span>
+                            </form>
+                        </div>
+                    {% elif avis.date_transmission_cs %}
+                        <p><strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
+                    {% endif %}
                 {% endif %}
 
 
@@ -492,24 +533,18 @@
 
             </div>
 
-            {% if avis.note and not est_expert %}
+            {% if peut_voir_note_avis %}
                 <div class="infos-note-avis">
                     <h2>Notes des demandeurs</h2>
 
                     <form method="post" action="{% url 'mettre_a_jour_note_avis' avis.id %}" class="form-note-avis">
                         {% csrf_token %}
 
-                        <!-- <textarea name="note" rows="5">{{ avis.note }}</textarea> -->
+                        <textarea name="note" rows="5" placeholder="Ajouter une note. Celle-ci ne sera pas visible par l'expert.e…">{{ avis.note|default_if_none:"" }}</textarea>
 
-                        <textarea name="note" rows="5"
-                            {% if not request.user|est_concerne_par_avis:avis %}
-                                readonly
-                                title="Vous devez être concerné.e par l'avis pour modifier cette note"
-                            {% endif %}>{{ avis.note }}</textarea>
-
-                        {% if request.user|est_concerne_par_avis:avis %}
-                            <button type="submit" class="valider-btn" title="Mettre à jour la note">Mettre à jour</button>
-                        {% endif %}
+                        <button type="submit" class="valider-btn" title="Enregistrer la note">
+                            {% if avis.note %}Mettre à jour{% else %}Ajouter la note{% endif %}
+                        </button>
                     </form>
                 </div>
             {% endif %}

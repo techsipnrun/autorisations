@@ -118,10 +118,8 @@ def utilisateur_est_publicateur_raa_cs(user):
     )
 
 
-def avis_est_conseil_scientifique(avis):
-    expert = getattr(avis, "id_expert", None)
-    contact = getattr(expert, "id_contact_externe", None) if expert else None
-    if not expert or expert.est_interne or not contact:
+def contact_est_conseil_scientifique(contact):
+    if not contact:
         return False
 
     valeurs_identite = (
@@ -132,6 +130,16 @@ def avis_est_conseil_scientifique(avis):
         (valeur or "").strip().casefold() == "conseil scientifique"
         for valeur in valeurs_identite
     )
+
+
+def expert_est_conseil_scientifique(expert):
+    if not expert or expert.est_interne:
+        return False
+    return contact_est_conseil_scientifique(getattr(expert, "id_contact_externe", None))
+
+
+def avis_est_conseil_scientifique(avis):
+    return expert_est_conseil_scientifique(getattr(avis, "id_expert", None))
 
 
 def get_expert_label(avis, num_dossier: int) -> str:

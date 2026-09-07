@@ -12,6 +12,27 @@ document.addEventListener("DOMContentLoaded", function () {
     const blocExterne  = document.getElementById("bloc_expert_externe");
     const expertInterne = document.getElementById("expert_interne");
     const expertExterne = document.getElementById("expert_externe");
+    const blocDestinataireCS = document.getElementById("bloc_destinataire_cs");
+    const destinataire = document.getElementById("destinataire");
+
+    function expertExterneEstCS() {
+        const natureSelectionnee = nature.options[nature.selectedIndex]?.text.trim();
+        return natureSelectionnee === "Demande à une instance"
+            && expertExterne?.selectedOptions[0]?.dataset.estCs === "true";
+    }
+
+    function toggleDestinataireCS() {
+        const visible = expertExterneEstCS();
+        blocDestinataireCS.hidden = !visible;
+        blocDestinataireCS.style.display = visible ? "flex" : "none";
+        if (!visible) {
+            destinataire.required = false;
+            destinataire.value = "";
+        }
+    }
+
+    expertExterne.addEventListener("change", toggleDestinataireCS);
+    toggleDestinataireCS();
 
     // Pièces jointes
     const blocAutresPJ = document.getElementById("bloc_autres_pj_avis");
@@ -29,11 +50,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const selected = nature.options[nature.selectedIndex]?.text.trim();
 
         if (selected === "Consultation en interne") {
+            expertExterne.value = "";
             blocInterne.style.display = "flex";
             blocPJ_demandeAvis.style.display = "flex";
             blocAutresPJ.style.display = "flex";
         } 
         else if (selected === "Demande à une instance") {
+            expertInterne.value = "";
             blocExterne.style.display = "flex";
             // expertExterne.required = true;
             blocPJ_demandeAvis.style.display = "flex";
@@ -41,6 +64,8 @@ document.addEventListener("DOMContentLoaded", function () {
             blocPJ_rapportCS.style.display = "flex";
             blocPJ_projetActe.style.display = "flex";
         }
+
+        toggleDestinataireCS();
     }
 
     nature.addEventListener("change", toggleExperts);
@@ -102,7 +127,7 @@ Merci d’avance pour votre retour.`;
     // ---- Gestion des required selon bouton ----
     function resetRequired() {
         [nature, thematique, modeContact, formulation,
-         expertInterne, expertExterne, pjDemandeAvis, pjProjetActe].forEach(el => {
+         expertInterne, expertExterne, destinataire, pjDemandeAvis, pjProjetActe].forEach(el => {
             if (el) el.required = false;
         });
     }
@@ -123,6 +148,7 @@ Merci d’avance pour votre retour.`;
 
         if (selected === "Demande à une instance") {
         expertExterne.required = true;
+        destinataire.required = buttonType === "confirmer" && expertExterneEstCS();
 
         if (buttonType === "confirmer") {
             if (pjDemandeAvis.dataset.exists !== "true") {

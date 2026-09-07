@@ -1,5 +1,6 @@
 {% load static %}
 {% load breadcrumb_tags %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -18,7 +19,7 @@
     <link rel="stylesheet" href="{% static 'instruction/css/copie_dossier_titre.css' %}?v=3">
 
     <!-- JS Formulaire Avis -->
-    <script src="{% static 'instruction/js/ajouter_avis.js' %}?v=2"></script>
+    <script src="{% static 'instruction/js/ajouter_avis.js' %}?v=5"></script>
     
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
@@ -177,7 +178,7 @@
                         <select id="expert_externe" name="expert_externe">
                             <option value="">-- Sélectionner --</option>
                             {% for c in contacts_externes %}
-                                <option value="{{ c.id }}"
+                                <option value="{{ c.id }}" data-est-cs="{{ c|est_contact_conseil_scientifique|yesno:'true,false' }}"
                                     {% if avis and avis.id_expert and avis.id_expert.id_contact_externe and avis.id_expert.id_contact_externe.id == c.id %}selected{% endif %}>
                                     {% if c.nom and c.prenom and c.email %}
                                         {{ c.nom }} {{ c.prenom }} - {{ c.email }}
@@ -194,6 +195,15 @@
                             {% endfor %}
                         </select>
 
+                    </div>
+
+                    <div class="attribut_avis" id="bloc_destinataire_cs" hidden style="display: none;">
+                        <label for="destinataire">Destinataire* :</label>
+                        <select id="destinataire" name="destinataire">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="CS" {% if avis.destinataire == "CS" %}selected{% endif %}>CS</option>
+                            <option value="BCS" {% if avis.destinataire == "BCS" %}selected{% endif %}>BCS</option>
+                        </select>
                     </div>
 
                     <div class="attribut_avis texte_libre">

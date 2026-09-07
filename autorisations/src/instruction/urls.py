@@ -52,6 +52,7 @@ urlpatterns = [
     path("reception_avis/nouvelle_demande_avis_generique/", avis.nouvelle_demande_avis_generique, name="nouvelle_demande_avis_generique"),
     path("reception_avis/nouvelle_demande_avis_generique/confirmer/", avis.avis_confirmer_nouvelle_demande_generique, name="avis_confirmer_nouvelle_demande_generique"),
     path("enregistrer-date-transmission-cs/<int:avis_id>/", expert.enregistrer_date_transmission_cs, name="enregistrer_date_transmission_cs"),
+    path("enregistrer-destinataire-avis/<int:avis_id>/", expert.enregistrer_destinataire_avis, name="enregistrer_destinataire_avis"),
 
 
     # INSTRUCTION
