@@ -216,8 +216,8 @@ def get_indicateurs_date_manifestation(date_debut):
 @login_required
 def accueil(request):
 
-    etapes_instruction = EtapeDossier.objects.exclude(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"])
-    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
+    etapes_instruction = EtapeDossier.objects.exclude(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé", "À affecter"])
+    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé"])
     etape_a_affecter = EtapeDossier.objects.get(etape="À affecter")
 
     # Instructeur
@@ -252,7 +252,7 @@ def mesdossiers(request):
         return render(request, "instruction/mesdossiers.html", { "dossiers_par_demarche": [] })
     
     # Étapes exclues
-    etapes_termines_et_a_affecter = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"])
+    etapes_termines_et_a_affecter = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé", "À affecter"])
 
     # Tous les dossiers où l'instructeur intervient (Hors étape 'À affecter')
     base_query = get_dossiers_instructeur(instructeur)
@@ -331,7 +331,7 @@ def instruction_demarche(request, num_demarche):
         return redirect_error(request, f"❌ La démarche {num_demarche} est introuvable en base. Contactez le support")
 
 
-    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté"])
+    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé"])
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
@@ -351,7 +351,7 @@ def instruction_demarche(request, num_demarche):
     dossiers = (
         Dossier.objects
         .filter(id_demarche=demarche)
-        .exclude(id_etape_dossier__etape__in=["Accepté", "Refusé", "Non soumis à autorisation", "À affecter"])
+        .exclude(id_etape_dossier__etape__in=["Accepté", "Refusé", "Non soumis à autorisation", "Annulé", "À affecter"])
         .select_related("id_groupeinstructeur")
         .order_by("date_depot")
     )

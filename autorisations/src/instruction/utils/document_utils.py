@@ -89,12 +89,26 @@ def build_documents_for_dossier(dossier):
         reverse=True,
     )[:1]
 
+    justificatifs_annulation_tous = [
+        dd.id_document
+        for dd in docs_du_dossier
+        if (dd.id_document.description or "").startswith(
+            "Justificatif du classement comme annulé"
+        )
+    ]
+    justificatifs_annulation = sorted(
+        justificatifs_annulation_tous,
+        key=lambda document: document.date,
+        reverse=True,
+    )[:1]
+
     annexes_instructeur = [
         dd.id_document
         for dd in docs_du_dossier
         if dd.id_document.id_nature.nature.lower() == "annexe instructeur"
         and dd.id_document not in justificatifs_classement_tous
         and dd.id_document not in justificatifs_refus_tous
+        and dd.id_document not in justificatifs_annulation_tous
     ]
 
     # Liste des titres pour la section Actes du NAS
@@ -184,6 +198,7 @@ def build_documents_for_dossier(dossier):
         "annexes_instructeur": annexes_instructeur,
         "justificatifs_classement": justificatifs_classement,
         "justificatifs_refus": justificatifs_refus,
+        "justificatifs_annulation": justificatifs_annulation,
         "titres_documents_actes": list(documents_actes),
         "doc_a_valider": acte_a_valider,
         "doc_a_relire": acte_a_relire,

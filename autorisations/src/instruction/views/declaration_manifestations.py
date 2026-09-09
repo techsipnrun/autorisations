@@ -93,7 +93,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
     # -------------------------------------------------------------------
     dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
 
-    etapes_avec_acte_deja_envoye = ["À publier au RAA", "Non soumis à autorisation", "Refusé", "Accepté",]
+    etapes_avec_acte_deja_envoye = ["À publier au RAA", "Non soumis à autorisation", "Refusé", "Accepté", "Annulé"]
     
     # DOSSIER DN NON ARCHIVÉ, PAS LIÉ
     dossiers_DN_manif_sportive_non_lie = (
@@ -384,7 +384,7 @@ def archive_lier_dossier_manif_sportive_a_DN(request):
 
     
     # --- Sécurité : vérifier que Dossier DN "Manifestations sportives" + dossier archivé ---
-    etapes_archive = ["Non répondu", "Non soumis à autorisation", "Refusé", "Accepté"]
+    etapes_archive = ["Non répondu", "Non soumis à autorisation", "Refusé", "Accepté", "Annulé"]
     if (dossier_dn.id_demarche.type != "Manifestations sportives" or dossier_dn.id_etape_dossier.etape not in etapes_archive) :
         return redirect_error(request, f"Erreur lors de la liaison entre les deux dossiers. Le dossier Démarche Numérique {dossier_dn.numero} n'est pas archivé. Contactez le support.")
     
@@ -1097,6 +1097,83 @@ def declaration_manifestations_non_repondu(request):
                         f"Erreur lors de la soumission d'un avis 'Non Répondu' sur DM : {e}")
             
         return redirect_error(request, f"Une erreur est survenue lors de la soumission de l'avis sur Déclaration Manifestations. Contactez le support si besoin.")
+
+
+@login_required
+@require_POST
+def declaration_manifestations_classer_comme_annule(request):
+    """Archive un dossier DM seul sans rendre d'avis et le place à l'étape Annulé."""
+    logger.info("")
+    num_dossier_dm = None
+
+    donnees, erreur = reception_lire_donnees_formulaire_avis_dm(
+        request,
+        acte_obligatoire=False,
+        label_action="Classé comme annulé",
+        logger=logger,
+    )
+    if erreur:
+        return erreur
+
+    prescriptions = donnees["prescriptions"]
+    dossier_dm_id = donnees["dossier_dm_id"]
+    fichiers = donnees["fichiers"]
+
+    erreur = reception_verifier_acces_et_fichiers_avis_dm(
+        request,
+        fichiers=fichiers,
+        label_action="Classé comme annulé",
+        logger=logger,
+    )
+    if erreur:
+        return erreur
+
+    try:
+        with transaction.atomic():
+            contexte, erreur = reception_charger_contexte_avis_dm(
+                request,
+                dossier_dm_id=dossier_dm_id,
+                nom_etape_cible="Annulé",
+                label_action="Classé comme annulé",
+                logger=logger,
+            )
+            if erreur:
+                return erreur
+
+            dossier_dm = contexte["dossier_dm"]
+            num_dossier_dm = contexte["num_dossier_dm"]
+            reception_rendre_avis_et_mettre_a_jour_dm(
+                prescriptions=prescriptions,
+                code_avis_dm=0,
+                reponse_avis_bdd="non répondu",
+                contexte=contexte,
+                logger=logger,
+            )
+
+        messages.success(
+            request,
+            f"Le dossier Déclaration Manifestations « {dossier_dm.nom_dossier} » a été classé comme annulé.",
+        )
+        return redirect(
+            reverse(
+                "dossier_manif_sportive_sans_ds_archive",
+                kwargs={"numero": num_dossier_dm},
+            )
+        )
+
+    except Exception as e:
+        identifiant_doss = (
+            f"{num_dossier_dm}" if num_dossier_dm else f"(id = {dossier_dm_id})"
+        )
+        logger.error(
+            f"[Dossier DM {identifiant_doss} - Réception - Annulation] "
+            f"Utilisateur : {request.user}. Erreur lors du classement comme annulé : {e}"
+        )
+        return redirect_error(
+            request,
+            "Une erreur est survenue lors du classement comme annulé sur "
+            "Déclaration Manifestations. Contactez le support si besoin.",
+        )
 
 
 

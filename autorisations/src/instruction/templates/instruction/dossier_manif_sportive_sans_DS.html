@@ -24,8 +24,8 @@
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
@@ -238,7 +238,7 @@
             <div class="etat-badge-container">
                 <div class="etat-badge-menu-dropdown">
 
-                    <div class="etat-badge-label" id="etapeMenuToggle" 
+                    <div class="etat-badge-label {% if doss_manif_sportive.id_etape.etape == 'Annulé' %}etape-annulee{% endif %}" id="etapeMenuToggle"
                     {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
                         {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
                         <span class="dropdown-arrow">&#9660;</span>
@@ -261,6 +261,9 @@
                                             
                                             {% elif label == "Déclaration Manifestations - Non répondu" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonReponduDeclarationManifestations()">Ne pas rendre d'avis</button>
+
+                                            {% elif label == "Déclaration Manifestations - Classer comme annulé" %}
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAnnulerDeclarationManifestations()">Classer comme annulé</button>
                                             
                                             {% endif %}
 
@@ -448,6 +451,23 @@ Le Parc national de La Réunion</textarea>
                     
                     <div class="zone-confirmer-formulaire">
                         <button type="button" class="btn-confirmer-formulaire" onclick="confirmerNonReponduDM(this)">Confirmer</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="formulaire-annuler-dm" class="zone-complement zone-envoyer-pour-validation formulaire-annulation">
+                <form id="form-annuler-dm" method="post" action="{% url 'declaration_manifestations_classer_comme_annule_url' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="dossierDM_id" value="{{ doss_manif_sportive.id }}">
+                    <h2>Classer ce dossier comme annulé</h2>
+
+                    <p class="formulaire-annulation-aide">
+                        Aucun avis ne sera rendu. Vous pouvez transmettre un message facultatif au demandeur sur Déclaration Manifestations.
+                    </p>
+                    <textarea name="prescriptions" class="textarea-complement textarea-annulation" rows="3" placeholder="Message facultatif au demandeur..."></textarea>
+
+                    <div class="zone-confirmer-formulaire">
+                        <button type="button" class="btn-confirmer-formulaire" onclick="confirmerAnnulerDM(this)">Confirmer</button>
                     </div>
                 </form>
             </div>
@@ -1047,6 +1067,12 @@ Dans l'attente de vos compléments,</textarea>
         fermerMenuEtape();
     }
 
+    function afficherFormulaireAnnulerDeclarationManifestations() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-annuler-dm").classList.add("show");
+        fermerMenuEtape();
+    }
+
     // function afficherFormulaireDeposerPJ_DeclarationManifestations() {
     //     const formulaire = document.getElementById("formulaire-deposer-pj-dm");
 
@@ -1205,6 +1231,14 @@ Dans l'attente de vos compléments,</textarea>
             formId: "form-non-repondu-dm",
             button: button,
             messageConfirmation: "Confirmez-vous ne pas répondre à la demande et archiver le dossier sur Déclaration Manifestations ?\n\nPour rappel, aucun dossier Démarche Numérique n'est encore associé."
+        });
+    }
+
+    function confirmerAnnulerDM(button) {
+        soumettreFormulaireAvecConfirmation({
+            formId: "form-annuler-dm",
+            button: button,
+            messageConfirmation: "Confirmez-vous le classement du dossier comme annulé ? Aucun avis ne sera rendu sur Déclaration Manifestations."
         });
     }
 

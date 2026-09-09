@@ -90,8 +90,8 @@
                         </thead>
                         <tbody>
                             {% for d in dossiers %}
-                                <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}"
-                                {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}title="Nouveau message sur le dossier archivé"{% elif d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
+                                <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté,Annulé' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}"
+                                {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté,Annulé' %}title="Nouveau message sur le dossier archivé"{% elif d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
                                     <td>
                                         {% if d.nb_messages_non_lus > 0 %}
                                             <div class="nouv_mess_wrapper">
@@ -118,7 +118,7 @@
                                     <td>{{ d.mon_role }}</td>
                                     <td>
                                         {% if d.action_a_faire %}
-                                            <span class="{% if d.etape in 'Non soumis à autorisation,Refusé,Accepté' %}dot-action-archive{% else %}dot-action{% endif %}"></span>
+                                            <span class="{% if d.etape in 'Non soumis à autorisation,Refusé,Accepté,Annulé' %}dot-action-archive{% else %}dot-action{% endif %}"></span>
                                         {% endif %}
                                         {{ d.etape }}
                                     </td>

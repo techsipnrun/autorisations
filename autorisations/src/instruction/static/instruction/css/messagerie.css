@@ -438,9 +438,12 @@ h1 {
 }
 
 .file-icon {
+    display: block;
     width: 28px;
     height: 28px;
-    flex-shrink: 0;
+    flex: 0 0 28px;
+    object-fit: contain;
+    object-position: center;
 }
 
 .pj-card {

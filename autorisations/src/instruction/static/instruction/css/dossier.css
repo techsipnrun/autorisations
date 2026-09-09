@@ -715,6 +715,42 @@ h2 {
     gap: 8px;
 }
 
+.etat-badge-label.etape-acceptee {
+    background-color: #d8efdf;
+    color: #155b2f;
+}
+
+.etat-badge-label.etape-refusee {
+    background-color: #f4d4d7;
+    color: #8b1e28;
+}
+
+.etat-badge-label.etape-non-soumise {
+    background-color: #ffe1b5;
+    color: #854d0e;
+}
+
+.etat-badge-label.etape-annulee {
+    background-color: #dfc9b8;
+    color: #603b26;
+}
+
+.zone-complement.show {
+    margin-bottom: 1rem;
+}
+
+.formulaire-annulation .formulaire-annulation-aide {
+    margin-bottom: 0.75rem;
+    font-style: italic;
+}
+
+.formulaire-annulation .textarea-annulation {
+    min-height: 0;
+    height: calc(3 * 1.4em + 1rem + 2px);
+    line-height: 1.4;
+    resize: vertical;
+}
+
 /* Triangle ▼ */
 .dropdown-arrow {
     font-size: 1rem;

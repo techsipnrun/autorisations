@@ -45,7 +45,21 @@
 .formulaire_dm .en_attente_DS p{
     font-style: italic;
     font-size: 1.3rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
+}
+
+.formulaire_dm .en_attente_DS_message .message_info_liaison,
+.formulaire .en_attente_DS_message .message_info_liaison {
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.formulaire-dm-details .btn-liaison-ds {
+    align-self: flex-start;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.55rem 0.85rem;
+    white-space: normal;
 }
 
 /* ------------------------ */
@@ -792,4 +806,63 @@
 .btn-close-relance:hover {
     color: #000;
     transform: scale(1.2);
+}
+
+#formulaire-annuler-dm h2 {
+    margin-top: 0;
+}
+
+@media (max-width: 1000px) {
+    .formulaire-dm-details {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .formulaire-dm-details .en_attente_DS {
+        box-sizing: border-box;
+        flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+        gap: 0.75rem;
+        padding-inline: 0;
+    }
+
+    .formulaire-dm-details .bloc_liaison_ds {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .formulaire-dm-details .btn-liaison-ds {
+        box-sizing: border-box;
+        width: fit-content;
+        max-width: 100%;
+        padding: 0.55rem 0.85rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .formulaire-dm-details .form-liaison-ds {
+        position: static;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        padding: 0.75rem;
+    }
+
+    .formulaire_dm .en_attente_DS_message p,
+    .formulaire .en_attente_DS_message p {
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+}
+
+@media (max-width: 600px) {
+    .formulaire_dm .en_attente_DS_message p,
+    .formulaire .en_attente_DS_message p {
+        font-size: 0.9rem;
+    }
 }

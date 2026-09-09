@@ -75,8 +75,8 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
     try :
         dossier.id_etape_dossier = nouvelle_etape
 
-        # Si acceptation/refus → date de fin d'instruction
-        if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
+        # Une étape finale clôt la période d'instruction.
+        if nouvelle_etape.etape in ['Accepté', 'Refusé', 'Non soumis à autorisation', 'Annulé']:
             dossier.date_fin_instruction = timezone.now()
             
         dossier.save()
@@ -91,7 +91,7 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
     #######################
 
     # --- Étapes finales → pas de notification mail pour le moment ---
-    if nouvelle_etape.etape == 'Accepté' or nouvelle_etape.etape == 'Refusé' or nouvelle_etape.etape == 'Non soumis à autorisation' :
+    if nouvelle_etape.etape in ['Accepté', 'Refusé', 'Non soumis à autorisation', 'Annulé']:
         return
     
     # --- Notification mail pour les autres étapes ---
@@ -491,6 +491,7 @@ def get_instructeurs_a_actionner(dossier):
     selon l’étape actuelle.
     """
 
+    instructeurs = []
     etape = dossier.id_etape_dossier.etape if dossier.id_etape_dossier else None
     if not etape:
         logger.error(f"[DOSSIER {dossier.numero}] Erreur lors de l'envoi de mail pour notifier le changement d'étape (Etape '{dossier.id_etape_dossier}') introuvable")

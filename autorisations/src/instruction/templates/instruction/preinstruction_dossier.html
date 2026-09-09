@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -69,7 +69,7 @@
                 </div>
             {% endif %}
             
-            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" and etape_actuelle.etape != "Annulé" %}
                 <div class="mini_timeline">
                     <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
                 </div>
@@ -214,7 +214,7 @@
                 {% if not dossier.present_sur_ds %}
                     <p class="info-message">⚠️ Ce dossier n'est plus sur Démarche Numérique
 
-                        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
+                        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Annulé" %}
                             <br>
                             Le dossier a été supprimé de Démarche Numérique par le demandeur alors que son instruction n'avait pas débuté.
                         {% endif %}
@@ -224,7 +224,7 @@
 
                 <div class="etat-badge-container">
                     <div class="etat-badge-menu-dropdown">
-                        <div class="etat-badge-label" id="etapeMenuToggle">
+                        <div class="etat-badge-label {% if etape_actuelle.etape == 'Accepté' %}etape-acceptee{% elif etape_actuelle.etape == 'Refusé' %}etape-refusee{% elif etape_actuelle.etape == 'Non soumis à autorisation' %}etape-non-soumise{% elif etape_actuelle.etape == 'Annulé' %}etape-annulee{% endif %}" id="etapeMenuToggle">
                             {{ etape_dossier }}
                             <span class="dropdown-arrow">&#9660;</span>
                         </div>
@@ -264,6 +264,17 @@
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
                                                     </form>
+
+                                                {% elif label == "Classer comme annulé" %}
+                                                    {% if dossier.present_sur_ds %}
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
+                                                    {% else %}
+                                                        <form method="post" action="{% url 'classer_comme_annule_url' %}">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                            <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAnnule(this)">Classer comme annulé</button>
+                                                        </form>
+                                                    {% endif %}
 
                                                 {% elif label == "Passer en pré-instruction" %}
                                                     <form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
@@ -317,6 +328,24 @@
                         {{ preinstruction_message }}
                     </div>
                 {% endif %}
+
+                <div id="formulaire-annulation" class="zone-complement zone-envoyer-pour-validation formulaire-annulation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_comme_annule_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme annulé ?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <p class="formulaire-annulation-aide">
+                            Le message et la pièce jointe sont facultatifs. S'ils sont renseignés, ils seront visibles par le demandeur sur son espace Démarche Numérique{% if dossier_lie_manif_sportive %} ; le message sera également transmis sur Déclaration Manifestations{% endif %}.
+                        </p>
+                        <textarea name="motivation" class="textarea-complement textarea-annulation" rows="3" placeholder="Message facultatif au demandeur..."></textarea>
+
+                        <div class="zone-pj-complement">
+                            <label for="justificatif-annulation-preinstruction">Joindre une pièce (facultatif) :</label>
+                            <input id="justificatif-annulation-preinstruction" type="file" name="justificatif" data-taille-max="10485760">
+                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+                            <button type="submit" class="btn-envoyer-complement">Confirmer l'annulation</button>
+                        </div>
+                    </form>
+                </div>
 
 
                 {% if dossier_lie_manif_sportive and doss_manif_sportive %}
@@ -970,6 +999,21 @@
             }
             fermerMenuEtape();
         }
+
+    function confirmerClasserCommeAnnule(button) {
+        masquerToutesZonesComplementaires();
+        const confirmation = confirm("Confirmez-vous le classement du dossier comme annulé ?\n\nCette action sera irréversible.");
+        if (confirmation) {
+            button.closest("form").submit();
+        }
+        fermerMenuEtape();
+    }
+
+    function afficherFormulaireAnnulation() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-annulation").classList.add("show");
+        fermerMenuEtape();
+    }
 
 
     function fermerMenuEtape() {

@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -84,7 +84,7 @@
             {% endif %}
             
             <!-- Mini timeline -->
-            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" and etape_actuelle.etape != "Annulé" %}
                 <div class="mini_timeline">
                 
                     {% if etape_actuelle.etape == "À affecter" or etape_actuelle.etape == "En pré-instruction" %}
@@ -269,7 +269,7 @@
                     <p class="info-message">
                         ⚠️ Ce dossier n'est plus sur Démarche Numérique.
                         
-                        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
+                        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Annulé" %}
                             <br>
                             Le dossier a été supprimé de Démarche Numérique par le demandeur alors que son instruction n'était pas terminée.
                         {% endif %}
@@ -284,7 +284,7 @@
                 <div class="etat-badge-container">
                     <div class="etat-badge-menu-dropdown">
 
-                        <div class="etat-badge-label" id="etapeMenuToggle" 
+                        <div class="etat-badge-label {% if etape_actuelle.etape == 'Accepté' %}etape-acceptee{% elif etape_actuelle.etape == 'Refusé' %}etape-refusee{% elif etape_actuelle.etape == 'Non soumis à autorisation' %}etape-non-soumise{% elif etape_actuelle.etape == 'Annulé' %}etape-annulee{% endif %}" id="etapeMenuToggle"
                         {% if not request.user.is_superuser and not request.user|est_autorise_a_changer_etape:dossier %} title="Vous n'avez pas les droits nécessaires pour changer d'étape" {% endif %}>
                             {{ etape_actuelle.etape|default:"Non défini" }}
                             <span class="dropdown-arrow">&#9660;</span>
@@ -392,6 +392,17 @@
                                                     </form>
                                                 {% endif %}
 
+                                            {% elif label == "Classer comme annulé" %}
+                                                {% if dossier.present_sur_ds and etape_actuelle.etape == "À affecter" or dossier.present_sur_ds and etape_actuelle.etape == "En pré-instruction" or dossier.present_sur_ds and etape_actuelle.etape == "En instruction" %}
+                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
+                                                {% else %}
+                                                    <form method="post" action="{% url 'classer_comme_annule_url' %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAnnule(this)">Classer comme annulé</button>
+                                                    </form>
+                                                {% endif %}
+
                                             {% else %}
                                                 <form method="post" action="{% url label|url_name_from_label %}">
                                                     {% csrf_token %}
@@ -472,6 +483,30 @@
 
                         <ul class="justificatifs-classement-liste">
                             {% for justificatif in justificatifs_refus %}
+                                <li class="justificatif-classement-item">
+                                    <div class="justificatif-classement-document">
+                                        {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=justificatif.emplacement fichier_titre=justificatif.titre %}
+                                    </div>
+                                    <time datetime="{{ justificatif.date|date:'c' }}">
+                                        Déposé le {{ justificatif.date|date:"d/m/Y" }} à {{ justificatif.date|time:"H:i" }}
+                                    </time>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if etape_actuelle.etape == "Annulé" and justificatifs_annulation %}
+                    <div class="justificatifs-classement">
+                        <div class="justificatifs-classement-entete">
+                            <div>
+                                <strong>Justificatif de la décision</strong>
+                                <span>Document joint au classement comme annulé</span>
+                            </div>
+                        </div>
+
+                        <ul class="justificatifs-classement-liste">
+                            {% for justificatif in justificatifs_annulation %}
                                 <li class="justificatif-classement-item">
                                     <div class="justificatif-classement-document">
                                         {% include "instruction/refacto/file_hover_preview.html" with fichier_emplacement=justificatif.emplacement fichier_titre=justificatif.titre %}
@@ -1102,6 +1137,24 @@ Le Parc national de La Réunion</textarea>
                                 <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
                             {% endif %}
                             <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="formulaire-annulation" class="zone-complement zone-envoyer-pour-validation formulaire-annulation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_comme_annule_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme annulé ?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <p class="formulaire-annulation-aide">
+                            Le message et la pièce jointe sont facultatifs. S'ils sont renseignés, ils seront visibles par le demandeur sur son espace Démarche Numérique{% if dossier_lie_manif_sportive %} ; le message sera également transmis sur Déclaration Manifestations{% endif %}.
+                        </p>
+                        <textarea name="motivation" class="textarea-complement textarea-annulation" rows="3" placeholder="Message facultatif au demandeur..."></textarea>
+
+                        <div class="zone-pj-complement">
+                            <label for="justificatif-annulation">Joindre une pièce (facultatif) :</label>
+                            <input id="justificatif-annulation" type="file" name="justificatif" data-taille-max="10485760">
+                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+                            <button type="submit" class="btn-envoyer-complement">Confirmer l'annulation</button>
                         </div>
                     </form>
                 </div>
@@ -2550,7 +2603,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
 
 
                 <!-- ############################# RELECTURE ############################# -->
-                {% if relecteurs_du_dossier or request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                {% if relecteurs_du_dossier or request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" and etape_actuelle.etape != "Annulé" %}
                     <div class="groupe-instructeur-info demander-relecture_juridique">
                         <h3>Relecture</h3>
 
@@ -2559,7 +2612,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 {{ relecteur_message }}
                             </div>
                         {% endif %}
-                        {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                        {% if not relecteurs_du_dossier and request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" and etape_actuelle.etape != "Annulé" %}
                             <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une relecture</button>
                         {% elif not relecteurs_du_dossier and not request.user|est_concerné_par_le_dossier:dossier %}
                             <p class="note-aucune">Aucune relecture demandée pour ce dossier</p>
@@ -2631,7 +2684,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                     </li>
                                 {% endfor %}
                             </ul>
-                            {% if request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" %}
+                            {% if request.user|est_concerné_par_le_dossier:dossier and etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" and etape_actuelle.etape != "Annulé" %}
                                 <button type="button" class="btn-relecture-toggle" onclick="toggleRelecteurForm()">Demander une autre relecture</button>
                             {% endif %}
                         {% endif %}
@@ -2938,6 +2991,21 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             if (confirmation) {
                 document.getElementById("formulaire-refus-2").submit();
             }
+            fermerMenuEtape();
+        }
+
+        function confirmerClasserCommeAnnule(button) {
+            masquerToutesZonesComplementaires();
+            const confirmation = confirm("Confirmez-vous le classement du dossier comme annulé ?\n\nCette action sera irréversible.");
+            if (confirmation) {
+                button.closest("form").submit();
+            }
+            fermerMenuEtape();
+        }
+
+        function afficherFormulaireAnnulation() {
+            masquerToutesZonesComplementaires();
+            document.getElementById("formulaire-annulation").classList.add("show");
             fermerMenuEtape();
         }
 

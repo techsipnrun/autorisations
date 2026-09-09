@@ -8,7 +8,7 @@
                 dossier{% if doc.dossiers_meme_acte|length > 1 %}s{% endif %}
             </strong>
         </div>
-        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" %}
+        {% if dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Annulé" %}
             <p class="dossiers-meme-acte-rappel">
                 Le même numéro d'acte semble être utilisé pour plusieurs dossiers.<br> 
                 Veuillez vérifier que les projets d’acte sont bien identiques.

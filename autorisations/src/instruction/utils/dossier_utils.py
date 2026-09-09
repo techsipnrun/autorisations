@@ -751,6 +751,7 @@ LOGO_MAPPING = {
     "Instructeur.e ajouté.e": "instructeur_ajoute.png",
     "Classé sans suite": "classe-sans-suite.png",
     "Classé comme refusé": "refuse.png",
+    "Classé comme annulé": "refuse.png",
     "Classé comme accepté": "accepte.png",
     "Demande de compléments": "demande-de-complements.png",
     "Avis reçu": "recu.png",

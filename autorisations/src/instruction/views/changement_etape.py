@@ -1381,6 +1381,16 @@ def repasser_en_instruction(request):
     if err: 
         return err
 
+    if dossier.id_etape_dossier.etape == "Annulé" and not dossier.present_sur_ds:
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Tentative de repassage en instruction d'un dossier "
+            f"annulé absent de DN par {request.user}."
+        )
+        return redirect_error(
+            request,
+            "Impossible de repasser en instruction un dossier annulé qui n'existe plus sur Démarche Numérique.",
+        )
+
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Repassage en instruction")
     if err:
@@ -2525,6 +2535,203 @@ def classer_le_dossier_comme_accepte(request):
 
     #Dossier Action
     safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@require_POST
+@login_required
+def classer_le_dossier_comme_annule(request):
+    dossier_id_ds = request.POST.get("dossierId")
+    motivation = request.POST.get("motivation", "").strip()
+    justificatif = request.FILES.get("justificatif")
+    format_justificatif = None
+    nature_justificatif = None
+
+    if not dossier_id_ds:
+        logger.error(f"[ANNULATION DOSSIER] User={request.user} : ID DS manquant.")
+        return redirect_error(
+            request,
+            "Impossible de classer le dossier comme annulé : ID DS manquant. Contactez le support.",
+        )
+
+    dossier, err = get_dossier_or_redirect(
+        request,
+        "ANNULATION DOSSIER",
+        id_ds=dossier_id_ds,
+    )
+    if err:
+        return err
+
+    etapes_autorisees = {
+        "À affecter",
+        "En pré-instruction",
+        "En instruction",
+        "Accepté",
+        "Refusé",
+        "Non soumis à autorisation",
+    }
+    etape_actuelle = getattr(dossier.id_etape_dossier, "etape", None)
+    if etape_actuelle not in etapes_autorisees:
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Tentative de classement comme annulé "
+            f"depuis l'étape '{etape_actuelle}' par {request.user}."
+        )
+        return redirect_error(
+            request,
+            "Ce dossier ne peut pas être classé comme annulé depuis son étape actuelle.",
+        )
+
+    doit_classer_sur_ds = (
+        dossier.present_sur_ds
+        and etape_actuelle in {"À affecter", "En pré-instruction", "En instruction"}
+    )
+
+    if justificatif and doit_classer_sur_ds:
+        if justificatif.size > 10 * 1024 * 1024:
+            return redirect_error(
+                request,
+                "Le justificatif dépasse la taille maximale autorisée de 10 Mo.",
+            )
+
+        extension = os.path.splitext(justificatif.name)[1].lstrip(".").lower()
+        format_justificatif = DocumentFormat.objects.filter(format__iexact=extension).first()
+        if not format_justificatif:
+            return redirect_error(
+                request,
+                f"Le format du justificatif « {extension or 'sans extension'} » n'est pas reconnu.",
+            )
+
+        nature_justificatif = DocumentNature.objects.filter(
+            nature__iexact="Annexe instructeur"
+        ).first()
+        if not nature_justificatif:
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Nature 'Annexe instructeur' introuvable "
+                "pour archiver le justificatif de l'annulation."
+            )
+            return redirect_error(
+                request,
+                "Impossible de préparer l'archivage du justificatif. Contactez le support.",
+            )
+
+    instructeur, err = get_instructeur_or_redirect(
+        request,
+        numero_dossier=dossier.numero,
+        action="Classer comme annulé",
+    )
+    if err:
+        return err
+
+    if doit_classer_sur_ds:
+        if (
+            dossier.id_etat_dossier.nom == "en_construction"
+            and etape_actuelle in {"À affecter", "En pré-instruction"}
+        ):
+            result = passer_en_instruction_ds(dossier.id_ds, instructeur)
+            if not result.get("success"):
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DN "
+                    f"avant annulation par {request.user} : {result.get('message')}"
+                )
+                return redirect_error(
+                    request,
+                    "Erreur lors du passage en instruction sur Démarche Numérique. Contactez le support.",
+                )
+
+        result = classer_sans_suite_ds(
+            dossier.id_ds,
+            instructeur,
+            motivation,
+            justificatif,
+        )
+        if not result.get("success"):
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Échec du classement sans suite sur DN avant "
+                f"annulation par {request.user} : {result.get('message')}"
+            )
+            return redirect_error(
+                request,
+                "Erreur lors du classement sans suite sur Démarche Numérique. Contactez le support.",
+            )
+
+        if justificatif:
+            try:
+                _archiver_justificatif_classement(
+                    dossier,
+                    justificatif,
+                    format_justificatif,
+                    nature_justificatif,
+                    request.user,
+                    type_decision="classement comme annulé",
+                )
+            except Exception as e:
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] Le classement sans suite a réussi sur DN, "
+                    f"mais le justificatif de l'annulation n'a pas pu être archivé localement : {e}"
+                )
+                messages.warning(
+                    request,
+                    "Le dossier a été classé sans suite sur Démarche Numérique, mais le "
+                    "justificatif n'a pas pu être archivé sur la page du dossier.",
+                )
+
+    liaison_dm = None
+    if dossier.id_demarche.type == "Manifestations sportives":
+        liaison_dm = DossierManifestationLiaison.objects.filter(
+            id_dossier=dossier
+        ).first()
+
+    if liaison_dm:
+        contexte_dm, erreur = _get_contexte_dossier_dm(
+            dossier=dossier,
+            request=request,
+            logger=logger,
+            action_log="Classement comme annulé",
+            message_succes_dn=(
+                "Le dossier a bien été classé sans suite sur Démarche Numérique"
+                if doit_classer_sur_ds
+                else "Le dossier a bien été traité côté Démarche Numérique"
+            ),
+            message_erreur_dm=(
+                "une erreur est survenue lors de l'archivage sans avis sur "
+                "Déclaration Manifestations"
+            ),
+        )
+        if erreur:
+            return erreur
+
+        _, erreur = _soumettre_avis_dm(
+            dossier=dossier,
+            request=request,
+            logger=logger,
+            action_log="Classement comme annulé",
+            message_succes_dn=(
+                "Le dossier a bien été classé sans suite sur Démarche Numérique"
+                if doit_classer_sur_ds
+                else "Le dossier a bien été traité côté Démarche Numérique"
+            ),
+            contexte_dm=contexte_dm,
+            code_avis_dm=0,
+            libelle_avis_dm="non répondu",
+            etape_cible_label="Annulé",
+            motivation=motivation,
+        )
+        if erreur:
+            return erreur
+
+    err = safe_update_etape(dossier, "Annulé", request, break_si_erreur=True)
+    if err:
+        return err
+
+    if doit_classer_sur_ds:
+        safe_update_etat(dossier, "sans_suite", request, break_si_erreur=False)
+
+    safe_enregistrer_action(dossier, instructeur, "Classé comme annulé", request)
+    messages.success(request, f"Le dossier {dossier.numero} a été classé comme annulé.")
+
+    if etape_actuelle == "À affecter":
+        return redirect(reverse("instruction_dossier", args=[dossier.numero]))
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 

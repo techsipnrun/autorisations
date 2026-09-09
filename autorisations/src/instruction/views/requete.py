@@ -747,7 +747,12 @@ def requete_avis(request):
                     Coalesce(F("id_contact_externe__nom"), Value(""))
                 )
             )
-            .filter(Q(interne__iexact=expert) | Q(externe__iexact=expert))
+            .filter(
+                Q(interne__iexact=expert)
+                | Q(externe__iexact=expert)
+                | Q(id_contact_externe__raison_sociale__iexact=expert)
+                | Q(id_contact_externe__organisation__iexact=expert)
+            )
             .exists()
         )
 
@@ -765,7 +770,9 @@ def requete_avis(request):
                 )
             ).filter(
                 Q(nom_complet_expert__iexact=expert) |
-                Q(nom_complet_externe__iexact=expert)
+                Q(nom_complet_externe__iexact=expert) |
+                Q(id_expert__id_contact_externe__raison_sociale__iexact=expert) |
+                Q(id_expert__id_contact_externe__organisation__iexact=expert)
             )
         else:
             expert = ""
@@ -1089,6 +1096,8 @@ def autocomplete_expert(request):
             | Q(id_instructeur__id_agent_autorisations__prenom__icontains=term)
             | Q(id_contact_externe__nom__icontains=term)
             | Q(id_contact_externe__prenom__icontains=term)
+            | Q(id_contact_externe__raison_sociale__icontains=term)
+            | Q(id_contact_externe__organisation__icontains=term)
         )
         .select_related(
             "id_instructeur__id_agent_autorisations",
@@ -1104,7 +1113,8 @@ def autocomplete_expert(request):
             nom = f"{a.prenom or ''} {a.nom or ''}".strip()
         elif e.id_contact_externe:
             c = e.id_contact_externe
-            nom = f"{c.prenom or ''} {c.nom or ''}".strip()
+            nom_complet = f"{c.prenom or ''} {c.nom or ''}".strip()
+            nom = nom_complet or c.raison_sociale or c.organisation or c.email
         else:
             continue
 

@@ -51,7 +51,7 @@
 
             {% if request.user|est_concerné_par_le_dossier:dossier %}
                 <div class="btn_avis">
-                    {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
+                    {% if dossier.id_etape_dossier.etape != "Non soumis à autorisation" and dossier.id_etape_dossier.etape != "Refusé" and dossier.id_etape_dossier.etape != "Accepté" and dossier.id_etape_dossier.etape != "Annulé" and dossier.id_etape_dossier.etape != "En relecture qualité" and dossier.id_etape_dossier.etape != "En attente de signature" and dossier.id_etape_dossier.etape != "Acte à envoyer" and dossier.id_etape_dossier.etape != "À publier au RAA" %}
                         <div class="nouvelle_demande_avis">
                             <a href="{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}" class="btn-nouvel-avis">
                                 + Nouvelle demande d'avis
