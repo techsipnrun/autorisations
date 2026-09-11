@@ -11,7 +11,7 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierInst
 from autorisations.models.models_avis import DossierAvis
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from instruction.utils.avis_utils import count_avis_with_unread_messages_for_dossier
-from instruction.utils.dossier_utils import get_chemin_complet_dossier, redirect_error
+from instruction.utils.dossier_utils import ajouter_message_bloc, get_chemin_complet_dossier, redirect_error
 from notifications.service import _render_message, compute_dedupe_key, create_EmailOutbox, create_EmailOutbox_DM, envoi_mail
 from instruction.services.messagerie_service import enregistrer_message_bdd, envoyer_message_ds, prepare_temp_file
 from instruction.utils_instru import format_etat_dossier
@@ -765,13 +765,14 @@ def renvoyer_mail_relance(request, email_id):
 
     if ok:
         logger.info(f"[DOSSIER DM {numero_dossier_dm}] Email ({email.id}) envoyé par {request.user} à {', '.join(email.to)} ")
+        ajouter_message_bloc(request, "mail_relance", f"Mail envoyé à {', '.join(email.to)}.", "success")
     else:
         logger.error(f"[DOSSIER DM {numero_dossier_dm}] Tentative {email.try_count} : Échec envoi email par {request.user} à {', '.join(email.to)} : {err}")
 
         if email.try_count < 3 :
-            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez le support.")
+            ajouter_message_bloc(request, "mail_relance", f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Ré-essayez dans quelques minutes, si l'erreur persiste contactez le support.", "error")
         else :
-            messages.error(request, f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez le support.")
+            ajouter_message_bloc(request, "mail_relance", f"Tentative {email.try_count} : Échec de l'envoi du mail à {', '.join(email.to)}. Contactez le support.", "error")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -819,15 +820,18 @@ def envoi_manuel_mail_relance(request, id_dm):
     ##################
     if not emails_norm:
         logger.warning(f"[DOSSIER DM {numero_dossier_dm}] Envoi manuel mail relance sans destinataire — User {request.user}")
-        return redirect_error(request, "❌ Veuillez renseigner au moins un destinataire.")
+        ajouter_message_bloc(request, "mail_relance", "Veuillez renseigner au moins un destinataire.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     if not sujet:
         logger.warning(f"[DOSSIER DM {numero_dossier_dm}] Envoi manuel mail relance sans sujet — User {request.user}")
-        return redirect_error(request, "❌ Veuillez renseigner un objet de mail.")
+        ajouter_message_bloc(request, "mail_relance", "Veuillez renseigner un objet de mail.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     if not body:
         logger.warning(f"[DOSSIER DM {numero_dossier_dm}] Envoi manuel mail relance sans corps — User {request.user}")
-        return redirect_error(request, "❌ Veuillez renseigner le corps du mail.")
+        ajouter_message_bloc(request, "mail_relance", "Veuillez renseigner le corps du mail.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
     # PRINT DEBUG
@@ -845,9 +849,9 @@ def envoi_manuel_mail_relance(request, id_dm):
         dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
 
     except Exception as e:
-        messages.error(request, f"L'email de relance à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        ajouter_message_bloc(request, "mail_relance", f"L'email de relance à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
         logger.error(f"[DOSSIER DM {numero_dossier_dm}] Échec de l'envoi du mail de relance à {emails_txt} par {request.user} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-        return
+        return redirect(request.META.get("HTTP_REFERER", "/"))
     
 
     outbox = create_EmailOutbox_DM(emails_norm, sujet, template_name, dedupe, context, dossier_dm, type_mail = "Relance")
@@ -856,12 +860,12 @@ def envoi_manuel_mail_relance(request, id_dm):
         ok, err = envoi_mail(outbox.id)
     else :
         logger.error(f"[DOSSIER DM {numero_dossier_dm}] Échec de l'envoi du mail de relance à {emails_txt} par {request.user} : Erreur lors de la création de l'EmailOutbox")
-        messages.error(request, f"L'email de relance à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-        return
+        ajouter_message_bloc(request, "mail_relance", f"L'email de relance à {emails_txt} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
     
     if ok:
         logger.info(f"[DOSSIER DM {numero_dossier_dm}] Email de relance envoyé par {request.user} à {emails_txt}")
-        messages.success(request, f"Mail de relance envoyé à {emails_txt}.")
+        ajouter_message_bloc(request, "mail_relance", f"Mail de relance envoyé à {emails_txt}.", "success")
     else:
         logger.error(f"[DOSSIER DM {numero_dossier_dm}] Échec de l'envoi du mail de relance par {request.user} à {emails_txt} : {err}")
 
@@ -870,11 +874,9 @@ def envoi_manuel_mail_relance(request, id_dm):
         outbox.refresh_from_db()
 
         if outbox.try_count < 3:
-            messages.error(request, f"Tentative {outbox.try_count} : échec de l'envoi du mail à {emails_txt}. "
-                                    f"Réessayez dans quelques minutes, si l'erreur persiste contactez le support."
-                            )
+            ajouter_message_bloc(request, "mail_relance", f"Tentative {outbox.try_count} : échec de l'envoi du mail à {emails_txt}. Réessayez dans quelques minutes, si l'erreur persiste contactez le support.", "error")
         else:
-            messages.error(request, f"Tentative {outbox.try_count} : échec de l'envoi du mail à {emails_txt}. Contactez le support.")
+            ajouter_message_bloc(request, "mail_relance", f"Tentative {outbox.try_count} : échec de l'envoi du mail à {emails_txt}. Contactez le support.", "error")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 

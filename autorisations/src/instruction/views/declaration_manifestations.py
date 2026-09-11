@@ -12,12 +12,13 @@ from django.contrib import messages
 from autorisations.models.models_instruction import Champ, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierManifSportiveDocument
-from autorisations.models.models_utilisateurs import ContactExterne, EmailOutbox, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DossierManifSportiveInstructeur, EmailOutbox, Groupeinstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas
 from declaration_manifestations.get_methods import get_access_token
-from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm
-from instruction.utils.dossier_utils import get_actions_possibles_DM, redirect_error
+from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive, user_est_receptionniste_manif_sportive
+from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, get_actions_possibles_DM, redirect_error
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail
+from notifications.service import compute_dedupe_key, create_EmailOutbox_DM, envoi_mail
 from synchronisation.utils.instruction import archive_lier_dossier_dm_au_dossier_dn, lier_dossier_dm_au_dossier_dn
 
 import logging
@@ -51,6 +52,49 @@ def dossier_manif_sportive_sans_ds(request, numero):
         for note in notes_queryset
     ]
     instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+    groupes_instructeurs_dm = Groupeinstructeur.objects.filter(
+        groupeinstructeurdemarche__id_demarche__type__iexact="Manifestations sportives"
+    ).distinct().order_by("nom")
+    groupe_manifestations_sportives = groupes_instructeurs_dm.filter(
+        nom__iexact="Manifestations sportives"
+    ).first()
+    groupe_instructeur_dm_affiche = (
+        doss_manif_sportive.id_groupeinstructeur
+        or groupe_manifestations_sportives
+    )
+    groupe_instructeur_dm_id = (
+        groupe_instructeur_dm_affiche.id
+        if groupe_instructeur_dm_affiche
+        else None
+    )
+    groupe_ids_dm = groupes_instructeurs_dm.values_list("id", flat=True)
+    membres_groupes_dm = GroupeinstructeurInstructeur.objects.filter(
+        id_groupeinstructeur_id__in=groupe_ids_dm
+    ).select_related(
+        "id_instructeur__id_agent_autorisations", "id_groupeinstructeur"
+    ).order_by(
+        "id_instructeur__id_agent_autorisations__nom",
+        "id_instructeur__email",
+    )
+    instructeurs_dm_affectes_ids = set(
+        DossierManifSportiveInstructeur.objects.filter(
+            id_dossier_manif_sportive=doss_manif_sportive
+        ).values_list("id_instructeur_id", flat=True)
+    )
+    autres_instructeurs_du_dossier_dm = Instructeur.objects.filter(
+        dossiermanifsportiveinstructeur__id_dossier_manif_sportive=doss_manif_sportive
+    ).exclude(
+        groupeinstructeurinstructeur__id_groupeinstructeur_id=groupe_instructeur_dm_id
+    ).select_related("id_agent_autorisations").distinct().order_by(
+        "id_agent_autorisations__nom", "email"
+    )
+    instructeur_connecte_dans_groupe_dm = bool(
+        instructeur_connecte
+        and GroupeinstructeurInstructeur.objects.filter(
+            id_groupeinstructeur_id=groupe_instructeur_dm_id,
+            id_instructeur=instructeur_connecte,
+        ).exists()
+    )
     today = timezone.localdate()
     date_evenement_passee = False
     date_evenement_dans_moins_un_mois = False
@@ -237,6 +281,13 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "doss_manif_sportive": doss_manif_sportive,
         "notes": notes,
         "instructeur_connecte": instructeur_connecte,
+        "groupes_instructeurs_dm": groupes_instructeurs_dm,
+        "groupe_instructeur_dm_affiche": groupe_instructeur_dm_affiche,
+        "groupe_instructeur_dm_id": groupe_instructeur_dm_id,
+        "membres_groupes_dm": membres_groupes_dm,
+        "instructeurs_dm_affectes_ids": instructeurs_dm_affectes_ids,
+        "autres_instructeurs_du_dossier_dm": autres_instructeurs_du_dossier_dm,
+        "instructeur_connecte_dans_groupe_dm": instructeur_connecte_dans_groupe_dm,
         "date_evenement_passee": date_evenement_passee,
         "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         # "pjs_demandeur_DM": pjs_demandeur_DM,
@@ -265,9 +316,194 @@ def dossier_manif_sportive_sans_ds(request, numero):
 
         "types_contacts": types_contacts,
         "emails_uniques": emails_uniques,
+        "messages_groupe_instructeur": request.session.pop("messages_bloc_groupe_instructeur", []),
+        "messages_mail_relance": request.session.pop("messages_bloc_mail_relance", []),
+        "messages_notes": request.session.pop("messages_bloc_notes", []),
         # "emails_dossiers": emails_dossiers,
         "DM_API_URL": DM_API_URL,
     })
+
+
+@login_required
+@require_POST
+def affecter_instructeurs_dossier_dm(request):
+    """Affecte un groupe et ses instructeurs à un dossier DM non lié."""
+    dossier_dm = get_object_or_404(
+        DossierManifSportive.objects.select_related("id_etape"),
+        pk=request.POST.get("dossier_dm_id"),
+    )
+    if not user_est_autorise_a_agir_reception_manif_sportive(
+        request.user, dossier_dm
+    ):
+        return redirect_error(request, "Vous n'êtes pas autorisé à affecter ce dossier.")
+
+    if DossierManifestationLiaison.objects.filter(id_dossier_manif=dossier_dm).exists():
+        return redirect_error(
+            request,
+            "Seul un dossier Déclaration Manifestations non lié peut être affecté.",
+        )
+
+    groupe_id = request.POST.get("groupe_instructeur_id")
+    action = request.POST.get("action", "remplacer")
+    instructeur_id = request.POST.get("instructeur_id")
+    instructeur_ids = {
+        int(value) for value in request.POST.getlist("instructeur_ids") if value.isdigit()
+    }
+    groupe_demarche = GroupeinstructeurDemarche.objects.filter(
+        id_demarche__type__iexact="Manifestations sportives",
+        id_groupeinstructeur_id=groupe_id,
+    ).select_related("id_groupeinstructeur").first()
+    if not groupe_demarche:
+        ajouter_message_groupe_instructeur(
+            request, "Le groupe sélectionné n'est pas disponible pour cette démarche.", "error"
+        )
+        return redirect(
+            "dossier_manif_sportive_sans_ds",
+            numero=dossier_dm.numero_dossier_declaration_manifestations,
+        )
+
+    if instructeur_id and instructeur_id.isdigit():
+        instructeur_ids.add(int(instructeur_id))
+
+    instructeurs_valides = set(
+        GroupeinstructeurInstructeur.objects.filter(
+            id_groupeinstructeur_id=groupe_id,
+            id_instructeur_id__in=instructeur_ids,
+        ).values_list("id_instructeur_id", flat=True)
+    )
+    ajout_invalide = action == "ajouter" and (
+        not instructeur_ids or instructeurs_valides != instructeur_ids
+    )
+    retrait_invalide = action == "retirer" and not DossierManifSportiveInstructeur.objects.filter(
+        id_dossier_manif_sportive=dossier_dm,
+        id_instructeur_id=instructeur_id,
+    ).exists()
+    remplacement_invalide = action == "remplacer" and (
+        not instructeur_ids or instructeurs_valides != instructeur_ids
+    )
+    if ajout_invalide or retrait_invalide or remplacement_invalide:
+        ajouter_message_groupe_instructeur(
+            request, "Sélectionnez au moins un instructeur appartenant au groupe choisi.", "error"
+        )
+        return redirect(
+            "dossier_manif_sportive_sans_ds",
+            numero=dossier_dm.numero_dossier_declaration_manifestations,
+        )
+
+    instructeur_cible = None
+    affectation_ajoutee = False
+    affectation_retiree = False
+    with transaction.atomic():
+        affectations_verrouillees = None
+        if action == "retirer":
+            affectations_verrouillees = DossierManifSportiveInstructeur.objects.select_for_update().filter(
+                id_dossier_manif_sportive=dossier_dm
+            )
+            if (
+                not dossier_dm.archive
+                and dossier_dm.id_etape.etape == "En réception"
+                and affectations_verrouillees.count() <= 1
+            ):
+                ajouter_message_groupe_instructeur(
+                    request,
+                    "Impossible de retirer l'instructeur : il faut au moins un autre instructeur affecté au dossier.",
+                    "error",
+                )
+                return redirect(
+                    "dossier_manif_sportive_sans_ds",
+                    numero=dossier_dm.numero_dossier_declaration_manifestations,
+                )
+
+        DossierManifSportive.objects.filter(pk=dossier_dm.pk).update(
+            id_groupeinstructeur_id=groupe_id
+        )
+        if action == "changer_groupe":
+            pass
+        elif action == "ajouter":
+            _, affectation_ajoutee = DossierManifSportiveInstructeur.objects.get_or_create(
+                id_dossier_manif_sportive=dossier_dm,
+                id_instructeur_id=int(instructeur_id),
+            )
+            instructeur_cible = Instructeur.objects.get(pk=int(instructeur_id))
+        elif action == "retirer":
+            instructeur_cible = Instructeur.objects.get(pk=int(instructeur_id))
+            suppressions, _ = affectations_verrouillees.filter(
+                id_dossier_manif_sportive=dossier_dm,
+                id_instructeur_id=int(instructeur_id),
+            ).delete()
+            affectation_retiree = suppressions > 0
+        else:
+            DossierManifSportiveInstructeur.objects.filter(
+                id_dossier_manif_sportive=dossier_dm
+            ).delete()
+            DossierManifSportiveInstructeur.objects.bulk_create(
+                [DossierManifSportiveInstructeur(
+                    id_dossier_manif_sportive=dossier_dm,
+                    id_instructeur_id=instructeur_id,
+                ) for instructeur_id in sorted(instructeurs_valides)]
+            )
+
+    if (
+        instructeur_cible
+        and (request.user.email or "").lower() != instructeur_cible.email.lower()
+        and (affectation_ajoutee or affectation_retiree)
+    ):
+        emails = (
+            [instructeur_cible.email]
+            if settings.NOTIFS_PROD
+            else [settings.EMAIL_NOTIF_TEST]
+        )
+        numero_dm = dossier_dm.numero_dossier_declaration_manifestations
+        ajout = affectation_ajoutee
+        sujet = (
+            f"Dossier DM {numero_dm} - Vous avez été ajouté.e comme instructeur.rice"
+            if ajout
+            else f"Dossier DM {numero_dm} - Vous avez été retiré.e de l'instruction"
+        )
+        template_name = "ajouter_a_instruction" if ajout else "retirer_de_instruction"
+        chemin = "instruction" if dossier_dm.archive else "preinstruction"
+        context = {
+            "dossier_numero": numero_dm,
+            "demarche_type": "Manifestations sportives",
+            "url": f"{os.getenv('URL_APPLI')}{chemin}/declaration_manifestations/{numero_dm}/",
+        }
+        try:
+            dedupe = compute_dedupe_key(emails, sujet, template_name, context)
+            existe_deja = EmailOutbox.objects.filter(
+                dedupe_key=dedupe,
+                date_creation__gte=timezone.now() - timedelta(hours=2),
+            ).exists()
+            if not existe_deja:
+                outbox = create_EmailOutbox_DM(
+                    emails,
+                    sujet,
+                    template_name,
+                    dedupe,
+                    context,
+                    dossier_dm,
+                    type_mail="Notification",
+                )
+                if outbox:
+                    ok, erreur_mail = envoi_mail(outbox.id)
+                    if not ok:
+                        ajouter_message_groupe_instructeur(request, f"L'email de notification n'a pas été envoyé : {erreur_mail}", "error")
+        except Exception as exc:
+            logger.exception(
+                "[DOSSIER DM %s] Échec de la notification d'affectation : %s",
+                numero_dm,
+                exc,
+            )
+            ajouter_message_groupe_instructeur(request, "L'affectation est enregistrée, mais sa notification n'a pas été envoyée.", "error")
+
+    ajouter_message_groupe_instructeur(
+        request,
+        f"Dossier affecté au groupe {groupe_demarche.id_groupeinstructeur.nom}.",
+        "success",
+    )
+    return redirect(
+        "dossier_manif_sportive_sans_ds",
+        numero=dossier_dm.numero_dossier_declaration_manifestations,
+    )
 
 
 
@@ -517,7 +753,7 @@ def declaration_manifestations_accepter(request):
     #######################################
     ###         VÉRIFICATIONS           ###
     #######################################
-    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers_a_traiter, label_action="Avis favorable", logger=logger)
+    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers_a_traiter, label_action="Avis favorable", logger=logger, dossier_dm_id=dossier_dm_id)
     if erreur:
         return erreur
 
@@ -678,7 +914,7 @@ def declaration_manifestations_refuser(request):
     #######################################
     ###         VÉRIFICATIONS           ###
     #######################################
-    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers_a_traiter, label_action="Avis défavorable", logger=logger,)
+    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers_a_traiter, label_action="Avis défavorable", logger=logger, dossier_dm_id=dossier_dm_id)
     if erreur:
         return erreur
 
@@ -846,7 +1082,7 @@ def declaration_manifestations_non_soumis(request):
     #######################################
     ###         VÉRIFICATIONS           ###
     #######################################
-    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers, label_action="Non Concerné", logger=logger,)
+    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers, label_action="Non Concerné", logger=logger, dossier_dm_id=dossier_dm_id)
     if erreur:
         return erreur
 
@@ -1005,7 +1241,7 @@ def declaration_manifestations_non_repondu(request):
 
 
     # VÉRIFICATIONS
-    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers, label_action="Non Répondu", logger=logger,)
+    erreur = reception_verifier_acces_et_fichiers_avis_dm(request, fichiers=fichiers, label_action="Non Répondu", logger=logger, dossier_dm_id=dossier_dm_id)
     if erreur:
         return erreur
 
@@ -1124,6 +1360,7 @@ def declaration_manifestations_classer_comme_annule(request):
         fichiers=fichiers,
         label_action="Classé comme annulé",
         logger=logger,
+        dossier_dm_id=dossier_dm_id,
     )
     if erreur:
         return erreur

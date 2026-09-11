@@ -231,6 +231,28 @@ class DossierInstructeur(models.Model):
 
     def __str__(self):
         return f"{self.id_instructeur} : Dossier {self.id_dossier.numero} ({self.id_dossier.nom_dossier})"
+
+
+class DossierManifSportiveInstructeur(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_dossier_manif_sportive = models.ForeignKey('autorisations.DossierManifSportive', models.CASCADE, db_column='id_dossier_manif_sportive',)
+    id_instructeur = models.ForeignKey(Instructeur, models.CASCADE, db_column='id_instructeur',)
+
+    class Meta:
+        managed = False
+        db_table = '"utilisateurs"."dossier_manif_sportive_instructeur"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['id_dossier_manif_sportive', 'id_instructeur'],
+                name='uq_dossier_manif_sportive_instructeur',
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.id_instructeur} : dossier DM "
+            f"{self.id_dossier_manif_sportive.numero_dossier_declaration_manifestations}"
+        )
     
 
 class DossierValideur(models.Model):

@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -2088,6 +2088,11 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% if dossier.id_etape_dossier.etape == 'À valider avant signature' or dossier.id_etape_dossier.etape == "À valider avant demande d'avis" %}
                     <div class="groupe-instructeur-info">
                         <h3>Validant.e.s</h3>
+                        {% if messages_valideur %}
+                            <div class="bloc-retours">
+                                {% for retour in messages_valideur %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                            </div>
+                        {% endif %}
                         <ul class="groupe-instructeur-liste">
 
                             {% for valideur in validants_SAADD %}
@@ -2133,6 +2138,11 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% if dossier.id_etape_dossier.etape == 'En relecture qualité' %}
                     <div class="groupe-instructeur-info">
                         <h3>Relecteurs.rices qualité</h3>
+                        {% if messages_relecteur_qualite %}
+                            <div class="bloc-retours">
+                                {% for retour in messages_relecteur_qualite %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                            </div>
+                        {% endif %}
                         <ul class="groupe-instructeur-liste">
 
                             {% for relecteur in relecteurs_qualite_et_instructeurs %}
@@ -2172,6 +2182,11 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% if dossier.id_etape_dossier.etape == 'En attente de signature' and delibCA %}
                     <div class="groupe-instructeur-info">
                         <h3>Intermédiaire pour la signature</h3>
+                        {% if messages_intermediaire_signature %}
+                            <div class="bloc-retours">
+                                {% for retour in messages_intermediaire_signature %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                            </div>
+                        {% endif %}
                         <ul class="groupe-instructeur-liste">
         
                             {% for inter in intermediaires_CA %}
@@ -2273,6 +2288,11 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% if dossier.id_etape_dossier.etape == 'Acte à envoyer' %}
                     <div class="groupe-instructeur-info">
                         <h3>Chargé.e d'envoyer l'acte signé</h3>
+                        {% if messages_envoyeur_acte %}
+                            <div class="bloc-retours">
+                                {% for retour in messages_envoyeur_acte %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                            </div>
+                        {% endif %}
                         <ul class="groupe-instructeur-liste">
                             
                             <!-- SPPN -->
@@ -2339,6 +2359,11 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% if dossier.id_etape_dossier.etape == 'À publier au RAA' %}
                     <div class="groupe-instructeur-info">
                         <h3>Chargé.e de publier l'acte au RAA</h3>
+                        {% if messages_publieur_raa %}
+                            <div class="bloc-retours">
+                                {% for retour in messages_publieur_raa %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                            </div>
+                        {% endif %}
                         <ul class="groupe-instructeur-liste">
                             
                             <!-- SPPN -->
@@ -2480,9 +2505,9 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
                         <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
-                        {% if retirer_instructeur_message %}
-                            <div class="instruction-warning">{{ retirer_instructeur_message }}</div>
-                        {% endif %}
+                        {% for retour in messages_groupe_instructeur %}
+                            <div class="message {{ retour.niveau }}">{{ retour.texte }}</div>
+                        {% endfor %}
                         <ul class="groupe-instructeur-liste">
                             {% for instructeur in membres_groupe %}
                                 {% if instructeur.id in instructeurs_dossier_ids %}
@@ -2743,6 +2768,12 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                             </form>
                         {% endif %}
                     </h3>
+
+                    {% if messages_notes %}
+                        <div class="bloc-retours">
+                            {% for retour in messages_notes %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                        </div>
+                    {% endif %}
 
                     {% if annexes_instructeur %}
                         <ul class="liste-annexes-instructeur">

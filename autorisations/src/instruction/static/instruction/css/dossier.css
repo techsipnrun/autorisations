@@ -339,6 +339,32 @@ h2 {
 /* Affichage des images PJ */
 .champs .pj_champ {
     margin: 1rem 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.champs .pj_champ > p {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.champs .pj_champ .document-avec-apercu {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.champs .pj_champ .document-avec-apercu > a:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .champs .apercu_PJ {
     max-width: 80%;
@@ -1924,6 +1950,45 @@ textarea[name="note"] {
     color: #721c24;
 }
 
+.groupe-instructeur-info > .message {
+    width: 100%;
+    margin: 0.5rem 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 0.9rem;
+}
+
+.groupe-instructeur-info > .message.success {
+    background: transparent;
+}
+
+.groupe-instructeur-info > .message.error {
+    background: transparent;
+}
+
+.bloc-retours {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.bloc-retours > .message {
+    width: 100%;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 0.88rem;
+}
+
+.bloc-retours > .message.success {
+    background: transparent;
+}
+
+.bloc-retours > .message.error {
+    background: transparent;
+}
+
 
 
 
@@ -2025,7 +2090,9 @@ textarea[name="note"] {
 .bloc_liaison_ds {
     position: relative;
     width: auto;
-    min-width: 350px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -2058,6 +2125,34 @@ textarea[name="note"] {
 
 .btn-liaison-ds{
   font-size: clamp(0.9rem, 1vw, 1.2rem);
+}
+
+/* Le bouton de liaison depuis un dossier DN ne remplit pas tout son bloc. */
+.formulaire .bloc_liaison_ds {
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.formulaire .bloc_liaison_ds .btn-liaison-ds {
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.55rem 0.85rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.formulaire_dm .en_attente_DS_message p.attente-liaison-titre,
+.formulaire .en_attente_DS_message p.attente-liaison-titre {
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+@media (max-width: 600px) {
+    .formulaire_dm .en_attente_DS_message p.attente-liaison-titre,
+    .formulaire .en_attente_DS_message p.attente-liaison-titre {
+        font-size: 0.85rem;
+    }
 }
 
 .btn-liaison-ds:hover,
@@ -2094,6 +2189,31 @@ textarea[name="note"] {
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 0.95rem;
+}
+
+@media (max-width: 1000px) {
+    .formulaire .en_attente_DS {
+        box-sizing: border-box;
+        flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+        gap: 0.75rem;
+        padding-inline: 0;
+    }
+
+    .formulaire .bloc_liaison_ds,
+    .formulaire .bloc_liaison_ds .btn-liaison-ds,
+    .formulaire_dm .bloc_liaison_ds,
+    .formulaire_dm .bloc_liaison_ds .btn-liaison-ds {
+        max-width: 100%;
+    }
+
+    .formulaire .form-liaison-ds {
+        position: static;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+    }
 }
 
 .message_info_liaison {

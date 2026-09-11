@@ -159,6 +159,7 @@ urlpatterns = [
 
     # MANIF SPORTIVE
     path('preinstruction/declaration_manifestations/<int:numero>/', declaration_manifestations.dossier_manif_sportive_sans_ds, name='dossier_manif_sportive_sans_ds'),
+    path('preinstruction/declaration_manifestations/affecter/', declaration_manifestations.affecter_instructeurs_dossier_dm, name='affecter_instructeurs_dossier_dm'),
     path("manif-sportive/lier-dn/",declaration_manifestations.lier_dossier_manif_sportive_a_DN,name="lier_dossier_manif_sportive_a_DN"),
     path("changer-etape/accepte-declaration-manifestations/", declaration_manifestations.declaration_manifestations_accepter, name="declaration_manifestations_accepter_url"),
     path("changer-etape/refuse-declaration-manifestations/", declaration_manifestations.declaration_manifestations_refuser, name="declaration_manifestations_refuser_url"),

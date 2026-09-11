@@ -44,9 +44,45 @@ def get_chemin_complet_dossier(dossier):
     return _normalize_unc_path(chemin_complet)
 
 
+def _bloc_action_courante(request):
+    nom_url = getattr(getattr(request, "resolver_match", None), "url_name", None)
+    return {
+        "changer_valideur": "valideur",
+        "changer_relecteur": "relecteur_qualite",
+        "changer_intermediaire_signature": "intermediaire_signature",
+        "changer_envoyeur_acte": "envoyeur_acte",
+        "changer_publieur_raa": "publieur_raa",
+        "renvoyer_mail_relance": "mail_relance",
+        "envoi_manuel_mail_relance": "mail_relance",
+        "sauvegarder_note_dossier": "notes",
+        "supprimer_note_dossier": "notes",
+        "ajouter_annexe_dossier": "notes",
+    }.get(nom_url)
+
+
+def ajouter_message_action_courante(request, texte, niveau="info"):
+    bloc = _bloc_action_courante(request)
+    if bloc:
+        ajouter_message_bloc(request, bloc, texte, niveau)
+        return True
+    return False
+
+
 def redirect_error(request, msg):
-    messages.error(request, msg)
+    if not ajouter_message_action_courante(request, msg, "error"):
+        messages.error(request, msg)
     return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+def ajouter_message_bloc(request, bloc, texte, niveau="info"):
+    """Stocke un retour destiné à un bloc fonctionnel après redirection."""
+    retours = request.session.setdefault(f"messages_bloc_{bloc}", [])
+    retours.append({"texte": str(texte), "niveau": niveau})
+    request.session.modified = True
+
+
+def ajouter_message_groupe_instructeur(request, texte, niveau="info"):
+    ajouter_message_bloc(request, "groupe_instructeur", texte, niveau)
 
 def redirect_warning(request, msg):
     messages.warning(request, msg)

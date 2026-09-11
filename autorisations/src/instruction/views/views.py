@@ -13,11 +13,11 @@ from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 import smbclient
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
+from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
-from instruction.utils.dossier_utils import redirect_error, safe_enregistrer_action
+from instruction.utils.dossier_utils import ajouter_message_action_courante, ajouter_message_bloc, ajouter_message_groupe_instructeur, redirect_error, safe_enregistrer_action
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -81,26 +81,33 @@ def se_declarer_instructeur(request):
     instructeur_request = Instructeur.objects.filter(email=email_user).first()
     if not instructeur_request:
         logger.error(f"[DOSSIER {dossier.numero}] Le user {request.user} a voulu ajouter un instructeur au dossier, or il n'a pas de profil 'Instructeur'.")
-        return redirect_error(request, "❌ Vous n’avez pas de profil Instructeur. Contactez le support si besoin.")
+        ajouter_message_groupe_instructeur(request, "Vous n’avez pas de profil Instructeur. Contactez le support si besoin.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     instructeur = Instructeur.objects.filter(id=instructeur_id).first()
     if not instructeur:
         logger.error(f"[DOSSIER {dossier.numero}] User : {email_user}, Ajout instructeur impossible — instructeur_id={instructeur_id} inexistant.")
-        return redirect_error(request, "❌ Instructeur introuvable. Contactez le support.")
+        ajouter_message_groupe_instructeur(request, "Instructeur introuvable. Contactez le support.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     if not dossier.id_groupeinstructeur:
         logger.error(f"[DOSSIER {dossier.numero}] User : {email_user}, Ajout de l'instructeur {instructeur} impossible — aucun groupe instructeur affecté.")
-        return redirect_error(request, "❌ Aucun groupe instructeur n’est affecté au dossier. Contactez le support.")
+        ajouter_message_groupe_instructeur(request, "Aucun groupe instructeur n’est affecté au dossier. Contactez le support.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # L'instructeur doit appartenir au groupe instructeur
     instructeurs_du_groupe = set(dossier.id_groupeinstructeur.groupeinstructeurinstructeur_set.values_list("id_instructeur_id", flat=True))
 
     if instructeur.id not in instructeurs_du_groupe:
         logger.error(f"[DOSSIER {dossier.numero}] Ajout instructeur refusé — {instructeur} n'appartient pas au groupe {dossier.id_groupeinstructeur.nom}")
-        return redirect_error(request,"❌ Vous ne pouvez pas ajouter cet instructeur : il n’appartient pas au groupe instructeur du dossier.")
+        ajouter_message_groupe_instructeur(request, "Vous ne pouvez pas ajouter cet instructeur : il n’appartient pas au groupe instructeur du dossier.", "error")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     DossierInstructeur.objects.get_or_create(id_dossier=dossier, id_instructeur=instructeur)
     logger.info(f"[DOSSIER {dossier.numero}] Instructeur {instructeur} ajouté par {request.user}.")
+    ajouter_message_groupe_instructeur(
+        request, f"{instructeur} a bien été ajouté·e au dossier.", "success"
+    )
 
     nom_prenom = (
         f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
@@ -139,7 +146,8 @@ def se_declarer_instructeur(request):
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier.numero}] Ajout de l'instructeur {instructeur} par {request.user} : Erreur lors de la création de la clé unique (compute_dedupe_key), pas d'email de notification : {e}")
-            return redirect_error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            ajouter_message_groupe_instructeur(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
@@ -155,13 +163,13 @@ def se_declarer_instructeur(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Instruteur ajouté : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_groupe_instructeur(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Ajout instructeur) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur ajouté) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_groupe_instructeur(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -186,37 +194,37 @@ def retirer_instructeur(request):
     instructeur = Instructeur.objects.filter(id=instructeur_id).first()
     if not instructeur:
         logger.error(f"[DOSSIER {dossier_id}] Retrait instructeur impossible — instructeur_id={instructeur_id} inexistant.")
-        request.session["retirer_instructeur_message"] = "Instructeur introuvable."
+        ajouter_message_groupe_instructeur(request, "Instructeur introuvable.", "error")
         return redirect(request.META.get("HTTP_REFERER", "/"))
     
     instructeur_en_cours = Instructeur.objects.filter(email=email_user).first()
     if not instructeur_en_cours:
         logger.error(f"[DOSSIER {dossier_id}] Le user {request.user} a tenté de retirer l'instructeur {instructeur} sans profil instructeur.")
-        request.session["retirer_instructeur_message"] = "Instructeur introuvable."
+        ajouter_message_groupe_instructeur(request, "Vous devez disposer d'un profil instructeur.", "error")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # L'instructeur visé est-il instructeur du dossier
     instructeurs_ids = list(DossierInstructeur.objects.filter(id_dossier=dossier).values_list("id_instructeur", flat=True))
     if instructeur.id not in instructeurs_ids:
-        request.session["retirer_instructeur_message"] = "Cet instructeur n'est pas affecté à ce dossier."
+        ajouter_message_groupe_instructeur(request, "Cet instructeur n'est pas affecté à ce dossier.", "error")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     # Simuler le retrait
     instructeurs_restants_ids = [i for i in instructeurs_ids if i != instructeur.id]
 
     if not instructeurs_restants_ids:
-        request.session["retirer_instructeur_message"] = "Impossible de retirer l'instructeur : il faut au moins un autre instructeur affecté au dossier."
+        ajouter_message_groupe_instructeur(request, "Impossible de retirer l'instructeur : il faut au moins un autre instructeur affecté au dossier.", "error")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     groupe = dossier.id_groupeinstructeur
     if not groupe:
-        request.session["retirer_instructeur_message"] = "Aucun groupe instructeur n’est défini pour ce dossier. Contactez le support."
+        ajouter_message_groupe_instructeur(request, "Aucun groupe instructeur n’est défini pour ce dossier. Contactez le support.", "error")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
     instructeurs_groupe_ids = set(GroupeinstructeurInstructeur.objects.filter(id_groupeinstructeur=groupe).values_list("id_instructeur", flat=True))
 
     if not (set(instructeurs_restants_ids) & instructeurs_groupe_ids):
-        request.session["retirer_instructeur_message"] = ("Impossible de retirer l'instructeur : aucun instructeur restant n'appartient au groupe instructeur.")
+        ajouter_message_groupe_instructeur(request, "Impossible de retirer l'instructeur : aucun instructeur restant n'appartient au groupe instructeur.", "error")
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -225,6 +233,9 @@ def retirer_instructeur(request):
     # ---------------------
     DossierInstructeur.objects.filter(id_dossier=dossier, id_instructeur=instructeur).delete()
     logger.info(f"[DOSSIER {dossier.numero}] {instructeur_en_cours} a retiré l'instructeur {instructeur}.")
+    ajouter_message_groupe_instructeur(
+        request, f"{instructeur} a bien été retiré·e du dossier.", "success"
+    )
 
     nom_prenom = (
         f"{instructeur.id_agent_autorisations.nom} {instructeur.id_agent_autorisations.prenom}"
@@ -262,7 +273,8 @@ def retirer_instructeur(request):
             dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
         except Exception as e:
             logger.error(f"[DOSSIER {dossier.numero}] Retrait instructeur : {instructeur} n'a pas été notifié par mail. Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-            return redirect_error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+            ajouter_message_groupe_instructeur(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
+            return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Vérifie si un mail identique a déjà été créé dans les 2 dernières heures (pour éviter le spam)
         existe_deja = EmailOutbox.objects.filter(
@@ -277,13 +289,13 @@ def retirer_instructeur(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Instruteur retiré : Erreur lors de la création de l'EmailOutbox, {instructeur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_groupe_instructeur(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
                 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Instructeur retiré) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Instructeur retiré) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_groupe_instructeur(request, f"L'email de notification à {instructeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -397,14 +409,15 @@ def changer_valideur(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Nouveau validant : Erreur lors de la création de l'EmailOutbox, {new_valideur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
                 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau validant) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau validant) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_valideur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
+    ajouter_message_action_courante(request, f"Validant·e remplacé·e par {new_valideur}.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -518,14 +531,15 @@ def changer_relecteur(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Nouveau relecteur : Erreur lors de la création de l'EmailOutbox, {new_relecteur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {new_relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
                 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau relecteur) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau relecteur) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {new_relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_relecteur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
+    ajouter_message_action_courante(request, f"Relecteur·rice qualité remplacé·e par {new_relecteur}.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -633,14 +647,15 @@ def changer_intermediaire_signature(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Nouveau intermédiaire pour la signature : Erreur lors de la création de l'EmailOutbox, {new_intermediaire} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
                 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau intermédiaire pour la signature) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau intermédiaire pour la signature) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_intermediaire} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
+    ajouter_message_action_courante(request, f"Intermédiaire pour la signature remplacé·e par {new_intermediaire}.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -751,14 +766,15 @@ def changer_envoyeur_acte(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Nouveau envoyeur d'acte : Erreur lors de la création de l'EmailOutbox, {new_envoyeur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
                 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau envoyeur d'acte) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau envoyeur d'acte) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_envoyeur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
+    ajouter_message_action_courante(request, f"Chargé·e d'envoyer l'acte remplacé·e par {new_envoyeur}.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -868,14 +884,15 @@ def changer_publieur_raa(request):
                 ok, err = envoi_mail(outbox.id)
             else :
                 logger.error(f"[DOSSIER {dossier.numero}] Nouveau publieur.se d'acte au RAA : Erreur lors de la création de l'EmailOutbox, {new_publieur} n'a pas été notifié par mail.")
-                messages.error(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
                 
             if ok:
                 logger.info(f"[DOSSIER {dossier.numero}] Notification Email {outbox.id} (Nouveau publieur.se d'acte au RAA) envoyée à {', '.join(outbox.to)} ")
             else:
                 logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} (Nouveau publieur.se d'acte au RAA) à {', '.join(outbox.to)} : {err}")
-                messages.error(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+                ajouter_message_action_courante(request, f"L'email de notification à {new_publieur} n'a pas été envoyé. Contactez le support pour en savoir plus.", "error")
 
+    ajouter_message_action_courante(request, f"Chargé·e de publier l'acte au RAA remplacé·e par {new_publieur}.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -1034,7 +1051,28 @@ def mes_dossiers_a_traiter_count(request):
     )
 
     dossiers_actions = dossiers_action_a_faire(dossiers, instructeur)
-    return {"nb_dossiers_instruction": len(dossiers_actions)}
+    dossiers_dn_manif_non_lies_affectes = Dossier.objects.filter(
+        id_etape_dossier__etape="À affecter",
+        id_demarche__type__iexact="Manifestations sportives",
+        dossiermanifestationliaison__isnull=True,
+        dossierinstructeur__id_instructeur=instructeur,
+    ).distinct().count()
+    dossiers_dm_affectes = DossierManifSportive.objects.filter(
+        archive=False,
+        id_etape__etape="En réception",
+        dossiermanifsportiveinstructeur__id_instructeur=instructeur,
+    ).exclude(
+        id__in=DossierManifestationLiaison.objects.values_list(
+            "id_dossier_manif_id", flat=True
+        )
+    ).distinct().count()
+    return {
+        "nb_dossiers_instruction": (
+            len(dossiers_actions)
+            + dossiers_dn_manif_non_lies_affectes
+            + dossiers_dm_affectes
+        )
+    }
 
 
 
@@ -1043,14 +1081,42 @@ def mes_dossiers_a_receptionner_count(request):
         return {}
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
-    if not instructeur:
-        return {}
 
     # Dossiers (en reception) où l’utilisateur intervient
     dossiers = Dossier.objects.filter(id_etape_dossier__etape="À affecter")
 
     dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
-    return {"nb_dossiers_reception": len(dossiers_actions)}
+    dossiers_dm_non_lies = DossierManifSportive.objects.filter(
+        archive=False,
+        id_etape__etape="En réception",
+    ).exclude(
+        id__in=DossierManifestationLiaison.objects.values_list(
+            "id_dossier_manif_id", flat=True
+        )
+    )
+
+    # Même règle que les pastilles affichées dans /preinstruction/ :
+    # - sans affectation : action pour la réception SAADD ;
+    # - avec affectation : action pour chaque instructeur affecté.
+    dossiers_dm_non_affectes = 0
+    if request.user.groups.filter(name="Réception SAADD").exists():
+        dossiers_dm_non_affectes = dossiers_dm_non_lies.filter(
+            dossiermanifsportiveinstructeur__isnull=True,
+        ).count()
+
+    dossiers_dm_affectes_a_utilisateur = 0
+    if instructeur:
+        dossiers_dm_affectes_a_utilisateur = dossiers_dm_non_lies.filter(
+            dossiermanifsportiveinstructeur__id_instructeur=instructeur,
+        ).distinct().count()
+
+    return {
+        "nb_dossiers_reception": (
+            len(dossiers_actions)
+            + dossiers_dm_non_affectes
+            + dossiers_dm_affectes_a_utilisateur
+        )
+    }
 
 
 
@@ -1168,7 +1234,7 @@ def ajouter_annexe_dossier(request, dossier_id):
         # Vérification de la taille (max 50 Mo)
         if fichier.size > 50 * 1024 * 1024:
             logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
-            messages.error(request, f"Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
+            ajouter_message_action_courante(request, f"Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}", "error")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
         # Extension du fichier
@@ -1225,18 +1291,18 @@ def ajouter_annexe_dossier(request, dossier_id):
         try:
             if smbclient.path.exists(chemin_complet):
                 if not supprimer_file_sur_nas(chemin_complet):
-                    messages.error(request, f"Erreur lors du remplacement de l'ancien fichier {fichier.name} sur le NAS.")
+                    ajouter_message_action_courante(request, f"Erreur lors du remplacement de l'ancien fichier {fichier.name} sur le NAS.", "error")
                     return redirect(request.META.get("HTTP_REFERER", "/"))
         except Exception as e:
             logger.error(f"[NAS] Erreur en vérifiant/supprimant l'existant : {e}")
-            messages.error(request, "Erreur lors de la vérification du fichier existant sur le NAS.")
+            ajouter_message_action_courante(request, "Erreur lors de la vérification du fichier existant sur le NAS.", "error")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
         # 2) Écrire l’upload directement sur le NAS
         if not ecrire_file_sur_nas(fichier, chemin_complet):
             logger.error(f"[NAS] Erreur lors de l'écriture de l'annexe sur le NAS : {e}")
-            messages.error(request, "Erreur lors de l'écriture de l'annexe sur le NAS.")
+            ajouter_message_action_courante(request, "Erreur lors de l'écriture de l'annexe sur le NAS.", "error")
             return redirect(request.META.get("HTTP_REFERER", "/"))
 
 

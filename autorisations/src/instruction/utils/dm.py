@@ -8,7 +8,7 @@ import smbclient
 
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
 from autorisations.models.models_instruction import AvisManifSportive, DossierManifSportive, DossierManifestationLiaison, EtapeDossier
-from autorisations.models.models_utilisateurs import EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
+from autorisations.models.models_utilisateurs import DossierManifSportiveInstructeur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.document_utils import normaliser_emplacement
@@ -17,36 +17,64 @@ from instruction.utils.files_utils import sanitiser_nom_fichier, valider_fichier
 from synchronisation.utils.fichiers import get_nom_disponible
 
 
-def user_est_autorise_a_agir_reception_manif_sportive(user) -> bool:
+def user_est_receptionniste_manif_sportive(user) -> bool:
+    """Indique si l'utilisateur appartient à la réception SAADD."""
+    return bool(
+        user
+        and user.is_authenticated
+        and (user.is_superuser or user.groups.filter(name="Réception SAADD").exists())
+    )
+
+
+def user_recoit_notifications_reception_manif_sportive(user) -> bool:
+    """La pastille des DM non affectés est réservée à la réception SAADD."""
+    return bool(
+        user
+        and user.is_authenticated
+        and user.groups.filter(name="Réception SAADD").exists()
+    )
+
+
+def user_est_autorise_a_agir_reception_manif_sportive(user, dossier_dm=None) -> bool:
     """
     Retourne True si l'utilisateur est autorisé à agir sur les dossiers
     Déclaration Manifestations en réception.
     """
 
-    if not user or not user.is_authenticated or not user.email:
+    if not user or not user.is_authenticated:
         return False
 
     if user.is_superuser :
         return True
 
-    email = user.email.strip().lower()
-    instructeur_connecte = Instructeur.objects.filter(email__iexact=email).first()
-    if not instructeur_connecte:
+    if not user.email:
         return False
-    
 
-    # Cas 1 : Groupe Django Réception SAADD
-    if user.groups.filter(name="Réception SAADD").exists():
+    if user_est_receptionniste_manif_sportive(user):
         return True
 
-    # Cas 2 : Groupe instructeur "Manifestations sportives"
-    groupe_manif = Groupeinstructeur.objects.filter(nom="Manifestations sportives").first()
-    if not groupe_manif:
+    instructeur_connecte = Instructeur.objects.filter(
+        email__iexact=user.email.strip()
+    ).first()
+    if not instructeur_connecte:
         return False
 
-    return GroupeinstructeurInstructeur.objects.filter(
+    groupe_manifestations = Groupeinstructeur.objects.filter(
+        nom="Manifestations sportives"
+    ).first()
+    if groupe_manifestations and GroupeinstructeurInstructeur.objects.filter(
+        id_groupeinstructeur=groupe_manifestations,
         id_instructeur=instructeur_connecte,
-        id_groupeinstructeur=groupe_manif
+    ).exists():
+        return True
+
+    if dossier_dm is None:
+        return False
+
+    dossier_dm_id = getattr(dossier_dm, "pk", dossier_dm)
+    return DossierManifSportiveInstructeur.objects.filter(
+        id_dossier_manif_sportive_id=dossier_dm_id,
+        id_instructeur=instructeur_connecte,
     ).exists()
 
 
@@ -113,7 +141,9 @@ def reception_lire_donnees_formulaire_avis_dm(request, *, acte_obligatoire=False
 # ==========================================
 # VÉRIFICATION DES DROITS ET DES FICHIERS DM
 # ==========================================
-def reception_verifier_acces_et_fichiers_avis_dm(request, *, fichiers, label_action, logger):
+def reception_verifier_acces_et_fichiers_avis_dm(
+    request, *, fichiers, label_action, logger, dossier_dm_id=None
+):
     """
     Vérifie que l'utilisateur est autorisé à agir sur la réception DM
     et que les fichiers joints respectent les règles métier.
@@ -131,7 +161,9 @@ def reception_verifier_acces_et_fichiers_avis_dm(request, *, fichiers, label_act
             - une réponse redirect_error prête à être retournée en cas d'erreur
     """
     # Vérification : Personne autorisée ?
-    if not user_est_autorise_a_agir_reception_manif_sportive(request.user):
+    if not user_est_autorise_a_agir_reception_manif_sportive(
+        request.user, dossier_dm_id
+    ):
         logger.warning(f"[Dossier DM Réception - {label_action}] Utilisateur non autorisé : {request.user}.")
         return redirect_error(request, "Vous n'êtes pas autorisé à effectuer cette action.")
 

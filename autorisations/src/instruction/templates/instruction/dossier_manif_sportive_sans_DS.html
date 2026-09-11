@@ -24,8 +24,8 @@
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=7">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
@@ -63,7 +63,7 @@
                 <div class="en_attente_DS_message">
                     {% if not doss_manif_sportive.archive %}
                         {% if doss_manif_sportive.coeur_de_parc %}
-                            <p>En attente d'un dossier Démarche Numérique</p>
+                            <p class="attente-liaison-titre">En attente d'un dossier Démarche Numérique</p>
                         {% else %}
                             <p>Cette manifestation n'intersecte pas le cœur de parc</p>
                         {% endif %}
@@ -219,7 +219,7 @@
                     {% endfor %}
                 </div>
             {% endif %}
-            
+
             <!-- Message error Si incohérence en Réception (Avis deja rendu) -->
             {% if not doss_manif_sportive.archive and avis_manif_sportive.date_reponse %}
                 <div class="django-messages" style="margin-bottom: 1rem;">
@@ -239,12 +239,12 @@
                 <div class="etat-badge-menu-dropdown">
 
                     <div class="etat-badge-label {% if doss_manif_sportive.id_etape.etape == 'Annulé' %}etape-annulee{% endif %}" id="etapeMenuToggle"
-                    {% if not request.user|est_autorise_a_agir_reception_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
+                    {% if not request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %} title="Vous devez être concerné.e par le dossier pour pouvoir changer d'étape" {% endif %}>
                         {{ doss_manif_sportive.id_etape.etape|default:"Non défini" }}
                         <span class="dropdown-arrow">&#9660;</span>
                     </div>
                     {% if not doss_manif_sportive.archive or doss_manif_sportive.id_etape.etape != "En réception" %}
-                        {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive %}
+                        {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %}
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
 
                                     {% if actions_possibles %}
@@ -729,10 +729,118 @@ Le Parc national de La Réunion</textarea>
         <!-- ############### Form / Messagerie / Consultation ############### -->
         <div class="nav_preinstruction nav_dm_sans_dn">
 
+            <div class="groupe-instructeur-info groupe-instructeur-dm">
+                <h3>
+                    Groupe Instructeur :
+                    {{ groupe_instructeur_dm_affiche.nom|default:"Non affecté" }}
+                </h3>
+
+                {% for retour in messages_groupe_instructeur %}
+                    <div class="message {{ retour.niveau }}">{{ retour.texte }}</div>
+                {% endfor %}
+
+                <ul class="groupe-instructeur-liste">
+                    {% for membre in membres_groupes_dm %}
+                        {% if membre.id_groupeinstructeur_id == groupe_instructeur_dm_id %}
+                            {% if membre.id_instructeur_id in instructeurs_dm_affectes_ids %}
+                                <li class="instructeur_du_dossier">
+                                    {{ membre.id_instructeur }}
+                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur.rice du dossier" title="Instructeur.rice du dossier" class="logo_instructeur">
+                                    {% if request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %}
+                                        <form method="post" action="{% url 'affecter_instructeurs_dossier_dm' %}" class="form-retirer-instructeur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_dm_id" value="{{ doss_manif_sportive.id }}">
+                                            <input type="hidden" name="groupe_instructeur_id" value="{{ groupe_instructeur_dm_id }}">
+                                            <input type="hidden" name="instructeur_id" value="{{ membre.id_instructeur_id }}">
+                                            <input type="hidden" name="action" value="retirer">
+                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.rice du dossier"><span class="croix-retirer">✕</span></button>
+                                        </form>
+                                    {% endif %}
+                                </li>
+                            {% else %}
+                                <li class="pas_instructeur_du_dossier">
+                                    {{ membre.id_instructeur }}
+                                    {% if request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %}
+                                        <form method="post" action="{% url 'affecter_instructeurs_dossier_dm' %}" class="form-ajout-instructeur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_dm_id" value="{{ doss_manif_sportive.id }}">
+                                            <input type="hidden" name="groupe_instructeur_id" value="{{ groupe_instructeur_dm_id }}">
+                                            <input type="hidden" name="instructeur_id" value="{{ membre.id_instructeur_id }}">
+                                            <input type="hidden" name="action" value="ajouter">
+                                            <button type="submit" class="btn-ajout-instructeur" title="Ajouter comme instructeur.rice sur le dossier">
+                                                <img src="{% static 'instruction/img/instructeur.png' %}" alt="Ajouter comme instructeur.rice">
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+
+                {% if autres_instructeurs_du_dossier_dm %}
+                    <div class="autres-instructeurs">
+                        <h3>Autres instructeur.ices</h3>
+                        <ul class="groupe-instructeur-liste">
+                            {% for instructeur in autres_instructeurs_du_dossier_dm %}
+                                <li class="instructeur_du_dossier">
+                                    {{ instructeur }}
+                                    <img src="{% static 'instruction/img/instructeur.png' %}" alt="Instructeur.rice hors du groupe actuel" title="Instructeur.rice hors du groupe actuel" class="logo_instructeur logo_groupe_instru">
+                                    {% if request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %}
+                                        <form method="post" action="{% url 'affecter_instructeurs_dossier_dm' %}" class="form-retirer-instructeur">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="dossier_dm_id" value="{{ doss_manif_sportive.id }}">
+                                            <input type="hidden" name="groupe_instructeur_id" value="{{ groupe_instructeur_dm_id }}">
+                                            <input type="hidden" name="instructeur_id" value="{{ instructeur.id }}">
+                                            <input type="hidden" name="action" value="retirer">
+                                            <button type="submit" class="btn-retirer-instructeur" title="Retirer l'instructeur.rice du dossier"><span class="croix-retirer">✕</span></button>
+                                        </form>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if groupes_instructeurs_dm|length > 1 and request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %}
+                    <form method="post" action="{% url 'affecter_instructeurs_dossier_dm' %}" class="form_groupe_select">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossier_dm_id" value="{{ doss_manif_sportive.id }}">
+                        <input type="hidden" name="action" value="changer_groupe">
+                        <select name="groupe_instructeur_id" aria-label="Changer le groupe instructeur" onchange="this.form.submit()">
+                            <option value="" selected disabled hidden>Changer le groupe instructeur</option>
+                            {% for groupe in groupes_instructeurs_dm %}
+                                {% if groupe_instructeur_dm_id != groupe.id %}
+                                    <option value="{{ groupe.id }}">{{ groupe.nom }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
+                {% endif %}
+
+                {% if instructeur_connecte_dans_groupe_dm and instructeur_connecte.id not in instructeurs_dm_affectes_ids %}
+                    <form method="post" action="{% url 'affecter_instructeurs_dossier_dm' %}" class="form-ajouter-soi">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossier_dm_id" value="{{ doss_manif_sportive.id }}">
+                        <input type="hidden" name="groupe_instructeur_id" value="{{ groupe_instructeur_dm_id }}">
+                        <input type="hidden" name="instructeur_id" value="{{ instructeur_connecte.id }}">
+                        <input type="hidden" name="action" value="ajouter">
+                        <button type="submit" class="btn-ajouter-soi">Je me déclare comme instructeur</button>
+                    </form>
+                {% endif %}
+            </div>
+
             <!-- ############################# MAILS DE RELANCE ############################# -->
             {% if doss_manif_sportive.coeur_de_parc %}
                 <div class="mails_dossier">
                     <h3>Les mails de relance</h3>
+                    {% if messages_mail_relance %}
+                        <div class="bloc-retours">
+                            {% for retour in messages_mail_relance %}
+                                <div class="message {{ retour.niveau }}">{{ retour.texte }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     {% for email in emails_relance %}
                         <div class="un_mail">
                             {% if email.statut != 'Envoyé' %}
@@ -933,6 +1041,12 @@ Dans l'attente de vos compléments,</textarea>
                     </span>
                 </h3>
 
+                {% if messages_notes %}
+                    <div class="bloc-retours">
+                        {% for retour in messages_notes %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                    </div>
+                {% endif %}
+
                 {% for n in notes %}
                     <div class="note-item">
                         <p class="note-meta">
@@ -1004,7 +1118,6 @@ Dans l'attente de vos compléments,</textarea>
     {{ coeurData|json_script:"fond-data" }}
     {{ adhesionData|json_script:"adhesion-data" }}
     {{ secteursData|json_script:"secteurs-data" }}
-
     <!-- 2. Variables globales accessibles à ton JS -->
     <script> 
         window._coeurData = JSON.parse(document.getElementById("fond-data").textContent);

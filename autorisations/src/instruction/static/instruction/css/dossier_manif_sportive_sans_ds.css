@@ -22,8 +22,9 @@
 
 .formulaire_dm {
     position: relative;
-    flex: 0 0 70%;
-    width: 80%;
+    box-sizing: border-box;
+    flex: 1 1 70%;
+    width: auto;
     min-width: 300px;
     padding: 4rem 2rem 3rem 2rem;
     background-color: rgb(239, 239, 239);
@@ -495,7 +496,8 @@
 /*                        PARTIE DROITE                             */
 /* ---------------------------------------------------------------- */
 .nav_preinstruction {
-    flex: 0 1 30%;
+    box-sizing: border-box;
+    flex: 1 1 30%;
     width: auto;
     min-width: 260px;
 }

@@ -369,6 +369,7 @@ class DossierManifSportive(models.Model):
     emplacement = models.CharField()
     archive = models.BooleanField(default=False)
     coeur_de_parc = models.BooleanField(null=True, blank=True)
+    id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.RESTRICT, db_column="id_groupeinstructeur", blank=True, null=True,)
 
     nom_organisateur = models.TextField(blank=True, null=True)
     prenom_organisateur = models.TextField(blank=True, null=True)
@@ -515,6 +516,36 @@ class DossierManifestationLiaison(models.Model):
         super().save(*args, **kwargs)
         Dossier.objects.filter(pk=self.id_dossier_id).update(
             nom_dossier_plus_parlant=self.id_dossier_manif.nom_dossier
+        )
+
+        # Une fois les dossiers liés, le dossier DN devient la source de vérité
+        # pour le groupe instructeur du dossier complet.
+        groupe_instructeur_dn_id = Dossier.objects.filter(
+            pk=self.id_dossier_id
+        ).values_list("id_groupeinstructeur_id", flat=True).get()
+        DossierManifSportive.objects.filter(pk=self.id_dossier_manif_id).update(
+            id_groupeinstructeur_id=groupe_instructeur_dn_id
+        )
+
+        # La liaison peut être créée depuis plusieurs synchronisations et vues.
+        # Centraliser ici le transfert garantit l'union des affectations DM/DN
+        # quel que soit le chemin ayant créé la liaison.
+        dossier_dm_instructeur = apps.get_model(
+            "autorisations", "DossierManifSportiveInstructeur"
+        )
+        dossier_instructeur = apps.get_model("autorisations", "DossierInstructeur")
+        instructeur_ids = set(dossier_dm_instructeur.objects.filter(
+            id_dossier_manif_sportive_id=self.id_dossier_manif_id
+        ).values_list("id_instructeur_id", flat=True))
+        instructeur_ids_deja_presents = set(dossier_instructeur.objects.filter(
+            id_dossier_id=self.id_dossier_id,
+            id_instructeur_id__in=instructeur_ids,
+        ).values_list("id_instructeur_id", flat=True))
+        dossier_instructeur.objects.bulk_create(
+            [
+                dossier_instructeur(id_dossier_id=self.id_dossier_id, id_instructeur_id=instructeur_id,)
+                for instructeur_id in instructeur_ids - instructeur_ids_deja_presents
+            ]
         )
 
     def __str__(self):

@@ -262,6 +262,17 @@ def dossiers_action_a_faire(dossiers, obj_instructeur):
             if est_instructeur:
                 dossiers_a_traiter_ids.add(dossier.id)
 
+        elif (
+            etape == "À affecter"
+            and dossier.id_demarche
+            and dossier.id_demarche.type.lower() == "manifestations sportives"
+            and not DossierManifestationLiaison.objects.filter(id_dossier=dossier).exists()
+        ):
+            # Un dossier DN de manifestation sportive non lié reste en
+            # Réception, mais devient aussi une action de l'instructeur affecté.
+            if est_instructeur:
+                dossiers_a_traiter_ids.add(dossier.id)
+
         elif etape in ["En relecture qualité"]:
             # Rôle : Relecteur Qualité
             if est_relecteur_qualite:
@@ -301,17 +312,8 @@ def dossiers_reception_action_a_faire(dossiers, user):
     if not user.is_authenticated:
         return set()
     
-    # POUR LE MOMENT ON EXCLU LES DOSSIERS DE MANIFESTATIONS SPORTIVES
-    # Exclure les dossiers "Manifestations sportives" incomplets (qui n'apparaisse pas dans un DossierManifestationLiaison)
-    # liaison_exists = DossierManifestationLiaison.objects.filter(id_dossier=OuterRef('pk'))
-
-    dossiers = dossiers.exclude(
-        id_demarche__type__icontains="manifestations sportives",
-        dossiermanifestationliaison__isnull=True
-    )
-
-
     dossiers_a_traiter_ids = set()
+    instructeur = Instructeur.objects.filter(email=user.email).first()
     # Vérification rôle Reception
     est_receptionniste_SAADD = False
     est_receptionniste_SPPN = False
@@ -323,6 +325,20 @@ def dossiers_reception_action_a_faire(dossiers, user):
 
 
     for dossier in dossiers:
+        dossier_dn_manif_non_lie = (
+            dossier.id_demarche
+            and dossier.id_demarche.type.lower() == "manifestations sportives"
+            and not DossierManifestationLiaison.objects.filter(id_dossier=dossier).exists()
+        )
+        if dossier_dn_manif_non_lie:
+            instructeurs_affectes = DossierInstructeur.objects.filter(id_dossier=dossier)
+            if instructeurs_affectes.exists():
+                if instructeur and instructeurs_affectes.filter(id_instructeur=instructeur).exists():
+                    dossiers_a_traiter_ids.add(dossier.id)
+            elif est_receptionniste_SAADD:
+                dossiers_a_traiter_ids.add(dossier.id)
+            continue
+
         # SPPN
         if dossier.id_demarche and dossier.id_demarche.service and dossier.id_demarche.service == 'SPPN':
             if est_receptionniste_SPPN :

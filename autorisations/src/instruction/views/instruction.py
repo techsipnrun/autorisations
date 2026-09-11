@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
@@ -19,7 +19,7 @@ from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier
 from instruction.utils.avis_utils import build_avis_for_dossier
 from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.document_utils import build_documents_for_dossier
-from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
+from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -83,12 +83,18 @@ def get_dossiers_instructeur(instructeur):
         if user.groups.filter(name="Réception SAADD").exists():
             filtre |= ~Q(id_demarche__type__icontains="Mission scientifique")
 
-    return (
+    dossiers_hors_reception = (
         Dossier.objects
         .filter(filtre)
         .exclude(id_etape_dossier__etape="À affecter")
-        .distinct()
     )
+    dossiers_dn_manif_non_lies_affectes = Dossier.objects.filter(
+        id_etape_dossier__etape="À affecter",
+        id_demarche__type__iexact="Manifestations sportives",
+        dossiermanifestationliaison__isnull=True,
+        dossierinstructeur__id_instructeur=instructeur,
+    )
+    return (dossiers_hors_reception | dossiers_dn_manif_non_lies_affectes).distinct()
 
 
 
@@ -104,9 +110,18 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
     # Nombre de dossiers en Réception
     # -------------------------------
     dossiers_DM_manif_sportive_non_lie_en_reception = 0
+    dossiers_DM_affectes_instructeur = 0
     if demarche.type.lower() == 'manifestations sportives':
         dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
-        dossiers_DM_manif_sportive_non_lie_en_reception = DossierManifSportive.objects.filter(archive=False,).exclude(id__in=dossiers_deja_lies_ids).count()
+        dossiers_dm_non_lies = DossierManifSportive.objects.filter(
+            archive=False,
+            id_etape__etape="En réception",
+        ).exclude(id__in=dossiers_deja_lies_ids)
+        dossiers_DM_manif_sportive_non_lie_en_reception = dossiers_dm_non_lies.count()
+        if instructeur:
+            dossiers_DM_affectes_instructeur = dossiers_dm_non_lies.filter(
+                dossiermanifsportiveinstructeur__id_instructeur=instructeur
+            ).distinct().count()
 
     nb_reception = dossiers.filter(id_etape_dossier=etape_a_affecter).count() + dossiers_DM_manif_sportive_non_lie_en_reception
 
@@ -130,7 +145,10 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
     # Dossiers où l'instructeur intervient
     dossiers_instructeur = get_dossiers_instructeur(instructeur).filter(id_demarche=demarche)
 
-    nb_suivis_user = dossiers_action_a_faire(dossiers_instructeur, instructeur).count()
+    nb_suivis_user = (
+        dossiers_action_a_faire(dossiers_instructeur, instructeur).count()
+        + dossiers_DM_affectes_instructeur
+    )
 
     return {
         "demarche": demarche,
@@ -296,6 +314,7 @@ def mesdossiers(request):
 
         # Structurer les infos
         dossiers_par_demarche.setdefault(dossier.id_demarche.type, []).append({
+            "url_name": "instruction_dossier",
             "badge_manifestation": (
                 "COMPLET" if dossier.id in dossiers_complets_ids else "DN"
             ) if dossier.id_demarche.type.lower() == "manifestations sportives" else "",
@@ -312,6 +331,37 @@ def mesdossiers(request):
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
             "action_a_faire": action,
+        })
+
+    dossiers_dm_affectes = DossierManifSportive.objects.filter(
+        archive=False,
+        id_etape__etape="En réception",
+        dossiermanifsportiveinstructeur__id_instructeur=instructeur,
+    ).exclude(
+        id__in=DossierManifestationLiaison.objects.values_list(
+            "id_dossier_manif_id", flat=True
+        )
+    ).distinct().order_by("date_debut_evenement")
+
+    for dossier_dm in dossiers_dm_affectes:
+        date_evenement_passee, date_evenement_dans_moins_un_mois = (
+            get_indicateurs_date_manifestation(dossier_dm.date_debut_evenement)
+        )
+        dossiers_par_demarche.setdefault("Manifestations sportives", []).append({
+            "url_name": "dossier_manif_sportive_sans_ds",
+            "badge_manifestation": "DM",
+            "nom_dossier": dossier_dm.nom_dossier,
+            "nom_dossier_plus_parlant": None,
+            "numero": dossier_dm.numero_dossier_declaration_manifestations,
+            "demandeur": " ".join(filter(None, [dossier_dm.prenom_organisateur, dossier_dm.nom_organisateur])) or dossier_dm.structure or "N/A",
+            "date_depot": dossier_dm.date_depot,
+            "date_debut_manifestation": dossier_dm.date_debut_evenement,
+            "date_evenement_passee": date_evenement_passee,
+            "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
+            "mon_role": "Instructeur.rice",
+            "etape": dossier_dm.id_etape.etape,
+            "nb_messages_non_lus": 0,
+            "action_a_faire": True,
         })
 
 
@@ -1084,7 +1134,13 @@ def instruction_dossier(request, num_dossier):
         "NAS_ROOT": os.getenv('NAS_ROOT'),
         "is_formulaire_active": True,
         "is_messagerie_active": False,
-        "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
+        "messages_groupe_instructeur": request.session.pop("messages_bloc_groupe_instructeur", []),
+        "messages_intermediaire_signature": request.session.pop("messages_bloc_intermediaire_signature", []),
+        "messages_envoyeur_acte": request.session.pop("messages_bloc_envoyeur_acte", []),
+        "messages_publieur_raa": request.session.pop("messages_bloc_publieur_raa", []),
+        "messages_valideur": request.session.pop("messages_bloc_valideur", []),
+        "messages_relecteur_qualite": request.session.pop("messages_bloc_relecteur_qualite", []),
+        "messages_notes": request.session.pop("messages_bloc_notes", []),
         "changer_valideur_message": request.session.pop("changer_valideur_message", None),
         "changer_relecteur_qualite_message": request.session.pop("changer_relecteur_qualite_message", None),
         "relecteur_message": request.session.pop("relecteur_message", None),
@@ -1166,6 +1222,7 @@ def sauvegarder_note_dossier(request):
         logger.exception(f"[DOSSIER {dossier_libelle}] Erreur lors de la sauvegarde de la note {note_id} par {request.user} : {e}")
         return redirect_error(request, "❌ Une erreur est survenue lors de l’enregistrement de la note. Contactez le support.")
 
+    ajouter_message_bloc(request, "notes", "Note enregistrée.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -1221,6 +1278,7 @@ def supprimer_note_dossier(request):
         return redirect_error(request, "❌ Une erreur est survenue lors de la suppression de la note. Contactez le support.")
 
 
+    ajouter_message_bloc(request, "notes", "Note supprimée.", "success")
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 

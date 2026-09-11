@@ -11,13 +11,13 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Q
 from autorisations.models.models_instruction import Champ, Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
-from autorisations.models.models_utilisateurs import DossierInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
-from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances
-from instruction.utils.dossier_utils import build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
+from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances, user_recoit_notifications_reception_manif_sportive
+from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
@@ -120,12 +120,24 @@ def preinstruction(request):
         .exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True))
         .order_by("date_debut_evenement")
     )
+    affectations_dm = defaultdict(set)
+    for dossier_dm_id, instructeur_id in DossierManifSportiveInstructeur.objects.filter(
+        id_dossier_manif_sportive_id__in=dossiers_manif_sportive_DM.values_list("id", flat=True)
+    ).values_list("id_dossier_manif_sportive_id", "id_instructeur_id"):
+        affectations_dm[dossier_dm_id].add(instructeur_id)
+    utilisateur_est_receptionniste_dm = user_recoit_notifications_reception_manif_sportive(request.user)
 
     # start = time.time()
     # nb_inter = 0
 
     # Intersection Coeur de Parc
     for dm in dossiers_manif_sportive_DM :
+        instructeurs_affectes = affectations_dm[dm.id]
+        dm.action_a_faire = (
+            instructeur.id in instructeurs_affectes
+            if instructeurs_affectes and instructeur
+            else not instructeurs_affectes and utilisateur_est_receptionniste_dm
+        )
         today = timezone.localdate()
         
         dm.date_evenement_passee = (
@@ -141,33 +153,32 @@ def preinstruction(request):
 
 
         dm.nb_relances = 0
+        coeur_de_parc_non_calcule = dm.coeur_de_parc is None
 
         # En théorie on devrait jamais etre dans ce cas là
-        if dm.coeur_de_parc is None :
+        if coeur_de_parc_non_calcule :
             dm.coeur_de_parc = intersecte_coeur_de_parc(dm.geometrie, coeur_geojson)
             dm.save(update_fields=["coeur_de_parc"])
 
-            # ----------------------------------------------------------------------------
-            # Si le dossier DM est nouveau et intersecte le coeur de parc : MAIL DE RELANCE
-            # ----------------------------------------------------------------------------
-            if dm.coeur_de_parc == True and dm.email_structure and not dm.date_evenement_passee :
+        if dm.coeur_de_parc == True :
+            # Les relances historiques restent comptabilisées, y compris lorsque
+            # la date de l'événement est passée.
+            nb_relances = get_nb_relances(dm)
+
+            # L'envoi automatique reste réservé aux dossiers dont l'événement
+            # n'est pas passé. Pour un dossier déjà calculé, l'avis DM doit exister.
+            peut_envoyer_relance_auto = (
+                nb_relances == 0
+                and dm.email_structure
+                and not dm.date_evenement_passee
+                and (coeur_de_parc_non_calcule or hasattr(dm, "avis"))
+            )
+            if peut_envoyer_relance_auto :
                 if not envoi_auto_mail_relance(dm) :
                     messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
                                               f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
-                    
-        
-
-        elif dm.coeur_de_parc == True and hasattr(dm, "avis") and not dm.date_evenement_passee :
-            nb_relances = get_nb_relances(dm)
-
-            # Calcul coeur de parc se fait à la synchro en théorie : Si 0 relances 
-            if nb_relances == 0 :
-                if dm.email_structure :    
-                    if not envoi_auto_mail_relance(dm) :
-                        messages.warning(request, f"Echec de l'envoi du mail de relance automatique pour le dossier Déclaration Manifestations "
-                                                f"{dm.numero_dossier_declaration_manifestations}, vous pouvez ré-essayer manuellement.")
-                    else :
-                        nb_relances +=1
+                else :
+                    nb_relances += 1
 
             dm.nb_relances = nb_relances
             
@@ -188,7 +199,10 @@ def preinstruction(request):
     )
 
     dossiers_manif_sportive_DS_infos = []
+    dossiers_actions_ids = {d.id for d in dossiers_actions}
     for dossier in dossiers_manif_sportive_DS:
+
+        dossier.action_a_faire = dossier.id in dossiers_actions_ids
 
         # --- 1. Bénéficiaire ---
         interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
@@ -237,8 +251,6 @@ def preinstruction(request):
 
 
     # Création d’un dictionnaire : dossier → dossier_manif
-    dossiers_actions_ids = {d.id for d in dossiers_actions}
-
     for liaison in liaisons:
         dossierDN = liaison.id_dossier
         dossierDN.action_a_faire = dossierDN.id in dossiers_actions_ids
@@ -567,7 +579,8 @@ def preinstruction_dossier(request, numero):
         "is_formulaire_active": True,
         "is_messagerie_active": False,
         "preinstruction_message": request.session.pop("preinstruction_message", None),
-        "retirer_instructeur_message": request.session.pop("retirer_instructeur_message", None),
+        "messages_groupe_instructeur": request.session.pop("messages_bloc_groupe_instructeur", []),
+        "messages_notes": request.session.pop("messages_bloc_notes", []),
         "now": timezone.now(),
         "DM_API_URL": DM_API_URL,
     })
@@ -606,13 +619,15 @@ def changer_groupe_instructeur(request):
     nom_groupe = Groupeinstructeur.objects.filter(id=groupe_id).values_list("nom", flat=True).first()
     if not nom_groupe:
         logger.error(f"[DOSSIER {dossier_num}] Changement de Groupe Instructeur par {request.user} : Groupe id={groupe_id} introuvable.")
-        return redirect_error(request, "❌ Groupe instructeur introuvable.")
+        ajouter_message_groupe_instructeur(request, "Groupe instructeur introuvable.", "error")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
     groupe_id_ds = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur=groupe_id).values_list("id_groupeinstructeur_ds", flat=True).first()
 
     if not groupe_id_ds:
         logger.error(f"[DOSSIER {dossier_num}] Changement de Groupe Instructeur par {request.user} : Groupe instructeur {groupe_id} sans équivalent DS.")
-        return redirect_error(request, "❌ Groupe instructeur invalide pour DS. Contactez le support.")
+        ajouter_message_groupe_instructeur(request, "Groupe instructeur invalide pour DN. Contactez le support.", "error")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
     # ---------------
     # Appel API DS
@@ -621,12 +636,14 @@ def changer_groupe_instructeur(request):
         result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_num}] Erreur API DS lors du changement de groupe vers {nom_groupe} par {request.user} : {e}")
-        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.")
+        ajouter_message_groupe_instructeur(request, "Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.", "error")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
     if not result.get("success"):
         logger.error(f"[DOSSIER {dossier_num}] Echec du changement de Groupe Instructeur vers {nom_groupe} par {request.user} : {result.get('message')}")
-        return redirect_error(request, "❌ Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.")
+        ajouter_message_groupe_instructeur(request, "Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.", "error")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
 
     logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur changé avec succès sur DS par {request.user} --> Affecté au groupe {nom_groupe}.")
 
@@ -642,10 +659,14 @@ def changer_groupe_instructeur(request):
         safe_enregistrer_action(dossier, instructeur, "Affectation au groupe", request, description=nom_groupe)
 
         logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur mis à jour dans Postgres par {request.user} --> Affecté au groupe {nom_groupe}.")
+        ajouter_message_groupe_instructeur(
+            request, f"Le dossier a bien été affecté au groupe {nom_groupe}.", "success"
+        )
 
     except Exception as e:
         logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur en BDD par {request.user} (groupe mis à jour sur DS) : {e}")
-        return redirect_error(request,"⚠️ Groupe modifié sur DS mais erreur interne lors de la mise à jour locale. Contactez le support.")
+        ajouter_message_groupe_instructeur(request, "Groupe modifié sur DN mais erreur interne lors de la mise à jour locale. Contactez le support.", "error")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
    
     return redirect(request.META.get('HTTP_REFERER', '/'))
 

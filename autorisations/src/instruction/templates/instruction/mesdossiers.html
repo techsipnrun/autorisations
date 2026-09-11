@@ -90,7 +90,7 @@
                         </thead>
                         <tbody>
                             {% for d in dossiers %}
-                                <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté,Annulé' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url 'instruction_dossier' d.numero %}"
+                                <tr class="clickable-row {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté,Annulé' %}row-action-archive{% elif d.action_a_faire %}row-action{% endif %}" data-href="{% url d.url_name d.numero %}"
                                 {% if d.action_a_faire and d.etape in 'Non soumis à autorisation,Refusé,Accepté,Annulé' %}title="Nouveau message sur le dossier archivé"{% elif d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
                                     <td>
                                         {% if d.nb_messages_non_lus > 0 %}

@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -115,7 +115,7 @@
                 {% if dossier.id_demarche.type == "Manifestations sportives" and dossier.present_sur_ds and not dossier_lie_manif_sportive %}
                     <div class="en_attente_DS">
                         <div class="en_attente_DS_message">
-                            <p>En attente d'un dossier Déclaration Manifestations</p>
+                            <p class="attente-liaison-titre">En attente d'un dossier Déclaration Manifestations</p>
 
                             <!-- Si Dossier DM déjà lié -->
                             {% if dossier_dm_meme_numero_deja_lie %}
@@ -688,9 +688,9 @@
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
                         <h3>Groupe Instructeur : {{ dossier.id_groupeinstructeur.nom }}</h3>
-                        {% if retirer_instructeur_message %}
-                            <div class="instruction-warning">{{ retirer_instructeur_message }}</div>
-                        {% endif %}
+                        {% for retour in messages_groupe_instructeur %}
+                            <div class="message {{ retour.niveau }}">{{ retour.texte }}</div>
+                        {% endfor %}
                         <ul class="groupe-instructeur-liste">
                             {% for instructeur in membres_groupe %}
                                 {% if instructeur.id in instructeurs_dossier_ids %}
@@ -826,6 +826,12 @@
                             </form>
                         {% endif %}
                     </h3>
+
+                    {% if messages_notes %}
+                        <div class="bloc-retours">
+                            {% for retour in messages_notes %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+                        </div>
+                    {% endif %}
 
                     {% if annexes_instructeur %}
                         <ul class="liste-annexes-instructeur">
