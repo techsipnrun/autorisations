@@ -842,7 +842,7 @@ Le Parc national de La Réunion</textarea>
                         </div>
                     {% endif %}
                     {% for email in emails_relance %}
-                        <div class="un_mail">
+                        <div class="un_mail{% if email.statut != 'Envoyé' %} un_mail-supprimable{% endif %}">
                             {% if email.statut != 'Envoyé' %}
                                 <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
                                     {% csrf_token %}

@@ -548,6 +548,21 @@
     align-items: center;
     margin-top: 1.3rem;
     margin-bottom: 0.4rem;
+    min-width: 0;
+}
+
+.un_mail-supprimable .titre_mail_dossier {
+    box-sizing: border-box;
+    padding-right: 2rem;
+}
+
+.titre_mail_dossier h4 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.titre_mail_dossier a {
+    flex: 0 0 auto;
 }
 
 .mails_dossier p {

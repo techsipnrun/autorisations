@@ -2435,7 +2435,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 <span class="mails-dossier-icon" aria-hidden="true">✉</span>
                             </h3>
                             {% for email in emails_dossiers %}
-                                <div class="un_mail">
+                                <div class="un_mail{% if email.statut != 'Envoyé' %} un_mail-supprimable{% endif %}">
                                     {% if email.statut != 'Envoyé' %}
                                         <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
                                             {% csrf_token %}
