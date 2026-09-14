@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import render
 from autorisations.models.models_instruction import Dossier, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, Demarche
-from autorisations.models.models_avis import Expert
+from autorisations.models.models_avis import AvisThematique, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, Groupeinstructeur, Instructeur
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import ExtractYear, Coalesce
@@ -202,6 +202,7 @@ def _export_avis_xlsx(avis_iterable):
         "N° Avis",
         "Date demande",
         "Démarche",
+        "Thématique",
         "Dossier lié",
         "Expert",
         "Demandeur",
@@ -241,6 +242,7 @@ def _export_avis_xlsx(avis_iterable):
         # Expert / demandeur (dans ton tableau: a.id_expert, a.id_instructeur)
         expert = str(getattr(a, "id_expert", "") or "")
         demandeur = str(getattr(a, "id_instructeur", "") or "")
+        thematique = str(getattr(a, "id_avis_thematique", "") or "")
 
         reponse = a.get_reponse_display() if a.reponse else "En attente"
 
@@ -250,6 +252,7 @@ def _export_avis_xlsx(avis_iterable):
             a.id,
             date_demande,
             demarche,
+            thematique,
             dossiers_lies,
             expert,
             demandeur,
@@ -258,7 +261,7 @@ def _export_avis_xlsx(avis_iterable):
         ])
 
     # Largeurs de colonnes (simple + lisible)
-    widths = [10, 14, 35, 50, 25, 25, 22, 14]
+    widths = [10, 14, 35, 30, 50, 25, 25, 22, 14]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -588,6 +591,7 @@ def requete_dossiers(request):
         'etapes_dossier': etapes_dossier,
         "demarches": demarches,
         "groupes": groupes,
+        "thematiques": AvisThematique.objects.all().order_by("thematique"),
         "recherche_dossier_effectuee": bool(request.GET),
         "recherche_avis_effectuee": False,
         "annees": annees,
@@ -622,6 +626,7 @@ def requete_avis(request):
         "id_demarche",
         "id_instructeur",
         "id_expert",
+        "id_avis_thematique",
     ).prefetch_related(
         "dossieravis_set__id_dossier",
     ).filter(statut="Envoyé")
@@ -643,6 +648,7 @@ def requete_avis(request):
     date_fin_demande_avis = request.GET.get("date_fin_demande_avis")
 
     demarches = Demarche.objects.all().order_by("type")
+    thematiques = AvisThematique.objects.all().order_by("thematique")
 
 
     # --- Récupération des filtres GET ---
@@ -652,6 +658,11 @@ def requete_avis(request):
     reponse = request.GET.get("reponse")
     demandeur = request.GET.get("demandeur")
     expert = request.GET.get("expert")
+    thematiques_ids = [
+        int(value)
+        for value in request.GET.getlist("thematique")
+        if value.isdigit()
+    ]
     num_dossier = clean_int(request.GET.get("num_dossier"))
     types_demarche = [value for value in request.GET.getlist("a_type_demarche") if value]
     publie_raa = request.GET.get("publie_raa")  # Nouveau filtre
@@ -777,6 +788,9 @@ def requete_avis(request):
         else:
             expert = ""
 
+    if thematiques_ids:
+        avis_list = avis_list.filter(id_avis_thematique_id__in=thematiques_ids)
+
 
     if num_dossier:
         avis_list = avis_list.filter(
@@ -814,6 +828,7 @@ def requete_avis(request):
         "groupes": groupes,
         "mois_list": mois_list,
         "demarches": demarches,
+        "thematiques": thematiques,
 
         # Champs nettoyés pour pré-remplissage propre
         "expert_rempli": expert,
@@ -823,6 +838,7 @@ def requete_avis(request):
         "date_debut_demande_avis_rempli": date_debut_demande_avis or "",
         "date_fin_demande_avis_rempli": date_fin_demande_avis or "",
         "types_demarche_avis_selectionnes": types_demarche,
+        "thematiques_selectionnees": thematiques_ids,
 
     }
 

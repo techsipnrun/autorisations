@@ -225,6 +225,7 @@ def avis(request):
             "avis_rendus": avis_rendus,
             "annees_disponibles_expert": annees_disponibles_expert,
             # Demandeur
+            "est_instructeur": bool(instructeur),
             "demandes_en_cours": demandes_en_cours,
             "demandes_traitees": demandes_traitees,
             "demandes_avis_a_publier_au_RAA": demandes_avis_a_publier_au_RAA,

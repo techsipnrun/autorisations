@@ -317,6 +317,22 @@
             </div>
 
             <div class="form-field">
+                <label>Thématique :</label>
+                <details class="checkbox-menu">
+                    <summary data-placeholder="- - -">- - -</summary>
+                    <div class="checkbox-menu-options">
+                        {% for thematique in thematiques %}
+                            <label>
+                                <input type="checkbox" name="thematique" value="{{ thematique.id }}"
+                                    {% if thematique.id in thematiques_selectionnees %}checked{% endif %}>
+                                {{ thematique.thematique }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </details>
+            </div>
+
+            <div class="form-field">
                 <label for="num_dossier">N° d’un dossier lié :</label>
                 <input type="text" name="num_dossier" id="num_dossier" value="{{ num_dossier_rempli }}">
             </div>
@@ -378,6 +394,7 @@
                             <th>N° Avis</th>
                             <th>Date demande</th>
                             <th>Démarche</th>
+                            <th>Thématique</th>
                             <th>Dossier lié</th>
                             <th>Expert</th>
                             <th>Demandeur</th>
@@ -391,6 +408,7 @@
                                 <td>{{ a.id }}</td>
                                 <td>{{ a.date_demande_avis|date:"d/m/Y" }}</td>
                                 <td>{{ a.id_dossier.id_demarche.type }}</td>
+                                <td>{{ a.id_avis_thematique.thematique }}</td>
                                 <td>{% for liaison in a.dossieravis_set.all %}{{ liaison.id_dossier.nom_dossier }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                 <td>{{ a.id_expert }}</td>
                                 <td>{{ a.id_instructeur }}</td>
@@ -406,7 +424,7 @@
                                 </td>
                             </tr>
                         {% empty %}
-                            <tr><td colspan="8">Aucun résultat</td></tr>
+                            <tr><td colspan="9">Aucun résultat</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

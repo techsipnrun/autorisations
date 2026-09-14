@@ -2,6 +2,7 @@ from datetime import date
 import os
 from pathlib import Path
 import re
+import unicodedata
 
 from django.contrib.auth.models import User
 from autorisations.models.models_documents import Document, DocumentNature, MessageDocument
@@ -16,6 +17,79 @@ from datetime import timedelta
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 logger = logging.getLogger("SYNCHRONISATION")
+
+
+NATURES_PIECES_JOINTES_MESSAGE = {
+    "Pièce jointe message",
+    "Annexe instructeur",
+}
+
+
+def _normaliser_titre_piece_jointe(titre):
+    """Normalise un titre uniquement pour comparer deux PJ d'un même message."""
+    titre = unicodedata.normalize("NFC", Path(titre or "").name)
+    titre = re.sub(r"[\s_]+", "_", titre.strip())
+    return titre.casefold()
+
+
+def _titre_piece_jointe(titre):
+    """Normalise Unicode et casse sans assimiler espaces et underscores."""
+    return unicodedata.normalize("NFC", Path(titre or "").name).strip().casefold()
+
+
+def _piece_jointe_deja_liee(message, document, ids_deja_utilises):
+    """
+    Retrouve une PJ ordinaire déjà enregistrée pour ce message DN.
+
+    Le titre renvoyé par DN peut différer du titre local uniquement par le
+    remplacement des espaces par des underscores. La recherche reste limitée
+    au message et aux natures de messagerie pour ne pas réutiliser un acte ou
+    un autre document métier portant le même nom.
+    """
+    documents_lies = (
+        Document.objects
+        .filter(messagedocument__id_message=message)
+        .select_related("id_nature")
+    )
+
+    documents_messages_disponibles = [
+        document_lie
+        for document_lie in documents_lies
+        if document_lie.id not in ids_deja_utilises
+        and document_lie.id_nature.nature in NATURES_PIECES_JOINTES_MESSAGE
+    ]
+
+    url_ds = document.get("url_ds")
+    titre = _titre_piece_jointe(document.get("titre"))
+    titre_normalise = _normaliser_titre_piece_jointe(document.get("titre"))
+
+    for document_lie in documents_messages_disponibles:
+        if url_ds and document_lie.url_ds == url_ds:
+            return document_lie
+
+    correspondances_exactes = [
+        document_lie
+        for document_lie in documents_messages_disponibles
+        if _titre_piece_jointe(document_lie.titre) == titre
+    ]
+    if len(correspondances_exactes) == 1:
+        return correspondances_exactes[0]
+
+    correspondances_normalisees = [
+        document_lie
+        for document_lie in documents_messages_disponibles
+        if _normaliser_titre_piece_jointe(document_lie.titre) == titre_normalise
+    ]
+    if len(correspondances_normalisees) == 1:
+        return correspondances_normalisees[0]
+
+    if len(correspondances_normalisees) > 1:
+        logger.warning(
+            f"[MESSAGE {message.id_ds}] Correspondance ambiguë pour la pièce jointe "
+            f"'{document.get('titre')}' : aucune pièce jointe existante n'est réutilisée."
+        )
+
+    return None
 
 def sync_messages(messages, id_dossier):
     """
@@ -75,11 +149,37 @@ def sync_messages(messages, id_dossier):
 
   
         if message_data["piece_jointe"]:
+            ids_documents_lies_utilises = set()
             for doc in docs:
                 
                 # "id_nature_id": doc["id_nature"],
                 nature_doc_obj = DocumentNature.objects.filter(id=doc["id_nature"]).first()
                 nature_doc = nature_doc_obj.nature if nature_doc_obj else None
+
+                doc_obj = _piece_jointe_deja_liee(
+                    msg_obj,
+                    doc,
+                    ids_documents_lies_utilises,
+                )
+
+                if doc_obj:
+                    ids_documents_lies_utilises.add(doc_obj.id)
+                    updated_fields = update_fields(doc_obj, {
+                        "url_ds": doc["url_ds"],
+                        "id_format_id": doc["id_format"],
+                        "id_nature_id": doc["id_nature"],
+                        "description": doc["description"],
+                    })
+                    if updated_fields:
+                        doc_obj.save()
+                        if updated_fields != ["url_ds"]:
+                            logger.info(
+                                f"[SAVE] Document {doc_obj.id} ({nature_doc}) déjà lié au message "
+                                f"{msg_obj.id_ds} mis à jour. Champs modifiés : {', '.join(updated_fields)}."
+                            )
+
+                    # Le lien existe déjà : ne pas rechercher ni créer une copie.
+                    continue
 
                 doc_meme_nom = (Document.objects.filter(emplacement=doc["emplacement"],titre=doc["titre"],).select_related("id_nature").first())
                 
