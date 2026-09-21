@@ -1,0 +1,91 @@
+{% load static %}
+{% load group_tags %}
+{% if request.user|est_concerné_par_le_dossier:dossier %}
+    <div class="notification-agents-wrapper">
+        <button type="button" class="btn-notifier-agents" title="Notifier des agents"
+                aria-label="Notifier des agents" aria-expanded="false"
+                onclick="toggleNotificationAgents(this)">
+            <img src="{% static 'instruction/img/bell.svg' %}" alt="">
+        </button>
+        <div class="notification-agents-panel" hidden>
+            <button type="button" class="notification-agents-close" aria-label="Fermer"
+                    title="Fermer" onclick="fermerNotificationAgents(this)">×</button>
+            <h3>Notifier des agents</h3>
+            <form data-url="{% url 'notifier_agents_dossier' dossier.id %}"
+                  onsubmit="envoyerNotificationAgents(event, this)">
+                {% csrf_token %}
+                <input type="hidden" name="dossier_path" value="{{ request.path }}">
+                <label>Destinataires</label>
+                <div class="notification-agent-picker" data-input-name="agents[]">
+                    <div class="notification-agent-chips"></div>
+                    <input type="search" class="notification-agent-search"
+                           placeholder="Rechercher un agent…"
+                           autocomplete="off"
+                           oninput="filtrerAgentsNotification(this)"
+                           onfocus="filtrerAgentsNotification(this)">
+                    <div class="notification-agent-suggestions" hidden>
+                        {% for agent in agents_notification %}
+                            <button type="button" data-agent-id="{{ agent.id }}"
+                                    data-agent-label="{{ agent }}"
+                                    data-agent-email="{{ agent.email }}"
+                                    onclick="ajouterAgentNotification(this)">
+                                <span>{{ agent }}</span>
+                                <small>{{ agent.email }}</small>
+                            </button>
+                        {% empty %}
+                            <span>Aucun agent disposant d’une adresse électronique.</span>
+                        {% endfor %}
+                    </div>
+                    <div class="notification-agent-hidden-inputs"></div>
+                </div>
+
+                <label>Copie</label>
+                <div class="notification-agent-picker" data-input-name="agents_cc[]">
+                    <div class="notification-agent-chips"></div>
+                    <input type="search" class="notification-agent-search"
+                           placeholder="Rechercher un agent à mettre en copie…"
+                           autocomplete="off"
+                           oninput="filtrerAgentsNotification(this)"
+                           onfocus="filtrerAgentsNotification(this)">
+                    <div class="notification-agent-suggestions" hidden>
+                        {% for agent in agents_notification %}
+                            <button type="button" data-agent-id="{{ agent.id }}"
+                                    data-agent-label="{{ agent }}"
+                                    data-agent-email="{{ agent.email }}"
+                                    onclick="ajouterAgentNotification(this)">
+                                <span>{{ agent }}</span>
+                                <small>{{ agent.email }}</small>
+                            </button>
+                        {% empty %}
+                            <span>Aucun agent disposant d’une adresse électronique.</span>
+                        {% endfor %}
+                    </div>
+                    <div class="notification-agent-hidden-inputs"></div>
+                </div>
+
+                <label for="notification-subject-{{ dossier.id }}">Objet</label>
+                <input id="notification-subject-{{ dossier.id }}" type="text" name="sujet"
+                       class="notification-agents-subject"
+                       value="Notification concernant le dossier n° {{ dossier.numero }}"
+                       maxlength="255" required>
+                <label for="notification-body-{{ dossier.id }}">Message</label>
+                <textarea id="notification-body-{{ dossier.id }}" name="body" rows="8" required>Bonjour,
+
+Je souhaite attirer votre attention sur le dossier n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}.
+
+
+Cordialement,
+{{ auteur_notification }}</textarea>
+                <p class="notification-agents-status" role="status" aria-live="polite"></p>
+                <button type="submit" class="notification-agents-submit">Envoyer le mail</button>
+            </form>
+        </div>
+    </div>
+    <div class="notification-agents-loading" hidden role="status" aria-live="assertive">
+        <div class="envoi-acte-attente-contenu">
+            <span class="envoi-acte-spinner" aria-hidden="true"></span>
+            <strong>Envoi du mail en cours…</strong>
+            <span>Veuillez patienter pendant l’envoi du mail.</span>
+        </div>
+    </div>
+{% endif %}

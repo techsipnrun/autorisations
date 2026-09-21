@@ -703,6 +703,138 @@ function afficherFormulaireDeposerPJ_DeclarationManifestations() {
 }
 
 
+function toggleNotificationAgents(button) {
+    const wrapper = button.closest(".notification-agents-wrapper");
+    const panel = wrapper?.querySelector(".notification-agents-panel");
+    if (!panel) return;
+    const doitOuvrir = panel.hidden;
+    document.querySelectorAll(".notification-agents-panel").forEach((item) => { item.hidden = true; });
+    panel.hidden = !doitOuvrir;
+    button.setAttribute("aria-expanded", String(doitOuvrir));
+}
+
+function fermerNotificationAgents(button) {
+    const panel = button.closest(".notification-agents-panel");
+    const trigger = panel?.closest(".notification-agents-wrapper")?.querySelector(".btn-notifier-agents");
+    if (panel) panel.hidden = true;
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+}
+
+async function envoyerNotificationAgents(event, form) {
+    event.preventDefault();
+    const coches = [...form.querySelectorAll('input[type="hidden"][name="agents[]"]')];
+    const status = form.querySelector(".notification-agents-status");
+    const nombre = coches.length;
+    if (!nombre) {
+        status.textContent = "Sélectionnez au moins un agent.";
+        status.className = "notification-agents-status error";
+        return;
+    }
+    if (!confirm(`Confirmez-vous l’envoi de cette notification à ${nombre} agent(s) ?`)) return;
+
+    const loading = document.querySelector(".notification-agents-loading");
+    const submit = form.querySelector("button[type=submit]");
+    let navigationEnCours = false;
+    if (loading?.classList.contains("notification-agents-loading")) loading.hidden = false;
+    submit.disabled = true;
+    try {
+        // Laisser le navigateur afficher le calque et le flou avant l'appel réseau.
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const response = await fetch(form.dataset.url, {
+            method: "POST",
+            body: new FormData(form),
+            headers: {"X-Requested-With": "XMLHttpRequest"},
+        });
+        const resultat = await response.json();
+        if (resultat.redirect_url) {
+            navigationEnCours = true;
+            window.location.assign(resultat.redirect_url);
+            return;
+        }
+        throw new Error(resultat.error || "L’envoi a échoué.");
+    } catch (erreur) {
+        fermerNotificationAgents(form.querySelector(".notification-agents-close"));
+        window.alert(erreur.message);
+        navigationEnCours = true;
+        window.location.reload();
+    } finally {
+        if (!navigationEnCours && loading?.classList.contains("notification-agents-loading")) {
+            loading.hidden = true;
+        }
+        submit.disabled = false;
+    }
+}
+
+function filtrerAgentsNotification(input) {
+    const picker = input.closest(".notification-agent-picker");
+    const suggestions = picker.querySelector(".notification-agent-suggestions");
+    const recherche = input.value.trim().toLocaleLowerCase("fr");
+    let resultatVisible = false;
+
+    suggestions.querySelectorAll("button[data-agent-id]").forEach((option) => {
+        const texte = `${option.dataset.agentLabel} ${option.dataset.agentEmail}`.toLocaleLowerCase("fr");
+        const visible = option.dataset.selected !== "true" && texte.includes(recherche);
+        option.hidden = !visible;
+        resultatVisible = resultatVisible || visible;
+    });
+    suggestions.hidden = !resultatVisible;
+}
+
+function ajouterAgentNotification(option) {
+    const picker = option.closest(".notification-agent-picker");
+    const form = picker.closest("form");
+    const id = option.dataset.agentId;
+    const inputName = picker.dataset.inputName;
+    if (picker.querySelector(`input[value="${CSS.escape(id)}"]`)) return;
+    if (form.querySelector(`.notification-agent-picker:not([data-input-name="${inputName}"]) input[value="${CSS.escape(id)}"]`)) {
+        window.alert("Cet agent est déjà sélectionné dans l’autre liste.");
+        return;
+    }
+
+    const inputCache = document.createElement("input");
+    inputCache.type = "hidden";
+    inputCache.name = inputName;
+    inputCache.value = id;
+    picker.querySelector(".notification-agent-hidden-inputs").appendChild(inputCache);
+
+    const chip = document.createElement("span");
+    chip.className = "notification-agent-chip";
+    chip.dataset.agentId = id;
+    const libelle = document.createElement("span");
+    libelle.textContent = option.dataset.agentLabel;
+    const retirer = document.createElement("button");
+    retirer.type = "button";
+    retirer.setAttribute("aria-label", `Retirer ${option.dataset.agentLabel}`);
+    retirer.textContent = "×";
+    retirer.addEventListener("click", () => retirerAgentNotification(picker, id));
+    chip.append(libelle, retirer);
+    picker.querySelector(".notification-agent-chips").appendChild(chip);
+
+    option.dataset.selected = "true";
+    option.hidden = true;
+    const recherche = picker.querySelector(".notification-agent-search");
+    recherche.value = "";
+    picker.querySelector(".notification-agent-suggestions").hidden = true;
+    recherche.focus();
+}
+
+function retirerAgentNotification(picker, id) {
+    picker.querySelector(`input[value="${CSS.escape(id)}"]`)?.remove();
+    picker.querySelector(`.notification-agent-chip[data-agent-id="${CSS.escape(id)}"]`)?.remove();
+    const option = picker.querySelector(`.notification-agent-suggestions button[data-agent-id="${CSS.escape(id)}"]`);
+    if (option) option.dataset.selected = "false";
+    filtrerAgentsNotification(picker.querySelector(".notification-agent-search"));
+}
+
+document.addEventListener("click", (event) => {
+    document.querySelectorAll(".notification-agent-picker").forEach((picker) => {
+        if (!picker.contains(event.target)) {
+            picker.querySelector(".notification-agent-suggestions").hidden = true;
+        }
+    });
+});
+
+
 
 
 

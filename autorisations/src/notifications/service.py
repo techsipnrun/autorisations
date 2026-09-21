@@ -85,6 +85,7 @@ def envoi_mail(item_id: int, pieces_jointes_supplementaires=None) -> tuple[bool,
                     body=text,
                     from_email=item.email_from or os.getenv("DEFAULT_FROM_EMAIL"),
                     to=item.to,
+                    cc=item.context.get("cc", []),
                     connection=conn,
                 )
                 msg.attach_alternative(html, "text/html")

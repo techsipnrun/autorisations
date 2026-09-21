@@ -70,6 +70,7 @@ urlpatterns = [
     path('changer_publieur_raa/', views.changer_publieur_raa, name='changer_publieur_raa'),
     path("instruction/dossier-precedent/<int:num_dossier_precedent>/", views.rediriger_vers_dossier_precedent, name="rediriger_vers_dossier_precedent"),
     path("instruction/<int:num_dossier>/nom-plus-parlant/", views.update_nom_plus_parlant, name="dossier_update_nom_plus_parlant"),
+    path("instruction/dossier/<int:dossier_id>/notifier-agents/", views.notifier_agents_dossier, name="notifier_agents_dossier"),
     
     path("instruction/ajouter-relecteur/", instruction.ajouter_relecteur_dossier, name="ajouter_relecteur_dossier"),
     path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),

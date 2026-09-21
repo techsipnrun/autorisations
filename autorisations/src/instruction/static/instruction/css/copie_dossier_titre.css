@@ -141,6 +141,11 @@
     position: relative;
 }
 
+.copy-button-container > h1 {
+    box-sizing: border-box;
+    padding-right: 56px;
+}
+
 .copy-button-container > .copy-button-left-edge {
     position: absolute;
     top: 0;

@@ -522,6 +522,19 @@ def preinstruction_dossier(request, numero):
 
     DM_API_URL = os.getenv('DM_API_URL')
 
+    agents_notification = list(
+        Instructeur.objects
+        .exclude(email__isnull=True)
+        .exclude(email="")
+        .select_related("id_agent_autorisations")
+        .order_by("id_agent_autorisations__nom", "id_agent_autorisations__prenom", "email")
+    )
+    auteur_notification = (
+        request.user.get_full_name().strip()
+        or (str(instructeur_connecte) if instructeur_connecte else "")
+        or request.user.email
+    )
+
 
     return render(request, 'instruction/preinstruction_dossier.html', {
         # Dossier
@@ -566,6 +579,8 @@ def preinstruction_dossier(request, numero):
         "autres_instructeurs_du_dossier": autres_instructeurs_du_dossier,
         "instructeurs_dossier_ids": instructeurs_dossier,
         "instructeur_connecte": instructeur_connecte,
+        "agents_notification": agents_notification,
+        "auteur_notification": auteur_notification,
 
         # Documents
         "emplacements_documents": emplacements_documents,

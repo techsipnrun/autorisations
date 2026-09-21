@@ -1071,6 +1071,19 @@ def instruction_dossier(request, num_dossier):
 
     DM_API_URL = os.getenv('DM_API_URL')
 
+    agents_notification = list(
+        Instructeur.objects
+        .exclude(email__isnull=True)
+        .exclude(email="")
+        .select_related("id_agent_autorisations")
+        .order_by("id_agent_autorisations__nom", "id_agent_autorisations__prenom", "email")
+    )
+    auteur_notification = (
+        request.user.get_full_name().strip()
+        or (str(instructeur_connecte) if instructeur_connecte else "")
+        or request.user.email
+    )
+
     return render(request, 'instruction/instruction_dossier.html', {
         # Dossier
         "demarche": demarche,
@@ -1123,6 +1136,8 @@ def instruction_dossier(request, num_dossier):
         "instructeurs_du_dossier": instructeurs_du_dossier,
         "peut_se_declarer": peut_se_declarer,
         "instructeur_connecte": instructeur_connecte,
+        "agents_notification": agents_notification,
+        "auteur_notification": auteur_notification,
         "peut_remplacer_acte_signe": peut_remplacer_acte_signe,
         "relecteurs_du_dossier": relecteurs_du_dossier,
 

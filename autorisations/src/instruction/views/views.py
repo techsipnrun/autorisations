@@ -18,6 +18,7 @@ from autorisations.models.models_documents import Document, DocumentFormat, Docu
 from autorisations.models.models_avis import Avis, Expert
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
 from instruction.utils.dossier_utils import ajouter_message_action_courante, ajouter_message_bloc, ajouter_message_groupe_instructeur, redirect_error, safe_enregistrer_action
+from instruction.templatetags.group_tags import est_concerne_par_le_dossier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -35,6 +36,125 @@ from django.core.paginator import Paginator
 logger = logging.getLogger("ORM_DJANGO")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
 loggerDS = logging.getLogger("API_DS")  
+
+
+@login_required
+@require_POST
+def notifier_agents_dossier(request, dossier_id):
+    dossier = get_object_or_404(Dossier, id=dossier_id)
+    dossier_path = (request.POST.get("dossier_path") or "").strip()
+    if not dossier_path.startswith("/") or dossier_path.startswith("//"):
+        route = "preinstruction_dossier" if dossier.id_etape.etape == "En réception" else "instruction_dossier"
+        parametres = {"numero": dossier.numero} if route == "preinstruction_dossier" else {"num_dossier": dossier.numero}
+        dossier_path = reverse(route, kwargs=parametres)
+    dossier_url = request.build_absolute_uri(dossier_path)
+
+    def reponse_erreur(message, status):
+        messages.error(request, message)
+        return JsonResponse(
+            {"success": False, "error": message, "redirect_url": dossier_url},
+            status=status,
+        )
+
+    if not est_concerne_par_le_dossier(request.user, dossier):
+        return reponse_erreur(
+            "Vous n’êtes pas autorisé à notifier des agents sur ce dossier.", 403
+        )
+
+    ids_agents = list(dict.fromkeys(request.POST.getlist("agents[]")))
+    ids_agents_copie = list(dict.fromkeys(request.POST.getlist("agents_cc[]")))
+    sujet = (request.POST.get("sujet") or "").strip()
+    body = (request.POST.get("body") or "").strip()
+    if not ids_agents:
+        return reponse_erreur("Sélectionnez au moins un agent.", 400)
+    if not body:
+        return reponse_erreur("Le message est obligatoire.", 400)
+    if not sujet:
+        return reponse_erreur("L’objet du mail est obligatoire.", 400)
+    if len(sujet) > 255:
+        return reponse_erreur("L’objet du mail est trop long.", 400)
+    if any(not identifiant.isdigit() for identifiant in ids_agents + ids_agents_copie):
+        return reponse_erreur("La sélection d’agents est invalide.", 400)
+    if set(ids_agents) & set(ids_agents_copie):
+        return reponse_erreur("Un même agent ne peut pas être destinataire et en copie.", 400)
+
+    agents = list(
+        Instructeur.objects
+        .filter(id__in=ids_agents)
+        .exclude(email__isnull=True)
+        .exclude(email="")
+        .select_related("id_agent_autorisations")
+    )
+    if len(agents) != len(set(ids_agents)):
+        return reponse_erreur("Un ou plusieurs agents sélectionnés sont invalides.", 400)
+
+    agents_copie = list(
+        Instructeur.objects
+        .filter(id__in=ids_agents_copie)
+        .exclude(email__isnull=True)
+        .exclude(email="")
+        .select_related("id_agent_autorisations")
+    )
+    if len(agents_copie) != len(set(ids_agents_copie)):
+        return reponse_erreur("Un ou plusieurs agents sélectionnés en copie sont invalides.", 400)
+
+    destinataires_metier = [agent.email.strip() for agent in agents]
+    destinataires_copie_metier = [agent.email.strip() for agent in agents_copie]
+    destinataires_envoi = destinataires_metier if NOTIFS_PROD else [EMAIL_NOTIF_TEST]
+    template_name = "notification_agents_dossier"
+    context = {
+        "body": body,
+        "cc": destinataires_copie_metier if NOTIFS_PROD else [],
+        "dossier_url": dossier_url,
+        "numero_dossier": dossier.numero,
+        "destinataires_metier": destinataires_metier,
+        "destinataires_copie_metier": destinataires_copie_metier,
+        "auteur": request.user.get_full_name().strip() or request.user.email,
+    }
+
+    try:
+        dedupe = compute_dedupe_key(destinataires_envoi, sujet, template_name, context)
+        outbox = create_EmailOutbox(
+            destinataires_envoi,
+            sujet,
+            template_name,
+            dedupe,
+            context,
+            dossier,
+            type_mail="Notification",
+        )
+        if not outbox:
+            raise RuntimeError("Impossible de créer l’email en base.")
+        ok, erreur = envoi_mail(outbox.id)
+    except Exception as exc:
+        logger.exception(
+            "[DOSSIER %s] Échec de notification manuelle par %s.",
+            dossier.numero,
+            request.user,
+        )
+        return reponse_erreur(str(exc), 500)
+
+    if not ok:
+        return reponse_erreur(erreur or "L’envoi de la notification a échoué.", 502)
+
+    logger.info(
+        "[DOSSIER %s] Notification manuelle envoyée par %s à %s, copie à %s (EmailOutbox %s).",
+        dossier.numero,
+        request.user,
+        ", ".join(destinataires_metier),
+        ", ".join(destinataires_copie_metier) or "aucun agent",
+        outbox.id,
+    )
+    message = f"Mail envoyé à {len(agents)} agent(s)"
+    if agents_copie:
+        message += f", avec {len(agents_copie)} agent(s) en copie"
+    message += "."
+    messages.success(request, message)
+    return JsonResponse({
+        "success": True,
+        "message": message,
+        "redirect_url": dossier_url,
+    })
 
 
 

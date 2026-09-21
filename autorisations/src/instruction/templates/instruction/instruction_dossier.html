@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=14">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -42,7 +42,7 @@
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
-    <script src="{% static 'instruction/js/dossier_commun.js' %}"></script>
+    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=6"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}" defer></script>
 
@@ -243,6 +243,7 @@
 
                 
                 <!-- Copier le chemin d'accès du dossier -->
+                {% include "instruction/refacto/notification_agents_dossier.html" %}
                 <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
                     <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
                     <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
