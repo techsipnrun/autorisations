@@ -22,6 +22,7 @@ from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
+from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from synchronisation.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.synchro.sync_declaration_manifestations import sync_declaration_manifestations
@@ -1060,6 +1061,13 @@ def instruction_dossier(request, num_dossier):
 
     # Actions possibles
     actions_possibles = get_actions_possibles(dossier)
+    peut_changer_etape = request.user.is_superuser or est_autorise_a_changer_etape(request.user, dossier)
+    peut_annuler_en_instruction = (
+        "Classer comme annulé" in actions_possibles
+        and peut_annuler_en_instruction_comme_receptionniste(request.user, dossier)
+    )
+    if not peut_changer_etape:
+        actions_possibles = ["Classer comme annulé"] if peut_annuler_en_instruction else []
 
     DM_API_URL = os.getenv('DM_API_URL')
 
@@ -1085,6 +1093,8 @@ def instruction_dossier(request, num_dossier):
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         "actions_possibles": actions_possibles,
+        "peut_changer_etape": peut_changer_etape,
+        "peut_annuler_en_instruction": peut_annuler_en_instruction,
 
         # Manif Sportive
         "dossier_lie_manif_sportive": liaison is not None,

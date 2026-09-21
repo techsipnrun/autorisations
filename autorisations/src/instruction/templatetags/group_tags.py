@@ -258,4 +258,16 @@ def est_autorise_a_changer_etape(user, dossier):
     return instructeur_connecte.id in instructeurs
 
 
+def peut_annuler_en_instruction_comme_receptionniste(user, dossier):
+    """Exception limitée à l'annulation pour la réception du service du dossier."""
+    if not user or not user.is_authenticated or not user.email:
+        return False
+    if dossier.id_etape_dossier.etape != "En instruction":
+        return False
+    if not Instructeur.objects.filter(email__iexact=user.email.strip()).exists():
+        return False
+    groupe = "Réception SPPN" if dossier.id_demarche.service == "SPPN" else "Réception SAADD"
+    return user.groups.filter(name=groupe).exists()
+
+
 

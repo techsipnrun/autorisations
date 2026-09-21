@@ -139,7 +139,7 @@
         <label>Corps du mail :</label>
         <div class="mail_entier">
             <div class="debut_fin_mail">Madame, monsieur,</div> <br>
-            <textarea name="motivation_copie_mail" class="textarea-complement{% if mode_mail == 'acceptation' %} form-acceptation-textarea{% endif %}">{% if mode_mail == "acceptation" %}L’établissement du Parc national de La Réunion vous notifie l’acceptation du dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
+            <textarea name="motivation_copie_mail" class="textarea-complement{% if mode_mail == 'acceptation' %} form-acceptation-textarea{% endif %}">{% if mode_mail == "acceptation" %}L’établissement du Parc national de La Réunion vous notifie sa décision sur le dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
 Bonne réception.{% elif mode_mail == "refus" %}L’établissement du Parc national de La Réunion vous notifie sa décision relative au dossier {{ dossier.numero }} ({{ dossier.id_demarche.type }}).
 Bonne réception.{% elif mode_mail == "non soumis dm" %}L’établissement du Parc national de La Réunion vous notifie le classement du dossier {{ doss_manif_sportive.numero_dossier_declaration_manifestations }} ({{ doss_manif_sportive.nom_dossier }}) comme non soumis à autorisation.
 Bonne réception.{% endif %}</textarea>

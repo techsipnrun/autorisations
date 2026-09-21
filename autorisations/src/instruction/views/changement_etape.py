@@ -22,6 +22,8 @@ from instruction.utils.document_utils import (
     reprendre_numero_projet_acte,
 )
 from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
+from instruction.utils.dossier_utils import get_actions_possibles
+from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail, get_instructeur_or_redirect
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -2562,6 +2564,16 @@ def classer_le_dossier_comme_annule(request):
     )
     if err:
         return err
+
+    if (
+        "Classer comme annulé" not in get_actions_possibles(dossier)
+        or not (
+            request.user.is_superuser
+            or est_autorise_a_changer_etape(request.user, dossier)
+            or peut_annuler_en_instruction_comme_receptionniste(request.user, dossier)
+        )
+    ):
+        return redirect_error(request, "Vous n'avez pas les droits nécessaires pour classer ce dossier comme annulé.")
 
     etapes_autorisees = {
         "À affecter",

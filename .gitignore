@@ -45,3 +45,6 @@ synchronisation/testprod/*
 autorisations/src/synchronisation/save_prod/
 autorisations/src/synchronisation/testDev/
 autorisations/src/synchronisation/testprod/
+
+# Configuration locale du miroir production vers développement
+/miroir_dev_prod/

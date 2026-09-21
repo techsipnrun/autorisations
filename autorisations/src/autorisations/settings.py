@@ -112,6 +112,44 @@ DATABASES = {
 }
 
 
+# Accès facultatif à la production depuis l'environnement de développement.
+# Le compte PostgreSQL associé ne doit disposer que de SELECT sur les vues
+# maintenance.v_miroir_statuts_dossiers_*.
+PROD_READONLY_DATABASE_ENV = {
+    'NAME': os.environ.get('BDD_PROD_READONLY_NAME'),
+    'USER': os.environ.get('BDD_PROD_READONLY_USER'),
+    'PASSWORD': os.environ.get('BDD_PROD_READONLY_PASSWORD'),
+    'HOST': os.environ.get('BDD_PROD_READONLY_HOSTNAME'),
+    'PORT': os.environ.get('BDD_PROD_READONLY_PORT'),
+}
+
+PROD_READONLY_DATABASE_CONFIGURED = all(PROD_READONLY_DATABASE_ENV.values())
+
+if ENVIRONMENT == 'dev' and PROD_READONLY_DATABASE_CONFIGURED:
+    DATABASES['prod_readonly'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        **PROD_READONLY_DATABASE_ENV,
+        'CONN_MAX_AGE': 0,
+        'OPTIONS': {
+            'options': (
+                '-c search_path=maintenance '
+                '-c default_transaction_read_only=on '
+                '-c statement_timeout=30000'
+            ),
+        },
+        # Les tests ne doivent jamais ouvrir une connexion vers la production.
+        'TEST': {
+            'MIRROR': 'default',
+        },
+    }
+
+# Archives temporaires et rapports de purge sur chaque environnement de dev.
+PURGE_BDD_ARCHIVE_ROOT = os.environ.get(
+    'PURGE_BDD_ARCHIVE_ROOT',
+    str(BASE_DIR.parent.parent / 'miroir_dev_prod' / 'archives_bdd'),
+)
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

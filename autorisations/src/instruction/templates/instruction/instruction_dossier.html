@@ -285,12 +285,12 @@
                     <div class="etat-badge-menu-dropdown">
 
                         <div class="etat-badge-label {% if etape_actuelle.etape == 'Accepté' %}etape-acceptee{% elif etape_actuelle.etape == 'Refusé' %}etape-refusee{% elif etape_actuelle.etape == 'Non soumis à autorisation' %}etape-non-soumise{% elif etape_actuelle.etape == 'Annulé' %}etape-annulee{% endif %}" id="etapeMenuToggle"
-                        {% if not request.user.is_superuser and not request.user|est_autorise_a_changer_etape:dossier %} title="Vous n'avez pas les droits nécessaires pour changer d'étape" {% endif %}>
+                        {% if not peut_changer_etape and not peut_annuler_en_instruction %} title="Vous n'avez pas les droits nécessaires pour changer d'étape" {% endif %}>
                             {{ etape_actuelle.etape|default:"Non défini" }}
                             <span class="dropdown-arrow">&#9660;</span>
                         </div>
 
-                        {% if request.user.is_superuser or request.user|est_autorise_a_changer_etape:dossier %}
+                        {% if peut_changer_etape or peut_annuler_en_instruction %}
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
 
                                     {% if actions_possibles %}
@@ -911,7 +911,7 @@
                                 <div class="mail_entier">
                                 <p style="font-style: italic">Ce message sera visible avec l'acte signé par le demandeur sur son espace Démarche Numérique.</p> <br>
  
-                                <textarea name="motivation" class="textarea-complement form-acceptation-textarea" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie l’acceptation de votre dossier {{ dossier.numero }}.
+                                <textarea name="motivation" class="textarea-complement form-acceptation-textarea" placeholder="Votre demande a été acceptée.">L’établissement du Parc national de La Réunion vous notifie sa décision sur le dossier {{ dossier.numero }}.
 
 Sauf demande de votre part, il n’y aura pas de notification postale.
 Bonne réception.</textarea>

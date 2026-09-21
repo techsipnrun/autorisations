@@ -81,6 +81,7 @@ nav:
       - La documentation: developer/documentation.md
       - Base de données: developer/bdd.md
       - Déploiement: developer/deploiement.md
+      - Miroir PROD-DEV et purge DEV: developer/miroir-statuts-prod-vers-dev.md
       - API Démarche Numérique: developer/api-demarche-numérique.md
       - API Déclaration Manifestations: developer/api-declaration-manifestations.md
 
