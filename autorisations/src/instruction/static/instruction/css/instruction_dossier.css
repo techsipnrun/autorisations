@@ -745,7 +745,9 @@
 
 .doc-item > .doc-copy-row,
 .doc-item > .doc-download-row {
-    width: 100%;
+    align-self: flex-start;
+    width: fit-content;
+    max-width: 100%;
     box-sizing: border-box;
 }
 
@@ -893,9 +895,126 @@
 }
 
 .projet-acte-share-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     object-fit: contain;
+}
+
+.document-work-warning {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.7rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.2rem 0 0.35rem 0.6rem;
+    color: #a11919;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.document-work-reassociate-trigger {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #a11919;
+    border-radius: 4px;
+    color: #a11919;
+    background: #fff;
+    cursor: pointer;
+}
+
+.document-work-reassociate-trigger:hover {
+    color: #fff;
+    background: #a11919;
+}
+
+.document-work-dialog {
+    position: fixed;
+    inset: 0;
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+}
+
+.document-work-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.document-work-dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.2rem;
+}
+
+.document-work-dialog-content h3,
+.document-work-dialog-content p {
+    margin: 0;
+}
+
+.document-work-select {
+    width: 100%;
+    min-width: 0;
+    padding: 0.55rem 2.2rem 0.55rem 0.7rem;
+    border: 1px solid #aeb8b2;
+    border-radius: 5px;
+    color: #26352d;
+    background-color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.document-work-select:focus {
+    border-color: #006131;
+    outline: 2px solid rgba(0, 97, 49, 0.18);
+}
+
+.document-work-dialog-error,
+.document-work-dialog-status {
+    color: #a11919;
+    font-size: 0.88rem;
+}
+
+.document-work-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.document-work-dialog-actions button {
+    padding: 0.48rem 0.8rem;
+    border: 1px solid #006131;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.document-work-cancel {
+    color: #46534c;
+    border-color: #aeb8b2 !important;
+    background: #fff;
+}
+
+.document-work-cancel:hover {
+    background: #f0f2f1;
+}
+
+.document-work-confirm {
+    color: #fff;
+    background: #006131;
+}
+
+.document-work-confirm:hover:not(:disabled) {
+    background: #004d27;
+}
+
+.document-work-confirm:disabled {
+    border-color: #aaa;
+    background: #aaa;
+    cursor: not-allowed;
 }
 
 .projet-acte-identique-option {
@@ -1364,12 +1483,16 @@
 
 .copie-feedback-doc{
     position: absolute;
+    z-index: 10;
     font-style: italic;
-    left: 100%;
-    margin-left: 10px;
+    top: calc(100% + 4px);
+    left: 50%;
+    margin-left: 0;
     white-space: nowrap;
     color: #000000;
     opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
     transition: opacity 0.25s ease;
 }
 

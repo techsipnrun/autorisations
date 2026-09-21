@@ -22,6 +22,7 @@
             <img class="doc-copy-icon"
                  src="{% static 'instruction/img/copy.png' %}"
                  alt="Copier">
+            <span class="copie-feedback-doc">Chemin copié !</span>
         </span>
 
         {% if show_share_number and doc.numero and not doc.dossiers_meme_acte and request.user|a_profil_instructeur %}
@@ -35,9 +36,8 @@
                      class="projet-acte-share-icon">
             </button>
         {% endif %}
-
-        <span class="copie-feedback-doc">Chemin copié !</span>
     </div>
+    {% include "instruction/refacto/document_work_missing_guard.html" with doc=doc %}
     {% if show_share_number and doc.numero and not doc.dossiers_meme_acte and request.user|a_profil_instructeur %}
         {% include "instruction/refacto/recherche_numero_projet_inline.html" with doc=doc %}
     {% endif %}

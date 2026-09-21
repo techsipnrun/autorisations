@@ -60,6 +60,7 @@ urlpatterns = [
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
     path('instruction/<int:num_dossier>/projets-acte/', instruction.rechercher_projets_acte, name='rechercher_projets_acte'),
+    path('instruction/reassocier-document-work/', changement_etape.reassocier_document_work, name='reassocier_document_work'),
     path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
     path('message/<int:id>/supprimer/', messagerie.supprimer_message, name='supprimer_message'),
     path('changer-valideur/', views.changer_valideur, name='changer_valideur'),

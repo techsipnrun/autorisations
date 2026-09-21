@@ -51,6 +51,7 @@
             </button>
         {% endif %}
     </div>
+    {% include "instruction/refacto/document_work_missing_guard.html" with doc=doc %}
     {% if show_share_number and doc.numero and not doc.dossiers_meme_acte and request.user|a_profil_instructeur %}
         {% include "instruction/refacto/recherche_numero_projet_inline.html" with doc=doc %}
     {% endif %}

@@ -1,0 +1,54 @@
+{% load group_tags %}
+{% if doc.fichier_work_manquant %}
+    <div class="document-work-warning" role="alert">
+        <span>
+            Le fichier <strong>{{ doc.titre }}</strong> est introuvable dans le dossier Work.
+        </span>
+        {% if request.user|est_concerné_par_le_dossier:dossier %}
+            <button type="button"
+                    class="document-work-reassociate-trigger"
+                    onclick="ouvrirReassociationDocumentWork(this)">
+                Réassocier le fichier renommé
+            </button>
+        {% endif %}
+    </div>
+
+    {% if request.user|est_concerné_par_le_dossier:dossier %}
+        <dialog class="document-work-dialog"
+                data-url="{% url 'reassocier_document_work' %}"
+                data-document-id="{{ doc.id }}"
+                data-dossier-id="{{ dossier.id }}">
+            <div class="document-work-dialog-content">
+                <h3>Réassocier le projet</h3>
+                <p>
+                    Sélectionnez manuellement le nouveau nom de
+                    <strong>{{ doc.titre }}</strong> dans le dossier Work.
+                </p>
+                <label>Fichier renommé</label>
+                <select class="document-work-select">
+                    <option value="">— Sélectionner un fichier —</option>
+                    {% for nom in work_files %}
+                        <option value="{{ nom }}">{{ nom }}</option>
+                    {% endfor %}
+                </select>
+                {% if not work_files %}
+                    <p class="document-work-dialog-error">
+                        Aucun fichier Word ou ODT n’est actuellement présent dans Work.
+                    </p>
+                {% endif %}
+                <p class="document-work-dialog-status" aria-live="polite"></p>
+                <div class="document-work-dialog-actions">
+                    <button type="button"
+                            class="document-work-cancel"
+                            onclick="fermerReassociationDocumentWork(this)">Annuler</button>
+                    <button type="button"
+                            class="document-work-confirm"
+                            onclick="confirmerReassociationDocumentWork(this)"
+                            {% if not work_files %}disabled{% endif %}>
+                        Réassocier
+                    </button>
+                </div>
+            </div>
+        </dialog>
+    {% endif %}
+{% endif %}

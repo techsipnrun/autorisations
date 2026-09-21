@@ -13,6 +13,29 @@ NATURES_VALIDES = ['Déliberation CA', 'Arrêté directeur', 'Avis simple', 'Avi
 NATURES_VALIDES_AVEC_RAPPORT = NATURES_VALIDES + ["Projet Rapport CA"]
 
 
+def get_projets_work_manquants(dossier):
+    """Retourne les projets dont le fichier physique n'existe plus dans Work."""
+    emplacement_work = normaliser_emplacement(f"{dossier.emplacement}/Work/")
+    document_ids = DossierDocument.objects.filter(id_dossier=dossier).values_list(
+        "id_document_id", flat=True
+    )
+    projets = (
+        Document.objects
+        .filter(id__in=document_ids, id_nature__nature__in=NATURES_VALIDES_AVEC_RAPPORT)
+        .select_related("id_nature")
+        .distinct()
+    )
+    manquants = []
+    racine_nas = os.environ.get("NAS_ROOT", "")
+    for document in projets:
+        if normaliser_emplacement(document.emplacement) != emplacement_work:
+            continue
+        chemin = os.path.join(racine_nas, document.emplacement, document.titre).replace("\\", "/")
+        if not smbclient.path.isfile(chemin):
+            manquants.append(document)
+    return manquants
+
+
 def get_projet_acte_source(document_id, dossier_courant, nature=None):
     liaison = (
         DossierDocument.objects
@@ -190,6 +213,20 @@ def build_documents_for_dossier(dossier):
                 work_files.append(nom)
 
     work_files.sort(key=str.lower)
+
+    # Les projets d'acte restent volontairement modifiables dans Work. Si un
+    # utilisateur renomme physiquement l'un d'eux, le Document conserve son
+    # identifiant mais doit être réassocié manuellement au nouveau nom.
+    emplacement_work = normaliser_emplacement(f"{dossier.emplacement}/Work/")
+    titres_work = {nom.casefold() for nom in work_files}
+    for liaison in docs_du_dossier:
+        document = liaison.id_document
+        nature = document.id_nature.nature if document.id_nature else ""
+        document.fichier_work_manquant = (
+            nature in NATURES_VALIDES_AVEC_RAPPORT
+            and normaliser_emplacement(document.emplacement) == emplacement_work
+            and document.titre.casefold() not in titres_work
+        )
 
 
 

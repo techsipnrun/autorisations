@@ -1,7 +1,9 @@
 from datetime import datetime
+from functools import wraps
 import logging
 import os
 from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.db import transaction
@@ -17,13 +19,15 @@ from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_t
 from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
 from instruction.utils.document_utils import (
     NATURES_VALIDES,
+    NATURES_VALIDES_AVEC_RAPPORT,
+    get_projets_work_manquants,
     get_projet_acte_source,
     normaliser_emplacement,
     reprendre_numero_projet_acte,
 )
 from instruction.utils.dossier_utils import enregistrer_motif_decision, get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.dossier_utils import get_actions_possibles
-from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
+from instruction.templatetags.group_tags import est_autorise_a_changer_etape, est_concerne_par_le_dossier, peut_annuler_en_instruction_comme_receptionniste
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail, get_instructeur_or_redirect
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -43,6 +47,131 @@ from synchronisation.utils.fichiers import get_nom_disponible
 
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
+
+
+def bloquer_avancement_si_projet_work_manquant(view_func):
+    """Bloque une action d'avancement avant tout effet de bord externe."""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        dossier = Dossier.objects.filter(id_ds=request.POST.get("dossierId")).first()
+        if dossier:
+            projets_manquants = get_projets_work_manquants(dossier)
+            if projets_manquants:
+                titres = ", ".join(document.titre for document in projets_manquants)
+                messages.error(
+                    request,
+                    "Impossible de faire avancer l’instruction : réassociez d’abord "
+                    f"le ou les fichiers renommés dans Work ({titres}).",
+                )
+                return _redirect_instruction_dossier(dossier)
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+
+@login_required
+@require_POST
+def reassocier_document_work(request):
+    """Réassocie explicitement un projet renommé dans le répertoire Work."""
+    dossier = get_object_or_404(Dossier, pk=request.POST.get("dossier_id"))
+    document = get_object_or_404(
+        Document.objects.select_related("id_nature", "id_format"),
+        pk=request.POST.get("document_id"),
+    )
+
+    if not est_concerne_par_le_dossier(request.user, dossier):
+        return JsonResponse(
+            {"success": False, "error": "Vous n’êtes pas autorisé à modifier ce dossier."},
+            status=403,
+        )
+
+    if not DossierDocument.objects.filter(
+        id_dossier=dossier, id_document=document
+    ).exists():
+        return JsonResponse(
+            {"success": False, "error": "Ce document n’appartient pas au dossier."},
+            status=400,
+        )
+
+    if document.id_nature.nature not in NATURES_VALIDES_AVEC_RAPPORT:
+        return JsonResponse(
+            {"success": False, "error": "Ce type de document ne peut pas être réassocié."},
+            status=400,
+        )
+
+    emplacement_work = normaliser_emplacement(f"{dossier.emplacement}/Work/")
+    if normaliser_emplacement(document.emplacement) != emplacement_work:
+        return JsonResponse(
+            {"success": False, "error": "Ce document n’est pas enregistré dans Work."},
+            status=400,
+        )
+
+    nom_fichier = (request.POST.get("nom_fichier") or "").strip()
+    if (
+        not nom_fichier
+        or "/" in nom_fichier
+        or "\\" in nom_fichier
+        or Path(nom_fichier).name != nom_fichier
+    ):
+        return JsonResponse(
+            {"success": False, "error": "Le fichier sélectionné est invalide."},
+            status=400,
+        )
+
+    extension = Path(nom_fichier).suffix.lower().lstrip(".")
+    if extension not in {"doc", "docx", "odt"}:
+        return JsonResponse(
+            {"success": False, "error": "Sélectionnez un document Word ou ODT."},
+            status=400,
+        )
+
+    racine_nas = os.environ.get("NAS_ROOT", "")
+    ancien_chemin = os.path.join(racine_nas, document.emplacement, document.titre).replace("\\", "/")
+    nouveau_chemin = os.path.join(racine_nas, document.emplacement, nom_fichier).replace("\\", "/")
+
+    if smbclient.path.exists(ancien_chemin):
+        return JsonResponse(
+            {"success": False, "error": "Le fichier d’origine existe encore dans Work."},
+            status=409,
+        )
+    if not smbclient.path.isfile(nouveau_chemin):
+        return JsonResponse(
+            {"success": False, "error": "Le fichier sélectionné est introuvable dans Work."},
+            status=400,
+        )
+
+    if DossierDocument.objects.filter(
+        id_dossier=dossier,
+        id_document__emplacement=document.emplacement,
+        id_document__titre__iexact=nom_fichier,
+    ).exclude(id_document=document).exists():
+        return JsonResponse(
+            {"success": False, "error": "Ce fichier est déjà associé à un autre document du dossier."},
+            status=409,
+        )
+
+    document_format = DocumentFormat.objects.filter(format__iexact=extension).first()
+    if document_format is None:
+        return JsonResponse(
+            {"success": False, "error": f"Le format .{extension} n’est pas configuré en BDD."},
+            status=400,
+        )
+
+    ancien_titre = document.titre
+    with transaction.atomic():
+        document.titre = nom_fichier
+        document.id_format = document_format
+        document.save(update_fields=["titre", "id_format"])
+
+    logger.info(
+        "[DOSSIER %s] Projet %s réassocié de '%s' vers '%s' par %s.",
+        dossier.numero,
+        document.id,
+        ancien_titre,
+        nom_fichier,
+        request.user,
+    )
+    return JsonResponse({"success": True, "titre": nom_fichier})
 
 
 def _enregistrer_motif_decision_sans_bloquer(request, dossier, motivation, type_decision):
@@ -322,6 +451,7 @@ def _envoyer_annexes_decision_sur_ds(*, dossier, instructeur, annexes, user_emai
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def passer_en_pre_instruction(request):
 
     # --- Récupération dossier ---
@@ -802,6 +932,7 @@ def refuse_le_dossier(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def passer_en_instruction(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -852,6 +983,7 @@ def passer_en_instruction(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def faire_valider_une_demande_d_avis(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1080,6 +1212,7 @@ def faire_valider_une_demande_d_avis(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def faire_valider_le_projet_d_acte(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1278,6 +1411,7 @@ def faire_valider_le_projet_d_acte(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def avis_envoye(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1325,6 +1459,7 @@ def avis_envoye(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def valider_le_modele_de_demande_d_avis_et_le_projet_d_acte(request):
     
     dossier_id_ds = request.POST.get("dossierId")
@@ -1546,6 +1681,7 @@ def repasser_en_instruction(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def acte_inchange_envoyer_pour_relecture_qualite(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1580,6 +1716,7 @@ def acte_inchange_envoyer_pour_relecture_qualite(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def valider_et_envoyer_pour_relecture_qualite(request):
     
     dossier_id_ds = request.POST.get("dossierId")
@@ -1663,6 +1800,7 @@ def valider_et_envoyer_pour_relecture_qualite(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def envoyer_les_modifications_de_l_acte_pour_validation(request):
     
     dossier_id_ds = request.POST.get("dossierId")
@@ -1713,6 +1851,7 @@ def envoyer_les_modifications_de_l_acte_pour_validation(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def pret_a_la_signature(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1803,6 +1942,7 @@ def pret_a_la_signature(request):
 # Methode raccourci pour SPPN
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def acte_pret_a_la_signature(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -2180,6 +2320,7 @@ def remplacer_acte_signe(request):
 
 @require_POST
 @login_required
+@bloquer_avancement_si_projet_work_manquant
 def acte_pret_a_etre_envoye(request):
 
     dossier_id_ds = request.POST.get("dossierId")

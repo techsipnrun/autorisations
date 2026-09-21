@@ -42,6 +42,87 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+// Réassociation manuelle d'un projet renommé dans le dossier Work.
+function ouvrirReassociationDocumentWork(trigger) {
+    const dialog = trigger.closest(".doc-item")?.querySelector(".document-work-dialog");
+    if (!dialog) return;
+
+    const select = dialog.querySelector(".document-work-select");
+    const status = dialog.querySelector(".document-work-dialog-status");
+    if (select) select.value = "";
+    if (status) status.textContent = "";
+    dialog.showModal();
+}
+
+function fermerReassociationDocumentWork(button) {
+    const dialog = button.closest("dialog");
+    if (dialog) dialog.close();
+}
+
+async function confirmerReassociationDocumentWork(button) {
+    const dialog = button.closest("dialog");
+    const select = dialog.querySelector(".document-work-select");
+    const status = dialog.querySelector(".document-work-dialog-status");
+    const nomFichier = select ? select.value : "";
+
+    if (!nomFichier) {
+        status.textContent = "Sélectionnez le fichier renommé.";
+        return;
+    }
+
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value
+        || document.cookie
+            .split("; ")
+            .find((cookie) => cookie.startsWith("csrftoken="))
+            ?.split("=")[1];
+    if (!csrfToken) {
+        status.textContent = "Jeton de sécurité introuvable. Rechargez la page.";
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Réassociation en cours…";
+
+    const donnees = new URLSearchParams({
+        dossier_id: dialog.dataset.dossierId,
+        document_id: dialog.dataset.documentId,
+        nom_fichier: nomFichier,
+    });
+
+    try {
+        const response = await fetch(dialog.dataset.url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-CSRFToken": csrfToken,
+            },
+            body: donnees.toString(),
+        });
+        const resultat = await response.json();
+        if (!response.ok || !resultat.success) {
+            throw new Error(resultat.error || "La réassociation a échoué.");
+        }
+        dialog.close();
+
+        const attente = document.getElementById("envoi-acte-attente");
+        const titreAttente = document.getElementById("attente-action-titre");
+        const detailAttente = document.getElementById("attente-action-detail");
+        if (titreAttente) titreAttente.textContent = "Actualisation du dossier en cours…";
+        if (detailAttente) detailAttente.textContent = "Le document a été réassocié. Veuillez patienter.";
+        if (attente) attente.hidden = false;
+
+        // Laisse au navigateur le temps d'afficher l'écran de chargement
+        // avant de relancer le rendu complet de la page.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => window.location.reload());
+        });
+    } catch (erreur) {
+        status.textContent = erreur.message;
+        button.disabled = false;
+    }
+}
+
+
 
 // ---------------------------------------------------------------------------
 // ------- POP UP de validation du changement de groupe instructeur ----------
