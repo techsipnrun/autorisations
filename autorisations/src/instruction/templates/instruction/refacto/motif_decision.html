@@ -1,0 +1,10 @@
+{% if motif_decision %}
+    <section class="motif-decision" aria-labelledby="motif-decision-titre">
+        <strong id="motif-decision-titre">{{ motif_decision.libelle }}</strong>
+        <p>{{ motif_decision.body }}</p>
+        <small>
+            Enregistré le {{ motif_decision.date|date:"d/m/Y" }} à {{ motif_decision.date|time:"H:i" }}
+            {% if motif_decision.auteur %}par {{ motif_decision.auteur }}{% endif %}
+        </small>
+    </section>
+{% endif %}

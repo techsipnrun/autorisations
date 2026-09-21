@@ -6,7 +6,8 @@ from synchronisation.utils.instruction import calcul_date_limite_instruction
 from synchronisation.utils.fichiers import fetch_geojson
 
 
-from autorisations.models.models_instruction import EtapeDossier, EtatDossier, Groupeinstructeur, DossierType
+from autorisations.models.models_instruction import EtapeDossier, EtatDossier, DossierType
+from autorisations.models.models_utilisateurs import GroupeinstructeurDemarche
 
 
 def dossier_normalize(id_demarche, doss, emplacement_dossier):
@@ -39,12 +40,24 @@ def dossier_normalize(id_demarche, doss, emplacement_dossier):
 
 
 
+    groupe_par_defaut_id = (
+        GroupeinstructeurDemarche.objects
+        .filter(id_demarche_id=id_demarche, est_groupe_par_defaut=True)
+        .values_list("id_groupeinstructeur_id", flat=True)
+        .first()
+    )
+    if not groupe_par_defaut_id:
+        raise ValueError(
+            f"Aucun groupe instructeur AGIDA par défaut n'est configuré "
+            f"pour la démarche {id_demarche}."
+        )
+
     return {
         "id_ds": doss["id"],
         "id_etat_dossier": get_first_id(EtatDossier, nom=doss["state"]),
         "id_demarche": id_demarche,
         "numero": doss["number"],
-        "id_groupeinstructeur": get_first_id(Groupeinstructeur, nom=doss["groupeInstructeur"]["label"]),
+        "id_groupeinstructeur": groupe_par_defaut_id,
         "date_depot": date_depot,
         "date_fin_instruction": parse_datetime_with_tz(doss["dateTraitement"]),
 

@@ -1,5 +1,6 @@
 import logging
 from django.contrib import admin
+from django.db import transaction
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
@@ -728,7 +729,26 @@ class AgentAutorisationsAdmin(admin.ModelAdmin):
 
 admin.site.register(Groupeinstructeur)
 
-admin.site.register(GroupeinstructeurDemarche)
+@admin.register(GroupeinstructeurDemarche)
+class GroupeinstructeurDemarcheAdmin(admin.ModelAdmin):
+    list_display = (
+        'id_demarche',
+        'id_groupeinstructeur',
+        'est_groupe_par_defaut',
+        'id_groupeinstructeur_ds',
+    )
+    list_filter = ('est_groupe_par_defaut', 'id_demarche')
+    search_fields = ('id_groupeinstructeur__nom', 'id_demarche__type')
+    list_select_related = ('id_demarche', 'id_groupeinstructeur')
+
+    @transaction.atomic
+    def save_model(self, request, obj, form, change):
+        if obj.est_groupe_par_defaut:
+            GroupeinstructeurDemarche.objects.filter(
+                id_demarche=obj.id_demarche,
+                est_groupe_par_defaut=True,
+            ).exclude(pk=obj.pk).update(est_groupe_par_defaut=False)
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(GroupeinstructeurInstructeur)

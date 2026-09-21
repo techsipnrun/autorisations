@@ -21,7 +21,7 @@ from instruction.utils.document_utils import (
     normaliser_emplacement,
     reprendre_numero_projet_acte,
 )
-from instruction.utils.dossier_utils import get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
+from instruction.utils.dossier_utils import enregistrer_motif_decision, get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.dossier_utils import get_actions_possibles
 from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
 from instruction.utils.files_utils import generate_unique_filename, sanitiser_nom_fichier, valider_fichiers_dm
@@ -43,6 +43,28 @@ from synchronisation.utils.fichiers import get_nom_disponible
 
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
+
+
+def _enregistrer_motif_decision_sans_bloquer(request, dossier, motivation, type_decision):
+    """La décision externe reste acquise même si sa copie locale échoue."""
+    if not (motivation or "").strip():
+        return
+    try:
+        enregistrer_motif_decision(
+            dossier,
+            request.user.email,
+            motivation,
+            type_decision,
+        )
+    except Exception as exc:
+        logger.error(
+            f"[DOSSIER {dossier.numero}] Motif de décision '{type_decision}' "
+            f"non enregistré localement : {exc}"
+        )
+        messages.warning(
+            request,
+            "La décision a bien été traitée, mais son motif n'a pas pu être affiché dans AGIDA.",
+        )
 
 
 def _redirect_instruction_dossier(dossier):
@@ -521,6 +543,10 @@ def dossier_non_soumis_a_autorisation(request):
             logger.error(f"[DOSSIER {dossier.numero}] Échec du classement sans suite DS par {request.user} : {result.get('message')}")
             return redirect_error(request, f"Erreur lors du classement sans suite sur Démarche Numérique. Contactez le support.")
 
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "non_soumis"
+        )
+
         if justificatif:
             try:
                 _archiver_justificatif_classement(
@@ -564,6 +590,10 @@ def dossier_non_soumis_a_autorisation(request):
 
     # --- Enregistrer Action ---
     safe_enregistrer_action(dossier, instructeur, action="Classé sans suite", request=request)
+    if not dossier.present_sur_ds:
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "non_soumis"
+        )
 
 
 
@@ -2667,6 +2697,10 @@ def classer_le_dossier_comme_annule(request):
                 "Erreur lors du classement sans suite sur Démarche Numérique. Contactez le support.",
             )
 
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "annule"
+        )
+
         if justificatif:
             try:
                 _archiver_justificatif_classement(
@@ -2740,6 +2774,10 @@ def classer_le_dossier_comme_annule(request):
         safe_update_etat(dossier, "sans_suite", request, break_si_erreur=False)
 
     safe_enregistrer_action(dossier, instructeur, "Classé comme annulé", request)
+    if not doit_classer_sur_ds:
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "annule"
+        )
     messages.success(request, f"Le dossier {dossier.numero} a été classé comme annulé.")
 
     if etape_actuelle == "À affecter":
@@ -2825,6 +2863,10 @@ def classer_le_dossier_comme_refuse(request):
                 "Erreur lors du refus du dossier sur Démarche Numérique. Contactez le support.",
             )
 
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "refuse"
+        )
+
         if justificatif:
             try:
                 _archiver_justificatif_classement(
@@ -2883,6 +2925,10 @@ def classer_le_dossier_comme_refuse(request):
 
     # Dossier Action
     safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
+    if not doit_refuser_sur_ds:
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "refuse"
+        )
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -3086,6 +3132,10 @@ def envoyer_l_acte(request):
         
             if result["success"]:
                 loggerDS.info(f"[DOSSIER {dossier_numero}] accepté avec succès par {instructeur}")
+
+                _enregistrer_motif_decision_sans_bloquer(
+                    request, dossier, motivation, "accepte"
+                )
 
                 erreur_annexes_ds = _envoyer_annexes_decision_sur_ds(
                     dossier=dossier,
@@ -3470,6 +3520,9 @@ def envoyer_l_acte_de_refus(request):
             if not result["success"]:
                 logger.error(f"[DOSSIER {dossier_numero}] Erreur lors du refus du dossier sur DS par {instructeur} : {result['message']}")
                 return redirect_error(request, f"Erreur lors du refus du dossier sur Démarche Numérique. Contactez le support.")
+            _enregistrer_motif_decision_sans_bloquer(
+                request, dossier, motivation, "refuse"
+            )
             erreur_annexes_ds = _envoyer_annexes_decision_sur_ds(
                 dossier=dossier,
                 instructeur=instructeur,

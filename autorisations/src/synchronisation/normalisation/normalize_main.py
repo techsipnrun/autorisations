@@ -3,7 +3,6 @@ import os
 from .norma_avis_declaration_manifestations import avis_declaration_manifestations_normalize
 from .norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from .norma_demarche import demarche_normalize
-from .norma_groupeinstructeur_demarche import groupeinstructeur_demarche_normalize
 from .norma_champ import champ_normalize
 from .norma_dossiers import dossiers_normalize_process
 from declaration_manifestations import call_api_dm
@@ -68,7 +67,6 @@ def normalize_process(d, demarche_obj):
         ####################################
         try:
             demarche_norm = demarche_normalize(d)
-            groupeinstr_norm = groupeinstructeur_demarche_normalize(d)
             champs_norm = champ_normalize(d)
             dossiers_norm = dossiers_normalize_process(d)
         except Exception as e:
@@ -79,7 +77,6 @@ def normalize_process(d, demarche_obj):
         return {
                 "statut": statut,
                 "demarche": demarche_norm,
-                "groupeinstructeurs_demarches": groupeinstr_norm,
                 "champs": champs_norm,
                 "dossiers": dossiers_norm,
                 "manif_sportives": manif_sportives,

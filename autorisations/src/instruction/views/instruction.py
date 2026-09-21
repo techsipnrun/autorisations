@@ -19,7 +19,7 @@ from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier
 from instruction.utils.avis_utils import build_avis_for_dossier
 from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.document_utils import build_documents_for_dossier
-from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
+from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, get_motif_decision, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier
 from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
@@ -1093,6 +1093,7 @@ def instruction_dossier(request, num_dossier):
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         "actions_possibles": actions_possibles,
+        "motif_decision": get_motif_decision(dossier),
         "peut_changer_etape": peut_changer_etape,
         "peut_annuler_en_instruction": peut_annuler_en_instruction,
 

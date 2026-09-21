@@ -741,6 +741,30 @@ h2 {
     gap: 8px;
 }
 
+.motif-decision {
+    margin: 0.75rem 0 1rem;
+    padding: 0.85rem 1rem;
+    border-left: 4px solid #777;
+    background: #f5f5f5;
+    color: #222;
+}
+
+.motif-decision strong,
+.motif-decision small {
+    display: block;
+}
+
+.motif-decision p {
+    margin: 0.45rem 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.motif-decision small {
+    color: #666;
+    font-size: 0.8rem;
+}
+
 .etat-badge-label.etape-acceptee {
     background-color: #d8efdf;
     color: #155b2f;

@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q
 from autorisations.models.models_instruction import Champ, Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
@@ -17,11 +18,11 @@ from autorisations.models.models_documents import Document, DossierDocument, Dos
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
 from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances, user_recoit_notifications_reception_manif_sportive
-from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, redirect_error, safe_enregistrer_action
+from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
-from DS.call_DS import change_groupe_instructeur_ds, passer_en_instruction_ds
+from DS.call_DS import passer_en_instruction_ds
 import logging
 import ast
 from collections import defaultdict
@@ -540,6 +541,7 @@ def preinstruction_dossier(request, numero):
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         "actions_possibles": actions_possibles,
+        "motif_decision": get_motif_decision(dossier),
 
         # Manif sportive
         "dossiers_DM_manif_sportive_a_affecter": dossiers_DM_manif_sportive_non_lie_en_reception,
@@ -587,6 +589,7 @@ def preinstruction_dossier(request, numero):
 
 
 
+@login_required
 @require_POST
 def changer_groupe_instructeur(request):
 
@@ -613,59 +616,48 @@ def changer_groupe_instructeur(request):
     dossier_num = dossier.numero
 
 
-    # --------------------------------------
-    # Récupération du groupe interne + DS
-    # --------------------------------------
-    nom_groupe = Groupeinstructeur.objects.filter(id=groupe_id).values_list("nom", flat=True).first()
-    if not nom_groupe:
+    # Le référentiel Groupe/Démarche est désormais exclusivement géré par AGIDA.
+    groupe_demarche = (
+        GroupeinstructeurDemarche.objects
+        .select_related("id_groupeinstructeur")
+        .filter(
+            id_groupeinstructeur_id=groupe_id,
+            id_demarche=dossier.id_demarche,
+        )
+        .first()
+    )
+    if not groupe_demarche:
         logger.error(f"[DOSSIER {dossier_num}] Changement de Groupe Instructeur par {request.user} : Groupe id={groupe_id} introuvable.")
-        ajouter_message_groupe_instructeur(request, "Groupe instructeur introuvable.", "error")
+        ajouter_message_groupe_instructeur(
+            request,
+            "Ce groupe instructeur n'est pas disponible pour cette démarche.",
+            "error",
+        )
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
-    groupe_id_ds = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur=groupe_id).values_list("id_groupeinstructeur_ds", flat=True).first()
-
-    if not groupe_id_ds:
-        logger.error(f"[DOSSIER {dossier_num}] Changement de Groupe Instructeur par {request.user} : Groupe instructeur {groupe_id} sans équivalent DS.")
-        ajouter_message_groupe_instructeur(request, "Groupe instructeur invalide pour DN. Contactez le support.", "error")
-        return redirect(request.META.get('HTTP_REFERER', '/'))
-
-    # ---------------
-    # Appel API DS
-    # ---------------
+    nom_groupe = groupe_demarche.id_groupeinstructeur.nom
     try:
-        result = change_groupe_instructeur_ds(dossier_id, groupe_id_ds)
-    except Exception as e:
-        logger.error(f"[DOSSIER {dossier_num}] Erreur API DS lors du changement de groupe vers {nom_groupe} par {request.user} : {e}")
-        ajouter_message_groupe_instructeur(request, "Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.", "error")
-        return redirect(request.META.get('HTTP_REFERER', '/'))
+        with transaction.atomic():
+            dossier.id_groupeinstructeur_id = groupe_id
+            dossier.save(update_fields=["id_groupeinstructeur"])
 
+            instructeur = Instructeur.objects.filter(email=request.user.email).first()
+            safe_enregistrer_action(
+                dossier,
+                instructeur,
+                "Affectation au groupe",
+                request,
+                description=nom_groupe,
+            )
 
-    if not result.get("success"):
-        logger.error(f"[DOSSIER {dossier_num}] Echec du changement de Groupe Instructeur vers {nom_groupe} par {request.user} : {result.get('message')}")
-        ajouter_message_groupe_instructeur(request, "Erreur lors du changement de groupe sur Démarche Numérique. Contactez le support.", "error")
-        return redirect(request.META.get('HTTP_REFERER', '/'))
-
-    logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur changé avec succès sur DS par {request.user} --> Affecté au groupe {nom_groupe}.")
-
-
-    # ---------------
-    # MAJ EN BDD
-    # ---------------
-    try:
-        dossier.id_groupeinstructeur_id = groupe_id
-        dossier.save()
-
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
-        safe_enregistrer_action(dossier, instructeur, "Affectation au groupe", request, description=nom_groupe)
-
-        logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur mis à jour dans Postgres par {request.user} --> Affecté au groupe {nom_groupe}.")
+        logger.info(f"[DOSSIER {dossier_num}] Groupe Instructeur AGIDA mis à jour par {request.user} --> Affecté au groupe {nom_groupe}.")
         ajouter_message_groupe_instructeur(
             request, f"Le dossier a bien été affecté au groupe {nom_groupe}.", "success"
         )
 
     except Exception as e:
-        logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur en BDD par {request.user} (groupe mis à jour sur DS) : {e}")
-        ajouter_message_groupe_instructeur(request, "Groupe modifié sur DN mais erreur interne lors de la mise à jour locale. Contactez le support.", "error")
+        logger.error(f"[DOSSIER {dossier_num}] Erreur de mise à jour du Groupe Instructeur AGIDA par {request.user} : {e}")
+        ajouter_message_groupe_instructeur(request, "Erreur interne lors du changement de groupe. Contactez le support.", "error")
         return redirect(request.META.get('HTTP_REFERER', '/'))
    
     return redirect(request.META.get('HTTP_REFERER', '/'))

@@ -277,59 +277,59 @@ def get_msg_DS(num_doss, message_id_ds):
         return None
 
 
-def change_groupe_instructeur_ds(dossier_id, groupe_instructeur_id):
-    """
-    Envoie une mutation GraphQL pour modifier le groupe instructeur associé à un dossier.
+# def change_groupe_instructeur_ds(dossier_id, groupe_instructeur_id):
+#     """
+#     Envoie une mutation GraphQL pour modifier le groupe instructeur associé à un dossier.
 
-    Args:
-        dossier_id (str): Identifiant DN du dossier concerné (ex: "RG9zc2llci0yMzY3ODI3NA==").
-        groupe_instructeur_id (str): Identifiant DN du groupe instructeur à assigner (ex: "R3JvdXBlSW5zdHJ1Y3RldXItMjg0MjI4").
+#     Args:
+#         dossier_id (str): Identifiant DN du dossier concerné (ex: "RG9zc2llci0yMzY3ODI3NA==").
+#         groupe_instructeur_id (str): Identifiant DN du groupe instructeur à assigner (ex: "R3JvdXBlSW5zdHJ1Y3RldXItMjg0MjI4").
 
-    Returns:
-        dict: Dictionnaire contenant :
-            - 'success' (bool) : True si la mutation a réussi, False sinon.
-            - 'message' (str)  : Message d'information ou d'erreur.
-    """
+#     Returns:
+#         dict: Dictionnaire contenant :
+#             - 'success' (bool) : True si la mutation a réussi, False sinon.
+#             - 'message' (str)  : Message d'information ou d'erreur.
+#     """
 
-    # Récupération des IDs sur Postgres
-    num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id).values_list("numero", flat=True).first()
-    id_groupe_pg = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur_ds=groupe_instructeur_id).values_list("id_groupeinstructeur_id", flat=True).first()
+#     # Récupération des IDs sur Postgres
+#     num_dossier_pg = Dossier.objects.filter(id_ds=dossier_id).values_list("numero", flat=True).first()
+#     id_groupe_pg = GroupeinstructeurDemarche.objects.filter(id_groupeinstructeur_ds=groupe_instructeur_id).values_list("id_groupeinstructeur_id", flat=True).first()
 
-    nom_groupe = Groupeinstructeur.objects.filter(id=id_groupe_pg).values_list("nom", flat=True).first()
-    loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de changement du groupe instructeur vers {nom_groupe}")
+#     nom_groupe = Groupeinstructeur.objects.filter(id=id_groupe_pg).values_list("nom", flat=True).first()
+#     loggerDS.info(f"[DOSSIER {num_dossier_pg}] Tentative de changement du groupe instructeur vers {nom_groupe}")
 
-    try:
-        client = GraphQLClient()
+#     try:
+#         client = GraphQLClient()
 
-        query_path = "DS/mutations/change_groupe_instructeur.graphql"
-        variables = {
-            "input": {
-                "dossierId": dossier_id,
-                "groupeInstructeurId": groupe_instructeur_id
-            }
-        }
+#         query_path = "DS/mutations/change_groupe_instructeur.graphql"
+#         variables = {
+#             "input": {
+#                 "dossierId": dossier_id,
+#                 "groupeInstructeurId": groupe_instructeur_id
+#             }
+#         }
 
-        result = client.execute_query(query_path, variables)
+#         result = client.execute_query(query_path, variables)
 
-        if not result:
-            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Réponse vide du serveur lors de la mutation change_groupe_instructeur.graphql")
-            return {"success": False, "message": "Réponse vide du serveur."}
+#         if not result:
+#             loggerDS.error(f"[DOSSIER {num_dossier_pg}] Réponse vide du serveur lors de la mutation change_groupe_instructeur.graphql")
+#             return {"success": False, "message": "Réponse vide du serveur."}
 
-        if "errors" in result:
-            loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de la mutation change_groupe_instructeur.graphql : {result['errors']}")
-            return {"success": False, "message": result["errors"]}
+#         if "errors" in result:
+#             loggerDS.error(f"[DOSSIER {num_dossier_pg}] Erreur lors de la mutation change_groupe_instructeur.graphql : {result['errors']}")
+#             return {"success": False, "message": result["errors"]}
 
-        response_data = result.get("data", {}).get("dossierChangerGroupeInstructeur", {})
-        if response_data:
-            loggerDS.info(f"[DOSSIER {num_dossier_pg}] Groupe instructeur changé avec succès.")
-            return {"success": True, "message": response_data.get("message", "OK")}
+#         response_data = result.get("data", {}).get("dossierChangerGroupeInstructeur", {})
+#         if response_data:
+#             loggerDS.info(f"[DOSSIER {num_dossier_pg}] Groupe instructeur changé avec succès.")
+#             return {"success": True, "message": response_data.get("message", "OK")}
 
-        loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Mutation change_groupe_instructeur.graphql réussie mais réponse inattendue.")
-        return {"success": False, "message": "Réponse inattendue de la mutation."}
+#         loggerDS.warning(f"[DOSSIER {num_dossier_pg}] Mutation change_groupe_instructeur.graphql réussie mais réponse inattendue.")
+#         return {"success": False, "message": "Réponse inattendue de la mutation."}
 
-    except Exception as e:
-        loggerDS.exception(f"[DOSSIER {num_dossier_pg}] Erreur dans la mutation change_groupe_instructeur.graphql : {e}")
-        return {"success": False, "message": str(e)}
+#     except Exception as e:
+#         loggerDS.exception(f"[DOSSIER {num_dossier_pg}] Erreur dans la mutation change_groupe_instructeur.graphql : {e}")
+#         return {"success": False, "message": str(e)}
 
 
 

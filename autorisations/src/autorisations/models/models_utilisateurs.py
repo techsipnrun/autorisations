@@ -186,6 +186,7 @@ class GroupeinstructeurDemarche(models.Model):
     id_groupeinstructeur_ds = models.CharField(unique=True, blank=True, null=True)
     id_groupeinstructeur = models.ForeignKey(Groupeinstructeur, models.CASCADE, db_column='id_groupeinstructeur')
     id_demarche = models.ForeignKey('autorisations.Demarche', models.CASCADE, db_column='id_demarche')
+    est_groupe_par_defaut = models.BooleanField(default=False)
 
     class Meta:
         managed = False
@@ -195,7 +196,8 @@ class GroupeinstructeurDemarche(models.Model):
         ]
 
     def __str__(self):
-        return f"Groupe {self.id_groupeinstructeur.nom} - Démarche {self.id_demarche.id}"
+        suffixe = " (par défaut)" if self.est_groupe_par_defaut else ""
+        return f"Groupe {self.id_groupeinstructeur.nom} - Démarche {self.id_demarche.id}{suffixe}"
 
 
 class GroupeinstructeurInstructeur(models.Model):

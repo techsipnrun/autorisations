@@ -5,7 +5,6 @@ from declaration_manifestations.get_methods import get_access_token, get_access_
 from .sync_declaration_manifestations import sync_declaration_manifestations
 from .sync_avis_declaration_manifestations import sync_avis_declaration_manifestations
 from .sync_demarche import sync_demarche
-from .sync_groupeinstr import sync_groupeinstructeurs_demarches
 from .sync_champ import sync_champs
 from .sync_dossiers import sync_dossiers
 import logging
@@ -79,7 +78,6 @@ def synchro_process(dico, dico_notifs, demarche_obj):
     t_ds = time.perf_counter()
     try :
         sync_demarche(dico["demarche"])
-        sync_groupeinstructeurs_demarches(dico["groupeinstructeurs_demarches"])
         sync_champs(dico["champs"])
         sync_dossiers(dico["dossiers"], demarche_obj.numero, False, dico_notifs)
     except Exception as e:

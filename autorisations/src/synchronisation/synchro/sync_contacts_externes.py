@@ -1,5 +1,6 @@
 from autorisations.models.models_utilisateurs import ContactExterne
 from django.db import IntegrityError
+from django.db.models import Q
 from ..utils.model_helpers import update_fields
 import logging
 
@@ -22,6 +23,9 @@ def sync_contacts_externes(contacts_externes):
         if not data:
             continue
 
+        obj = None
+        created = None
+
         try:
 
             id_type = data["id_type"]
@@ -29,6 +33,7 @@ def sync_contacts_externes(contacts_externes):
             nom = data.get("nom")
             prenom = data.get("prenom")
             email = data.get("email")
+            email = email.strip().lower() if email else None
 
             # Normalement on recupère TOUJOURS un email (et bien non en fait)
             if not email :
@@ -44,9 +49,6 @@ def sync_contacts_externes(contacts_externes):
                                             ("adresse", data.get("adresse")), ("telephone", data.get("telephone"))] if v is not None and str(v).strip() != ''}
 
             # logger.info(defaults)
-            obj = None
-            created = None
-
             if id_type:
 
                 if email :
@@ -58,14 +60,36 @@ def sync_contacts_externes(contacts_externes):
                         defaults=defaults
                     )
                 else :
-                    # Clé unique sur id_type, email et siret 
-                    obj, created = ContactExterne.objects.get_or_create(
+                    # Sans email, on ne rattache jamais le dossier à un homonyme
+                    # possédant une adresse email : il peut s'agir d'une autre personne.
+                    contacts_sans_email = ContactExterne.objects.filter(
                         id_type_id=id_type,
                         nom=nom or None,
                         prenom=prenom or None,
                         siret=siret or None,
-                        defaults=defaults
-                    )
+                    ).filter(Q(email__isnull=True) | Q(email=""))
+
+                    nombre_contacts = contacts_sans_email.count()
+                    if nombre_contacts == 1:
+                        obj = contacts_sans_email.first()
+                        created = False
+                    elif nombre_contacts > 1:
+                        logger.error(
+                            f"Ambiguïté lors de la synchronisation du contact externe ({role}) : "
+                            f"{nombre_contacts} contacts sans email correspondent à "
+                            f"{nom} {prenom}. Aucun contact n'a été sélectionné."
+                        )
+                        continue
+                    else:
+                        obj = ContactExterne.objects.create(
+                            email=None,
+                            id_type_id=id_type,
+                            nom=nom or None,
+                            prenom=prenom or None,
+                            siret=siret or None,
+                            **defaults,
+                        )
+                        created = True
 
 
                 # else :
@@ -94,12 +118,14 @@ def sync_contacts_externes(contacts_externes):
       
         except IntegrityError as e:
             email = data.get("email")
+            email = email.strip().lower() if email else None
             obj = None
 
             if email:
                 obj = ContactExterne.objects.filter(
                     email=email,
-                    id_type_id=data.get("id_type")
+                    id_type_id=data.get("id_type"),
+                    siret=data.get("siret") or None,
                 ).first()
                 cible = email
             else:
@@ -108,7 +134,7 @@ def sync_contacts_externes(contacts_externes):
                     nom=data.get("nom"),
                     prenom=data.get("prenom"),
                     siret=data.get("siret") or None,
-                ).first()
+                ).filter(Q(email__isnull=True) | Q(email="")).first()
                 cible = f"{data.get('nom')} {data.get('prenom')}"
 
             if obj:
@@ -125,7 +151,11 @@ def sync_contacts_externes(contacts_externes):
         except Exception as e :
             logger.error(f"{e}")
 
-
-        result_ids[role] = obj.id
+        if obj is not None:
+            result_ids[role] = obj.id
+        else:
+            logger.error(
+                f"Aucun ContactExterne n'a pu être résolu pour le rôle {role}."
+            )
 
     return result_ids

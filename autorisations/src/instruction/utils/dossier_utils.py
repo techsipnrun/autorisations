@@ -10,13 +10,79 @@ from django.shortcuts import redirect
 from autorisations.models.models_instruction import ActionsPossibles, AvisManifSportive, Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, Message, SynchronisationEtat
 from django.contrib import messages
 
-from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur
+from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur, Instructeur
 from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from django.db.models import Q
 
 
 
 logger = logging.getLogger("ORM_DJANGO")
+
+MOTIFS_DECISION = {
+    "Accepté": ("accepte", "Motif de l'acceptation"),
+    "Refusé": ("refuse", "Motif du refus"),
+    "Non soumis à autorisation": ("non_soumis", "Motif du classement comme non soumis à autorisation"),
+    "Annulé": ("annule", "Motif de l'annulation"),
+}
+
+
+def enregistrer_motif_decision(dossier, email_emetteur, motivation, type_decision):
+    """Enregistre localement un motif de décision DN sans envoyer un second message."""
+    motivation = (motivation or "").strip()
+    if not motivation:
+        return None
+
+    identifiant = f"agida-motif-decision:{type_decision}:{dossier.pk}"
+    message, _ = Message.objects.update_or_create(
+        id_dossier=dossier,
+        id_ds=identifiant,
+        defaults={
+            "body": motivation,
+            "date_envoi": timezone.now(),
+            "piece_jointe": False,
+            "email_emetteur": email_emetteur or "AGIDA",
+            "lu": True,
+        },
+    )
+    return message
+
+
+def get_motif_decision(dossier):
+    """Retourne le motif correspondant à l'étape terminale actuelle du dossier."""
+    etape = getattr(getattr(dossier, "id_etape_dossier", None), "etape", None)
+    configuration = MOTIFS_DECISION.get(etape)
+    if not configuration:
+        return None
+
+    type_decision, libelle = configuration
+    message = Message.objects.filter(
+        id_dossier=dossier,
+        id_ds=f"agida-motif-decision:{type_decision}:{dossier.pk}",
+    ).first()
+    if not message:
+        return None
+
+    auteur = message.email_emetteur
+    instructeur = (
+        Instructeur.objects
+        .filter(email__iexact=message.email_emetteur)
+        .select_related("id_agent_autorisations")
+        .first()
+    )
+    if instructeur and instructeur.id_agent_autorisations:
+        agent = instructeur.id_agent_autorisations
+        prenom = (agent.prenom or "").strip()
+        nom = (agent.nom or "").strip().upper()
+        nom_complet = f"{prenom} {nom}".strip()
+        if nom_complet:
+            auteur = nom_complet
+
+    return {
+        "libelle": libelle,
+        "body": message.body,
+        "date": message.date_envoi,
+        "auteur": auteur,
+    }
 
 
 def has_geojson_geometry(geojson):
