@@ -983,7 +983,6 @@ def passer_en_instruction(request):
 
 @require_POST
 @login_required
-@bloquer_avancement_si_projet_work_manquant
 def faire_valider_une_demande_d_avis(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1212,7 +1211,6 @@ def faire_valider_une_demande_d_avis(request):
 
 @require_POST
 @login_required
-@bloquer_avancement_si_projet_work_manquant
 def faire_valider_le_projet_d_acte(request):
 
     dossier_id_ds = request.POST.get("dossierId")
@@ -1615,7 +1613,7 @@ def repasser_en_instruction(request):
         DossierDocument.objects
         .filter(
             id_dossier=dossier,
-            id_document__id_nature__nature__in=NATURES_VALIDES,
+            id_document__id_nature__nature__in=NATURES_VALIDES_AVEC_RAPPORT,
         )
         .filter(
             Q(id_document__id_statut__isnull=True)
@@ -1650,7 +1648,7 @@ def repasser_en_instruction(request):
     documents_du_dossier = (
         DossierDocument.objects
         .filter(id_dossier=dossier)
-        .exclude(id_document__id_nature__nature__in=NATURES_VALIDES)
+        .exclude(id_document__id_nature__nature__in=NATURES_VALIDES_AVEC_RAPPORT)
         .select_related("id_document__id_statut", "id_document__id_nature")
     )
 
