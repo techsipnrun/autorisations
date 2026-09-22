@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path
-from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert, synchro, declaration_manifestations
+from instruction.views import messagerie, preinstruction, views, instruction, changement_etape, requete, avis, expert, synchro, declaration_manifestations, statistiques
 from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
@@ -12,6 +12,8 @@ urlpatterns = [
     path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
+    path("statistiques/", statistiques.tableau_de_bord, name="statistiques"),
+    path("statistiques/donnees/", statistiques.donnees_tableau_de_bord, name="statistiques_donnees"),
 
 
     # DOCUMENTATION

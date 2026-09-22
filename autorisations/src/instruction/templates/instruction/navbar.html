@@ -98,6 +98,13 @@
                     </button>
 
                     <div class="settings_menu">
+                        {% if request.user.is_superuser or request.user|a_profil_instructeur %}
+                            <a href="{% url 'statistiques' %}" class="dropdown-item">
+                                <img src="{% static 'instruction/img/statistiques.svg' %}" class="icon" alt="">
+                                <span>Statistiques</span>
+                            </a>
+                        {% endif %}
+
                         {% if request.user.is_superuser %}
                             <a href="/admin/" class="dropdown-item" target="_blank">
                                 <img src="{% static 'instruction/img/shield-user.svg' %}" class="icon" alt="">

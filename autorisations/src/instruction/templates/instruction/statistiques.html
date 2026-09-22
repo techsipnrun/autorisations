@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiques</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/statistiques.css' %}?v=5">
+    <script src="{% static 'instruction/js/statistiques.js' %}?v=5" defer></script>
+</head>
+<body class="page-statistiques">
+    {% include 'navbar.html' %}
+    <main class="statistiques-main" id="statistiques-dashboard" data-url="{% url 'statistiques_donnees' %}" data-default-role="{{ role_par_defaut }}" data-default-agent="{{ agent_par_defaut|default:'' }}">
+        <header class="statistiques-header">
+            <div>
+                <p class="statistiques-eyebrow">Tableau de bord</p>
+                <h1>Statistiques</h1>
+                <p class="statistiques-resume-impression" id="statistiques-resume-impression"></p>
+            </div>
+            <div class="statistiques-export-actions">
+                <button type="button" id="stats-export-dashboard" title="Exporter le tableau de bord" aria-label="Exporter le tableau de bord">
+                    <span>Exporter</span><img src="{% static 'instruction/img/download.png' %}" alt="">
+                </button>
+            </div>
+        </header>
+
+        <form class="statistiques-filtres" id="statistiques-filtres">
+            <div class="statistiques-filtre statistiques-multiselect" data-placeholder="Toutes les années">
+                <span class="statistiques-label">Année de dépôt</span>
+                <button type="button" class="statistiques-multiselect-trigger" aria-expanded="false">Toutes les années</button>
+                <div class="statistiques-multiselect-menu">
+                    {% for annee in annees %}<label><input type="checkbox" name="annees" value="{{ annee }}" {% if annee == annee_courante %}checked{% endif %}> {{ annee }}</label>{% endfor %}
+                </div>
+            </div>
+            <div class="statistiques-filtre statistiques-multiselect" data-placeholder="Tous les mois">
+                <span class="statistiques-label">Mois</span>
+                <button type="button" class="statistiques-multiselect-trigger" aria-expanded="false">Tous les mois</button>
+                <div class="statistiques-multiselect-menu">
+                    {% for numero, libelle in mois %}<label><input type="checkbox" name="mois" value="{{ numero }}"> {{ libelle }}</label>{% endfor %}
+                </div>
+            </div>
+            <div class="statistiques-filtre statistiques-multiselect statistiques-filtre-large" data-placeholder="Tous les types">
+                <span class="statistiques-label">Type de dossier</span>
+                <button type="button" class="statistiques-multiselect-trigger" aria-expanded="false">Tous les types</button>
+                <div class="statistiques-multiselect-menu">
+                    {% for demarche in demarches %}<label><input type="checkbox" name="demarches" value="{{ demarche.id }}"> {{ demarche.type }}</label>{% endfor %}
+                </div>
+            </div>
+            <div class="statistiques-filtre statistiques-multiselect" data-placeholder="Toutes les étapes">
+                <span class="statistiques-label">Étape</span>
+                <button type="button" class="statistiques-multiselect-trigger" aria-expanded="false">Toutes les étapes</button>
+                <div class="statistiques-multiselect-menu">
+                    {% for etape in etapes %}<label><input type="checkbox" name="etapes" value="{{ etape.id }}"> {{ etape.etape }}</label>{% endfor %}
+                </div>
+            </div>
+            <div class="statistiques-filtre statistiques-multiselect statistiques-filtre-large" data-placeholder="Tous les groupes">
+                <span class="statistiques-label">Groupe instructeur</span>
+                <button type="button" class="statistiques-multiselect-trigger" aria-expanded="false">Tous les groupes</button>
+                <div class="statistiques-multiselect-menu">
+                    {% for groupe in groupes_instructeurs %}<label><input type="checkbox" name="groupes" value="{{ groupe.id }}"> {{ groupe.nom }}</label>{% endfor %}
+                </div>
+            </div>
+            <button type="button" class="statistiques-reset" id="statistiques-reset">Réinitialiser</button>
+        </form>
+
+        <div class="statistiques-chargement" id="statistiques-chargement" role="status"><span></span> Actualisation des statistiques…</div>
+        <p class="statistiques-erreur" id="statistiques-erreur" hidden></p>
+
+        <section class="statistiques-kpis" aria-label="Indicateurs principaux">
+            <article class="statistiques-kpi"><span>Total des dossiers</span><strong id="kpi-total">—</strong></article>
+            <article class="statistiques-kpi kpi-reception"><span>En réception</span><strong id="kpi-reception">—</strong></article>
+            <article class="statistiques-kpi kpi-instruction"><span>En cours d’instruction</span><strong id="kpi-instruction">—</strong></article>
+            <article class="statistiques-kpi kpi-termine"><span>Dossiers terminés</span><strong id="kpi-termines">—</strong></article>
+            <article class="statistiques-kpi kpi-delai"><span>Délai moyen d’instruction</span><strong id="kpi-delai">—</strong></article>
+        </section>
+
+        <section class="statistiques-grille">
+            <article class="statistiques-carte statistiques-carte-large statistiques-section-exportable" data-export-title="Répartition par type de dossier" data-export-kind="types">
+                <header><h2>Répartition par type de dossier</h2><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></header>
+                <div class="statistiques-donut-layout">
+                    <div class="statistiques-donut" id="graphique-types" role="img"></div>
+                    <div class="statistiques-legende" id="legende-types"></div>
+                </div>
+            </article>
+            <article class="statistiques-carte statistiques-section-exportable" data-export-title="Répartition par étape" data-export-kind="etapes">
+                <header><h2>Répartition par étape</h2><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></header>
+                <div class="statistiques-barres" id="graphique-etapes"></div>
+            </article>
+            <article class="statistiques-carte statistiques-section-exportable" data-export-title="Nombre de dossiers déposés par mois" data-export-kind="evolution">
+                <header><h2>Nombre de dossiers déposés par mois</h2><div class="statistiques-card-actions"><input type="color" id="couleur-evolution" value="#16814a" title="Choisir la couleur du graphique" aria-label="Couleur du graphique"><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></div></header>
+                <div class="statistiques-colonnes" id="graphique-evolution"></div>
+            </article>
+            <article class="statistiques-carte statistiques-carte-ms statistiques-section-exportable" id="carte-manifestations" data-export-title="Composition des manifestations sportives" data-export-kind="manifestations">
+                <header><h2>Composition des manifestations sportives</h2><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></header>
+                <div class="statistiques-ms-repartition" id="graphique-manifestations"></div>
+            </article>
+            <article class="statistiques-carte statistiques-section-exportable" data-export-title="Courbe des dossiers reçus" data-export-kind="courbe">
+                <header><h2>Courbe cumulative des dossiers reçus</h2><div class="statistiques-card-actions"><input type="color" id="couleur-courbe" value="#16814a" title="Choisir la couleur de la courbe" aria-label="Couleur de la courbe"><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></div></header>
+                <div class="statistiques-courbe" id="graphique-courbe"></div>
+            </article>
+            <article class="statistiques-carte statistiques-section-exportable" id="carte-instructeur" data-export-title="Répartition par rôle et agent" data-export-kind="instructeur">
+                <header><h2>Répartition par rôle et agent</h2><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></header>
+                <div class="statistiques-filtres-module">
+                    <div class="statistiques-filtre statistiques-filtre-role">
+                        <label for="stats-role">Rôle</label>
+                        <select id="stats-role">{% for valeur, libelle in roles_dossier %}<option value="{{ valeur }}" {% if valeur == role_par_defaut %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select>
+                    </div>
+                    <div class="statistiques-filtre statistiques-filtre-instructeur">
+                    <label for="stats-instructeur">Agent</label>
+                    <select id="stats-instructeur">
+                        <option value="">Sélectionner un instructeur</option>
+                    </select>
+                    </div>
+                </div>
+                <div class="statistiques-donut-layout statistiques-donut-instructeur-layout">
+                    <div class="statistiques-donut" id="graphique-instructeur" role="img"></div>
+                    <div class="statistiques-legende" id="legende-instructeur"></div>
+                </div>
+            </article>
+            <article class="statistiques-carte statistiques-section-exportable" id="carte-avis" data-export-title="Répartition des demandes d’avis" data-export-kind="avis">
+                <header><h2>Répartition des demandes d’avis</h2><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></header>
+                <div class="statistiques-filtre statistiques-filtre-expert">
+                    <label for="stats-expert">Expert</label>
+                    <select id="stats-expert">
+                        <option value="">Sélectionner un expert</option>
+                        {% for choix in experts_choices %}<option value="{{ choix.value }}" {% if choix.value == expert_par_defaut %}selected{% endif %}>{{ choix.label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="statistiques-donut-layout statistiques-donut-avis-layout">
+                    <div class="statistiques-donut" id="graphique-avis" role="img"></div>
+                    <div class="statistiques-legende" id="legende-avis"></div>
+                </div>
+            </article>
+            <article class="statistiques-carte statistiques-section-exportable" id="carte-groupes" data-export-title="Répartition des dossiers par groupe d’instruction" data-export-kind="groupes">
+                <header><h2>Répartition des dossiers par groupe d’instruction</h2><div class="statistiques-card-actions"><input type="color" id="couleur-groupes" value="#3278b7" title="Choisir la couleur du graphique" aria-label="Couleur du graphique"><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></div></header>
+                <div class="statistiques-barres statistiques-barres-groupes" id="graphique-groupes"></div>
+            </article>
+        </section>
+        {{ agents_par_role|json_script:"statistiques-agents-par-role" }}
+    </main>
+</body>
+</html>
