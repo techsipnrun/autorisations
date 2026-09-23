@@ -13,6 +13,7 @@
     const couleurCourbe = document.getElementById("couleur-courbe");
     const couleurGroupes = document.getElementById("couleur-groupes");
     const agentsParRole = JSON.parse(document.getElementById("statistiques-agents-par-role").textContent);
+    const imagesStatistiques = new Map();
     const roleParDefaut = dashboard.dataset.defaultRole || "instructeur";
     const agentParDefaut = dashboard.dataset.defaultAgent || "";
     couleurEvolution.value = localStorage.getItem("agida-stats-couleur-evolution") || "#16814a";
@@ -21,6 +22,18 @@
 
     const cleCouleur = (libelle) => `agida-stats-couleur-${encodeURIComponent(libelle).replaceAll("%", "_")}`;
     const couleurType = (libelle, index) => localStorage.getItem(cleCouleur(libelle)) || palette[index % palette.length];
+
+    function chargerImageStatistiques(source) {
+        if (imagesStatistiques.has(source)) return imagesStatistiques.get(source);
+        const chargementImage = new Promise((resolve) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => resolve(null);
+            image.src = source;
+        });
+        imagesStatistiques.set(source, chargementImage);
+        return chargementImage;
+    }
 
     function afficherVide(conteneur) {
         conteneur.replaceChildren();
@@ -521,7 +534,22 @@
         ctx.textAlign = "left"; ctx.lineWidth = 1;
     }
 
-    function dessinerTuilesCanvas(ctx, items, x, y, largeur, hauteur) {
+    function dessinerImageContenue(ctx, image, x, y, largeur, hauteur) {
+        const largeurSource = image.naturalWidth || image.width || largeur;
+        const hauteurSource = image.naturalHeight || image.height || hauteur;
+        const ratio = Math.min(largeur / largeurSource, hauteur / hauteurSource);
+        const largeurFinale = largeurSource * ratio;
+        const hauteurFinale = hauteurSource * ratio;
+        ctx.drawImage(
+            image,
+            x + (largeur - largeurFinale) / 2,
+            y + (hauteur - hauteurFinale) / 2,
+            largeurFinale,
+            hauteurFinale,
+        );
+    }
+
+    function dessinerTuilesCanvas(ctx, items, x, y, largeur, hauteur, logosParTuile = []) {
         const total = items.reduce((somme, item) => somme + item.valeur, 0);
         const colonnes = 2;
         const largeurTuile = (largeur - 16) / colonnes;
@@ -530,7 +558,18 @@
             const tx = x + colonne * (largeurTuile + 16); const ty = y + ligne * 125;
             ctx.fillStyle = "#f7faf8"; ctx.fillRect(tx, ty, largeurTuile, 105);
             ctx.fillStyle = "#213129"; ctx.font = "bold 14px Segoe UI, Arial";
-            ecrireTexteMultiligne(ctx, item.label, tx + 12, ty + 24, largeurTuile - 24, 17, 2);
+            const logos = logosParTuile[index] || [];
+            let debutLogos = tx + 12;
+            if (logos.length) {
+                ctx.fillText(item.label, tx + 12, ty + 31);
+                debutLogos = tx + 12 + ctx.measureText(item.label).width + 9;
+            } else {
+                ecrireTexteMultiligne(ctx, item.label, tx + 12, ty + 24, largeurTuile - 24, 17, 2);
+            }
+            logos.forEach((logo, logoIndex) => {
+                if (!logo) return;
+                dessinerImageContenue(ctx, logo, debutLogos + logoIndex * 35, ty + 11, 28, 28);
+            });
             ctx.fillStyle = "#006131"; ctx.font = "bold 27px Segoe UI, Arial"; ctx.fillText(String(item.valeur), tx + 12, ty + 82);
             if (total) { ctx.fillStyle = "#65736b"; ctx.font = "13px Segoe UI, Arial"; ctx.fillText(`(${Math.round(item.valeur / total * 100)} %)`, tx + 55, ty + 81); }
         });
@@ -616,7 +655,7 @@
         finaliserExport(canvas, "statistiques-agida", format, "Statistiques AGIDA");
     }
 
-    function exporterModule(bloc, format = "png") {
+    async function exporterModule(bloc, format = "png") {
         if (!dernieresDonnees) return;
         const kind = bloc.dataset.exportKind;
         let items = [];
@@ -630,6 +669,14 @@
         if (kind === "manifestations") {
             const ms = dernieresDonnees.manifestations_sportives;
             items = [{label: "Dossiers complets", valeur: ms.complets}, {label: "Démarche Numérique orphelins", valeur: ms.orphelins_dn}, {label: "Déclaration Manifestations orphelins", valeur: ms.orphelins_dm}];
+        }
+        let logosManifestations = [];
+        if (kind === "manifestations") {
+            const [logoDn, logoDm] = await Promise.all([
+                chargerImageStatistiques("/static/instruction/img/icon_DS.png"),
+                chargerImageStatistiques("/static/instruction/img/prefet_icon_color.svg"),
+            ]);
+            logosManifestations = [[logoDn, logoDm], [logoDn], [logoDm]];
         }
         const canvas = document.createElement("canvas");
         canvas.width = 1100; canvas.height = 650;
@@ -655,7 +702,7 @@
             // La fonction applique elle-même le cumul aux données mensuelles brutes.
             dessinerCourbeCanvas(ctx, dernieresDonnees.evolution_courbe, 75, 155, 950, 385, couleurCourbe.value);
         } else if (kind === "manifestations") {
-            dessinerTuilesCanvas(ctx, items, 55, 145, 990, 400);
+            dessinerTuilesCanvas(ctx, items, 55, 145, 990, 400, logosManifestations);
         } else {
             dessinerBarresCanvas(ctx, items, 55, 145, 990, 440, false, kind === "groupes" ? couleurGroupes.value : "#55a68a");
         }
