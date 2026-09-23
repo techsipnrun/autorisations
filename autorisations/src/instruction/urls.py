@@ -14,6 +14,7 @@ urlpatterns = [
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
     path("statistiques/", statistiques.tableau_de_bord, name="statistiques"),
     path("statistiques/donnees/", statistiques.donnees_tableau_de_bord, name="statistiques_donnees"),
+    path("statistiques/donnees-carte/", statistiques.donnees_carte, name="statistiques_donnees_carte"),
 
 
     # DOCUMENTATION

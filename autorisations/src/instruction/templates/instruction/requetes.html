@@ -11,7 +11,14 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/requetes.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'instruction/css/requetes.css' %}?v=5">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
+    <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/requetes_carte.css' %}?v=6">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
+    <script src="{% static 'instruction/js/requetes_carte.js' %}?v=7" defer></script>
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -151,9 +158,59 @@
                     <datalist id="suggestions-instructeur"></datalist>
                 </div>
 
+                <section class="requete-carte-panel" id="requete-carte-panel" {% if not carte_visible %}hidden{% endif %}
+                    data-secteurs-url="{% static 'instruction/carto/perimetre_secteur.geojson' %}"
+                    data-coeur-url="{% static 'instruction/carto/fond_coeur_de_parc.geojson' %}"
+                    data-adhesion-url="{% static 'instruction/carto/aire_adhesion.geojson' %}">
+                    <header class="requete-carte-header">
+                        <div>
+                            <h2>Filtre cartographique</h2>
+                            <p>Les critères cartographiques s’ajoutent aux filtres renseignés ci-dessus.</p>
+                            <p>Seuls les dossiers possédant des données cartographiques peuvent être trouvés avec ce filtre.</p>
+                        </div>
+                        <button type="button" class="requete-carte-masquer" id="requete-carte-masquer" title="Masquer la carte" aria-label="Masquer la carte">×</button>
+                    </header>
+
+                    <div class="requete-carte-contenu">
+                        <div class="requete-carte-zone">
+                            <div class="requete-carte" id="requete-carte"></div>
+                            <p class="requete-carte-statut" id="requete-carte-statut" aria-live="polite"></p>
+                        </div>
+                        <aside class="requete-carte-options">
+                            <fieldset>
+                                <legend>Secteurs</legend>
+                                <label><input type="checkbox" name="carte_secteurs" value="sud" {% if "sud" in carte_secteurs_selectionnes %}checked{% endif %}> Sud</label>
+                                <label><input type="checkbox" name="carte_secteurs" value="ouest" {% if "ouest" in carte_secteurs_selectionnes %}checked{% endif %}> Ouest</label>
+                                <label><input type="checkbox" name="carte_secteurs" value="nord" {% if "nord" in carte_secteurs_selectionnes %}checked{% endif %}> Nord</label>
+                                <label><input type="checkbox" name="carte_secteurs" value="est" {% if "est" in carte_secteurs_selectionnes %}checked{% endif %}> Est</label>
+                            </fieldset>
+                            <fieldset class="requete-carte-perimetres">
+                                <legend>Périmètres</legend>
+                                <label><input type="checkbox" name="carte_perimetres" value="coeur" {% if "coeur" in carte_perimetres_selectionnes %}checked{% endif %}> Cœur de parc</label>
+                                <label><input type="checkbox" name="carte_perimetres" value="adhesion" {% if "adhesion" in carte_perimetres_selectionnes %}checked{% endif %}> Aire d’adhésion</label>
+                            </fieldset>
+                            <label class="requete-carte-relation" for="carte-relation">
+                                Relation avec la zone
+                                <select name="carte_relation" id="carte-relation">
+                                    <option value="intersecte" {% if carte_relation == "intersecte" %}selected{% endif %}>Intersecte la zone</option>
+                                    <option value="contenu" {% if carte_relation == "contenu" %}selected{% endif %}>Entièrement contenu dans la zone</option>
+                                    <option value="hors_zone" {% if carte_relation == "hors_zone" %}selected{% endif %}>N’intersecte pas la zone</option>
+                                </select>
+                            </label>
+                            {% if erreur_carte %}<p class="requete-carte-erreur">{{ erreur_carte }}</p>{% endif %}
+                            <button type="button" class="requete-carte-effacer" id="requete-carte-effacer" title="Effacer la zone active">Effacer</button>
+                        </aside>
+                    </div>
+                    <input type="hidden" name="carte_active" id="carte-active" value="{% if carte_visible %}1{% else %}0{% endif %}">
+                    <input type="hidden" name="carte_geojson" id="carte-geojson" value="{{ carte_geojson }}">
+                </section>
+
             </form>
 
             <div class="form-button-bottom">
+                <button type="button" class="btn-filtrer-carte" id="btn-filtrer-carte" title="Filtrer sur carte" aria-controls="requete-carte-panel" aria-expanded="{% if carte_visible %}true{% else %}false{% endif %}">
+                    <img src="{% static 'instruction/img/filtrer_carte.png' %}" alt="">
+                </button>
                 <button type="submit" form="recherche-form">Rechercher</button>
             </div>
 
@@ -169,7 +226,7 @@
                 {% endif %} -->
 
                 {% if dossiers %}
-                    <p class="result-count">
+                    <p class="result-count" id="resultats-dossiers-cible">
                         {{ nombre_dossiers }} dossier{{ nombre_dossiers|pluralize:"s" }} trouvé{{ nombre_dossiers|pluralize:"s" }} :
                     </p>
                     <!-- Excel -->
@@ -184,7 +241,7 @@
                         </a>
                     </div>
                 {% else %}
-                    <p class="result-count">Aucun dossier trouvé.</p>
+                    <p class="result-count" id="resultats-dossiers-cible">Aucun dossier trouvé.</p>
                 {% endif %}
 
 
@@ -371,7 +428,7 @@
         {% if recherche_avis_effectuee %}
             <div class="resultat">
                 {% if avis_list %}
-                    <p class="result-count">{{ nombre_avis }} avis trouvé{{ nombre_avis|pluralize:"s" }} :</p>
+                    <p class="result-count" id="resultats-avis-cible">{{ nombre_avis }} avis trouvé{{ nombre_avis|pluralize:"s" }} :</p>
                     <!-- Excel -->
                     <div class="export-excel-container">
                         <a href="{% url 'requetes_avis' %}?{{ request.GET.urlencode }}&export=xlsx"
@@ -385,7 +442,7 @@
                     </div>
 
                 {% else %}
-                    <p class="result-count">Aucun avis trouvé.</p>
+                    <p class="result-count" id="resultats-avis-cible">Aucun avis trouvé.</p>
                 {% endif %}
 
                 <table class="table-resultats">
@@ -439,7 +496,6 @@
         {% endif %}
     </div>
 
-    
 </body>
 
 <script>
@@ -650,6 +706,8 @@
 
 
 <script>
+    const cibleResultatsId = {% if recherche_dossier_effectuee %}"resultats-dossiers-cible"{% elif recherche_avis_effectuee %}"resultats-avis-cible"{% else %}null{% endif %};
+
     // Sauvegarde la position du scroll avant de recharger la page
     window.addEventListener("beforeunload", function () {
         localStorage.setItem("scrollPosition", window.scrollY);
@@ -657,6 +715,19 @@
 
     // Restaure la position du scroll après le rechargement
     window.addEventListener("load", function () {
+        if (cibleResultatsId) {
+            localStorage.removeItem("scrollPosition");
+            window.history.scrollRestoration = "manual";
+            requestAnimationFrame(() => {
+                const cible = document.getElementById(cibleResultatsId);
+                if (!cible) return;
+                const position = window.scrollY + cible.getBoundingClientRect().top
+                    - ((window.innerHeight - cible.offsetHeight) / 2);
+                window.scrollTo({top: Math.max(0, position), behavior: "auto"});
+            });
+            return;
+        }
+
         const scrollPosition = localStorage.getItem("scrollPosition");
         if (scrollPosition !== null) {
             window.scrollTo(0, parseInt(scrollPosition, 10));

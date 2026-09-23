@@ -1,12 +1,20 @@
+import json
+import math
 from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Avg, Count, ExpressionWrapper, F, Q, fields
 from django.db.models.functions import ExtractYear, TruncMonth
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
+from shapely import force_2d, make_valid
+from shapely.affinity import scale
+from shapely.errors import GEOSException
+from shapely.geometry import box, mapping
+from shapely.strtree import STRtree
 
 from autorisations.models.models_instruction import (
     Demarche, Dossier, DossierAction, DossierManifestationLiaison, DossierManifSportive, EtapeDossier,
@@ -24,9 +32,16 @@ from autorisations.models.models_utilisateurs import (
     Instructeur,
 )
 from autorisations.models.models_avis import Avis, DossierAvis, Expert
+from instruction.utils.carto_utils import _geojson_to_shapely
 
 
 TYPE_MANIFESTATIONS_SPORTIVES = "Manifestations sportives"
+TAILLE_CELLULE_CARTE = 500
+TOLERANCE_CARTE = 40
+MAX_CELLULES_CANDIDATES = 320000
+MAX_CELLULES_RETOURNEES = 5000
+METRES_PAR_DEGRE_LATITUDE = 111_320
+METRES_PAR_DEGRE_LONGITUDE_REUNION = 111_320 * math.cos(math.radians(-21.12))
 ROLES_DOSSIER = {
     "instructeur": ("Instructeur", (DossierInstructeur,)),
     "valideur": ("Valideur", (DossierValideur,)),
@@ -69,6 +84,169 @@ def _serialiser_repartition(repartition):
         {"label": label, "valeur": valeur}
         for label, valeur in sorted(repartition.items(), key=lambda item: (-item[1], item[0]))
     ]
+
+
+def _filtrer_dossiers_carte(request, demarche):
+    """Construit le périmètre cartographique à partir des filtres globaux."""
+    annees = _liste_entiers(request, "annees")
+    mois = _liste_entiers(request, "mois", maximum=12)
+    demarche_ids = _liste_entiers(request, "demarches")
+    etape_ids = _liste_entiers(request, "etapes")
+    groupe_ids = _liste_entiers(request, "groupes")
+
+    if demarche_ids and demarche.id not in demarche_ids:
+        return None, False
+
+    est_manifestation = demarche.type == TYPE_MANIFESTATIONS_SPORTIVES
+    if est_manifestation:
+        queryset = DossierManifSportive.objects.all()
+        champ_etape = "id_etape_id__in"
+    else:
+        queryset = Dossier.objects.filter(id_demarche=demarche)
+        champ_etape = "id_etape_dossier_id__in"
+
+    if annees:
+        queryset = queryset.filter(date_depot__year__in=annees)
+    if mois:
+        queryset = queryset.filter(date_depot__month__in=mois)
+    if etape_ids:
+        queryset = queryset.filter(**{champ_etape: etape_ids})
+    if groupe_ids:
+        queryset = queryset.filter(id_groupeinstructeur_id__in=groupe_ids)
+    return queryset, est_manifestation
+
+
+def _preparer_geometrie_carte(geojson, tolerance):
+    geometrie = _geojson_to_shapely(geojson)
+    if geometrie is None or geometrie.is_empty:
+        return None
+    # Les GeoJSON DN peuvent mélanger des tracés XYZ et XY. L'altitude n'est
+    # pas utile à cette analyse et ferait échouer certaines transformations.
+    geometrie = force_2d(geometrie)
+    geometrie = geometrie if geometrie.is_valid else make_valid(geometrie)
+    if geometrie.is_empty:
+        return None
+    min_x, min_y, max_x, max_y = geometrie.bounds
+    if not (-180 <= min_x <= 180 and -180 <= max_x <= 180 and -90 <= min_y <= 90 and -90 <= max_y <= 90):
+        raise ValueError("Coordonnées hors limites")
+    geometrie_metrique = scale(
+        geometrie,
+        xfact=METRES_PAR_DEGRE_LONGITUDE_REUNION,
+        yfact=METRES_PAR_DEGRE_LATITUDE,
+        origin=(0, 0),
+    )
+    return geometrie_metrique
+
+
+def _extraire_features_geojson(geojson, dossier_id):
+    if isinstance(geojson, str):
+        geojson = json.loads(geojson)
+    if not isinstance(geojson, dict):
+        return []
+    type_geojson = geojson.get("type")
+    if type_geojson == "FeatureCollection":
+        sources = geojson.get("features") or []
+    elif type_geojson == "Feature":
+        sources = [geojson]
+    else:
+        sources = [{"type": "Feature", "geometry": geojson, "properties": {}}]
+    features = []
+    for source in sources:
+        if not source.get("geometry"):
+            continue
+        proprietes = dict(source.get("properties") or {})
+        proprietes["dossier_id"] = dossier_id
+        features.append({"type": "Feature", "geometry": source["geometry"], "properties": proprietes})
+    return features
+
+
+def _construire_grille_densite(geometries, taille_initiale=TAILLE_CELLULE_CARTE, tolerance=TOLERANCE_CARTE):
+    if not geometries:
+        return [], taille_initiale
+
+    taille = taille_initiale
+    formes = [geometrie for _, geometrie in geometries]
+    min_x = min(geometrie.bounds[0] for geometrie in formes) - tolerance
+    min_y = min(geometrie.bounds[1] for geometrie in formes) - tolerance
+    max_x = max(geometrie.bounds[2] for geometrie in formes) + tolerance
+    max_y = max(geometrie.bounds[3] for geometrie in formes) + tolerance
+    estimation = (
+        max(1, math.ceil((max_x - min_x) / taille))
+        * max(1, math.ceil((max_y - min_y) / taille))
+    )
+    if estimation > MAX_CELLULES_CANDIDATES:
+        taille *= math.ceil(math.sqrt(estimation / MAX_CELLULES_CANDIDATES))
+
+    cellules = defaultdict(set)
+    debut_x, fin_x = math.floor(min_x / taille), math.floor(max_x / taille)
+    debut_y, fin_y = math.floor(min_y / taille), math.floor(max_y / taille)
+    formes_cellules = []
+    cles_cellules = []
+    for indice_x in range(debut_x, fin_x + 1):
+        for indice_y in range(debut_y, fin_y + 1):
+            formes_cellules.append(box(
+                indice_x * taille,
+                indice_y * taille,
+                (indice_x + 1) * taille,
+                (indice_y + 1) * taille,
+            ))
+            cles_cellules.append((indice_x, indice_y))
+
+    # Une manifestation sportive peut contenir plusieurs milliers de tracés
+    # dans une GeometryCollection. Une requête par dossier oblige GEOS à
+    # recalculer la distance avec cette collection très complexe. Indexer les
+    # sous-géométries puis interroger toutes les cellules en une seule fois est
+    # nettement plus rapide, tout en conservant exactement la même tolérance.
+    formes_indexees = []
+    dossiers_par_forme = []
+    for cle_dossier, geometrie in geometries:
+        sous_geometries = list(geometrie.geoms) if hasattr(geometrie, "geoms") else [geometrie]
+        for sous_geometrie in sous_geometries:
+            if sous_geometrie.is_empty:
+                continue
+            formes_indexees.append(sous_geometrie)
+            dossiers_par_forme.append(cle_dossier)
+
+    if formes_indexees:
+        arbre_geometries = STRtree(formes_indexees)
+        correspondances = arbre_geometries.query(
+            formes_cellules,
+            predicate="dwithin",
+            distance=tolerance,
+        )
+        for indice_cellule, indice_forme in zip(*correspondances):
+            cellules[cles_cellules[int(indice_cellule)]].add(dossiers_par_forme[int(indice_forme)])
+
+    while len(cellules) > MAX_CELLULES_RETOURNEES:
+        cellules_regroupees = defaultdict(set)
+        for (indice_x, indice_y), cles_dossiers in cellules.items():
+            cellules_regroupees[(indice_x // 2, indice_y // 2)].update(cles_dossiers)
+        cellules = cellules_regroupees
+        taille *= 2
+
+    features = []
+    for (indice_x, indice_y), cles_dossiers in cellules.items():
+        cellule_metrique = box(
+            indice_x * taille,
+            indice_y * taille,
+            (indice_x + 1) * taille,
+            (indice_y + 1) * taille,
+        )
+        cellule_wgs84 = scale(
+            cellule_metrique,
+            xfact=1 / METRES_PAR_DEGRE_LONGITUDE_REUNION,
+            yfact=1 / METRES_PAR_DEGRE_LATITUDE,
+            origin=(0, 0),
+        )
+        features.append({
+            "type": "Feature",
+            "geometry": mapping(cellule_wgs84),
+            "properties": {
+                "nombre_dossiers": len(cles_dossiers),
+                "dossier_ids": sorted(cles_dossiers),
+            },
+        })
+    return features, taille
 
 
 def _nombre_dossiers_par_role(instructeur_id, role):
@@ -199,6 +377,132 @@ def tableau_de_bord(request):
             (5, "Mai"), (6, "Juin"), (7, "Juillet"), (8, "Août"),
             (9, "Septembre"), (10, "Octobre"), (11, "Novembre"), (12, "Décembre"),
         ],
+    })
+
+
+@login_required
+def donnees_carte(request):
+    """Retourne une grille de densité GeoJSON calculée uniquement à la demande."""
+    _verifier_acces_statistiques(request.user)
+    try:
+        demarche_id = int(request.GET.get("type_carte", ""))
+    except (TypeError, ValueError):
+        return JsonResponse({"erreur": "Sélectionnez un type de dossier."}, status=400)
+
+    demarche = Demarche.objects.filter(id=demarche_id).first()
+    if not demarche:
+        return JsonResponse({"erreur": "Type de dossier inconnu."}, status=404)
+
+    tolerance = TOLERANCE_CARTE
+    taille_cellule = TAILLE_CELLULE_CARTE
+
+    queryset, est_manifestation = _filtrer_dossiers_carte(request, demarche)
+    if queryset is None:
+        return JsonResponse({
+            "type_dossier": demarche.type,
+            "total_dossiers": 0,
+            "dossiers_representes": 0,
+            "sans_geometrie": 0,
+            "geometries_vides": 0,
+            "geometries_invalides": 0,
+            "resolution_metres": taille_cellule,
+            "tolerance_metres": tolerance,
+            "intensite_max": 0,
+            "dossiers": {},
+            "details_compteurs": {"representes": [], "sans_geometrie": [], "geometries_vides": [], "geometries_invalides": []},
+            "cellules": {"type": "FeatureCollection", "features": []},
+        })
+
+    total = queryset.count()
+    geometries = []
+    dossiers_details = {}
+    traces_geojson = []
+    exporter_geojson = request.GET.get("export") == "geojson"
+    sans_geometrie = 0
+    geometries_vides = 0
+    geometries_invalides = 0
+    details_compteurs = {
+        "representes": [],
+        "sans_geometrie": [],
+        "geometries_vides": [],
+        "geometries_invalides": [],
+    }
+    if est_manifestation:
+        lignes = queryset.values_list(
+            "id", "geometrie", "numero_dossier_declaration_manifestations", "nom_dossier", "archive",
+        ).iterator(chunk_size=200)
+    else:
+        lignes = queryset.values_list(
+            "id", "geometrie", "geometrie_modif", "numero", "nom_dossier", "nom_dossier_plus_parlant",
+            "id_etape_dossier__etape",
+        ).iterator(chunk_size=200)
+
+    for ligne in lignes:
+        dossier_id = ligne[0]
+        cle_dossier = f"{'dm' if est_manifestation else 'dn'}:{dossier_id}"
+        if est_manifestation:
+            numero, nom, archive = ligne[2], ligne[3], ligne[4]
+            url_name = "dossier_manif_sportive_sans_ds_archive" if archive else "dossier_manif_sportive_sans_ds"
+            url = reverse(url_name, kwargs={"numero": numero})
+        else:
+            numero, nom, nom_plus_parlant, etape = ligne[3], ligne[4], ligne[5], ligne[6]
+            nom = nom_plus_parlant or nom
+            url = reverse("preinstruction_dossier", kwargs={"numero": numero}) if etape == "À affecter" else reverse(
+                "instruction_dossier", kwargs={"num_dossier": numero},
+            )
+        dossiers_details[cle_dossier] = {
+            "numero": numero,
+            "nom": nom or "Sans intitulé",
+            "type": demarche.type,
+            "url": url,
+        }
+        geojson = ligne[1] if est_manifestation else (ligne[2] or ligne[1])
+        if geojson is None or geojson == "":
+            sans_geometrie += 1
+            details_compteurs["sans_geometrie"].append(cle_dossier)
+            continue
+        try:
+            geometrie = _preparer_geometrie_carte(geojson, tolerance)
+        except (TypeError, ValueError, KeyError, GEOSException):
+            geometries_invalides += 1
+            details_compteurs["geometries_invalides"].append(cle_dossier)
+            continue
+        if geometrie is None:
+            geometries_vides += 1
+            details_compteurs["geometries_vides"].append(cle_dossier)
+            continue
+        if exporter_geojson:
+            traces_geojson.extend(_extraire_features_geojson(geojson, dossier_id))
+            continue
+        geometries.append((cle_dossier, geometrie))
+        details_compteurs["representes"].append(cle_dossier)
+
+    if exporter_geojson:
+        reponse = HttpResponse(
+            json.dumps({"type": "FeatureCollection", "features": traces_geojson}, ensure_ascii=False),
+            content_type="application/geo+json",
+        )
+        reponse["Content-Disposition"] = f'attachment; filename="traces-{demarche.id}.geojson"'
+        return reponse
+
+    features, resolution = _construire_grille_densite(geometries, taille_cellule, tolerance)
+    intensite_max = max(
+        (feature["properties"]["nombre_dossiers"] for feature in features),
+        default=0,
+    )
+    return JsonResponse({
+        "type_dossier": demarche.type,
+        "total_dossiers": total,
+        "dossiers_representes": len(geometries),
+        "sans_geometrie": sans_geometrie,
+        "geometries_vides": geometries_vides,
+        "geometries_invalides": geometries_invalides,
+        "resolution_metres": resolution,
+        "tolerance_metres": tolerance,
+        "intensite_max": intensite_max,
+        "dossiers": dossiers_details,
+        "details_compteurs": details_compteurs,
+        "cellules": {"type": "FeatureCollection", "features": features},
     })
 
 

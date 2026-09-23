@@ -1,4 +1,7 @@
 from datetime import date, datetime
+from functools import lru_cache
+import json
+import logging
 from django.db.models import Q, TextField, Value
 from django.http import JsonResponse
 from django.urls import reverse
@@ -18,6 +21,139 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
+from shapely import make_valid
+from shapely.errors import GEOSException
+from shapely.ops import unary_union
+
+from instruction.utils.carto_utils import _geojson_to_shapely
+from instruction.utils.files_utils import load_geojson
+
+
+logger = logging.getLogger("instruction")
+RELATIONS_CARTE = {"intersecte", "contenu", "hors_zone"}
+SECTEURS_CARTE = {"nord", "sud", "est", "ouest"}
+PERIMETRES_CARTE = {"coeur", "adhesion"}
+TAILLE_MAX_GEOJSON_REQUETE = 6_000
+
+
+def _rendre_geometrie_valide(geometrie):
+    if geometrie is None or geometrie.is_empty:
+        return None
+    return geometrie if geometrie.is_valid else make_valid(geometrie)
+
+
+@lru_cache(maxsize=1)
+def _geometries_secteurs_requete():
+    geojson = load_geojson("instruction/static/instruction/carto/perimetre_secteur.geojson") or {}
+    geometries = {}
+    for feature in geojson.get("features", []):
+        secteur = str(feature.get("properties", {}).get("secteur", "")).casefold()
+        if secteur in SECTEURS_CARTE and feature.get("geometry"):
+            geometries[secteur] = _rendre_geometrie_valide(_geojson_to_shapely(feature["geometry"]))
+    return geometries
+
+
+@lru_cache(maxsize=1)
+def _geometries_perimetres_requete():
+    fichiers = {
+        "coeur": "instruction/static/instruction/carto/fond_coeur_de_parc.geojson",
+        "adhesion": "instruction/static/instruction/carto/aire_adhesion.geojson",
+    }
+    return {
+        nom: _rendre_geometrie_valide(_geojson_to_shapely(load_geojson(chemin)))
+        for nom, chemin in fichiers.items()
+    }
+
+
+def _geometrie_recherche_carte(request):
+    """Construit la zone de recherche sans jamais conserver de géométrie en BDD."""
+    if request.GET.get("carte_active") != "1":
+        return None, None, [], []
+
+    relation = request.GET.get("carte_relation", "intersecte")
+    if relation not in RELATIONS_CARTE:
+        relation = "intersecte"
+
+    secteurs = [
+        secteur.casefold() for secteur in request.GET.getlist("carte_secteurs")
+        if secteur.casefold() in SECTEURS_CARTE
+    ]
+    perimetres = [
+        perimetre.casefold() for perimetre in request.GET.getlist("carte_perimetres")
+        if perimetre.casefold() in PERIMETRES_CARTE
+    ]
+    geometries = [
+        _geometries_secteurs_requete()[secteur]
+        for secteur in secteurs
+        if secteur in _geometries_secteurs_requete()
+    ]
+    geometries.extend(
+        _geometries_perimetres_requete()[perimetre]
+        for perimetre in perimetres
+        if _geometries_perimetres_requete().get(perimetre) is not None
+    )
+
+    geojson_brut = request.GET.get("carte_geojson", "").strip()
+    if geojson_brut:
+        if len(geojson_brut) > TAILLE_MAX_GEOJSON_REQUETE:
+            raise ValueError("Le dessin cartographique est trop volumineux. Simplifiez sa géométrie.")
+        geometrie_dessinee = _rendre_geometrie_valide(_geojson_to_shapely(json.loads(geojson_brut)))
+        if geometrie_dessinee is not None and not geometrie_dessinee.is_empty:
+            geometries.append(geometrie_dessinee)
+
+    geometries = [geometrie for geometrie in geometries if geometrie and not geometrie.is_empty]
+    if not geometries:
+        return None, relation, secteurs, perimetres
+    return unary_union(geometries), relation, secteurs, perimetres
+
+
+def _correspond_a_la_carte(geometrie_dossier, geometrie_recherche, relation):
+    if geometrie_dossier is None or geometrie_dossier.is_empty:
+        return False
+    if relation == "contenu":
+        return geometrie_recherche.covers(geometrie_dossier)
+    if relation == "hors_zone":
+        return geometrie_dossier.disjoint(geometrie_recherche)
+    return geometrie_dossier.intersects(geometrie_recherche)
+
+
+def _filtrer_par_carte(dossiers, dossiers_dm, geometrie_recherche, relation):
+    """Applique Shapely après les filtres SQL afin de limiter le coût de calcul."""
+    ids_dn = list(dossiers.values_list("id", flat=True).distinct())
+    geometries_dm_liees = {}
+    for dossier_id, geometrie in DossierManifestationLiaison.objects.filter(
+        id_dossier_id__in=ids_dn
+    ).values_list("id_dossier_id", "id_dossier_manif__geometrie"):
+        if geometrie:
+            geometries_dm_liees.setdefault(dossier_id, []).append(geometrie)
+
+    ids_dn_retenus = []
+    for dossier in Dossier.objects.filter(id__in=ids_dn).only("id", "geometrie", "geometrie_modif").iterator(chunk_size=200):
+        try:
+            geometries = []
+            geometrie_dn = _rendre_geometrie_valide(_geojson_to_shapely(dossier.geometrie_modif or dossier.geometrie))
+            if geometrie_dn is not None and not geometrie_dn.is_empty:
+                geometries.append(geometrie_dn)
+            for geojson_dm in geometries_dm_liees.get(dossier.id, []):
+                geometrie_dm = _rendre_geometrie_valide(_geojson_to_shapely(geojson_dm))
+                if geometrie_dm is not None and not geometrie_dm.is_empty:
+                    geometries.append(geometrie_dm)
+            geometrie_dossier = unary_union(geometries) if geometries else None
+            if _correspond_a_la_carte(geometrie_dossier, geometrie_recherche, relation):
+                ids_dn_retenus.append(dossier.id)
+        except (TypeError, ValueError, json.JSONDecodeError, GEOSException):
+            logger.warning("[REQUETES CARTE] Géométrie invalide pour le dossier DN id=%s", dossier.id)
+
+    ids_dm_retenus = []
+    for dossier_dm_id, geojson_dm in dossiers_dm.values_list("id", "geometrie").iterator(chunk_size=200):
+        try:
+            geometrie_dm = _rendre_geometrie_valide(_geojson_to_shapely(geojson_dm))
+            if _correspond_a_la_carte(geometrie_dm, geometrie_recherche, relation):
+                ids_dm_retenus.append(dossier_dm_id)
+        except (TypeError, ValueError, json.JSONDecodeError, GEOSException):
+            logger.warning("[REQUETES CARTE] Géométrie invalide pour le dossier DM id=%s", dossier_dm_id)
+
+    return dossiers.filter(id__in=ids_dn_retenus), dossiers_dm.filter(id__in=ids_dm_retenus)
 
 def clean_int(value):
     return value if value and value.isdigit() else None
@@ -465,6 +601,27 @@ def requete_dossiers(request):
             dossiers_dm,
             mots_cles,
         )
+
+    erreur_carte = ""
+    geometrie_recherche = None
+    relation_carte = request.GET.get("carte_relation", "intersecte")
+    secteurs_carte = [
+        secteur for secteur in request.GET.getlist("carte_secteurs")
+        if secteur.casefold() in SECTEURS_CARTE
+    ]
+    perimetres_carte = [
+        perimetre for perimetre in request.GET.getlist("carte_perimetres")
+        if perimetre.casefold() in PERIMETRES_CARTE
+    ]
+    try:
+        geometrie_recherche, relation_carte, secteurs_carte, perimetres_carte = _geometrie_recherche_carte(request)
+        if geometrie_recherche is not None:
+            dossiers, dossiers_dm = _filtrer_par_carte(
+                dossiers, dossiers_dm, geometrie_recherche, relation_carte
+            )
+    except (TypeError, ValueError, json.JSONDecodeError, GEOSException) as exception:
+        erreur_carte = str(exception) or "La géométrie de recherche est invalide."
+        logger.warning("[REQUETES CARTE] Filtre ignoré : %s", exception)
         
  
     dossiers = dossiers.order_by("-date_depot").distinct()
@@ -610,6 +767,13 @@ def requete_dossiers(request):
         "date_fin_instruction_rempli": date_fin_instruction or "",
         "etapes_selectionnees": etapes_selectionnees,
         "types_demarche_dossier_selectionnes": types_demarche,
+        "carte_visible": request.GET.get("carte_active") == "1",
+        "carte_relation": relation_carte,
+        "carte_secteurs_selectionnes": secteurs_carte,
+        "carte_perimetres_selectionnes": perimetres_carte,
+        "carte_geojson": request.GET.get("carte_geojson", ""),
+        "carte_appliquee": geometrie_recherche is not None,
+        "erreur_carte": erreur_carte,
     }
     return render(request, "instruction/requetes.html", context)
 

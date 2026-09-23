@@ -6,12 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistiques</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/statistiques.css' %}?v=5">
-    <script src="{% static 'instruction/js/statistiques.js' %}?v=7" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/statistiques.css' %}?v=15">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="{% static 'instruction/js/statistiques.js' %}?v=19" defer></script>
 </head>
 <body class="page-statistiques">
     {% include 'navbar.html' %}
-    <main class="statistiques-main" id="statistiques-dashboard" data-url="{% url 'statistiques_donnees' %}" data-default-role="{{ role_par_defaut }}" data-default-agent="{{ agent_par_defaut|default:'' }}">
+    <main class="statistiques-main" id="statistiques-dashboard" data-url="{% url 'statistiques_donnees' %}" data-carte-url="{% url 'statistiques_donnees_carte' %}" data-default-role="{{ role_par_defaut }}" data-default-agent="{{ agent_par_defaut|default:'' }}">
         <header class="statistiques-header">
             <div>
                 <p class="statistiques-eyebrow">Tableau de bord</p>
@@ -135,6 +138,46 @@
             <article class="statistiques-carte statistiques-section-exportable" id="carte-groupes" data-export-title="Répartition des dossiers par groupe d’instruction" data-export-kind="groupes">
                 <header><h2>Répartition des dossiers par groupe d’instruction</h2><div class="statistiques-card-actions"><input type="color" id="couleur-groupes" value="#3278b7" title="Choisir la couleur du graphique" aria-label="Couleur du graphique"><button type="button" class="statistiques-download-card" title="Télécharger ce bloc" aria-label="Télécharger ce graphique"><img src="{% static 'instruction/img/download.png' %}" alt=""></button></div></header>
                 <div class="statistiques-barres statistiques-barres-groupes" id="graphique-groupes"></div>
+            </article>
+            <article class="statistiques-carte statistiques-carte-geographique statistiques-section-exportable" id="carte-geographique" data-export-title="Répartition géographique par type de dossier" data-export-kind="carte">
+                <header>
+                    <h2>Répartition géographique par type de dossier</h2>
+                    <button type="button" class="statistiques-download-card" title="Télécharger les données GeoJSON" aria-label="Télécharger les données GeoJSON"><img src="{% static 'instruction/img/download.png' %}" alt=""></button>
+                </header>
+                <p class="statistiques-carte-export-note">Ce bloc n’est pas inclus dans le téléchargement global du tableau de bord.</p>
+                <div class="statistiques-carte-geographique-contenu">
+                    <aside class="statistiques-carte-geographique-informations">
+                        <div class="statistiques-carte-geographique-outils">
+                            <label for="stats-type-carte">Type de dossier</label>
+                            <select id="stats-type-carte">
+                                <option value="">Sélectionner</option>
+                                {% for demarche in demarches %}<option value="{{ demarche.id }}">{{ demarche.type }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <p class="statistiques-carte-information" id="statistiques-carte-information">Sélectionnez un type de dossier pour afficher la carte.</p>
+                        <div class="statistiques-carte-legende" id="statistiques-carte-legende" hidden>
+                            <div class="statistiques-carte-legende-echelle">
+                                <span>Faible</span><span class="statistiques-carte-degrade"></span><span>Forte</span>
+                                <input type="color" id="couleur-carte" value="#00695c" title="Choisir la couleur du dégradé" aria-label="Couleur du dégradé cartographique">
+                            </div>
+                            <div class="statistiques-carte-parametres">
+                                <span>Tolérance de rapprochement : 40 m</span>
+                                <span>Maillage d’analyse : 500 m</span>
+                            </div>
+                        </div>
+                    </aside>
+                    <div class="statistiques-carte-canvas">
+                        <div class="statistiques-carte-leaflet" id="statistiques-carte-leaflet" role="img" aria-label="Carte de densité géographique des dossiers"></div>
+                        <div class="statistiques-carte-chargement" id="statistiques-carte-chargement" hidden role="status">
+                            <span></span><strong>Calcul cartographique…</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="statistiques-carte-detail" id="statistiques-carte-detail" hidden role="dialog" aria-modal="false" aria-labelledby="statistiques-carte-detail-titre">
+                    <button type="button" class="statistiques-carte-detail-fermer" title="Fermer" aria-label="Fermer">×</button>
+                    <strong id="statistiques-carte-detail-titre"></strong>
+                    <div class="statistiques-carte-detail-liste" id="statistiques-carte-detail-liste"></div>
+                </div>
             </article>
         </section>
         {{ agents_par_role|json_script:"statistiques-agents-par-role" }}

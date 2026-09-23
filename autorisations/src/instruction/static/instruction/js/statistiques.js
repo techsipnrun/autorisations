@@ -7,18 +7,36 @@
     const erreur = document.getElementById("statistiques-erreur");
     const palette = ["#006131", "#e39a2d", "#3278b7", "#8a5a9f", "#cf5c4f", "#55a68a", "#7a8f3c", "#d2769a", "#4f6678", "#b76f2c", "#6b5ca5", "#2596a8"];
     let requeteEnCours = null;
+    let requeteCarteEnCours = null;
+    let cleCarteEnCours = "";
+    let derniereCleCarte = "";
     let donneesTypes = [];
     let dernieresDonnees = null;
+    let dernieresDonneesCarte = null;
+    let carteDensite = null;
+    let coucheDensite = null;
+    let actualiserStyleDensite = null;
+    let intensiteMaxCarteVisible = 1;
+    const dossiersCarteMasques = new Set();
     const couleurEvolution = document.getElementById("couleur-evolution");
     const couleurCourbe = document.getElementById("couleur-courbe");
     const couleurGroupes = document.getElementById("couleur-groupes");
+    const couleurCarte = document.getElementById("couleur-carte");
     const agentsParRole = JSON.parse(document.getElementById("statistiques-agents-par-role").textContent);
     const imagesStatistiques = new Map();
     const roleParDefaut = dashboard.dataset.defaultRole || "instructeur";
     const agentParDefaut = dashboard.dataset.defaultAgent || "";
+    const selectTypeCarte = document.getElementById("stats-type-carte");
+    const informationCarte = document.getElementById("statistiques-carte-information");
+    const legendeCarte = document.getElementById("statistiques-carte-legende");
+    const chargementCarte = document.getElementById("statistiques-carte-chargement");
+    const detailCarte = document.getElementById("statistiques-carte-detail");
+    const detailCarteTitre = document.getElementById("statistiques-carte-detail-titre");
+    const detailCarteListe = document.getElementById("statistiques-carte-detail-liste");
     couleurEvolution.value = localStorage.getItem("agida-stats-couleur-evolution") || "#16814a";
     couleurCourbe.value = localStorage.getItem("agida-stats-couleur-courbe") || "#16814a";
     couleurGroupes.value = localStorage.getItem("agida-stats-couleur-groupes") || "#3278b7";
+    couleurCarte.value = localStorage.getItem("agida-stats-couleur-carte") || "#00695c";
 
     const cleCouleur = (libelle) => `agida-stats-couleur-${encodeURIComponent(libelle).replaceAll("%", "_")}`;
     const couleurType = (libelle, index) => localStorage.getItem(cleCouleur(libelle)) || palette[index % palette.length];
@@ -41,6 +59,345 @@
         message.className = "statistiques-vide";
         message.textContent = "Aucune donnée pour les filtres sélectionnés.";
         conteneur.appendChild(message);
+    }
+
+    function initialiserCarteDensite() {
+        if (carteDensite || typeof L === "undefined") return;
+        const fonds = {
+            "IGN": L.tileLayer(
+                "https://data.geopf.fr/wmts?service=WMTS&request=GetTile&version=1.0.0" +
+                "&layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&style=normal&tilematrixset=PM" +
+                "&format=image/png&tilematrix={z}&tilerow={y}&tilecol={x}",
+                {maxZoom: 19, attribution: "© IGN - Géoplateforme", crossOrigin: true, updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 2}
+            ),
+            "OpenStreetMap": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                crossOrigin: true,
+                referrerPolicy: "strict-origin-when-cross-origin",
+            }),
+            "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19, attribution: "Esri & NASA", crossOrigin: true}),
+            "Topo": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {maxZoom: 18, attribution: "© OpenTopoMap", crossOrigin: true}),
+        };
+        carteDensite = L.map("statistiques-carte-leaflet", {preferCanvas: true}).setView([-21.12, 55.53], 10);
+        fonds.OpenStreetMap.addTo(carteDensite);
+        ajouterControleFondsCarte(carteDensite, fonds);
+        setTimeout(() => carteDensite.invalidateSize({pan: false}), 0);
+    }
+
+    function ajouterControleFondsCarte(carte, fonds) {
+        const fermer = () => carte.getContainer().querySelectorAll(".or-popover").forEach((element) => element.remove());
+        const Controle = L.Control.extend({
+            options: {position: "topright"},
+            onAdd() {
+                const conteneur = L.DomUtil.create("div", "leaflet-control or-mini");
+                const pile = L.DomUtil.create("div", "or-stack", conteneur);
+                const bouton = L.DomUtil.create("div", "or-btn", pile);
+                bouton.title = "Fonds de carte";
+                bouton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/><path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"/></svg>';
+                L.DomEvent.disableClickPropagation(conteneur);
+                bouton.addEventListener("click", () => {
+                    fermer();
+                    const menu = document.createElement("div");
+                    menu.className = "or-popover";
+                    menu.innerHTML = "<h4>Fonds de carte</h4>";
+                    Object.entries(fonds).forEach(([nom, couche], index) => {
+                        const id = `stats-fond-${index}`;
+                        const ligne = document.createElement("div");
+                        ligne.className = "or-row";
+                        ligne.innerHTML = `<input type="radio" name="stats-fond-carte" id="${id}" ${carte.hasLayer(couche) ? "checked" : ""}><label for="${id}">${nom}</label>`;
+                        ligne.querySelector("input").addEventListener("change", () => {
+                            Object.values(fonds).forEach((fond) => carte.removeLayer(fond));
+                            couche.addTo(carte).bringToBack();
+                        });
+                        menu.appendChild(ligne);
+                    });
+                    L.DomEvent.disableClickPropagation(menu);
+                    carte.getContainer().appendChild(menu);
+                    menu.style.top = `${bouton.offsetTop}px`;
+                    menu.style.right = `${bouton.offsetWidth + 20}px`;
+                    setTimeout(() => {
+                        const fermerExterieur = (event) => {
+                            if (menu.contains(event.target) || bouton.contains(event.target)) return;
+                            menu.remove();
+                            document.removeEventListener("mousedown", fermerExterieur);
+                        };
+                        document.addEventListener("mousedown", fermerExterieur);
+                    }, 0);
+                });
+                return conteneur;
+            },
+        });
+        new Controle().addTo(carte);
+        carte.on("click", fermer);
+    }
+
+    function couleurDensite(valeur, maximum) {
+        const ratio = maximum > 1 ? Math.log1p(valeur) / Math.log1p(maximum) : 0;
+        const couleurs = paletteDensite();
+        if (ratio < .2) return couleurs[0];
+        if (ratio < .4) return couleurs[1];
+        if (ratio < .6) return couleurs[2];
+        if (ratio < .8) return couleurs[3];
+        return couleurs[4];
+    }
+
+    function paletteDensite() {
+        return [.22, .42, .62, .82, 1].map((intensite) => melangerCouleur(couleurCarte.value, "#e8f1ed", intensite));
+    }
+
+    function actualiserDegradeCarte() {
+        const degrade = document.querySelector(".statistiques-carte-degrade");
+        if (degrade) degrade.style.background = `linear-gradient(90deg, ${paletteDensite().join(", ")})`;
+    }
+
+    function viderCarteDensite(message = "Sélectionnez un type de dossier pour afficher la carte.") {
+        initialiserCarteDensite();
+        fermerTousPopupsCarte();
+        if (coucheDensite) {
+            coucheDensite.remove();
+            coucheDensite = null;
+        }
+        dernieresDonneesCarte = null;
+        legendeCarte.hidden = true;
+        informationCarte.textContent = message;
+    }
+
+    function masquerDossierCarte(dossierId) {
+        dossiersCarteMasques.add(dossierId);
+        const couchesVides = [];
+        let maximum = 1;
+        coucheDensite?.eachLayer((couche) => {
+            const proprietes = couche.feature.properties;
+            proprietes.dossier_ids = (proprietes.dossier_ids || []).filter((id) => !dossiersCarteMasques.has(id));
+            proprietes.nombre_dossiers = proprietes.dossier_ids.length;
+            if (!proprietes.nombre_dossiers) couchesVides.push(couche);
+            else maximum = Math.max(maximum, proprietes.nombre_dossiers);
+        });
+        couchesVides.forEach((couche) => coucheDensite.removeLayer(couche));
+        intensiteMaxCarteVisible = maximum;
+        coucheDensite?.eachLayer((couche) => {
+            const nombre = couche.feature.properties.nombre_dossiers;
+            couche.unbindTooltip().bindTooltip(`${nombre} dossier${nombre > 1 ? "s" : ""}`, {sticky: true});
+        });
+        actualiserStyleDensite?.();
+        fermerTousPopupsCarte();
+    }
+
+    function creerListeDossiers(dossierIds, donnees = dernieresDonneesCarte, permettreMasquage = false) {
+        const liste = document.createElement("ul");
+        liste.className = "statistiques-carte-liste-dossiers";
+        if (permettreMasquage) liste.classList.add("avec-masquage");
+        dossierIds.forEach((dossierId) => {
+            const dossier = donnees?.dossiers?.[dossierId];
+            if (!dossier) return;
+            const ligne = document.createElement("li");
+            const lien = document.createElement("a");
+            lien.href = dossier.url; lien.target = "_blank"; lien.rel = "noopener";
+            const nom = document.createElement("strong"); nom.textContent = dossier.nom;
+            const complement = document.createElement("span");
+            complement.textContent = `N° ${dossier.numero} · ${dossier.type}`;
+            lien.append(nom, complement); ligne.appendChild(lien); liste.appendChild(ligne);
+            if (permettreMasquage) {
+                const masquer = document.createElement("button");
+                masquer.type = "button"; masquer.className = "statistiques-carte-masquer-dossier";
+                masquer.title = "Masquer cette géométrie";
+                masquer.setAttribute("aria-label", `Masquer la géométrie de ${dossier.nom}`);
+                masquer.textContent = "×";
+                masquer.addEventListener("click", (event) => {
+                    event.preventDefault(); event.stopPropagation();
+                    masquerDossierCarte(dossierId);
+                });
+                ligne.appendChild(masquer);
+            }
+        });
+        return liste;
+    }
+
+    function fermerDetailCarte() {
+        detailCarte.hidden = true;
+        detailCarteListe.replaceChildren();
+    }
+
+    function fermerTousPopupsCarte() {
+        fermerDetailCarte();
+        carteDensite?.closePopup();
+    }
+
+    function ouvrirDetailCarte(titre, dossierIds) {
+        carteDensite?.closePopup();
+        detailCarteTitre.textContent = titre;
+        detailCarteListe.replaceChildren(creerListeDossiers(dossierIds));
+        detailCarte.hidden = false;
+    }
+
+    function boutonCompteurCarte(nombre, titre, dossierIds) {
+        if (!nombre) {
+            const valeur = document.createElement("strong");
+            valeur.textContent = "0";
+            return valeur;
+        }
+        const bouton = document.createElement("button");
+        bouton.type = "button"; bouton.className = "statistiques-compteur-carte";
+        bouton.textContent = nombre.toLocaleString("fr-FR");
+        bouton.title = "Afficher les dossiers concernés";
+        bouton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            ouvrirDetailCarte(titre, dossierIds);
+        });
+        return bouton;
+    }
+
+    function afficherInformationCarte(donnees) {
+        const details = donnees.details_compteurs || {};
+        const representes = details.representes || [];
+        const sansGeometrie = details.sans_geometrie || [];
+        const geometriesVides = details.geometries_vides || [];
+        const geometriesInvalides = details.geometries_invalides || [];
+        const sansDonneeCartographique = [...sansGeometrie, ...geometriesVides];
+        const nonRepresentes = [...sansDonneeCartographique, ...geometriesInvalides];
+        informationCarte.replaceChildren();
+
+        const ligneRepresentes = document.createElement("p");
+        ligneRepresentes.append(
+            boutonCompteurCarte(representes.length, `${representes.length} dossier${representes.length > 1 ? "s" : ""} représenté${representes.length > 1 ? "s" : ""}`, representes),
+            ` dossier${representes.length > 1 ? "s" : ""} représenté${representes.length > 1 ? "s" : ""} sur ${donnees.total_dossiers}.`,
+        );
+        informationCarte.appendChild(ligneRepresentes);
+        if (!nonRepresentes.length) return;
+
+        const categories = [[sansDonneeCartographique, "sans donnée cartographique"], [geometriesInvalides, "avec une donnée cartographique invalide"]].filter(([ids]) => ids.length);
+        if (categories.length === 1) {
+            const [ids, libelle] = categories[0];
+            const ligneCauseUnique = document.createElement("p");
+            ligneCauseUnique.append(boutonCompteurCarte(ids.length, `${ids.length} dossier${ids.length > 1 ? "s" : ""} ${libelle}`, ids), ` dossier${ids.length > 1 ? "s" : ""} ${libelle}.`);
+            informationCarte.appendChild(ligneCauseUnique);
+            return;
+        }
+
+        const ligneNonRepresentes = document.createElement("p");
+        ligneNonRepresentes.append(boutonCompteurCarte(nonRepresentes.length, `${nonRepresentes.length} dossiers non représentés`, nonRepresentes), ` non représentés faute de donnée cartographique exploitable.`);
+        informationCarte.appendChild(ligneNonRepresentes);
+
+        const causes = document.createElement("ul");
+        categories.forEach(([ids, libelle]) => {
+            if (!ids.length) return;
+            const ligne = document.createElement("li");
+            ligne.append(boutonCompteurCarte(ids.length, `${ids.length} dossier${ids.length > 1 ? "s" : ""} ${libelle}`, ids), ` dossier${ids.length > 1 ? "s" : ""} ${libelle}`);
+            causes.appendChild(ligne);
+        });
+        informationCarte.appendChild(causes);
+    }
+
+    function synchroniserTypeCarteAvecFiltresGlobaux() {
+        const typesSelectionnes = [...form.querySelectorAll('input[name="demarches"]:checked')];
+        const ancienneValeur = selectTypeCarte.value;
+        if (typesSelectionnes.length === 1) {
+            selectTypeCarte.value = typesSelectionnes[0].value;
+            return selectTypeCarte.value !== ancienneValeur;
+        }
+        if (typesSelectionnes.length > 1 && !typesSelectionnes.some((item) => item.value === selectTypeCarte.value)) {
+            selectTypeCarte.value = typesSelectionnes[0].value;
+        }
+        return selectTypeCarte.value !== ancienneValeur;
+    }
+
+    function ajouterParametresCarte(parametres) {
+        parametres.set("type_carte", selectTypeCarte.value);
+        return parametres;
+    }
+
+    async function actualiserCarteDensite(forcer = false) {
+        initialiserCarteDensite();
+        if (!selectTypeCarte.value) {
+            if (requeteCarteEnCours) requeteCarteEnCours.abort();
+            viderCarteDensite();
+            return;
+        }
+        if (sectionMasquee("carte")) return;
+
+        const parametres = ajouterParametresCarte(new URLSearchParams(new FormData(form)));
+        const cleCarte = parametres.toString();
+        if (!forcer && (cleCarte === cleCarteEnCours || (cleCarte === derniereCleCarte && dernieresDonneesCarte))) return;
+        if (requeteCarteEnCours) requeteCarteEnCours.abort();
+        fermerTousPopupsCarte();
+
+        const controleur = new AbortController();
+        requeteCarteEnCours = controleur;
+        cleCarteEnCours = cleCarte;
+        chargementCarte.hidden = false;
+        informationCarte.textContent = "Calcul de la densité cartographique…";
+        legendeCarte.hidden = true;
+        try {
+            const reponse = await fetch(`${dashboard.dataset.carteUrl}?${parametres}`, {
+                headers: {"X-Requested-With": "XMLHttpRequest"},
+                signal: controleur.signal,
+            });
+            const typeReponse = reponse.headers.get("content-type") || "";
+            if (!typeReponse.includes("application/json")) {
+                throw new Error(`Le calcul cartographique a échoué côté serveur (erreur ${reponse.status}). Réessayez dans quelques instants.`);
+            }
+            const donnees = await reponse.json();
+            if (!reponse.ok) throw new Error(donnees.erreur || "Impossible de calculer la densité cartographique.");
+            dernieresDonneesCarte = donnees;
+            derniereCleCarte = cleCarte;
+            dossiersCarteMasques.clear();
+            intensiteMaxCarteVisible = Math.max(donnees.intensite_max, 1);
+
+            if (coucheDensite) coucheDensite.remove();
+            const styleCellule = (feature) => ({
+                    color: couleurDensite(feature.properties.nombre_dossiers, intensiteMaxCarteVisible),
+                    fillColor: couleurDensite(feature.properties.nombre_dossiers, intensiteMaxCarteVisible),
+                    fillOpacity: carteDensite.getZoom() <= 10 ? .72 : .62,
+                    opacity: .92,
+                    weight: carteDensite.getZoom() <= 10 ? (carteDensite.getContainer().clientWidth < 650 ? 2.4 : 1.7) : .8,
+                });
+            coucheDensite = L.geoJSON(donnees.cellules, {
+                style: styleCellule,
+                onEachFeature: (feature, layer) => {
+                    const nombre = feature.properties.nombre_dossiers;
+                    layer.bindTooltip(`${nombre} dossier${nombre > 1 ? "s" : ""}`, {sticky: true});
+                    layer.on("click", (event) => {
+                        L.DomEvent.stopPropagation(event.originalEvent);
+                        fermerDetailCarte();
+                        const dossiersIds = feature.properties.dossier_ids || [];
+                        const contenu = document.createElement("div");
+                        contenu.className = "statistiques-carte-popup";
+                        const titre = document.createElement("strong");
+                        titre.textContent = `${dossiersIds.length} dossier${dossiersIds.length > 1 ? "s" : ""}`;
+                        contenu.appendChild(titre);
+                        contenu.appendChild(creerListeDossiers(dossiersIds, donnees, true));
+                        const largeurPopup = Math.max(240, Math.min(380, window.innerWidth - 60));
+                        L.popup({minWidth: largeurPopup, maxWidth: largeurPopup, maxHeight: 280, className: "statistiques-popup-dossiers"})
+                            .setLatLng(event.latlng)
+                            .setContent(contenu)
+                            .openOn(carteDensite);
+                    });
+                },
+            }).addTo(carteDensite);
+            if (actualiserStyleDensite) carteDensite.off("zoomend", actualiserStyleDensite);
+            actualiserStyleDensite = () => coucheDensite?.setStyle(styleCellule);
+            carteDensite.on("zoomend", actualiserStyleDensite);
+
+            if (coucheDensite.getLayers().length) {
+                carteDensite.fitBounds(coucheDensite.getBounds(), {padding: [18, 18], maxZoom: 15});
+                carteDensite.setZoom(Math.min(carteDensite.getZoom() + 1, carteDensite.getMaxZoom()));
+                legendeCarte.hidden = false;
+            } else {
+                carteDensite.setView([-21.12, 55.53], 10);
+                legendeCarte.hidden = true;
+            }
+            afficherInformationCarte(donnees);
+        } catch (exception) {
+            if (exception.name === "AbortError") return;
+            viderCarteDensite(exception.message);
+        } finally {
+            if (requeteCarteEnCours === controleur) {
+                requeteCarteEnCours = null;
+                cleCarteEnCours = "";
+                chargementCarte.hidden = true;
+            }
+        }
     }
 
     function initialiserMultiselects() {
@@ -349,6 +706,10 @@
             bouton.textContent = "×";
             bouton.addEventListener("click", () => {
                 carte.classList.add("statistiques-section-masquee");
+                if (carte.dataset.exportKind === "carte" && requeteCarteEnCours) {
+                    requeteCarteEnCours.abort();
+                    chargementCarte.hidden = true;
+                }
                 document.querySelectorAll(".statistiques-export-menu").forEach((menu) => menu.remove());
             });
             carte.appendChild(bouton);
@@ -414,11 +775,11 @@
         else telechargerCanvas(canvas, nom);
     }
 
-    function afficherChoixExport(bouton, callback) {
+    function afficherChoixExport(bouton, callback, formats = [["PNG", "png"], ["PDF", "pdf"]]) {
         document.querySelectorAll(".statistiques-export-menu").forEach((menu) => menu.remove());
         const menu = document.createElement("div");
         menu.className = "statistiques-export-menu";
-        [["PNG", "png"], ["PDF", "pdf"]].forEach(([libelle, format]) => {
+        formats.forEach(([libelle, format]) => {
             const choix = document.createElement("button");
             choix.type = "button"; choix.textContent = libelle;
             choix.addEventListener("click", () => { menu.remove(); callback(format); });
@@ -427,6 +788,18 @@
         bouton.parentElement.classList.add("statistiques-export-ancre");
         bouton.parentElement.appendChild(menu);
         requestAnimationFrame(() => menu.classList.add("is-visible"));
+    }
+
+    function telechargerTracesGeojson() {
+        if (!selectTypeCarte.value) return;
+        const parametres = new URLSearchParams(new FormData(form));
+        parametres.set("type_carte", selectTypeCarte.value);
+        ajouterParametresCarte(parametres);
+        parametres.set("export", "geojson");
+        const lien = document.createElement("a");
+        lien.href = `${dashboard.dataset.carteUrl}?${parametres}`;
+        lien.download = "";
+        lien.click();
     }
 
     function ecrireTexteMultiligne(ctx, texte, x, y, largeurMaximum, hauteurLigne, maximumLignes = 3) {
@@ -575,7 +948,7 @@
         });
     }
 
-    function exporterPng(format = "png") {
+    async function exporterPng(format = "png") {
         if (!dernieresDonnees) return;
         const ms = dernieresDonnees.manifestations_sportives;
         const msItems = [{label: "Dossiers complets", valeur: ms.complets}, {label: "Démarche Numérique orphelins", valeur: ms.orphelins_dn}, {label: "Déclaration Manifestations orphelins", valeur: ms.orphelins_dm}];
@@ -649,8 +1022,9 @@
             yDroite += 440;
         }
         if (!sectionMasquee("groupes") && dernieresDonnees.repartition_groupes.length) {
-            fondCarte(ctx, "Répartition des dossiers par groupe d’instruction", 50, yGauche, 930, 410);
+            fondCarte(ctx, "Répartition par groupe d’instruction", 50, yGauche, 930, 410);
             dessinerBarresCanvas(ctx, dernieresDonnees.repartition_groupes, 80, yGauche + 75, 850, 290, false, couleurGroupes.value);
+            yGauche += 440;
         }
         finaliserExport(canvas, "statistiques-agida", format, "Statistiques AGIDA");
     }
@@ -747,25 +1121,63 @@
 
     initialiserMultiselects();
     initialiserMasquageSections();
-    form.addEventListener("change", actualiser);
+    initialiserCarteDensite();
+    detailCarte.querySelector(".statistiques-carte-detail-fermer").addEventListener("click", fermerDetailCarte);
+    detailCarte.addEventListener("click", (event) => event.stopPropagation());
+    document.addEventListener("click", (event) => {
+        if (event.target.closest(".statistiques-carte-detail, .leaflet-popup, .statistiques-compteur-carte")) return;
+        fermerTousPopupsCarte();
+    });
+    form.addEventListener("change", () => {
+        const typeCarteModifie = synchroniserTypeCarteAvecFiltresGlobaux();
+        actualiser();
+        actualiserCarteDensite(typeCarteModifie);
+    });
     document.getElementById("statistiques-reset").addEventListener("click", () => {
         form.querySelectorAll('input[type="checkbox"]').forEach((item) => { item.checked = item.defaultChecked; });
         form.querySelectorAll("select").forEach((select) => { select.selectedIndex = 0; });
         document.querySelectorAll(".statistiques-section-masquee").forEach((section) => section.classList.remove("statistiques-section-masquee"));
         document.getElementById("stats-role").value = roleParDefaut;
+        selectTypeCarte.value = "";
         actualiserAgentsRole(false, agentParDefaut);
         document.querySelectorAll(".statistiques-multiselect").forEach((bloc) => bloc.rafraichirLibelle());
         actualiser();
+        actualiserCarteDensite();
     });
     document.getElementById("stats-export-dashboard").addEventListener("click", (event) => afficherChoixExport(event.currentTarget, (format) => exporterPng(format)));
-    document.querySelectorAll(".statistiques-download-card").forEach((bouton) => bouton.addEventListener("click", () => afficherChoixExport(bouton, (format) => exporterModule(bouton.closest(".statistiques-section-exportable"), format))));
+    document.querySelectorAll(".statistiques-download-card").forEach((bouton) => bouton.addEventListener("click", () => {
+        const bloc = bouton.closest(".statistiques-section-exportable");
+        const estCarte = bloc.dataset.exportKind === "carte";
+        if (estCarte) {
+            afficherChoixExport(bouton, (format) => {
+                if (format === "geojson") telechargerTracesGeojson();
+            }, [["GeoJSON", "geojson"]]);
+            return;
+        }
+        afficherChoixExport(bouton, (format) => {
+            exporterModule(bloc, format);
+        });
+    }));
     document.getElementById("stats-role").addEventListener("change", () => { actualiserAgentsRole(true); actualiser(); });
     document.getElementById("stats-instructeur").addEventListener("change", actualiser);
     document.getElementById("stats-expert").addEventListener("change", actualiser);
+    selectTypeCarte.addEventListener("change", () => actualiserCarteDensite(true));
     couleurEvolution.addEventListener("change", () => { localStorage.setItem("agida-stats-couleur-evolution", couleurEvolution.value); if (dernieresDonnees) dessinerEvolution(dernieresDonnees.evolution); });
     couleurCourbe.addEventListener("change", () => { localStorage.setItem("agida-stats-couleur-courbe", couleurCourbe.value); if (dernieresDonnees) dessinerCourbe(dernieresDonnees.evolution_courbe); });
     couleurGroupes.addEventListener("change", () => { localStorage.setItem("agida-stats-couleur-groupes", couleurGroupes.value); if (dernieresDonnees) dessinerGroupes(dernieresDonnees.repartition_groupes); });
+    couleurCarte.addEventListener("change", () => {
+        localStorage.setItem("agida-stats-couleur-carte", couleurCarte.value);
+        actualiserDegradeCarte();
+        actualiserStyleDensite?.();
+    });
+    window.addEventListener("resize", () => {
+        carteDensite?.invalidateSize({pan: false});
+        actualiserStyleDensite?.();
+    });
     document.getElementById("stats-role").value = roleParDefaut;
+    actualiserDegradeCarte();
     actualiserAgentsRole(false, agentParDefaut);
+    synchroniserTypeCarteAvecFiltresGlobaux();
     actualiser();
+    actualiserCarteDensite();
 })();
