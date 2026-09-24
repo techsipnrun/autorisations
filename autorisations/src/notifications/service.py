@@ -237,14 +237,24 @@ def create_EmailOutbox (emails_norm, sujet, template_name, dedupe, context, doss
     
 
 
-def create_EmailOutbox_DM (emails_norm, sujet, template_name, dedupe, context, dossier_dm : DossierManifSportive, type_mail, document=None) :
+def create_EmailOutbox_DM(
+    emails_norm,
+    sujet,
+    template_name,
+    dedupe,
+    context,
+    dossier_dm: DossierManifSportive,
+    type_mail,
+    document=None,
+    email_from=None,
+):
 
     emails_norm = normalize_emails(emails_norm)
 
     try:
         outbox = EmailOutbox.objects.create(
             to=emails_norm,
-            email_from=os.getenv("DEFAULT_FROM_EMAIL_DEMANDEUR"),
+            email_from=email_from or os.getenv("DEFAULT_FROM_EMAIL_DEMANDEUR"),
             sujet=sujet,
             type_mail=type_mail,
             # statut = "À envoyer" par défaut

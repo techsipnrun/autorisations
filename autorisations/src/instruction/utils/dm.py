@@ -491,6 +491,33 @@ def documents_deposes_sur_DM(doss_manif_sportive):
         doc for doc in documents_DM
         if doc.id_nature.nature == "Pièce jointe demandeur"
     ]
+
+    # La date du Document correspond à la date de téléversement transmise par
+    # Déclaration Manifestations. Les notifications conservent en plus les
+    # identifiants des PJ effectivement détectées après avis ; elles servent de
+    # preuve de repli pour les anciens avis dont date_reponse est absente.
+    avis = getattr(doss_manif_sportive, "avis", None)
+    date_reponse_avis = avis.date_reponse if avis else None
+    pj_dm_ids_notifiees_apres_avis = set()
+    notifications_apres_avis = EmailOutbox.objects.filter(
+        id_dossier_dm=doss_manif_sportive,
+        template="nouvelles_pj_dm_apres_avis",
+    ).values_list("context", flat=True)
+    for contexte_notification in notifications_apres_avis:
+        for piece_jointe in (contexte_notification or {}).get("pieces_jointes", []):
+            pj_dm_id = piece_jointe.get("pj_dm_id")
+            if pj_dm_id is not None:
+                pj_dm_ids_notifiees_apres_avis.add(pj_dm_id)
+
+    for doc in pjs_demandeur_DM:
+        doc.depose_apres_avis = bool(
+            doc.pj_dm_id in pj_dm_ids_notifiees_apres_avis
+            or (
+                date_reponse_avis
+                and doc.date
+                and doc.date > date_reponse_avis
+            )
+        )
     
     actes_deposes_sur_DM = [
         doc for doc in documents_DM

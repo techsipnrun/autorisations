@@ -608,11 +608,18 @@ Le Parc national de La Réunion</textarea>
             {% if pjs_demandeur_DM %}
                 <h2>Les pièces jointes</h2>
                 {% for doc in pjs_demandeur_DM %}
-                    <div class="champs">
+                    <div class="champs{% if doc.depose_apres_avis %} pj-demandeur-apres-avis{% endif %}"
+                         {% if doc.depose_apres_avis %}title="Pièce jointe déposée par l’organisateur après le rendu de l’avis, le {{ doc.date|date:'d/m/Y à H:i' }}"{% endif %}>
                         <p>
                             <strong>{{ doc.description }}</strong> : 
                             {% include "instruction/refacto/document_hover_preview.html" with doc=doc %}
                         </p>
+                        {% if doc.depose_apres_avis %}
+                            <p class="pj-demandeur-apres-avis-info">
+                                <span class="pj-demandeur-apres-avis-badge">Ajout après avis</span>
+                                <em>Déposé par l’organisateur le {{ doc.date|date:"d/m/Y" }}</em>
+                            </p>
+                        {% endif %}
                     </div>
                 {% endfor %}
             {% endif %}

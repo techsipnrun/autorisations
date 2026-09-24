@@ -418,7 +418,7 @@ def _export_avis_xlsx(avis_iterable):
 def requete_dossiers(request):
     dossiers = Dossier.objects.all().select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
     
-    # Dossiers DM non liés
+    # Tous les numéros DM : les DM liés ouvrent leur dossier DN associé.
     dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
     dossiers_dm = (
         DossierManifSportive.objects
@@ -467,7 +467,14 @@ def requete_dossiers(request):
         dossiers_dm = dossiers_dm.filter(date_depot__year=annee)
 
     if numero:
-        dossiers = dossiers.filter(numero=numero)
+        # Un dossier de manifestation sportive lié est affiché via son dossier
+        # DN. La recherche accepte donc son numéro DN ou son numéro DM.
+        dossiers = dossiers.filter(
+            Q(numero=numero)
+            | Q(
+                dossiermanifestationliaison__id_dossier_manif__numero_dossier_declaration_manifestations=numero
+            )
+        ).distinct()
         dossiers_dm = dossiers_dm.filter(numero_dossier_declaration_manifestations=numero)
 
     # Période ou le dossier a été recu
@@ -1051,13 +1058,8 @@ def autocomplete_numero_dossier(request):
         add_value(numero)
 
     # Dossiers DM non liés
-    dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list(
-        "id_dossier_manif_id", flat=True
-    )
-
     suggestions_dm = (
         DossierManifSportive.objects
-        .exclude(id__in=dossiers_deja_lies_ids)
         .filter(numero_dossier_declaration_manifestations__startswith=query)
         .order_by("numero_dossier_declaration_manifestations")
         .values_list("numero_dossier_declaration_manifestations", flat=True)[:5]

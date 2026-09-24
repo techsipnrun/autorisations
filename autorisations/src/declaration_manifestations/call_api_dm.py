@@ -3,14 +3,18 @@ import logging
 import os
 
 from django.utils import timezone
+from django.urls import reverse
 from datetime import date, datetime, timedelta
 
 import smbclient
+from django.conf import settings
 
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierManifSportiveDocument
-from autorisations.models.models_instruction import DossierManifSportive
-from autorisations.utils.nas_fonctions import ecrire_file_sur_nas
+from autorisations.models.models_instruction import DossierManifSportive, DossierManifestationLiaison
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur
+from autorisations.utils.nas_fonctions import _normalize_unc_path, ecrire_file_sur_nas
 from instruction.utils.document_utils import normaliser_emplacement
+from notifications.service import compute_dedupe_key, create_EmailOutbox_DM, envoi_mail
 from synchronisation.utils.conversion import parse_datetime_with_tz
 from synchronisation.utils.model_helpers import update_fields
 
@@ -121,10 +125,10 @@ def recup_avis_et_dossiers():
     avis_filtres = [
         avis for avis in avis_list
         if (
-            avis.get("reponse_avis") is None
-            and avis["manif_id"] not in numeros_dossiers_a_exclure
-            and avis.get("etat") not in ["termine", "caduc"]
-            and date_demande_inferieure_un_an(avis)  # demande date de - d'un an
+            # avis.get("reponse_avis") is None
+            # avis["manif_id"] not in numeros_dossiers_a_exclure
+            # and avis.get("etat") not in ["termine", "caduc"]
+            date_demande_inferieure_un_an(avis)  # demande date de - d'un an
             and doit_traiter_dossier_dm(avis["manif_id"]) # date de fin d'évènement est dans le futur ou date de moins de 7 jours
         )
     ]
@@ -224,7 +228,102 @@ def recup_un_seul_dossier(manif_id):
 
 
 
-def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
+def notifier_nouvelles_pj_dm_apres_avis(doss, nouvelles_pjs):
+    """Notifie les instructeurs après récupération de PJ déposées après l'avis."""
+    numero_dm = doss.numero_dossier_declaration_manifestations
+    emails = set(
+        DossierManifSportiveInstructeur.objects.filter(
+            id_dossier_manif_sportive=doss,
+            id_instructeur__email__isnull=False,
+        ).exclude(
+            id_instructeur__email="",
+        ).values_list("id_instructeur__email", flat=True)
+    )
+
+    liaisons_dn = list(DossierManifestationLiaison.objects.filter(
+        id_dossier_manif=doss,
+    ).select_related("id_dossier__id_etape_dossier"))
+    dossiers_dn_ids = [liaison.id_dossier_id for liaison in liaisons_dn]
+    emails.update(
+        DossierInstructeur.objects.filter(
+            id_dossier_id__in=dossiers_dn_ids,
+            id_instructeur__email__isnull=False,
+        ).exclude(
+            id_instructeur__email="",
+        ).values_list("id_instructeur__email", flat=True)
+    )
+    emails = sorted({email.strip().lower() for email in emails if email and email.strip()})
+    if not emails:
+        loggerSynchro.warning(
+            f"[DOSSIER DM {numero_dm}] Nouvelle(s) PJ récupérée(s) après avis rendu, "
+            "mais aucun instructeur affecté à notifier."
+        )
+        return
+
+    destinataires = emails if settings.NOTIFS_PROD else [settings.EMAIL_NOTIF_TEST]
+    destinataires = [email for email in destinataires if email]
+    if not destinataires:
+        loggerSynchro.error(
+            f"[DOSSIER DM {numero_dm}] Notification des nouvelles PJ impossible : aucun email destinataire configuré."
+        )
+        return
+
+    sujet = f"Dossier DM {numero_dm} - Nouvelle pièce jointe après le rendu de l'avis"
+    if len(nouvelles_pjs) > 1:
+        sujet = f"Dossier DM {numero_dm} - Nouvelles pièces jointes après le rendu de l'avis"
+    base_url = os.getenv("URL_APPLI", "").rstrip("/")
+    dossier_url = (
+        f"{base_url}/instruction/declaration_manifestations/{numero_dm}/"
+    )
+    if liaisons_dn:
+        dossier_dn = liaisons_dn[0].id_dossier
+        if dossier_dn.id_etape_dossier.etape == "À affecter":
+            chemin_dossier = reverse(
+                "preinstruction_dossier",
+                kwargs={"numero": dossier_dn.numero},
+            )
+        else:
+            chemin_dossier = reverse(
+                "instruction_dossier",
+                kwargs={"num_dossier": dossier_dn.numero},
+            )
+        dossier_url = f"{base_url}{chemin_dossier}"
+
+    context = {
+        "dossier_numero": numero_dm,
+        "dossier_nom": doss.nom_dossier,
+        "pieces_jointes": nouvelles_pjs,
+        "url": dossier_url,
+    }
+    template_name = "nouvelles_pj_dm_apres_avis"
+    dedupe = compute_dedupe_key(destinataires, sujet, template_name, context)
+    outbox = create_EmailOutbox_DM(
+        destinataires,
+        sujet,
+        template_name,
+        dedupe,
+        context,
+        doss,
+        type_mail="Notification",
+        email_from=settings.DEFAULT_FROM_EMAIL,
+    )
+    if not outbox:
+        loggerSynchro.error(f"[DOSSIER DM {numero_dm}] Échec de création de la notification des nouvelles PJ.")
+        return
+
+    ok, erreur = envoi_mail(outbox.id)
+    if ok:
+        loggerSynchro.info(
+            f"[DOSSIER DM {numero_dm}] Notification de {len(nouvelles_pjs)} nouvelle(s) PJ envoyée à "
+            f"{', '.join(destinataires)}."
+        )
+    else:
+        loggerSynchro.error(
+            f"[DOSSIER DM {numero_dm}] Échec de la notification des nouvelles PJ : {erreur}"
+        )
+
+
+def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod, avis_deja_rendu=False):
     """
     doss = DossierManifSportive
     docs = [Document] du doss
@@ -237,6 +336,12 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
     """
 
     manif_id = doss.numero_dossier_declaration_manifestations
+    nas_root = os.environ.get("NAS_ROOT")
+    if not nas_root:
+        loggerSynchro.error(
+            f"[DOSSIER DM {manif_id}] Synchronisation des PJ impossible : NAS_ROOT est vide."
+        )
+        return doss
 
     # Récupération des pjs
     liste_pj = get_pj_dossier(token, manif_id)
@@ -257,6 +362,7 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
 
 
     compteur_nouvelles_pjs_recup = 0
+    nouvelles_pjs = []
 
     for pj in liste_pj:
         url = pj.get("document_attache")
@@ -286,8 +392,12 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
             # if doss_lie :
             #     emplacement_doc = os.path.join(doss.emplacement, "Annexes/Déclaration Manifestations/")
             # else :
-            emplacement_doc = os.path.join(doss.emplacement, "Annexes/")
-            emplacement_file = os.path.join(os.environ.get("NAS_ROOT"), emplacement_doc, titre)
+            emplacement_doc = normaliser_emplacement(
+                os.path.join(doss.emplacement, "Annexes")
+            )
+            emplacement_file = _normalize_unc_path(
+                os.path.join(nas_root, emplacement_doc, titre)
+            )
 
 
             fields_to_update = {
@@ -319,6 +429,11 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
             if pj_dm_id is not None:
                 doc_bdd = Document.objects.filter(pj_dm_id=pj_dm_id).first()
             document_existe_en_bdd = doc_bdd is not None
+            est_nouvelle_pj_ou_version = not document_existe_en_bdd or (
+                date_televersement is not None
+                and doc_bdd.date is not None
+                and date_televersement > doc_bdd.date
+            )
 
 
             # -----------------------------
@@ -403,6 +518,17 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
                             loggerSynchro.error(f"[DOSSIER MANIF SPORTIVE {manif_id}] Synchro : Erreur lors de la mise à jour du Document {doc} : {e}")
                             continue
 
+                    if est_nouvelle_pj_ou_version:
+                        nouvelles_pjs.append({
+                            "pj_dm_id": pj_dm_id,
+                            "titre": titre,
+                            "description": description,
+                            "date_televersement": (
+                                date_televersement.isoformat()
+                                if date_televersement else None
+                            ),
+                        })
+                        compteur_nouvelles_pjs_recup += 1
                     continue
                 
                 # ---------------------------
@@ -473,10 +599,30 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod):
 
             # COMPTEUR NOUVELLES PJ
             compteur_nouvelles_pjs_recup += 1
+            if est_nouvelle_pj_ou_version:
+                nouvelles_pjs.append({
+                    "pj_dm_id": pj_dm_id,
+                    "titre": titre,
+                    "description": description,
+                    "date_televersement": (
+                        date_televersement.isoformat()
+                        if date_televersement else None
+                    ),
+                })
     
 
     if compteur_nouvelles_pjs_recup > 0 :
         loggerDM.info("---")
         loggerDM.info(f"[Dossier {manif_id} - {doss.nom_dossier}] {compteur_nouvelles_pjs_recup} nouvelles PJ récupérées")
+
+    if avis_deja_rendu and nouvelles_pjs:
+        try:
+            notifier_nouvelles_pj_dm_apres_avis(doss, nouvelles_pjs)
+        except Exception as e:
+            # La PJ est déjà sauvegardée : une erreur de mail ne doit jamais
+            # faire échouer la synchronisation du dossier.
+            loggerSynchro.exception(
+                f"[DOSSIER DM {manif_id}] Échec de la notification des nouvelles PJ après avis rendu : {e}"
+            )
 
     return doss

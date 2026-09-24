@@ -33,6 +33,12 @@ def synchro_process(dico, dico_notifs, demarche_obj):
 
                 token = get_access_token()
                 token_prod = get_access_token_prod()
+                avis_rendus = {
+                    int(avis["id_dossier_manif_sportive"])
+                    for avis in (dico.get("avis_manif_sportives") or [])
+                    if avis.get("id_dossier_manif_sportive")
+                    and (avis.get("reponse_avis") or avis.get("etat") in ["termine", "caduc"])
+                }
 
                 for doss in dico["manif_sportives"] :
                     doss_manif_sportive, doss_lie = sync_declaration_manifestations(doss, logger, dico_notifs)
@@ -46,7 +52,14 @@ def synchro_process(dico, dico_notifs, demarche_obj):
 
                     # Récupération et Synchronisation des PJ du DossierManifSportive
                     try :
-                        recup_pj_dossiers(doss_manif_sportive, docs, token, doss_lie, token_prod)
+                        recup_pj_dossiers(
+                            doss_manif_sportive,
+                            docs,
+                            token,
+                            doss_lie,
+                            token_prod,
+                            avis_deja_rendu=manif_id in avis_rendus,
+                        )
                     except Exception as e:
                         logger.error(f"Erreur lors de la récupération et synchronisation des PJ du DossierManifSportive {manif_id}  sur Déclaration Manifestations : {e}")
                 

@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db import close_old_connections, transaction
+from django.db.models import Q
 
 from datetime import timedelta
 import logging
@@ -16,11 +17,13 @@ import sys
 from DS.graphql_client import GraphQLClient
 
 
-from autorisations.models.models_instruction import Demarche, Dossier, DossierManifSportive, DossierManifestationLiaison, SynchronisationEtat
+from autorisations.models.models_documents import Document
+from autorisations.models.models_instruction import AvisManifSportive, Demarche, Dossier, DossierManifSportive, DossierManifestationLiaison, SynchronisationEtat
 from autorisations.models.models_utilisateurs import Instructeur
 
 
-from declaration_manifestations.call_api_dm import recup_un_seul_dossier
+from declaration_manifestations.call_api_dm import recup_pj_dossiers, recup_un_seul_dossier
+from declaration_manifestations.get_methods import get_access_token, get_access_token_prod
 from instruction.utils.dossier_utils import actualisation_demarche_est_bloquee, actualisation_dossier_est_bloquee, check_si_on_casse_liaison_dm, clear_etat_actualisation_demarche, clear_etat_actualisation_dossier, get_etat_actualisation_demarche, get_etat_actualisation_dossier, redirect_error, safe_enregistrer_action, set_etat_actualisation_demarche, set_etat_actualisation_dossier
 
 from synchronisation.main import lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -355,6 +358,33 @@ def actualiser_dossier_job(num_dossier, user_display):
             for ddm in doss_dm_norma:
                 dico_notifs = {}
                 doss_manif_sportive, doss_lie = sync_declaration_manifestations(ddm, loggerSynchro, dico_notifs)
+
+            # L'actualisation ciblée doit récupérer les PJ DM comme le fait la
+            # synchronisation globale/de démarche. Une éventuelle erreur DM ne
+            # doit toutefois pas empêcher la suite de l'actualisation DN.
+            try:
+                documents_dm = Document.objects.filter(
+                    dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive
+                )
+                avis_deja_rendu = doss_manif_sportive.archive or AvisManifSportive.objects.filter(
+                    id_dossier_manif_sportive=doss_manif_sportive,
+                ).filter(
+                    (Q(reponse_avis__isnull=False) & ~Q(reponse_avis=""))
+                    | Q(etat__in=["termine", "caduc"])
+                ).exists()
+                recup_pj_dossiers(
+                    doss_manif_sportive,
+                    documents_dm,
+                    get_access_token(),
+                    doss_lie,
+                    get_access_token_prod(),
+                    avis_deja_rendu=avis_deja_rendu,
+                )
+            except Exception as exc:
+                loggerSynchro.error(
+                    f"[ACTUALISER DOSSIER {num_dossier}] Échec de la synchronisation des PJ du "
+                    f"dossier DM {liaison.id_dossier_manif.numero_dossier_declaration_manifestations} : {exc}"
+                )
 
             loggerSynchro.info("---")
             loggerSynchro.info(f"###### NORMALISATION DOSSIER {doss_dm_norma[0]['nom_dossier']} (Démarche Numérique) ######")

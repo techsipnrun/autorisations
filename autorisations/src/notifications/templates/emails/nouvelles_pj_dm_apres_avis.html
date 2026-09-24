@@ -1,0 +1,17 @@
+<p>Bonjour,</p>
+
+<p>
+    Une ou plusieurs nouvelles pièces jointes ont été déposées sur le dossier
+    <strong>DM {{ dossier_numero }}{% if dossier_nom %} — {{ dossier_nom }}{% endif %}</strong>
+    après le rendu de l’avis.
+</p>
+
+<ul>
+    {% for piece in pieces_jointes %}
+        <li>{{ piece.description|default:piece.titre }}{% if piece.description and piece.description != piece.titre %} — {{ piece.titre }}{% endif %}</li>
+    {% endfor %}
+</ul>
+
+<p>Consulter le dossier&nbsp;: <a href="{{ url }}">{{ url }}</a></p>
+
+<p><em><strong>=== VEUILLEZ NE PAS RÉPONDRE À CET E-MAIL ! ===</strong></em></p>

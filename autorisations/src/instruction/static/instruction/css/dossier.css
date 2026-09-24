@@ -758,7 +758,7 @@ h2 {
     position: absolute;
     top: clamp(10px, 1vw, 18px);
     right: clamp(54px, 4vw, 76px);
-    z-index: 1000000;
+    z-index: 100;
 }
 
 .btn-notifier-agents {

@@ -33,6 +33,19 @@ def dossier_manif_sportive_sans_ds(request, numero):
     """
 
     doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
+    liaison_existante = DossierManifestationLiaison.objects.filter(
+        id_dossier_manif=doss_manif_sportive,
+    ).select_related("id_dossier__id_etape_dossier").first()
+    if liaison_existante:
+        dossier_dn = liaison_existante.id_dossier
+        if dossier_dn.id_etape_dossier.etape == "À affecter":
+            return redirect(
+                reverse("preinstruction_dossier", kwargs={"numero": dossier_dn.numero})
+            )
+        return redirect(
+            reverse("instruction_dossier", kwargs={"num_dossier": dossier_dn.numero})
+        )
+
     notes_queryset = DossierNote.objects.filter(
         id_dossier_manif_sportive=doss_manif_sportive
     ).select_related("id_instructeur__id_agent_autorisations").order_by("-date")

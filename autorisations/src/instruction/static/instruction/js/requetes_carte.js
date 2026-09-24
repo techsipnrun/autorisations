@@ -213,7 +213,7 @@
 
     async function initialiserCarte() {
         if (carte) { setTimeout(ajusterHauteurCarte, 0); return; }
-        carte = L.map("requete-carte", {preferCanvas: true}).setView([-21.12, 55.53], 10);
+        carte = L.map("requete-carte", {preferCanvas: true}).setView([-21.12, 55.53], 11);
         const baseLayers = fondDeCartes();
         baseLayers.IGN.addTo(carte);
         dessins = L.featureGroup().addTo(carte);
