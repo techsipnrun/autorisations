@@ -82,13 +82,21 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
 }
 
-.formulaire-dm-details > .date-manifestation-card {
+.formulaire-dm-details > .dates-manifestation-ligne {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin: 2rem 0;
+}
+
+.formulaire-dm-details > .dates-manifestation-ligne .date-manifestation-card {
     display: flex;
     align-items: center;
     gap: 0.9rem;
     width: fit-content;
     max-width: 100%;
-    margin: 2rem 0;
+    margin: 0;
     padding: 0.85rem 1.1rem;
     border: 1px solid #9bbca8;
     border-left: 5px solid #155a32;
@@ -119,7 +127,7 @@
     font-size: 1.15rem;
 }
 
-.formulaire-dm-details > .date-manifestation-passee {
+.formulaire-dm-details .date-manifestation-card.date-manifestation-passee {
     border-color: #e1a4aa;
     border-left-color: #c82333;
     background-color: #fff3f4;
@@ -129,7 +137,7 @@
     color: #c82333;
 }
 
-.formulaire-dm-details > .date-manifestation-proche {
+.formulaire-dm-details .date-manifestation-card.date-manifestation-proche {
     border-color: #e7bf98;
     border-left-color: #cc6e16;
     background-color: #fff7ef;
@@ -137,6 +145,16 @@
 
 .formulaire-dm-details .date-manifestation-proche .date-manifestation-valeur {
     color: #cc6e16;
+}
+
+.formulaire-dm-details .avis-rendu-card {
+    border-color: #9eb5cc;
+    border-left-color: #315f8c;
+    background-color: #f2f6fa;
+}
+
+.formulaire-dm-details .avis-rendu-card .date-manifestation-valeur {
+    color: #315f8c;
 }
 
 @media (max-width: 700px) {

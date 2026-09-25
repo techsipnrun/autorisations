@@ -153,9 +153,6 @@ def recup_avis_et_dossiers():
             dossier = get_dossier_by_id(token, manif_id)
 
             if dossier:
-                if "description" in dossier and dossier["description"]:
-                    dossier["description"] = dossier["description"].replace("\n", " ").replace("\r", "") 
-                
                 if dossier["pk"] not in unique_numeros:
 
                     unique_numeros.append(dossier["pk"])
@@ -210,9 +207,6 @@ def recup_un_seul_dossier(manif_id):
             
         loggerDM.info(f"Dossier {dossier.get('nom')} récupéré")
 
-        if "description" in dossier and dossier["description"]:
-            dossier["description"] = dossier["description"].replace("\n", " ").replace("\r", "") 
-    
         # On récupère le geojson
         geojson = get_geojson(token, manif_id)
 

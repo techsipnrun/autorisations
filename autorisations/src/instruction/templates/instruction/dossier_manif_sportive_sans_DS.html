@@ -559,14 +559,23 @@ Le Parc national de La Réunion</textarea>
             {% endif %}
              
 
-            <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
-                <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
-                <div>
-                    <span class="date-manifestation-label">Début de la manifestation</span>
-                    <strong class="date-manifestation-valeur">
-                        {{ doss_manif_sportive.date_debut_evenement|date:"d F Y"|default:"---" }}
-                    </strong>
+            <div class="dates-manifestation-ligne">
+                <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
+                    <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
+                    <div>
+                        <span class="date-manifestation-label">Début de la manifestation</span>
+                        <strong class="date-manifestation-valeur">{{ doss_manif_sportive.date_debut_evenement|date:"d F Y"|default:"---" }}</strong>
+                    </div>
                 </div>
+                {% if doss_manif_sportive.archive and avis_manif_sportive.date_reponse %}
+                    <div class="date-manifestation-card avis-rendu-card">
+                        <img src="{% static 'instruction/img/badge-check.png' %}" alt="" class="date-manifestation-icon">
+                        <div>
+                            <span class="date-manifestation-label">Avis rendu le</span>
+                            <strong class="date-manifestation-valeur">{{ avis_manif_sportive.date_reponse|date:"d F Y" }}</strong>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
 
 
@@ -575,7 +584,7 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Prénom de l'organisateur</strong> : {{ doss_manif_sportive.prenom_organisateur|default:"---" }}</p></div>
             <div class="champs"><p><strong>Qualité du déclarant</strong> : {{ doss_manif_sportive.qualite_declarant|default:"---" }}</p></div>
             <div class="champs"><p><strong>Structure</strong> : {{ doss_manif_sportive.structure|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Adresse</strong> : {{ doss_manif_sportive.adresse|default:"---"|linebreaksbr }}</p></div>
             <div class="champs"><p><strong>Numéro de téléphone</strong> : {{ doss_manif_sportive.numero_telephone|default:"---" }}</p></div>
             <!-- <div class="champs"><p><strong>E-mail de la structure</strong> : {{ doss_manif_sportive.email_structure|default:"Non renseigné" }}</p></div> -->
             <div class="champs">
@@ -633,9 +642,9 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Date de fin</strong> : {{ doss_manif_sportive.date_fin_evenement|default:"---" }}</p></div>
             <div class="champs"><p><strong>Emprise sur voie publique</strong> : {{ doss_manif_sportive.emprise_voie_publique|default:"---" }}</p></div>
             <div class="champs"><p><strong>Évènement est une compétition</strong> : {{ doss_manif_sportive.evenement_competition|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Description</strong> : {{ doss_manif_sportive.description|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Observation</strong> : {{ doss_manif_sportive.observation|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Activité</strong> : {{ doss_manif_sportive.activite|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Description</strong> : {{ doss_manif_sportive.description|default:"---"|linebreaksbr }}</p></div>
+            <div class="champs"><p><strong>Observation</strong> : {{ doss_manif_sportive.observation|default:"---"|linebreaksbr }}</p></div>
+            <div class="champs"><p><strong>Activité</strong> : {{ doss_manif_sportive.activite|default:"---"|linebreaksbr }}</p></div>
             <div class="champs"><p><strong>Affilié fédération délégataire</strong> : {{ doss_manif_sportive.affilie_federation_delegataire|yesno:"Oui,Non,---" }}</p></div>
             <div class="champs"><p><strong>Nombre de participants</strong> : {{ doss_manif_sportive.nombre_participants|default:"---" }}</p></div>
             <div class="champs"><p><strong>Nombre max. de spectateurs</strong> : {{ doss_manif_sportive.nombre_max_spectateurs|default:"---" }}</p></div>
@@ -650,7 +659,7 @@ Le Parc national de La Réunion</textarea>
                 <div class="champs"><p><strong>Priorité de passage</strong> : {{ doss_manif_sportive.priorite_passage|yesno:"Oui,Non,---" }}</p></div>
                 <div class="champs"><p><strong>Usage exclusif temporaire de la chaussée</strong> : {{ doss_manif_sportive.usage_exclusif_temporaire_chaussee|yesno:"Oui,Non,---" }}</p></div>
                 <div class="champs"><p><strong>Usage privatif de la chaussée</strong> : {{ doss_manif_sportive.usage_privatif_chaussee|yesno:"Oui,Non,---" }}</p></div>
-                <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Précisions voies et horaires</strong> : {{ doss_manif_sportive.precisions_voies_et_horaires|default:"---"|linebreaksbr }}</p></div>
                 <div class="champs"><p><strong>Véhicule d'ouverture</strong> : {{ doss_manif_sportive.vehicule_ouverture|yesno:"Oui,Non,---" }}</p></div>
                 <div class="champs"><p><strong>Véhicule tête de course</strong> : {{ doss_manif_sportive.vehicule_tete_course|yesno:"Oui,Non,---" }}</p></div>
                 <div class="champs"><p><strong>Véhicule de fin de course</strong> : {{ doss_manif_sportive.vehicule_fin_course|yesno:"Oui,Non,---" }}</p></div>
@@ -660,9 +669,9 @@ Le Parc national de La Réunion</textarea>
                 <div class="champs"><p><strong>Signaleurs mobiles en voitures</strong> : {{ doss_manif_sportive.signaleurs_mobiles_voitures|default:"---" }}</p></div>
                 <div class="champs"><p><strong>Signaleurs mobiles en motos</strong> : {{ doss_manif_sportive.signaleurs_mobiles_motos|default:"---" }}</p></div>
                 <div class="champs"><p><strong>Encadrement police municipale</strong> : {{ doss_manif_sportive.encadrement_police_municipale|yesno:"Oui,Non,---" }}</p></div>
-                <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Détails encadrement police municipale</strong> : {{ doss_manif_sportive.details_encadrement_police_municipale|default:"---"|linebreaksbr }}</p></div>
                 <div class="champs"><p><strong>Convention avec police nationale ou gendarmerie</strong> : {{ doss_manif_sportive.convention_police_nationale|yesno:"Oui,Non,---" }}</p></div>
-                <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"---" }}</p></div>
+                <div class="champs"><p><strong>Détails convention</strong> : {{ doss_manif_sportive.details_convention_police_nationale|default:"---"|linebreaksbr }}</p></div>
             {% endif %}
 
             <h2>Coordinateur sécurité</h2>
@@ -675,7 +684,7 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Nom du contact</strong> : {{ doss_manif_sportive.nom_contact|default:"---" }}</p></div>
             <div class="champs"><p><strong>Prénom du contact</strong> : {{ doss_manif_sportive.prenom_contact|default:"---" }}</p></div>
             <div class="champs"><p><strong>Téléphone du contact</strong> : {{ doss_manif_sportive.telephone_contact|default:"---" }}</p></div>
-            <div class="champs"><p><strong>Autres contacts utiles</strong> : {{ doss_manif_sportive.autres_contacts_utiles|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Autres contacts utiles</strong> : {{ doss_manif_sportive.autres_contacts_utiles|default:"---"|linebreaksbr }}</p></div>
             
             <h2>Zones protégées</h2>
             <div class="champs"><p><strong>Budget > 100 000 €</strong> : {{ doss_manif_sportive.budget_depasse_100k|yesno:"Oui,Non,---" }}</p></div>
@@ -683,11 +692,11 @@ Le Parc national de La Réunion</textarea>
             <div class="champs"><p><strong>Titre national/international</strong> : {{ doss_manif_sportive.manifestation_titre_national_international|yesno:"Oui,Non,---" }}</p></div>
             <div class="champs"><p><strong>Engagement véhicules hors voies ouvertes</strong> : {{ doss_manif_sportive.manifestation_vehicules_hors_voies_ouvertes|yesno:"Oui,Non,---" }}</p></div>
             <div class="champs"><p><strong>Charte Natura 2000 signée</strong> : {{ doss_manif_sportive.charte_dispense_natura_2000|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Lieux PDESI</strong> : {{ doss_manif_sportive.lieux_pdesi|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Lieux PDESI</strong> : {{ doss_manif_sportive.lieux_pdesi|default:"---"|linebreaksbr }}</p></div>
 
             <h2>Balisage</h2>
             <div class="champs"><p><strong>Signataire charte balisage</strong> : {{ doss_manif_sportive.signataire_charte_balisage|yesno:"Oui,Non,---" }}</p></div>
-            <div class="champs"><p><strong>Description du balisage</strong> : {{ doss_manif_sportive.description_balisage|default:"---" }}</p></div>
+            <div class="champs"><p><strong>Description du balisage</strong> : {{ doss_manif_sportive.description_balisage|default:"---"|linebreaksbr }}</p></div>
             
 
             <h2>Avis du Parc sur Déclaration Manifestations</h2>
@@ -713,10 +722,10 @@ Le Parc national de La Réunion</textarea>
                         <p><strong>Réponse :</strong> {{ avis_manif_sportive.reponse_avis }}</p>
                     {% endif %}
                     {% if avis_manif_sportive.prescriptions %}
-                        <p><strong>Prescriptions :</strong> {{ avis_manif_sportive.prescriptions }}</p>
+                        <p><strong>Prescriptions :</strong> {{ avis_manif_sportive.prescriptions|linebreaksbr }}</p>
                     {% endif %}
                     {% if avis_manif_sportive.objet_demande %}
-                        <p><strong>Objet :</strong> {{ avis_manif_sportive.objet_demande }}</p>
+                        <p><strong>Objet :</strong> {{ avis_manif_sportive.objet_demande|linebreaksbr }}</p>
                     {% endif %}
                 </div>
             {% else %}

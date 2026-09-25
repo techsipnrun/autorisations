@@ -92,6 +92,18 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
+.dates-manifestation-ligne {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+}
+
+.dates-manifestation-ligne .date-manifestation-card {
+    margin-bottom: 0;
+}
+
 .date-manifestation-icon {
     width: 28px;
     height: 28px;
@@ -133,6 +145,16 @@
 
 .date-manifestation-proche .date-manifestation-valeur {
     color: #cc6e16;
+}
+
+.date-manifestation-card.avis-rendu-card {
+    border-color: #9eb5cc;
+    border-left-color: #315f8c;
+    background-color: #f2f6fa;
+}
+
+.avis-rendu-card .date-manifestation-valeur {
+    color: #315f8c;
 }
 
 .lien-dossier-precedent {
