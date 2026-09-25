@@ -324,6 +324,27 @@
                 </div>
                 
 
+                {% if dossier_lie_manif_sportive and doss_manif_sportive %}
+                    <div class="dates-manifestation-ligne">
+                        <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
+                            <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
+                            <div>
+                                <span class="date-manifestation-label">Début de la manifestation</span>
+                                <strong class="date-manifestation-valeur">{{ doss_manif_sportive.date_debut_evenement|date:"d F Y"|default:"---" }}</strong>
+                            </div>
+                        </div>
+                        {% if doss_manif_sportive.archive and avis_manif_sportive.date_reponse %}
+                            <div class="date-manifestation-card avis-rendu-card">
+                                <img src="{% static 'instruction/img/badge-check.png' %}" alt="" class="date-manifestation-icon">
+                                <div>
+                                    <span class="date-manifestation-label">Avis rendu sur DM le</span>
+                                    <strong class="date-manifestation-valeur">{{ avis_manif_sportive.date_reponse|date:"d F Y" }}</strong>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 {% include "instruction/refacto/motif_decision.html" %}
 
                 {% if preinstruction_message %}
@@ -349,28 +370,6 @@
                         </div>
                     </form>
                 </div>
-
-
-                {% if dossier_lie_manif_sportive and doss_manif_sportive %}
-                    <div class="dates-manifestation-ligne">
-                        <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
-                            <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
-                            <div>
-                                <span class="date-manifestation-label">Début de la manifestation</span>
-                                <strong class="date-manifestation-valeur">{{ doss_manif_sportive.date_debut_evenement|date:"d F Y"|default:"---" }}</strong>
-                            </div>
-                        </div>
-                        {% if doss_manif_sportive.archive and avis_manif_sportive.date_reponse %}
-                            <div class="date-manifestation-card avis-rendu-card">
-                                <img src="{% static 'instruction/img/badge-check.png' %}" alt="" class="date-manifestation-icon">
-                                <div>
-                                    <span class="date-manifestation-label">Avis rendu sur DM le</span>
-                                    <strong class="date-manifestation-valeur">{{ avis_manif_sportive.date_reponse|date:"d F Y" }}</strong>
-                                </div>
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endif %}
 
 
                 <!-- Identités bénéficiaire et demandeur intermédiaire -->
