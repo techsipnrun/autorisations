@@ -5,7 +5,7 @@ from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDo
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef, Subquery
 
 # Personnalisation globale de l'admin
 admin.site.site_header = "Administration des Autorisations"
@@ -886,8 +886,25 @@ class DossierManifSportiveAdmin(admin.ModelAdmin):
         return obj.id_etape.etape if obj.id_etape else "-"
     etape.short_description = "Étape"
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        avis_le_plus_recent = (
+            AvisManifSportive.objects
+            .filter(id_dossier_manif_sportive_id=OuterRef("pk"))
+            .order_by(
+                F("date_reponse").desc(nulls_last=True),
+                F("date_demande").desc(nulls_last=True),
+                "-id",
+            )
+        )
+        return queryset.annotate(
+            avis_recent_reponse=Subquery(
+                avis_le_plus_recent.values("reponse_avis")[:1]
+            )
+        )
+
     def avis_colonne(self, obj):
-        return obj.avis.reponse_avis if hasattr(obj, "avis") and obj.avis and obj.avis.reponse_avis else "-"
+        return obj.avis_recent_reponse or "-"
     avis_colonne.short_description = "Avis"
 
     @admin.display(boolean=True, description="Lié")

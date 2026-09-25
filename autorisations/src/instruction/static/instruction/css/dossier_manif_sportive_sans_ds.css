@@ -87,42 +87,6 @@
     margin-top: 2rem;
 }
 
-/* PJ ajoutée ou remplacée par l'organisateur après le rendu de l'avis. */
-.pj-demandeur-apres-avis {
-    background: #fff8e8;
-    border-left: 4px solid #b7791f;
-    box-shadow: 0 1px 3px rgb(90 62 15 / 12%);
-}
-
-.pj-demandeur-apres-avis-info {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem 0.7rem;
-    margin-top: 0.35rem;
-    color: #654b1f;
-    font-size: 0.9rem;
-}
-
-.pj-demandeur-apres-avis-badge {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 0.14rem 0.45rem;
-    border: 1px solid #d4a64a;
-    border-radius: 999px;
-    background: #fff1c9;
-    color: #65420b;
-    font-size: 0.78rem;
-    font-style: normal;
-    font-weight: 700;
-}
-
-
-
-
-
-
 /* Copier le path des docs à relire et à valider */
 .doc-titre-no-download {
     color: #006131;

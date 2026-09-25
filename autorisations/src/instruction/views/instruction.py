@@ -138,7 +138,19 @@ def get_dossier_counts(demarche, etape_a_affecter, etapes_instruction, etapes_te
     # ---------------------------
     dossiers_DM_manif_sportive_non_lie_archive = 0
     if demarche.type.lower() == 'manifestations sportives':
-        dossiers_DM_manif_sportive_non_lie_archive = DossierManifSportive.objects.filter(archive=True,).exclude(id__in=dossiers_deja_lies_ids).count()
+        # Pour un dossier DM orphelin, la date qui matérialise son traitement
+        # est la date de réponse de l'avis. Ne pas compter ici l'intégralité
+        # des archives historiques : la colonne porte bien sur l'année en cours.
+        dossiers_DM_manif_sportive_non_lie_archive = (
+            DossierManifSportive.objects
+            .filter(
+                archive=True,
+                avis__date_reponse__year=current_year,
+            )
+            .exclude(id__in=dossiers_deja_lies_ids)
+            .distinct()
+            .count()
+        )
 
     nb_traites = dossiers.filter(id_etape_dossier__in=etapes_termines, date_fin_instruction__year=current_year).count() + dossiers_DM_manif_sportive_non_lie_archive
 

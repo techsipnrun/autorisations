@@ -6,10 +6,12 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0 0 2rem 0;
+    overflow-x: hidden;
 }
 
 .logs-title {
-    margin: 12rem 4rem 3rem 4rem;
+    margin: 12rem auto 3rem;
+    width: min(92%, 1600px);
     color: #006131;
     font-size: 1.8rem;
 }
@@ -21,8 +23,8 @@ body {
 .logs-container {
     display: flex;
     justify-content: center;
-    margin: 0 auto 0 4rem;
-    width: 90%;
+    margin: 0 auto;
+    width: min(92%, 1600px);
     gap: 2rem;
 }
 
@@ -31,9 +33,11 @@ body {
    ================================ */
 
 .logs-sidebar {
+    flex: 0 0 220px;
     width: 220px;
     padding: 1rem 0.5rem 1rem 0;
     border-right: 1px solid #ccc;
+    box-sizing: border-box;
 }
 
 .logs-sidebar-title {
@@ -99,6 +103,7 @@ body {
 
 .logs-main {
     flex: 1;
+    min-width: 0;
     padding: 1rem 0 2rem 0;
 }
 
@@ -231,6 +236,8 @@ body {
 
 .log-line {
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     font-family: "Consolas", "Courier New", monospace;
     font-size: 0.85rem;
     border-bottom: 1px solid #eee;
@@ -261,6 +268,7 @@ body {
 
 .logs-pagination {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
     font-size: 0.95rem;
@@ -288,6 +296,8 @@ body {
 
 .log-line {
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     font-family: "Consolas", "Courier New", monospace;
     font-size: 0.85rem;
     padding: 0.2rem 0.4rem;
@@ -319,6 +329,74 @@ body {
 .log-line.OTHER {
     border-left: 4px solid #888;
     color: #444;
+}
+
+@media (max-width: 768px) {
+    .logs-title {
+        margin-top: 8rem;
+        margin-bottom: 1.5rem;
+        width: calc(100% - 2rem);
+        font-size: 1.45rem;
+    }
+
+    .logs-container {
+        flex-direction: column;
+        width: calc(100% - 2rem);
+        gap: 1rem;
+    }
+
+    .logs-sidebar {
+        flex: none;
+        width: 100%;
+        padding: 0 0 1rem;
+        border-right: 0;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .logs-sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .logs-sidebar-link {
+        flex: 1 1 9rem;
+    }
+
+    .logs-main {
+        width: 100%;
+        padding-top: 0;
+    }
+
+    .logs-filters {
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .logs-filter-group,
+    .dropdown-multi {
+        width: 100%;
+    }
+
+    .logs-input-text,
+    .logs-input-date,
+    .dropdown-multi-toggle {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .logs-button {
+        width: max-content;
+    }
+
+    .logs-list {
+        max-height: 62vh;
+        padding-inline: 0.4rem;
+    }
+
+    .log-line {
+        font-size: 0.76rem;
+    }
 }
 
 

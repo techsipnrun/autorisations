@@ -81,7 +81,7 @@ def sync_avis_declaration_manifestations(avis, logger):
         logger.info(f"[CREATE] AvisManifSportive numéro {obj.id_avis_manif_sportive} ({obj.id_dossier_manif_sportive.nom_dossier}).")
 
         # Si nouveau Avis en base et avis deja rendu : on vérifie que Dossier archive = True
-        if obj.date_reponse or obj.etat == "termine" :
+        if obj.date_reponse or obj.etat in ["termine"]:
             if dossier.archive == False :
                 dossier.archive = True
 
@@ -97,7 +97,6 @@ def sync_avis_declaration_manifestations(avis, logger):
                     dossier.id_etape = etape_accepte
                 elif obj.reponse_avis == "défavorable":
                     dossier.id_etape = etape_refuse
-                # Par contre emplacement dossier va rester dans 0 - En attente (pas grave)
             
             dossier.save()
 

@@ -66,6 +66,14 @@ class Command(BaseCommand):
             help="Télécharge les fichiers, les écrit sur le NAS et crée les lignes BDD.",
         )
         parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help=(
+                "Force explicitement la simulation : aucun téléchargement, aucune "
+                "écriture NAS et aucune création en BDD."
+            ),
+        )
+        parser.add_argument(
             "--confirmation",
             help=f"Confirmation obligatoire en exécution : {self.CONFIRMATION}.",
         )
@@ -79,9 +87,41 @@ class Command(BaseCommand):
                 "plusieurs fichiers DIR-I-."
             ),
         )
+        parser.add_argument(
+            "--numeros-forces",
+            nargs="*",
+            default=[],
+            metavar="FICHIER=NUMERO",
+            help=(
+                "Numéros officiels à utiliser lorsque le nom d'un arrêté est "
+                "incomplet ou ambigu, par exemple DIR-I-201_document.pdf=2025-201."
+            ),
+        )
+        parser.add_argument(
+            "--autoriser-doublons-numeros",
+            nargs="*",
+            default=[],
+            metavar="NOM_FICHIER",
+            help=(
+                "Noms exacts des arrêtés autorisés à partager un numéro officiel "
+                "avec un autre document. À réserver aux exceptions validées."
+            ),
+        )
+        parser.add_argument(
+            "--autoriser-doublons-dossiers",
+            nargs="*",
+            default=[],
+            metavar="NUMERO_DM=NUMERO_ACTE",
+            help=(
+                "Exceptions de doublon identifiées par le dossier DM et le numéro "
+                "officiel, par exemple 71758=2025-039."
+            ),
+        )
 
     def handle(self, *args, **options):
         execute = options["execute"]
+        if execute and options.get("dry_run"):
+            raise CommandError("--dry-run et --execute sont incompatibles.")
         if execute and options.get("confirmation") != self.CONFIRMATION:
             raise CommandError(
                 "Confirmation incorrecte. Ajoutez "
@@ -109,6 +149,18 @@ class Command(BaseCommand):
         cibles = self._charger_cibles(options)
         cibles.sort(key=self._date_tri_avis, reverse=True)
         self.fichiers_selectionnes = set(options.get("selection_fichiers") or [])
+        self.numeros_forces = self._charger_numeros_forces(
+            options.get("numeros_forces") or []
+        )
+        self.fichiers_numero_duplique_autorise = {
+            sanitiser_nom_fichier(fichier)
+            for fichier in (options.get("autoriser_doublons_numeros") or [])
+        }
+        self.doublons_numero_autorises_par_dossier = (
+            self._charger_doublons_autorises_par_dossier(
+                options.get("autoriser_doublons_dossiers") or []
+            )
+        )
         token = get_access_token()
         if not token:
             raise CommandError("Impossible d'obtenir un jeton d'accès à l'API DM.")
@@ -339,6 +391,50 @@ class Command(BaseCommand):
         # (document_attache) et celles de l'avis (fichier).
         return pj.get("fichier") or pj.get("document_attache")
 
+    @staticmethod
+    def _charger_numeros_forces(valeurs):
+        numeros = {}
+        for valeur in valeurs:
+            if "=" not in valeur:
+                raise CommandError(
+                    f"Numéro forcé invalide '{valeur}' : format attendu FICHIER=NUMERO."
+                )
+            fichier, numero = valeur.rsplit("=", 1)
+            fichier = sanitiser_nom_fichier(fichier.strip())
+            numero = numero.strip()
+            if not fichier or not re.fullmatch(r"(?:\d{4}-)?\d+", numero):
+                raise CommandError(
+                    f"Numéro forcé invalide '{valeur}' : fichier ou numéro incorrect."
+                )
+            if fichier in numeros and numeros[fichier] != numero:
+                raise CommandError(
+                    f"Plusieurs numéros forcés différents sont fournis pour '{fichier}'."
+                )
+            numeros[fichier] = numero
+        return numeros
+
+    @staticmethod
+    def _charger_doublons_autorises_par_dossier(valeurs):
+        exceptions = set()
+        for valeur in valeurs:
+            if "=" not in valeur:
+                raise CommandError(
+                    f"Doublon autorisé invalide '{valeur}' : "
+                    "format attendu NUMERO_DM=NUMERO_ACTE."
+                )
+            numero_dm, numero_acte = valeur.split("=", 1)
+            numero_dm = numero_dm.strip()
+            numero_acte = numero_acte.strip()
+            if (
+                not numero_dm.isdigit()
+                or not re.fullmatch(r"(?:\d{4}-)?\d+", numero_acte)
+            ):
+                raise CommandError(
+                    f"Doublon autorisé invalide '{valeur}' : dossier ou numéro incorrect."
+                )
+            exceptions.add((int(numero_dm), numero_acte))
+        return exceptions
+
     def _traiter_piece(
         self, *, token, avis, pj, nature_arrete, nature_annexe, format_pdf,
         nas_root, execute
@@ -364,7 +460,10 @@ class Command(BaseCommand):
                     "PDF peuvent être bancarisés comme arrêté directeur."
                 )
                 return "ignorees"
-            numero_document = self._extraire_numero_acte(titre_source)
+            numero_document = self.numeros_forces.get(
+                titre_source,
+                self._extraire_numero_acte(titre_source),
+            )
             if not numero_document:
                 self._avertissement(
                     f"[DOSSIER DM {numero_dm}] Fichier '{titre_source}' ignoré : aucun "
@@ -417,7 +516,15 @@ class Command(BaseCommand):
                 id_nature=nature_arrete,
                 numero=numero_document,
             ).first()
-        if est_arrete and document_meme_numero:
+        doublon_numero_autorise = (
+            est_arrete
+            and (
+                titre_source in self.fichiers_numero_duplique_autorise
+                or (numero_dm, numero_document)
+                in self.doublons_numero_autorises_par_dossier
+            )
+        )
+        if est_arrete and document_meme_numero and not doublon_numero_autorise:
             self._erreur(
                 f"[DOSSIER DM {numero_dm}] Bancarisation refusée pour '{titre_source}' : "
                 f"le numéro d'arrêté {numero_document} est déjà porté par le Document "
@@ -428,7 +535,7 @@ class Command(BaseCommand):
             return "erreurs"
 
         piece_meme_numero = self.numeros_planifies.get(numero_document) if est_arrete else None
-        if est_arrete and piece_meme_numero:
+        if est_arrete and piece_meme_numero and not doublon_numero_autorise:
             if piece_meme_numero["numero_dm"] == numero_dm:
                 self._avertissement(
                     f"[DOSSIER DM {numero_dm}] Ancienne version '{titre_source}' "
@@ -447,11 +554,17 @@ class Command(BaseCommand):
                 )
                 return "erreurs"
 
-        if est_arrete:
+        if est_arrete and not doublon_numero_autorise:
             self.numeros_planifies[numero_document] = {
                 "numero_dm": numero_dm,
                 "titre": titre_source,
             }
+
+        if doublon_numero_autorise and (document_meme_numero or piece_meme_numero):
+            self._avertissement(
+                f"[DOSSIER DM {numero_dm}] Doublon de numéro explicitement autorisé "
+                f"pour '{titre_source}' : numéro {numero_document}."
+            )
 
         emplacement = Document.normaliser_emplacement(
             os.path.join(dossier.emplacement, self.SOUS_DOSSIER)

@@ -120,7 +120,7 @@ def recup_avis_et_dossiers():
     # FILTRE : Les demandes datant de moins d'un an
     ##############################################
 
-    numeros_dossiers_a_exclure = [88594, 87044, 114082, 107139, 118148, 117715, 113846, 121088, 122154]
+    # numeros_dossiers_a_exclure = [88594, 87044, 114082, 107139, 118148, 117715, 113846, 121088, 122154]
     # 105963, 101156
     avis_filtres = [
         avis for avis in avis_list
@@ -615,14 +615,14 @@ def recup_pj_dossiers(doss, docs, token, doss_lie, token_prod, avis_deja_rendu=F
         loggerDM.info("---")
         loggerDM.info(f"[Dossier {manif_id} - {doss.nom_dossier}] {compteur_nouvelles_pjs_recup} nouvelles PJ récupérées")
 
-    if avis_deja_rendu and nouvelles_pjs:
-        try:
-            notifier_nouvelles_pj_dm_apres_avis(doss, nouvelles_pjs)
-        except Exception as e:
-            # La PJ est déjà sauvegardée : une erreur de mail ne doit jamais
-            # faire échouer la synchronisation du dossier.
-            loggerSynchro.exception(
-                f"[DOSSIER DM {manif_id}] Échec de la notification des nouvelles PJ après avis rendu : {e}"
-            )
+    # if avis_deja_rendu and nouvelles_pjs:
+    #     try:
+    #         notifier_nouvelles_pj_dm_apres_avis(doss, nouvelles_pjs)
+    #     except Exception as e:
+    #         # La PJ est déjà sauvegardée : une erreur de mail ne doit jamais
+    #         # faire échouer la synchronisation du dossier.
+    #         loggerSynchro.exception(
+    #             f"[DOSSIER DM {manif_id}] Échec de la notification des nouvelles PJ après avis rendu : {e}"
+    #         )
 
     return doss

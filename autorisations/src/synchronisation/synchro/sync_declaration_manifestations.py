@@ -12,6 +12,31 @@ from synchronisation.utils.fichiers import create_emplacement, create_emplacemen
 from synchronisation.utils.model_helpers import foreign_keys_add_suffixe_id, update_fields
 
 
+CHAMPS_IDENTITE_DM = {
+    "nom_organisateur",
+    "prenom_organisateur",
+    "nom_contact",
+    "prenom_contact",
+    "nom_coordinateur_securite",
+    "prenom_coordinateur_securite",
+}
+DATE_LIMITE_IDENTITES_ANONYMISEES_DM = date(2025, 8, 1)
+
+
+def doit_preserver_identite_anonymisee(dossier):
+    """Indique si les champs vidés après anonymisation DM doivent le rester."""
+    date_depot = dossier.date_depot
+    if isinstance(date_depot, datetime):
+        date_depot = date_depot.date()
+
+    return bool(
+        dossier.archive
+        and date_depot
+        and date_depot < DATE_LIMITE_IDENTITES_ANONYMISEES_DM
+        and all(getattr(dossier, champ) is None for champ in CHAMPS_IDENTITE_DM)
+    )
+
+
 
 
 def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
@@ -168,10 +193,19 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
 
         doss_lie = DossierManifestationLiaison.objects.filter(id_dossier_manif=obj).exists()
 
+        champs_a_preserver = (
+            CHAMPS_IDENTITE_DM if doit_preserver_identite_anonymisee(obj) else set()
+        )
+        if champs_a_preserver:
+            logger.info(
+                f"[DOSSIER DM {manif_id}] Identité anonymisée conservée vide "
+                "(dossier archivé déposé avant août 2025)."
+            )
+
         for field, new_value in dossier.items():
 
             # On ne met pas à jour l'emplacement
-            if field == "emplacement":
+            if field == "emplacement" or field in champs_a_preserver:
                 continue
             
             # Ignore geometrie vide
