@@ -726,11 +726,11 @@ async function envoyerNotificationAgents(event, form) {
     const status = form.querySelector(".notification-agents-status");
     const nombre = coches.length;
     if (!nombre) {
-        status.textContent = "Sélectionnez au moins un agent.";
+        status.textContent = "Sélectionnez au moins un destinataire.";
         status.className = "notification-agents-status error";
         return;
     }
-    if (!confirm(`Confirmez-vous l’envoi de cette notification à ${nombre} agent(s) ?`)) return;
+    if (!confirm(`Confirmez-vous l’envoi de cette notification à ${nombre} destinataire(s) ?`)) return;
 
     const loading = document.querySelector(".notification-agents-loading");
     const submit = form.querySelector("button[type=submit]");
@@ -787,7 +787,7 @@ function ajouterAgentNotification(option) {
     const inputName = picker.dataset.inputName;
     if (picker.querySelector(`input[value="${CSS.escape(id)}"]`)) return;
     if (form.querySelector(`.notification-agent-picker:not([data-input-name="${inputName}"]) input[value="${CSS.escape(id)}"]`)) {
-        window.alert("Cet agent est déjà sélectionné dans l’autre liste.");
+        window.alert("Ce destinataire est déjà sélectionné dans l’autre liste.");
         return;
     }
 

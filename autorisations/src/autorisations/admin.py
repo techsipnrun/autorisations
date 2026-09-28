@@ -4,7 +4,7 @@ from django.db import transaction
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
-from .models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
+from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, F, OuterRef, Subquery
 
 # Personnalisation globale de l'admin
@@ -719,6 +719,14 @@ class ContactExterneAdmin(admin.ModelAdmin):
 
 admin.site.register(TypeContactExterne)
 admin.site.register(Instructeur)
+
+
+@admin.register(DestinataireNotification)
+class DestinataireNotificationAdmin(admin.ModelAdmin):
+    list_display = ("libelle", "email", "actif")
+    list_filter = ("actif",)
+    search_fields = ("libelle", "email")
+    ordering = ("libelle", "email")
 
 @admin.register(AgentAutorisations)
 class AgentAutorisationsAdmin(admin.ModelAdmin):

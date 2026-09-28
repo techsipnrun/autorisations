@@ -11,13 +11,86 @@ from autorisations.models.models_documents import DossierDocument
 from autorisations.models.models_instruction import Dossier, DossierManifSportive
 from django.contrib import messages
 
-from autorisations.models.models_utilisateurs import ContactExterne, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import ContactExterne, DestinataireNotification, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from instruction.utils.dossier_utils import redirect_error
 from instruction.utils.files_utils import sanitiser_nom_fichier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, create_EmailOutbox_DM, envoi_mail
 
 logger = logging.getLogger("ORM_DJANGO")
+
+
+def get_choix_destinataires_notification():
+    """Construit les choix sans confondre boîtes génériques et agents."""
+    choix = [
+        {
+            "identifiant": f"instructeur:{instructeur.id}",
+            "libelle": str(instructeur),
+            "email": instructeur.email.strip(),
+            "generique": False,
+        }
+        for instructeur in (
+            Instructeur.objects.exclude(email__isnull=True)
+            .exclude(email="")
+            .select_related("id_agent_autorisations")
+        )
+    ]
+    choix.extend(
+        {
+            "identifiant": f"generique:{destinataire.id}",
+            "libelle": destinataire.libelle,
+            "email": destinataire.email.strip(),
+            "generique": True,
+        }
+        for destinataire in DestinataireNotification.objects.filter(actif=True)
+    )
+    return sorted(
+        choix,
+        key=lambda item: (item["libelle"].casefold(), item["email"].casefold()),
+    )
+
+
+def resoudre_destinataires_notification(identifiants):
+    """Valide les identifiants du panneau et retourne les emails dans leur ordre."""
+    identifiants = list(dict.fromkeys(identifiants))
+    ids_instructeurs = []
+    ids_generiques = []
+    for identifiant in identifiants:
+        type_destinataire, separateur, valeur = identifiant.partition(":")
+        if not separateur or not valeur.isdigit():
+            raise ValidationError("La sélection des destinataires est invalide.")
+        if type_destinataire == "instructeur":
+            ids_instructeurs.append(int(valeur))
+        elif type_destinataire == "generique":
+            ids_generiques.append(int(valeur))
+        else:
+            raise ValidationError("La sélection des destinataires est invalide.")
+
+    instructeurs = {
+        item.id: item.email.strip()
+        for item in Instructeur.objects.filter(id__in=ids_instructeurs)
+        .exclude(email__isnull=True)
+        .exclude(email="")
+    }
+    generiques = {
+        item.id: item.email.strip()
+        for item in DestinataireNotification.objects.filter(
+            id__in=ids_generiques,
+            actif=True,
+        )
+    }
+    if len(instructeurs) != len(set(ids_instructeurs)) or len(generiques) != len(set(ids_generiques)):
+        raise ValidationError("Un ou plusieurs destinataires sélectionnés sont invalides.")
+
+    emails = []
+    emails_normalises = set()
+    for identifiant in identifiants:
+        type_destinataire, _, valeur = identifiant.partition(":")
+        email = instructeurs[int(valeur)] if type_destinataire == "instructeur" else generiques[int(valeur)]
+        if email.casefold() not in emails_normalises:
+            emails.append(email)
+            emails_normalises.add(email.casefold())
+    return emails
 
 
 def _mettre_en_attente_annexes_mail(dossier, annexes):

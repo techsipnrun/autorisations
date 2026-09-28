@@ -19,21 +19,21 @@
                 <div class="notification-agent-picker" data-input-name="agents[]">
                     <div class="notification-agent-chips"></div>
                     <input type="search" class="notification-agent-search"
-                           placeholder="Rechercher un agent…"
+                           placeholder="Rechercher un destinataire…"
                            autocomplete="off"
                            oninput="filtrerAgentsNotification(this)"
                            onfocus="filtrerAgentsNotification(this)">
                     <div class="notification-agent-suggestions" hidden>
                         {% for agent in agents_notification %}
-                            <button type="button" data-agent-id="{{ agent.id }}"
-                                    data-agent-label="{{ agent }}"
+                            <button type="button" data-agent-id="{{ agent.identifiant }}"
+                                    data-agent-label="{{ agent.libelle }}"
                                     data-agent-email="{{ agent.email }}"
                                     onclick="ajouterAgentNotification(this)">
-                                <span>{{ agent }}</span>
+                                <span>{{ agent.libelle }}{% if agent.generique %} <small>(adresse générique)</small>{% endif %}</span>
                                 <small>{{ agent.email }}</small>
                             </button>
                         {% empty %}
-                            <span>Aucun agent disposant d’une adresse électronique.</span>
+                            <span>Aucun destinataire disposant d’une adresse électronique.</span>
                         {% endfor %}
                     </div>
                     <div class="notification-agent-hidden-inputs"></div>
@@ -43,21 +43,21 @@
                 <div class="notification-agent-picker" data-input-name="agents_cc[]">
                     <div class="notification-agent-chips"></div>
                     <input type="search" class="notification-agent-search"
-                           placeholder="Rechercher un agent à mettre en copie…"
+                           placeholder="Rechercher un destinataire à mettre en copie…"
                            autocomplete="off"
                            oninput="filtrerAgentsNotification(this)"
                            onfocus="filtrerAgentsNotification(this)">
                     <div class="notification-agent-suggestions" hidden>
                         {% for agent in agents_notification %}
-                            <button type="button" data-agent-id="{{ agent.id }}"
-                                    data-agent-label="{{ agent }}"
+                            <button type="button" data-agent-id="{{ agent.identifiant }}"
+                                    data-agent-label="{{ agent.libelle }}"
                                     data-agent-email="{{ agent.email }}"
                                     onclick="ajouterAgentNotification(this)">
-                                <span>{{ agent }}</span>
+                                <span>{{ agent.libelle }}{% if agent.generique %} <small>(adresse générique)</small>{% endif %}</span>
                                 <small>{{ agent.email }}</small>
                             </button>
                         {% empty %}
-                            <span>Aucun agent disposant d’une adresse électronique.</span>
+                            <span>Aucun destinataire disposant d’une adresse électronique.</span>
                         {% endfor %}
                     </div>
                     <div class="notification-agent-hidden-inputs"></div>

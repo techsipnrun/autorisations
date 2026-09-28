@@ -3,7 +3,7 @@ from django.db.models import Case, When, Value, CharField
 from .models.models_avis import Avis, AvisDocument, Expert
 from .models.models_documents import Document, DossierDocument
 from .models.models_instruction import Dossier, Demande, DossierGroupe, Groupe
-from .models.models_utilisateurs import ContactExterne, DossierInstructeur, DossierInterlocuteur, DossierBeneficiaire, Instructeur
+from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierInstructeur, DossierInterlocuteur, DossierBeneficiaire, Instructeur
 
 
 class CustomAdminSite(admin.AdminSite):
@@ -20,7 +20,7 @@ class CustomAdminSite(admin.AdminSite):
         # Définition d'un ordre précis des modèles
         desired_order = [
             "Dossier", "Demande", "Document",
-            "DossierDocument", "Instructeur", "DossierInstructeur", "ContactExterne",
+            "DossierDocument", "Instructeur", "DestinataireNotification", "DossierInstructeur", "ContactExterne",
             "Expert", "Avis", "AvisDocument",
             "DossierInterlocuteur", "DossierBeneficiaire", "Groupe", "DossierGroupe",
         ]
@@ -78,6 +78,14 @@ class InstructeurAdmin(admin.ModelAdmin):
         return qs.order_by("id_agent_autorisations__nom")
     
 custom_admin_site.register(Instructeur, InstructeurAdmin)
+
+
+@admin.register(DestinataireNotification, site=custom_admin_site)
+class DestinataireNotificationCustomAdmin(admin.ModelAdmin):
+    list_display = ("libelle", "email", "actif")
+    list_filter = ("actif",)
+    search_fields = ("libelle", "email")
+    ordering = ("libelle", "email")
 
 
 class DossierInstructeurAdmin(admin.ModelAdmin):

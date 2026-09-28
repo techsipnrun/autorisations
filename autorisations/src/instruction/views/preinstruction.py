@@ -21,7 +21,7 @@ from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances, user_recoit_notifications_reception_manif_sportive
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
-from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
+from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance, get_choix_destinataires_notification
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import passer_en_instruction_ds
 import logging
@@ -523,13 +523,7 @@ def preinstruction_dossier(request, numero):
 
     DM_API_URL = os.getenv('DM_API_URL')
 
-    agents_notification = list(
-        Instructeur.objects
-        .exclude(email__isnull=True)
-        .exclude(email="")
-        .select_related("id_agent_autorisations")
-        .order_by("id_agent_autorisations__nom", "id_agent_autorisations__prenom", "email")
-    )
+    agents_notification = get_choix_destinataires_notification()
     auteur_notification = (
         request.user.get_full_name().strip()
         or (str(instructeur_connecte) if instructeur_connecte else "")

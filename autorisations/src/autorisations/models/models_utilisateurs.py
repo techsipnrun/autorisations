@@ -156,7 +156,7 @@ class Instructeur(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
     email = models.CharField(unique=True)
-    id_agent_autorisations = models.ForeignKey(AgentAutorisations, models.RESTRICT, db_column='id_agent_autorisations', null=True)
+    id_agent_autorisations = models.ForeignKey(AgentAutorisations, models.RESTRICT, db_column='id_agent_autorisations', null=True, blank=True)
 
     class Meta:
         managed = False
@@ -167,6 +167,25 @@ class Instructeur(models.Model):
             return f"{self.id_agent_autorisations.nom} {self.id_agent_autorisations.prenom}"
         else :
             return self.email
+
+
+class DestinataireNotification(models.Model):
+    """Adresse générique proposée uniquement dans les notifications manuelles."""
+
+    id = models.AutoField(primary_key=True)
+    libelle = models.CharField(max_length=150)
+    email = models.EmailField(max_length=254, unique=True)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = '"utilisateurs"."destinataire_notification"'
+        ordering = ("libelle", "email")
+        verbose_name = "Destinataire de notification"
+        verbose_name_plural = "Destinataires de notification"
+
+    def __str__(self):
+        return self.libelle
 
 
 class Groupeinstructeur(models.Model):

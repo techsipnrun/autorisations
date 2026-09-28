@@ -31,6 +31,8 @@ from django.utils.timezone import now
 from autorisations import settings
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError
+from instruction.utils.utilisateurs_utils import resoudre_destinataires_notification
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -66,40 +68,25 @@ def notifier_agents_dossier(request, dossier_id):
     sujet = (request.POST.get("sujet") or "").strip()
     body = (request.POST.get("body") or "").strip()
     if not ids_agents:
-        return reponse_erreur("Sélectionnez au moins un agent.", 400)
+        return reponse_erreur("Sélectionnez au moins un destinataire.", 400)
     if not body:
         return reponse_erreur("Le message est obligatoire.", 400)
     if not sujet:
         return reponse_erreur("L’objet du mail est obligatoire.", 400)
     if len(sujet) > 255:
         return reponse_erreur("L’objet du mail est trop long.", 400)
-    if any(not identifiant.isdigit() for identifiant in ids_agents + ids_agents_copie):
-        return reponse_erreur("La sélection d’agents est invalide.", 400)
     if set(ids_agents) & set(ids_agents_copie):
-        return reponse_erreur("Un même agent ne peut pas être destinataire et en copie.", 400)
+        return reponse_erreur("Un même destinataire ne peut pas être principal et en copie.", 400)
 
-    agents = list(
-        Instructeur.objects
-        .filter(id__in=ids_agents)
-        .exclude(email__isnull=True)
-        .exclude(email="")
-        .select_related("id_agent_autorisations")
-    )
-    if len(agents) != len(set(ids_agents)):
-        return reponse_erreur("Un ou plusieurs agents sélectionnés sont invalides.", 400)
-
-    agents_copie = list(
-        Instructeur.objects
-        .filter(id__in=ids_agents_copie)
-        .exclude(email__isnull=True)
-        .exclude(email="")
-        .select_related("id_agent_autorisations")
-    )
-    if len(agents_copie) != len(set(ids_agents_copie)):
-        return reponse_erreur("Un ou plusieurs agents sélectionnés en copie sont invalides.", 400)
-
-    destinataires_metier = [agent.email.strip() for agent in agents]
-    destinataires_copie_metier = [agent.email.strip() for agent in agents_copie]
+    try:
+        destinataires_metier = resoudre_destinataires_notification(ids_agents)
+        destinataires_copie_metier = resoudre_destinataires_notification(ids_agents_copie)
+    except ValidationError as exc:
+        return reponse_erreur(exc.messages[0], 400)
+    if {email.casefold() for email in destinataires_metier} & {
+        email.casefold() for email in destinataires_copie_metier
+    }:
+        return reponse_erreur("Une même adresse ne peut pas être destinataire principale et en copie.", 400)
     destinataires_envoi = destinataires_metier if NOTIFS_PROD else [EMAIL_NOTIF_TEST]
     template_name = "notification_agents_dossier"
     context = {
@@ -145,9 +132,9 @@ def notifier_agents_dossier(request, dossier_id):
         ", ".join(destinataires_copie_metier) or "aucun agent",
         outbox.id,
     )
-    message = f"Mail envoyé à {len(agents)} agent(s)"
-    if agents_copie:
-        message += f", avec {len(agents_copie)} agent(s) en copie"
+    message = f"Mail envoyé à {len(destinataires_metier)} destinataire(s)"
+    if destinataires_copie_metier:
+        message += f", avec {len(destinataires_copie_metier)} destinataire(s) en copie"
     message += "."
     messages.success(request, message)
     return JsonResponse({
