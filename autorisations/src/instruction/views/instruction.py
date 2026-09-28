@@ -17,6 +17,7 @@ from autorisations.models.models_documents import Document, DocumentFormat, Docu
 from autorisations.models.models_avis import AvisDocument, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
+from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, get_motif_decision, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
@@ -42,6 +43,7 @@ from datetime import datetime
 from django.db.models import Min
 from django.views.decorators.http import require_POST
 from django.http import Http404
+from instruction.views.errors import dossier_introuvable
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from django.contrib.auth import get_user_model
@@ -753,7 +755,7 @@ def instruction_dossier(request, num_dossier):
     dossier = Dossier.objects.filter(numero=num_dossier).first()
     if not dossier:
         logger.error(f"[INSTRUCTION DOSSIER] Erreur lors de l'affichage de la page par {request.user} : Dossier {num_dossier} introuvable.")
-        return redirect_error(request, f"❌ Le dossier {num_dossier} est introuvable en base. Contactez le support")
+        return dossier_introuvable(request, num_dossier, "DN")
     
     demarche = dossier.id_demarche
 
@@ -1010,11 +1012,7 @@ def instruction_dossier(request, num_dossier):
                 get_indicateurs_date_manifestation(doss_manif_sportive.date_debut_evenement)
             )
 
-            # Récupération de l'avis lié (OneToOne → un seul)
-            try:
-                avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
-            except Exception:
-                avis_manif_sportive = None  # Aucun avis encore associé
+            avis_manif_sportive = get_avis_dm_le_plus_recent(doss_manif_sportive)
 
             # Récupération des PJ sur DM + emplacement NAS
             docs_DM = documents_deposes_sur_DM(doss_manif_sportive)

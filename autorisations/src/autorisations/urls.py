@@ -6,6 +6,8 @@ from django.views.generic import RedirectView
 from . import views
 from .custom_admin import custom_admin_site
 
+handler404 = "instruction.views.errors.erreur_404"
+
 # Vue de redirection explicite
 def redirect_to_admin(request):
     return redirect('/bancarisation/')

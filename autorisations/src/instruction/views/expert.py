@@ -28,6 +28,7 @@ from instruction.utils.avis_utils import (
     utilisateur_est_publicateur_raa_cs,
 )
 from instruction.utils.dossier_utils import get_chemin_complet_dossier, redirect_error
+from instruction.views.errors import avis_introuvable
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import enregistrer_document
 
@@ -243,7 +244,7 @@ def avis_expert(request, avis_id):
     avis = Avis.objects.filter(id=avis_id).select_related("id_instructeur","id_expert","id_demarche",).first()
     if not avis:
         logger.error(f"[AVIS EXPERT] Avis {avis_id} introuvable — User {request.user}")
-        return redirect_error(request, "L'avis demandé est introuvable. Contactez le support.")
+        return avis_introuvable(request, avis_id)
 
     instructeur = Instructeur.objects.filter(email=email_user).first()
 

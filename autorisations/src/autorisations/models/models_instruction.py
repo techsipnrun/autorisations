@@ -575,8 +575,19 @@ class SynchronisationEtat(models.Model):
 class AvisManifSportive(models.Model):
     id = models.AutoField(primary_key=True)
     id_avis_manif_sportive = models.IntegerField()
-    id_dossier_manif_sportive = models.OneToOneField(DossierManifSportive, on_delete=models.CASCADE, db_column='id_dossier_manif_sportive', 
-                                                    to_field='id', related_name='avis', null=True, blank=True)
+    # Un dossier DM peut avoir plusieurs demandes d'avis successives.
+    # La base autorise déjà cette cardinalité (certains dossiers possèdent
+    # effectivement plusieurs lignes) : elle ne doit donc pas être modélisée
+    # comme une relation OneToOne côté Django.
+    id_dossier_manif_sportive = models.ForeignKey(
+        DossierManifSportive,
+        on_delete=models.CASCADE,
+        db_column='id_dossier_manif_sportive',
+        to_field='id',
+        related_name='avis',
+        null=True,
+        blank=True,
+    )
     etat = models.TextField(null=True, blank=True)
     service = models.TextField(null=True, blank=True)
     date_demande = models.DateTimeField(null=True, blank=True)

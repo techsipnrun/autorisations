@@ -17,6 +17,7 @@ from autorisations.models.models_avis import Avis, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, creer_dossier_sur_nas, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
+from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.document_utils import (
     NATURES_VALIDES,
     NATURES_VALIDES_AVEC_RAPPORT,
@@ -750,7 +751,7 @@ def dossier_non_soumis_a_autorisation(request):
                 num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
 
                 # Récupération de l'avis associé
-                avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
+                avis_dm = get_avis_dm_le_plus_recent(dossier_dm)
                 if not avis_dm:
                     logger.error(f"[DOSSIER {dossier.numero}] Classement comme 'Non soumis à autorisation' par {request.user} - "
                                 f"Aucun Avis DM associé au Dossier DM {num_dossier_dm}.")

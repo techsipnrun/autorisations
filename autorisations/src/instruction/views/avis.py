@@ -30,6 +30,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, expert_est_conseil_scientifique, get_documents_zip_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
+from instruction.views.errors import avis_introuvable
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
@@ -170,7 +171,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
         if not avis:
             logger.error(f"[AJOUT AVIS] Dossier {num_dossier} — Avis {avis_id} introuvable ou non lié au dossier.")
-            return redirect_error(request, f"L'avis {avis_id} est introuvable pour ce dossier. Contactez le support.")
+            return avis_introuvable(request, avis_id, num_dossier)
             
         
 
@@ -1404,7 +1405,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
     avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
     if not avis:
         logger.error(f"[INSTRUCTION AVIS] Avis {avis_id} introuvable par {request.user} pour le dossier {num_dossier}")
-        return redirect_error(request, f"L'avis demandé est introuvable. Contactez le support.")
+        return avis_introuvable(request, avis_id, num_dossier)
 
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()

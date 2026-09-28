@@ -12,6 +12,7 @@ from django.contrib import messages
 
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur, Instructeur
 from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
+from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from django.db.models import Q
 
 
@@ -1044,7 +1045,7 @@ def check_si_on_casse_liaison_dm(dossier:Dossier, dossier_dm:DossierManifSportiv
     etape_dossier = dossier.id_etape_dossier.etape
 
     # Récupération de l'avis DM
-    avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
+    avis_dm = get_avis_dm_le_plus_recent(dossier_dm)
     avis_dm_numero = avis_dm.id_avis_manif_sportive
 
     # ----------------------

@@ -16,8 +16,10 @@ from autorisations.models.models_utilisateurs import ContactExterne, DossierMani
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas
 from declaration_manifestations.get_methods import get_access_token
 from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive, user_est_receptionniste_manif_sportive
+from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, get_actions_possibles_DM, redirect_error
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail
+from instruction.views.errors import dossier_introuvable
 from notifications.service import compute_dedupe_key, create_EmailOutbox_DM, envoi_mail
 from synchronisation.utils.instruction import archive_lier_dossier_dm_au_dossier_dn, lier_dossier_dm_au_dossier_dn
 
@@ -32,7 +34,11 @@ def dossier_manif_sportive_sans_ds(request, numero):
     Affichage en Reception des Dossiers DM (qui ne sont pas liés à un Dossier DN)
     """
 
-    doss_manif_sportive = get_object_or_404(DossierManifSportive, numero_dossier_declaration_manifestations=numero)
+    doss_manif_sportive = DossierManifSportive.objects.filter(
+        numero_dossier_declaration_manifestations=numero
+    ).first()
+    if not doss_manif_sportive:
+        return dossier_introuvable(request, numero, "DM")
     liaison_existante = DossierManifestationLiaison.objects.filter(
         id_dossier_manif=doss_manif_sportive,
     ).select_related("id_dossier__id_etape_dossier").first()
@@ -118,11 +124,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
             today <= date_evenement <= today + timedelta(days=30)
         )
 
-    # Récupération de l'avis lié (OneToOne → un seul)
-    try:
-        avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
-    except Exception:
-        avis_manif_sportive = None  # Aucun avis associé
+    avis_manif_sportive = get_avis_dm_le_plus_recent(doss_manif_sportive)
 
     # Charger le fond de carte GeoJSON (une seule fois)
     fond_coeur_de_parc = os.path.join(settings.BASE_DIR, "instruction/static/instruction/carto/fond_coeur_de_parc.geojson")
@@ -691,10 +693,9 @@ def ajouter_annexe_sur_DM(request, id_dm):
             return redirect_error(request, msg)
         
 
-        # Récupération de l'AvisManifSportive lié
-        try:
-            avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
-        except Exception:
+        # Récupération de l'avis DM le plus récent
+        avis_manif_sportive = get_avis_dm_le_plus_recent(doss_manif_sportive)
+        if not avis_manif_sportive:
             return redirect_error(request, f"Impossible de déposer une pièce jointe sur Déclaration Manifestations pour le dossier {manif_id}, aucun avis trouvé. Contactez le support.")
 
         avis_id = avis_manif_sportive.id_avis_manif_sportive

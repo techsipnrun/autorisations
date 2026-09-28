@@ -12,6 +12,7 @@ from autorisations.models.models_utilisateurs import DossierManifSportiveInstruc
 from autorisations.utils.nas_fonctions import _normalize_unc_path, copier_dossier_smb, ecrire_file_sur_nas, supprimer_dossier_smb_recursif
 from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_token, rendre_avis
 from instruction.utils.document_utils import normaliser_emplacement
+from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.dossier_utils import redirect_error, redirect_info
 from instruction.utils.files_utils import sanitiser_nom_fichier, valider_fichiers_dm
 from synchronisation.utils.fichiers import get_nom_disponible
@@ -226,7 +227,7 @@ def reception_charger_contexte_avis_dm(request, *, dossier_dm_id, nom_etape_cibl
     num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
 
     # Récupération de l'avis associé
-    avis_dm = AvisManifSportive.objects.select_for_update().filter(id_dossier_manif_sportive=dossier_dm).first()
+    avis_dm = get_avis_dm_le_plus_recent(dossier_dm, verrouiller=True)
     if not avis_dm:
         logger.error(f"[Dossier DM {num_dossier_dm} - Réception - {label_action}] Utilisateur : {request.user}. Aucun Avis DM associé au Dossier DM.")
         return None, redirect_error(request, f"Aucun avis associé au dossier Déclaration Manifestations n° {num_dossier_dm}. Contactez le support.")
@@ -496,7 +497,7 @@ def documents_deposes_sur_DM(doss_manif_sportive):
     # Déclaration Manifestations. Les notifications conservent en plus les
     # identifiants des PJ effectivement détectées après avis ; elles servent de
     # preuve de repli pour les anciens avis dont date_reponse est absente.
-    avis = getattr(doss_manif_sportive, "avis", None)
+    avis = get_avis_dm_le_plus_recent(doss_manif_sportive)
     date_reponse_avis = avis.date_reponse if avis else None
     pj_dm_ids_notifiees_apres_avis = set()
     notifications_apres_avis = EmailOutbox.objects.filter(
@@ -585,7 +586,7 @@ def _get_contexte_dossier_dm(dossier, request, logger, action_log, message_succe
 
     num_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
 
-    avis_dm = AvisManifSportive.objects.filter(id_dossier_manif_sportive=dossier_dm).first()
+    avis_dm = get_avis_dm_le_plus_recent(dossier_dm)
     if not avis_dm:
         logger.error(f"[DOSSIER {dossier.numero}] {action_log} ({request.user}) : Aucun Avis DM associé au Dossier DM {num_dossier_dm}.")
         return None, redirect_error(

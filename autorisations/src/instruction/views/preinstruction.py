@@ -17,6 +17,7 @@ from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
+from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances, user_recoit_notifications_reception_manif_sportive
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
@@ -28,6 +29,7 @@ import ast
 from collections import defaultdict
 
 from synchronisation.utils.instruction import lier_dossier_dm_au_dossier_dn
+from instruction.views.errors import dossier_introuvable
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -299,7 +301,7 @@ def preinstruction_dossier(request, numero):
     dossier = Dossier.objects.filter(numero=numero).first()
     if not dossier:
         logger.error(f"[PREINSTRUCTION DOSSIER] Erreur lors de l'affichage de la page par {request.user} : Dossier {numero} introuvable.")
-        return redirect_error(request, f"❌ Le dossier {numero} est introuvable en base. Contactez le support")
+        return dossier_introuvable(request, numero, "DN")
 
     # Normalisation du path complet
     chemin_complet = dossier.emplacement
@@ -452,8 +454,7 @@ def preinstruction_dossier(request, numero):
                     today <= date_evenement <= today + timedelta(days=30)
                 )
 
-            # Récupération de l'avis lié (OneToOne → un seul)
-            avis_manif_sportive = doss_manif_sportive.avis  # grâce à related_name='avis'
+            avis_manif_sportive = get_avis_dm_le_plus_recent(doss_manif_sportive)
             
             # Récupération des PJ sur DM + emplacement NAS
             docs_DM = documents_deposes_sur_DM(doss_manif_sportive)

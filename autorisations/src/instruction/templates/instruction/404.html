@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if dossier_introuvable %}Dossier introuvable{% elif avis_introuvable %}Avis introuvable{% else %}Page introuvable{% endif %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/erreur_404.css' %}">
+</head>
+<body class="page-erreur-404">
+    {% if request.user.is_authenticated %}{% include 'navbar.html' %}{% endif %}
+
+    <main class="erreur-404-main">
+        <section class="erreur-404-carte" role="alert">
+            <div class="erreur-404-code" aria-hidden="true">404</div>
+            {% if dossier_introuvable %}
+                <p class="erreur-404-surtitre">Dossier {{ type_dossier }}</p>
+                <h1>Dossier introuvable</h1>
+                <p class="erreur-404-message">
+                    Le dossier {{ type_dossier }} n° <strong>{{ numero_dossier }}</strong>
+                    n’existe pas dans cette base de données.
+                </p>
+                <p class="erreur-404-aide">
+                    Il peut ne pas encore avoir été synchronisé, avoir été purgé,
+                    ou appartenir à un autre environnement (développement ou production).
+                </p>
+            {% elif avis_introuvable %}
+                <p class="erreur-404-surtitre">Demande d’avis</p>
+                <h1>Avis introuvable</h1>
+                <p class="erreur-404-message">
+                    L’avis n° <strong>{{ numero_avis }}</strong>
+                    {% if numero_dossier %}associé au dossier DN n° <strong>{{ numero_dossier }}</strong> {% endif %}
+                    n’existe pas dans cette base de données.
+                </p>
+                <p class="erreur-404-aide">
+                    Il peut avoir été supprimé, ne plus être lié à ce dossier,
+                    ou appartenir à un autre environnement.
+                </p>
+            {% else %}
+                <p class="erreur-404-surtitre">Navigation</p>
+                <h1>Page introuvable</h1>
+                <p class="erreur-404-message">Cette adresse n’existe pas ou n’est plus disponible.</p>
+            {% endif %}
+
+            <div class="erreur-404-actions">
+                {% if request.user.is_authenticated %}
+                    {% if avis_introuvable %}
+                        <a class="erreur-404-action erreur-404-action-principale" href="{% url 'avis_view' %}">Mes avis</a>
+                        {% if numero_dossier %}<a class="erreur-404-action" href="{% url 'instruction_dossier' numero_dossier %}">Retour au dossier</a>{% endif %}
+                    {% else %}
+                        <a class="erreur-404-action erreur-404-action-principale" href="{% url 'requetes_view' %}">Rechercher un dossier</a>
+                        <a class="erreur-404-action" href="{% url 'mesdossiers_view' %}">Mes dossiers</a>
+                    {% endif %}
+                {% else %}
+                    <a class="erreur-404-action erreur-404-action-principale" href="{% url 'login' %}">Se connecter</a>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,96 @@
+:root {
+    --erreur-vert: #006131;
+    --erreur-vert-fonce: #004b27;
+    --erreur-fond: #f3f7f4;
+    --erreur-texte: #202923;
+    --erreur-bordure: #cbd8cf;
+}
+
+* { box-sizing: border-box; }
+
+body.page-erreur-404 {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--erreur-fond);
+    color: var(--erreur-texte);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.erreur-404-main {
+    min-height: calc(100vh - 76px);
+    padding: clamp(24px, 6vw, 72px) 20px;
+    display: grid;
+    place-items: center;
+}
+
+.erreur-404-carte {
+    width: min(100%, 680px);
+    padding: clamp(28px, 5vw, 52px);
+    border: 1px solid var(--erreur-bordure);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 16px 45px rgba(20, 55, 35, 0.09);
+    text-align: center;
+}
+
+.erreur-404-code {
+    margin-bottom: 12px;
+    color: rgba(0, 97, 49, 0.14);
+    font-size: clamp(4rem, 14vw, 7.5rem);
+    font-weight: 800;
+    line-height: 0.85;
+}
+
+.erreur-404-surtitre {
+    margin: 24px 0 6px;
+    color: var(--erreur-vert);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.erreur-404-carte h1 {
+    margin: 0 0 18px;
+    font-size: clamp(1.65rem, 4vw, 2.35rem);
+}
+
+.erreur-404-message,
+.erreur-404-aide {
+    margin: 0 auto 12px;
+    max-width: 560px;
+    line-height: 1.55;
+}
+
+.erreur-404-aide { color: #59645d; font-size: 0.94rem; }
+
+.erreur-404-actions {
+    margin-top: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+
+.erreur-404-action {
+    padding: 11px 18px;
+    border: 1px solid var(--erreur-vert);
+    border-radius: 7px;
+    color: var(--erreur-vert);
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.erreur-404-action:hover,
+.erreur-404-action:focus-visible,
+.erreur-404-action-principale { background: var(--erreur-vert); color: #fff; }
+
+.erreur-404-action-principale:hover,
+.erreur-404-action-principale:focus-visible { background: var(--erreur-vert-fonce); }
+
+@media (max-width: 600px) {
+    .erreur-404-main { min-height: calc(100vh - 60px); padding: 18px 12px; }
+    .erreur-404-carte { padding: 28px 18px; border-radius: 10px; }
+    .erreur-404-actions { align-items: stretch; flex-direction: column; }
+}
