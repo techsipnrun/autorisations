@@ -1,0 +1,16 @@
+<div class="mail-destinataires">
+    {% for mail in email.to %}
+        {% if forloop.counter <= 3 %}<p>{{ mail }}</p>{% endif %}
+    {% endfor %}
+
+    {% if email.to|length > 3 %}
+        <details class="mail-destinataires-suite">
+            <summary title="Afficher les autres destinataires" aria-label="Afficher les autres destinataires">&hellip;</summary>
+            <div class="mail-destinataires-complement">
+                {% for mail in email.to %}
+                    {% if forloop.counter > 3 %}<p>{{ mail }}</p>{% endif %}
+                {% endfor %}
+            </div>
+        </details>
+    {% endif %}
+</div>

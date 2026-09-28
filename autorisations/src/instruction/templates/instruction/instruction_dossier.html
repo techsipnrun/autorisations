@@ -17,7 +17,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=15">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
@@ -2488,9 +2488,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                         <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
                                     {% endif %}
                                     
-                                    {% for mail in email.to %}
-                                        <p>{{ mail }}</p>
-                                    {% endfor %}
+                                    {% include 'refacto/destinataires_mail_compacts.html' with email=email %}
 
                                     {% if email.statut != 'Envoyé' %}
                                         <form action="{% url 'envoyer_mail_en_copie' email.id %}" method="post">

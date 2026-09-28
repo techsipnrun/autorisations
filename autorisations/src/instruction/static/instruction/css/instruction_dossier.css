@@ -1229,7 +1229,11 @@
 
 .dossiers-meme-acte-rappel {
     margin: 0 0 0.65rem;
-    color: #8b0000;
+    padding: 0.5rem 0.65rem;
+    border-left: 3px solid #315a86;
+    border-radius: 0 5px 5px 0;
+    color: #29445f;
+    background: #edf3f8;
     font-size: 0.95rem;
     font-style: italic;
 }
@@ -2142,6 +2146,45 @@
 .mails_dossier p {
     font-style: italic;
     margin: 0.2rem 0;
+}
+
+.mail-destinataires-suite {
+    display: inline-block;
+    max-width: 100%;
+}
+
+.mail-destinataires-suite summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 1.35rem;
+    margin-top: 0.15rem;
+    padding: 0 0.4rem 0.25rem;
+    border: 1px solid #b9c5cf;
+    border-radius: 10px;
+    color: #315a86;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    list-style: none;
+}
+
+.mail-destinataires-suite summary::-webkit-details-marker {
+    display: none;
+}
+
+.mail-destinataires-suite summary:hover,
+.mail-destinataires-suite summary:focus-visible {
+    border-color: #315a86;
+    background: #edf3f8;
+    outline: none;
+}
+
+.mail-destinataires-suite[open] > summary {
+    display: none;
 }
 
 .btn_envoi_mail {

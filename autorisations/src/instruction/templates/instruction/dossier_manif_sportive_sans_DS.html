@@ -25,7 +25,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=8">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=11">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
@@ -899,9 +899,7 @@ Le Parc national de La Réunion</textarea>
                                 <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
                             {% endif %}
                             
-                            {% for mail in email.to %}
-                                <p>{{ mail }}</p>
-                            {% endfor %}
+                            {% include 'refacto/destinataires_mail_compacts.html' with email=email %}
 
                             {% if email.statut != 'Envoyé' %}
                                 <form action="{% url 'renvoyer_mail_relance' email.id %}" method="post">

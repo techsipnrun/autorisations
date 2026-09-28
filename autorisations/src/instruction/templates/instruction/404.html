@@ -19,11 +19,7 @@
                 <h1>Dossier introuvable</h1>
                 <p class="erreur-404-message">
                     Le dossier {{ type_dossier }} n° <strong>{{ numero_dossier }}</strong>
-                    n’existe pas dans cette base de données.
-                </p>
-                <p class="erreur-404-aide">
-                    Il peut ne pas encore avoir été synchronisé, avoir été purgé,
-                    ou appartenir à un autre environnement (développement ou production).
+                    n’existe pas.
                 </p>
             {% elif avis_introuvable %}
                 <p class="erreur-404-surtitre">Demande d’avis</p>
@@ -31,11 +27,10 @@
                 <p class="erreur-404-message">
                     L’avis n° <strong>{{ numero_avis }}</strong>
                     {% if numero_dossier %}associé au dossier DN n° <strong>{{ numero_dossier }}</strong> {% endif %}
-                    n’existe pas dans cette base de données.
+                    n’existe pas.
                 </p>
                 <p class="erreur-404-aide">
-                    Il peut avoir été supprimé, ne plus être lié à ce dossier,
-                    ou appartenir à un autre environnement.
+                    Il peut avoir été supprimé.
                 </p>
             {% else %}
                 <p class="erreur-404-surtitre">Navigation</p>

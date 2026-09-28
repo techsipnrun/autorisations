@@ -31,7 +31,7 @@ def avis_introuvable(request, avis_id, numero_dossier=None):
     )
 
 
-def erreur_404(request, exception):
+def erreur_404(request, exception=None):
     """Page 404 générale, enrichie lorsqu'une URL de dossier est reconnue."""
     chemin = request.path_info
     correspondance_dm = re.fullmatch(
