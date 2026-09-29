@@ -486,7 +486,12 @@ def documents_deposes_sur_DM(doss_manif_sportive):
     """
 
     actes_natures = {"Avis conforme", "Avis simple", "Déliberation CA", "Arrêté directeur",}
-    documents_DM = [ d.id_document for d in DossierManifSportiveDocument.objects.filter( id_dossier_manif_sportive=doss_manif_sportive)]
+    documents_DM = [
+        lien.id_document
+        for lien in DossierManifSportiveDocument.objects.filter(
+            id_dossier_manif_sportive=doss_manif_sportive
+        ).select_related("id_document__id_nature")
+    ]
 
     pjs_demandeur_DM = [
         doc for doc in documents_DM

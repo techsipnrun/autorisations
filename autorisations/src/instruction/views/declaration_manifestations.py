@@ -163,9 +163,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         .select_related("id_demarche", "id_etape_dossier")
         .order_by("date_depot")
     )
-    for d in dossiers_DN_manif_sportive_non_lie :
-        champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
-        d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+    dossiers_DN_manif_sportive_non_lie = list(dossiers_DN_manif_sportive_non_lie)
 
 
     # DOSSIER DN ARCHIVÉ, PAS LIÉ
@@ -182,21 +180,36 @@ def dossier_manif_sportive_sans_ds(request, numero):
         .select_related("id_demarche", "id_etape_dossier")
         .order_by("date_depot")
     )
-    for d in dossiers_DN_archive_manif_sportive_non_lie :
-        champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
-        d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+    dossiers_DN_archive_manif_sportive_non_lie = list(
+        dossiers_DN_archive_manif_sportive_non_lie
+    )
 
 
-    dossiers_DN_accepte_manif_sportive_non_lie = (dossiers_DN_archive_manif_sportive_non_lie.filter(id_etape_dossier__etape="Accepté"))
-    for d in dossiers_DN_accepte_manif_sportive_non_lie:
-        champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
-        d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+    dossiers_DN_accepte_manif_sportive_non_lie = [
+        dossier
+        for dossier in dossiers_DN_archive_manif_sportive_non_lie
+        if dossier.id_etape_dossier.etape == "Accepté"
+    ]
 
 
-    dossiers_DN_refuse_manif_sportive_non_lie = (dossiers_DN_archive_manif_sportive_non_lie.filter(id_etape_dossier__etape="Refusé"))
-    for d in dossiers_DN_refuse_manif_sportive_non_lie:
-        champ_nom_manifestation = DossierChamp.objects.filter(id_dossier=d, id_champ__nom="Nom de la manifestation").first()
-        d.nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+    dossiers_DN_refuse_manif_sportive_non_lie = [
+        dossier
+        for dossier in dossiers_DN_archive_manif_sportive_non_lie
+        if dossier.id_etape_dossier.etape == "Refusé"
+    ]
+
+    dossiers_dn_affiches = (
+        dossiers_DN_manif_sportive_non_lie
+        + dossiers_DN_archive_manif_sportive_non_lie
+    )
+    noms_manifestations = dict(
+        DossierChamp.objects.filter(
+            id_dossier_id__in=[dossier.id for dossier in dossiers_dn_affiches],
+            id_champ__nom="Nom de la manifestation",
+        ).values_list("id_dossier_id", "valeur")
+    )
+    for dossier in dossiers_dn_affiches:
+        dossier.nom_manifestation = noms_manifestations.get(dossier.id) or "N/A"
 
         
 

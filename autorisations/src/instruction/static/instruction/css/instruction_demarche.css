@@ -22,6 +22,109 @@ h2 {
     margin: 0 auto;        /* centre la page */
 }
 
+.delai-instruction {
+    position: relative;
+    width: fit-content;
+    max-width: calc(85% - 1rem);
+    margin: 0.65rem 0 0.65rem 7.5%;
+    padding: 0.65rem 2.7rem 0.65rem 0.85rem;
+    border: 1px solid #b7d2c1;
+    border-left: 4px solid #006131;
+    border-radius: 6px;
+    color: #214b34;
+    background: #f4faf6;
+    box-sizing: border-box;
+}
+
+.delai-instruction-info {
+    position: absolute;
+    z-index: 5;
+    top: 0.45rem;
+    right: 0.55rem;
+    display: inline-flex;
+    cursor: help;
+}
+
+.delai-instruction-info-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid #315a86;
+    border-radius: 50%;
+    color: #315a86;
+    background: #fff;
+    font-family: Georgia, serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.delai-instruction-info-bulle {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 0.55rem);
+    width: min(25rem, 70vw);
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #9cacc0;
+    border-radius: 7px;
+    color: #263746;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.16);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.4;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(0.2rem, -50%);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.delai-instruction-info:hover .delai-instruction-info-bulle,
+.delai-instruction-info:focus .delai-instruction-info-bulle,
+.delai-instruction-info:focus-within .delai-instruction-info-bulle {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(0, -50%);
+}
+
+.chargement-annee-archives[hidden] {
+    display: none;
+}
+
+.chargement-annee-archives {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(1px);
+}
+
+.chargement-annee-archives-contenu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 1.4rem 2rem;
+    border: 1px solid #b7c9bd;
+    border-radius: 10px;
+    color: #194f31;
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.chargement-annee-archives-contenu img {
+    width: 3rem;
+    height: 3rem;
+    color: #176b3a;
+    animation: rotation-chargement-archives 0.8s linear infinite;
+}
+
+@keyframes rotation-chargement-archives {
+    to { transform: rotate(360deg); }
+}
+
 
 /* -------------------------------------------------------- */
 /* ----------- Filtre "Mes dossiers uniquement" ----------- */

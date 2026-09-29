@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
 import datetime
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils.timezone import localtime
 from pathlib import Path
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
@@ -90,7 +90,7 @@ def avis(request):
         # Avis à rendre
         avis_a_rendre = (
             Avis.objects.filter(id_expert=expert, reponse__isnull=True, statut="Envoyé")
-            .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
+            .select_related("id_demarche", "id_dossier", "id_instructeur__id_agent_autorisations", "id_avis_nature")
             .prefetch_related("dossieravis_set__id_dossier")
             .order_by("-date_demande_avis")
         )
@@ -98,7 +98,7 @@ def avis(request):
         # Avis archivés de l’année
         avis_rendus = (
             Avis.objects.filter(id_expert=expert, reponse__isnull=False, date_reponse_avis__year=selected_year_expert, statut="Envoyé")
-            .select_related("id_demarche", "id_dossier", "id_instructeur", "id_avis_nature")
+            .select_related("id_demarche", "id_dossier", "id_instructeur__id_agent_autorisations", "id_avis_nature")
             .prefetch_related("dossieravis_set__id_dossier")
             .order_by("-date_reponse_avis")
         )
@@ -112,12 +112,6 @@ def avis(request):
         # Ajoute l'année courante si absente
         if not any(d.year == current_year for d in annees_disponibles_expert):
             annees_disponibles_expert.insert(0, datetime.date(current_year, 1, 1))
-
-        # Messages non lus en tant qu'expert
-        for liste_avis in [avis_a_rendre, avis_rendus]:
-            for a in liste_avis:
-                a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False).exclude(email_emetteur=request.user.email).count()
-
 
     # ================================
     # ========== DEMANDEUR ===========
@@ -148,7 +142,8 @@ def avis(request):
                 )
                 .exclude(publie_au_raa=True)
                 .select_related(
-                    "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
+                    "id_demarche", "id_dossier", "id_expert__id_instructeur__id_agent_autorisations",
+                    "id_expert__id_contact_externe", "id_avis_nature"
                 )
                 .prefetch_related("dossieravis_set__id_dossier")
                 .distinct()
@@ -165,7 +160,8 @@ def avis(request):
             )
             .exclude(pk__in=avis_a_publier_ids)
             .select_related(
-                "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
+                "id_demarche", "id_dossier", "id_expert__id_instructeur__id_agent_autorisations",
+                "id_expert__id_contact_externe", "id_avis_nature"
             )
             .prefetch_related("dossieravis_set__id_dossier")
             .distinct()
@@ -183,7 +179,8 @@ def avis(request):
             )
             .exclude(pk__in=avis_a_publier_ids)
             .select_related(
-                "id_demarche", "id_dossier", "id_expert", "id_avis_nature"
+                "id_demarche", "id_dossier", "id_expert__id_instructeur__id_agent_autorisations",
+                "id_expert__id_contact_externe", "id_avis_nature"
             )
             .prefetch_related("dossieravis_set__id_dossier")
             .distinct()
@@ -205,14 +202,35 @@ def avis(request):
             annees_disponibles_demandeur.insert(0, datetime.date(current_year, 1, 1))
 
 
-        # Messages non lus en tant que demandeur
-        for liste_avis in [demandes_en_cours, demandes_traitees]:
-            for a in liste_avis:
-                if a.id_expert.est_interne :
-                    email_expert = a.id_expert.id_instructeur.email
-                else :
-                    email_expert = a.id_expert.id_contact_externe.email
-                a.nb_messages_non_lus = Message.objects.filter(id_avis=a, lu=False, email_emetteur=email_expert).count()
+    # Une seule requete pour les compteurs de messages de toutes les listes.
+    avis_a_rendre = list(avis_a_rendre)
+    avis_rendus = list(avis_rendus)
+    demandes_en_cours = list(demandes_en_cours)
+    demandes_traitees = list(demandes_traitees)
+    demandes_avis_a_publier_au_RAA = list(demandes_avis_a_publier_au_RAA)
+    avis_avec_compteur = avis_a_rendre + avis_rendus + demandes_en_cours + demandes_traitees
+    messages_par_avis_et_emetteur = {
+        (avis_id, email): total
+        for avis_id, email, total in Message.objects.filter(
+            id_avis_id__in=[a.id for a in avis_avec_compteur],
+            lu=False,
+        ).values_list("id_avis_id", "email_emetteur").annotate(total=Count("id"))
+    }
+    for a in avis_a_rendre + avis_rendus:
+        a.nb_messages_non_lus = sum(
+            total
+            for (avis_id, email), total in messages_par_avis_et_emetteur.items()
+            if avis_id == a.id and email != request.user.email
+        )
+    for a in demandes_en_cours + demandes_traitees:
+        email_expert = (
+            a.id_expert.id_instructeur.email
+            if a.id_expert.est_interne
+            else a.id_expert.id_contact_externe.email
+        )
+        a.nb_messages_non_lus = messages_par_avis_et_emetteur.get(
+            (a.id, email_expert), 0
+        )
 
 
     return render(

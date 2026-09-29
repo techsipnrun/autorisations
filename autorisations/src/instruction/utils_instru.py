@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections import defaultdict
 import re
 import smtplib
 import unicodedata
@@ -312,6 +313,7 @@ def dossiers_reception_action_a_faire(dossiers, user):
     if not user.is_authenticated:
         return set()
     
+    dossiers = list(dossiers)
     dossiers_a_traiter_ids = set()
     instructeur = Instructeur.objects.filter(email=user.email).first()
     # Vérification rôle Reception
@@ -324,16 +326,28 @@ def dossiers_reception_action_a_faire(dossiers, user):
         est_receptionniste_SPPN = True
 
 
+    dossier_ids = [dossier.id for dossier in dossiers]
+    dossiers_manif_lies_ids = set(
+        DossierManifestationLiaison.objects.filter(
+            id_dossier_id__in=dossier_ids
+        ).values_list("id_dossier_id", flat=True)
+    )
+    affectations = defaultdict(set)
+    for dossier_id, instructeur_id in DossierInstructeur.objects.filter(
+        id_dossier_id__in=dossier_ids
+    ).values_list("id_dossier_id", "id_instructeur_id"):
+        affectations[dossier_id].add(instructeur_id)
+
     for dossier in dossiers:
         dossier_dn_manif_non_lie = (
             dossier.id_demarche
             and dossier.id_demarche.type.lower() == "manifestations sportives"
-            and not DossierManifestationLiaison.objects.filter(id_dossier=dossier).exists()
+            and dossier.id not in dossiers_manif_lies_ids
         )
         if dossier_dn_manif_non_lie:
-            instructeurs_affectes = DossierInstructeur.objects.filter(id_dossier=dossier)
-            if instructeurs_affectes.exists():
-                if instructeur and instructeurs_affectes.filter(id_instructeur=instructeur).exists():
+            instructeurs_affectes = affectations[dossier.id]
+            if instructeurs_affectes:
+                if instructeur and instructeur.id in instructeurs_affectes:
                     dossiers_a_traiter_ids.add(dossier.id)
             elif est_receptionniste_SAADD:
                 dossiers_a_traiter_ids.add(dossier.id)

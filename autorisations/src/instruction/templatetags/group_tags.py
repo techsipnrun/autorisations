@@ -10,25 +10,47 @@ from django.db.models import Q
 
 register = template.Library()
 
+
+def _group_names_for_user(user):
+    """Charge les groupes une seule fois pour l'instance User de la requete."""
+    cache_attr = "_instruction_group_names_cache"
+    if not hasattr(user, cache_attr):
+        group_names = set()
+        if user and user.is_authenticated:
+            group_names = set(user.groups.values_list("name", flat=True))
+        setattr(user, cache_attr, group_names)
+    return getattr(user, cache_attr)
+
+
+def _instructeur_for_user(user):
+    """Charge le profil instructeur une seule fois pour la requete courante."""
+    cache_attr = "_instruction_instructeur_cache"
+    if not hasattr(user, cache_attr):
+        instructeur = None
+        if user and user.is_authenticated and user.email:
+            instructeur = Instructeur.objects.filter(
+                email__iexact=user.email.strip()
+            ).first()
+        setattr(user, cache_attr, instructeur)
+    return getattr(user, cache_attr)
+
 @register.filter(name='has_group')
 def has_group(user, group_name):
     """ Vérifie si un utilisateur appartient à un groupe spécifique """
-    return user.groups.filter(name=group_name).exists()
+    return group_name in _group_names_for_user(user)
 
 
 @register.filter(name='has_any_group')
 def has_any_group(user, group_names):
     """Vérifie si l'utilisateur appartient à l'un des groupes fournis (séparés par des virgules)."""
     group_list = [name.strip() for name in group_names.split(',')]
-    return user.groups.filter(name__in=group_list).exists()
+    return bool(_group_names_for_user(user).intersection(group_list))
 
 
 @register.filter(name="a_profil_instructeur")
 def a_profil_instructeur(user):
     """Indique si l'utilisateur authentifié possède un profil Instructeur."""
-    if not user or not user.is_authenticated or not user.email:
-        return False
-    return Instructeur.objects.filter(email__iexact=user.email.strip()).exists()
+    return _instructeur_for_user(user) is not None
 
 
 
@@ -49,20 +71,32 @@ def est_concerne_par_le_dossier(user, dossier):
     """
 
     # 1 utilisateur non connecté → non concerné
+    cache = getattr(user, "_instruction_est_concerne_cache", None)
+    if cache is None:
+        cache = {}
+        setattr(user, "_instruction_est_concerne_cache", cache)
+    cache_key = getattr(dossier, "pk", None)
+    if cache_key in cache:
+        return cache[cache_key]
+
     if not user.is_authenticated:
+        cache[cache_key] = False
         return False
 
     # 2 superuser → toujours concerné
     if user.is_superuser:
+        cache[cache_key] = True
         return True
 
     # Si on est sur un dossier DM
     if not isinstance(dossier, Dossier):
+        cache[cache_key] = False
         return False
 
     # 3 recherche d’un Instructeur par email exact (champ email du modèle Instructeur)
-    instructeur = Instructeur.objects.filter(email__iexact=user.email).first()
+    instructeur = _instructeur_for_user(user)
     if not instructeur:
+        cache[cache_key] = False
         return False  # aucun instructeur lié à cet utilisateur
 
     # 4 Vérifie tous les liens directs avec le dossier
@@ -76,25 +110,30 @@ def est_concerne_par_le_dossier(user, dossier):
         or DossierEnvoiActe.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
         or DossierIntermediaireSignature.objects.filter(id_dossier=dossier, id_instructeur=instructeur).exists()
     ):
+        cache[cache_key] = True
         return True
     
 
     # 5 Vérifie si l’instructeur appartient au groupe instructeur du dossier
     if ( dossier.id_groupeinstructeur and GroupeinstructeurInstructeur.objects
         .filter(id_instructeur=instructeur,id_groupeinstructeur=dossier.id_groupeinstructeur).exists()):
+         cache[cache_key] = True
          return True
     
     # 6 Ajoute les receptionneurs selon le service SAADD ou SPPN
     if "Mission scientifique" in dossier.id_demarche.type :
-        if user.groups.filter(name="Réception SPPN").exists():
+        if "Réception SPPN" in _group_names_for_user(user):
+            cache[cache_key] = True
             return True
     else :
-        if user.groups.filter(name="Réception SAADD").exists():
+        if "Réception SAADD" in _group_names_for_user(user):
+            cache[cache_key] = True
             return True
 
 
     # 7 sinon → non concerné
 
+    cache[cache_key] = False
     return False
 
 

@@ -188,6 +188,48 @@ def _add_intermediaire_CA_if_needed(documents_du_dossier, base_list, intermediai
 
 
 def build_roles_for_dossier(dossier):
+    noms_groupes = [
+        "Intermédiaire CA",
+        "Envoi pour signature SAADD",
+        "Envoi pour signature SPPN",
+        "Envoi de l'acte SAADD",
+        "Envoi de l'acte SPPN",
+        "Publication RAA SAADD",
+        "Publication RAA SPPN",
+        "Validant-e SAADD",
+        "Validant-e SPPN",
+        "Relecteur-rice qualité SAADD",
+        "Relecteur-rice qualité SPPN",
+        "Signataire",
+    ]
+    groupes = {
+        groupe.name: groupe
+        for groupe in Group.objects.filter(name__in=noms_groupes).prefetch_related(
+            "user_set"
+        )
+    }
+    emails_groupes = {
+        nom: [user.email for user in groupe.user_set.all() if user.email]
+        for nom, groupe in groupes.items()
+    }
+    emails = {
+        email
+        for emails_groupe in emails_groupes.values()
+        for email in emails_groupe
+    }
+    instructeurs_par_email = {
+        instructeur.email: instructeur
+        for instructeur in Instructeur.objects.filter(email__in=emails).select_related(
+            "id_agent_autorisations"
+        )
+    }
+
+    def instructeurs_du_groupe(nom_groupe):
+        return [
+            instructeurs_par_email[email]
+            for email in emails_groupes.get(nom_groupe, [])
+            if email in instructeurs_par_email
+        ]
     """Construit tous les rôles (intermédiaires, envoyeurs, publieurs, validants...)"""
 
     # Instructeurs du dossier
@@ -200,11 +242,11 @@ def build_roles_for_dossier(dossier):
 
 
     # --- INTERMEDIAIRE CA ---
-    intermediaires_CA = _get_group_instructeurs("Intermédiaire CA")
+    intermediaires_CA = instructeurs_du_groupe("Intermédiaire CA")
 
     # --- POUR SIGNATURE SAADD / SPPN ---
-    inter_saadd = _get_group_instructeurs("Envoi pour signature SAADD")
-    inter_sppn = _get_group_instructeurs("Envoi pour signature SPPN")
+    inter_saadd = instructeurs_du_groupe("Envoi pour signature SAADD")
+    inter_sppn = instructeurs_du_groupe("Envoi pour signature SPPN")
 
     inter_saadd_fusion = _merge_without_duplicates(inter_saadd, instructeurs_du_dossier)
     inter_sppn_fusion = _merge_without_duplicates(inter_sppn, instructeurs_du_dossier)
@@ -219,8 +261,8 @@ def build_roles_for_dossier(dossier):
     # --- ENVOYEURS D'ACTE ---
     envoyeurs_dossier = Instructeur.objects.filter(dossierenvoiacte__id_dossier=dossier).select_related("id_agent_autorisations")
 
-    env_saadd = _get_group_instructeurs("Envoi de l'acte SAADD")
-    env_sppn = _get_group_instructeurs("Envoi de l'acte SPPN")
+    env_saadd = instructeurs_du_groupe("Envoi de l'acte SAADD")
+    env_sppn = instructeurs_du_groupe("Envoi de l'acte SPPN")
 
     env_saadd_fusion = _merge_without_duplicates(env_saadd, instructeurs_du_dossier)
     env_sppn_fusion = _merge_without_duplicates(env_sppn, instructeurs_du_dossier)
@@ -231,8 +273,8 @@ def build_roles_for_dossier(dossier):
     # --- PUBLIEURS RAA ---
     publieurs_dossier = Instructeur.objects.filter(dossierpublicationraa__id_dossier=dossier).select_related("id_agent_autorisations")
 
-    publieur_saadd = _get_group_instructeurs("Publication RAA SAADD")
-    publieur_sppn = _get_group_instructeurs("Publication RAA SPPN")
+    publieur_saadd = instructeurs_du_groupe("Publication RAA SAADD")
+    publieur_sppn = instructeurs_du_groupe("Publication RAA SPPN")
 
     publ_saadd_fusion = _merge_without_duplicates(publieur_saadd, instructeurs_du_dossier)
     publ_sppn_fusion = _merge_without_duplicates(publieur_sppn, instructeurs_du_dossier)
@@ -241,16 +283,16 @@ def build_roles_for_dossier(dossier):
     publ_sppn_fusion = _add_intermediaire_CA_if_needed(documents_du_dossier, publ_sppn_fusion, intermediaires_CA)
 
     # --- VALIDANTS ---
-    val_saadd = _get_group_instructeurs("Validant-e SAADD")
-    val_sppn = _get_group_instructeurs("Validant-e SPPN")
+    val_saadd = instructeurs_du_groupe("Validant-e SAADD")
+    val_sppn = instructeurs_du_groupe("Validant-e SPPN")
 
     validants_dossier = Instructeur.objects.filter(dossiervalideur__id_dossier=dossier).select_related("id_agent_autorisations")
 
     # --- RELECTEURS ---
     if dossier.id_demarche.service == 'SPPN':
-        relecteurs_group = _get_group_instructeurs("Relecteur-rice qualité SPPN")
+        relecteurs_group = instructeurs_du_groupe("Relecteur-rice qualité SPPN")
     else:
-        relecteurs_group = _get_group_instructeurs("Relecteur-rice qualité SAADD")
+        relecteurs_group = instructeurs_du_groupe("Relecteur-rice qualité SAADD")
 
     relecteurs_dossier = Instructeur.objects.filter(dossierrelecteurqualite__id_dossier=dossier).select_related("id_agent_autorisations")
 
@@ -258,7 +300,7 @@ def build_roles_for_dossier(dossier):
     relecteurs_fusion = _merge_without_duplicates(relecteurs_group, instructeurs_du_dossier)
 
     # --- Signataires ---
-    signataires_group = _get_group_instructeurs("Signataire")
+    signataires_group = instructeurs_du_groupe("Signataire")
 
     return {
         "intermediaires_CA": intermediaires_CA,

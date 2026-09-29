@@ -426,6 +426,12 @@ def requete_dossiers(request):
         .select_related("id_etape")
     )
 
+    # La page d'accueil des requetes n'affiche aucun resultat tant qu'aucun
+    # critere n'a ete saisi : ne pas charger toute la base inutilement.
+    if not request.GET:
+        dossiers = dossiers.none()
+        dossiers_dm = dossiers_dm.none()
+
     # POUR LE MOMENT ON EXCLU MANIFESTATIONS SPORTIVES
     # dossiers = dossiers.exclude(id_demarche__type="Manifestations sportives")
 
@@ -640,6 +646,9 @@ def requete_dossiers(request):
         Dossier.objects
         .filter(id__in=ids)
         .select_related("id_demarche", "id_groupeinstructeur", "id_etape_dossier")
+        .prefetch_related(
+            "dossierinterlocuteur_set__dossierbeneficiaire_set__id_beneficiaire"
+        )
         .order_by("-date_depot")
     )
 
@@ -670,9 +679,11 @@ def requete_dossiers(request):
             source = "dossier"
 
         beneficiaire = ""
-        interlocuteur = d.dossierinterlocuteur_set.first()
+        interlocuteurs = list(d.dossierinterlocuteur_set.all())
+        interlocuteur = interlocuteurs[0] if interlocuteurs else None
         if interlocuteur:
-            db = interlocuteur.dossierbeneficiaire_set.select_related("id_beneficiaire").first()
+            beneficiaires = list(interlocuteur.dossierbeneficiaire_set.all())
+            db = beneficiaires[0] if beneficiaires else None
             if db and db.id_beneficiaire:
                 b = db.id_beneficiaire
                 if getattr(b, "raison_sociale", None):

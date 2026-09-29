@@ -709,15 +709,11 @@
     const cibleResultatsId = {% if recherche_dossier_effectuee %}"resultats-dossiers-cible"{% elif recherche_avis_effectuee %}"resultats-avis-cible"{% else %}null{% endif %};
 
     // Sauvegarde la position du scroll avant de recharger la page
-    window.addEventListener("beforeunload", function () {
-        localStorage.setItem("scrollPosition", window.scrollY);
-    });
-
     // Restaure la position du scroll après le rechargement
+    window.history.scrollRestoration = "manual";
     window.addEventListener("load", function () {
+        localStorage.removeItem("scrollPosition");
         if (cibleResultatsId) {
-            localStorage.removeItem("scrollPosition");
-            window.history.scrollRestoration = "manual";
             requestAnimationFrame(() => {
                 const cible = document.getElementById(cibleResultatsId);
                 if (!cible) return;
@@ -728,11 +724,7 @@
             return;
         }
 
-        const scrollPosition = localStorage.getItem("scrollPosition");
-        if (scrollPosition !== null) {
-            window.scrollTo(0, parseInt(scrollPosition, 10));
-            localStorage.removeItem("scrollPosition"); // facultatif : nettoie après usage
-        }
+        window.scrollTo(0, 0);
     });
 </script>
 

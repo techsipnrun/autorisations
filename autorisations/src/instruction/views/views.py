@@ -1157,7 +1157,13 @@ def mes_dossiers_a_traiter_count(request):
         .distinct()
     )
 
-    dossiers_actions = dossiers_action_a_faire(dossiers, instructeur)
+    # Calcul groupé des rôles/actions : évite plusieurs requêtes par dossier
+    # sur toutes les pages qui affichent la barre de navigation.
+    from instruction.views.instruction import _actions_a_faire_ids
+    dossiers_actions_ids = _actions_a_faire_ids(
+        dossiers.select_related("id_etape_dossier", "id_demarche"),
+        instructeur,
+    )
     dossiers_dn_manif_non_lies_affectes = Dossier.objects.filter(
         id_etape_dossier__etape="À affecter",
         id_demarche__type__iexact="Manifestations sportives",
@@ -1175,7 +1181,7 @@ def mes_dossiers_a_traiter_count(request):
     ).distinct().count()
     return {
         "nb_dossiers_instruction": (
-            len(dossiers_actions)
+            len(dossiers_actions_ids)
             + dossiers_dn_manif_non_lies_affectes
             + dossiers_dm_affectes
         )
@@ -1190,7 +1196,9 @@ def mes_dossiers_a_receptionner_count(request):
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     # Dossiers (en reception) où l’utilisateur intervient
-    dossiers = Dossier.objects.filter(id_etape_dossier__etape="À affecter")
+    dossiers = Dossier.objects.filter(
+        id_etape_dossier__etape="À affecter"
+    ).select_related("id_demarche")
 
     dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
     dossiers_dm_non_lies = DossierManifSportive.objects.filter(
@@ -1633,7 +1641,10 @@ def gestion_groupes(request):
     if show_only_mine:
         groupes_instructeurs = [
             g for g in groupes_instructeurs
-            if g.groupeinstructeurinstructeur_set.filter(id_instructeur__email=user.email).exists()
+            if any(
+                lien.id_instructeur.email == user.email
+                for lien in g.groupeinstructeurinstructeur_set.all()
+            )
         ]
 
     # on construit un dict {groupe_id: [ids instructeurs déjà dedans]}

@@ -10,15 +10,15 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from autorisations.models.models_instruction import Champ, Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
-from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, Instructeur
+from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, EmailOutbox, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
 from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
-from instruction.utils.dm import documents_deposes_sur_DM, get_nb_relances, user_recoit_notifications_reception_manif_sportive
+from instruction.utils.dm import documents_deposes_sur_DM, user_recoit_notifications_reception_manif_sportive
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance, get_choix_destinataires_notification
@@ -30,6 +30,7 @@ from collections import defaultdict
 
 from synchronisation.utils.instruction import lier_dossier_dm_au_dossier_dn
 from instruction.views.errors import dossier_introuvable
+from instruction.views.instruction import _contacts_demandeurs_par_dossier
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -42,7 +43,11 @@ def preinstruction(request):
         logger.error("[PREINSTRUCTION] Étape 'À affecter' introuvable.")
         return redirect_error(request, "❌ Erreur interne : étape 'À affecter' introuvable.")
 
-    dossiers = Dossier.objects.filter(id_etape_dossier=etape_affecter).select_related("id_demarche").order_by("date_depot")
+    dossiers = list(
+        Dossier.objects.filter(id_etape_dossier=etape_affecter)
+        .select_related("id_demarche")
+        .order_by("date_depot")
+    )
 
     
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
@@ -54,6 +59,7 @@ def preinstruction(request):
     # dossiers_actions = dossiers_reception_action_a_faire(dossiers, request.user)
 
     # Infos sur les dossiers
+    demandeurs = _contacts_demandeurs_par_dossier([dossier.id for dossier in dossiers])
     dossier_infos = []
     for dossier in dossiers:
 
@@ -62,11 +68,7 @@ def preinstruction(request):
             continue
 
 
-        # Chercher le demandeur via DossierInterlocuteur
-        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).select_related("id_demandeur_intermediaire").first()
-        # demandeur = interlocuteur.id_demandeur_intermediaire if interlocuteur else None
-
-        demandeur = get_demandeur_for_dossier(dossier)
+        demandeur = demandeurs.get(dossier.id)
         
         # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés
         # if not demandeur or not(demandeur.prenom and demandeur.nom):
@@ -123,11 +125,24 @@ def preinstruction(request):
         .exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier_manif", flat=True))
         .order_by("date_debut_evenement")
     )
+    dossiers_manif_sportive_DM = list(dossiers_manif_sportive_DM)
     affectations_dm = defaultdict(set)
     for dossier_dm_id, instructeur_id in DossierManifSportiveInstructeur.objects.filter(
-        id_dossier_manif_sportive_id__in=dossiers_manif_sportive_DM.values_list("id", flat=True)
+        id_dossier_manif_sportive_id__in=[dm.id for dm in dossiers_manif_sportive_DM]
     ).values_list("id_dossier_manif_sportive_id", "id_instructeur_id"):
         affectations_dm[dossier_dm_id].add(instructeur_id)
+    relances_dm = {
+        ligne["id_dossier_dm_id"]: ligne["total"]
+        for ligne in (
+            EmailOutbox.objects.filter(
+                id_dossier_dm_id__in=[dm.id for dm in dossiers_manif_sportive_DM],
+                type_mail="Relance",
+                statut="Envoyé",
+            )
+            .values("id_dossier_dm_id")
+            .annotate(total=Count("id"))
+        )
+    }
     utilisateur_est_receptionniste_dm = user_recoit_notifications_reception_manif_sportive(request.user)
 
     # start = time.time()
@@ -166,7 +181,7 @@ def preinstruction(request):
         if dm.coeur_de_parc == True :
             # Les relances historiques restent comptabilisées, y compris lorsque
             # la date de l'événement est passée.
-            nb_relances = get_nb_relances(dm)
+            nb_relances = relances_dm.get(dm.id, 0)
 
             # L'envoi automatique reste réservé aux dossiers dont l'événement
             # n'est pas passé. Pour un dossier déjà calculé, l'avis DM doit exister.
@@ -198,8 +213,29 @@ def preinstruction(request):
     dossiers_manif_sportive_DS = (
         Dossier.objects.filter(id_demarche__type="Manifestations sportives", id_etape_dossier__etape="À affecter")
         .exclude(id__in=DossierManifestationLiaison.objects.values_list("id_dossier", flat=True))
+        .select_related("id_demarche")
         .order_by("date_depot")
     )
+    dossiers_manif_sportive_DS = list(dossiers_manif_sportive_DS)
+
+    dossiers_ds_ids = [dossier.id for dossier in dossiers_manif_sportive_DS]
+    beneficiaires_ds = {
+        beneficiaire.id_dossier_interlocuteur.id_dossier_id: beneficiaire.id_beneficiaire
+        for beneficiaire in (
+            DossierBeneficiaire.objects
+            .filter(id_dossier_interlocuteur__id_dossier_id__in=dossiers_ds_ids)
+            .select_related("id_beneficiaire", "id_dossier_interlocuteur")
+        )
+    }
+    champs_manif = defaultdict(dict)
+    for dossier_id, nom_champ, valeur in DossierChamp.objects.filter(
+        id_dossier_id__in=dossiers_ds_ids,
+        id_champ__nom__in=[
+            "Numéro du dossier sur la plateforme déclaration-manifestations",
+            "Nom de la manifestation",
+        ],
+    ).values_list("id_dossier_id", "id_champ__nom", "valeur"):
+        champs_manif[dossier_id][nom_champ] = valeur
 
     dossiers_manif_sportive_DS_infos = []
     dossiers_actions_ids = {d.id for d in dossiers_actions}
@@ -208,28 +244,18 @@ def preinstruction(request):
         dossier.action_a_faire = dossier.id in dossiers_actions_ids
 
         # --- 1. Bénéficiaire ---
-        interlocuteur = DossierInterlocuteur.objects.filter(id_dossier=dossier).first()
-        beneficiaire = None
-        if interlocuteur:
-            dossier_benef = DossierBeneficiaire.objects.filter(id_dossier_interlocuteur=interlocuteur).select_related("id_beneficiaire").first()
-            beneficiaire = dossier_benef.id_beneficiaire if dossier_benef else None
+        beneficiaire = beneficiaires_ds.get(dossier.id)
 
         nom_demandeur = f"{beneficiaire.nom} {beneficiaire.prenom}" if beneficiaire else "N/A"
 
         # --- 2. Numéro de dossier DM ---
-        champ_numero_dm = DossierChamp.objects.filter(
-            id_dossier=dossier,
-            id_champ__nom="Numéro du dossier sur la plateforme déclaration-manifestations"
-        ).first()
-        numero_dm = champ_numero_dm.valeur if champ_numero_dm and champ_numero_dm.valeur else "N/A"
+        numero_dm = champs_manif[dossier.id].get(
+            "Numéro du dossier sur la plateforme déclaration-manifestations"
+        ) or "N/A"
 
 
         # --- 3. Nom de la manifestation ---
-        champ_nom_manifestation = DossierChamp.objects.filter(
-            id_dossier=dossier,
-            id_champ__nom="Nom de la manifestation"
-        ).first()
-        nom_manifestation = champ_nom_manifestation.valeur if champ_nom_manifestation and champ_nom_manifestation.valeur else "N/A"
+        nom_manifestation = champs_manif[dossier.id].get("Nom de la manifestation") or "N/A"
 
         dossiers_manif_sportive_DS_infos.append({
             "dossier": dossier,
