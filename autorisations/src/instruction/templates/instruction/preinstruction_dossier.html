@@ -252,19 +252,27 @@
                                                     <!-- Pour le moment on ne laisse pas la possibilité de classer comme non soumis si doss existe sur DN  -->
                                                 
                                                 {% elif label == "Archiver le dossier comme refusé" %}
+                                                    {% if dossier.present_sur_ds %}
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefusDirect()">Archiver le dossier comme refusé</button>
+                                                    {% else %}
                                                     <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeRefuse()">Archiver le dossier comme refusé</button>
                                                     </form>
+                                                    {% endif %}
 
 
                                                 {% elif label == "Archiver le dossier comme accepté" %}
+                                                    {% if dossier.present_sur_ds %}
+                                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptationDirecte()">Archiver le dossier comme accepté</button>
+                                                    {% else %}
                                                     <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
                                                     </form>
+                                                    {% endif %}
 
                                                 {% elif label == "Classer comme annulé" %}
                                                     {% if dossier.present_sur_ds %}
@@ -352,6 +360,44 @@
                         {{ preinstruction_message }}
                     </div>
                 {% endif %}
+
+                <div id="formulaire-refus-direct" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_refuse_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme refusé ?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <div class="instruction-warning">
+                            <strong>Attention :</strong> l’utilisation de ce raccourci d’archivage doit avoir été vue et accordée par le valideur.
+                        </div>
+                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p>
+                        <textarea name="motivation" class="textarea-complement" required>[Donner les motifs de refus]
+
+L’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre demande.</textarea>
+                        <div class="zone-pj-complement">
+                            <label for="justificatif-refus-preinstruction">Joindre un justificatif (facultatif) :</label>
+                            <input id="justificatif-refus-preinstruction" type="file" name="justificatif" data-taille-max="10485760">
+                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+                            <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="formulaire-acceptation-directe" class="zone-complement zone-envoyer-pour-validation">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_accepte_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme accepté ?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <div class="instruction-warning">
+                            <strong>Attention :</strong> l’utilisation de ce raccourci d’archivage doit avoir été vue et accordée par le valideur.
+                        </div>
+                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p>
+                        <textarea name="motivation" class="textarea-complement" required>L’établissement du Parc national de La Réunion vous notifie sa décision sur le dossier {{ dossier.numero }}.</textarea>
+                        <div class="zone-pj-complement">
+                            <label for="justificatif-acceptation-preinstruction">Joindre un justificatif (facultatif) :</label>
+                            <input id="justificatif-acceptation-preinstruction" type="file" name="justificatif" data-taille-max="10485760">
+                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+                            <button type="submit" class="btn-envoyer-complement">Confirmer l'acceptation</button>
+                        </div>
+                    </form>
+                </div>
 
                 <div id="formulaire-annulation" class="zone-complement zone-envoyer-pour-validation formulaire-annulation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'classer_comme_annule_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme annulé ?');">
@@ -1029,6 +1075,18 @@
     function afficherFormulaireAnnulation() {
         masquerToutesZonesComplementaires();
         document.getElementById("formulaire-annulation").classList.add("show");
+        fermerMenuEtape();
+    }
+
+    function afficherFormulaireRefusDirect() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-refus-direct").classList.add("show");
+        fermerMenuEtape();
+    }
+
+    function afficherFormulaireAcceptationDirecte() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-acceptation-directe").classList.add("show");
         fermerMenuEtape();
     }
 

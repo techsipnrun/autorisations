@@ -313,7 +313,9 @@ def _archiver_justificatif_classement(
     type_decision,
 ):
     """Archive sur le NAS le justificatif déjà transmis avec la décision DN."""
-    prefixe_description = f"Justificatif du {type_decision}"
+    prefixe_description = {
+        "acceptation": "Justificatif de l'acceptation",
+    }.get(type_decision, f"Justificatif du {type_decision}")
     anciens_justificatifs = [
         liaison.id_document
         for liaison in (
@@ -2655,8 +2657,11 @@ def acte_pret_a_etre_envoye(request):
 @require_POST
 @login_required
 def classer_le_dossier_comme_accepte(request):
-    
     dossier_id_ds = request.POST.get("dossierId")
+    motivation = request.POST.get("motivation", "").strip()
+    justificatif = request.FILES.get("justificatif")
+    format_justificatif = None
+    nature_justificatif = None
 
     # --- Vérification dossierId ---
     if not dossier_id_ds:
@@ -2668,10 +2673,139 @@ def classer_le_dossier_comme_accepte(request):
     if err:
         return err
 
+    doit_accepter_sur_ds = (
+        dossier.present_sur_ds and dossier.id_etat_dossier.nom != "accepte"
+    )
+
+    if doit_accepter_sur_ds and not motivation:
+        logger.warning(
+            f"[DOSSIER {dossier.numero}] Classement comme accepté par {request.user} : "
+            "message d'acceptation manquant."
+        )
+        return redirect_error(
+            request,
+            "Un message est requis pour classer le dossier comme accepté.",
+        )
+
+    if justificatif and doit_accepter_sur_ds:
+        if justificatif.size > 10 * 1024 * 1024:
+            return redirect_error(
+                request,
+                "Le justificatif dépasse la taille maximale autorisée de 10 Mo.",
+            )
+
+        extension = os.path.splitext(justificatif.name)[1].lstrip(".").lower()
+        format_justificatif = DocumentFormat.objects.filter(
+            format__iexact=extension
+        ).first()
+        if not format_justificatif:
+            return redirect_error(
+                request,
+                f"Le format du justificatif « {extension or 'sans extension'} » n'est pas reconnu.",
+            )
+
+        nature_justificatif = DocumentNature.objects.filter(
+            nature__iexact="Annexe instructeur"
+        ).first()
+        if not nature_justificatif:
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Nature 'Annexe instructeur' introuvable "
+                "pour archiver le justificatif de l'acceptation."
+            )
+            return redirect_error(
+                request,
+                "Impossible de préparer l'archivage du justificatif. Contactez le support.",
+            )
+
     # --- Récupération instructeur ---
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Classer comme accepté")
     if err:
         return err
+
+    # Le classement rapide doit aussi terminer réellement le dossier sur DN.
+    if doit_accepter_sur_ds:
+        if (
+            dossier.id_etat_dossier.nom == "en_construction"
+            and dossier.id_etape_dossier.etape in ["En pré-instruction", "À affecter"]
+        ):
+            result = passer_en_instruction_ds(dossier.id_ds, instructeur)
+            if not result.get("success"):
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] Échec du passage en instruction sur DN "
+                    f"avant acceptation par {request.user} : {result.get('message')}"
+                )
+                return redirect_error(
+                    request,
+                    "Erreur lors du passage en instruction sur Démarche Numérique. Contactez le support.",
+                )
+
+        result = accepter_dossier_ds(
+            dossier.id_ds,
+            instructeur,
+            motivation,
+            justificatif,
+        )
+        if not result.get("success"):
+            logger.error(
+                f"[DOSSIER {dossier.numero}] Échec de l'acceptation sur DN par "
+                f"{request.user} : {result.get('message')}"
+            )
+            return redirect_error(
+                request,
+                "Erreur lors de l'acceptation du dossier sur Démarche Numérique. Contactez le support.",
+            )
+
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "accepte"
+        )
+
+        if justificatif:
+            try:
+                _archiver_justificatif_classement(
+                    dossier,
+                    justificatif,
+                    format_justificatif,
+                    nature_justificatif,
+                    request.user,
+                    type_decision="acceptation",
+                )
+            except Exception as e:
+                logger.error(
+                    f"[DOSSIER {dossier.numero}] L'acceptation a réussi sur DN, mais son "
+                    f"justificatif n'a pas pu être archivé localement : {e}"
+                )
+                messages.warning(
+                    request,
+                    "Le dossier a été accepté sur Démarche Numérique, mais le justificatif "
+                    "n'a pas pu être archivé sur la page du dossier.",
+                )
+
+        # Pour une manifestation sportive liée, rendre également l'avis favorable sur DM.
+        contexte_dm, erreur_dm = _get_contexte_dossier_dm(
+            dossier,
+            request,
+            logger,
+            "Classement comme accepté",
+            "Le dossier a bien été accepté sur Démarche Numérique",
+            "l'avis n'a pas pu être rendu sur Déclaration Manifestations",
+        )
+        if erreur_dm:
+            return erreur_dm
+        if contexte_dm:
+            _, erreur_dm = _soumettre_avis_dm(
+                dossier=dossier,
+                request=request,
+                logger=logger,
+                action_log="Classement comme accepté",
+                message_succes_dn="Le dossier a bien été accepté sur Démarche Numérique",
+                contexte_dm=contexte_dm,
+                code_avis_dm=1,
+                libelle_avis_dm="favorable",
+                etape_cible_label="Accepté",
+                motivation=motivation,
+            )
+            if erreur_dm:
+                return erreur_dm
 
 
     # --- Mise à jour document publié au RAA ---
@@ -2705,8 +2839,15 @@ def classer_le_dossier_comme_accepte(request):
     if err:
         return err
 
+    if dossier.present_sur_ds:
+        safe_update_etat(dossier, "accepte", request, break_si_erreur=False)
+
     #Dossier Action
     safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
+    if not doit_accepter_sur_ds:
+        _enregistrer_motif_decision_sans_bloquer(
+            request, dossier, motivation, "accepte"
+        )
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
@@ -3024,6 +3165,33 @@ def classer_le_dossier_comme_refuse(request):
                     "Le dossier a été refusé sur Démarche Numérique, mais le justificatif "
                     "n'a pas pu être archivé sur la page du dossier.",
                 )
+
+        # Pour une manifestation sportive liée, rendre également l'avis défavorable sur DM.
+        contexte_dm, erreur_dm = _get_contexte_dossier_dm(
+            dossier,
+            request,
+            logger,
+            "Classement comme refusé",
+            "Le dossier a bien été refusé sur Démarche Numérique",
+            "l'avis n'a pas pu être rendu sur Déclaration Manifestations",
+        )
+        if erreur_dm:
+            return erreur_dm
+        if contexte_dm:
+            _, erreur_dm = _soumettre_avis_dm(
+                dossier=dossier,
+                request=request,
+                logger=logger,
+                action_log="Classement comme refusé",
+                message_succes_dn="Le dossier a bien été refusé sur Démarche Numérique",
+                contexte_dm=contexte_dm,
+                code_avis_dm=2,
+                libelle_avis_dm="défavorable",
+                etape_cible_label="Refusé",
+                motivation=motivation,
+            )
+            if erreur_dm:
+                return erreur_dm
 
     # --- Mise à jour document publié au RAA ---
     documents_du_dossier = DossierDocument.objects.none()

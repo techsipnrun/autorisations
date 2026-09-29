@@ -528,6 +528,20 @@ def build_champs_prepares(dossier):
 
 
 
+def _ordonner_actions_menu(labels):
+    """Place les actions terminales en bas, en conservant leur ordre relatif."""
+    return sorted(
+        labels,
+        key=lambda label: (
+            2
+            if label == "Classer comme annulé"
+            else 1
+            if label.startswith("Archiver ")
+            else 0
+        ),
+    )
+
+
 def get_actions_possibles(dossier: Dossier):
     """
     Retourne la liste des labels d'actions possibles pour un dossier.
@@ -722,7 +736,7 @@ def get_actions_possibles(dossier: Dossier):
                     deja_vus.add(label)
                     labels.append(label)
 
-            return labels
+            return _ordonner_actions_menu(labels)
 
     return []
 
@@ -839,7 +853,7 @@ def get_actions_possibles_DM(dossierDM: DossierManifSportive):
                     deja_vus.add(label)
                     labels.append(label)
 
-            return labels
+            return _ordonner_actions_menu(labels)
 
     return []
 

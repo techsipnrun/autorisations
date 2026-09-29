@@ -112,6 +112,19 @@ def build_documents_for_dossier(dossier):
         reverse=True,
     )[:1]
 
+    justificatifs_acceptation_tous = [
+        dd.id_document
+        for dd in docs_du_dossier
+        if (dd.id_document.description or "").startswith(
+            ("Justificatif de l'acceptation", "Justificatif du acceptation")
+        )
+    ]
+    justificatifs_acceptation = sorted(
+        justificatifs_acceptation_tous,
+        key=lambda document: document.date,
+        reverse=True,
+    )[:1]
+
     justificatifs_annulation_tous = [
         dd.id_document
         for dd in docs_du_dossier
@@ -131,6 +144,7 @@ def build_documents_for_dossier(dossier):
         if dd.id_document.id_nature.nature.lower() == "annexe instructeur"
         and dd.id_document not in justificatifs_classement_tous
         and dd.id_document not in justificatifs_refus_tous
+        and dd.id_document not in justificatifs_acceptation_tous
         and dd.id_document not in justificatifs_annulation_tous
     ]
 
@@ -235,6 +249,7 @@ def build_documents_for_dossier(dossier):
         "annexes_instructeur": annexes_instructeur,
         "justificatifs_classement": justificatifs_classement,
         "justificatifs_refus": justificatifs_refus,
+        "justificatifs_acceptation": justificatifs_acceptation,
         "justificatifs_annulation": justificatifs_annulation,
         "titres_documents_actes": list(documents_actes),
         "doc_a_valider": acte_a_valider,
