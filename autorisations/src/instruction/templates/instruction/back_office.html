@@ -1,0 +1,280 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Back Office — AGiDA</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=10">
+</head>
+<body>
+    <div class="back-office-layout">
+        <aside class="back-office-sidebar">
+            <a href="{% url 'back_office' %}" class="back-office-brand">
+                <img src="{% static 'instruction/img/back-office.png' %}" alt="">
+                <span>Back Office</span>
+            </a>
+
+            <p class="back-office-nav-title">Administration</p>
+            <nav class="back-office-nav" aria-label="Rubriques du Back Office">
+                <button type="button" class="back-office-nav-item is-active" data-section="services-externes">
+                    <span class="back-office-nav-dot"></span>Services externes
+                </button>
+                <button type="button" class="back-office-nav-item" data-section="demarche">
+                    <span class="back-office-nav-dot"></span>Démarche
+                </button>
+                <button type="button" class="back-office-nav-item" data-section="carto">
+                    <span class="back-office-nav-dot"></span>Carto
+                </button>
+                <button type="button" class="back-office-nav-item" data-section="dossier">
+                    <span class="back-office-nav-dot"></span>Dossier
+                </button>
+                <button type="button" class="back-office-nav-item" data-section="circuit">
+                    <span class="back-office-nav-dot"></span>Circuit d’instruction
+                </button>
+                <button type="button" class="back-office-nav-item" data-section="notifications">
+                    <span class="back-office-nav-dot"></span>Notifications
+                </button>
+            </nav>
+
+            <a href="{% url 'accueil_view' %}" class="back-office-return">← Retour à l’application</a>
+        </aside>
+
+        <main class="back-office-content">
+            <div id="back-office-dn-warning" class="back-office-dn-warning" role="alert"
+                 {% if not dn_api_indisponible %}hidden{% endif %}>
+                <span>⚠️ Démarche Numérique est temporairement indisponible{% if dn_api_status_code %} (HTTP {{ dn_api_status_code }}){% endif %}.</span>
+                <button type="button" aria-label="Fermer l'alerte">×</button>
+            </div>
+            <section class="back-office-panel" data-panel="demarche" hidden>
+                <p class="back-office-eyebrow">Back Office</p>
+                <h1>Démarches</h1>
+                <p>Les outils de gestion des démarches seront ajoutés ici.</p>
+            </section>
+            <section class="back-office-panel" data-panel="carto" hidden>
+                <p class="back-office-eyebrow">Back Office</p>
+                <h1>Cartographie</h1>
+                <p>Les outils de gestion des couches, périmètres et fonds de carte seront ajoutés ici.</p>
+            </section>
+            <section class="back-office-panel" data-panel="dossier" hidden>
+                <p class="back-office-eyebrow">Back Office</p>
+                <h1>Dossiers</h1>
+                <p>Les outils de maintenance des dossiers seront ajoutés ici.</p>
+            </section>
+            <section class="back-office-panel" data-panel="circuit" hidden>
+                <p class="back-office-eyebrow">Back Office</p>
+                <h1>Circuit d’instruction</h1>
+                <p>La configuration des rôles, étapes et circuits sera ajoutée ici.</p>
+            </section>
+            <section class="back-office-panel" data-panel="notifications" hidden>
+                <p class="back-office-eyebrow">Back Office</p>
+                <h1>Notifications</h1>
+                <p>Les paramètres et outils de suivi des notifications seront ajoutés ici.</p>
+            </section>
+            <section class="back-office-panel" data-panel="services-externes" data-status-url="/back-office/services-status/">
+                <p class="back-office-eyebrow">Back Office</p>
+                <h1>Services externes</h1>
+                <p>Les contrôles sont lancés uniquement à votre demande et sont tous en lecture seule.</p>
+                <button type="button" class="external-services-refresh" id="external-services-refresh">
+                    <img src="{% static 'instruction/img/loader.svg' %}" alt="" aria-hidden="true" hidden>
+                    <span>Lancer les contrôles</span>
+                </button>
+
+                <section class="external-services-status" aria-label="État des services externes">
+                    <article class="external-service-card is-neutral" data-service="demarche_numerique">
+                        <div>
+                            <h3>Démarche Numérique</h3>
+                            <a href="https://demarche.numerique.gouv.fr/" target="_blank" rel="noopener">demarche.numerique.gouv.fr</a>
+                        </div>
+                        <p class="external-service-state">Non vérifié</p>
+                        <p class="external-service-detail" hidden></p>
+                        <p class="external-service-detail external-token-state" data-token-status>Jeton DN : non vérifié.</p>
+                    </article>
+
+                    <article class="external-service-card is-neutral external-service-group">
+                        <div><h3>Déclaration Manifestations</h3><span>Préproduction et production</span></div>
+                        <div class="external-service-subcards">
+                            <section class="external-service-subcard is-neutral" data-service="declaration_manifestations_preprod">
+                                <h4>Préproduction</h4><a data-service-url target="_blank" rel="noopener">Non vérifié</a><p class="external-service-state">Non vérifié</p><p class="external-service-detail" hidden></p>
+                            </section>
+                            <section class="external-service-subcard is-neutral" data-service="declaration_manifestations_prod">
+                                <h4>Production</h4><a data-service-url target="_blank" rel="noopener">Non vérifié</a><p class="external-service-state">Non vérifié</p><p class="external-service-detail" hidden></p>
+                            </section>
+                        </div>
+                    </article>
+
+                    <article class="external-service-card is-neutral external-service-group">
+                        <div><h3>Base de données</h3><span>Contrôles SQL `SELECT 1` uniquement</span></div>
+                        <div class="external-service-subcards">
+                            <section class="external-service-subcard is-neutral" data-service="bdd_developpement">
+                                <h4>Développement</h4><p class="external-service-host" data-service-host>Hôte : non vérifié</p><p class="external-service-state">Non vérifié</p><p class="external-service-detail" hidden></p>
+                            </section>
+                            <section class="external-service-subcard is-neutral" data-service="bdd_production">
+                                <h4>Production (lecture seule)</h4><p class="external-service-host" data-service-host>Hôte : non vérifié</p><p class="external-service-state">Non vérifié</p><p class="external-service-detail" hidden></p>
+                            </section>
+                        </div>
+                    </article>
+
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.querySelectorAll('.back-office-nav-item').forEach(button => {
+            button.addEventListener('click', () => {
+                const section = button.dataset.section;
+                document.querySelectorAll('.back-office-nav-item').forEach(item => {
+                    item.classList.toggle('is-active', item === button);
+                });
+                document.querySelectorAll('.back-office-panel').forEach(panel => {
+                    panel.hidden = panel.dataset.panel !== section;
+                });
+            });
+        });
+
+        const servicesPanel = document.querySelector('[data-panel="services-externes"]');
+        const refreshServicesButton = document.getElementById('external-services-refresh');
+
+        function classeStatut(statut) {
+            if (statut.configure === false) return 'is-neutral';
+            return statut.disponible ? 'is-available' : 'is-unavailable';
+        }
+
+        function afficherStatut(element, statut) {
+            if (!element || !statut) return;
+            element.classList.remove('is-loading', 'is-available', 'is-unavailable', 'is-neutral');
+            element.classList.add(classeStatut(statut));
+
+            const state = element.querySelector('.external-service-state');
+            if (state) {
+                let texte = statut.configure === false ? 'Non configuré' : (statut.disponible ? 'Disponible' : 'Indisponible');
+                if (statut.status_code) texte += ` (HTTP ${statut.status_code})`;
+                state.textContent = texte;
+            }
+
+            const detail = element.querySelector('.external-service-detail:not(.external-token-state)');
+            if (detail) {
+                detail.textContent = statut.detail || '';
+                detail.hidden = !statut.detail;
+            }
+
+            const link = element.querySelector('[data-service-url]');
+            if (link && statut.url) {
+                link.href = statut.url;
+                link.textContent = statut.url;
+            } else if (link) {
+                link.removeAttribute('href');
+                link.textContent = 'URL non configurée';
+            }
+
+            const host = element.querySelector('[data-service-host]');
+            if (host && statut.hostname) host.textContent = `Hôte : ${statut.hostname}`;
+        }
+
+        function afficherJeton(token) {
+            const element = servicesPanel?.querySelector('[data-token-status]');
+            if (!element || !token) return;
+            element.classList.remove('is-available', 'is-warning', 'is-unavailable');
+
+            if (token.etat === 'valide') {
+                element.classList.add('is-available');
+                element.textContent = `Jeton DN : ${token.jours_restants} jours restants — expiration renseignée le ${token.expiration}.`;
+            } else if (token.etat === 'expire_bientot') {
+                element.classList.add('is-warning');
+                element.textContent = `Jeton DN : expire dans ${token.jours_restants} jours — expiration renseignée le ${token.expiration}.`;
+            } else if (token.etat === 'expire') {
+                element.classList.add('is-unavailable');
+                element.textContent = 'Jeton DN : expiré.';
+            } else {
+                element.classList.add('is-unavailable');
+                element.textContent = `Jeton DN : échéance inconnue${token.detail ? ` — ${token.detail}` : '.'}`;
+            }
+        }
+
+        async function chargerStatutsServices() {
+            if (!servicesPanel?.dataset.statusUrl) return;
+            try {
+                const response = await fetch(servicesPanel.dataset.statusUrl, { credentials: 'same-origin' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const statuts = await response.json();
+                Object.entries(statuts).forEach(([nom, statut]) => {
+                    if (nom === 'token_dn') return;
+                    afficherStatut(servicesPanel.querySelector(`[data-service="${nom}"]`), statut);
+                });
+                actualiserEtatGroupes();
+                afficherJeton(statuts.token_dn);
+                afficherAlerteDnBackOffice(statuts.demarche_numerique);
+            } catch (_) {
+                servicesPanel.querySelectorAll('[data-service]').forEach(element => {
+                    afficherStatut(element, { disponible: false, configure: true, detail: 'Le contrôle de ce service n’a pas pu être exécuté.' });
+                });
+                actualiserEtatGroupes();
+            }
+        }
+
+        function actualiserEtatGroupes() {
+            servicesPanel.querySelectorAll('.external-service-group').forEach(groupe => {
+                const sousBlocs = Array.from(groupe.querySelectorAll('.external-service-subcard[data-service]'));
+                const tousDisponibles = sousBlocs.length > 0 && sousBlocs.every(
+                    sousBloc => sousBloc.classList.contains('is-available')
+                );
+                groupe.classList.remove('is-available', 'is-unavailable', 'is-neutral');
+                groupe.classList.add(tousDisponibles ? 'is-available' : 'is-neutral');
+            });
+        }
+
+        function preparerChargementServices() {
+            servicesPanel.querySelectorAll('[data-service]').forEach(element => {
+                element.classList.remove('is-available', 'is-unavailable', 'is-neutral');
+                element.classList.add('is-loading');
+                const state = element.querySelector('.external-service-state');
+                if (state) state.textContent = 'Vérification en cours…';
+                const detail = element.querySelector('.external-service-detail:not(.external-token-state)');
+                if (detail) detail.hidden = true;
+                const link = element.querySelector('[data-service-url]');
+                if (link) {
+                    link.removeAttribute('href');
+                    link.textContent = 'Vérification en cours…';
+                }
+            });
+            const token = servicesPanel.querySelector('[data-token-status]');
+            if (token) token.textContent = 'Jeton DN : vérification en cours…';
+        }
+
+        refreshServicesButton?.addEventListener('click', async () => {
+            refreshServicesButton.disabled = true;
+            refreshServicesButton.classList.add('is-loading');
+            refreshServicesButton.querySelector('img').hidden = false;
+            refreshServicesButton.querySelector('span').textContent = 'Contrôles en cours…';
+            preparerChargementServices();
+            await chargerStatutsServices();
+            refreshServicesButton.disabled = false;
+            refreshServicesButton.classList.remove('is-loading');
+            refreshServicesButton.querySelector('img').hidden = true;
+            refreshServicesButton.querySelector('span').textContent = 'Relancer les contrôles';
+        });
+
+        let fermetureAlerteDn;
+        const alerteDnBackOffice = document.getElementById('back-office-dn-warning');
+        function afficherAlerteDnBackOffice(statut) {
+            if (!alerteDnBackOffice || !statut) return;
+            alerteDnBackOffice.hidden = statut.disponible;
+            if (!statut.disponible) {
+                const code = statut.status_code ? ` (HTTP ${statut.status_code})` : '';
+                alerteDnBackOffice.querySelector('span').textContent = `⚠️ Démarche Numérique est temporairement indisponible${code}.`;
+                clearTimeout(fermetureAlerteDn);
+                fermetureAlerteDn = setTimeout(() => { alerteDnBackOffice.hidden = true; }, 10000);
+            }
+        }
+        alerteDnBackOffice?.querySelector('button').addEventListener('click', () => {
+            alerteDnBackOffice.hidden = true;
+            clearTimeout(fermetureAlerteDn);
+        });
+        if (alerteDnBackOffice && !alerteDnBackOffice.hidden) {
+            fermetureAlerteDn = setTimeout(() => { alerteDnBackOffice.hidden = true; }, 10000);
+        }
+    </script>
+</body>
+</html>

@@ -217,6 +217,20 @@ h2 {
     transform: rotate(180deg);
 }
 
+@media (max-width: 800px) {
+    .refresh-button[data-synchro-globale="true"] {
+        gap: 0.35rem;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.74rem;
+        white-space: nowrap;
+    }
+
+    .refresh-button[data-synchro-globale="true"] .refresh-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+
 
 /* Dossiers archivés */
 

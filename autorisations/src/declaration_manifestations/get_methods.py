@@ -1,6 +1,7 @@
 import requests
 import time
-from dotenv import load_dotenv
+from pathlib import Path
+from dotenv import dotenv_values, load_dotenv
 import os
 import logging
 import mimetypes
@@ -12,7 +13,8 @@ from urllib3.util.retry import Retry
 loggerDM = logging.getLogger("API_DM")
 
 # ==== Chargement des variables d'environnement ====
-load_dotenv(".env.dev")
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / f".env.{os.getenv('DJANGO_ENV', 'dev')}")
 
 USERNAME = os.getenv("DM_USERNAME")
 PASSWORD = os.getenv("DM_PASSWORD")
@@ -55,6 +57,146 @@ def build_session():
     return session
 
 SESSION = build_session()
+
+
+def _configuration_controle_dm(environment):
+    """Lit la configuration de contrôle sans modifier l'environnement courant."""
+    values = dotenv_values(BASE_DIR / f".env.{environment}")
+    return {
+        "url": values.get("DM_API_URL"),
+        "username": values.get("DM_USERNAME"),
+        "password": values.get("DM_PASSWORD"),
+        "client_id": values.get("DM_CLIENT_ID"),
+        "client_secret": values.get("DM_CLIENT_SECRET"),
+    }
+
+
+def verifier_api_instance_declaration_manifestations(url, token_url, credentials=None):
+    """Check OAuth then one read-only API request, without exposing secrets."""
+    credentials = credentials or {
+        "username": USERNAME,
+        "password": PASSWORD,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+    }
+    if not url or not token_url or not all(credentials.values()):
+        return {
+            "disponible": False,
+            "status_code": None,
+            "url": url,
+            "detail": "La configuration de cette instance est incomplète.",
+        }
+
+    try:
+        token_response = requests.post(
+            token_url,
+            json={
+                "grant_type": "password",
+                **credentials,
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=(3, 8),
+        )
+        if token_response.status_code != 200:
+            return {
+                "disponible": False,
+                "status_code": token_response.status_code,
+                "url": url,
+                "detail": "L'API DM a refusé l'authentification.",
+            }
+
+        token = token_response.json().get("access_token")
+        if not token:
+            return {
+                "disponible": False,
+                "status_code": token_response.status_code,
+                "url": url,
+                "detail": "L'API DM n'a pas renvoyé de jeton exploitable.",
+            }
+
+        response = requests.get(
+            f"{url.rstrip('/')}/api/Avis/?page_size=1",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=(3, 8),
+        )
+        disponible = response.status_code == 200
+        return {
+            "disponible": disponible,
+            "status_code": response.status_code,
+            "url": url,
+            "detail": (
+                "API DM fonctionnelle."
+                if disponible
+                else "L'API DM a refusé la lecture des avis."
+            ),
+        }
+    except (requests.RequestException, ValueError) as exc:
+        loggerDM.warning("Contrôle API DM en échec vers %s : %s", url, exc)
+        return {
+            "disponible": False,
+            "status_code": None,
+            "url": url,
+            "detail": "Aucune réponse exploitable de l'API DM.",
+        }
+
+
+def verifier_disponibilite_instance_declaration_manifestations(url):
+    """Vérifie rapidement qu'une instance DM est joignable.
+
+    Aucun jeton n'est demande et aucune donnee n'est modifiee. Une reponse HTTP
+    4xx confirme que le service repond ; seuls les 5xx, le rate limiting et les
+    erreurs reseau sont consideres comme une indisponibilite.
+    """
+    if not url:
+        return {
+            "disponible": False,
+            "status_code": None,
+            "url": None,
+            "detail": "L'URL de cette instance n'est pas configurée.",
+        }
+
+    try:
+        response = requests.get(url, timeout=(3, 8), allow_redirects=True)
+        disponible = response.status_code < 500 and response.status_code != 429
+        return {
+            "disponible": disponible,
+            "status_code": response.status_code,
+            "url": url,
+            "detail": None if disponible else "Le service a renvoye une erreur HTTP.",
+        }
+    except requests.RequestException as exc:
+        loggerDM.warning(
+            "Verification de disponibilite de Declaration Manifestations en echec "
+            "vers %s : %s",
+            url,
+            exc,
+        )
+        return {
+            "disponible": False,
+            "status_code": None,
+            "url": url,
+            "detail": "Aucune reponse exploitable du service.",
+        }
+
+
+def verifier_disponibilite_declaration_manifestations():
+    """Vérifie l'instance de production de Déclaration Manifestations."""
+    config = _configuration_controle_dm("prod")
+    return verifier_api_instance_declaration_manifestations(
+        config["url"],
+        f"{config['url']}o/token/" if config["url"] else None,
+        {key: config[key] for key in ("username", "password", "client_id", "client_secret")},
+    )
+
+
+def verifier_disponibilite_declaration_manifestations_preprod():
+    """Vérifie l'instance de préproduction de Déclaration Manifestations."""
+    config = _configuration_controle_dm("dev")
+    return verifier_api_instance_declaration_manifestations(
+        config["url"],
+        f"{config['url']}o/token/" if config["url"] else None,
+        {key: config[key] for key in ("username", "password", "client_id", "client_secret")},
+    )
 
 
 # Récupération de l'access token

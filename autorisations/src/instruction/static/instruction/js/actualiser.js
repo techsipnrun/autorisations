@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (texte) message.innerHTML = texte;
     }
 
+    function afficherAlerteApiDemarcheNumerique(indisponible) {
+        const alerte = document.getElementById("dn-api-unavailable-warning");
+        if (alerte) alerte.hidden = !indisponible;
+    }
+
     function lireEtatBDD() {
         return fetch(urlEtat).then(r => r.json());
     }
@@ -43,7 +48,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // --- affichage principal ---
     function afficherDerniereHeure() {
         lireEtatBDD()
-            .then(({ en_cours, date_maj, date_derniere_tentative, dernier_statut }) => {
+            .then(({ en_cours, date_maj, date_derniere_tentative, dernier_statut, dn_api_indisponible }) => {
+                afficherAlerteApiDemarcheNumerique(dn_api_indisponible);
                 // Si synchro en cours → message et bouton désactivé
                 if (en_cours) {
                     setBouton(true, "⏳ Actualisation déjà en cours...");
@@ -102,11 +108,17 @@ async function lancerActualisation() {
             }
         });
 
+        const data = await resp.json();
+
+        if (data.status === "dn_api_unavailable") {
+            afficherAlerteApiDemarcheNumerique(true);
+            setBouton(false, `⚠️ ${data.message}`);
+            return false;
+        }
+
         if (!resp.ok) {
             throw new Error(`Erreur HTTP ${resp.status}`);
         }
-
-        const data = await resp.json();
 
         if (data.status === "already_running") {
             setBouton(true, "⏳ Synchronisation déjà en cours...");
@@ -162,7 +174,8 @@ function peutEtreLancerAuto() {
         if (pollTimer) return;
         pollTimer = setInterval(() => {
             lireEtatBDD()
-                .then(({ en_cours }) => {
+                .then(({ en_cours, dn_api_indisponible }) => {
+                    afficherAlerteApiDemarcheNumerique(dn_api_indisponible);
                     if (!en_cours) {
                         // 🔒 On garde le bouton désactivé tant qu'on ne recharge pas
                         arreterPolling();
@@ -185,7 +198,8 @@ function peutEtreLancerAuto() {
 
     // --- initialisation au chargement ---
     lireEtatBDD()
-        .then(({ en_cours, dernier_statut }) => {
+        .then(({ en_cours, dernier_statut, dn_api_indisponible }) => {
+            afficherAlerteApiDemarcheNumerique(dn_api_indisponible);
             if (en_cours) {
                 // 🔒 Garde-fou si synchro déjà active (même ouverte ailleurs)
                 setBouton(true, "⏳ Actualisation déjà en cours...");
@@ -233,8 +247,15 @@ function peutEtreLancerAuto() {
                 }
             });
 
-            if (!resp.ok) throw new Error("Erreur réseau");
             const data = await resp.json();
+
+            if (data.status === "dn_api_unavailable") {
+                afficherAlerteApiDemarcheNumerique(true);
+                setBouton(false, `⚠️ ${data.message}`);
+                return;
+            }
+
+            if (!resp.ok) throw new Error("Erreur réseau");
 
             if (data.status === "already_running") {
                 setBouton(true, "⏳ Synchronisation déjà en cours...");
@@ -256,7 +277,8 @@ function peutEtreLancerAuto() {
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             lireEtatBDD()
-                .then(({ en_cours, dernier_statut }) => {
+                .then(({ en_cours, dernier_statut, dn_api_indisponible }) => {
+                    afficherAlerteApiDemarcheNumerique(dn_api_indisponible);
                     if (en_cours) {
                         setBouton(true, "⏳ Actualisation en cours...");
                         demarrerPolling();

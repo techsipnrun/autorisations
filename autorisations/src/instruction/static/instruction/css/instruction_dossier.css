@@ -2071,6 +2071,93 @@
     width: 100%;
 }
 
+/* Relecture : compacter la liste sans modifier les autres listes d'instructeurs. */
+.demander-relecture_juridique .groupe-instructeur-liste {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.instructeur_du_dossier_relecture {
+    width: 100%;
+}
+
+.relecture-header,
+.bloc-gauche {
+    min-width: 0;
+}
+
+.nom_prenom_relecteur {
+    min-width: 0;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.relecture_faite,
+.relecture_en_attente {
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .instructeur_du_dossier_relecture {
+        margin-bottom: 0.65rem;
+        padding: 0.65rem;
+    }
+
+    .bloc-gauche {
+        flex-wrap: wrap;
+        gap: 0.35rem 0.5rem;
+    }
+
+    .triangle {
+        margin-right: 0.15rem;
+    }
+
+    .nom_prenom_relecteur {
+        font-size: 0.86rem;
+    }
+
+    .relecture_faite,
+    .relecture_en_attente {
+        padding: 0.22rem 0.55rem;
+        font-size: 0.72rem;
+    }
+
+    .relecture-details {
+        width: 100%;
+        margin-top: 0.65rem;
+        padding: 0.65rem 0.75rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .instructeur_du_dossier_relecture {
+        padding: 0.55rem;
+    }
+
+    .relecture-header {
+        align-items: flex-start;
+        gap: 0.4rem;
+    }
+
+    .nom_prenom_relecteur {
+        font-size: 0.8rem;
+    }
+
+    .relecture_faite,
+    .relecture_en_attente {
+        font-size: 0.68rem;
+    }
+
+    .relecture-details {
+        font-size: 0.8rem;
+    }
+}
+
 
 
 

@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 
-from DS.graphql_client import GraphQLClient
+from DS.graphql_client import GraphQLClient, verifier_disponibilite_demarche_numerique
 
 
 from autorisations.models.models_documents import Document
@@ -25,6 +25,11 @@ from autorisations.models.models_utilisateurs import Instructeur
 from declaration_manifestations.call_api_dm import recup_pj_dossiers, recup_un_seul_dossier
 from declaration_manifestations.get_methods import get_access_token, get_access_token_prod
 from instruction.utils.dossier_utils import actualisation_demarche_est_bloquee, actualisation_dossier_est_bloquee, check_si_on_casse_liaison_dm, clear_etat_actualisation_demarche, clear_etat_actualisation_dossier, get_etat_actualisation_demarche, get_etat_actualisation_dossier, redirect_error, safe_enregistrer_action, set_etat_actualisation_demarche, set_etat_actualisation_dossier
+from DS.service_status import (
+    get_dernier_controle_demarche_numerique,
+    get_statut_demarche_numerique,
+    memoriser_controle_demarche_numerique,
+)
 
 from synchronisation.main import lancer_normalisation_et_synchronisation_pour_une_demarche
 from synchronisation.normalisation.norma_contacts_externes import contact_externe_normalize
@@ -47,6 +52,30 @@ from threading import Thread
 logger = logging.getLogger("ORM_DJANGO")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
 loggerDS = logging.getLogger("API_DS")  
+
+
+def _api_dn_est_disponible():
+    """Controle court, execute avant de demarrer une synchronisation DN."""
+    statut = verifier_disponibilite_demarche_numerique()
+    if statut["disponible"]:
+        return True
+
+    loggerSynchro.warning(
+        "Synchronisation non lancee : Démarche Numérique indisponible "
+        "(HTTP %s).",
+        statut.get("status_code") or "sans reponse",
+    )
+    return False
+
+
+def _reponse_api_dn_indisponible():
+    return JsonResponse(
+        {
+            "status": "dn_api_unavailable",
+            "message": "Démarche Numérique est temporairement indisponible. Réessayez dans quelques minutes.",
+        },
+        status=503,
+    )
 
 
 def lancer_en_arriere_plan2():
@@ -94,6 +123,9 @@ def actualiser_donnees(request):
     Fonctionne seulement si une actualisation n'est pas déjà en cours.
     """
     if request.method == "POST":
+        if not _api_dn_est_disponible():
+            return _reponse_api_dn_indisponible()
+
         lancé = lancer_en_arriere_plan2()
         if not lancé:
             return JsonResponse({
@@ -115,20 +147,48 @@ def etat_actualisation(request):
 
     # Timeout de sécurité : si ça dépasse 1h, on force en_cours=False
     TIMEOUT_RESET_FLAG = 60
-    if ( etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=TIMEOUT_RESET_FLAG)):
+    if (etat and etat.en_cours and etat.date_derniere_tentative and timezone.localtime(etat.date_derniere_tentative) < timezone.localtime(timezone.now()) - timedelta(minutes=TIMEOUT_RESET_FLAG)):
         
         loggerSynchro.warning(f"Réinitialisation forcée du flag 'en_cours' (timeout de {TIMEOUT_RESET_FLAG} minutes dépassé) – dernière tentative : {timezone.localtime(etat.date_derniere_tentative)}")
         etat.en_cours = False
         etat.save(update_fields=["en_cours"])
 
     if not etat:
-        return JsonResponse({"en_cours": False, "dernier_statut": "inconnu", "date_maj": None, "date_derniere_tentative": None})
+        return JsonResponse({
+            "en_cours": False,
+            "dernier_statut": "inconnu",
+            "date_maj": None,
+            "date_derniere_tentative": None,
+            "dn_api_indisponible": bool(get_statut_demarche_numerique()),
+        })
 
     return JsonResponse({
         "en_cours": etat.en_cours,
         "dernier_statut": etat.dernier_statut,
         "date_maj": etat.date_maj.isoformat() if etat.date_maj else None,
         "date_derniere_tentative": etat.date_derniere_tentative.isoformat() if etat.date_derniere_tentative else None,
+        "dn_api_indisponible": bool(get_statut_demarche_numerique()),
+    })
+
+
+@login_required
+def etat_disponibilite_demarche_numerique(request):
+    """Contrôle partagé brièvement afin d'éviter un appel DN par chargement de page."""
+    indisponibilite = get_statut_demarche_numerique()
+    controle_recent = get_dernier_controle_demarche_numerique()
+    if indisponibilite and controle_recent is not None:
+        return JsonResponse({
+            "indisponible": True,
+            "status_code": indisponibilite.get("status_code"),
+        })
+
+    statut = controle_recent
+    if statut is None:
+        statut = verifier_disponibilite_demarche_numerique()
+        memoriser_controle_demarche_numerique(statut)
+    return JsonResponse({
+        "indisponible": not statut["disponible"],
+        "status_code": statut.get("status_code"),
     })
 
 
@@ -154,6 +214,7 @@ def etat_actualisation_demarche(request, num_demarche):
     Regarde l'état d'actualisation d'une démarche
     """
     etat = get_etat_actualisation_demarche(num_demarche)
+    etat["dn_api_indisponible"] = bool(get_statut_demarche_numerique())
 
     return JsonResponse(etat)
 
@@ -181,6 +242,9 @@ def synchroniser_demarche(request, num_demarche):
     demarche = Demarche.objects.filter(numero=num_demarche).first()
 
     if not demarche:
+        return redirect("instruction_demarche", num_demarche=num_demarche)
+
+    if not _api_dn_est_disponible():
         return redirect("instruction_demarche", num_demarche=num_demarche)
 
     if actualisation_demarche_est_bloquee(demarche):
@@ -212,6 +276,11 @@ def synchroniser_demarche_depuis_reception(request, num_demarche):
     if not demarche:
         if is_ajax:
             return JsonResponse({"status": "error", "message": "Démarche introuvable."}, status=404)
+        return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
+
+    if not _api_dn_est_disponible():
+        if is_ajax:
+            return _reponse_api_dn_indisponible()
         return redirect(request.META.get("HTTP_REFERER", "/preinstruction/"))
 
     etat_global = SynchronisationEtat.objects.filter(id=1).first()
@@ -260,7 +329,9 @@ def etat_actualisation_dossier(request, num_dossier):
     """
     Regarde l'état d'actualisation d'un dossier
     """
-    return JsonResponse(get_etat_actualisation_dossier(num_dossier))
+    etat = get_etat_actualisation_dossier(num_dossier)
+    etat["dn_api_indisponible"] = bool(get_statut_demarche_numerique())
+    return JsonResponse(etat)
 
 
 
@@ -460,6 +531,9 @@ def actualiser_dossier(request, num_dossier):
     if not dossier:
         logger.error(f"[ACTUALISER DOSSIER] Dossier {num_dossier} introuvable — User : {request.user}")
         return redirect_error(request, f"❌ Le dossier {num_dossier} est introuvable. Contactez le support.")
+
+    if not _api_dn_est_disponible():
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
     if actualisation_dossier_est_bloquee(dossier):
         logger.warning(f"[ACTUALISER DOSSIER {num_dossier}] Actualisation bloquée détectée, reset de l'état.")

@@ -24,6 +24,11 @@ document.addEventListener("DOMContentLoaded", function () {
         statusEl.innerHTML = html || "";
     }
 
+    function afficherAlerteApiDemarcheNumerique(indisponible) {
+        const alerte = document.getElementById("dn-api-unavailable-warning");
+        if (alerte) alerte.hidden = !indisponible;
+    }
+
     function lireEtatBDD() {
         return fetch(etatUrl, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -61,6 +66,8 @@ document.addEventListener("DOMContentLoaded", function () {
             message,
             synchro_globale_en_cours
         } = data;
+
+        afficherAlerteApiDemarcheNumerique(data.dn_api_indisponible);
 
         // garde-fou principal : synchro globale
         if (synchro_globale_en_cours) {
@@ -166,6 +173,13 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             const data = await resp.json();
+
+            if (data.status === "dn_api_unavailable") {
+                afficherAlerteApiDemarcheNumerique(true);
+                setBouton(false, "Actualiser les dossiers Manifestations sportives");
+                setStatus("error", `⚠️ ${data.message}`);
+                return false;
+            }
 
             if (!resp.ok) {
                 if (data.status === "blocked_global") {

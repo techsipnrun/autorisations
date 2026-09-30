@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Chemin du fichier .env en fonction de l'environnement
 ENVIRONMENT = os.getenv("DJANGO_ENV", "dev")  # dev par défaut, DJANGO_ENV=prod python manage.py runserver pour lancer en prod
-# ENVIRONMENT = 'prod'
+ENVIRONMENT = "dev"
 dotenv_path = BASE_DIR / f".env.{ENVIRONMENT}"
 load_dotenv(dotenv_path)
 
@@ -21,9 +21,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['autorisations-dev.pnrun.local', '192.168.145.29:8000']
+
 
 # Application definition
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -69,7 +71,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'instruction.views.views.mes_dossiers_a_traiter_count',
-                'instruction.views.views.mes_dossiers_a_receptionner_count',
+		'instruction.views.views.mes_dossiers_a_receptionner_count',
                 'instruction.views.views.mes_avis_action_a_faire',
                 'instruction.context_processors.breadcrumb_context',
                 'instruction.context_processors.dn_token_expiration',
@@ -99,7 +101,6 @@ DATABASES = {
         'PASSWORD': os.environ.get('BDD_PASSWORD'),
         'HOST': os.environ.get('BDD_HOSTNAME'),
         'PORT': os.environ.get('BDD_PORT'),
-        'CONN_MAX_AGE': 0,
         'OPTIONS': {
             'options': '-c search_path=public,avis,documents,instruction,utilisateurs'
         },
@@ -146,6 +147,8 @@ for _environment, _alias in (('dev', 'dev_readonly'), ('prod', 'prod_readonly'))
     if _database_config:
         DATABASES[_alias] = _database_config
 
+
+
 # Archives temporaires et rapports de purge sur chaque environnement de dev.
 PURGE_BDD_ARCHIVE_ROOT = os.environ.get(
     'PURGE_BDD_ARCHIVE_ROOT',
@@ -190,6 +193,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'authent/static/'),
     os.path.join(BASE_DIR, 'instruction/static/'),
@@ -207,6 +212,7 @@ LOGIN_URL = '/login/'
 
 # Redirige vers la page de login après déconnexion
 LOGOUT_REDIRECT_URL = '/login/'
+
 
 
 LOGGING = {
@@ -269,7 +275,7 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
-        'synchro_file': { # fichier pour les logs lors de la synchronisation entre Postgres et Démarche Numérique
+        'synchro_file': { # fichier pour les logs lors de la synchronisation entre Postgres et Démarches Simplifiées
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': 'logs/synchronisation.log', 
@@ -374,13 +380,10 @@ REST_FRAMEWORK = {
 
 EMAIL_BACKEND = "autorisations.backends.UnsafeEmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
-# EMAIL_HOST = "toto"
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 25))
-# EMAIL_PORT = 0
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() == "true"
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() == "true"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
-DEFAULT_FROM_EMAIL_DEMANDEUR = os.environ.get("DEFAULT_FROM_EMAIL_DEMANDEUR")
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", 10))
 # EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 # EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")

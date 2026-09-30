@@ -7,6 +7,11 @@ import requests
 from django.test import SimpleTestCase
 
 from DS.graphql_client import GraphQLClient
+from DS.service_status import (
+    get_statut_demarche_numerique,
+    signaler_disponibilite_demarche_numerique,
+    signaler_indisponibilite_demarche_numerique,
+)
 
 
 class GraphQLClientConfigurationTests(SimpleTestCase):
@@ -50,9 +55,11 @@ class GraphQLClientExecuteQueryTests(SimpleTestCase):
         self.client.url = "https://dn.test/graphql"
         self.client.token = "token-secret"
         self.client.session = MagicMock()
+        signaler_disponibilite_demarche_numerique()
 
     @patch("builtins.open", new_callable=mock_open, read_data="query Test { __typename }")
     def test_requete_valide(self, fichier):
+        signaler_indisponibilite_demarche_numerique()
         response = MagicMock(status_code=200)
         response.json.return_value = {"data": {"__typename": "Query"}}
         self.client.session.post.return_value = response
@@ -60,6 +67,7 @@ class GraphQLClientExecuteQueryTests(SimpleTestCase):
         resultat = self.client.execute_query("requete.graphql", {"numero": 123})
 
         self.assertEqual(resultat, {"data": {"__typename": "Query"}})
+        self.assertIsNone(get_statut_demarche_numerique())
         self.client.session.post.assert_called_once_with(
             "https://dn.test/graphql",
             json={
@@ -103,6 +111,49 @@ class GraphQLClientExecuteQueryTests(SimpleTestCase):
 
         with self.assertRaises(requests.ConnectionError):
             self.client.execute_query("requete.graphql")
+
+        self.assertIsNotNone(get_statut_demarche_numerique())
+
+    @patch("builtins.open", new_callable=mock_open, read_data="query { __typename }")
+    def test_erreur_503_declenche_alerte_indisponibilite(self, _):
+        response = MagicMock(status_code=503, text="Service temporarily unavailable")
+        response.raise_for_status.side_effect = requests.HTTPError("503 Server Error")
+        self.client.session.post.return_value = response
+
+        with self.assertRaises(requests.HTTPError):
+            self.client.execute_query("requete.graphql")
+
+        self.assertEqual(get_statut_demarche_numerique()["status_code"], 503)
+
+    @patch("DS.graphql_client.requests.post")
+    def test_controle_rapide_de_disponibilite_reussit(self, post):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"data": {"__typename": "Query"}}
+        post.return_value = response
+
+        resultat = self.client.verifier_disponibilite()
+
+        self.assertTrue(resultat["disponible"])
+        self.assertIsNone(get_statut_demarche_numerique())
+        post.assert_called_once_with(
+            "https://dn.test/graphql",
+            json={"query": "query Healthcheck { __typename }"},
+            headers={
+                "Authorization": "Bearer token-secret",
+                "Content-Type": "application/json",
+            },
+            timeout=(3, 8),
+        )
+
+    @patch("DS.graphql_client.requests.post")
+    def test_controle_rapide_de_disponibilite_signale_un_503(self, post):
+        post.return_value = MagicMock(status_code=503)
+
+        resultat = self.client.verifier_disponibilite()
+
+        self.assertFalse(resultat["disponible"])
+        self.assertEqual(resultat["status_code"], 503)
+        self.assertEqual(get_statut_demarche_numerique()["status_code"], 503)
 
 
 @skipUnless(

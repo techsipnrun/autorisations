@@ -3,6 +3,7 @@ from autorisations.models.models_instruction import Dossier, Demarche, DossierMa
 from datetime import datetime
 import os
 from django.utils import timezone
+from DS.service_status import get_statut_demarche_numerique
 
 
 def get_demarche_from_num_dossier(num_dossier):
@@ -102,7 +103,7 @@ def breadcrumb_context(request):
 
         
         if numero:
-            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
+            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}/"})
             items.append({"label": "Messagerie", "url": ""})
 
     elif view_name == "instruction_dossier_consultation":
@@ -114,7 +115,7 @@ def breadcrumb_context(request):
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
             
         if numero:
-            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
+            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}/"})
             items.append({"label": "Consultation", "url": ""})
 
     elif view_name == "instruction_dossier_ajouter_avis":
@@ -126,7 +127,7 @@ def breadcrumb_context(request):
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
             
         if numero:
-            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
+            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}/"})
             items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
             items.append({"label": "Nouvelle demande d'avis", "url": ""})
 
@@ -139,7 +140,7 @@ def breadcrumb_context(request):
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
             
         if numero:
-            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
+            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}/"})
             items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
             items.append({"label": "Ajouter un avis existant", "url": ""})
 
@@ -153,7 +154,7 @@ def breadcrumb_context(request):
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
             
         if numero:
-            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}"})
+            items.append({"label": f"Dossier n°{numero}", "url": f"/instruction/{numero}/"})
             items.append({"label": "Consultation", "url": f"/instruction/{numero}/consultation"})
             items.append({"label": f"Avis n°{numero_avis}", "url": ""})
 
@@ -202,3 +203,16 @@ def dn_token_expiration(request):
 
     except ValueError:
         return {}
+
+
+def dn_api_status(request):
+    resolver_match = getattr(request, "resolver_match", None)
+    vue_courante = resolver_match.view_name if resolver_match else None
+    statut = get_statut_demarche_numerique()
+
+    return {
+        "dn_api_indisponible": bool(statut),
+        "dn_api_status_code": statut.get("status_code") if statut else None,
+        # L'alerte est globale ; le Back Office utilise son propre format léger.
+        "dn_api_page_concernee": vue_courante != "back_office",
+    }

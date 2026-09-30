@@ -6,12 +6,23 @@ from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
 
+
+def rediriger_vers_dossier_avec_slash(request, num_dossier):
+    return redirect("instruction_dossier", num_dossier=num_dossier, permanent=True)
+
+
+def rediriger_vers_avis_avec_slash(request, avis_id):
+    return redirect("avis_expert", avis_id=avis_id, permanent=True)
+
+
 urlpatterns = [
 
     # GESTION
     path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
+    path("back-office/", views.back_office, name="back_office"),
+    path("back-office/services-status/", views.back_office_services_status, name="back_office_services_status"),
     path("statistiques/", statistiques.tableau_de_bord, name="statistiques"),
     path("statistiques/donnees/", statistiques.donnees_tableau_de_bord, name="statistiques_donnees"),
     path("statistiques/donnees-carte/", statistiques.donnees_carte, name="statistiques_donnees_carte"),
@@ -46,6 +57,7 @@ urlpatterns = [
     # EXPERT
     path('reception_avis/', expert.avis, name='avis_view'),
     path("reception_avis/<int:avis_id>/", expert.avis_expert, name="avis_expert"),
+    path("reception_avis/<int:avis_id>", rediriger_vers_avis_avec_slash, name="avis_expert_sans_slash"),
     path('message/<int:id>/supprimer_message_avis_vision_expert/', messagerie.supprimer_message_avis_vision_expert, name='supprimer_message_avis_vision_expert'),
     path("instruction/envoyer_message_avis_vision_expert/", avis.envoyer_message_avis_vision_expert, name="envoyer_message_avis_vision_expert"),
     path("reception_avis/<int:avis_id>/donner_son_avis", expert.donner_son_avis, name="donner_son_avis"),
@@ -62,6 +74,7 @@ urlpatterns = [
     path('instruction/', instruction.accueil, name='accueil_view'),
     path('instruction-demarche/<int:num_demarche>', instruction.instruction_demarche, name='instruction_demarche'),
     path('instruction/<int:num_dossier>/', instruction.instruction_dossier, name='instruction_dossier'),
+    path('instruction/<int:num_dossier>', rediriger_vers_dossier_avec_slash, name='instruction_dossier_sans_slash'),
     path('instruction/<int:num_dossier>/projets-acte/', instruction.rechercher_projets_acte, name='rechercher_projets_acte'),
     path('instruction/reassocier-document-work/', changement_etape.reassocier_document_work, name='reassocier_document_work'),
     path('instruction/<int:num_dossier>/messagerie', messagerie.instruction_dossier_messagerie, name='instruction_dossier_messagerie'),
@@ -98,6 +111,7 @@ urlpatterns = [
     # ACTUALISATION
     path("actualiser/", synchro.actualiser_donnees, name="actualiser_donnees"),
     path("etat-actualisation/", synchro.etat_actualisation, name="etat_actualisation"),
+    path("etat-disponibilite-dn/", synchro.etat_disponibilite_demarche_numerique, name="etat_disponibilite_demarche_numerique"),
     path('instruction/<int:num_dossier>/actualiser', synchro.actualiser_dossier, name='actualiser_dossier'),
     path('instruction/<int:num_demarche>/synchroniser/', synchro.synchroniser_demarche, name='synchroniser_demarche'),
     path('preinstruction/<int:num_demarche>/synchroniser/', synchro.synchroniser_demarche_depuis_reception, name='synchroniser_demarche_depuis_reception'),

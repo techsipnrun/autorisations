@@ -1,0 +1,20 @@
+{% if dn_api_page_concernee %}
+    <div id="dn-api-unavailable-warning" class="dn-api-unavailable-warning" role="alert"
+         data-status-url="{% url 'etat_disponibilite_demarche_numerique' %}"
+         {% if not dn_api_indisponible %}hidden{% endif %}>
+        <strong>⚠️ Démarche Numérique est temporairement indisponible.</strong>
+        <p>
+            Cette indisponibilité affecte certaines fonctionnalités d’AGIDA, notamment :
+        </p>
+        <ul>
+            <li>l’actualisation des dossiers et des messages ;</li>
+            <li>l’envoi de messages ;</li>
+            <li>le passage en instruction et l'archivage des dossiers ;</li>
+            <li>l’envoi de décisions et d’actes aux demandeurs.</li>
+        </ul>
+
+        <strong>
+            Merci d’attendre le rétablissement de Démarche Numérique avant de réessayer ces actions.
+        </strong>
+    </div>
+{% endif %}

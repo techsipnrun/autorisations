@@ -133,6 +133,49 @@ class DeclarationManifestationsLectureTests(SimpleTestCase):
         with self.assertRaises(requests.Timeout):
             get_methods.get_all_avis("token-dm")
 
+    @patch("declaration_manifestations.get_methods.requests.get")
+    @patch("declaration_manifestations.get_methods.requests.post")
+    def test_controle_api_dm_valide_jeton_et_lecture(self, post, get):
+        post.return_value = MagicMock(status_code=200)
+        post.return_value.json.return_value = {"access_token": "token-dm"}
+        get.return_value = MagicMock(status_code=200)
+
+        with patch.object(get_methods, "_configuration_controle_dm", return_value={
+            "url": "https://dm-prod.test/",
+            "username": "user",
+            "password": "password",
+            "client_id": "client",
+            "client_secret": "secret",
+        }):
+            resultat = get_methods.verifier_disponibilite_declaration_manifestations()
+
+        self.assertTrue(resultat["disponible"])
+        self.assertEqual(resultat["status_code"], 200)
+        get.assert_called_once_with(
+            "https://dm-prod.test/api/Avis/?page_size=1",
+            headers={"Authorization": "Bearer token-dm"},
+            timeout=(3, 8),
+        )
+
+    @patch("declaration_manifestations.get_methods.requests.get")
+    @patch("declaration_manifestations.get_methods.requests.post")
+    def test_controle_api_dm_signale_une_lecture_indisponible(self, post, get):
+        post.return_value = MagicMock(status_code=200)
+        post.return_value.json.return_value = {"access_token": "token-dm"}
+        get.return_value = MagicMock(status_code=503)
+
+        with patch.object(get_methods, "_configuration_controle_dm", return_value={
+            "url": "https://dm-prod.test/",
+            "username": "user",
+            "password": "password",
+            "client_id": "client",
+            "client_secret": "secret",
+        }):
+            resultat = get_methods.verifier_disponibilite_declaration_manifestations()
+
+        self.assertFalse(resultat["disponible"])
+        self.assertEqual(resultat["status_code"], 503)
+
 
 @skipUnless(
     os.getenv("RUN_LIVE_API_TESTS") == "1",

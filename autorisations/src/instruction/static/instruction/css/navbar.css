@@ -20,6 +20,64 @@
     color: black;
 }
 
+.dn-api-unavailable-warning {
+    position: relative;
+    /* Reste sous la navbar fixe (z-index: 9999). */
+    z-index: 9998;
+    width: min(52rem, calc(100vw - 2rem));
+    /* L'espace sous l'alerte est exactement sa hauteur : aucun blanc ajouté. */
+    margin: calc(80px + 0.7rem) auto 0;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid #ff0000;
+    border-left: 5px solid #d30000;
+    border-radius: 8px;
+    color: #673207;
+    background: #fff7ed;
+    box-shadow: 0 5px 16px rgba(117, 67, 18, 0.13);
+    font-size: 0.92rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.dn-api-unavailable-warning strong {
+    display: block;
+    margin: 0 0 0.45rem;
+    color: #833b00;
+    font-size: 0.98rem;
+}
+
+.dn-api-unavailable-warning p {
+    margin: 0.45rem 0;
+}
+
+.dn-api-unavailable-warning ul {
+    margin: 0.35rem 0 0.6rem 1.35rem;
+    padding: 0;
+}
+
+.dn-api-unavailable-warning li {
+    margin: 0.16rem 0;
+}
+
+.dn-api-unavailable-warning strong:last-of-type {
+    margin: 0.65rem 0 0;
+}
+
+/* Le fil d'Ariane a normalement un décalage de 160px pour la navbar.
+   Lorsque l'alerte est visible, elle occupe déjà exactement cet espace. */
+body:has(#dn-api-unavailable-warning:not([hidden])) .breadcrumb {
+    margin-top: 2rem;
+}
+
+@media (max-width: 650px) {
+    .dn-api-unavailable-warning {
+        width: calc(100vw - 1rem);
+        margin: calc(80px + 0.4rem) auto 0;
+        padding: 0.65rem 0.8rem;
+        font-size: 0.8rem;
+    }
+}
+
 
 /* Logo */
 .logo_parc_navbar{
@@ -277,6 +335,78 @@
   background-color: rgb(216, 216, 216);
 }
 
+.settings_submenu_toggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 0;
+  background: transparent;
+  color: black;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.2rem;
+  text-align: left;
+}
+
+.settings_submenu_toggle:hover {
+  background-color: rgb(216, 216, 216);
+}
+
+.settings_submenu_toggle .icon {
+  flex: 0 0 15%;
+  max-width: 12%;
+  text-align: center;
+}
+
+.settings_submenu_toggle > span:not(.settings_submenu_chevron) {
+  flex: 1;
+}
+
+.settings_submenu_chevron {
+  flex: 0 0 auto;
+  width: 15px;
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.settings_submenu.open .settings_submenu_chevron {
+  transform: rotate(180deg);
+}
+
+.settings_submenu_content {
+  display: none;
+  padding: 0.25rem 0 0.45rem;
+  background-color: #f4f6f5;
+  border-top: 1px solid #e1e5e2;
+  border-bottom: 1px solid #e1e5e2;
+}
+
+.settings_submenu.open .settings_submenu_content {
+  display: block;
+}
+
+.settings_submenu_item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.48rem 1rem 0.48rem 2.25rem;
+  color: #3d4841;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.settings_submenu_item .icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.settings_submenu_item:hover {
+  background-color: #e0e8e2;
+}
+
 @media (max-width: 1600px) {
   .settings_menu {
     min-width: 285px;
@@ -287,6 +417,16 @@
     padding: 0.5rem 0.75rem;
     font-size: 0.95rem;
   }
+
+  .settings_submenu_toggle {
+    gap: 0.7rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .settings_submenu_item {
+    font-size: 0.9rem;
+  }
 }
 
 @media (max-width: 1300px) {
@@ -295,6 +435,10 @@
   }
 
   .settings_menu .dropdown-item {
+    font-size: 0.85rem;
+  }
+
+  .settings_submenu_toggle {
     font-size: 0.85rem;
   }
 }

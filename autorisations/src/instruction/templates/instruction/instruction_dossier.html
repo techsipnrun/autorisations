@@ -16,8 +16,8 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=15">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=21">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
@@ -42,7 +42,7 @@
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
-    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=7"></script>
+    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=9"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}" defer></script>
 
@@ -70,10 +70,10 @@
                 <div class="refresh-doss">
                     <form method="post" action="{% url 'actualiser_dossier' dossier.numero %}" data-etat-url="{% url 'etat_actualisation_dossier' dossier.numero %}">
                         {% csrf_token %}
-                        <button type="submit" class="refresh-button" data-icon="{% static 'instruction/img/actualiser.png' %}" {% if synchro_globale_en_cours %}disabled{% endif %}>
+                        <button type="submit" class="refresh-button" data-icon="{% static 'instruction/img/actualiser.png' %}" data-synchro-globale="{{ synchro_globale_en_cours|yesno:'true,false' }}" {% if synchro_globale_en_cours %}disabled{% endif %}>
                             <img src="{% static 'instruction/img/actualiser.png' %}" alt="Actualiser" class="refresh-icon">
                             {% if synchro_globale_en_cours %}
-                                Synchronisation globale en cours...
+                                Synchronisation en cours...
                             {% else %}
                                 Actualiser
                             {% endif %}

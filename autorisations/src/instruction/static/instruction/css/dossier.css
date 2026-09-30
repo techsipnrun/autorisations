@@ -353,14 +353,14 @@ h2 {
 }
 
 .champs .pj_champ .document-avec-apercu {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     max-width: 100%;
     overflow: visible;
 }
 
 .champs .pj_champ .document-avec-apercu > a:first-child {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -758,7 +758,7 @@ h2 {
     position: absolute;
     top: clamp(10px, 1vw, 18px);
     right: clamp(54px, 4vw, 76px);
-    z-index: 100;
+    z-index: 1000002;
 }
 
 .btn-notifier-agents {
@@ -1039,11 +1039,26 @@ h2 {
     to { transform: rotate(360deg); }
 }
 
-@media (max-width: 650px) {
+@media (max-width: 800px), (max-height: 900px) {
     .notification-agents-panel {
-        width: calc(100vw - 1rem);
-        max-height: calc(100dvh - 1rem);
+        top: calc(80px + 0.5rem);
+        left: 50%;
+        width: min(34rem, calc(100vw - 1rem));
+        max-height: calc(100dvh - 80px - 1rem);
         padding: 0.8rem;
+        transform: translateX(-50%);
+    }
+
+    .refresh-button[data-synchro-globale="true"] {
+        gap: 0.35rem;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.74rem;
+        white-space: nowrap;
+    }
+
+    .refresh-button[data-synchro-globale="true"] .refresh-icon {
+        width: 16px;
+        height: 16px;
     }
 
     .notification-agents-panel h3 {
@@ -1234,10 +1249,16 @@ h2 {
 .titre-carte-avec-bouton {
   display: flex;
   align-items: center;
-  gap: 3rem;
+  gap: 1.5rem;
+}
+
+.titre-carte-avec-bouton h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .btn-edit-carto {
+  flex: 0 0 auto;
   font-size: 1.2rem;
   background-color: #f0f0f0;
   padding: 6px 10px;
@@ -1248,6 +1269,7 @@ h2 {
   transition: background 0.2s;
   line-height: 1.3;
   margin-top: 2rem;
+  white-space: nowrap;
 }
 
 .btn-saisir-carto {

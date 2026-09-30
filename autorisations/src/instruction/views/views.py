@@ -22,6 +22,16 @@ from instruction.templatetags.group_tags import est_concerne_par_le_dossier
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
+from DS.graphql_client import verifier_disponibilite_demarche_numerique
+from declaration_manifestations.get_methods import (
+    verifier_disponibilite_declaration_manifestations,
+    verifier_disponibilite_declaration_manifestations_preprod,
+)
+from instruction.services_externes import (
+    get_etat_expiration_token_dn,
+    verifier_acces_bdd_developpement,
+    verifier_acces_bdd_production,
+)
 
 from mimetypes import guess_type
 from django.contrib import messages
@@ -31,7 +41,7 @@ from django.utils.timezone import now
 from autorisations import settings
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from instruction.utils.utilisateurs_utils import resoudre_destinataires_notification
 
 
@@ -1519,6 +1529,61 @@ def supprimer_annexe_instructeur(request):
 
 
 
+
+
+@login_required
+def back_office(request):
+    """Page d'accueil reservee aux superutilisateurs pour l'administration interne."""
+    if not request.user.is_superuser:
+        raise PermissionDenied("Cette page est réservée aux administrateurs.")
+    return render(request, "instruction/back_office.html")
+
+
+def _executer_controle_externe(nom, controle):
+    """Empêche un contrôle isolé de faire échouer tout le tableau de suivi."""
+    try:
+        return controle()
+    except Exception:
+        logger.exception("Échec inattendu du contrôle du service externe %s", nom)
+        return {
+            "disponible": False,
+            "configure": True,
+            "detail": "Le contrôle de ce service a rencontré une erreur inattendue.",
+        }
+
+
+@login_required
+def back_office_services_status(request):
+    """Exécute les contrôles externes après le rendu du Back Office."""
+    if not request.user.is_superuser:
+        raise PermissionDenied("Cette page est réservée aux administrateurs.")
+
+    etat_token_dn = _executer_controle_externe(
+        "jeton Démarche Numérique", get_etat_expiration_token_dn
+    )
+    if etat_token_dn.get("expiration"):
+        etat_token_dn["expiration"] = etat_token_dn["expiration"].isoformat()
+
+    return JsonResponse({
+        "demarche_numerique": _executer_controle_externe(
+            "Démarche Numérique", verifier_disponibilite_demarche_numerique
+        ),
+        "declaration_manifestations_preprod": _executer_controle_externe(
+            "Déclaration Manifestations préproduction",
+            verifier_disponibilite_declaration_manifestations_preprod,
+        ),
+        "declaration_manifestations_prod": _executer_controle_externe(
+            "Déclaration Manifestations production",
+            verifier_disponibilite_declaration_manifestations,
+        ),
+        "bdd_developpement": _executer_controle_externe(
+            "BDD développement", verifier_acces_bdd_developpement
+        ),
+        "bdd_production": _executer_controle_externe(
+            "BDD production", verifier_acces_bdd_production
+        ),
+        "token_dn": etat_token_dn,
+    })
 
 
 @login_required

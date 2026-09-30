@@ -12,7 +12,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}?v=10">
 </head>
 <body>
     <header>
@@ -106,25 +106,36 @@
                         {% endif %}
 
                         {% if request.user.is_superuser %}
-                            <a href="/admin/" class="dropdown-item" target="_blank">
-                                <img src="{% static 'instruction/img/shield-user.svg' %}" class="icon" alt="">
-                                <span>Admin</span>
-                            </a>
-
-                            <a href="/gestion_contacts/" target="_blank" class="dropdown-item">
+                            <!-- <a href="/gestion_contacts/" target="_blank" class="dropdown-item">
                                 <img src="{% static 'instruction/img/contact_externe.svg' %}" class="icon" alt="">
                                 <span>Gestion des contacts</span>
-                            </a>
+                            </a> -->
 
-                            <a href="/gestion_logs/" target="_blank" class="dropdown-item">
-                                <img src="{% static 'instruction/img/logs.svg' %}" class="icon" alt="">
-                                <span>Gestion des logs</span>
-                            </a>
-
-                            <a href="/swagger/" target="_blank" class="dropdown-item">
-                                <img src="{% static 'instruction/img/api-icon.svg' %}" class="icon" alt="">
-                                <span>API Swagger</span>
-                            </a>
+                            <div class="settings_submenu">
+                                <button type="button" class="settings_submenu_toggle" aria-expanded="false">
+                                    <img src="{% static 'instruction/img/shield-user.svg' %}" class="icon" alt="">
+                                    <span>Admin</span>
+                                    <img src="{% static 'instruction/img/chevron-down.svg' %}" class="settings_submenu_chevron" alt="">
+                                </button>
+                                <div class="settings_submenu_content">
+                                    <a href="/admin/" target="_blank" class="settings_submenu_item">
+                                        <img src="{% static 'instruction/img/database.png' %}" class="icon" alt="">
+                                        <span>Base de données</span>
+                                    </a>
+                                    <a href="/gestion_logs/" target="_blank" class="settings_submenu_item">
+                                        <img src="{% static 'instruction/img/logs.svg' %}" class="icon" alt="">
+                                        <span>Logs</span>
+                                    </a>
+                                    <a href="/swagger/" target="_blank" class="settings_submenu_item">
+                                        <img src="{% static 'instruction/img/api-icon.svg' %}" class="icon" alt="">
+                                        <span>API Swagger</span>
+                                    </a>
+                                    <a href="{% url 'back_office' %}" class="settings_submenu_item">
+                                        <img src="{% static 'instruction/img/back-office.png' %}" class="icon" alt="">
+                                        <span>Back Office</span>
+                                    </a>
+                                </div>
+                            </div>
 
                         {% endif %}
                         
@@ -138,15 +149,23 @@
                             <span>Gestion des groupes</span>
                         </a>
 
-                        <a href="https://demarche.numerique.gouv.fr/procedures" target="_blank" class="dropdown-item">
-                            <img src="{% static 'instruction/img/DS_noir_et_blanc.svg' %}" class="icon" alt="">
-                            <span>Démarche Numérique</span>
-                        </a>
-
-                        <a href="https://declaration-manifestations.gouv.fr/instructions/tableaudebord/50975/" target="_blank" class="dropdown-item">
-                            <img src="{% static 'instruction/img/prefet_icon.svg' %}" class="icon" alt="">
-                            <span>Déclaration Manifestations</span>
-                        </a>
+                        <div class="settings_submenu">
+                            <button type="button" class="settings_submenu_toggle" aria-expanded="false">
+                                <img src="{% static 'instruction/img/service-externe.png' %}" class="icon" alt="">
+                                <span>Services externes</span>
+                                <img src="{% static 'instruction/img/chevron-down.svg' %}" class="settings_submenu_chevron" alt="">
+                            </button>
+                            <div class="settings_submenu_content">
+                                <a href="https://demarche.numerique.gouv.fr/procedures" target="_blank" class="settings_submenu_item">
+                                    <img src="{% static 'instruction/img/DS_noir_et_blanc.svg' %}" class="icon" alt="">
+                                    <span>Démarche Numérique</span>
+                                </a>
+                                <a href="https://declaration-manifestations.gouv.fr/instructions/tableaudebord/50975/" target="_blank" class="settings_submenu_item">
+                                    <img src="{% static 'instruction/img/prefet_icon.svg' %}" class="icon" alt="">
+                                    <span>Déclaration Manifestations</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -156,13 +175,32 @@
 
     </header>
 
+    {% include "instruction/refacto/dn_api_unavailable_warning.html" %}
+    {% if dn_api_page_concernee %}
+        <script src="{% static 'instruction/js/dn_api_status.js' %}?v=1" defer></script>
+    {% endif %}
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
         const dropdowns = Array.from(document.querySelectorAll('.user_dropdown, .settings_dropdown'));
+        const submenus = Array.from(document.querySelectorAll('.settings_submenu'));
+
+        const closeSubmenus = (except = null) => {
+            submenus.forEach(submenu => {
+                if (!except || submenu !== except) {
+                    submenu.classList.remove('open');
+                    submenu.querySelector('.settings_submenu_toggle')
+                        .setAttribute('aria-expanded', 'false');
+                }
+            });
+        };
 
         const closeAll = (except = null) => {
             dropdowns.forEach(d => {
-            if (!except || d !== except) d.classList.remove('open');
+            if (!except || d !== except) {
+                d.classList.remove('open');
+                if (d.classList.contains('settings_dropdown')) closeSubmenus();
+            }
             });
         };
 
@@ -188,6 +226,15 @@
         // Optionnel : éviter la fermeture si on clique *dans* le menu (les liens continuent de fonctionner)
         document.querySelectorAll('.user_menu, .settings_menu').forEach(menu => {
             menu.addEventListener('click', (e) => e.stopPropagation());
+        });
+
+        document.querySelectorAll('.settings_submenu_toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const submenu = toggle.closest('.settings_submenu');
+                const willOpen = !submenu.classList.contains('open');
+                submenu.classList.toggle('open', willOpen);
+                toggle.setAttribute('aria-expanded', willOpen);
+            });
         });
         });
     </script>

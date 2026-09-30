@@ -14,7 +14,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}?v=2">
 </head>
 
 <body>
@@ -78,7 +78,7 @@
                         <img src="{% static 'instruction/img/actualiser.png' %}" alt="Synchroniser" class="refresh-icon">
 
                         {% if synchro_globale_en_cours %}
-                            Synchronisation globale en cours...
+                            Synchronisation en cours...
                         {% elif demarche.actualisation_statut == "running" %}
                             Actualisation en cours...
                         {% else %}

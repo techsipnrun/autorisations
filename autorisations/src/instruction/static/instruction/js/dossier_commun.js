@@ -169,6 +169,12 @@ document.addEventListener("DOMContentLoaded", function () {
     let clearMessageTimeout = null;
     let wasRunning = false;
 
+    function afficherAlerteApiDemarcheNumerique(indisponible) {
+        const alerte = document.getElementById("dn-api-unavailable-warning");
+        if (!alerte) return;
+        alerte.hidden = !indisponible;
+    }
+
     if (synchroGlobaleEnCours) return;
     if (!etatUrl) return;
 
@@ -219,11 +225,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const data = await response.json();
+            afficherAlerteApiDemarcheNumerique(data.dn_api_indisponible);
 
             if (data.en_cours) {
                 wasRunning = true;
                 setButtonLoading();
-                setStatus(data.message || "Actualisation en cours...", "running");
+                setStatus();
                 return;
             }
 
@@ -277,7 +284,7 @@ document.addEventListener("DOMContentLoaded", function () {
     refreshForm.addEventListener("submit", function () {
         wasRunning = true;
         setButtonLoading();
-        setStatus("Actualisation en cours...", "running");
+        setStatus();
     });
 
     checkStatus().then(() => {
