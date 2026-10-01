@@ -17,7 +17,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=22">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
@@ -45,6 +45,7 @@
     <script src="{% static 'instruction/js/dossier_commun.js' %}?v=9"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}" defer></script>
+    <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
 
 </head>
 
@@ -2619,13 +2620,13 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 <!-- ############################# MAILS ENVOYÉS ############################# -->
                 {% if emails_dossiers %}
                     {% if emails_dossiers %}
-                        <div class="mails_dossier">
+                        <div class="mails_dossier" data-mails-dossier>
                             <h3 class="mails-dossier-titre">
                                 <span>Les envois de mails</span>
                                 <span class="mails-dossier-icon" aria-hidden="true">✉</span>
                             </h3>
                             {% for email in emails_dossiers %}
-                                <div class="un_mail{% if email.statut != 'Envoyé' %} un_mail-supprimable{% endif %}">
+                                <div class="un_mail{% if email.statut != 'Envoyé' %} un_mail-supprimable{% endif %}{% if forloop.counter > 3 %} un_mail-masque{% endif %}">
                                     {% if email.statut != 'Envoyé' %}
                                         <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
                                             {% csrf_token %}
@@ -2689,6 +2690,19 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                             {% empty %}
                                 <p>Aucun email envoyé pour ce dossier.</p>
                             {% endfor %}
+                            {% if emails_dossiers|length > 3 %}
+                                <button
+                                    type="button"
+                                    class="btn-afficher-mails"
+                                    data-toggle-mails
+                                    data-nombre-mails-masques="{{ emails_dossiers|length|add:'-3' }}"
+                                    aria-expanded="false">
+                                    <span data-toggle-mails-libelle>
+                                        Afficher les {{ emails_dossiers|length|add:"-3" }} autres mails
+                                    </span>
+                                    <span class="btn-afficher-mails-chevron" aria-hidden="true"></span>
+                                </button>
+                            {% endif %}
                         </div>
                     {% endif %}
                 {% endif %}

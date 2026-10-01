@@ -1,4 +1,4 @@
-from django.db.models import F
+from django.db.models import F, Max
 
 from autorisations.models.models_instruction import AvisManifSportive
 
@@ -21,3 +21,26 @@ def get_avis_dm_le_plus_recent(dossier_dm, *, verrouiller=False):
         )
         .first()
     )
+
+
+def get_dates_demande_avis_dm(dossier_dm_ids):
+    """Retourne la dernière date de demande d'avis, indexée par dossier DM.
+
+    Un dossier DM peut avoir plusieurs avis. Pour les tableaux, la dernière
+    demande est celle qui matérialise sa réception la plus récente par le Parc.
+    L'agrégation évite une requête par ligne affichée.
+    """
+    dossier_dm_ids = list(dossier_dm_ids)
+    if not dossier_dm_ids:
+        return {}
+
+    return {
+        ligne["id_dossier_manif_sportive_id"]: ligne["date_demande"]
+        for ligne in (
+            AvisManifSportive.objects.filter(
+                id_dossier_manif_sportive_id__in=dossier_dm_ids,
+            )
+            .values("id_dossier_manif_sportive_id")
+            .annotate(date_demande=Max("date_demande"))
+        )
+    }

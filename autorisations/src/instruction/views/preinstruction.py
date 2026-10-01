@@ -17,7 +17,10 @@ from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
 from autorisations.utils.nas_fonctions import _normalize_unc_path
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
-from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
+from instruction.utils.avis_dm_utils import (
+    get_avis_dm_le_plus_recent,
+    get_dates_demande_avis_dm,
+)
 from instruction.utils.dm import documents_deposes_sur_DM, user_recoit_notifications_reception_manif_sportive
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
@@ -126,6 +129,12 @@ def preinstruction(request):
         .order_by("date_debut_evenement")
     )
     dossiers_manif_sportive_DM = list(dossiers_manif_sportive_DM)
+    dates_demande_avis_dm = get_dates_demande_avis_dm(
+        dm.id for dm in dossiers_manif_sportive_DM
+    )
+    for dm in dossiers_manif_sportive_DM:
+        dm.date_demande_avis = dates_demande_avis_dm.get(dm.id)
+
     affectations_dm = defaultdict(set)
     for dossier_dm_id, instructeur_id in DossierManifSportiveInstructeur.objects.filter(
         id_dossier_manif_sportive_id__in=[dm.id for dm in dossiers_manif_sportive_DM]
@@ -276,7 +285,14 @@ def preinstruction(request):
     )
 
     # Récupération des liaisons
-    liaisons = DossierManifestationLiaison.objects.filter(id_dossier__in=dossiers_manif_sportive_complet).select_related("id_dossier_manif")
+    liaisons = list(
+        DossierManifestationLiaison.objects.filter(
+            id_dossier__in=dossiers_manif_sportive_complet
+        ).select_related("id_dossier", "id_dossier_manif")
+    )
+    dates_demande_avis_dm = get_dates_demande_avis_dm(
+        liaison.id_dossier_manif_id for liaison in liaisons
+    )
 
 
     # Création d’un dictionnaire : dossier → dossier_manif
@@ -286,6 +302,15 @@ def preinstruction(request):
 
         # Intersection Coeur de parc
         dossier_dm = liaison.id_dossier_manif
+        dossier_dm.date_demande_avis = dates_demande_avis_dm.get(dossier_dm.id)
+        dossier_dm.date_reception_complete = max(
+            (
+                date
+                for date in (dossierDN.date_depot, dossier_dm.date_demande_avis)
+                if date
+            ),
+            default=None,
+        )
         if dossier_dm.coeur_de_parc is None :
             dossier_dm.coeur_de_parc = intersecte_coeur_de_parc(dossier_dm.geometrie, coeur_geojson)
             dossier_dm.save(update_fields=["coeur_de_parc"])

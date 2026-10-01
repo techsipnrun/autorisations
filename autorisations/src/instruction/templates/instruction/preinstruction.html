@@ -128,8 +128,7 @@
                         <th>Cœur de parc</th>
                         <th>N° DN</th>
                         <th>N° DM</th>
-                        <th>Dossier DN reçu le</th>
-                        <th>Dossier DM reçu le</th>    
+                        <th>Dossier complet reçu le</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -150,8 +149,7 @@
                             </td>
                             <td>{{ dossier.numero }}</td>
                             <td>{{ dm.numero_dossier_declaration_manifestations }}</td>
-                            <td>{{ dossier.date_depot|date:"d F Y" }}</td>
-                            <td>{{ dm.date_depot|date:"d F Y" }}</td>
+                            <td>{{ dm.date_reception_complete|date:"d F Y"|default:"—" }}</td>
                         </tr>
                     {% empty %}
                         <tr>
@@ -201,7 +199,7 @@
                                         <span class="coeur-non">Non</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ d.date_depot|date:"d F Y" }}</td>
+                                <td>{{ d.date_demande_avis|date:"d F Y"|default:"—" }}</td>
                                 <td>{{ d.nb_relances }}</td>
                             </tr>
                         {% empty %}

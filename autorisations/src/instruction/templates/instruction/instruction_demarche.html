@@ -151,7 +151,7 @@
                     <!-- <td>{{ d.type }}</td> -->
                     <td>{{ d.numero }}</td>
                     <td>{{ d.demandeur }}</td>
-                    <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                    <td>{{ d.date_reception|date:"d/m/Y"|default:"—" }}</td>
                     {% if demarche.type|lower == "manifestations sportives" %}
                         <td class="{% if d.date_evenement_passee %}date-passee{% elif d.date_evenement_dans_moins_un_mois %}date-moins-un-mois{% endif %}">
                             {{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}
@@ -227,7 +227,7 @@
                             </td>
                             <td>{{ d.numero }}</td>
                             <td>{{ d.demandeur }}</td>
-                            <td>{{ d.date_depot|date:"d/m/Y" }}</td>
+                            <td>{{ d.date_reception|date:"d/m/Y"|default:"—" }}</td>
                             {% if demarche.type|lower == "manifestations sportives" %}
                                 <td>{{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}</td>
                             {% endif %}

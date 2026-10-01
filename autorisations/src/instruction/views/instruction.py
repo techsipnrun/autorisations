@@ -18,7 +18,10 @@ from autorisations.models.models_documents import Document, DocumentFormat, Docu
 from autorisations.models.models_avis import AvisDocument, DossierAvis
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, ecrire_file_sur_nas
 from instruction.utils.avis_utils import build_avis_for_dossier
-from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
+from instruction.utils.avis_dm_utils import (
+    get_avis_dm_le_plus_recent,
+    get_dates_demande_avis_dm,
+)
 from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, get_motif_decision, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
@@ -281,6 +284,43 @@ def get_dates_debut_manifestation(dossiers):
             id_dossier_id__in=dossier_ids
         ).select_related("id_dossier_manif")
     }
+
+
+def get_dates_reception_manifestation(dossiers):
+    """Retourne la date de réception à afficher pour chaque dossier DN.
+
+    Pour un dossier complet, il s'agit de la plus récente date entre son dépôt
+    DN et la dernière demande d'avis sur DM. Pour un DN orphelin, la date de
+    dépôt DN reste la date de réception.
+    """
+    dossiers_par_id = {dossier.id: dossier for dossier in dossiers}
+    if not dossiers_par_id:
+        return {}
+
+    liaisons = list(
+        DossierManifestationLiaison.objects.filter(
+            id_dossier_id__in=dossiers_par_id
+        ).select_related("id_dossier_manif")
+    )
+    dates_demande_avis_dm = get_dates_demande_avis_dm(
+        liaison.id_dossier_manif_id for liaison in liaisons
+    )
+
+    dates_reception = {
+        dossier_id: dossier.date_depot
+        for dossier_id, dossier in dossiers_par_id.items()
+    }
+    for liaison in liaisons:
+        date_depot_dn = dossiers_par_id[liaison.id_dossier_id].date_depot
+        date_demande_avis_dm = dates_demande_avis_dm.get(
+            liaison.id_dossier_manif_id
+        )
+        dates_reception[liaison.id_dossier_id] = max(
+            (date for date in (date_depot_dn, date_demande_avis_dm) if date),
+            default=None,
+        )
+
+    return dates_reception
 
 
 def get_indicateurs_date_manifestation(date_debut):
@@ -694,6 +734,11 @@ def instruction_demarche(request, num_demarche):
     dossiers = list(dossiers)
 
     dates_debut_manifestation = get_dates_debut_manifestation(dossiers)
+    dates_reception_manifestation = (
+        get_dates_reception_manifestation(dossiers)
+        if demarche.type.lower() == "manifestations sportives"
+        else {}
+    )
     dossiers_ids = [dossier.id for dossier in dossiers]
     demandeurs = _contacts_demandeurs_par_dossier(dossiers_ids)
     messages_non_lus = _messages_non_lus_par_dossier(dossiers_ids)
@@ -724,6 +769,9 @@ def instruction_demarche(request, num_demarche):
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
+            "date_reception": dates_reception_manifestation.get(
+                dossier.id, dossier.date_depot
+            ),
             "date_debut_manifestation": date_debut_manifestation,
             "date_evenement_passee": date_evenement_passee,
             "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
@@ -769,6 +817,11 @@ def instruction_demarche(request, num_demarche):
     ).order_by("-date_depot"))
 
     dates_debut_manifestation_archives = get_dates_debut_manifestation(dossiers_archives)
+    dates_reception_manifestation_archives = (
+        get_dates_reception_manifestation(dossiers_archives)
+        if demarche.type.lower() == "manifestations sportives"
+        else {}
+    )
     dossiers_archives_ids = [dossier.id for dossier in dossiers_archives]
     demandeurs_archives = _contacts_demandeurs_par_dossier(dossiers_archives_ids)
     messages_non_lus_archives = _messages_non_lus_par_dossier(dossiers_archives_ids)
@@ -792,6 +845,9 @@ def instruction_demarche(request, num_demarche):
             "numero": dossier.numero,
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
+            "date_reception": dates_reception_manifestation_archives.get(
+                dossier.id, dossier.date_depot
+            ),
             "date_debut_manifestation": dates_debut_manifestation_archives.get(dossier.id),
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
@@ -810,7 +866,7 @@ def instruction_demarche(request, num_demarche):
 
         groupe_manif = Groupeinstructeur.objects.filter(nom__iexact="Manifestations sportives").first()
 
-        dossiers_dm_archives_non_lies = (
+        dossiers_dm_archives_non_lies = list(
             DossierManifSportive.objects
             .filter(
                 archive=True,
@@ -819,6 +875,9 @@ def instruction_demarche(request, num_demarche):
             .exclude(id__in=dossiers_deja_lies_ids)
             .select_related("id_etape")
             .order_by("-date_depot")
+        )
+        dates_demande_avis_dm = get_dates_demande_avis_dm(
+            dossier_dm.id for dossier_dm in dossiers_dm_archives_non_lies
         )
 
         for dossier_dm in dossiers_dm_archives_non_lies:
@@ -835,6 +894,7 @@ def instruction_demarche(request, num_demarche):
                 "numero": dossier_dm.numero_dossier_declaration_manifestations,
                 "demandeur": demandeur,
                 "date_depot": dossier_dm.date_depot,
+                "date_reception": dates_demande_avis_dm.get(dossier_dm.id),
                 "date_debut_manifestation": dossier_dm.date_debut_evenement,
                 "groupe": groupe_manif.nom if groupe_manif else "Manifestations sportives",
                 "etape": dossier_dm.id_etape.etape if dossier_dm.id_etape else "Non défini",
@@ -850,7 +910,7 @@ def instruction_demarche(request, num_demarche):
         key=lambda d: (
             not d["action_a_faire"],
             -d["nb_messages_non_lus"],
-            -(d["date_depot"].timestamp() if d["date_depot"] else 0),
+            -(d["date_reception"].timestamp() if d["date_reception"] else 0),
         )
     )
 
