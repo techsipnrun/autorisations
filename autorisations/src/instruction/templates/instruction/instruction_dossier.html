@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=21">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=22">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -2489,79 +2489,6 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% endif %}
 
 
-                <!-- ############################# MAILS ENVOYÉS ############################# -->
-                {% if etape_actuelle.etape == 'À publier au RAA' or etape_actuelle.etape == 'Accepté' or etape_actuelle.etape == 'Refusé' or etape_actuelle.etape == 'Non soumis à autorisation' %}
-                    {% if emails_dossiers %}
-                        <div class="mails_dossier">
-                            <h3 class="mails-dossier-titre">
-                                <span>Les envois de mails</span>
-                                <span class="mails-dossier-icon" aria-hidden="true">✉</span>
-                            </h3>
-                            {% for email in emails_dossiers %}
-                                <div class="un_mail{% if email.statut != 'Envoyé' %} un_mail-supprimable{% endif %}">
-                                    {% if email.statut != 'Envoyé' %}
-                                        <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
-                                            {% csrf_token %}
-                                            <button type="submit" class="croix-retirer" title="Supprimer ce mail">✕</button>
-                                        </form>
-                                    {% endif %}
-
-                                    {% if email.statut == 'Envoyé' %}
-                                        <div class="titre_mail_dossier">
-                                            <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Mail envoyé avec succès" title="Mail envoyé avec succès" class="logo_instructeur">      
-                                            <h4>{{ email.sujet }}</h4>
-                                            
-                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
-                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
-                                            </a>
-                                        </div>
-
-                                        <h4>Mail envoyé le {{ email.derniere_tentative_envoi }}</h4>
-                                    {% elif email.statut == 'À envoyer' %}
-                                        <div class="titre_mail_dossier">
-                                            <img src="{% static 'instruction/img/en_attente.png' %}" alt="Mail en attente d'envoi" title="Mail en attente d'envoi" class="logo_instructeur">      
-                                            <h4>{{ email.sujet }}</h4>
-
-                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
-                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
-                                            </a>
-                                        </div>
-                                        <h4>Mail en attente d'envoi</h4>
-                                    {% else  %}
-                                        <div class="titre_mail_dossier">
-                                            <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Échec de l'envoi du mail" title="Échec de l'envoi du mail" class="logo_instructeur">      
-                                            <h4>{{ email.sujet }}</h4>
-
-                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
-                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
-                                            </a>
-                                        </div>
-                                        <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
-                                    {% endif %}
-                                    
-                                    {% include 'refacto/destinataires_mail_compacts.html' with email=email %}
-
-                                    {% if email.statut != 'Envoyé' %}
-                                        <form action="{% url 'envoyer_mail_en_copie' email.id %}" method="post">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
-                                                {% if email.statut == 'À envoyer' %}
-                                                    Lancer l'envoi
-                                                {% else %}
-                                                    Retenter l'envoi
-                                                {% endif %}
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                </div>
-                            {% empty %}
-                                <p>Aucun email envoyé pour ce dossier.</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endif %}
-
-
                 <!-- ############################# GROUPES INSTRUCTEURS ############################# -->
                 {% if dossier.id_groupeinstructeur %}
                     <div class="groupe-instructeur-info">
@@ -2686,6 +2613,87 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                         {% endif %}
                     </div>
                 {% endif %}
+
+
+
+                <!-- ############################# MAILS ENVOYÉS ############################# -->
+                {% if emails_dossiers %}
+                    {% if emails_dossiers %}
+                        <div class="mails_dossier">
+                            <h3 class="mails-dossier-titre">
+                                <span>Les envois de mails</span>
+                                <span class="mails-dossier-icon" aria-hidden="true">✉</span>
+                            </h3>
+                            {% for email in emails_dossiers %}
+                                <div class="un_mail{% if email.statut != 'Envoyé' %} un_mail-supprimable{% endif %}">
+                                    {% if email.statut != 'Envoyé' %}
+                                        <form method="post" action="{% url 'supprimer_mail' email.id %}" class="form-supprimer-mail">
+                                            {% csrf_token %}
+                                            <button type="submit" class="croix-retirer" title="Supprimer ce mail">✕</button>
+                                        </form>
+                                    {% endif %}
+
+                                    {% if email.statut == 'Envoyé' %}
+                                        <div class="titre_mail_dossier">
+                                            <img src="{% static 'instruction/img/timeline/accepte.png' %}" alt="Mail envoyé avec succès" title="Mail envoyé avec succès" class="logo_instructeur">      
+                                            <h4>{{ email.sujet }}</h4>
+                                            
+                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                            </a>
+                                        </div>
+
+                                        <h4>
+                                            Mail envoyé le {{ email.derniere_tentative_envoi|date:"d/m/Y" }} à {{ email.derniere_tentative_envoi|date:"H\\hi" }}
+                                            {% if email.template == 'notification_agents_dossier' and email.auteur_notification_affiche %}
+                                                par {{ email.auteur_notification_affiche }}
+                                            {% endif %}
+                                        </h4>
+                                    {% elif email.statut == 'À envoyer' %}
+                                        <div class="titre_mail_dossier">
+                                            <img src="{% static 'instruction/img/en_attente.png' %}" alt="Mail en attente d'envoi" title="Mail en attente d'envoi" class="logo_instructeur">      
+                                            <h4>{{ email.sujet }}</h4>
+
+                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                            </a>
+                                        </div>
+                                        <h4>Mail en attente d'envoi</h4>
+                                    {% else  %}
+                                        <div class="titre_mail_dossier">
+                                            <img src="{% static 'instruction/img/timeline/refuse.png' %}" alt="Échec de l'envoi du mail" title="Échec de l'envoi du mail" class="logo_instructeur">      
+                                            <h4>{{ email.sujet }}</h4>
+
+                                            <a href="{% url 'preview_email' email.id %}" target="_blank">
+                                                <img src="{% static 'instruction/img/oeil.png' %}" alt="Visualiser le mail" title="Visualiser le mail" class="logo_oeil">
+                                            </a>
+                                        </div>
+                                        <h4>Dernière tentative d'envoi le {{ email.derniere_tentative_envoi }}</h4>
+                                    {% endif %}
+                                    
+                                    {% include 'refacto/destinataires_mail_compacts.html' with email=email %}
+
+                                    {% if email.statut != 'Envoyé' %}
+                                        <form action="{% url 'envoyer_mail_en_copie' email.id %}" method="post">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn_envoi_mail" title="Envoyer le mail">
+                                                {% if email.statut == 'À envoyer' %}
+                                                    Lancer l'envoi
+                                                {% else %}
+                                                    Retenter l'envoi
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            {% empty %}
+                                <p>Aucun email envoyé pour ce dossier.</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+
+
 
 
                 <!-- ############################# RELECTURE ############################# -->

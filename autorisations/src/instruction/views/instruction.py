@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
 from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
-from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
+from autorisations.models.models_utilisateurs import AgentAutorisations, ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierRelecteurDocument
@@ -1329,8 +1329,14 @@ def instruction_dossier(request, num_dossier):
     # Fusionner et dédoublonner
     emails_uniques = sorted(set(emails_contacts) | set(emails_instructeurs))
 
-    # Liste tous les emails (envoi acte en copie) liés à ce dossier
-    emails_dossiers = EmailOutbox.objects.filter(id_dossier=dossier.id, type_mail="Envoi de l'acte").order_by("-date_creation")
+    # Liste les envois d'acte et uniquement les notifications créées via la
+    # cloche (les autres e-mails de type « Notification » sont automatiques).
+    emails_dossiers = EmailOutbox.objects.filter(
+        id_dossier=dossier.id,
+    ).filter(
+        Q(type_mail="Envoi de l'acte")
+        | Q(template="notification_agents_dossier")
+    ).order_by("-date_creation")
 
     # On ajoute les mails de Relance du dossier DM (s'il y en a)
     if liaison :
@@ -1339,6 +1345,28 @@ def instruction_dossier(request, num_dossier):
     else :
         
         emails_dossiers = emails_dossiers.order_by("-date_creation")
+
+    # Les anciennes notifications manuelles stockaient l'e-mail de l'auteur.
+    # On le résout au rendu si l'agent correspondant est connu.
+    emails_dossiers = list(emails_dossiers)
+    emails_auteurs = {
+        email.context.get("auteur", "").strip().casefold()
+        for email in emails_dossiers
+        if email.template == "notification_agents_dossier"
+        and email.context.get("auteur")
+    }
+    agents_auteurs = AgentAutorisations.objects.filter(
+        Q(mail_1__in=emails_auteurs) | Q(mail_2__in=emails_auteurs)
+    )
+    noms_auteurs = {}
+    for agent in agents_auteurs:
+        nom_complet = " ".join(part for part in (agent.prenom, agent.nom) if part)
+        for adresse in (agent.mail_1, agent.mail_2):
+            if adresse and nom_complet:
+                noms_auteurs[adresse.casefold()] = nom_complet
+    for email in emails_dossiers:
+        auteur = email.context.get("auteur", "")
+        email.auteur_notification_affiche = noms_auteurs.get(auteur.casefold(), auteur)
 
     ##################
     #  AVIS 

@@ -17,7 +17,7 @@
         <div class="dossiers-meme-acte-liste">
             {% for liaison in doc.dossiers_meme_acte %}
                 <a class="dossier-meme-acte-carte" title="Voir le dossier"
-                   href="{% url 'instruction_dossier' liaison.id_dossier.numero %}">
+                   href="{% url 'instruction_dossier' liaison.id_dossier.numero %}" target="_blank">
                     <span class="dossier-meme-acte-identite">
                         <strong class="dossier-meme-acte-numero">
                             Dossier {{ liaison.id_dossier.numero }}

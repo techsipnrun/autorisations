@@ -13,7 +13,7 @@ from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 import smbclient
 from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, Message
-from autorisations.models.models_utilisateurs import ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
+from autorisations.models.models_utilisateurs import AgentAutorisations, ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
@@ -99,6 +99,20 @@ def notifier_agents_dossier(request, dossier_id):
         return reponse_erreur("Une même adresse ne peut pas être destinataire principale et en copie.", 400)
     destinataires_envoi = destinataires_metier if NOTIFS_PROD else [EMAIL_NOTIF_TEST]
     template_name = "notification_agents_dossier"
+    instructeur_auteur = Instructeur.objects.select_related("id_agent_autorisations").filter(
+        Q(email__iexact=request.user.email)
+        | Q(id_agent_autorisations__mail_1__iexact=request.user.email)
+        | Q(id_agent_autorisations__mail_2__iexact=request.user.email)
+    ).first()
+    auteur = request.user.get_full_name().strip()
+    agent = instructeur_auteur.id_agent_autorisations if instructeur_auteur else None
+    if not agent:
+        agent = AgentAutorisations.objects.filter(
+            Q(mail_1__iexact=request.user.email) | Q(mail_2__iexact=request.user.email)
+        ).first()
+    if not auteur and agent:
+        auteur = " ".join(part for part in (agent.prenom, agent.nom) if part)
+
     context = {
         "body": body,
         "cc": destinataires_copie_metier if NOTIFS_PROD else [],
@@ -106,7 +120,7 @@ def notifier_agents_dossier(request, dossier_id):
         "numero_dossier": dossier.numero,
         "destinataires_metier": destinataires_metier,
         "destinataires_copie_metier": destinataires_copie_metier,
-        "auteur": request.user.get_full_name().strip() or request.user.email,
+        "auteur": auteur or request.user.email,
     }
 
     try:
