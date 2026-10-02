@@ -1,0 +1,33 @@
+{% if dossiers_lies %}
+    <div class="dossiers-lies-bloc"
+         data-retirer-url="{% url 'retirer_lien_dossier' dossier.id %}"
+         data-jeton="{{ jeton_retrait_dossier }}">
+        <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7 .2l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7-.2l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
+            </svg>
+            Dossier{% if dossiers_lies|length > 1 %}s{% endif %} lié{% if dossiers_lies|length > 1 %}s{% endif %}
+        </h3>
+        {% if peut_lier_dossiers %}{% csrf_token %}{% endif %}
+        <ul class="dossiers-lies-liste">
+            {% for lie in dossiers_lies %}
+                <li>
+                    <a class="dossiers-lies-carte" href="{{ lie.url }}" target="_blank" rel="noopener" title="Voir le dossier {{ lie.numero }}"
+                       aria-label="Ouvrir le dossier {{ lie.numero }} dans un nouvel onglet">
+                        <strong>Dossier {{ lie.numero }}</strong>
+                        <span>{{ lie.nom }}</span>
+                        <small>{{ lie.demarche }} · {{ lie.etape }}</small>
+                    </a>
+                    {% if peut_lier_dossiers %}
+                        <button type="button" class="dossiers-liens-retirer"
+                                data-retirer-dossier="{{ lie.id }}" data-numero="{{ lie.numero }}"
+                                title="Retirer le lien avec ce dossier"
+                                aria-label="Retirer le lien avec le dossier {{ lie.numero }}">×</button>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        <p class="dossiers-liens-statut" role="status" aria-live="polite"></p>
+    </div>
+{% endif %}

@@ -26,6 +26,7 @@ from instruction.utils.dm import documents_deposes_sur_DM
 from instruction.utils.document_utils import build_documents_for_dossier
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, get_motif_decision, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
+from instruction.utils.ensembles_dossiers import contexte_dossiers_lies
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier, get_choix_destinataires_notification
 from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
@@ -1460,6 +1461,7 @@ def instruction_dossier(request, num_dossier):
     )
 
     return render(request, 'instruction/instruction_dossier.html', {
+        **contexte_dossiers_lies(request, dossier),
         # Dossier
         "demarche": demarche,
         "dossier": dossier,

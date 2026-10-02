@@ -1,0 +1,121 @@
+.dossiers-liens-trigger-wrapper {
+    position: absolute;
+    top: clamp(10px, 1vw, 18px);
+    right: calc(var(--dossier-header-action-inset) + var(--dossier-header-action-size) + var(--dossier-header-action-gap) + var(--dossier-header-action-size) + var(--dossier-header-action-gap));
+    z-index: 9997;
+}
+
+.btn-lier-dossiers { color: #006131; }
+
+.formulaire:has(.btn-lier-dossiers) > h1 {
+    padding-right: calc(clamp(6rem, 8vw, 8rem) + clamp(34px, 2vw, 48px) + 8px);
+}
+
+/* La fenêtre est déplacée sous body pour sortir des contextes d'empilement des cartes. */
+.notification-agents-panel.dossiers-lies-panel {
+    top: var(--dossiers-liens-top, 90px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(38rem, calc(100vw - 2rem));
+    height: min(42rem, calc(100dvh - var(--dossiers-liens-top, 90px) - 1rem));
+    max-height: calc(100dvh - var(--dossiers-liens-top, 90px) - 1rem);
+    z-index: 9998;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dossiers-lies-panel[hidden], .dossiers-lies-panel [hidden] { display: none; }
+.dossiers-liens-aide { line-height: 1.5; margin: 0 0 0.5rem 0; }
+.dossiers-liens-filtres { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem 1rem; }
+.dossiers-liens-filtres label { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.dossiers-liens-filtres input:not([type="hidden"]), .dossiers-liens-filtres select {
+    box-sizing: border-box; width: 100%; min-width: 0; padding: 0.5rem;
+    border: 1px solid #b8c2bc; border-radius: 6px; background: #fff; color: #25362d; font: inherit;
+}
+.dossiers-liens-bouton {
+    align-self: flex-start; padding: 0.45rem 0.75rem; margin-top: 0.6rem;
+    border: 1px solid #b8c2bc; border-radius: 6px; background: #f3f7f4;
+    color: #006131; font: inherit; font-weight: 600; cursor: pointer;
+}
+.dossiers-liens-bouton:hover { background: #e3efe7; }
+.dossiers-liens-confirmer { color: #fff; background: #006131; }
+.dossiers-liens-confirmer:hover { background: #004d27; }
+.dossiers-liens-bouton:disabled { cursor: default; opacity: 0.55; }
+.dossiers-liens-statut { margin: 0.6rem 0; font-size: 0.9rem; }
+.dossiers-liens-statut.is-error { color: #922929; }
+.dossiers-liens-statut.is-loading::before {
+    content: ""; display: inline-block; width: 0.8rem; height: 0.8rem; margin-right: 0.5rem;
+    border: 2px solid #cbd8ce; border-top-color: #006131; border-radius: 50%;
+    vertical-align: middle; animation: dossiers-liens-tour 0.8s linear infinite;
+}
+.dossiers-liens-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 1000000;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(2px);
+}
+.dossiers-liens-loading[hidden] { display: none; }
+.dossiers-liens-loading-contenu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    max-width: 30rem;
+    padding: 1.5rem 2rem;
+    border: 1px solid #b7c9bd;
+    border-radius: 10px;
+    color: #194f31;
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    text-align: center;
+}
+.dossiers-liens-loading-contenu img { width: 2.6rem; height: 2.6rem; }
+@keyframes dossiers-liens-tour { to { transform: rotate(360deg); } }
+.dossiers-liens-resultats-zone { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 0.2rem; }
+.dossiers-liens-resultats { display: grid; gap: 0.5rem; }
+.dossiers-liens-resultat {
+    width: 100%; padding: 0.75rem; border: 1px solid #c6d3c9; border-radius: 8px;
+    background: #f8faf8; color: #25362d; text-align: left; font: inherit; cursor: pointer;
+}
+.dossiers-liens-resultat:hover { background: #edf4ef; }
+.dossiers-liens-resultat[aria-pressed="true"] { border-color: #006131; background: #e3f0e7; box-shadow: inset 3px 0 #006131; }
+.dossiers-liens-resultat strong { display: block; color: #006131; }
+.dossiers-liens-resultat small { display: block; margin-top: 0.4rem; line-height: 1.5; overflow-wrap: anywhere; }
+.dossiers-liens-pagination { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-top: 0.7rem; }
+.dossiers-liens-validation { flex: 0 0 auto; margin-top: 0.8rem; padding-top: 0.5rem; border-top: 1px solid #d5dfd8; background: #fff; }
+.dossiers-liens-validation p { line-height: 1.5; overflow-wrap: anywhere; }
+.dossiers-lies-bloc { margin: 1rem 0; padding: 1rem; border-left: 4px solid #8d3300; background: #f9f9f9; font-size: 0.95rem; }
+.dossiers-lies-bloc h3 { display: flex; align-items: center; gap: 0.45rem; margin: 0 0 0.75rem; color: #8d3300; font-size: clamp(1.2rem, 1vw, 1.4em); }
+.dossiers-lies-bloc h3 svg { flex: 0 0 auto; width: 1.25em; height: 1.25em; }
+.dossiers-lies-liste { list-style: none; padding: 0; margin: 0; }
+.dossiers-lies-liste li { position: relative; border-top: 1px solid #ead7ca; }
+.dossiers-lies-liste li:first-child { border-top: 0; }
+.dossiers-lies-carte { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; padding: 0.7rem 2.25rem 0.7rem 0.25rem; color: #3a302b; text-decoration: none; overflow-wrap: anywhere; transition: background-color 0.15s ease; }
+.dossiers-lies-carte:hover, .dossiers-lies-carte:focus-visible { background: #f8eadf; }
+.dossiers-lies-carte strong { color: inherit; }
+.dossiers-lies-carte small { color: #66564b; }
+.dossiers-liens-retirer { position: absolute; top: 50%; right: 0.25rem; transform: translateY(-50%); visibility: hidden; opacity: 0; border: 0; background: transparent; color: #805050; font-size: 1.3rem; cursor: pointer; padding: 0 0.35rem; transition: opacity 0.15s ease; }
+.dossiers-lies-liste li:hover .dossiers-liens-retirer, .dossiers-lies-liste li:focus-within .dossiers-liens-retirer { visibility: visible; opacity: 1; }
+.dossiers-liens-retirer:hover { color: #9f2222; background: #faeeee; border-radius: 4px; }
+.dossiers-lies-panel button:focus-visible, .dossiers-lies-bloc button:focus-visible,
+.btn-lier-dossiers:focus-visible { outline: 2px solid #006131; outline-offset: 2px; }
+@media (max-width: 540px) {
+    .dossiers-liens-filtres { grid-template-columns: 1fr 1fr; gap: 0.35rem 0.5rem; }
+    .dossiers-liens-filtres label { gap: 0.2rem; margin: 0; font-size: 0.82rem; }
+    .dossiers-liens-filtres input:not([type="hidden"]), .dossiers-liens-filtres select { padding: 0.4rem; }
+    .dossiers-liens-bouton { margin-top: 0.4rem; }
+}
+
+/* Grand écran : centrage dans l'espace disponible sous la navbar, jamais par-dessus. */
+@media (min-width: 801px) and (min-height: 901px) {
+    .notification-agents-panel.dossiers-lies-panel {
+        top: var(--dossiers-liens-centre, 50%);
+        transform: translate(-50%, -50%);
+    }
+}

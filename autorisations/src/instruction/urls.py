@@ -5,6 +5,7 @@ from instruction.views import messagerie, preinstruction, views, instruction, ch
 from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
+from instruction.views import dossiers_lies
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -87,6 +88,10 @@ urlpatterns = [
     path("instruction/dossier-precedent/<int:num_dossier_precedent>/", views.rediriger_vers_dossier_precedent, name="rediriger_vers_dossier_precedent"),
     path("instruction/<int:num_dossier>/nom-plus-parlant/", views.update_nom_plus_parlant, name="dossier_update_nom_plus_parlant"),
     path("instruction/dossier/<int:dossier_id>/notifier-agents/", views.notifier_agents_dossier, name="notifier_agents_dossier"),
+    path("instruction/dossier/<int:dossier_id>/liens/recherche/", dossiers_lies.rechercher_dossiers_lies, name="rechercher_dossiers_lies"),
+    path("instruction/dossier/<int:dossier_id>/liens/demandeurs/", dossiers_lies.autocomplete_demandeur_dossiers_lies, name="autocomplete_demandeur_dossiers_lies"),
+    path("instruction/dossier/<int:dossier_id>/liens/ajouter/", dossiers_lies.ajouter_lien_dossier, name="ajouter_lien_dossier"),
+    path("instruction/dossier/<int:dossier_id>/liens/retirer/", dossiers_lies.retirer_lien_dossier, name="retirer_lien_dossier"),
     
     path("instruction/ajouter-relecteur/", instruction.ajouter_relecteur_dossier, name="ajouter_relecteur_dossier"),
     path("instruction/relecture-faite/", instruction.relecture_faite, name="relecture_faite"),

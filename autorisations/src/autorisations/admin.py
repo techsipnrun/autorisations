@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.db import transaction
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
-from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
+from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EnsembleDossiers, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, F, OuterRef, Subquery
 
@@ -397,6 +397,19 @@ class DossierAdmin(admin.ModelAdmin):
     def groupe_instructeur(self, obj):
         return obj.id_groupeinstructeur.nom if obj.id_groupeinstructeur else "-"
     groupe_instructeur.short_description = "Groupe d'instructeurs"
+
+
+@admin.register(EnsembleDossiers)
+class EnsembleDossiersAdmin(admin.ModelAdmin):
+    list_display = ("id", "date_creation", "cree_par", "nombre_dossiers")
+    search_fields = ("id", "cree_par__email")
+    list_select_related = ("cree_par",)
+    readonly_fields = ("date_creation", "cree_par")
+    ordering = ("-date_creation",)
+
+    @admin.display(description="Dossiers liés")
+    def nombre_dossiers(self, obj):
+        return obj.dossiers.count()
 
     
 admin.site.register(DossierType)

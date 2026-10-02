@@ -40,6 +40,8 @@
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}?v=9"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
+    <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
 
 </head>
 
@@ -188,6 +190,7 @@
 
                 <!-- Copier le chemin d'accès du dossier -->
                 {% include "instruction/refacto/notification_agents_dossier.html" %}
+                {% include "instruction/refacto/dossiers_lies_bouton.html" %}
                 <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
                     <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
                     <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
@@ -864,6 +867,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                     </div>
                 {% endif %}
 
+                {% include "instruction/refacto/dossiers_lies_bloc.html" %}
                 <div class="groupe-instructeur-info notes_instructeurs">
                     <h3 class="notes-titre">
                         <span class="notes-titre-libelle">

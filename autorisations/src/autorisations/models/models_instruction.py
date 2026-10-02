@@ -148,6 +148,24 @@ class DossierType(models.Model):
         return self.type
 
 
+class EnsembleDossiers(models.Model):
+    id = models.AutoField(primary_key=True)
+    date_creation = models.DateTimeField(default=timezone.now)
+    cree_par = models.ForeignKey(
+        Instructeur, models.SET_NULL, db_column="cree_par", null=True, blank=True,
+        related_name="ensembles_dossiers_crees",
+    )
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."ensemble_dossiers"'
+        verbose_name = "Ensemble de dossiers"
+        verbose_name_plural = "Ensembles de dossiers"
+
+    def __str__(self):
+        return f"Ensemble de dossiers {self.pk}"
+
+
 class Dossier(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
@@ -160,6 +178,10 @@ class Dossier(models.Model):
     id_dossier_type = models.ForeignKey(DossierType, models.DO_NOTHING, db_column='id_dossier_type',blank=True)
     # id_ds_dossier_parent = models.CharField(blank=True, null=True)
     id_dossier_parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, db_column='id_dossier_parent', related_name='dossiers_enfants')
+    id_ensemble_dossiers = models.ForeignKey(
+        EnsembleDossiers, models.SET_NULL, db_column="id_ensemble_dossiers",
+        null=True, blank=True, related_name="dossiers",
+    )
     note = models.CharField(blank=True, null=True)
     nom_dossier = models.CharField()
     nom_dossier_plus_parlant = models.CharField(blank=True, null=True)

@@ -46,6 +46,8 @@
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
+    <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
+    <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
 
 </head>
 
@@ -245,6 +247,7 @@
                 
                 <!-- Copier le chemin d'accès du dossier -->
                 {% include "instruction/refacto/notification_agents_dossier.html" %}
+                {% include "instruction/refacto/dossiers_lies_bouton.html" %}
                 <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
                     <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
                     <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
@@ -2618,6 +2621,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
 
 
                 <!-- ############################# MAILS ENVOYÉS ############################# -->
+                {% include "instruction/refacto/dossiers_lies_bloc.html" %}
                 {% if emails_dossiers %}
                     {% if emails_dossiers %}
                         <div class="mails_dossier" data-mails-dossier>

@@ -401,17 +401,23 @@ h2 {
 /* ------------------------------------- */
 /*           Bouton copie dossier        */
 /* ------------------------------------- */
+:root {
+  --dossier-header-action-size: clamp(34px, 2vw, 48px);
+  --dossier-header-action-inset: clamp(10px, 1vw, 18px);
+  --dossier-header-action-gap: 8px;
+}
+
 .btn-copy-dossier{
   position: absolute;
   top: clamp(10px, 1vw, 18px);
-  right: clamp(10px, 1vw, 18px);
+  right: var(--dossier-header-action-inset);
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  width: clamp(34px, 2vw, 48px);
-  height: clamp(34px, 2vw, 48px);
+  width: var(--dossier-header-action-size);
+  height: var(--dossier-header-action-size);
   padding: 0;
   border: 1px solid #bbb;
   border-radius: 10px;
@@ -757,7 +763,7 @@ h2 {
 .notification-agents-wrapper {
     position: absolute;
     top: clamp(10px, 1vw, 18px);
-    right: clamp(54px, 4vw, 76px);
+    right: calc(var(--dossier-header-action-inset) + var(--dossier-header-action-size) + var(--dossier-header-action-gap));
     /* La navbar est volontairement au-dessus de toute la fenêtre. */
     z-index: 9998;
 }
@@ -766,8 +772,8 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: clamp(34px, 2vw, 48px);
-    height: clamp(34px, 2vw, 48px);
+    width: var(--dossier-header-action-size);
+    height: var(--dossier-header-action-size);
     padding: 0;
     border: 1px solid #bbb;
     border-radius: 10px;
@@ -789,7 +795,7 @@ h2 {
     position: fixed;
     top: 50%;
     left: 50%;
-    z-index: 9998;
+    z-index: 9999;
     box-sizing: border-box;
     width: min(34rem, calc(100vw - 2rem));
     max-height: min(48rem, calc(100dvh - 2rem));
@@ -810,7 +816,7 @@ h2 {
 }
 
 .notification-agents-panel h3 {
-    margin: 0 2rem 0.8rem 0;
+    margin: 0 2rem 0.4rem 0;
     color: #006131;
 }
 

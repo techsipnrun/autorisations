@@ -1,0 +1,71 @@
+{% load static %}
+{% if peut_lier_dossiers %}
+    <div class="dossiers-liens-trigger-wrapper">
+        <button type="button" class="btn-notifier-agents btn-lier-dossiers"
+                title="Lier à un dossier" aria-label="Lier à un dossier"
+                aria-expanded="false" aria-controls="dossiers-lies-panel">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7 .2l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7-.2l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
+            </svg>
+        </button>
+    </div>
+    <section id="dossiers-lies-panel" class="notification-agents-panel dossiers-lies-panel"
+             role="dialog" aria-labelledby="dossiers-lies-panel-titre" hidden
+             data-search-url="{% url 'rechercher_dossiers_lies' dossier.id %}"
+             data-demandeurs-url="{% url 'autocomplete_demandeur_dossiers_lies' dossier.id %}"
+             data-add-url="{% url 'ajouter_lien_dossier' dossier.id %}">
+        <button type="button" class="notification-agents-close" data-fermer-liens
+                aria-label="Fermer" title="Fermer">×</button>
+        <h3 id="dossiers-lies-panel-titre">Lier à un dossier</h3>
+        <p class="dossiers-liens-aide">Regroupez les dossiers qui concernent un même projet.</p>
+        <form class="dossiers-liens-recherche">
+            {% csrf_token %}
+            <div class="dossiers-liens-filtres">
+                <label>Demandeur
+                    <input type="hidden" name="demandeur" value="{% if demandeur_liaison %}{{ demandeur_liaison.id }}{% endif %}">
+                    <input type="search" name="demandeur_libelle" list="dossiers-liens-demandeurs"
+                           autocomplete="off" placeholder="Tous les demandeurs"
+                           value="{% if demandeur_liaison %}{{ demandeur_liaison.get_display_name }}{% endif %}">
+                    <datalist id="dossiers-liens-demandeurs"></datalist>
+                </label>
+                <label>Numéro de dossier
+                    <input type="search" name="recherche" autocomplete="off" placeholder="Numéro…">
+                </label>
+                <label>Démarche
+                    <select name="demarche">
+                        <option value="">Toutes les démarches</option>
+                        {% for type in demarches_liaison %}<option value="{{ type }}">{{ type }}</option>{% endfor %}
+                    </select>
+                </label>
+                <label>Étape
+                    <select name="etape">
+                        <option value="">Toutes</option>
+                        {% for etape in etapes_liaison %}<option value="{{ etape.pk }}">{{ etape.etape }}</option>{% endfor %}
+                    </select>
+                </label>
+            </div>
+            <button type="submit" class="dossiers-liens-bouton">Rechercher</button>
+        </form>
+        <p class="dossiers-liens-statut" role="status" aria-live="polite"></p>
+        <div class="dossiers-liens-resultats-zone">
+            <div class="dossiers-liens-resultats" aria-label="Dossiers proposés"></div>
+            <div class="dossiers-liens-pagination" hidden>
+                <button type="button" class="dossiers-liens-bouton" data-page-precedente>Précédent</button>
+                <span data-page-libelle></span>
+                <button type="button" class="dossiers-liens-bouton" data-page-suivante>Suivant</button>
+            </div>
+        </div>
+        <div class="dossiers-liens-validation" hidden>
+            <p data-resume-liaison></p>
+            <button type="button" class="dossiers-liens-bouton dossiers-liens-confirmer" data-confirmer-liaison>Lier les dossiers</button>
+        </div>
+    </section>
+    <div class="dossiers-liens-loading" hidden role="status" aria-live="assertive">
+        <div class="dossiers-liens-loading-contenu">
+            <img src="{% static 'instruction/img/loader.svg' %}" alt="" aria-hidden="true">
+            <strong data-dossiers-liens-loading-titre>Enregistrement des liens en cours…</strong>
+            <span data-dossiers-liens-loading-detail>Veuillez patienter.</span>
+        </div>
+    </div>
+{% endif %}

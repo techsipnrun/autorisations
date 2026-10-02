@@ -24,6 +24,7 @@ from instruction.utils.avis_dm_utils import (
 from instruction.utils.dm import documents_deposes_sur_DM, user_recoit_notifications_reception_manif_sportive
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
+from instruction.utils.ensembles_dossiers import contexte_dossiers_lies
 from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance, get_choix_destinataires_notification
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import passer_en_instruction_ds
@@ -583,6 +584,7 @@ def preinstruction_dossier(request, numero):
 
 
     return render(request, 'instruction/preinstruction_dossier.html', {
+        **contexte_dossiers_lies(request, dossier),
         # Dossier
         "dossier": dossier,
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
