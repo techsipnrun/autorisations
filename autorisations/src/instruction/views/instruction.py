@@ -1,4 +1,5 @@
 import ast
+import re
 from collections import Counter
 from datetime import date, timedelta
 import json
@@ -10,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
-from autorisations.models.models_instruction import Demarche, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteConfiguration, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import AgentAutorisations, ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
@@ -29,6 +30,14 @@ from instruction.utils.files_utils import load_geojson
 from instruction.utils.ensembles_dossiers import contexte_dossiers_lies
 from instruction.utils.utilisateurs_utils import build_roles_for_dossier, get_choix_destinataires_notification
 from instruction.templatetags.group_tags import est_autorise_a_changer_etape, peut_annuler_en_instruction_comme_receptionniste
+from instruction.utils.colonnes_vue_ensemble import (
+    TABLEAU_ARCHIVES,
+    TABLEAU_EN_COURS,
+    TABLEAU_MES_DOSSIERS,
+    colonnes_visibles,
+    configurations_colonnes_vue_ensemble,
+    libelles_colonnes,
+)
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from synchronisation.normalisation.norma_declaration_manifestations import dossiers_declaration_manifestations_normalize
 from synchronisation.synchro.sync_declaration_manifestations import sync_declaration_manifestations
@@ -287,6 +296,19 @@ def get_dates_debut_manifestation(dossiers):
     }
 
 
+def get_date_debut_manifestation_vue(dossier, dates_debut_manifestation, dossiers_complets_ids):
+    """Date affichée dans la colonne manifestation de la vue d'ensemble.
+
+    Les dossiers complets gardent la date portée par Déclaration Manifestations.
+    Pour un DN orphelin, cette colonne utilise la date d'activité configurée pour
+    sa démarche, afin d'éviter une colonne vide alors que l'information existe.
+    """
+    date_dm = dates_debut_manifestation.get(dossier.id)
+    if date_dm or dossier.id in dossiers_complets_ids:
+        return date_dm
+    return dossier.date_debut_activite
+
+
 def get_dates_reception_manifestation(dossiers):
     """Retourne la date de réception à afficher pour chaque dossier DN.
 
@@ -334,6 +356,41 @@ def get_indicateurs_date_manifestation(date_debut):
     return (
         date_evenement < today,
         today <= date_evenement <= today + timedelta(days=30),
+    )
+
+
+CONFIGURATION_DATE_ACTIVITE_DEFAUT = {
+    "delai_alerte_jours": 30,
+    "couleur_alerte": "#d97706",
+    "couleur_passee": "#b91c1c",
+}
+
+
+def configuration_date_activite(configuration=None):
+    """Retourne une configuration sûre, y compris avant toute personnalisation."""
+    resultat = CONFIGURATION_DATE_ACTIVITE_DEFAUT.copy()
+    if isinstance(configuration, dict):
+        resultat.update({cle: configuration[cle] for cle in resultat if cle in configuration})
+        return resultat
+    if configuration:
+        resultat["delai_alerte_jours"] = configuration.delai_alerte_jours
+        for cle in ("couleur_alerte", "couleur_passee"):
+            couleur = getattr(configuration, cle, "")
+            if re.fullmatch(r"#[0-9a-fA-F]{6}", couleur or ""):
+                resultat[cle] = couleur
+    return resultat
+
+
+def get_indicateurs_date_activite(date_debut, configuration=None):
+    """Indique si une activité est passée ou arrive dans le délai configuré."""
+    if not date_debut:
+        return False, False
+    regles = configuration_date_activite(configuration)
+    date_activite = date_debut.date()
+    today = timezone.localdate()
+    return (
+        date_activite < today,
+        today <= date_activite <= today + timedelta(days=regles["delai_alerte_jours"]),
     )
 
 
@@ -596,6 +653,12 @@ def mesdossiers(request):
             "id_demarche", "id_etape_dossier", "id_groupeinstructeur"
         )
     )
+    configurations_date_activite = {
+        configuration.id_demarche_id: configuration
+        for configuration in DemarcheDateActiviteConfiguration.objects.filter(
+            id_demarche_id__in={dossier.id_demarche_id for dossier in dossiers}
+        )
+    }
     dates_debut_manifestation = get_dates_debut_manifestation(dossiers)
     demandeurs = _contacts_demandeurs_par_dossier(dossiers_ids)
     messages_non_lus = _messages_non_lus_par_dossier(dossiers_ids)
@@ -606,9 +669,17 @@ def mesdossiers(request):
 
     dossiers_par_demarche = {}
     for dossier in dossiers:
-        date_debut_manifestation = dates_debut_manifestation.get(dossier.id)
+        regles_date_activite = configuration_date_activite(
+            configurations_date_activite.get(dossier.id_demarche_id)
+        )
+        date_debut_manifestation = get_date_debut_manifestation_vue(
+            dossier, dates_debut_manifestation, dossiers_complets_ids
+        )
         date_evenement_passee, date_evenement_dans_moins_un_mois = (
             get_indicateurs_date_manifestation(date_debut_manifestation)
+        )
+        date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
+            dossier.date_debut_activite, regles_date_activite
         )
 
         # Bénéficiaire
@@ -636,6 +707,10 @@ def mesdossiers(request):
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
             "demandeur": demandeur,
             "date_depot": dossier.date_depot,
+            "date_debut_activite": dossier.date_debut_activite,
+            "date_activite_passee": date_activite_passee,
+            "date_activite_proche": date_activite_proche,
+            **regles_date_activite,
             "date_debut_manifestation": date_debut_manifestation,
             "date_evenement_passee": date_evenement_passee,
             "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
@@ -654,10 +729,21 @@ def mesdossiers(request):
             "id_dossier_manif_id", flat=True
         )
     ).distinct().order_by("date_debut_evenement")
+    demarche_manif = Demarche.objects.filter(
+        type="Manifestations sportives"
+    ).only("id").first()
+    regles_date_activite_manif = configuration_date_activite(
+        DemarcheDateActiviteConfiguration.objects.filter(
+            id_demarche=demarche_manif
+        ).first() if demarche_manif else None
+    )
 
     for dossier_dm in dossiers_dm_affectes:
         date_evenement_passee, date_evenement_dans_moins_un_mois = (
             get_indicateurs_date_manifestation(dossier_dm.date_debut_evenement)
+        )
+        date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
+            dossier_dm.date_debut_evenement, regles_date_activite_manif
         )
         dossiers_par_demarche.setdefault("Manifestations sportives", []).append({
             "url_name": "dossier_manif_sportive_sans_ds",
@@ -667,6 +753,10 @@ def mesdossiers(request):
             "numero": dossier_dm.numero_dossier_declaration_manifestations,
             "demandeur": " ".join(filter(None, [dossier_dm.prenom_organisateur, dossier_dm.nom_organisateur])) or dossier_dm.structure or "N/A",
             "date_depot": dossier_dm.date_depot,
+            "date_debut_activite": dossier_dm.date_debut_evenement,
+            "date_activite_passee": date_activite_passee,
+            "date_activite_proche": date_activite_proche,
+            **regles_date_activite_manif,
             "date_debut_manifestation": dossier_dm.date_debut_evenement,
             "date_evenement_passee": date_evenement_passee,
             "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
@@ -675,10 +765,62 @@ def mesdossiers(request):
             "nb_messages_non_lus": 0,
             "action_a_faire": True,
         })
-
+    demarches_affichees = {
+        demarche.type: demarche
+        for demarche in Demarche.objects.filter(
+            type__in=list(dossiers_par_demarche)
+        ).only("id", "type")
+    }
+    configurations_par_demarche = {}
+    for configuration in DemarcheColonneVueEnsemble.objects.filter(
+        id_demarche_id__in=[demarche.id for demarche in demarches_affichees.values()]
+    ).only("id_demarche_id", "tableau", "colonne", "affiche", "libelle_personnalise"):
+        configurations_par_demarche.setdefault(configuration.id_demarche_id, []).append(configuration)
+    colonnes_mes_dossiers = {
+        type_demarche: colonnes_visibles(
+            type_demarche,
+            configurations_par_demarche.get(demarche.id, []),
+        )[TABLEAU_MES_DOSSIERS]
+        for type_demarche, demarche in demarches_affichees.items()
+    }
+    colonnes_mes_dossiers_ordonnee = {
+        type_demarche: configurations_colonnes_vue_ensemble(
+            type_demarche,
+            configurations_par_demarche.get(demarche.id, []),
+        )[TABLEAU_MES_DOSSIERS]
+        for type_demarche, demarche in demarches_affichees.items()
+    }
+    libelles_mes_dossiers = {
+        type_demarche: libelles_colonnes(
+            type_demarche,
+            configurations_par_demarche.get(demarche.id, []),
+        )[TABLEAU_MES_DOSSIERS]
+        for type_demarche, demarche in demarches_affichees.items()
+    }
+    for type_demarche in dossiers_par_demarche:
+        colonnes_mes_dossiers.setdefault(
+            type_demarche,
+            colonnes_visibles(type_demarche)[TABLEAU_MES_DOSSIERS],
+        )
+        libelles_mes_dossiers.setdefault(
+            type_demarche,
+            libelles_colonnes(type_demarche)[TABLEAU_MES_DOSSIERS],
+        )
+        colonnes_mes_dossiers_ordonnee.setdefault(
+            type_demarche,
+            configurations_colonnes_vue_ensemble(type_demarche)[TABLEAU_MES_DOSSIERS],
+        )
+    colonnes_mes_dossiers_colspan = {
+        type_demarche: sum(colonnes.values())
+        for type_demarche, colonnes in colonnes_mes_dossiers.items()
+    }
 
     return render(request, "instruction/mesdossiers.html", {
         "dossiers_par_demarche": dossiers_par_demarche,
+        "colonnes_mes_dossiers": colonnes_mes_dossiers,
+        "libelles_mes_dossiers": libelles_mes_dossiers,
+        "colonnes_mes_dossiers_ordonnee": colonnes_mes_dossiers_ordonnee,
+        "colonnes_mes_dossiers_colspan": colonnes_mes_dossiers_colspan,
         "instructeur": instructeur,
     })
 
@@ -691,6 +833,24 @@ def instruction_demarche(request, num_demarche):
     if not demarche:
         logger.error(f"[INSTRUCTION DEMARCHE] Erreur lors de l'affichage de la page par {request.user} : Démarche {num_demarche} introuvable.")
         return redirect_error(request, f"❌ La démarche {num_demarche} est introuvable en base. Contactez le support")
+
+    configurations_tableaux = DemarcheColonneVueEnsemble.objects.filter(
+        id_demarche=demarche,
+    ).only("tableau", "colonne", "affiche", "libelle_personnalise")
+    configurations_colonnes = configurations_colonnes_vue_ensemble(
+        demarche.type, configurations_tableaux
+    )
+    visibilite_colonnes = colonnes_visibles(demarche.type, configurations_tableaux)
+    libelles_tableaux = libelles_colonnes(demarche.type, configurations_tableaux)
+    colonnes_en_cours = visibilite_colonnes[TABLEAU_EN_COURS]
+    colonnes_archives = visibilite_colonnes[TABLEAU_ARCHIVES]
+    libelles_en_cours = libelles_tableaux[TABLEAU_EN_COURS]
+    libelles_archives = libelles_tableaux[TABLEAU_ARCHIVES]
+    colonnes_en_cours_ordonnee = configurations_colonnes[TABLEAU_EN_COURS]
+    colonnes_archives_ordonnee = configurations_colonnes[TABLEAU_ARCHIVES]
+    regles_date_activite = configuration_date_activite(
+        DemarcheDateActiviteConfiguration.objects.filter(id_demarche=demarche).first()
+    )
 
 
     etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé"])
@@ -748,9 +908,14 @@ def instruction_demarche(request, num_demarche):
     ) if demarche.type.lower() == "manifestations sportives" else set()
     dossier_infos = []
     for dossier in dossiers:
-        date_debut_manifestation = dates_debut_manifestation.get(dossier.id)
+        date_debut_manifestation = get_date_debut_manifestation_vue(
+            dossier, dates_debut_manifestation, dossiers_complets_ids
+        )
         date_evenement_passee, date_evenement_dans_moins_un_mois = (
             get_indicateurs_date_manifestation(date_debut_manifestation)
+        )
+        date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
+            dossier.date_debut_activite, regles_date_activite
         )
 
         # Bénéficiaire
@@ -773,6 +938,10 @@ def instruction_demarche(request, num_demarche):
             "date_reception": dates_reception_manifestation.get(
                 dossier.id, dossier.date_depot
             ),
+            "date_debut_activite": dossier.date_debut_activite,
+            "date_activite_passee": date_activite_passee,
+            "date_activite_proche": date_activite_proche,
+            **regles_date_activite,
             "date_debut_manifestation": date_debut_manifestation,
             "date_evenement_passee": date_evenement_passee,
             "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
@@ -828,6 +997,10 @@ def instruction_demarche(request, num_demarche):
     messages_non_lus_archives = _messages_non_lus_par_dossier(dossiers_archives_ids)
     for dossier in dossiers_archives:
 
+        date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
+            dossier.date_debut_activite, regles_date_activite
+        )
+
         # Bénéficiaire
         # beneficiaire = get_beneficiaire_for_dossier(dossier)
 
@@ -849,7 +1022,13 @@ def instruction_demarche(request, num_demarche):
             "date_reception": dates_reception_manifestation_archives.get(
                 dossier.id, dossier.date_depot
             ),
-            "date_debut_manifestation": dates_debut_manifestation_archives.get(dossier.id),
+            "date_debut_activite": dossier.date_debut_activite,
+            "date_activite_passee": date_activite_passee,
+            "date_activite_proche": date_activite_proche,
+            **regles_date_activite,
+            "date_debut_manifestation": get_date_debut_manifestation_vue(
+                dossier, dates_debut_manifestation_archives, dossiers_complets_ids
+            ),
             "groupe": dossier.id_groupeinstructeur.nom if dossier.id_groupeinstructeur else "N/A",
             "etape": dossier.id_etape_dossier.etape if dossier.id_etape_dossier else "Non défini",
             "nb_messages_non_lus": nb_messages_non_lus,
@@ -896,6 +1075,7 @@ def instruction_demarche(request, num_demarche):
                 "demandeur": demandeur,
                 "date_depot": dossier_dm.date_depot,
                 "date_reception": dates_demande_avis_dm.get(dossier_dm.id),
+                "date_debut_activite": dossier_dm.date_debut_evenement,
                 "date_debut_manifestation": dossier_dm.date_debut_evenement,
                 "groupe": groupe_manif.nom if groupe_manif else "Manifestations sportives",
                 "etape": dossier_dm.id_etape.etape if dossier_dm.id_etape else "Non défini",
@@ -927,6 +1107,14 @@ def instruction_demarche(request, num_demarche):
     "annees_disponibles": annees_disponibles,
     "annee_selectionnee": annee_selectionnee,
     "dossiers_archives": dossier_archives_infos,
+    "colonnes_en_cours": colonnes_en_cours,
+    "colonnes_archives": colonnes_archives,
+    "libelles_en_cours": libelles_en_cours,
+    "libelles_archives": libelles_archives,
+    "colonnes_en_cours_ordonnee": colonnes_en_cours_ordonnee,
+    "colonnes_archives_ordonnee": colonnes_archives_ordonnee,
+    "table_demarche_colspan": sum(colonnes_en_cours.values()),
+    "table_archives_colspan": sum(colonnes_archives.values()),
     "instructeur": instructeur,
     "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
     "synchro_demarche_en_cours": demarche.actualisation_statut == "running",

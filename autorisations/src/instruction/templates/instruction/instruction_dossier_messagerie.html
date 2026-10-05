@@ -207,7 +207,7 @@
 
             <div class="infos-dossier">
                 {% if beneficiaire %}
-                    <p><strong>Bénéficiaire :</strong> {{ beneficiaire.prenom }} {{ beneficiaire.nom }}</p>
+                    <p><strong>Bénéficiaire :</strong> {{ beneficiaire.get_display_name }}</p>
                 {% endif %}
                 {% if demandeur %}
                     <p><strong>Demandeur :</strong> {{ demandeur.prenom }} {{ demandeur.nom }}</p>

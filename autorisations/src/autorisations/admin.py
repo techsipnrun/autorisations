@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.db import transaction
 from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
-from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EnsembleDossiers, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
+from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EnsembleDossiers, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, F, OuterRef, Subquery
 
@@ -381,7 +381,7 @@ class DossierLiaisonFilter(admin.SimpleListFilter):
 
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'id', 'nom_dossier', 'etat', 'etape', 'groupe_instructeur', 'date_depot')
+    list_display = ('numero', 'id', 'nom_dossier', 'etat', 'etape', 'groupe_instructeur', 'id_ensemble_dossiers', 'date_depot')
     list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds', DossierLiaisonFilter,)
     search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
     list_per_page = 20
@@ -497,6 +497,34 @@ class DemarcheAdmin(admin.ModelAdmin):
     list_display = ('type', 'numero', 'service', 'delais_jours_instruction')
     search_fields = ['type']
     list_per_page = 20
+
+
+@admin.register(DemarcheColonneVueEnsemble)
+class DemarcheColonneVueEnsembleAdmin(admin.ModelAdmin):
+    list_display = ("id_demarche", "tableau", "colonne", "affiche", "ordre", "libelle_personnalise")
+    list_filter = ("tableau", "affiche")
+    search_fields = ("id_demarche__type", "id_demarche__numero", "colonne")
+    list_select_related = ("id_demarche",)
+    ordering = ("id_demarche__type", "tableau", "colonne")
+
+
+@admin.register(DemarcheDateActiviteChamp)
+class DemarcheDateActiviteChampAdmin(admin.ModelAdmin):
+    list_display = ("id_demarche", "ordre", "source", "id_champ", "champ_dm")
+    list_filter = ("source", "id_demarche")
+    search_fields = ("id_demarche__type", "id_champ__nom", "champ_dm")
+    list_select_related = ("id_demarche", "id_champ")
+    ordering = ("id_demarche__type", "ordre")
+
+
+@admin.register(DemarcheDateActiviteConfiguration)
+class DemarcheDateActiviteConfigurationAdmin(admin.ModelAdmin):
+    list_display = (
+        "id_demarche", "delai_alerte_jours", "couleur_alerte", "couleur_passee",
+    )
+    search_fields = ("id_demarche__type", "id_demarche__numero")
+    list_select_related = ("id_demarche",)
+    ordering = ("id_demarche__type",)
 
 
 admin.site.register(ChampType)

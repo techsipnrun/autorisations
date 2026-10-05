@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Count
-from autorisations.models.models_instruction import Champ, Demarche, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Champ, Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteConfiguration, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, EmailOutbox, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
@@ -34,7 +34,15 @@ from collections import defaultdict
 
 from synchronisation.utils.instruction import lier_dossier_dm_au_dossier_dn
 from instruction.views.errors import dossier_introuvable
-from instruction.views.instruction import _contacts_demandeurs_par_dossier
+from instruction.views.instruction import (
+    _contacts_demandeurs_par_dossier,
+    configuration_date_activite,
+    get_indicateurs_date_activite,
+)
+from instruction.utils.colonnes_vue_ensemble import (
+    TABLEAU_RECEPTION_COMPLET, TABLEAU_RECEPTION_DM, TABLEAU_RECEPTION_DN,
+    colonnes_visibles, configurations_colonnes_vue_ensemble, libelles_colonnes,
+)
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -64,6 +72,12 @@ def preinstruction(request):
 
     # Infos sur les dossiers
     demandeurs = _contacts_demandeurs_par_dossier([dossier.id for dossier in dossiers])
+    configurations_date_activite = {
+        configuration.id_demarche_id: configuration
+        for configuration in DemarcheDateActiviteConfiguration.objects.filter(
+            id_demarche_id__in={dossier.id_demarche_id for dossier in dossiers}
+        )
+    }
     dossier_infos = []
     for dossier in dossiers:
 
@@ -73,6 +87,12 @@ def preinstruction(request):
 
 
         demandeur = demandeurs.get(dossier.id)
+        regles_date_activite = configuration_date_activite(
+            configurations_date_activite.get(dossier.id_demarche_id)
+        )
+        date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
+            dossier.date_debut_activite, regles_date_activite
+        )
         
         # On affiche le nom et prenom du beneficiaire si jamais le demandeur intermédiaire ne les a pas de renseignés
         # if not demandeur or not(demandeur.prenom and demandeur.nom):
@@ -86,6 +106,10 @@ def preinstruction(request):
             "demandeur": demandeur,
             "nom_dossier": dossier.nom_dossier,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
+            "date_debut_activite": dossier.date_debut_activite,
+            "date_activite_passee": date_activite_passee,
+            "date_activite_proche": date_activite_proche,
+            **regles_date_activite,
             "numero": dossier.numero,
             "action_a_faire": True if dossier in dossiers_actions else False
         })
@@ -100,6 +124,21 @@ def preinstruction(request):
         return redirect_error(request, "❌ Erreur interne : démarche Manif Sportive introuvable.")
 
     num_demarche_manif_sportive = demarche_manif.numero
+    configurations_reception = DemarcheColonneVueEnsemble.objects.filter(
+        id_demarche=demarche_manif,
+    ).only("tableau", "colonne", "affiche", "libelle_personnalise")
+    colonnes_reception = colonnes_visibles(
+        demarche_manif.type, configurations_reception
+    )
+    libelles_reception = libelles_colonnes(
+        demarche_manif.type, configurations_reception
+    )
+    configurations_colonnes_reception = configurations_colonnes_vue_ensemble(
+        demarche_manif.type, configurations_reception
+    )
+    regles_date_activite_manif = configuration_date_activite(
+        configurations_date_activite.get(demarche_manif.id)
+    )
 
     etat_actualisation_manif = {
         "en_cours": False,
@@ -177,6 +216,14 @@ def preinstruction(request):
             dm.date_debut_evenement
             and today <= dm.date_debut_evenement.date() <= today + timedelta(days=30)
         )
+        # Un DM orphelin n'a pas de Dossier DN : sa date d'événement est donc
+        # la date d'activité affichée dans le tableau Réception.
+        dm.date_debut_activite = dm.date_debut_evenement
+        dm.date_activite_passee, dm.date_activite_proche = get_indicateurs_date_activite(
+            dm.date_debut_activite, regles_date_activite_manif
+        )
+        dm.couleur_alerte = regles_date_activite_manif["couleur_alerte"]
+        dm.couleur_passee = regles_date_activite_manif["couleur_passee"]
 
 
 
@@ -266,12 +313,18 @@ def preinstruction(request):
 
         # --- 3. Nom de la manifestation ---
         nom_manifestation = champs_manif[dossier.id].get("Nom de la manifestation") or "N/A"
+        date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
+            dossier.date_debut_activite, regles_date_activite_manif
+        )
 
         dossiers_manif_sportive_DS_infos.append({
             "dossier": dossier,
             "nom_demandeur": nom_demandeur,
             "numero_dm": numero_dm,
             "nom_manifestation": nom_manifestation,
+            "date_activite_passee": date_activite_passee,
+            "date_activite_proche": date_activite_proche,
+            **regles_date_activite_manif,
         })
 
 
@@ -303,6 +356,17 @@ def preinstruction(request):
 
         # Intersection Coeur de parc
         dossier_dm = liaison.id_dossier_manif
+        # Pour un dossier complet, la date calculée depuis les sources du
+        # Back Office fait foi. Avant la première synchronisation, on conserve
+        # la date DM comme solution de repli pour ne pas laisser la cellule vide.
+        dossierDN.date_activite_reception = (
+            dossierDN.date_debut_activite or dossier_dm.date_debut_evenement
+        )
+        dossierDN.date_activite_passee, dossierDN.date_activite_proche = get_indicateurs_date_activite(
+            dossierDN.date_activite_reception, regles_date_activite_manif
+        )
+        dossierDN.couleur_alerte = regles_date_activite_manif["couleur_alerte"]
+        dossierDN.couleur_passee = regles_date_activite_manif["couleur_passee"]
         dossier_dm.date_demande_avis = dates_demande_avis_dm.get(dossier_dm.id)
         dossier_dm.date_reception_complete = max(
             (
@@ -335,6 +399,18 @@ def preinstruction(request):
     return render(request, 'instruction/preinstruction.html', {
         "dossier_infos": dossier_infos,
         "num_demarche_manif_sportive": num_demarche_manif_sportive,
+        "colonnes_reception_dm": colonnes_reception[TABLEAU_RECEPTION_DM],
+        "colonnes_reception_dn": colonnes_reception[TABLEAU_RECEPTION_DN],
+        "colonnes_reception_complet": colonnes_reception[TABLEAU_RECEPTION_COMPLET],
+        "libelles_reception_dm": libelles_reception[TABLEAU_RECEPTION_DM],
+        "libelles_reception_dn": libelles_reception[TABLEAU_RECEPTION_DN],
+        "libelles_reception_complet": libelles_reception[TABLEAU_RECEPTION_COMPLET],
+        "colonnes_reception_dm_ordonnee": configurations_colonnes_reception[TABLEAU_RECEPTION_DM],
+        "colonnes_reception_dn_ordonnee": configurations_colonnes_reception[TABLEAU_RECEPTION_DN],
+        "colonnes_reception_complet_ordonnee": configurations_colonnes_reception[TABLEAU_RECEPTION_COMPLET],
+        "reception_dm_colspan": sum(colonnes_reception[TABLEAU_RECEPTION_DM].values()),
+        "reception_dn_colspan": sum(colonnes_reception[TABLEAU_RECEPTION_DN].values()),
+        "reception_complet_colspan": sum(colonnes_reception[TABLEAU_RECEPTION_COMPLET].values()),
         "dossiers_manif_sportive_DM": dossiers_manif_sportive_DM,
         "dossiers_manif_sportive_DS_infos": dossiers_manif_sportive_DS_infos,
         "dossiers_manif_sportive_complet": dossiers_manif_sportive_complet_list,

@@ -81,9 +81,9 @@ class ContactExterne(models.Model):
                 return f"{self.nom} {self.prenom} ({self.raison_sociale})"
             return f"{self.nom} {self.prenom}"
         if self.raison_sociale:
-            return f"({self.raison_sociale})"
+            return f"{self.raison_sociale}"
         if self.organisation:
-            return f"({self.organisation})"
+            return f"{self.organisation}"
         return self.email or f"Contact {self.id}"
     
 

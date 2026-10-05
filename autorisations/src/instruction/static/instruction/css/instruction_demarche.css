@@ -367,3 +367,8 @@ tbody tr.ligne_en_gras::after {
     border-radius: 50%;
     vertical-align: middle;
 } */
+.date-activite-passee,
+.date-activite-proche {
+    color: var(--date-activite-couleur);
+    font-weight: 700;
+}

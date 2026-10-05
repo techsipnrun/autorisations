@@ -5,6 +5,7 @@ from autorisations.models.models_documents import Document
 from autorisations.models.models_utilisateurs import DossierInstructeur
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from ..utils.model_helpers import get_first_id, update_fields, update_fields_dossier_champs
+from ..utils.date_activite import extraire_date_debut_activite, parser_date_activite
 from ..utils.fichiers import rendre_titre_unique_dans_liste, write_pj, rendre_titres_uniques, write_pj_volumineuse
 import logging
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
@@ -13,7 +14,7 @@ logger = logging.getLogger("SYNCHRONISATION")
 loggerMail = logging.getLogger("MAIL")
 
 
-def sync_dossier_champs(dossier_champs, id_dossier):
+def sync_dossier_champs(dossier_champs, id_dossier, date_activite_champs=None):
     """
     Synchronise les DossierChamps avec ou sans pièce(s) jointe(s).
     """
@@ -393,6 +394,55 @@ def sync_dossier_champs(dossier_champs, id_dossier):
             logger.info(f"[DELETE] DossierChamp (titre: {d.id_champ.nom}, valeur: {d.valeur}, dossier: {dossier.numero}) suite à modifications du pétitionnaire.")
 
 
+
+    # ------------------------------------------------------------------------
+    # DATE PRÉVISIONNELLE D'ACTIVITÉ
+    # ------------------------------------------------------------------------
+    # La liste des sources est chargée une seule fois par synchronisation de
+    # démarche (dans sync_dossiers), puis réutilisée pour tous ses dossiers.
+    # On exploite les champs DN déjà normalisés plutôt que de relire les
+    # DossierChamp en BDD pour chaque dossier.
+    if date_activite_champs:
+        date_debut_activite = nom_champ_source = None
+        dossier_dm = None
+        for source in date_activite_champs:
+            if source.source == "dm":
+                if dossier_dm is None:
+                    liaison = DossierManifestationLiaison.objects.filter(
+                        id_dossier=dossier
+                    ).select_related("id_dossier_manif").first()
+                    dossier_dm = liaison.id_dossier_manif if liaison else False
+                valeur = getattr(dossier_dm, source.champ_dm, None) if dossier_dm else None
+                if valeur is None:
+                    continue
+                try:
+                    date_debut_activite = valeur if hasattr(valeur, "tzinfo") else parser_date_activite(str(valeur))
+                    nom_champ_source = f"DM · {source.champ_dm}"
+                    break
+                except (TypeError, ValueError, OverflowError):
+                    continue
+            elif source.id_champ:
+                date_debut_activite, nom_champ_source = extraire_date_debut_activite(
+                    [(source.id_champ.id_ds, source.id_champ.nom)], dossier_champs
+                )
+                if date_debut_activite:
+                    break
+        if dossier.date_debut_activite != date_debut_activite:
+            Dossier.objects.filter(pk=dossier.pk).update(
+                date_debut_activite=date_debut_activite,
+            )
+            if date_debut_activite:
+                logger.info(
+                    "[DOSSIER %s] Date prévisionnelle d'activité mise à jour depuis le champ %r : %s.",
+                    dossier.numero,
+                    nom_champ_source,
+                    date_debut_activite.isoformat(),
+                )
+            else:
+                logger.info(
+                    "[DOSSIER %s] Date prévisionnelle d'activité vidée : aucun champ configuré ne contient de date exploitable.",
+                    dossier.numero,
+                )
 
 
     #######################

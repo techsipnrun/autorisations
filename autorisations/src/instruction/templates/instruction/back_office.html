@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Back Office — AGiDA</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=25">
 </head>
 <body>
     <div class="back-office-layout">
@@ -21,9 +21,20 @@
                 <button type="button" class="back-office-nav-item is-active" data-section="services-externes">
                     <span class="back-office-nav-dot"></span>Services externes
                 </button>
-                <button type="button" class="back-office-nav-item" data-section="demarche">
-                    <span class="back-office-nav-dot"></span>Démarche
-                </button>
+                <div class="back-office-nav-group">
+                    <button type="button" class="back-office-nav-item" data-section="demarche"
+                            aria-expanded="false" aria-controls="back-office-demarches-nav">
+                        <span class="back-office-nav-dot"></span>Démarche
+                        <span class="back-office-nav-chevron" aria-hidden="true">›</span>
+                    </button>
+                    <div id="back-office-demarches-nav" class="back-office-nav-submenu" hidden>
+                        {% for demarche in demarches_back_office %}
+                            <button type="button" class="back-office-nav-subitem" data-demarche-id="{{ demarche.id }}">
+                                {{ demarche.type }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
                 <button type="button" class="back-office-nav-item" data-section="carto">
                     <span class="back-office-nav-dot"></span>Carto
                 </button>
@@ -48,9 +59,244 @@
                 <button type="button" aria-label="Fermer l'alerte">×</button>
             </div>
             <section class="back-office-panel" data-panel="demarche" hidden>
-                <p class="back-office-eyebrow">Back Office</p>
-                <h1>Démarches</h1>
-                <p>Les outils de gestion des démarches seront ajoutés ici.</p>
+                <div class="back-office-demarche-home" data-demarche-home>
+                    <p class="back-office-eyebrow">Back Office</p>
+                    <h1>Démarches</h1>
+                    <p>Choisissez une démarche dans le panneau latéral pour consulter sa configuration.</p>
+                </div>
+                {% for demarche in demarches_back_office %}
+                    <section class="back-office-demarche-detail" data-demarche-detail="{{ demarche.id }}" hidden>
+                        <header class="back-office-demarche-header">
+                            <div>
+                                <p class="back-office-eyebrow">Démarche n° {{ demarche.numero }}</p>
+                                <h1>{{ demarche.type }}</h1>
+                                <p>Configurez les données et l’affichage propres à cette démarche.</p>
+                            </div>
+                        </header>
+
+                        <div class="back-office-demarche-blocks">
+                            <details class="back-office-fields-block back-office-config-block back-office-config-block--fields">
+                                <summary class="back-office-fields-heading">
+                                    <div class="back-office-block-summary-copy">
+                                        <h2>Champs du formulaire DN</h2>
+                                        <p>Consultez les champs récupérés depuis Démarche Numérique.</p>
+                                    </div>
+                                    <span>{{ demarche.champs_back_office|length }} champ{{ demarche.champs_back_office|length|pluralize }}</span>
+                                    <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
+                                </summary>
+                                <div class="back-office-fields-content">
+                                    <div class="back-office-demarche-tools">
+                                        <label class="back-office-field-search">
+                                            <span>Rechercher un champ</span>
+                                            <input type="search" data-field-search placeholder="Nom ou type de champ…" autocomplete="off">
+                                        </label>
+                                        <label class="back-office-show-ids">
+                                            <input type="checkbox" data-show-field-ids>
+                                            <span>Afficher les identifiants DN</span>
+                                        </label>
+                                    </div>
+                                    {% if demarche.champs_back_office %}
+                                        <div class="back-office-fields-table-wrap">
+                                            <table class="back-office-fields-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="back-office-field-id">Identifiant DN</th>
+                                                        <th>Nom du champ</th>
+                                                        <th>Type</th>
+                                                        <th>Obligatoire</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for champ in demarche.champs_back_office %}
+                                                        <tr{% if forloop.counter > 5 %} class="back-office-extra-field" hidden{% endif %}>
+                                                            <td class="back-office-field-id">{{ champ.id_ds|default:"—" }}</td>
+                                                            <td>{{ champ.nom }}</td>
+                                                            <td><span class="back-office-field-type">{{ champ.id_champ_type.type }}</span></td>
+                                                            <td>{% if champ.requis %}<span class="back-office-required is-required">Oui</span>{% else %}<span class="back-office-required is-optional">Non</span>{% endif %}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% if demarche.champs_back_office|length > 5 %}
+                                            <button type="button" class="back-office-show-more-fields" data-show-more-fields>
+                                                Afficher les {{ demarche.champs_back_office|length|add:"-5" }} champs restants
+                                            </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="back-office-empty-fields">Aucun champ n’est configuré pour cette démarche.</p>
+                                    {% endif %}
+                                </div>
+                            </details>
+
+                            {% if demarche.champs_dm_back_office %}
+                                <details class="back-office-fields-block back-office-config-block back-office-config-block--fields">
+                                    <summary class="back-office-fields-heading">
+                                        <div class="back-office-block-summary-copy">
+                                            <h2>Champs du formulaire DM</h2>
+                                            <p>Consultez les champs disponibles dans Déclaration Manifestations.</p>
+                                        </div>
+                                        <span>{{ demarche.champs_dm_back_office|length }} champs</span>
+                                        <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
+                                    </summary>
+                                    <div class="back-office-fields-content">
+                                        <div class="back-office-fields-table-wrap">
+                                            <table class="back-office-fields-table">
+                                                <thead><tr><th>Champ</th><th>Type</th></tr></thead>
+                                                <tbody>
+                                                    {% for champ in demarche.champs_dm_back_office %}
+                                                        <tr{% if forloop.counter > 5 %} class="back-office-extra-field" hidden{% endif %}>
+                                                            <td>{{ champ.verbose_name|capfirst }}</td>
+                                                            <td><span class="back-office-field-type">{{ champ.get_internal_type }}</span></td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% if demarche.champs_dm_back_office|length > 5 %}
+                                            <button type="button" class="back-office-show-more-fields" data-show-more-fields>
+                                                Afficher les {{ demarche.champs_dm_back_office|length|add:"-5" }} champs restants
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </details>
+                            {% endif %}
+
+
+                            <details class="back-office-config-block back-office-date-activity-block back-office-config-block--date">
+                                <summary class="back-office-fields-heading">
+                                    <div class="back-office-block-summary-copy">
+                                        <h2>Date prévisionnelle de l’activité</h2>
+                                        <p>Définissez les sources et les repères visuels de la date prévisionnelle de l’activité.</p>
+                                    </div>
+                                    <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
+                                </summary>
+
+                                <form class="back-office-date-activity-form" data-date-activity-form
+                                      data-url="{% url 'back_office_enregistrer_date_activite' demarche.id %}">
+                                    {% csrf_token %}
+                                    <fieldset class="back-office-date-activity-appearance">
+                                        <legend>Repères de date dans les tableaux</legend>
+                                        <label>Activité proche
+                                            <input type="number" name="delai_alerte_jours" min="0" max="3650" value="{{ demarche.configuration_date_activite_back_office.delai_alerte_jours|default:30 }}">
+                                            <span>jours avant la date</span>
+                                        </label>
+                                        <label>Couleur activité proche
+                                            <input type="color" name="couleur_alerte" value="{{ demarche.configuration_date_activite_back_office.couleur_alerte|default:'#d97706' }}">
+                                        </label>
+                                        <label>Couleur activité passée
+                                            <input type="color" name="couleur_passee" value="{{ demarche.configuration_date_activite_back_office.couleur_passee|default:'#b91c1c' }}">
+                                        </label>
+                                    </fieldset>
+                                    <div class="back-office-date-activity-add">
+                                        <label>
+                                            <span>Champ disponible</span>
+                                            <p>
+                                                Sélectionnez les champs du formulaire qui contiennent la date prévisionnelle de l’activité.
+                                                Si un champ est absent ou vide, le champ suivant sera utilisé.
+                                            </p>
+                                            <select data-date-activity-field>
+                                                <option value="">Sélectionner un champ…</option>
+                                                <optgroup label="Démarche Numérique (DN)">
+                                                    {% for champ in demarche.champs_back_office %}
+                                                        <option value="dn:{{ champ.id }}" data-name="{{ champ.nom }}" data-type="DN · {{ champ.id_champ_type.type }}">{{ champ.nom|truncatechars:55 }} — {{ champ.id_champ_type.type|truncatechars:20 }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% if demarche.champs_dm_back_office %}
+                                                    <optgroup label="Déclaration Manifestations (DM)">
+                                                        {% for champ in demarche.champs_dm_back_office %}
+                                                            <option value="dm:{{ champ.name }}" data-name="{{ champ.verbose_name|capfirst }}" data-type="DM · {{ champ.get_internal_type }}">{{ champ.verbose_name|capfirst }} — {{ champ.get_internal_type }}</option>
+                                                        {% endfor %}
+                                                    </optgroup>
+                                                {% endif %}
+                                            </select>
+                                        </label>
+                                        <button type="button" data-date-activity-add>Ajouter</button>
+                                    </div>
+                                    <ol class="back-office-date-activity-sources" data-date-activity-sources>
+                                        {% for source in demarche.date_activite_sources %}
+                                            <li data-champ-id="{% if source.source == 'dm' %}dm:{{ source.champ_dm }}{% else %}dn:{{ source.id_champ.id }}{% endif %}">
+                                                <input type="hidden" name="champs[]" value="{% if source.source == 'dm' %}dm:{{ source.champ_dm }}{% else %}dn:{{ source.id_champ.id }}{% endif %}">
+                                                <span class="back-office-date-source-order">{{ forloop.counter }}</span>
+                                                <span class="back-office-date-source-label">
+                                                    <span class="back-office-date-source-name">{% if source.source == 'dm' %}{{ source.champ_dm }}{% else %}{{ source.id_champ.nom }}{% endif %}</span>
+                                                    <small>{% if source.source == 'dm' %}DM{% else %}DN · {{ source.id_champ.id_champ_type.type }}{% endif %}</small>
+                                                </span>
+                                                <div class="back-office-date-source-actions">
+                                                    <button type="button" data-date-activity-up aria-label="Monter cette source" title="Monter">↑</button>
+                                                    <button type="button" data-date-activity-down aria-label="Descendre cette source" title="Descendre">↓</button>
+                                                    <button type="button" data-date-activity-remove aria-label="Retirer cette source" title="Retirer">×</button>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                    <p class="back-office-date-activity-empty" data-date-activity-empty{% if demarche.date_activite_sources %} hidden{% endif %}>Aucun champ source n’est configuré : la date d’activité restera vide.</p>
+                                    <p class="back-office-date-activity-status" data-date-activity-status role="status" aria-live="polite"></p>
+                                    <button type="submit" class="back-office-date-activity-save">Enregistrer la configuration</button>
+                                </form>
+                            </details>
+
+                            <details class="back-office-config-block back-office-table-display-block back-office-config-block--tables">
+                                <summary class="back-office-fields-heading">
+                                    <div class="back-office-block-summary-copy">
+                                        <h2>Personnalisation des tableaux</h2>
+                                        <p>Choisissez les colonnes affichées dans chaque tableau.</p>
+                                    </div>
+                                    <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
+                                </summary>
+                                <p class="back-office-table-display-help">Choisissez les colonnes à afficher, indépendamment, dans chaque vue de suivi des dossiers.</p>
+                                <div class="back-office-table-display-grid">
+                                    {% for tableau, configuration in demarche.configurations_tableaux_vue_ensemble.items %}
+                                        <form class="back-office-table-display-form" data-table-display-form
+                                              data-url="{% url 'back_office_enregistrer_personnalisation_tableau' demarche.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="tableau" value="{{ tableau }}">
+                                            <h3>{% if tableau == "en_cours" %}Dossiers en cours d’instruction{% elif tableau == "archives" %}Dossiers archivés{% elif tableau == "mes_dossiers" %}Mes dossiers{% elif tableau == "reception_dm" %}Réception · Dossiers DM{% elif tableau == "reception_dn" %}Réception · Dossiers DN{% else %}Réception · Dossiers complets{% endif %}</h3>
+                                            <div class="back-office-table-columns" data-table-columns>
+                                                {% for colonne in configuration %}
+                                                    <div class="back-office-table-column-item" data-table-column-item>
+                                                        <input type="hidden" name="ordre[]" value="{{ colonne.id }}">
+                                                        <div class="back-office-table-column-main">
+                                                            <span class="back-office-table-column-position" data-column-position aria-label="Position">{{ forloop.counter }}</span>
+                                                            <label class="back-office-table-column-option">
+                                                                <input type="checkbox" name="colonnes[]" value="{{ colonne.id }}"{% if colonne.affiche %} checked{% endif %}>
+                                                                <span>{{ colonne.libelle }}</span>
+                                                            </label>
+                                                            <span class="back-office-table-column-order" aria-label="Ordre de la colonne">
+                                                                <button type="button" data-column-up aria-label="Monter cette colonne" title="Monter">↑</button>
+                                                                <button type="button" data-column-down aria-label="Descendre cette colonne" title="Descendre">↓</button>
+                                                            </span>
+                                                        </div>
+                                                        <label class="back-office-table-column-label">
+                                                            <span>Label affiché</span>
+                                                            <input type="text" name="libelles[{{ colonne.id }}]" value="{{ colonne.libelle_personnalise }}" maxlength="150" placeholder="{{ colonne.libelle_standard }}">
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                            <p class="back-office-table-display-status" data-table-display-status role="status" aria-live="polite"></p>
+                                            <button type="submit" class="back-office-table-display-save">Enregistrer</button>
+                                        </form>
+                                    {% endfor %}
+                                </div>
+                            </details>
+
+                            <details class="back-office-config-block back-office-future-block back-office-config-block--future">
+                                <summary class="back-office-fields-heading">
+                                    <div class="back-office-block-summary-copy">
+                                        <h2>Génération des noms de dossiers</h2>
+                                        <p>Préparez les règles qui composeront automatiquement le nom des dossiers.</p>
+                                    </div>
+                                    <span>À configurer</span>
+                                    <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
+                                </summary>
+                                <p>Les règles de nommage propres à cette démarche seront configurées ici à partir des champs du formulaire.</p>
+                            </details>
+
+
+                        </div>
+                    </section>
+                {% endfor %}
             </section>
             <section class="back-office-panel" data-panel="carto" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
@@ -122,15 +368,242 @@
     </div>
 
     <script>
+        const demarchePanel = document.querySelector('[data-panel="demarche"]');
+        const menuDemarche = document.querySelector('.back-office-nav-item[data-section="demarche"]');
+        const sousMenuDemarches = document.getElementById('back-office-demarches-nav');
+
+        function afficherBackOffice(section, demarcheId = null) {
+            const sectionValide = document.querySelector(`[data-panel="${section}"]`) ? section : 'services-externes';
+            const estDemarche = sectionValide === 'demarche';
+
+            document.querySelectorAll('.back-office-nav-item').forEach(item => {
+                item.classList.toggle('is-active', item.dataset.section === sectionValide);
+            });
+            document.querySelectorAll('.back-office-panel').forEach(panel => {
+                panel.hidden = panel.dataset.panel !== sectionValide;
+            });
+            document.querySelector('.back-office-content').classList.toggle('is-demarche-active', estDemarche);
+
+            sousMenuDemarches.hidden = !estDemarche;
+            menuDemarche.setAttribute('aria-expanded', String(estDemarche));
+            if (!estDemarche) return;
+
+            const detailSelectionne = demarcheId && demarchePanel.querySelector(`[data-demarche-detail="${demarcheId}"]`);
+            document.querySelector('[data-demarche-home]').hidden = Boolean(detailSelectionne);
+            demarchePanel.querySelectorAll('[data-demarche-detail]').forEach(detail => {
+                detail.hidden = detail !== detailSelectionne;
+            });
+            document.querySelectorAll('.back-office-nav-subitem').forEach(item => {
+                item.classList.toggle('is-active', item.dataset.demarcheId === String(demarcheId));
+            });
+        }
+
+        function etatDepuisUrl() {
+            const fragment = window.location.hash.replace(/^#/, '');
+            const resultat = fragment.match(/^demarche\/(\d+)$/);
+            if (resultat) {
+                afficherBackOffice('demarche', resultat[1]);
+                return;
+            }
+            afficherBackOffice(fragment || 'services-externes');
+        }
+
+        function naviguerBackOffice(section, demarcheId = null) {
+            const fragment = demarcheId ? `demarche/${demarcheId}` : section;
+            if (window.location.hash === `#${fragment}`) {
+                afficherBackOffice(section, demarcheId);
+                return;
+            }
+            window.location.hash = fragment;
+        }
+
         document.querySelectorAll('.back-office-nav-item').forEach(button => {
+            button.addEventListener('click', () => naviguerBackOffice(button.dataset.section));
+        });
+
+        document.querySelectorAll('.back-office-nav-subitem').forEach(button => {
+            button.addEventListener('click', () => naviguerBackOffice('demarche', button.dataset.demarcheId));
+        });
+        window.addEventListener('hashchange', etatDepuisUrl);
+        etatDepuisUrl();
+
+        demarchePanel.querySelectorAll('[data-field-search]').forEach(input => {
+            input.addEventListener('input', () => {
+                const recherche = input.value.trim().toLocaleLowerCase('fr');
+                const detail = input.closest('[data-demarche-detail]');
+                detail.querySelectorAll('tbody tr').forEach(ligne => {
+                    const correspond = ligne.textContent.toLocaleLowerCase('fr').includes(recherche);
+                    ligne.hidden = recherche
+                        ? !correspond
+                        : (ligne.classList.contains('back-office-extra-field') && !detail.classList.contains('show-all-fields'));
+                });
+            });
+        });
+        demarchePanel.querySelectorAll('[data-show-field-ids]').forEach(input => {
+            input.addEventListener('change', () => {
+                input.closest('[data-demarche-detail]').classList.toggle('show-field-ids', input.checked);
+            });
+        });
+        demarchePanel.querySelectorAll('[data-show-more-fields]').forEach(button => {
             button.addEventListener('click', () => {
-                const section = button.dataset.section;
-                document.querySelectorAll('.back-office-nav-item').forEach(item => {
-                    item.classList.toggle('is-active', item === button);
+                const bloc = button.closest('details');
+                const afficheTout = bloc.classList.toggle('show-all-fields');
+                bloc.querySelectorAll('.back-office-extra-field').forEach(ligne => {
+                    ligne.hidden = !afficheTout;
                 });
-                document.querySelectorAll('.back-office-panel').forEach(panel => {
-                    panel.hidden = panel.dataset.panel !== section;
+                button.textContent = afficheTout ? 'Afficher seulement les 5 premiers champs' : button.dataset.showMoreLabel;
+            });
+            button.dataset.showMoreLabel = button.textContent;
+        });
+        demarchePanel.querySelectorAll('[data-date-activity-form]').forEach(form => {
+            const select = form.querySelector('[data-date-activity-field]');
+            const liste = form.querySelector('[data-date-activity-sources]');
+            const vide = form.querySelector('[data-date-activity-empty]');
+            const statut = form.querySelector('[data-date-activity-status]');
+            const ajout = form.querySelector('[data-date-activity-add]');
+            const enregistrement = form.querySelector('[type="submit"]');
+
+            function creerSource(id, nomChamp, typeChamp) {
+                const ligne = document.createElement('li');
+                ligne.dataset.champId = id;
+                const champ = document.createElement('input');
+                champ.type = 'hidden';
+                champ.name = 'champs[]';
+                champ.value = id;
+                const ordre = document.createElement('span');
+                ordre.className = 'back-office-date-source-order';
+                const libelle = document.createElement('span');
+                libelle.className = 'back-office-date-source-label';
+                const nom = document.createElement('span');
+                nom.className = 'back-office-date-source-name';
+                nom.textContent = nomChamp;
+                const type = document.createElement('small');
+                type.textContent = typeChamp;
+                libelle.append(nom, type);
+                const actions = document.createElement('div');
+                actions.className = 'back-office-date-source-actions';
+                [['↑', 'up', 'Monter cette source'], ['↓', 'down', 'Descendre cette source'], ['×', 'remove', 'Retirer cette source']].forEach(([texte, action, titre]) => {
+                    const bouton = document.createElement('button');
+                    bouton.type = 'button';
+                    bouton.dataset[`dateActivity${action[0].toUpperCase()}${action.slice(1)}`] = '';
+                    bouton.textContent = texte;
+                    bouton.title = titre;
+                    bouton.setAttribute('aria-label', titre);
+                    actions.append(bouton);
                 });
+                ligne.append(champ, ordre, libelle, actions);
+                return ligne;
+            }
+
+            function actualiserSources() {
+                const sources = Array.from(liste.children);
+                sources.forEach((ligne, index) => {
+                    ligne.querySelector('.back-office-date-source-order').textContent = index + 1;
+                    ligne.querySelector('[data-date-activity-up]').disabled = index === 0;
+                    ligne.querySelector('[data-date-activity-down]').disabled = index === sources.length - 1;
+                });
+                const ids = new Set(sources.map(ligne => ligne.dataset.champId));
+                Array.from(select.options).forEach(option => {
+                    option.disabled = Boolean(option.value) && ids.has(option.value);
+                });
+                vide.hidden = sources.length > 0;
+            }
+
+            ajout.addEventListener('click', () => {
+                const option = select.options[select.selectedIndex];
+                if (!select.value || option.disabled) return;
+                liste.append(creerSource(select.value, option.dataset.name, option.dataset.type));
+                select.value = '';
+                actualiserSources();
+            });
+            liste.addEventListener('click', event => {
+                const bouton = event.target.closest('button');
+                const ligne = event.target.closest('li');
+                if (!bouton || !ligne) return;
+                if (bouton.hasAttribute('data-date-activity-remove')) ligne.remove();
+                if (bouton.hasAttribute('data-date-activity-up') && ligne.previousElementSibling) {
+                    liste.insertBefore(ligne, ligne.previousElementSibling);
+                }
+                if (bouton.hasAttribute('data-date-activity-down') && ligne.nextElementSibling) {
+                    liste.insertBefore(ligne.nextElementSibling, ligne);
+                }
+                actualiserSources();
+            });
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                enregistrement.disabled = true;
+                statut.classList.remove('is-error');
+                statut.textContent = 'Enregistrement en cours…';
+                try {
+                    const response = await fetch(form.dataset.url, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value, 'X-Requested-With': 'XMLHttpRequest' },
+                        body: new FormData(form),
+                    });
+                    const resultat = await response.json();
+                    if (!response.ok) throw new Error(resultat.error || 'La configuration n’a pas pu être enregistrée.');
+                    statut.textContent = 'Configuration enregistrée.';
+                } catch (error) {
+                    statut.classList.add('is-error');
+                    statut.textContent = error.message;
+                } finally {
+                    enregistrement.disabled = false;
+                }
+            });
+            actualiserSources();
+        });
+
+        demarchePanel.querySelectorAll('[data-table-display-form]').forEach(form => {
+            const statut = form.querySelector('[data-table-display-status]');
+            const enregistrement = form.querySelector('[type="submit"]');
+            const colonnes = form.querySelector('[data-table-columns]');
+
+            function actualiserBoutonsOrdre() {
+                const elements = [...colonnes.querySelectorAll('[data-table-column-item]')];
+                elements.forEach((element, index) => {
+                    element.querySelector('[data-column-up]').disabled = index === 0;
+                    element.querySelector('[data-column-down]').disabled = index === elements.length - 1;
+                    element.querySelector('[data-column-position]').textContent = index + 1;
+                });
+            }
+
+            colonnes.addEventListener('click', event => {
+                const bouton = event.target.closest('[data-column-up], [data-column-down]');
+                if (!bouton) return;
+                const element = bouton.closest('[data-table-column-item]');
+                if (bouton.matches('[data-column-up]') && element.previousElementSibling) {
+                    colonnes.insertBefore(element, element.previousElementSibling);
+                }
+                if (bouton.matches('[data-column-down]') && element.nextElementSibling) {
+                    colonnes.insertBefore(element.nextElementSibling, element);
+                }
+                actualiserBoutonsOrdre();
+            });
+            actualiserBoutonsOrdre();
+
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                enregistrement.disabled = true;
+                statut.classList.remove('is-error');
+                statut.textContent = 'Enregistrement en cours…';
+                try {
+                    const response = await fetch(form.dataset.url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: new FormData(form),
+                    });
+                    const resultat = await response.json();
+                    if (!response.ok) throw new Error(resultat.error || 'La personnalisation n’a pas pu être enregistrée.');
+                    statut.textContent = 'Personnalisation enregistrée.';
+                } catch (error) {
+                    statut.classList.add('is-error');
+                    statut.textContent = error.message;
+                } finally {
+                    enregistrement.disabled = false;
+                }
             });
         });
 

@@ -3,7 +3,9 @@ import posixpath
 from django.utils import timezone
 import json
 import os
+import re
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db import transaction
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -12,7 +14,7 @@ import urllib
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 
 import smbclient
-from autorisations.models.models_instruction import Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, Message
+from autorisations.models.models_instruction import Champ, Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, Message
 from autorisations.models.models_utilisateurs import AgentAutorisations, ContactExterne, DossierEnvoiActe, DossierInstructeur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteurQualite, DossierValideur, EmailOutbox, GroupeinstructeurInstructeur, Instructeur, Groupeinstructeur
 from autorisations.models.models_documents import Document, DocumentFormat, DocumentNature, DossierDocument
 from autorisations.models.models_avis import Avis, Expert
@@ -36,12 +38,22 @@ from instruction.services_externes import (
 from mimetypes import guess_type
 from django.contrib import messages
 import logging
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils.timezone import now
 from autorisations import settings
 from django.contrib.auth.models import Group, User
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ValidationError
+from instruction.utils.colonnes_vue_ensemble import (
+    TABLEAU_ARCHIVES,
+    TABLEAU_EN_COURS,
+    TABLEAU_MES_DOSSIERS,
+    TABLEAU_RECEPTION_DM,
+    TABLEAU_RECEPTION_DN,
+    TABLEAU_RECEPTION_COMPLET,
+    colonnes_vue_ensemble,
+    configurations_colonnes_vue_ensemble,
+)
 from instruction.utils.utilisateurs_utils import resoudre_destinataires_notification
 
 
@@ -1550,7 +1562,154 @@ def back_office(request):
     """Page d'accueil reservee aux superutilisateurs pour l'administration interne."""
     if not request.user.is_superuser:
         raise PermissionDenied("Cette page est réservée aux administrateurs.")
-    return render(request, "instruction/back_office.html")
+    demarches = list(Demarche.objects.exclude(type__isnull=True).exclude(type="").order_by("type").prefetch_related(
+        Prefetch(
+            "champ_set",
+            queryset=Champ.objects.select_related("id_champ_type").order_by("nom", "id"),
+            to_attr="champs_back_office",
+        ),
+        Prefetch(
+            "date_activite_champs",
+            queryset=DemarcheDateActiviteChamp.objects.select_related(
+                "id_champ", "id_champ__id_champ_type"
+            ).order_by("ordre", "id"),
+            to_attr="date_activite_sources",
+        ),
+    ))
+    configurations_par_demarche = {}
+    for configuration in DemarcheColonneVueEnsemble.objects.filter(
+            id_demarche_id__in=[demarche.id for demarche in demarches]
+        ):
+        configurations_par_demarche.setdefault(configuration.id_demarche_id, []).append(configuration)
+    for demarche in demarches:
+        demarche.configurations_tableaux_vue_ensemble = configurations_colonnes_vue_ensemble(
+            demarche.type,
+            configurations_par_demarche.get(demarche.id, []),
+        )
+    configurations_date_activite = {
+        configuration.id_demarche_id: configuration
+        for configuration in DemarcheDateActiviteConfiguration.objects.filter(
+            id_demarche_id__in=[demarche.id for demarche in demarches]
+        )
+    }
+    champs_dm = [
+        champ for champ in DossierManifSportive._meta.fields
+        if champ.name not in {
+            "id", "id_etape", "geometrie", "emplacement", "archive",
+            "id_groupeinstructeur", "numero_dossier_declaration_manifestations",
+        }
+    ]
+    for demarche in demarches:
+        demarche.configuration_date_activite_back_office = configurations_date_activite.get(demarche.id)
+        demarche.champs_dm_back_office = champs_dm if (demarche.type or "").lower() == "manifestations sportives" else []
+    return render(request, "instruction/back_office.html", {"demarches_back_office": demarches})
+
+
+@login_required
+@require_POST
+def back_office_enregistrer_date_activite(request, demarche_id):
+    """Enregistre les champs sources, dans leur ordre de priorité."""
+    if not request.user.is_superuser:
+        raise PermissionDenied("Cette page est réservée aux administrateurs.")
+    demarche = get_object_or_404(Demarche, pk=demarche_id)
+    sources = list(dict.fromkeys(request.POST.getlist("champs[]")))
+    try:
+        delai_alerte_jours = int(request.POST.get("delai_alerte_jours", 30))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "La sélection de champs ou le délai est invalide."}, status=400)
+    if not 0 <= delai_alerte_jours <= 3650:
+        return JsonResponse({"error": "Le délai doit être compris entre 0 et 3 650 jours."}, status=400)
+
+    couleurs = {
+        "couleur_alerte": (request.POST.get("couleur_alerte") or "").strip(),
+        "couleur_passee": (request.POST.get("couleur_passee") or "").strip(),
+    }
+    if any(not re.fullmatch(r"#[0-9a-fA-F]{6}", couleur) for couleur in couleurs.values()):
+        return JsonResponse({"error": "Les couleurs doivent être au format hexadécimal #RRGGBB."}, status=400)
+
+    ids_champs = [int(source.removeprefix("dn:")) for source in sources if source.startswith("dn:")]
+    champs_dm = [source.removeprefix("dm:") for source in sources if source.startswith("dm:")]
+    if len(ids_champs) + len(champs_dm) != len(sources):
+        return JsonResponse({"error": "Une source de date est invalide."}, status=400)
+    champs = list(Champ.objects.filter(id_demarche=demarche, pk__in=ids_champs).select_related("id_champ_type"))
+    champs_par_id = {champ.pk: champ for champ in champs}
+    champs_dm_autorises = {champ.name for champ in DossierManifSportive._meta.fields}
+    if len(champs_par_id) != len(ids_champs) or not set(champs_dm).issubset(champs_dm_autorises):
+        return JsonResponse({"error": "Un des champs ne correspond pas à cette démarche."}, status=400)
+
+    with transaction.atomic():
+        DemarcheDateActiviteChamp.objects.filter(id_demarche=demarche).delete()
+        DemarcheDateActiviteChamp.objects.bulk_create([
+            DemarcheDateActiviteChamp(
+                id_demarche=demarche, ordre=ordre,
+                source="dm" if source.startswith("dm:") else "dn",
+                champ_dm=source.removeprefix("dm:") or None,
+                id_champ=champs_par_id.get(int(source.removeprefix("dn:"))) if source.startswith("dn:") else None,
+            ) for ordre, source in enumerate(sources, start=1)
+        ])
+        DemarcheDateActiviteConfiguration.objects.update_or_create(
+            id_demarche=demarche,
+            defaults={"delai_alerte_jours": delai_alerte_jours, **couleurs},
+        )
+    return JsonResponse({
+        "success": True,
+        "sources": [
+            {"id": champ_id, "nom": champs_par_id[champ_id].nom, "ordre": ordre}
+            for ordre, champ_id in enumerate(ids_champs, start=1)
+        ],
+    })
+
+
+@login_required
+@require_POST
+def back_office_enregistrer_personnalisation_tableau(request, demarche_id):
+    """Enregistre les colonnes visibles d'un tableau de la vue d'ensemble."""
+    if not request.user.is_superuser:
+        raise PermissionDenied("Cette page est réservée aux administrateurs.")
+    demarche = get_object_or_404(Demarche, pk=demarche_id)
+    tableau = request.POST.get("tableau")
+    if tableau not in {TABLEAU_EN_COURS, TABLEAU_ARCHIVES, TABLEAU_MES_DOSSIERS, TABLEAU_RECEPTION_DM, TABLEAU_RECEPTION_DN, TABLEAU_RECEPTION_COMPLET}:
+        return JsonResponse({"error": "Le tableau demandé est invalide."}, status=400)
+
+    definitions_colonnes = dict(colonnes_vue_ensemble(demarche.type)[tableau])
+    colonnes_autorisees = set(definitions_colonnes)
+    colonnes_visibles = set(request.POST.getlist("colonnes[]"))
+    ordre_colonnes = request.POST.getlist("ordre[]")
+    if not colonnes_visibles.issubset(colonnes_autorisees):
+        return JsonResponse({"error": "Une des colonnes ne correspond pas à cette démarche."}, status=400)
+    if len(ordre_colonnes) != len(colonnes_autorisees) or set(ordre_colonnes) != colonnes_autorisees:
+        return JsonResponse({"error": "L’ordre des colonnes est invalide."}, status=400)
+
+    libelles_personnalises = {}
+    for colonne in colonnes_autorisees:
+        libelle = request.POST.get(f"libelles[{colonne}]", "").strip()
+        if len(libelle) > 150:
+            return JsonResponse({"error": "Un libellé ne peut pas dépasser 150 caractères."}, status=400)
+        if libelle and libelle != definitions_colonnes[colonne]:
+            libelles_personnalises[colonne] = libelle
+
+    with transaction.atomic():
+        DemarcheColonneVueEnsemble.objects.filter(
+            id_demarche=demarche,
+            tableau=tableau,
+        ).delete()
+        DemarcheColonneVueEnsemble.objects.bulk_create([
+            DemarcheColonneVueEnsemble(
+                id_demarche=demarche,
+                tableau=tableau,
+                colonne=colonne,
+                affiche=colonne in colonnes_visibles,
+                libelle_personnalise=libelles_personnalises.get(colonne),
+                ordre=ordre,
+            )
+            for ordre, colonne in enumerate(ordre_colonnes, start=1)
+        ])
+    return JsonResponse({
+        "success": True,
+        "tableau": tableau,
+        "colonnes_visibles": sorted(colonnes_visibles),
+        "libelles_personnalises": libelles_personnalises,
+    })
 
 
 def _executer_controle_externe(nom, controle):

@@ -166,6 +166,81 @@ class EnsembleDossiers(models.Model):
         return f"Ensemble de dossiers {self.pk}"
 
 
+class DemarcheDateActiviteChamp(models.Model):
+    """Sources, ordonnées par priorité, de la date d'activité d'une démarche."""
+    id = models.AutoField(primary_key=True)
+    id_demarche = models.ForeignKey(
+        Demarche, models.CASCADE, db_column="id_demarche", related_name="date_activite_champs",
+    )
+    id_champ = models.ForeignKey(
+        "Champ", models.RESTRICT, db_column="id_champ", related_name="configurations_date_activite",
+        null=True, blank=True,
+    )
+    source = models.CharField(max_length=10, default="dn")
+    champ_dm = models.CharField(max_length=100, null=True, blank=True)
+    ordre = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."demarche_date_activite_champ"'
+        ordering = ("ordre", "id")
+        constraints = [
+            models.UniqueConstraint(fields=["id_demarche", "id_champ"], name="demarche_date_activite_champ_unique"),
+            models.UniqueConstraint(fields=["id_demarche", "ordre"], name="demarche_date_activite_ordre_unique"),
+        ]
+
+
+class DemarcheDateActiviteConfiguration(models.Model):
+    """Règles d'alerte visuelle de la date d'activité, par démarche."""
+    id = models.AutoField(primary_key=True)
+    id_demarche = models.OneToOneField(
+        Demarche, models.CASCADE, db_column="id_demarche", related_name="configuration_date_activite",
+    )
+    delai_alerte_jours = models.PositiveSmallIntegerField(default=30)
+    couleur_alerte = models.CharField(max_length=7, default="#d97706")
+    couleur_passee = models.CharField(max_length=7, default="#b91c1c")
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."demarche_date_activite_configuration"'
+
+
+class DemarcheConfigurationTableau(models.Model):
+    """Options d'affichage de la vue d'ensemble propres à une démarche."""
+    id = models.AutoField(primary_key=True)
+    id_demarche = models.OneToOneField(
+        Demarche, models.CASCADE, db_column="id_demarche", related_name="configuration_tableau",
+    )
+    afficher_date_activite_dans_vue_ensemble = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."demarche_configuration_tableau"'
+
+
+class DemarcheColonneVueEnsemble(models.Model):
+    """Affichage et libellé d'une colonne de vue, par démarche."""
+    id = models.AutoField(primary_key=True)
+    id_demarche = models.ForeignKey(
+        Demarche, models.CASCADE, db_column="id_demarche", related_name="configurations_colonnes_vue_ensemble",
+    )
+    tableau = models.CharField(max_length=30)
+    colonne = models.CharField(max_length=50)
+    affiche = models.BooleanField(default=True)
+    libelle_personnalise = models.CharField(max_length=150, null=True, blank=True)
+    ordre = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."demarche_colonne_vue_ensemble"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["id_demarche", "tableau", "colonne"],
+                name="demarche_colonne_vue_ensemble_unique",
+            ),
+        ]
+
+
 class Dossier(models.Model):
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(unique=True, blank=True, null=True)
@@ -173,6 +248,7 @@ class Dossier(models.Model):
     id_etape_dossier = models.ForeignKey(EtapeDossier, models.RESTRICT, db_column='id_etape_dossier', default=10)
     numero = models.IntegerField(unique=True)
     date_depot = models.DateTimeField()
+    date_debut_activite = models.DateTimeField(blank=True, null=True)
     date_debut_instruction = models.DateTimeField(blank=True, null=True)
     date_fin_instruction = models.DateTimeField(blank=True, null=True)
     id_dossier_type = models.ForeignKey(DossierType, models.DO_NOTHING, db_column='id_dossier_type',blank=True)

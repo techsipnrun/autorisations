@@ -1,6 +1,10 @@
 import logging
 
-from autorisations.models.models_instruction import Dossier, DossierManifestationLiaison
+from autorisations.models.models_instruction import (
+    DemarcheDateActiviteChamp,
+    Dossier,
+    DossierManifestationLiaison,
+)
 from autorisations.models.models_utilisateurs import Instructeur
 from instruction.utils.dossier_utils import check_si_on_casse_liaison_dm, safe_enregistrer_action
 from .sync_dossier import sync_doss
@@ -32,6 +36,16 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
     ]
     """
     logger = logging.getLogger('SYNCHRONISATION')
+
+    # Une seule requête, quel que soit le nombre de dossiers traités. La liste
+    # est ensuite passée à chaque synchronisation de champs de la démarche.
+    date_activite_champs = list(
+        DemarcheDateActiviteChamp.objects.filter(
+            id_demarche__numero=demarche_number,
+        )
+        .order_by("ordre", "id")
+        .select_related("id_champ")
+    )
 
     # On repère les dossiers supprimés sur Démarche Numérique
     ids_ds_recus = set(doss['dossier']['id_ds'] for doss in dossiers_list)
@@ -89,7 +103,7 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
         sync_dossier_beneficiaire(ids_beneficiaire_intermediaire, id_dossier_interlocuteur)
 
         try :
-            sync_dossier_champs(doss['dossier_champs'], id_dossier)
+            sync_dossier_champs(doss['dossier_champs'], id_dossier, date_activite_champs=date_activite_champs,)
         except Exception as e:
             logger.error(f"ERROR dans sync_dossier_champs : {e}")
 

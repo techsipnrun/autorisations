@@ -13,8 +13,8 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_demarche.css' %}?v=3">
 </head>
 
 <body>
@@ -121,22 +121,15 @@
         <table class="table_demarche_instru">
             <thead>
             <tr>
-                <th>Dossier</th>
-                <th>Numéro</th>
-                <th>Demandeur</th>
-                <th>Reçu le</th>
-                {% if demarche.type|lower == "manifestations sportives" %}
-                    <th>Début de la manifestation</th>
-                {% endif %}
-                <th>Groupe Instructeur</th>
-                <th>Étape</th>
+                {% for colonne in colonnes_en_cours_ordonnee %}{% if colonne.affiche %}<th>{{ colonne.libelle }}</th>{% endif %}{% endfor %}
             </tr>
             </thead>
             <tbody>
             {% for d in dossiers %}
                 <tr class="clickable-row {% if d.action_a_faire %}ligne_en_gras{% endif %} {% if d.est_concerne %}ligne_concerne_par_dossier{% endif %}"
                 data-href="{% url 'instruction_dossier' d.numero %}" {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
-                    <td>
+                    {% for colonne in colonnes_en_cours_ordonnee %}{% if colonne.affiche %}
+                    {% if colonne.id == "dossier" %}<td>
                         {% if d.nb_messages_non_lus > 0 %}
                             <div class="nouv_mess_wrapper">
                                 <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
@@ -147,26 +140,26 @@
                             <span class="badge-manifestation badge-{{ d.badge_manifestation|lower }}">{{ d.badge_manifestation }}</span>
                         {% endif %}
                         {{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}
-                    </td>
-                    <!-- <td>{{ d.type }}</td> -->
-                    <td>{{ d.numero }}</td>
-                    <td>{{ d.demandeur }}</td>
-                    <td>{{ d.date_reception|date:"d/m/Y"|default:"—" }}</td>
-                    {% if demarche.type|lower == "manifestations sportives" %}
+                    </td>{% elif colonne.id == "numero" %}<td>{{ d.numero }}</td>
+                    {% elif colonne.id == "demandeur" %}<td>{{ d.demandeur }}</td>
+                    {% elif colonne.id == "date_reception" %}<td>{{ d.date_reception|date:"d/m/Y"|default:"—" }}</td>
+                    {% elif colonne.id == "date_debut_manifestation" %}
                         <td class="{% if d.date_evenement_passee %}date-passee{% elif d.date_evenement_dans_moins_un_mois %}date-moins-un-mois{% endif %}">
                             {{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}
                         </td>
-                    {% endif %}
-                    <td>{{ d.groupe }}</td>
-                    <td {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
+                    {% elif colonne.id == "groupe_instructeur" %}<td>{{ d.groupe }}</td>
+                    {% elif colonne.id == "date_activite" %}
+                        <td class="{% if d.date_activite_passee %}date-activite-passee{% elif d.date_activite_proche %}date-activite-proche{% endif %}"
+                            {% if d.date_activite_passee %}style="--date-activite-couleur: {{ d.couleur_passee }}"{% elif d.date_activite_proche %}style="--date-activite-couleur: {{ d.couleur_alerte }}"{% endif %}>{{ d.date_debut_activite|date:"d/m/Y"|default:"---" }}</td>
+                    {% elif colonne.id == "etape" %}<td {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
                         {% if d.action_a_faire %}
                             <span class="dot-action"></span>
                         {% endif %}
                         {{ d.etape }}
-                    </td>
+                    </td>{% endif %}{% endif %}{% endfor %}
                 </tr>
             {% empty %}
-                <tr><td colspan="{% if demarche.type|lower == 'manifestations sportives' %}7{% else %}6{% endif %}" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
+                <tr><td colspan="{{ table_demarche_colspan }}" class="aucun_doss">Aucun dossier en cours d'instruction.</td></tr>
             {% endfor %}
             </tbody>
         </table>
@@ -198,22 +191,15 @@
             <table class="table_archives">
                 <thead>
                     <tr>
-                        <th>Dossier</th>
-                        <th>Numéro</th>
-                        <th>Demandeur</th>
-                        <th>Déposé le</th>
-                        {% if demarche.type|lower == "manifestations sportives" %}
-                            <th>Début de la manifestation</th>
-                        {% endif %}
-                        <th>Groupe Instructeur</th>
-                        <th>Étape</th>
+                        {% for colonne in colonnes_archives_ordonnee %}{% if colonne.affiche %}<th>{{ colonne.libelle }}</th>{% endif %}{% endfor %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for d in dossiers_archives %}
                         <tr class="clickable-row {% if d.action_a_faire %} ligne_en_gras {% endif %} {% if d.est_concerne %}ligne_concerne_par_dossier{% endif %}"
                         data-href="{{ d.url_detail }}" {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
-                            <td>
+                            {% for colonne in colonnes_archives_ordonnee %}{% if colonne.affiche %}
+                            {% if colonne.id == "dossier" %}<td>
                                 {% if d.nb_messages_non_lus > 0 %}
                                     <div class="nouv_mess_wrapper">
                                         <img src="{% static 'instruction/img/nouveau_mess.png' %}" alt="Nouveaux messages" title="Nouveaux messages" class="nouv_mess_icon">
@@ -224,23 +210,21 @@
                                     <span class="badge-manifestation badge-{{ d.badge_manifestation|lower }}">{{ d.badge_manifestation }}</span>
                                 {% endif %}
                                 {{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}
-                            </td>
-                            <td>{{ d.numero }}</td>
-                            <td>{{ d.demandeur }}</td>
-                            <td>{{ d.date_reception|date:"d/m/Y"|default:"—" }}</td>
-                            {% if demarche.type|lower == "manifestations sportives" %}
-                                <td>{{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}</td>
-                            {% endif %}
-                            <td>{{ d.groupe }}</td>
-                            <td {% if d.action_a_faire %} title="Nouveau message sur le dossier archivé" {% endif %}>
+                            </td>{% elif colonne.id == "numero" %}<td>{{ d.numero }}</td>
+                            {% elif colonne.id == "demandeur" %}<td>{{ d.demandeur }}</td>
+                            {% elif colonne.id == "date_reception" %}<td>{{ d.date_reception|date:"d/m/Y"|default:"—" }}</td>
+                            {% elif colonne.id == "date_debut_manifestation" %}<td>{{ d.date_debut_manifestation|date:"d/m/Y"|default:"---" }}</td>
+                            {% elif colonne.id == "groupe_instructeur" %}<td>{{ d.groupe }}</td>
+                            {% elif colonne.id == "date_activite" %}<td>{{ d.date_debut_activite|date:"d/m/Y"|default:"---" }}</td>
+                            {% elif colonne.id == "etape" %}<td {% if d.action_a_faire %} title="Nouveau message sur le dossier archivé" {% endif %}>
                                 {% if d.action_a_faire %}
                                     <span class="dot-action-archive"></span>
                                 {% endif %}
                                 {{ d.etape }}
-                            </td>
+                            </td>{% endif %}{% endif %}{% endfor %}
                         </tr>
                     {% empty %}
-                        <tr><td colspan="{% if demarche.type|lower == 'manifestations sportives' %}7{% else %}6{% endif %}" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
+                        <tr><td colspan="{{ table_archives_colspan }}" class="aucun_doss">Aucun dossier archivé pour cette année.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

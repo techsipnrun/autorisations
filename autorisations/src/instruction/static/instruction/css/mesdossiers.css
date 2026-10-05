@@ -408,3 +408,8 @@ tbody tr.row-action-archive::after {
     color: #cc6e16;
     font-weight: bold;
 }
+.date-activite-passee,
+.date-activite-proche {
+    color: var(--date-activite-couleur);
+    font-weight: 700;
+}

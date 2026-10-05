@@ -11,7 +11,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/preinstruction.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'instruction/css/actualiser.css' %}">
 
     <!-- JS pour l'actualisation -->
@@ -59,13 +59,14 @@
         <span class="switch-label">Afficher uniquement mes dossiers à affecter</span>
     </div>
 
-    <table>
+    <table class="reception-tableau">
         <thead>
             <tr>
                 <th>DOSSIERS</th>
                 <th>Déposé le</th>
                 <th>Demandeur</th>
                 <th>Nom du projet</th>
+                <th>Début activité</th>
                 <th>N° dossier</th>
             </tr>
         </thead>
@@ -74,15 +75,20 @@
                 <tr class="clickable-row {% if d.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'preinstruction_dossier' numero=d.numero %}"
                 {% if d.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
                     <td class="td_demarche">{{ d.demarche }}</td>
-                    <td>{{ d.date_depot }}</td>
+                    <td>
+                        <span class="reception-date-complete">{{ d.date_depot }}</span>
+                        <span class="reception-date-compact">{{ d.date_depot|date:"d/m/Y" }}</span>
+                    </td>
                     <td>{{ d.demandeur }}</td>
                     <!-- <td>{{ d.nom_dossier|truncatechars:40 }}</td>   -->
                     <td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}</td>
+                    <td class="{% if d.date_activite_passee %}date-activite-passee{% elif d.date_activite_proche %}date-activite-proche{% endif %}"
+                        {% if d.date_activite_passee %}style="--date-activite-couleur: {{ d.couleur_passee }}"{% elif d.date_activite_proche %}style="--date-activite-couleur: {{ d.couleur_alerte }}"{% endif %}>{% if d.date_debut_activite %}{{ d.date_debut_activite|date:"d/m/Y" }}{% else %}---{% endif %}</td>
                     <td>{{ d.numero }}</td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                    <td colspan="6">Aucun dossier en attente d'affectation.</td>
                 </tr>
             {% endfor %}
         </tbody>  
@@ -122,23 +128,19 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Nom de la manifestation</th>
-                        <th>Organisateur</th>
-                        <th>Date de début de l'événement</th>
-                        <th>Cœur de parc</th>
-                        <th>N° DN</th>
-                        <th>N° DM</th>
-                        <th>Dossier complet reçu le</th>
+                        {% for colonne in colonnes_reception_complet_ordonnee %}{% if colonne.affiche %}<th>{{ colonne.libelle }}</th>{% endif %}{% endfor %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for dossier, dm in dossiers_manif_sportive_complet %}
                         <tr class="clickable-row {% if dossier.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'preinstruction_dossier' numero=dossier.numero %}"
                                 {% if dossier.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
-                            <td class="td_demarche">{{ dm.nom_dossier }}</td>
-                            <td>{{ dm.nom_organisateur }} {{ dm.prenom_organisateur }}</td>
-                            <td>{{ dm.date_debut_evenement|date:"d F Y" }}</td>
-                            <td>
+                            {% for colonne in colonnes_reception_complet_ordonnee %}{% if colonne.affiche %}
+                            {% if colonne.id == "nom_manifestation" %}<td class="td_demarche">{{ dm.nom_dossier }}</td>
+                            {% elif colonne.id == "organisateur" %}<td>{{ dm.nom_organisateur }} {{ dm.prenom_organisateur }}</td>
+                            {% elif colonne.id == "date_debut_manifestation" %}<td class="{% if dossier.date_activite_passee %}date-activite-passee{% elif dossier.date_activite_proche %}date-activite-proche{% endif %}"
+                                {% if dossier.date_activite_passee %}style="--date-activite-couleur: {{ dossier.couleur_passee }}"{% elif dossier.date_activite_proche %}style="--date-activite-couleur: {{ dossier.couleur_alerte }}"{% endif %}>{{ dossier.date_activite_reception|date:"d/m/Y"|default:"---" }}</td>{% endif %}
+                            {% if colonne.id == "coeur_de_parc" %}<td>
                                 {% if dm.coeur_de_parc is None %}
                                     <span class="coeur-null">?</span>
                                 {% elif dm.coeur_de_parc %}
@@ -146,14 +148,13 @@
                                 {% else %}
                                     <span class="coeur-non">Non</span>
                                 {% endif %}
-                            </td>
-                            <td>{{ dossier.numero }}</td>
-                            <td>{{ dm.numero_dossier_declaration_manifestations }}</td>
-                            <td>{{ dm.date_reception_complete|date:"d F Y"|default:"—" }}</td>
+                            </td>{% elif colonne.id == "numero_dn" %}<td>{{ dossier.numero }}</td>
+                            {% elif colonne.id == "numero_dm" %}<td>{{ dm.numero_dossier_declaration_manifestations }}</td>
+                            {% elif colonne.id == "date_reception" %}<td>{{ dm.date_reception_complete|date:"d/m/Y"|default:"—" }}</td>{% endif %}{% endif %}{% endfor %}
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8">Aucun dossier en attente d'affectation.</td>
+                            <td colspan="{{ reception_complet_colspan }}">Aucun dossier en attente d'affectation.</td>
                         </tr>
                     {% endfor %}
                 </tbody>  
@@ -171,26 +172,21 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Nom de la manifestation</th>
-                            <th>Organisateur</th>
-                            <th>N° DM</th>
-                            <th>Date de début de l'événement</th>
-                            <th>Cœur de parc</th>
-                            <th>Reçu le</th> 
-                            <th>Mails de relance</th>
+                            {% for colonne in colonnes_reception_dm_ordonnee %}{% if colonne.affiche %}<th>{{ colonne.libelle }}</th>{% endif %}{% endfor %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for d in dossiers_manif_sportive_DM %}
                             <tr class="clickable-row {% if d.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'dossier_manif_sportive_sans_ds' numero=d.numero_dossier_declaration_manifestations %}"
                                 {% if d.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
-                                <td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60  }}</td>
-                                <td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
-                                <td>{{ d.numero_dossier_declaration_manifestations }}</td>
-                                <td class="{% if d.date_evenement_passee %}date-passee{% elif d.date_evenement_dans_moins_un_mois %}date-moins-un-mois{% endif %}">
-                                    {{ d.date_debut_evenement|date:"d F Y" }}
-                                </td>
-                                <td>
+                                {% for colonne in colonnes_reception_dm_ordonnee %}{% if colonne.affiche %}
+                                {% if colonne.id == "nom_manifestation" %}<td>{{ d.nom_dossier_plus_parlant|default:d.nom_dossier|truncatechars:60 }}</td>
+                                {% elif colonne.id == "organisateur" %}<td>{{ d.nom_organisateur }} {{ d.prenom_organisateur }}</td>
+                                {% elif colonne.id == "numero_dm" %}<td>{{ d.numero_dossier_declaration_manifestations }}</td>
+                                {% elif colonne.id == "date_debut_evenement" %}<td class="{% if d.date_activite_passee %}date-activite-passee{% elif d.date_activite_proche %}date-activite-proche{% endif %}"
+                                    {% if d.date_activite_passee %}style="--date-activite-couleur: {{ d.couleur_passee }}"{% elif d.date_activite_proche %}style="--date-activite-couleur: {{ d.couleur_alerte }}"{% endif %}>
+                                    {{ d.date_debut_activite|date:"d/m/Y"|default:"---" }}
+                                </td>{% elif colonne.id == "coeur_de_parc" %}<td>
                                     {% if d.coeur_de_parc is None %}
                                         <span class="coeur-null">?</span>
                                     {% elif d.coeur_de_parc %}
@@ -198,13 +194,12 @@
                                     {% else %}
                                         <span class="coeur-non">Non</span>
                                     {% endif %}
-                                </td>
-                                <td>{{ d.date_demande_avis|date:"d F Y"|default:"—" }}</td>
-                                <td>{{ d.nb_relances }}</td>
+                                </td>{% elif colonne.id == "date_reception" %}<td>{{ d.date_demande_avis|date:"d/m/Y"|default:"—" }}</td>
+                                {% elif colonne.id == "mails_relance" %}<td>{{ d.nb_relances }}</td>{% endif %}{% endif %}{% endfor %}
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="7">Aucun dossier en attente d'affectation.</td>
+                                <td colspan="{{ reception_dm_colspan }}">Aucun dossier en attente d'affectation.</td>
                             </tr>
                         {% endfor %}
                     </tbody>  
@@ -222,26 +217,25 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Nom de la manifestation</th>
-                            <th>Organisateur</th>
-                            <th>N° DN</th>
-                            <th>Reçu le</th>
-                            <th>N° DM renseigné</th>
+                            {% for colonne in colonnes_reception_dn_ordonnee %}{% if colonne.affiche %}<th>{{ colonne.libelle }}</th>{% endif %}{% endfor %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for d in dossiers_manif_sportive_DS_infos %}
                             <tr class="clickable-row {% if d.dossier.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'preinstruction_dossier' numero=d.dossier.numero %}"
                                 {% if d.dossier.action_a_faire %}title="Vous avez une action à faire"{% endif %}>
-                                <td>{{ d.nom_manifestation }}</td>
-                                <td>{{ d.nom_demandeur }}</td>
-                                <td>{{ d.dossier.numero }}</td>
-                                <td>{{ d.dossier.date_depot|date:"d F Y"}}</td>
-                                <td>{{ d.numero_dm }}</td>
+                                {% for colonne in colonnes_reception_dn_ordonnee %}{% if colonne.affiche %}
+                                {% if colonne.id == "nom_manifestation" %}<td>{{ d.nom_manifestation }}</td>
+                                {% elif colonne.id == "organisateur" %}<td>{{ d.nom_demandeur }}</td>
+                                {% elif colonne.id == "numero_dn" %}<td>{{ d.dossier.numero }}</td>
+                                {% elif colonne.id == "date_debut_manifestation" %}<td class="{% if d.date_activite_passee %}date-activite-passee{% elif d.date_activite_proche %}date-activite-proche{% endif %}"
+                                    {% if d.date_activite_passee %}style="--date-activite-couleur: {{ d.couleur_passee }}"{% elif d.date_activite_proche %}style="--date-activite-couleur: {{ d.couleur_alerte }}"{% endif %}>{% if d.dossier.date_debut_activite %}{{ d.dossier.date_debut_activite|date:"d/m/Y" }}{% else %}---{% endif %}</td>{% endif %}
+                                {% if colonne.id == "date_reception" %}<td>{{ d.dossier.date_depot|date:"d/m/Y"}}</td>
+                                {% elif colonne.id == "numero_dm_renseigne" %}<td>{{ d.numero_dm }}</td>{% endif %}{% endif %}{% endfor %}
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="5">Aucun dossier en attente d'affectation.</td>
+                            <td colspan="{{ reception_dn_colspan }}">Aucun dossier en attente d'affectation.</td>
                             </tr>
                         {% endfor %}
                     </tbody>  

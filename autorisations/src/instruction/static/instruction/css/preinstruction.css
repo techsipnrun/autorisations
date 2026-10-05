@@ -87,8 +87,29 @@ tbody td {
     border-bottom: 1px solid #ddd;
 }
 
+.date-activite-passee,
+.date-activite-proche {
+    color: var(--date-activite-couleur);
+    font-weight: 700;
+}
+
 tbody .td_demarche{
     font-weight: bold;
+}
+
+.reception-date-compact {
+    display: none;
+}
+
+@media (max-width: 1500px) {
+    .reception-tableau .reception-date-complete {
+        display: none;
+    }
+
+    .reception-tableau .reception-date-compact {
+        display: inline;
+        white-space: nowrap;
+    }
 }
 
 thead th,
