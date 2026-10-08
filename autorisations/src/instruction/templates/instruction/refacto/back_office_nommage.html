@@ -1,0 +1,40 @@
+{% load static %}
+{{ demarche.nommage_donnees|json_script:demarche.nommage_script_id }}
+<form class="bo-nommage" data-nommage data-config-id="{{ demarche.nommage_script_id }}"
+      data-save-url="{% url 'back_office_enregistrer_noms' demarche.id %}"
+      data-preview-url="{% url 'back_office_apercu_nom' demarche.id %}"
+      data-recalculate-url="{% url 'back_office_recalculer_noms' demarche.id %}"
+      data-numbers-url="{% url 'back_office_autocomplete_numeros_noms' demarche.id %}">
+    {% csrf_token %}
+    <div class="bo-nommage-rules" data-nommage-rules></div>
+    <p class="bo-nommage-empty" data-nommage-empty>Aucune règle : les dossiers conservent leur nom standard.</p>
+    <div class="bo-nommage-actions">
+        <button type="button" data-nommage-add>+ Ajouter une règle</button>
+        <button type="submit" class="bo-nommage-primary">Enregistrer les règles</button>
+    </div>
+    <p class="bo-nommage-save-feedback" data-nommage-save-feedback role="status" aria-live="polite"></p>
+    <div class="bo-nommage-test">
+        <h3>Tester sur un dossier DN</h3>
+        <p>Testez vos règles sur les données déjà présentes dans AGIDA, avant de les enregistrer.</p>
+        <div class="bo-nommage-test-input">
+            <label>Numéro de dossier
+                <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+                       list="nommage-numeros-{{ demarche.id }}" data-nommage-number placeholder="Ex. 34215599">
+                <datalist id="nommage-numeros-{{ demarche.id }}" data-nommage-numbers></datalist>
+            </label>
+            <button type="button" data-nommage-preview>Afficher l’aperçu</button>
+        </div>
+        <div class="bo-nommage-result" data-nommage-result hidden aria-live="polite"></div>
+    </div>
+    <div class="bo-nommage-recalculate">
+        <div>
+            <h3>Appliquer aux dossiers existants</h3>
+            <p>Recalcule les noms avec les règles enregistrées, archives comprises. Les noms saisis manuellement et les noms DM prioritaires restent affichés.</p>
+        </div>
+        <button type="button" data-nommage-recalculate>Recalculer les noms</button>
+    </div>
+    <p class="bo-nommage-status" role="status" aria-live="polite">
+        <img src="{% static 'instruction/img/loader.svg' %}" alt="" hidden data-nommage-loader>
+        <span data-nommage-status></span>
+    </p>
+</form>

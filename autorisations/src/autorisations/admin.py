@@ -6,6 +6,7 @@ from .models.models_documents import Document, DocumentFormat, DocumentNature, D
 from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EnsembleDossiers, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, F, OuterRef, Subquery
+from .models.models_instruction import DemarcheNomDossierRegle, DemarcheNomDossierElement
 
 # Personnalisation globale de l'admin
 admin.site.site_header = "Administration des Autorisations"
@@ -381,10 +382,15 @@ class DossierLiaisonFilter(admin.SimpleListFilter):
 
 @admin.register(Dossier)
 class DossierAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'id', 'nom_dossier', 'etat', 'etape', 'groupe_instructeur', 'id_ensemble_dossiers', 'date_depot')
+    list_display = ('numero', 'id', 'etat', 'etape', 'groupe_instructeur', 'date_depot')
     list_filter = ('id_etat_dossier', 'id_etape_dossier', DemarcheTypeFilter, 'id_groupeinstructeur', 'present_sur_ds', DossierLiaisonFilter,)
-    search_fields = ('numero', 'nom_dossier', 'id_demarche__titre')
+    search_fields = ('numero', 'nom_dossier', 'nom_dossier_genere', 'nom_dossier_plus_parlant', 'id_demarche__titre')
     list_per_page = 20
+    readonly_fields = ("nom_dossier_genere",)
+
+    # @admin.display(description="Nom du dossier")
+    # def nom_affiche(self, obj):
+    #     return obj.nom_affiche
 
     def etat(self, obj):
         return obj.id_etat_dossier.nom if obj.id_etat_dossier else "-"
@@ -410,6 +416,20 @@ class EnsembleDossiersAdmin(admin.ModelAdmin):
     @admin.display(description="Dossiers liés")
     def nombre_dossiers(self, obj):
         return obj.dossiers.count()
+
+
+class DemarcheNomDossierElementInline(admin.TabularInline):
+    model = DemarcheNomDossierElement
+    extra = 0
+    autocomplete_fields = ("id_champ",)
+
+
+@admin.register(DemarcheNomDossierRegle)
+class DemarcheNomDossierRegleAdmin(admin.ModelAdmin):
+    list_display = ("id_demarche", "ordre", "libelle", "actif")
+    list_filter = ("id_demarche", "actif")
+    ordering = ("id_demarche", "ordre")
+    inlines = (DemarcheNomDossierElementInline,)
 
     
 admin.site.register(DossierType)

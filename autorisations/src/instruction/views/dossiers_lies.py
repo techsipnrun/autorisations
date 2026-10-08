@@ -73,6 +73,7 @@ def rechercher_dossiers_lies(request, dossier_id):
             dossiers = dossiers.filter(
                 Q(numero__icontains=recherche) | Q(nom_dossier__icontains=recherche)
                 | Q(nom_dossier_plus_parlant__icontains=recherche)
+                | Q(nom_dossier_genere__icontains=recherche)
             )
         if request.GET.get("demarche"):
             dossiers = dossiers.filter(id_demarche__type=request.GET["demarche"])

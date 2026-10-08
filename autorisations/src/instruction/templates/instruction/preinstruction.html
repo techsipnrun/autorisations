@@ -136,7 +136,7 @@
                         <tr class="clickable-row {% if dossier.action_a_faire %} ligne-non-lue {% endif %}" data-href="{% url 'preinstruction_dossier' numero=dossier.numero %}"
                                 {% if dossier.action_a_faire %} title="Vous avez une action à faire" {% endif %}>
                             {% for colonne in colonnes_reception_complet_ordonnee %}{% if colonne.affiche %}
-                            {% if colonne.id == "nom_manifestation" %}<td class="td_demarche">{{ dm.nom_dossier }}</td>
+                            {% if colonne.id == "nom_manifestation" %}<td class="td_demarche">{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier_genere|default:dm.nom_dossier }}</td>
                             {% elif colonne.id == "organisateur" %}<td>{{ dm.nom_organisateur }} {{ dm.prenom_organisateur }}</td>
                             {% elif colonne.id == "date_debut_manifestation" %}<td class="{% if dossier.date_activite_passee %}date-activite-passee{% elif dossier.date_activite_proche %}date-activite-proche{% endif %}"
                                 {% if dossier.date_activite_passee %}style="--date-activite-couleur: {{ dossier.couleur_passee }}"{% elif dossier.date_activite_proche %}style="--date-activite-couleur: {{ dossier.couleur_alerte }}"{% endif %}>{{ dossier.date_activite_reception|date:"d/m/Y"|default:"---" }}</td>{% endif %}

@@ -1,0 +1,94 @@
+{% load i18n %}
+
+{% if app_list %}
+  <style>
+    .schema-admin-category {
+      margin: 0 0 1rem;
+      border: 1px solid var(--hairline-color, #d9d9d9);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--body-bg, #fff);
+    }
+
+    .schema-admin-category-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      padding: .7rem .85rem;
+      color: var(--header-link-color, #fff);
+      background: var(--primary, #417690);
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+      user-select: none;
+    }
+
+    .schema-admin-category-summary::-webkit-details-marker { display: none; }
+
+    .schema-admin-category-chevron {
+      width: .6rem;
+      height: .6rem;
+      margin: 0 .2rem .28rem 0;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform .16s ease;
+    }
+
+    .schema-admin-category:not([open]) .schema-admin-category-chevron {
+      margin-bottom: 0;
+      transform: rotate(-45deg);
+    }
+
+    .schema-admin-category .module { margin: 0; border: 0; }
+    .schema-admin-category .module table { margin: 0; }
+  </style>
+
+  {% for app in app_list %}
+    <details class="schema-admin-category app-{{ app.app_label }}{% if app.app_url in request.path|urlencode %} current-app{% endif %}" open>
+      <summary class="schema-admin-category-summary">
+        <span>{{ app.name }}</span>
+        <span class="schema-admin-category-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="module">
+        <table>
+          <caption class="visually-hidden">
+            {% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}
+          </caption>
+          {% for model in app.models %}
+            {% with model_name=model.object_name|lower %}
+              <tr class="model-{{ model_name }}{% if model.admin_url in request.path|urlencode %} current-model{% endif %}">
+                <th scope="row" id="{{ app.app_label }}-{{ model_name }}">
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}"{% if model.admin_url in request.path|urlencode %} aria-current="page"{% endif %}>{{ model.name }}</a>
+                  {% else %}
+                    {{ model.name }}
+                  {% endif %}
+                </th>
+
+                {% if model.add_url %}
+                  <td><a href="{{ model.add_url }}" class="addlink" aria-describedby="{{ app.app_label }}-{{ model_name }}">{% translate 'Add' %}</a></td>
+                {% else %}
+                  <td></td>
+                {% endif %}
+
+                {% if model.admin_url and show_changelinks %}
+                  {% if model.view_only %}
+                    <td><a href="{{ model.admin_url }}" class="viewlink" aria-describedby="{{ app.app_label }}-{{ model_name }}">{% translate 'View' %}</a></td>
+                  {% else %}
+                    <td><a href="{{ model.admin_url }}" class="changelink" aria-describedby="{{ app.app_label }}-{{ model_name }}">{% translate 'Change' %}</a></td>
+                  {% endif %}
+                {% elif show_changelinks %}
+                  <td></td>
+                {% endif %}
+              </tr>
+            {% endwith %}
+          {% endfor %}
+        </table>
+      </div>
+    </details>
+  {% endfor %}
+{% else %}
+  <p>{% translate 'You don’t have permission to view or edit anything.' %}</p>
+{% endif %}

@@ -271,16 +271,44 @@
   display: flex;
 }
 
-
-
 .champs p {
     margin-bottom: 0.4rem;
     font-size: 1rem;
     line-height: 1.5;
 }
 
+.champs .champ-dn-apres-depot p {
+    margin-bottom: 0;
+}
+
+.champs .champ-dn-apres-depot .pj_champ {
+    margin: 0.3rem 0;
+}
+
+/* Les réponses simples ne remplissent pas la largeur du formulaire. */
+.champs > p,
+.champ-dn-apres-depot-compact {
+    display: table;
+    width: fit-content;
+    max-width: 100%;
+}
+
 .champs strong {
     color: #222;
+}
+
+.champ-dn-apres-depot {
+    margin-bottom:0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-left: 3px solid #d4a64a;
+    border-radius: 0 5px 5px 0;
+    /* background: #fff9eb; */
+    min-width: 0;
+    cursor: default;
+}
+
+.champ-dn-apres-depot:hover {
+    background: #fff9eb;
 }
 
 .siret_insee {
@@ -1911,7 +1939,6 @@ textarea[name="note"] {
     right: 0.7rem;
     z-index: 2;
     display: inline-flex;
-    cursor: help;
 }
 
 .nom-dossier-info-icon {
@@ -2158,7 +2185,6 @@ textarea[name="note"] {
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1.2;
-    cursor: help;
 }
 
 .note-aucune {

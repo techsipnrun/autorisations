@@ -9,6 +9,8 @@ from synchronisation.utils.conversion import extraire_nom_et_extension
 
 logger = logging.getLogger('ORM_DJANGO')
 loggerSynchro = logging.getLogger('SYNCHRONISATION')
+
+
 def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
 
 
@@ -50,6 +52,8 @@ def dossiers_champs_normalize(doss, emplacement_dossier, contacts):
                     "id_ds": ch["id"],
                     # "id_champ": id_champ,
                     "valeur": ch["stringValue"],
+                    # La synchro utilise updatedAt uniquement pour une nouvelle PJ.
+                    # Les dates des pièces déjà liées sont conservées dans AGIDA.
                     "date_saisie": parse_datetime_with_tz(ch["updatedAt"]),
                     "geometrie": None,
                     "id_document": None,

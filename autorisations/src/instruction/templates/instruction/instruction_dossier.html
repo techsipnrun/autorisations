@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=22">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=23">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -454,15 +454,17 @@
                     {% endif %}
                 </div>
 
-                {% if dossier_lie_manif_sportive and doss_manif_sportive %}
+                {% if date_debut_manifestation or doss_manif_sportive %}
                     <div class="dates-manifestation-ligne">
-                        <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
-                            <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
-                            <div>
-                                <span class="date-manifestation-label">Début de la manifestation</span>
-                                <strong class="date-manifestation-valeur">{{ doss_manif_sportive.date_debut_evenement|date:"d F Y"|default:"---" }}</strong>
+                        {% if date_debut_manifestation %}
+                            <div class="date-manifestation-card {% if date_evenement_passee %}date-manifestation-passee{% elif date_evenement_dans_moins_un_mois %}date-manifestation-proche{% endif %}">
+                                <img src="{% static 'instruction/img/calendrier.png' %}" alt="" class="date-manifestation-icon">
+                                <div>
+                                    <span class="date-manifestation-label">Début de la manifestation</span>
+                                    <strong class="date-manifestation-valeur">{{ date_debut_manifestation|date:"d F Y" }}</strong>
+                                </div>
                             </div>
-                        </div>
+                        {% endif %}
                         {% if doss_manif_sportive.archive and avis_manif_sportive.date_reponse %}
                             <div class="date-manifestation-card avis-rendu-card">
                                 <img src="{% static 'instruction/img/badge-check.png' %}" alt="" class="date-manifestation-icon">
@@ -1919,7 +1921,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                             <h2>Nom du dossier</h2>
                             <div class="nom_dossier_ligne">
                                 <p class="nom_dossier_texte" id="nomDossierTexte">
-                                {{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}
+                                {{ dossier.nom_affiche }}
                                 </p>
 
                                 {% if request.user|a_profil_instructeur %}
@@ -1937,7 +1939,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                     type="text"
                                     class="nom_dossier_input"
                                     id="nomDossierInput"
-                                    value="{{ dossier.nom_dossier_plus_parlant|default:dossier.nom_dossier }}"
+                                    value="{{ dossier.nom_affiche }}"
                                     maxlength="60"
                                     autocomplete="off"
                                 />
@@ -1957,6 +1959,9 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                     <!--   LES CHAMPS DU FORMULAIRE   -->
                     <!---------------------------------->
                     {% for champ in champs %}
+                        {% if champ.modifie_apres_depot %}
+                            <div class="champ-dn-apres-depot{% if champ.type == 'champ' or champ.type == 'piece_justificative' %} champ-dn-apres-depot-compact{% endif %}" title="Ajouté ou modifié par le demandeur le {{ champ.date_saisie|date:'d/m/Y' }}">
+                        {% endif %}
                         {% if champ.type == 'header' %}
                             {% if champ.titre != 'MODIFICATION DU PROJET' and champ.titre != 'RENOUVELLEMENT DU PROJET' %}
                                 <h2>{{ champ.titre }}</h2>
@@ -2107,6 +2112,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 </div>
                             {% endif %}
                         {% endif %}
+                        {% if champ.modifie_apres_depot %}</div>{% endif %}
                     {% endfor %}
                 </div>
             </div>

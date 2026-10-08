@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import smbclient
-from autorisations.models.models_instruction import Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteConfiguration, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, Dossier, DossierAction, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import AgentAutorisations, ContactExterne, DossierBeneficiaire, DossierEnvoiActe, DossierInstructeur, DossierInterlocuteur, DossierIntermediaireSignature, DossierManifSportiveInstructeur, DossierPublicationRAA, DossierRelecteur, DossierRelecteurQualite, DossierSignataire, DossierValideur, EmailOutbox, Groupeinstructeur, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
 from DS.graphql_client import GraphQLClient
@@ -701,7 +701,7 @@ def mesdossiers(request):
             "badge_manifestation": (
                 "COMPLET" if dossier.id in dossiers_complets_ids else "DN"
             ) if dossier.id_demarche.type.lower() == "manifestations sportives" else "",
-            "nom_dossier": dossier.nom_dossier,
+            "nom_dossier": dossier.nom_affiche,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "numero": dossier.numero,
             # "beneficiaire": f"{beneficiaire.prenom} {beneficiaire.nom}" if beneficiaire else "N/A",
@@ -928,7 +928,7 @@ def instruction_demarche(request, num_demarche):
 
         dossier_infos.append({
             "badge_manifestation": "COMPLET" if dossier.id in dossiers_complets_ids else "DN",
-            "nom_dossier": dossier.nom_dossier,
+            "nom_dossier": dossier.nom_affiche,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
             "numero": dossier.numero,
@@ -1013,7 +1013,7 @@ def instruction_demarche(request, num_demarche):
         dossier_archives_infos.append({
             "source": "dossier",
             "badge_manifestation": "COMPLET" if dossier.id in dossiers_complets_ids else "DN",
-            "nom_dossier": dossier.nom_dossier,
+            "nom_dossier": dossier.nom_affiche,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "obj_doss": dossier,
             "numero": dossier.numero,
@@ -1535,19 +1535,33 @@ def instruction_dossier(request, num_dossier):
     liaison = None
     date_evenement_passee = False
     date_evenement_dans_moins_un_mois = False
+    date_debut_manifestation = None
     
     if dossier.id_demarche.type == "Manifestations sportives":
+        sources_date_activite = list(
+            DemarcheDateActiviteChamp.objects.filter(id_demarche=dossier.id_demarche)
+            .order_by("ordre", "id")
+        )
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
-            date_evenement_passee, date_evenement_dans_moins_un_mois = (
-                get_indicateurs_date_manifestation(doss_manif_sportive.date_debut_evenement)
-            )
 
             avis_manif_sportive = get_avis_dm_le_plus_recent(doss_manif_sportive)
 
             # Récupération des PJ sur DM + emplacement NAS
             docs_DM = documents_deposes_sur_DM(doss_manif_sportive)
+
+        # Dès qu'une configuration existe, la carte s'appuie sur la même date
+        # calculée à la synchronisation que les tableaux. Sans configuration,
+        # on conserve l'affichage historique de la date DM pour les complets.
+        date_debut_manifestation = (
+            dossier.date_debut_activite
+            if sources_date_activite
+            else (doss_manif_sportive.date_debut_evenement if doss_manif_sportive else None)
+        )
+        date_evenement_passee, date_evenement_dans_moins_un_mois = (
+            get_indicateurs_date_manifestation(date_debut_manifestation)
+        )
     
     dossiers_deja_lies_dm_ids = DossierManifestationLiaison.objects.values_list("id_dossier_manif_id", flat=True)
     limite_deux_mois = timezone.now() - timedelta(days=60)
@@ -1678,6 +1692,7 @@ def instruction_dossier(request, num_dossier):
         # Manif Sportive
         "dossier_lie_manif_sportive": liaison is not None,
         "doss_manif_sportive": doss_manif_sportive,
+        "date_debut_manifestation": date_debut_manifestation,
         "date_evenement_passee": date_evenement_passee,
         "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         "avis_manif_sportive": avis_manif_sportive,

@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from autorisations.models.models_instruction import Champ, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Champ, DemarcheDateActiviteChamp, Dossier, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierManifSportiveDocument
 from autorisations.models.models_utilisateurs import ContactExterne, DossierManifSportiveInstructeur, EmailOutbox, Groupeinstructeur, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, TypeContactExterne
@@ -17,6 +17,7 @@ from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier
 from declaration_manifestations.get_methods import get_access_token
 from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive, user_est_receptionniste_manif_sportive
 from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
+from instruction.utils.date_activite import extraire_date_debut_activite_dm
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, get_actions_possibles_DM, redirect_error
 from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail
 from instruction.views.errors import dossier_introuvable
@@ -114,11 +115,23 @@ def dossier_manif_sportive_sans_ds(request, numero):
             id_instructeur=instructeur_connecte,
         ).exists()
     )
+    sources_date_activite = list(
+        DemarcheDateActiviteChamp.objects.filter(
+            id_demarche__type__iexact="Manifestations sportives"
+        ).order_by("ordre", "id")
+    )
+    # Sans configuration, conserver la source historique DM. Sinon, la carte
+    # respecte strictement les sources DM configurées dans le Back Office.
+    date_debut_manifestation = (
+        extraire_date_debut_activite_dm(sources_date_activite, doss_manif_sportive)
+        if sources_date_activite
+        else doss_manif_sportive.date_debut_evenement
+    )
     today = timezone.localdate()
     date_evenement_passee = False
     date_evenement_dans_moins_un_mois = False
-    if doss_manif_sportive.date_debut_evenement:
-        date_evenement = doss_manif_sportive.date_debut_evenement.date()
+    if date_debut_manifestation:
+        date_evenement = date_debut_manifestation.date()
         date_evenement_passee = date_evenement < today
         date_evenement_dans_moins_un_mois = (
             today <= date_evenement <= today + timedelta(days=30)
@@ -316,6 +329,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "instructeurs_dm_affectes_ids": instructeurs_dm_affectes_ids,
         "autres_instructeurs_du_dossier_dm": autres_instructeurs_du_dossier_dm,
         "instructeur_connecte_dans_groupe_dm": instructeur_connecte_dans_groupe_dm,
+        "date_debut_manifestation": date_debut_manifestation,
         "date_evenement_passee": date_evenement_passee,
         "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         # "pjs_demandeur_DM": pjs_demandeur_DM,

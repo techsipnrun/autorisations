@@ -1,7 +1,13 @@
 import json
 import logging
+import ntpath
 import os
 import re
+import tempfile
+import time
+import uuid
+from http.client import IncompleteRead
+from urllib3.exceptions import HTTPError as Urllib3HTTPError
 from typing import Optional
 import unicodedata
 from requests.exceptions import ChunkedEncodingError
@@ -21,6 +27,10 @@ loggerORM = logging.getLogger("ORM_DJANGO")
 loggerApp = logging.getLogger("APP")
 loggerDS = logging.getLogger("API_DS")
 loggerSynchro = logging.getLogger("SYNCHRONISATION")
+
+
+# Les traces de réussite détaillées sont réservées aux PJ réellement volumineuses.
+SEUIL_LOG_PJ_DETAILLE_OCTETS = 20 * 1024 * 1024
 
 # Vérification de la présence de NAS_ROOT
 if not os.environ.get("NAS_ROOT"):
@@ -73,23 +83,64 @@ def write_resume_pdf(emplacement, name, url_du_pdf):
     chemin_fichier = _normalize_unc_path(ensure_dossier_root(emplacement))
     chemin_complet = _normalize_unc_path(os.path.join(chemin_fichier, name))
 
-    try:
-        # --- Téléchargement du PDF ---
-        response = requests.get(url_du_pdf, timeout=20)
-        response.raise_for_status()
+    max_retries = 3
+    for tentative in range(1, max_retries + 1):
+        try:
+            # Le timeout de lecture est par bloc reçu : il couvre les PDF DN dont la
+            # génération ou l'envoi dépasse ponctuellement les 20 secondes précédentes.
+            with requests.get(
+                url_du_pdf,
+                stream=True,
+                timeout=(10, 120),
+                headers={"Accept-Encoding": "identity"},
+            ) as response:
+                response.raise_for_status()
+                contenu = b"".join(
+                    chunk for chunk in response.iter_content(chunk_size=256 * 1024) if chunk
+                )
 
-        # Écriture
-        fichier_temp = SimpleUploadedFile(name=name, content=response.content, content_type="application/pdf")
-        if ecrire_file_sur_nas(fichier_temp, chemin_complet):
-            return chemin_complet
-        else:
-            loggerORM.error(f"[NAS] ❌ Échec lors de l’écriture du PDF '{name}' sur le NAS.")
+            if not contenu:
+                raise _PJTelechargementIncomplet("PDF récapitulatif vide.")
+
+            fichier_temp = SimpleUploadedFile(
+                name=name,
+                content=contenu,
+                content_type="application/pdf",
+            )
+            if ecrire_file_sur_nas(fichier_temp, chemin_complet):
+                return chemin_complet
+
+            loggerORM.error(
+                "[RESUME PDF NAS ERROR] %s - écriture sur le NAS impossible.", name,
+            )
             return None
 
-    except requests.exceptions.RequestException as e:
-        loggerORM.error(f"[HTTP ERROR] Erreur lors du téléchargement du PDF '{name}' depuis {url_du_pdf} : {e}")
-    except Exception as e:
-        loggerORM.exception(f"[ECRITURE RÉSUMÉ PDF] ⚠️ Erreur inattendue lors du téléchargement ou de l’écriture du PDF '{name}' : {e}")
+        except (
+            requests.exceptions.RequestException,
+            IncompleteRead,
+            Urllib3HTTPError,
+            _PJTelechargementIncomplet,
+        ) as erreur:
+            cause = _cause_transfert_sans_url(erreur)
+            if tentative == max_retries:
+                loggerORM.error(
+                    "[RESUME PDF HTTP ERROR] %s - téléchargement DN impossible après %s tentatives : %s.",
+                    name, max_retries, cause,
+                )
+                return None
+
+            attente = 2 ** tentative
+            loggerORM.warning(
+                "[RESUME PDF HTTP RETRY] %s - tentative %s/%s échouée (%s), nouvel essai dans %s s.",
+                name, tentative, max_retries, cause, attente,
+            )
+            time.sleep(attente)
+        except Exception as erreur:
+            loggerORM.error(
+                "[RESUME PDF ERROR] %s - erreur inattendue lors du téléchargement ou de l’écriture : %s.",
+                name, type(erreur).__name__,
+            )
+            return None
 
     return None
 
@@ -174,135 +225,302 @@ def write_pj(emplacement, name, url_pj, ecrase = False):
     return None
 
 
-import time
+class _PJContenuIncoherent(ValueError):
+    """Le partiel ne peut pas être complété avec cette réponse HTTP."""
 
-def write_pj_volumineuse(emplacement, name, url_pj, ecrase=False):
-    """
-    Télécharge une pièce jointe depuis une URL distante et l’écrit en streaming sur le NAS.
 
-    Cette fonction :
-    - télécharge le fichier en mode streaming (optimisé pour les fichiers volumineux) ;
-    - écrit directement sur le NAS via smbclient ;
-    - supprime le fichier partiel en cas d’erreur.
+class _PJTelechargementIncomplet(ValueError):
+    """La réponse s'est terminée avant la taille annoncée."""
 
-    Args:
-        emplacement (str): "Activites/2025/123456_NOM/Annexes/"
-        name (str): "document.pdf"
-        url_pj (str): URL publique ou accessible de la pièce jointe à télécharger.
-        ecrase (bool, optional): False (par défaut), True si on veut écraser un potentiel fichier existant sur le NAS.
 
-    Returns:
-        str | None:
-            - Chemin absolu du fichier écrit sur le NAS en cas de succès.
-            - None si :
-                * le fichier existe déjà et ecrase=False
-                * une erreur survient (réseau, écriture, etc.)
+class _PJErreurNAS(ValueError):
+    """Écriture ou taille NAS incomplète, décrite sans URL distante."""
 
-    Notes:
-        - Utilise un téléchargement en streaming pour limiter l’usage mémoire.
-        - En cas d’échec, un nettoyage automatique du fichier partiel est tenté.
 
-    """
-    chemin_dossier = _normalize_unc_path(ensure_dossier_root(emplacement))
-    safe_name = os.path.basename(name)
-    chemin_fichier = _normalize_unc_path(os.path.join(chemin_dossier, safe_name))
+def _taille_pj(octets):
+    return "taille inconnue" if octets is None else f"{octets / (1024 * 1024):.2f} Mo"
 
-    max_retries = 3
+
+def _logger_info_pj_volumineuse(taille, message, *args):
+    """Évite de remplir les logs avec les copies réussies de petites PJ."""
+    if taille is not None and taille > SEUIL_LOG_PJ_DETAILLE_OCTETS:
+        loggerApp.info(message, *args)
+
+
+def _cause_transfert_sans_url(erreur):
+    # Les messages requests/urllib3 peuvent contenir une URL signée. On décrit
+    # les types réels et les codes, sans exposer le texte de ces exceptions.
+    causes, a_visiter = [], [erreur]
+    while a_visiter and len(causes) < 6:
+        cause = a_visiter.pop(0)
+        nom = type(cause).__name__
+        if nom in causes:
+            continue
+        causes.append(nom)
+        a_visiter.extend(arg for arg in cause.args if isinstance(arg, BaseException))
+        if cause.__cause__ is not None:
+            a_visiter.append(cause.__cause__)
+    response = getattr(erreur, "response", None)
+    code = f" - HTTP {response.status_code}" if response is not None else ""
+    errno = getattr(erreur, "errno", None)
+    if isinstance(errno, int):
+        code += f" - errno {errno}"
+    return " / ".join(causes) + code
+
+
+def _telecharger_pj_localement(url_pj, name, temp_path, max_retries):
+    taille_attendue = None
+    validateur = None
+    derniere_cause = ""
+
+    def lire_validateur(response):
+        etag = response.headers.get("ETag")
+        if etag and not etag.startswith("W/"):
+            return ("ETag", etag)
+        modification = response.headers.get("Last-Modified")
+        return ("Last-Modified", modification) if modification else None
 
     for tentative in range(1, max_retries + 1):
-        bytes_written = 0
-        total_size = None
-        total_mo = None
-        start_time = time.time()
-
+        offset = os.path.getsize(temp_path)
+        headers = {"Accept-Encoding": "identity"}
+        if offset:
+            headers["Range"] = f"bytes={offset}-"
+            if validateur:
+                headers["If-Range"] = validateur[1]
+            _logger_info_pj_volumineuse(
+                taille_attendue,
+                "[PJ RESUME] %s - reprise à l'octet %s - tentative %s/%s",
+                name, offset, tentative, max_retries,
+            )
         try:
-            if smbclient.path.exists(chemin_fichier) and not ecrase:
-                loggerApp.error(f"[FICHIER EXISTANT] {chemin_fichier} existe déjà.")
-                return None
+            with requests.get(url_pj, stream=True, timeout=(10, 400), headers=headers) as response:
+                # Une interruption peut survenir après réception du dernier octet.
+                if response.status_code == 416:
+                    match = re.fullmatch(r"bytes \*/(\d+)", response.headers.get("Content-Range", "").strip())
+                    nouveau_validateur = lire_validateur(response)
+                    if (match and offset == taille_attendue == int(match[1])
+                            and not (validateur and nouveau_validateur and validateur != nouveau_validateur)):
+                        _logger_info_pj_volumineuse(
+                            offset,
+                            "[PJ DOWNLOAD COMPLETE] %s - %s (taille confirmée par HTTP 416)",
+                            name, _taille_pj(offset),
+                        )
+                        return True
+                    raise _PJContenuIncoherent("HTTP 416 : le partiel ne correspond pas à la taille distante.")
 
-            # start_time = time.time()
-
-            with requests.get(url_pj, stream=True, timeout=(10, 400)) as response:
                 response.raise_for_status()
+                if response.headers.get("Content-Encoding", "identity").lower() not in ("", "identity"):
+                    raise _PJContenuIncoherent("Réponse compressée malgré Accept-Encoding: identity.")
 
-                # Taille totale (si connue)
-                total_size = response.headers.get("Content-Length")
-                total_size = int(total_size) if total_size and total_size.isdigit() else None
-                
-                if total_size:
-                    total_mo = round(total_size / (1024 * 1024), 2)
-                    if total_mo and total_mo > 10:
-                        loggerApp.info(f"[PJ DOWNLOAD] Tentative {tentative}/{max_retries} - Début téléchargement '{name}' ({total_mo} Mo)")
+                content_length = response.headers.get("Content-Length")
+                if content_length is not None:
+                    if not content_length.strip().isdigit():
+                        raise _PJContenuIncoherent("Content-Length invalide.")
+                    content_length = int(content_length)
+
+                nouveau_validateur = lire_validateur(response)
+                if response.status_code == 206:
+                    match = re.fullmatch(
+                        r"bytes (\d+)-(\d+)/(\d+)", response.headers.get("Content-Range", "").strip(),
+                    )
+                    if not match:
+                        raise _PJContenuIncoherent("Content-Range absent ou invalide pour HTTP 206.")
+                    debut, fin, total = map(int, match.groups())
+                    if debut != offset or not debut <= fin < total:
+                        raise _PJContenuIncoherent("Content-Range incompatible avec le partiel local.")
+                    if content_length is not None and content_length != fin - debut + 1:
+                        raise _PJContenuIncoherent("Content-Length incompatible avec Content-Range.")
+                    if taille_attendue is not None and total != taille_attendue:
+                        raise _PJContenuIncoherent("La taille distante a changé pendant le téléchargement.")
+                    if validateur and nouveau_validateur and validateur != nouveau_validateur:
+                        raise _PJContenuIncoherent("Le contenu distant a changé pendant le téléchargement.")
+                    taille_attendue = total
+                    fin_reponse = fin + 1
+                    mode = "ab"
+                    _logger_info_pj_volumineuse(
+                        taille_attendue,
+                        "[PJ RESUME OK] %s - serveur HTTP accepte Range - HTTP 206",
+                        name,
+                    )
+                elif response.status_code == 200:
+                    if offset:
+                        loggerApp.warning("[PJ RESUME REFUSED] %s - HTTP 200 : reprise depuis zéro, sans concaténation.", name)
+                    # HTTP 200 fournit le fichier entier : abandonner l'ancien partiel.
+                    with open(temp_path, "wb"):
+                        pass
+                    offset = 0
+                    taille_attendue = content_length
+                    if taille_attendue is None:
+                        raise _PJContenuIncoherent("Content-Length absent : impossible de vérifier le fichier complet.")
+                    fin_reponse = taille_attendue
+                    mode = "wb"
+                    validateur = None
                 else:
-                    loggerApp.info(f"[PJ DOWNLOAD] Début téléchargement '{name}' (taille inconnue)")
+                    raise _PJContenuIncoherent(f"Réponse HTTP {response.status_code} inattendue.")
 
-                bytes_written = 0
-                last_log_percent = 0
+                validateur = nouveau_validateur or validateur
+                _logger_info_pj_volumineuse(
+                    taille_attendue,
+                    "[PJ DOWNLOAD] %s - %s - taille attendue %s - tentative %s/%s",
+                    name, "reprise" if offset else "téléchargement initial",
+                    _taille_pj(taille_attendue), tentative, max_retries,
+                )
+                bytes_written = offset
+                prochain_log = offset + max(5 * 1024 * 1024, taille_attendue // 5)
+                with open(temp_path, mode) as dst:
+                    for chunk in response.iter_content(chunk_size=256 * 1024):
+                        if not chunk:
+                            continue
+                        dst.write(chunk)
+                        bytes_written += len(chunk)
+                        if bytes_written > fin_reponse:
+                            raise _PJContenuIncoherent("La réponse dépasse la taille annoncée.")
+                        if bytes_written >= prochain_log:
+                            _logger_info_pj_volumineuse(
+                                taille_attendue,
+                                "[PJ DOWNLOAD] %s - %s / %s",
+                                name, _taille_pj(bytes_written), _taille_pj(taille_attendue),
+                            )
+                            prochain_log = bytes_written + max(5 * 1024 * 1024, taille_attendue // 5)
 
-                with smbclient.open_file(chemin_fichier, mode="wb") as dst:
-                    for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1 Mo
-                        if chunk:
-                            dst.write(chunk)
-                            bytes_written += len(chunk)
+                taille_locale = os.path.getsize(temp_path)
+                if taille_locale != taille_attendue or taille_locale != fin_reponse:
+                    raise _PJTelechargementIncomplet(
+                        f"{taille_locale} octets reçus / {taille_attendue} attendus."
+                    )
+                _logger_info_pj_volumineuse(
+                    taille_locale, "[PJ DOWNLOAD COMPLETE] %s - %s", name, _taille_pj(taille_locale),
+                )
+                return True
 
-                            # --- LOG PROGRESSION POUR LES FICHIERS LOURDS ---
-                            if total_size and total_mo and total_mo > 10 :
-                                percent = int((bytes_written / total_size) * 100)
+        except _PJContenuIncoherent as erreur:
+            derniere_cause = str(erreur)  # Messages internes, jamais d'URL.
+            loggerORM.warning("[PJ HTTP INCOHERENT] %s - %s - partiel remis à zéro.", name, derniere_cause)
+            with open(temp_path, "wb"):
+                pass
+            taille_attendue = validateur = None
+        except _PJTelechargementIncomplet as erreur:
+            derniere_cause = str(erreur)
+            loggerORM.warning("[PJ HTTP INTERRUPTED] %s - %s déjà récupérés - %s", name, _taille_pj(os.path.getsize(temp_path)), derniere_cause)
+        except (
+            requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout, requests.exceptions.RequestException,
+            IncompleteRead, Urllib3HTTPError,
+        ) as erreur:
+            derniere_cause = _cause_transfert_sans_url(erreur)
+            loggerORM.warning(
+                "[PJ HTTP INTERRUPTED] %s - %s déjà récupérés - tentative %s/%s - %s",
+                name, _taille_pj(os.path.getsize(temp_path)), tentative, max_retries, derniere_cause,
+            )
 
-                                # log tous les 20%
-                                if percent >= last_log_percent + 20:
-                                    loggerApp.info(
-                                        f"[PJ DOWNLOAD] {name} : {percent}% ({round(bytes_written / (1024*1024), 2)} Mo)"
-                                    )
-                                    last_log_percent = percent
-                            # else:
-                            #     # si taille inconnue → log tous les 5 Mo
-                            #     if bytes_written % (5 * 1024 * 1024) < 1024 * 1024:
-                            #         loggerApp.info(
-                            #             f"[PJ DOWNLOAD] {name} : {round(bytes_written / (1024*1024), 2)} Mo écrits"
-                            #         )   
-            
-            if total_size and bytes_written != total_size:
-                raise ValueError(f"Téléchargement incomplet : {bytes_written} octets écrits / {total_size} attendus")
-            
-            duration = round(time.time() - start_time, 2)
-            size_mo = round(bytes_written / (1024 * 1024), 2)
-
-            loggerApp.info(f"[PJ OK] {name} téléchargé ({size_mo} Mo) en {duration}s → {chemin_fichier}")
-
-            return chemin_fichier
-
-        except requests.exceptions.RequestException as e:
-                if "IncompleteRead" in str(e):
-                    loggerORM.warning(
-                        f"[HTTP INCOMPLETE READ] Tentative {tentative}/{max_retries} pour '{name}' : téléchargement interrompu avant la fin. "
-                        f"URL={url_pj} - {e}")
-                else:
-                    loggerORM.warning(f"[HTTP ERROR] Tentative {tentative}/{max_retries} pour '{name}' : URL={url_pj} - {e}")
-
-        except ValueError as e:
-            loggerORM.warning(f"[HTTP INCOMPLETE READ] Tentative {tentative}/{max_retries} pour '{name}' : {e}")
-
-        except Exception as e:
-            loggerORM.warning(f"[ECRITURE PJ] Tentative {tentative}/{max_retries} pour '{name}' : {e}")
-
-        # Nettoyage du fichier partiel après échec
-        try:
-            if smbclient.path.exists(chemin_fichier):
-                smbclient.remove(chemin_fichier)
-                loggerApp.warning(f"[CLEANUP] Fichier partiel supprimé : {chemin_fichier}")
-        except Exception as cleanup_error:
-            loggerORM.warning(f"[CLEANUP ERROR] {name} : {cleanup_error}")
-
-        # Retry ou échec final
         if tentative < max_retries:
             attente = 2 ** tentative
-            loggerApp.info(f"[RETRY] Nouvelle tentative dans {attente}s ({tentative + 1}/{max_retries}) pour '{name}'.")
+            _logger_info_pj_volumineuse(
+                taille_attendue, "[PJ HTTP RETRY] %s - nouvelle tentative dans %s s.", name, attente,
+            )
             time.sleep(attente)
-        else:
-            loggerORM.error(f"[ECHEC DEFINITIF] Impossible de télécharger '{name}' après {max_retries} tentatives. URL={url_pj}")
-            return None
 
+    loggerORM.error(
+        "[PJ ECHEC DEFINITIF] %s - téléchargement incomplet après %s tentatives - %s / %s récupérés - %s",
+        name, max_retries, _taille_pj(os.path.getsize(temp_path)), _taille_pj(taille_attendue), derniere_cause,
+    )
+    return False
+
+
+def _copier_pj_complete_sur_nas(temp_path, emplacement, chemin_fichier, name, ecrase, max_retries):
+    taille_locale = os.path.getsize(temp_path)
+    # Même répertoire que la destination : renommage SMB, sans collision entre workers.
+    chemin_partiel = _normalize_unc_path(ntpath.join(
+        ntpath.dirname(chemin_fichier), f"{name[:120]}.{uuid.uuid4().hex}.part",
+    ))
+    for tentative in range(1, max_retries + 1):
+        try:
+            ensure_dossier_root(emplacement)
+            if not ecrase and smbclient.path.exists(chemin_fichier):
+                loggerApp.warning("[FICHIER EXISTANT] %s - aucune écriture effectuée.", chemin_fichier)
+                return False
+            _logger_info_pj_volumineuse(
+                taille_locale,
+                "[PJ NAS COPY] %s - début copie vers %s - tentative %s/%s",
+                name, chemin_partiel, tentative, max_retries,
+            )
+            with open(temp_path, "rb") as src, smbclient.open_file(chemin_partiel, mode="wb") as dst:
+                while True:
+                    chunk = src.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    if dst.write(chunk) != len(chunk):
+                        raise _PJErreurNAS("Écriture NAS partielle.")
+            taille_nas = smbclient.stat(chemin_partiel).st_size
+            if taille_nas != taille_locale:
+                raise _PJErreurNAS(f"Taille NAS incorrecte : {taille_nas} / {taille_locale} octets.")
+            if ecrase:
+                smbclient.replace(chemin_partiel, chemin_fichier)
+            else:
+                smbclient.rename(chemin_partiel, chemin_fichier)
+            _logger_info_pj_volumineuse(
+                taille_locale, "[PJ NAS OK] %s copié, vérifié et renommé avec succès.", name,
+            )
+            return True
+        except Exception as erreur:
+            loggerORM.warning(
+                "[PJ NAS ERROR] %s - tentative %s/%s - %s - téléchargement local conservé.",
+                name, tentative, max_retries,
+                str(erreur) if isinstance(erreur, _PJErreurNAS) else _cause_transfert_sans_url(erreur),
+            )
+            try:
+                smbclient.remove(chemin_partiel)
+            except FileNotFoundError:
+                pass
+            except Exception as nettoyage:
+                loggerORM.warning("[PJ NAS CLEANUP ERROR] %s - %s", name, _cause_transfert_sans_url(nettoyage))
+            if tentative < max_retries:
+                attente = 2 ** tentative
+                _logger_info_pj_volumineuse(
+                    taille_locale,
+                    "[PJ NAS RETRY] %s - nouvelle copie dans %s s, sans téléchargement HTTP.",
+                    name, attente,
+                )
+                time.sleep(attente)
+    loggerORM.error("[PJ ECHEC DEFINITIF] %s - copie NAS impossible après %s tentatives.", name, max_retries)
+    return False
+
+
+def write_pj_volumineuse(emplacement, name, url_pj, ecrase=False):
+    """HTTP -> partiel local reprenable -> partiel NAS vérifié -> nom définitif.
+
+    Cinq tentatives HTTP puis cinq tentatives SMB indépendantes. Le partiel local
+    est conservé entre les tentatives et supprimé à la fin de cet appel, y compris
+    en cas d'abandon. Aucune URL signée n'est écrite dans les logs.
+    """
+    temp_path = None
+    try:
+        chemin_dossier = _normalize_unc_path(os.path.join(os.environ["NAS_ROOT"], emplacement))
+        safe_name = ntpath.basename(name)
+        chemin_fichier = _normalize_unc_path(os.path.join(chemin_dossier, safe_name))
+        if not ecrase:
+            try:
+                if smbclient.path.exists(chemin_fichier):
+                    loggerApp.warning("[FICHIER EXISTANT] %s - aucune écriture effectuée.", chemin_fichier)
+                    return None
+            except Exception as erreur:
+                loggerORM.warning("[PJ NAS CHECK] %s - %s - contrôle reporté à la copie.", safe_name, _cause_transfert_sans_url(erreur))
+        fd, temp_path = tempfile.mkstemp(prefix="agida-pj-", suffix=".part")
+        os.close(fd)
+        if not _telecharger_pj_localement(url_pj, safe_name, temp_path, max_retries=5):
+            return None
+        if _copier_pj_complete_sur_nas(temp_path, emplacement, chemin_fichier, safe_name, ecrase, max_retries=5):
+            return chemin_fichier
+    except Exception as erreur:
+        loggerORM.error("[PJ ECHEC DEFINITIF] %s - préparation/écriture locale impossible - %s", name, _cause_transfert_sans_url(erreur))
+    finally:
+        if temp_path is not None:
+            try:
+                os.remove(temp_path)
+            except FileNotFoundError:
+                pass
+            except OSError as erreur:
+                loggerORM.warning("[PJ LOCAL CLEANUP ERROR] %s - %s", name, _cause_transfert_sans_url(erreur))
     return None
 
 # from requests.exceptions import RequestException, ChunkedEncodingError, ConnectionError

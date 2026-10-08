@@ -59,7 +59,11 @@
                             {% endif %} -->
                         </div>
                         
-                        {% if action.id_action.action != "Dossier supprimé de Démarche Numérique" %}
+                        {% if action.id_action.action == "Formulaire modifié" %}
+                            <div class="timeline-user {% if action.description|length > 25 %}small-text-user{% endif %}">
+                                {{ action.description|default:"Champ(s) concerné(s)" }}
+                            </div>
+                        {% elif action.id_action.action != "Dossier supprimé de Démarche Numérique" %}
                             <!-- Nom et Prénom en italique -->
                             {% if not action.description %}
 

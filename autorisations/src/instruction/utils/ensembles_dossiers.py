@@ -85,7 +85,7 @@ def cartes_dossiers(dossiers):
         en_reception = dossier.id_etape_dossier.etape == "À affecter"
         cartes.append({
             "id": dossier.pk, "numero": dossier.numero,
-            "nom": dossier.nom_dossier_plus_parlant or dossier.nom_dossier,
+            "nom": dossier.nom_affiche,
             "demarche": dossier.id_demarche.type,
             "etape": dossier.id_etape_dossier.etape,
             "demandeur": demandeur.get_display_name() if demandeur else "Non renseigné",

@@ -55,6 +55,12 @@ from instruction.utils.colonnes_vue_ensemble import (
     configurations_colonnes_vue_ensemble,
 )
 from instruction.utils.utilisateurs_utils import resoudre_destinataires_notification
+from autorisations.models.models_instruction import DemarcheNomDossierRegle, DemarcheNomDossierElement
+from synchronisation.utils.nom_dossier import (
+    ATTRIBUTS_NOM_DOSSIER, TRANSFORMATIONS_NOM_DOSSIER, champs_dm_nommage_autorises,
+    compiler_regles_nommage,
+)
+from instruction.views.nom_dossier import champ_nommage_autorise
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -1575,6 +1581,13 @@ def back_office(request):
             ).order_by("ordre", "id"),
             to_attr="date_activite_sources",
         ),
+        Prefetch(
+            "regles_nom_dossier",
+            queryset=DemarcheNomDossierRegle.objects.prefetch_related(
+                Prefetch("elements", queryset=DemarcheNomDossierElement.objects.select_related("id_champ")),
+            ),
+            to_attr="regles_nommage_back_office",
+        ),
     ))
     configurations_par_demarche = {}
     for configuration in DemarcheColonneVueEnsemble.objects.filter(
@@ -1592,16 +1605,21 @@ def back_office(request):
             id_demarche_id__in=[demarche.id for demarche in demarches]
         )
     }
-    champs_dm = [
-        champ for champ in DossierManifSportive._meta.fields
-        if champ.name not in {
-            "id", "id_etape", "geometrie", "emplacement", "archive",
-            "id_groupeinstructeur", "numero_dossier_declaration_manifestations",
-        }
-    ]
+    champs_dm = champs_dm_nommage_autorises()
     for demarche in demarches:
         demarche.configuration_date_activite_back_office = configurations_date_activite.get(demarche.id)
         demarche.champs_dm_back_office = champs_dm if (demarche.type or "").lower() == "manifestations sportives" else []
+        demarche.nommage_donnees = {
+            "regles": compiler_regles_nommage(demarche.regles_nommage_back_office),
+            "champs": [{"id": champ.pk, "nom": champ.nom, "type": champ.id_champ_type.type}
+                       for champ in demarche.champs_back_office if champ_nommage_autorise(champ)],
+            "champs_dm": [{"name": champ.name, "nom": str(champ.verbose_name).capitalize(),
+                            "type": champ.get_internal_type()}
+                           for champ in demarche.champs_dm_back_office],
+            "attributs": ATTRIBUTS_NOM_DOSSIER,
+            "transformations": TRANSFORMATIONS_NOM_DOSSIER,
+        }
+        demarche.nommage_script_id = f"nommage-demarche-{demarche.id}"
     return render(request, "instruction/back_office.html", {"demarches_back_office": demarches})
 
 

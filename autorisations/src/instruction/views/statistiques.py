@@ -435,6 +435,7 @@ def donnees_carte(request):
         lignes = queryset.values_list(
             "id", "geometrie", "geometrie_modif", "numero", "nom_dossier", "nom_dossier_plus_parlant",
             "id_etape_dossier__etape",
+            "nom_dossier_genere",
         ).iterator(chunk_size=200)
 
     for ligne in lignes:
@@ -446,7 +447,7 @@ def donnees_carte(request):
             url = reverse(url_name, kwargs={"numero": numero})
         else:
             numero, nom, nom_plus_parlant, etape = ligne[3], ligne[4], ligne[5], ligne[6]
-            nom = nom_plus_parlant or nom
+            nom = nom_plus_parlant or ligne[7] or nom
             url = reverse("preinstruction_dossier", kwargs={"numero": numero}) if etape == "À affecter" else reverse(
                 "instruction_dossier", kwargs={"num_dossier": numero},
             )

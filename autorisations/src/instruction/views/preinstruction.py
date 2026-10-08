@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Count
-from autorisations.models.models_instruction import Champ, Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteConfiguration, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
+from autorisations.models.models_instruction import Champ, Demarche, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, Dossier, DossierAction, DossierChamp, DossierManifSportive, DossierManifestationLiaison, DossierNote, EtapeDossier, EtatDossier, Message, SynchronisationEtat
 from autorisations.models.models_utilisateurs import DossierInstructeur, DossierManifSportiveInstructeur, Groupeinstructeur, GroupeinstructeurDemarche, DossierInterlocuteur, DossierBeneficiaire, EmailOutbox, Instructeur
 from autorisations import settings
 from autorisations.models.models_documents import Document, DossierDocument, DossierManifSportiveDocument
@@ -104,7 +104,7 @@ def preinstruction(request):
             "date_depot": dossier.date_depot,
             # "demandeur": f"{demandeur.prenom} {demandeur.nom}" if demandeur else "N/A",
             "demandeur": demandeur,
-            "nom_dossier": dossier.nom_dossier,
+            "nom_dossier": dossier.nom_affiche,
             "nom_dossier_plus_parlant": dossier.nom_dossier_plus_parlant,
             "date_debut_activite": dossier.date_debut_activite,
             "date_activite_passee": date_activite_passee,
@@ -312,7 +312,8 @@ def preinstruction(request):
 
 
         # --- 3. Nom de la manifestation ---
-        nom_manifestation = champs_manif[dossier.id].get("Nom de la manifestation") or "N/A"
+        nom_manifestation = (dossier.nom_dossier_plus_parlant or dossier.nom_dossier_genere
+                            or champs_manif[dossier.id].get("Nom de la manifestation") or "N/A")
         date_activite_passee, date_activite_proche = get_indicateurs_date_activite(
             dossier.date_debut_activite, regles_date_activite_manif
         )
@@ -570,18 +571,15 @@ def preinstruction_dossier(request, numero):
     liaison = None
     date_evenement_passee = False
     date_evenement_dans_moins_un_mois = False
+    date_debut_manifestation = None
     if dossier.id_demarche.type == "Manifestations sportives":
+        sources_date_activite = list(
+            DemarcheDateActiviteChamp.objects.filter(id_demarche=dossier.id_demarche)
+            .order_by("ordre", "id")
+        )
         liaison = DossierManifestationLiaison.objects.filter(id_dossier=dossier).select_related("id_dossier_manif").first()
         if liaison:
             doss_manif_sportive = liaison.id_dossier_manif
-            today = timezone.localdate()
-            if doss_manif_sportive.date_debut_evenement:
-                date_evenement = doss_manif_sportive.date_debut_evenement.date()
-                date_evenement_passee = date_evenement < today
-                date_evenement_dans_moins_un_mois = (
-                    today <= date_evenement <= today + timedelta(days=30)
-                )
-
             avis_manif_sportive = get_avis_dm_le_plus_recent(doss_manif_sportive)
             
             # Récupération des PJ sur DM + emplacement NAS
@@ -589,6 +587,19 @@ def preinstruction_dossier(request, numero):
 
             # Les PJ du demandeur sur Déclaration Manifestations
             # pjs_demandeur_DM = Document.objects.filter(dossiermanifsportivedocument__id_dossier_manif_sportive=doss_manif_sportive, id_nature__nature="Pièce jointe demandeur")
+
+        date_debut_manifestation = (
+            dossier.date_debut_activite
+            if sources_date_activite
+            else (doss_manif_sportive.date_debut_evenement if doss_manif_sportive else None)
+        )
+        if date_debut_manifestation:
+            date_evenement = date_debut_manifestation.date()
+            today = timezone.localdate()
+            date_evenement_passee = date_evenement < today
+            date_evenement_dans_moins_un_mois = (
+                today <= date_evenement <= today + timedelta(days=30)
+            )
 
 
     ###############################
@@ -683,6 +694,7 @@ def preinstruction_dossier(request, numero):
         # Manif sportive
         "dossiers_DM_manif_sportive_a_affecter": dossiers_DM_manif_sportive_non_lie_en_reception,
         "dossier_lie_manif_sportive": liaison is not None,
+        "date_debut_manifestation": date_debut_manifestation,
         "date_evenement_passee": date_evenement_passee,
         "date_evenement_dans_moins_un_mois": date_evenement_dans_moins_un_mois,
         "dossier_dm_meme_numero_deja_lie" : dossier_dm_meme_numero_deja_lie,

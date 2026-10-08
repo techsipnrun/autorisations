@@ -18,6 +18,369 @@ body {
   min-height: 100vh;
 }
 
+/* Éditeur de règles de nommage : une règle = une carte, une source = une ligne. */
+.bo-nommage { font-size: 0.86rem; }
+.bo-nommage-help, .bo-nommage-save-note, .bo-nommage-test p, .bo-nommage-recalculate p {
+  color: #63756a;
+  line-height: 1.5;
+  
+}
+.bo-nommage-help { 
+  margin: 0 0 1rem; 
+  color: #708076;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.35; 
+}
+
+.bo-nommage-rules { display: grid; gap: 0.85rem; }
+.bo-nommage-rule {
+  min-width: 0;
+  padding: 0.95rem;
+  border: 1px solid #a6aca7;
+  border-radius: 10px;
+  background: #fbfdfb;
+}
+.bo-nommage-rule.is-disabled { background: #f2f4f2; }
+.bo-nommage-rule.is-unsaved { border-color: #a65b0b; }
+.bo-nommage-rule-unsaved {
+  margin: 0.8rem 0 0;
+  color: #a65b0b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.bo-nommage-rule-heading, .bo-nommage-actions, .bo-nommage-add-elements, .bo-nommage-test-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bo-nommage-rule-heading { margin-bottom: 0.8rem; }
+.bo-nommage-priority {
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: #e2efe6;
+  color: #075c31;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bo-nommage-rule-heading > input { flex: 1 1 11rem; }
+.bo-nommage-active { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.bo-nommage input:not([type="checkbox"]), .bo-nommage select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #cfded3;
+  border-radius: 6px;
+  color: #23342a;
+  background: #fff;
+  font: inherit;
+}
+.bo-nommage input:focus-visible, .bo-nommage select:focus-visible, .bo-nommage button:focus-visible {
+  outline: 2px solid #0b6d3b;
+  outline-offset: 2px;
+}
+.bo-nommage button:not(.back-office-collapse-icon) {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #cfded3;
+  border-radius: 6px;
+  color: #31513c;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+.bo-nommage button:not(.back-office-collapse-icon):hover:not(:disabled) { background: #e9f4ed; border-color: #95b9a1; }
+.bo-nommage button:disabled { opacity: 0.45; cursor: default; }
+.bo-nommage button.bo-nommage-primary { background: #075c31; border-color: #075c31; color: #fff; }
+.bo-nommage button.bo-nommage-primary:hover:not(:disabled) { background: #0b6d3b; }
+.bo-nommage-order { display: flex; flex: 0 0 auto; align-items: center; gap: 0.2rem; }
+.bo-nommage-order button { min-width: 1.85rem; padding: 0.3rem 0.45rem; font-weight: bold; }
+.bo-nommage-elements { display: grid; gap: 0.45rem; }
+.bo-nommage-element { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.45rem; 
+  min-width: 0; 
+  border: solid rgb(173, 173, 173) 1px;
+  border-radius: 8px;
+  padding:0.5rem;
+}
+.bo-nommage-element-kind { flex: 0 0 4.5rem; color: #63756a; font-size: 0.75rem; }
+.bo-nommage-element > input, .bo-nommage-source-field { flex: 1 1 0; }
+.bo-nommage-variable-field {
+  display: grid;
+  min-width: 0;
+  align-self: start;
+  gap: 0.3rem;
+  color: #52665a;
+  font-size: 0.78rem;
+}
+.bo-nommage-transform-field { flex: 0 1 14rem; width: 14rem; }
+.bo-nommage-transform-field > label { display: grid; gap: 0.3rem; }
+.bo-nommage button.bo-nommage-custom-toggle {
+  justify-self: start;
+  padding: 0.15rem 0;
+  border: 0;
+  color: #315a86;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+}
+.bo-nommage button.bo-nommage-custom-toggle:hover { color: #163b63; background: transparent; text-decoration: underline; }
+.bo-nommage-add-elements { margin-top: 0.65rem; }
+.bo-nommage-custom-transform {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px solid #d2def0;
+  border-radius: 8px;
+  background: #f4f7fc;
+}
+.bo-nommage-custom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+.bo-nommage-custom-row label,
+.bo-nommage-custom-fallback {
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+  color: #52665a;
+  font-size: 0.78rem;
+}
+.bo-nommage-custom-arrow { padding-bottom: 0.6rem; color: #567295; }
+.bo-nommage-custom-transform > button { justify-self: start; }
+.bo-nommage-custom-fallback { max-width: 28rem; }
+.bo-nommage-custom-help { margin: 0; color: #63756a; font-size: 0.78rem; line-height: 1.4; }
+@media (max-width: 900px) {
+  .bo-nommage-custom-transform { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  .bo-nommage-custom-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .bo-nommage-custom-row > label:first-child { grid-column: 1 / -1; }
+  .bo-nommage-custom-arrow { display: none; }
+}
+.bo-nommage-composition-label { margin: 0.85rem 0 0.4rem; color: #63756a; font-size: 0.75rem; }
+.bo-nommage-composition {
+  padding: 0.7rem;
+  border: 2px dashed #2b4f78;
+  border-radius: 7px;
+  background: #fff;
+  line-height: 2;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.bo-nommage-token {
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+.bo-nommage-token--dn { background: #e9f0fa; border-color: #bdd0e8; color: #2b4f78; }
+.bo-nommage-token--dm { background: #f0e8f8; border-color: #d5c1e8; color: #67408b; }
+.bo-nommage-token--bdd { background: #e8f4eb; border-color: #b9d9c0; color: #1f6335; }
+.bo-nommage-actions { justify-content: space-between; margin-top: 2rem; }
+.bo-nommage-empty { padding: 0.8rem; border-radius: 8px; background: #f4f7f4; color: #63756a; }
+.bo-nommage-save-note { font-size: 0.75rem; }
+.bo-nommage-save-feedback {
+  min-height: 1.3rem;
+  margin: 0.45rem 0 0;
+  color: #075c31;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.bo-nommage-save-feedback.is-error,
+[data-nommage-status].is-error { color: #9b2929; }
+.bo-nommage-test, .bo-nommage-recalculate { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid #dce7df; }
+.bo-nommage h3 { margin: 0; font-size: 0.95rem; color: #31513c; }
+.bo-nommage-test p, .bo-nommage-recalculate p { margin: 0.4rem 0 0.7rem; }
+.bo-nommage-test-input { align-items: end; }
+.bo-nommage-test-input label { display: grid; gap: 0.3rem; }
+.bo-nommage-test-input input { max-width: 12rem; }
+.bo-nommage-result { margin-top: 0.8rem; padding: 0.8rem; border-radius: 8px; background: #edf5ef; overflow-wrap: anywhere; }
+.bo-nommage-result strong { color: #075c31; }
+.bo-nommage-result .bo-nommage-detail { margin: 0.3rem 0; font-size: 0.78rem; }
+.bo-nommage-result .bo-nommage-detail.is-selected { color: #075c31; font-weight: 700; }
+.bo-nommage-result .bo-nommage-detail.is-skipped { color: #9b2929; font-weight: 700; }
+.bo-nommage-recalculate { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; }
+.bo-nommage-recalculate > div { flex: 1 1 20rem; }
+.bo-nommage-status { display: flex; align-items: center; gap: 0.5rem; min-height: 1.3rem; margin-bottom: 0; color: #075c31; }
+.bo-nommage-status img { width: 24px; height: 24px; }
+.bo-nommage-status.is-error { color: #9b2929; }
+.bo-nommage [hidden] { display: none; }
+
+/* Les règles sont d'abord une synthèse compacte ; l'éditeur n'apparaît qu'au clic. */
+.bo-nommage-rule {
+  position: relative;
+  padding: 1rem 1.1rem;
+}
+
+.bo-nommage-rule-heading {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding-right: 2.4rem;
+}
+
+.bo-nommage-rule-name {
+  flex: 1 1 12rem;
+  min-width: 0;
+  align-self: center;
+  overflow: hidden;
+  color: #253a2d;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bo-nommage-rule-name-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.bo-nommage-rule-toggle {
+  top: 1rem;
+  right: 1rem;
+  transform: none;
+}
+
+.bo-nommage-rule-order {
+  gap: 0.35rem;
+}
+
+.bo-nommage-rule-order button {
+  width: 1.85rem;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border-color: #739d81;
+  color: #075c31;
+  background: #e5f2e8;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bo-nommage-rule-order button:hover:not(:disabled) {
+  color: #fff;
+  border-color: #075c31;
+  background: #075c31;
+}
+
+.bo-nommage-composition-label {
+  margin-top: 0.8rem;
+}
+
+.bo-nommage-composition {
+  min-height: 2.7rem;
+  padding: 0.7rem 0.8rem;
+  background: #fdfefd;
+}
+
+.bo-nommage-rule-detail {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dbe8df;
+}
+
+.bo-nommage-rule-name-editor {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 38rem;
+  color: #52665a;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.bo-nommage-rule-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+
+.bo-nommage .bo-nommage-rule-actions button.bo-nommage-rule-icon {
+  display: inline-flex;
+  width: 1.85rem;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 3px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.bo-nommage-rule-actions .bo-nommage-rule-icon svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.25;
+}
+
+.bo-nommage-delete-rule {
+  border-color: #cf9191 !important;
+  color: #9b2929 !important;
+  background: #fff7f7 !important;
+}
+
+.bo-nommage-delete-rule:hover:not(:disabled) {
+  border-color: #9b2929 !important;
+  color: #fff !important;
+  background: #9b2929 !important;
+}
+
+/* Les trois étapes — paramétrage, test, application — restent immédiatement lisibles. */
+.bo-nommage-test,
+.bo-nommage-recalculate {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1rem 0;
+  border-top: 3px solid #aac9b4;
+}
+
+.bo-nommage-test {
+  background: linear-gradient(90deg, #f7fbf8, transparent 70%);
+}
+
+.bo-nommage-recalculate {
+  border-top-color: #9eb9cf;
+  background: linear-gradient(90deg, #f6faff, transparent 70%);
+}
+
+@media (max-width: 780px) {
+  .bo-nommage-rule-heading {
+    gap: 0.45rem;
+  }
+
+  .bo-nommage-rule-name,
+  .bo-nommage-rule-name-input {
+    flex-basis: 7rem;
+  }
+
+  .bo-nommage-rule-order {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .bo-nommage-element { flex-wrap: wrap; }
+  .bo-nommage-element-kind { flex-basis: 100%; }
+  .bo-nommage-element > input, .bo-nommage-source-field { flex-basis: 100%; }
+  .bo-nommage-transform-field { flex: 1 1 14rem; }
+}
+
 .back-office-sidebar {
   display: flex;
   flex: 0 0 270px;
@@ -59,12 +422,14 @@ body {
 .back-office-nav {
   display: grid;
   gap: 0.35rem;
+  align-content: start;
 }
 
 .back-office-nav-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-height: 0;
   width: 100%;
   padding: 0.75rem;
   color: #edf6ef;
@@ -973,13 +1338,6 @@ body {
   gap: 0.28rem;
 }
 
-.back-office-nav-item {
-  min-height: 2.7rem;
-  padding: 0.65rem 0.7rem;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
-}
 
 .back-office-nav-item:hover,
 .back-office-nav-item:focus-visible {
@@ -1112,6 +1470,28 @@ body {
   grid-column: 1 / -1;
 }
 
+/* L'éditeur de nommage contient des règles, un aperçu et un recalcul : il doit
+   disposer de toute la largeur du panneau, comme la personnalisation des tableaux. */
+.back-office-nommage-block {
+  grid-column: 1 / -1;
+  border-left-color: #3f6f9b;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.back-office-nommage-block[open] {
+  padding-bottom: 1.45rem;
+}
+
+.back-office-nommage-block .bo-nommage {
+  max-width: none;
+  font-size: 0.92rem;
+}
+
+.back-office-nommage-block .bo-nommage-help {
+  max-width: 80rem;
+  margin-bottom: 1.2rem;
+}
+
 .back-office-fields-block > summary.back-office-fields-heading {
   min-height: 3.5rem;
   padding: 0 1.2rem;
@@ -1218,6 +1598,148 @@ body {
 @media (max-width: 1500px) {
   .back-office-table-display-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Les actions d'une règle reprennent le bouton de repli commun des panneaux,
+   mais celui-ci reste ancré dans l'angle de la règle. */
+.bo-nommage-rule > .bo-nommage-rule-heading > .back-office-collapse-icon.bo-nommage-rule-toggle {
+  top: 1rem;
+  right: 1rem;
+  padding: 0;
+  border: 0;
+  transform: none;
+  cursor: pointer;
+}
+
+.bo-nommage-rule-toggle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.back-office-nommage-block .back-office-block-summary-copy { position: relative; }
+.back-office-nommage-block h2.bo-nommage-title { display: flex; align-items: center; gap: 0.5rem; }
+.back-office-nommage-block .bo-nommage-info { display: inline-flex; flex: 0 0 auto; }
+.back-office-nommage-block:not([open]) .bo-nommage-info { display: none; }
+.back-office-nommage-block .bo-nommage-info-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid #315a86;
+  border-radius: 50%;
+  color: #315a86;
+  background: #fff;
+  font-family: Georgia, serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.back-office-nommage-block .bo-nommage-info-bulle {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.55rem);
+  left: 0;
+  width: min(26rem, calc(100vw - 4rem));
+  max-width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #9cacc0;
+  border-radius: 7px;
+  color: #263746;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.16);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-0.2rem);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+.bo-nommage-info:hover .bo-nommage-info-bulle,
+.bo-nommage-info:focus .bo-nommage-info-bulle,
+.bo-nommage-info:focus-within .bo-nommage-info-bulle {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Sur mobile, la longue liste des démarches devient un menu flottant défilable
+   au lieu d'augmenter la hauteur de toute la barre latérale. */
+@media (max-width: 760px) {
+  .back-office-nav-group {
+    position: relative;
+  }
+
+  .back-office-nav-submenu:not([hidden]) {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    width: min(24rem, calc(100vw - 2rem));
+    max-height: min(50vh, 19rem);
+    margin: 0;
+    padding: 0.45rem;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 8px;
+    background: var(--bo-green-950, #063d27);
+    box-shadow: 0 12px 24px rgba(5, 42, 27, 0.28);
+  }
+
+  .back-office-nav-subitem {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
+/* La navigation peut contenir beaucoup de démarches : elle défile dans la
+   barre latérale, tandis que le lien de retour reste toujours accessible. */
+.back-office-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+  scrollbar-width: thin;
+}
+
+.back-office-return {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.85rem 0.25rem 0;
+  padding: 0.68rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #edf6ef;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.back-office-return:hover,
+.back-office-return:focus-visible {
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .back-office-nav {
+    overflow: visible;
+  }
+
+  .back-office-return {
+    margin-top: 1.25rem;
   }
 }
 
@@ -1526,7 +2048,8 @@ details.back-office-config-block[open] .back-office-collapse-icon-closed {
   display: none;
 }
 
-details.back-office-config-block > summary.back-office-fields-heading:hover .back-office-collapse-icon {
+details.back-office-config-block > summary.back-office-fields-heading:hover .back-office-collapse-icon,
+button.back-office-collapse-icon:hover:not(:disabled) {
   color: #075c31;
   background: #dcefe1;
 }

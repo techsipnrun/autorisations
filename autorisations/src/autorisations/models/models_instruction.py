@@ -190,6 +190,63 @@ class DemarcheDateActiviteChamp(models.Model):
         ]
 
 
+class DemarcheNomDossierRegle(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_demarche = models.ForeignKey(
+        Demarche, models.CASCADE, db_column="id_demarche", related_name="regles_nom_dossier",
+    )
+    libelle = models.CharField(max_length=150, blank=True)
+    ordre = models.PositiveSmallIntegerField()
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."demarche_nom_dossier_regle"'
+        ordering = ("ordre", "id")
+        constraints = [models.UniqueConstraint(
+            fields=["id_demarche", "ordre"], name="demarche_nom_dossier_regle_ordre_unique",
+        )]
+
+    def __str__(self):
+        return self.libelle or f"Règle {self.ordre} — {self.id_demarche.type}"
+
+
+class DemarcheNomDossierElement(models.Model):
+    id = models.AutoField(primary_key=True)
+    id_regle = models.ForeignKey(
+        DemarcheNomDossierRegle, models.CASCADE, db_column="id_regle", related_name="elements",
+    )
+    ordre = models.PositiveSmallIntegerField()
+    type_element = models.CharField(max_length=20, choices=[
+        ("texte", "Texte fixe"), ("champ_dn", "Champ DN"), ("champ_dm", "Champ DM"), ("attribut", "Donnée AGIDA"),
+    ])
+    texte = models.TextField(blank=True, null=True)
+    id_champ = models.ForeignKey("Champ", models.RESTRICT, db_column="id_champ", null=True, blank=True)
+    champ_dm = models.CharField(max_length=100, blank=True, null=True)
+    attribut = models.CharField(max_length=80, blank=True, null=True)
+    transformation = models.CharField(max_length=30, default="aucune", choices=[
+        ("aucune", "Aucune"), ("majuscules", "MAJUSCULES"),
+        ("minuscules", "minuscules"), ("date", "Date · JJ/MM/AAAA"),
+        ("date_heure", "Date et heure · JJ/MM/AAAA HHhMM"),
+        ("personnalisee", "Personnalisée"),
+    ])
+    configuration_transformation = models.JSONField(
+        default=dict, blank=True,
+        help_text='Correspondances valeur/texte et comportement sans correspondance pour la transformation personnalisée.',
+    )
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."demarche_nom_dossier_element"'
+        ordering = ("ordre", "id")
+        constraints = [models.UniqueConstraint(
+            fields=["id_regle", "ordre"], name="demarche_nom_dossier_element_ordre_unique",
+        )]
+
+    def __str__(self):
+        return self.texte or (self.id_champ.nom if self.id_champ_id else self.champ_dm or self.attribut) or "Élément"
+
+
 class DemarcheDateActiviteConfiguration(models.Model):
     """Règles d'alerte visuelle de la date d'activité, par démarche."""
     id = models.AutoField(primary_key=True)
@@ -260,6 +317,7 @@ class Dossier(models.Model):
     )
     note = models.CharField(blank=True, null=True)
     nom_dossier = models.CharField()
+    nom_dossier_genere = models.CharField(blank=True, null=True)
     nom_dossier_plus_parlant = models.CharField(blank=True, null=True)
     emplacement = models.CharField(unique=True)
     date_limite_traitement = models.DateTimeField()
@@ -304,6 +362,10 @@ class Dossier(models.Model):
 
     def __str__(self):
         return f"Dossier {self.nom_dossier}"
+
+    @property
+    def nom_affiche(self):
+        return self.nom_dossier_plus_parlant or self.nom_dossier_genere or self.nom_dossier
 
 
 class Demande(models.Model):

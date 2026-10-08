@@ -2,6 +2,8 @@ import logging
 
 from autorisations.models.models_instruction import (
     DemarcheDateActiviteChamp,
+    DemarcheNomDossierRegle,
+    DemarcheNomDossierElement,
     Dossier,
     DossierManifestationLiaison,
 )
@@ -16,6 +18,10 @@ from .sync_dossier_document import sync_dossier_document
 from .sync_messages import sync_messages
 from .sync_demandes import sync_demandes
 from django.db import transaction
+from django.db.models import Prefetch
+from synchronisation.utils.nom_dossier import (
+    compiler_regles_nommage, construire_contexte_nommage, generer_nom_dossier,
+)
 
 
 def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notifs={}):
@@ -46,6 +52,26 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
         .order_by("ordre", "id")
         .select_related("id_champ")
     )
+    regles_nommage = compiler_regles_nommage(
+        DemarcheNomDossierRegle.objects.filter(id_demarche__numero=demarche_number)
+        .prefetch_related(Prefetch(
+            "elements", queryset=DemarcheNomDossierElement.objects.select_related("id_champ"),
+        ))
+    )
+    champs_dm_nommage = {
+        element["champ_dm"] for regle in regles_nommage for element in regle["elements"]
+        if element["type"] == "champ_dm"
+    }
+    valeurs_dm_par_numero_dn = {}
+    if champs_dm_nommage and dossiers_list:
+        champs_values = [f"id_dossier_manif__{champ}" for champ in champs_dm_nommage]
+        for liaison in DossierManifestationLiaison.objects.filter(
+            id_dossier__numero__in=[doss["dossier"]["numero"] for doss in dossiers_list],
+        ).values("id_dossier__numero", *champs_values):
+            valeurs_dm_par_numero_dn[liaison["id_dossier__numero"]] = {
+                champ: liaison.get(f"id_dossier_manif__{champ}")
+                for champ in champs_dm_nommage
+            }
 
     # On repère les dossiers supprimés sur Démarche Numérique
     ids_ds_recus = set(doss['dossier']['id_ds'] for doss in dossiers_list)
@@ -94,7 +120,13 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
 
 
     for doss in dossiers_list:
-
+        contexte_nom = construire_contexte_nommage(
+            doss["dossier"], doss["contacts_externes"], doss["dossier_champs"],
+            dossier_dm=valeurs_dm_par_numero_dn.get(doss["dossier"]["numero"]),
+        )
+        doss["dossier"]["nom_dossier_genere"] = generer_nom_dossier(
+            regles_nommage, contexte_nom,
+        )["nom_genere"]
         id_dossier = sync_doss(doss['dossier'], dico_notifs, doss['dossier_champs'])
         ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
 
@@ -103,7 +135,14 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
         sync_dossier_beneficiaire(ids_beneficiaire_intermediaire, id_dossier_interlocuteur)
 
         try :
-            sync_dossier_champs(doss['dossier_champs'], id_dossier, date_activite_champs=date_activite_champs,)
+            resultat_champs = sync_dossier_champs(doss['dossier_champs'], id_dossier, date_activite_champs=date_activite_champs,)
+            if resultat_champs and not resultat_champs["success"]:
+                logger.warning(
+                    "[DOSSIER %s PARTIELLEMENT SYNCHRONISÉ] %s PJ non récupérée(s) : %s. "
+                    "Poursuite de la synchronisation des documents, messages et demandes.",
+                    doss['dossier']['numero'], len(resultat_champs["pj_en_erreur"]),
+                    "; ".join(f"{pj['champ']} : {pj['titre']}" for pj in resultat_champs["pj_en_erreur"]),
+                )
         except Exception as e:
             logger.error(f"ERROR dans sync_dossier_champs : {e}")
 

@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Back Office — AGiDA</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=25">
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=35">
+    <script src="{% static 'instruction/js/back_office_nommage.js' %}?v=8" defer></script>
 </head>
 <body>
     <div class="back-office-layout">
@@ -49,7 +50,10 @@
                 </button>
             </nav>
 
-            <a href="{% url 'accueil_view' %}" class="back-office-return">← Retour à l’application</a>
+            <a href="{% url 'accueil_view' %}" class="back-office-return">
+                <span aria-hidden="true">←</span>
+                <span>Retour à l’application</span>
+            </a>
         </aside>
 
         <main class="back-office-content">
@@ -281,16 +285,25 @@
                                 </div>
                             </details>
 
-                            <details class="back-office-config-block back-office-future-block back-office-config-block--future">
+                            <details class="back-office-config-block back-office-nommage-block">
                                 <summary class="back-office-fields-heading">
                                     <div class="back-office-block-summary-copy">
-                                        <h2>Génération des noms de dossiers</h2>
-                                        <p>Préparez les règles qui composeront automatiquement le nom des dossiers.</p>
+                                        <h2 class="bo-nommage-title">
+                                            Génération des noms de dossiers
+                                            <span class="bo-nommage-info" tabindex="0" aria-label="Fonctionnement des règles de nommage" aria-describedby="nommage-info-{{ demarche.id }}">
+                                                <span class="bo-nommage-info-icon" aria-hidden="true">i</span>
+                                                <span class="bo-nommage-info-bulle" id="nommage-info-{{ demarche.id }}" role="tooltip">
+                                                    Les règles sont essayées dans l’ordre. Une variable vide fait passer à la règle suivante.
+                                                    Après enregistrement, les règles s’appliquent aux prochaines synchronisations.
+                                                    Sans règle fonctionnelle, le nom standard est conservé.
+                                                </span>
+                                            </span>
+                                        </h2>
+                                        <p>Composez des noms parlants avec les champs du formulaire et/ou les variables existantes en BDD.</p>
                                     </div>
-                                    <span>À configurer</span>
                                     <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
                                 </summary>
-                                <p>Les règles de nommage propres à cette démarche seront configurées ici à partir des champs du formulaire.</p>
+                                {% include "instruction/refacto/back_office_nommage.html" %}
                             </details>
 
 

@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
 from instruction.views import dossiers_lies
+from instruction.views import nom_dossier
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -23,6 +24,10 @@ urlpatterns = [
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
     path("back-office/", views.back_office, name="back_office"),
+    path("back-office/demarche/<int:demarche_id>/noms/", nom_dossier.enregistrer_regles_nom_dossier, name="back_office_enregistrer_noms"),
+    path("back-office/demarche/<int:demarche_id>/noms/apercu/", nom_dossier.previsualiser_nom_dossier, name="back_office_apercu_nom"),
+    path("back-office/demarche/<int:demarche_id>/noms/recalculer/", nom_dossier.recalculer_noms_dossiers, name="back_office_recalculer_noms"),
+    path("back-office/demarche/<int:demarche_id>/noms/numeros/", nom_dossier.autocomplete_numeros_dossiers, name="back_office_autocomplete_numeros_noms"),
     path("back-office/demarche/<int:demarche_id>/date-activite/", views.back_office_enregistrer_date_activite, name="back_office_enregistrer_date_activite"),
     path("back-office/demarche/<int:demarche_id>/personnalisation-tableau/", views.back_office_enregistrer_personnalisation_tableau, name="back_office_enregistrer_personnalisation_tableau"),
     path("back-office/services-status/", views.back_office_services_status, name="back_office_services_status"),

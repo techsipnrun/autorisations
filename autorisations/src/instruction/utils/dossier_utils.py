@@ -346,6 +346,9 @@ def build_champs_prepares(dossier):
     """
     nb_cartes = 0
     champs_prepares = []
+    date_depot = getattr(dossier, "date_depot", None)
+    if date_depot and timezone.is_naive(date_depot):
+        date_depot = timezone.make_aware(date_depot)
 
     for champ in dossier.dossierchamp_set.select_related("id_champ__id_champ_type").order_by("ordre"):
 
@@ -429,6 +432,18 @@ def build_champs_prepares(dossier):
                     and Dossier.objects.filter(numero=numero_precedent).exists()
                 )
             champs_prepares.append(champ_prepare)
+
+        champ_prepare = champs_prepares[-1]
+        date_saisie = getattr(champ, "date_saisie", None)
+        if date_saisie and timezone.is_naive(date_saisie):
+            date_saisie = timezone.make_aware(date_saisie)
+        # updatedAt DN indique la dernière saisie, pas sa nature (ajout/modification).
+        # Les titres et explications du formulaire ne sont pas des réponses.
+        champ_prepare["date_saisie"] = date_saisie
+        champ_prepare["modifie_apres_depot"] = bool(
+            champ_prepare["type"] not in {"header", "carte"}
+            and date_depot and date_saisie and date_saisie > date_depot
+        )
 
     return champs_prepares, nb_cartes
 
@@ -895,11 +910,16 @@ LOGO_MAPPING = {
     "Envoyeur.se d'acte changé.e": "changer_envoyeur.png",
     "Publieur.se RAA changé.e": "changer_publieurRAA.png",
     "Dossier supprimé de Démarche Numérique": "dossier_supprime_de_DN.png",
+    "Formulaire modifié": "formulaire_modifie.png",
 }
 
 
 def build_timeline_for_dossier(dossier):
-    actions = DossierAction.objects.filter(id_dossier=dossier).order_by('-date', '-id')
+    actions = list(
+        DossierAction.objects.filter(id_dossier=dossier)
+        .select_related("id_action", "id_instructeur__id_agent_autorisations")
+        .order_by('-date', '-id')
+    )
 
     for a in actions:
         a.logo = LOGO_MAPPING.get(a.id_action.action, "timeline.png")

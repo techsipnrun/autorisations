@@ -170,6 +170,7 @@ def filtrer_dossiers_par_mots_cles(dossiers, dossiers_dm, recherche):
         recherche_dn = (
             Q(nom_dossier__icontains=mot) |
             Q(nom_dossier_plus_parlant__icontains=mot) |
+            Q(nom_dossier_genere__icontains=mot) |
             Q(dossierchamp__valeur__icontains=mot) |
             Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom__icontains=mot) |
             Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom__icontains=mot) |
@@ -370,7 +371,7 @@ def _export_avis_xlsx(avis_iterable):
             demarche = dossier.id_demarche.type or ""
 
         dossiers_lies = ", ".join(
-            liaison.id_dossier.nom_dossier
+            liaison.id_dossier.nom_affiche
             for liaison in a.dossieravis_set.all()
             if liaison.id_dossier and liaison.id_dossier.nom_dossier
         )
@@ -697,7 +698,7 @@ def requete_dossiers(request):
             "source": source,
             "obj": d,
             "numero": d.numero,
-            "nom_dossier": getattr(d, "nom_dossier_plus_parlant", None) or d.nom_dossier,
+            "nom_dossier": d.nom_affiche,
             "demarche": d.id_demarche.type if d.id_demarche else "",
             "etape": d.id_etape_dossier.etape if d.id_etape_dossier else "",
             "date_depot": d.date_depot,

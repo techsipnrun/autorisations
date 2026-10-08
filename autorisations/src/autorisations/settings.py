@@ -25,7 +25,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    'autorisations.admin_config.SchemaGroupedAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -60,7 +60,14 @@ ROOT_URLCONF = 'autorisations.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'instruction/templates/instruction'), os.path.join(BASE_DIR, 'authent/templates/authent'), os.path.join(BASE_DIR, 'autorisations/templates/autorisations'),],
+        'DIRS': [
+            # Doit précéder django.contrib.admin afin de surcharger uniquement
+            # ses templates de navigation, notamment admin/app_list.html.
+            os.path.join(BASE_DIR, 'autorisations/templates'),
+            os.path.join(BASE_DIR, 'instruction/templates/instruction'),
+            os.path.join(BASE_DIR, 'authent/templates/authent'),
+            os.path.join(BASE_DIR, 'autorisations/templates/autorisations'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
