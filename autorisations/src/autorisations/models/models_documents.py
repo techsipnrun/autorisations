@@ -3,6 +3,7 @@ from django.db.models import Max
 from datetime import date
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.core.validators import RegexValidator
 
 from .models_utilisateurs import DossierRelecteur
 
@@ -24,6 +25,20 @@ class DocumentFormat(models.Model):
 class DocumentNature(models.Model):
     id = models.AutoField(primary_key=True)
     nature = models.CharField(unique=True)
+    prefixe_numero = models.CharField(
+        max_length=50, blank=True, default="",
+        verbose_name="Préfixe du numéro",
+        help_text="Préfixe affiché dans l’application, séparateur inclus (ex. DIR-I- ou CA/).",
+    )
+    prefixe_nom_fichier = models.CharField(
+        max_length=50, blank=True, default="",
+        verbose_name="Préfixe du nom de fichier",
+        help_text="Préfixe des nouveaux fichiers signés, séparateur inclus (ex. DELIB-CA-).",
+        validators=[RegexValidator(
+            regex=r'[\\/:*?"<>|\x00-\x1f]', inverse_match=True,
+            message="Le préfixe ne doit pas contenir de caractère interdit dans un nom de fichier.",
+        )],
+    )
 
     class Meta:
         managed = False
@@ -31,6 +46,17 @@ class DocumentNature(models.Model):
 
     def __str__(self):
         return self.nature
+
+    def formater_numero(self, numero):
+        if not numero:
+            return ""
+        prefixe = self.prefixe_numero or ""
+        return numero if numero.startswith(prefixe) else f"{prefixe}{numero}"
+
+    def formater_nom_acte(self, numero, suffixe_date):
+        # Contrôle aussi les configurations saisies directement en SQL.
+        self._meta.get_field("prefixe_nom_fichier").clean(self.prefixe_nom_fichier, self)
+        return f"{self.prefixe_nom_fichier}{numero}_{suffixe_date}"
     
 class DocumentStatut(models.Model):
     id = models.AutoField(primary_key=True)
@@ -58,6 +84,10 @@ class Document(models.Model):
     publie_au_raa = models.BooleanField(default=False)
     date = models.DateTimeField(default=timezone.now)
     pj_dm_id = models.IntegerField(unique=True, blank=True, null=True)
+
+    @property
+    def numero_affiche(self):
+        return self.id_nature.formater_numero(self.numero)
 
     class Meta:
         managed = False

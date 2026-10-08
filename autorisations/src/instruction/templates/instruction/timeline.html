@@ -11,7 +11,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/timeline.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/timeline.css' %}?v=2">
 </head>
 
 <body>
@@ -31,7 +31,7 @@
             
             {% for action in dossier_actions %}
 
-                <div class="timeline-item">
+                <div class="timeline-item{% if action.id_action.action == "Numéro d'acte changé" %} timeline-item-numero-acte{% endif %}">
 
                     <img src="{% static 'instruction/img/timeline/' %}{{ action.logo }}"
                     class="action-logo"
@@ -43,23 +43,14 @@
                         
                         <div class="timeline-action">
                             <!-- Action -->
-                            {{ action.id_action.action }} 
+                            {{ action.id_action.action }}
                             <br>
 
-                            <!-- Description = (NOM PRÉNOM)-->
-                            <!-- {% if action.description %}
-
-                                <span class=" {% if action.description|length > 30 %} very-small-text-desc
-                                              {% elif action.description|length > 20 %} small-text-desc
-                                              {% endif %}">
-
-                                    {{ action.description }}
-
-                                </span>
-                            {% endif %} -->
                         </div>
                         
-                        {% if action.id_action.action == "Formulaire modifié" %}
+                        {% if action.id_action.action == "Numéro d'acte changé" %}
+                            <div class="timeline-details">{{ action.description_timeline|default:action.description }}</div>
+                        {% elif action.id_action.action == "Formulaire modifié" %}
                             <div class="timeline-user {% if action.description|length > 25 %}small-text-user{% endif %}">
                                 {{ action.description|default:"Champ(s) concerné(s)" }}
                             </div>

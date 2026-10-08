@@ -254,7 +254,11 @@ class DocumentAdmin(admin.ModelAdmin):
 
 admin.site.register(DocumentFormat)
 
-admin.site.register(DocumentNature)
+@admin.register(DocumentNature)
+class DocumentNatureAdmin(admin.ModelAdmin):
+    list_display = ("id", "nature", "prefixe_numero", "prefixe_nom_fichier")
+    search_fields = ("nature", "prefixe_numero", "prefixe_nom_fichier")
+    ordering = ("nature",)
 
 admin.site.register(DocumentStatut)
 

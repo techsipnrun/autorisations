@@ -13,12 +13,7 @@
 
             {% if show_numero and doc.numero %}
                 <span class="badge-numero-acte">
-                    {% if doc.id_nature.nature == "Déliberation CA" %}
-                        CA/
-                    {% elif doc.id_nature.nature == "Arrêté directeur" %}
-                        DIR-I-
-                    {% endif %}
-                    {{ doc.numero }}
+                    {{ doc.numero_affiche }}
                 </span>
             {% endif %}
 

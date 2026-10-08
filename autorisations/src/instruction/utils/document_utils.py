@@ -3,6 +3,9 @@ import os
 import smbclient
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from autorisations.models.models_instruction import Action, DossierAction
+from autorisations.models.models_utilisateurs import Instructeur
 from autorisations.models.models_documents import (
     Document,
     DossierDocument,
@@ -11,6 +14,13 @@ from autorisations.models.models_documents import (
 
 NATURES_VALIDES = ['Déliberation CA', 'Arrêté directeur', 'Avis simple', 'Avis conforme']
 NATURES_VALIDES_AVEC_RAPPORT = NATURES_VALIDES + ["Projet Rapport CA"]
+ACTION_CHANGEMENT_NUMERO_ACTE = "Numéro d'acte changé"
+_NUMERO_ACTUEL = object()
+
+
+def formater_numero_acte(numero, nature):
+    """Affichage utilisé pour les projets d'acte et leur historique."""
+    return nature.formater_numero(numero) if nature else (numero or "")
 
 
 def get_projets_work_manquants(dossier):
@@ -58,15 +68,63 @@ def get_projet_acte_source(document_id, dossier_courant, nature=None):
     return liaison.id_document
 
 
-def reprendre_numero_projet_acte(document, source, dossier, utilisateur):
+def reprendre_numero_projet_acte(
+    document, source, dossier, utilisateur, *, ancien_numero=_NUMERO_ACTUEL,
+):
+    """Reprend un numéro et conserve sa provenance dans la timeline du dossier."""
     if document.id_nature_id != source.id_nature_id:
         raise ValidationError(
             "Les deux projets doivent avoir le même type d’acte."
         )
 
-    ancien_numero = document.numero
-    document.numero = source.numero
-    document.save(update_fields=["numero"])
+    if not source.numero:
+        raise ValidationError("Le projet d’acte source ne possède pas de numéro.")
+
+    # La modification du numéro et sa trace doivent réussir ensemble.
+    with transaction.atomic():
+        document_actuel = Document.objects.select_for_update().get(pk=document.pk)
+        if ancien_numero is _NUMERO_ACTUEL:
+            ancien_numero = document_actuel.numero
+
+        if ancien_numero != source.numero:
+            instructeur = Instructeur.objects.filter(
+                email__iexact=(utilisateur.email or "").strip(),
+            ).first()
+            if not instructeur:
+                raise ValidationError("Le profil instructeur est introuvable.")
+            action = Action.objects.filter(action=ACTION_CHANGEMENT_NUMERO_ACTE).first()
+            if not action:
+                raise ValidationError(
+                    f"L’action « {ACTION_CHANGEMENT_NUMERO_ACTE} » est absente des références. "
+                    "Contactez le support.",
+                )
+            numero_source = (
+                DossierDocument.objects.filter(id_document=source)
+                .exclude(id_dossier=dossier).order_by("id")
+                .values_list("id_dossier__numero", flat=True).first()
+            )
+            if numero_source is None:
+                raise ValidationError("Le dossier source du numéro est introuvable.")
+
+        document.numero = source.numero
+        if document_actuel.numero != source.numero:
+            document.save(update_fields=["numero"])
+
+        if ancien_numero != source.numero:
+            changement = (
+                f"{ancien_numero} → {source.numero}"
+                if ancien_numero else f"Numéro attribué : {source.numero}"
+            )
+            DossierAction.objects.create(
+                id_dossier=dossier,
+                id_instructeur=instructeur,
+                id_action=action,
+                description=(
+                    f"{document.id_nature.nature} : {changement}\n"
+                    f"Numéro repris depuis le dossier n° {numero_source}\n"
+                    f"Numéro d’acte affiché : {formater_numero_acte(source.numero, document.id_nature)}"
+                ),
+            )
     return ancien_numero
 
 

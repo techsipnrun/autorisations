@@ -1536,119 +1536,153 @@
     "model": "autorisations.documentnature",
     "pk": 1,
     "fields": {
-      "nature": "Pièce jointe demandeur"
+      "nature": "Pièce jointe demandeur",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 2,
     "fields": {
-      "nature": "Capture mail"
+      "nature": "Capture mail",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 3,
     "fields": {
-      "nature": "Arrêté directeur"
+      "nature": "Arrêté directeur",
+      "prefixe_numero": "DIR-I-",
+      "prefixe_nom_fichier": "DIR-I-"
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 4,
     "fields": {
-      "nature": "Déliberation CA"
+      "nature": "Déliberation CA",
+      "prefixe_numero": "CA/",
+      "prefixe_nom_fichier": "DELIB-CA-"
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 5,
     "fields": {
-      "nature": "Avis simple"
+      "nature": "Avis simple",
+      "prefixe_numero": "AVIS-SIMPLE-",
+      "prefixe_nom_fichier": "AVIS-SIMPLE-"
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 6,
     "fields": {
-      "nature": "Avis conforme"
+      "nature": "Avis conforme",
+      "prefixe_numero": "AVIS-CONFORME-",
+      "prefixe_nom_fichier": "AVIS-CONFORME-"
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 7,
     "fields": {
-      "nature": "Avis instance"
+      "nature": "Avis instance",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 8,
     "fields": {
-      "nature": "CERFA"
+      "nature": "CERFA",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 9,
     "fields": {
-      "nature": "Formulaire parc"
+      "nature": "Formulaire parc",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 10,
     "fields": {
-      "nature": "Résumé dossier"
+      "nature": "Résumé dossier",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 11,
     "fields": {
-      "nature": "Pièce jointe message"
+      "nature": "Pièce jointe message",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 12,
     "fields": {
-      "nature": "Annexe instructeur"
+      "nature": "Annexe instructeur",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 13,
     "fields": {
-      "nature": "Pièce jointe à relire"
+      "nature": "Pièce jointe à relire",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 14,
     "fields": {
-      "nature": "Annexe avis"
+      "nature": "Annexe avis",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 15,
     "fields": {
-      "nature": "Rapport CA"
+      "nature": "Rapport CA",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 16,
     "fields": {
-      "nature": "Projet Rapport CA"
+      "nature": "Projet Rapport CA",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {
     "model": "autorisations.documentnature",
     "pk": 17,
     "fields": {
-      "nature": "Annexe instructeur DM"
+      "nature": "Annexe instructeur DM",
+      "prefixe_numero": "",
+      "prefixe_nom_fichier": ""
     }
   },
   {

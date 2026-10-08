@@ -13,6 +13,8 @@ from django.contrib import messages
 from autorisations.models.models_utilisateurs import DossierBeneficiaire, DossierInterlocuteur, Instructeur
 from instruction.utils_instru import changer_etape_si_differente, changer_etat_si_different, enregistrer_action
 from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
+from instruction.utils.document_utils import formater_numero_acte
+from autorisations.models.models_documents import DocumentNature
 from django.db.models import Q
 
 
@@ -890,6 +892,7 @@ LOGO_MAPPING = {
     "Avis demandé": "acte-envoye.png",
     "Acte signé": "acte-signe.png",
     "Modification de l'acte": "acte-signe.png",
+    "Numéro d'acte changé": "changement_num_acte.png",
     "Acte envoyé": "acte-envoye.png",
     "Validé avant demande d'avis": "valide.png",
     "Publié au RAA": "publie_au_raa.png",
@@ -914,6 +917,26 @@ LOGO_MAPPING = {
 }
 
 
+def _resume_changement_numero_acte(description, natures=None):
+    """Raccourcit l'affichage sans altérer les détails conservés en BDD."""
+    lignes = (description or "").splitlines()
+    if len(lignes) < 2:
+        return description
+    premiere_ligne, provenance = lignes[:2]
+    prefixe = "Numéro repris depuis le dossier n° "
+    if not provenance.startswith(prefixe):
+        return description
+    numero = premiere_ligne.rsplit(":", 1)[-1].rsplit("→", 1)[-1].strip()
+    snapshot = next((ligne.removeprefix("Numéro d’acte affiché : ")
+                     for ligne in lignes[2:] if ligne.startswith("Numéro d’acte affiché : ")), None)
+    if snapshot is not None:
+        numero = snapshot
+    else:
+        nature = (natures or {}).get(premiere_ligne.partition(" : ")[0])
+        numero = formater_numero_acte(numero, nature)
+    return f"Repris du dossier n° {provenance[len(prefixe):].strip()}: {numero}"
+
+
 def build_timeline_for_dossier(dossier):
     actions = list(
         DossierAction.objects.filter(id_dossier=dossier)
@@ -921,8 +944,21 @@ def build_timeline_for_dossier(dossier):
         .order_by('-date', '-id')
     )
 
+    # Une seule requête pour les anciennes traces sans préfixe mémorisé.
+    natures_anciennes = {
+        a.description.partition(" : ")[0] for a in actions
+        if a.id_action.action == "Numéro d'acte changé" and a.description
+        and "\nNuméro d’acte affiché : " not in a.description
+    }
+    natures = (
+        DocumentNature.objects.filter(nature__in=natures_anciennes).in_bulk(field_name="nature")
+        if natures_anciennes else {}
+    )
+
     for a in actions:
         a.logo = LOGO_MAPPING.get(a.id_action.action, "timeline.png")
+        if a.id_action.action == "Numéro d'acte changé":
+            a.description_timeline = _resume_changement_numero_acte(a.description, natures)
 
     return actions
 

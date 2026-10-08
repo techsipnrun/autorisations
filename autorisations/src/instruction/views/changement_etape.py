@@ -218,10 +218,12 @@ def _source_numero_partagee(request, dossier, nature):
     return get_projet_acte_source(source_id, dossier, nature=nature)
 
 
-def _appliquer_numero_partage(request, dossier, document, nature):
+def _appliquer_numero_partage(request, dossier, document, nature, *, ancien_numero):
     source = _source_numero_partagee(request, dossier, nature)
     if source:
-        reprendre_numero_projet_acte(document, source, dossier, request.user)
+        reprendre_numero_projet_acte(
+            document, source, dossier, request.user, ancien_numero=ancien_numero,
+        )
 
 
 @require_POST
@@ -245,6 +247,8 @@ def remplacer_numero_projet_acte(request):
         id=request.POST.get("document_id"),
     )
     if dossier.id_etape_dossier.etape not in {
+        "Avis à envoyer",
+        "En attente réponse d'avis",
         "À valider avant signature",
         "En relecture qualité",
         "En attente de signature",
@@ -290,6 +294,12 @@ def remplacer_numero_projet_acte(request):
         )
     except ValidationError as exc:
         return redirect_error(request, f"❌ {exc.message}")
+    except Exception:
+        logger.exception("[DOSSIER %s] Échec du remplacement du numéro d’acte.", dossier.numero)
+        return redirect_error(
+            request,
+            "Le numéro n’a pas pu être remplacé et historisé. Contactez le support.",
+        )
 
     logger.info(
         f"[DOSSIER {dossier.numero}] Numéro du projet d'acte {document.id} "
@@ -1110,27 +1120,30 @@ def faire_valider_une_demande_d_avis(request):
     # ==============================
     try:
         
-        # Enregistrer en BDD
-        doc, created = Document.objects.get_or_create(
-                            emplacement=dossier_path, titre=nom_fichier,
-                            defaults={
-                                "id_format": format_obj,
-                                "id_nature": nature_obj,
-                                "id_statut": statut_obj,
-                                "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                            })
-        if created:
-            DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-            logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {nom_fichier} créé en base par {request.user}.")
-        else:
-            doc.id_statut = statut_obj
-            doc.id_nature = nature_obj
-            doc.id_format = format_obj
-            doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
-            doc.numero = None
-            doc.save()
-            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
-        _appliquer_numero_partage(request, dossier, doc, nature)
+        with transaction.atomic():
+            doc, created = Document.objects.get_or_create(
+                emplacement=dossier_path, titre=nom_fichier,
+                defaults={
+                    "id_format": format_obj,
+                    "id_nature": nature_obj,
+                    "id_statut": statut_obj,
+                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                },
+            )
+            # Ne pas historiser le numéro intermédiaire généré par doc.save().
+            ancien_numero = None if created else doc.numero
+            if created:
+                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {nom_fichier} créé en base par {request.user}.")
+            else:
+                doc.id_statut = statut_obj
+                doc.id_nature = nature_obj
+                doc.id_format = format_obj
+                doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
+                doc.numero = None
+                doc.save()
+                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+            _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
 
     except ValidationError as e:
         return redirect_error(request, f"❌ {e.message}")
@@ -1296,29 +1309,28 @@ def faire_valider_le_projet_d_acte(request):
     ##############################
     try:
 
-        # Enregistrer en BDD
-        doc, created = Document.objects.get_or_create(
-                        emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
-                        defaults={
-                            "id_format": format_obj,
-                            "id_nature": nature_obj,
-                            "id_statut": statut_obj,
-                            "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                        }
-                    )
-
-        if created:
-            DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
-            
-        else:
-            doc.id_statut = statut_obj
-            doc.id_nature = nature_obj
-            # Force un nouveau numéro
-            doc.numero = None
-            doc.save()
-            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
-        _appliquer_numero_partage(request, dossier, doc, nature)
+        with transaction.atomic():
+            doc, created = Document.objects.get_or_create(
+                emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
+                defaults={
+                    "id_format": format_obj,
+                    "id_nature": nature_obj,
+                    "id_statut": statut_obj,
+                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                },
+            )
+            ancien_numero = None if created else doc.numero
+            if created:
+                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
+            else:
+                doc.id_statut = statut_obj
+                doc.id_nature = nature_obj
+                # Force un nouveau numéro
+                doc.numero = None
+                doc.save()
+                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+            _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
     except ValidationError as e:
         return redirect_error(request, f"❌ {e.message}")
     except Exception as e:
@@ -2035,29 +2047,28 @@ def acte_pret_a_la_signature(request):
         # if not ecrire_file_sur_nas(fichier, filepath): 
         #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
         
-        # Enregistrer en BDD
-        doc, created = Document.objects.get_or_create(
-                        emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
-                        defaults={
-                            "id_format": format_obj,
-                            "id_nature": nature_obj,
-                            "id_statut": statut_a_signer,
-                            "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                        }
-                    )
-
-        if created:
-            DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-            logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
-            
-        else:
-            doc.id_statut = statut_a_signer
-            doc.id_nature = nature_obj
-            doc.id_format = format_obj
-            doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
-            doc.save()
-            logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
-        _appliquer_numero_partage(request, dossier, doc, nature)
+        with transaction.atomic():
+            doc, created = Document.objects.get_or_create(
+                emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
+                defaults={
+                    "id_format": format_obj,
+                    "id_nature": nature_obj,
+                    "id_statut": statut_a_signer,
+                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                },
+            )
+            ancien_numero = None if created else doc.numero
+            if created:
+                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
+            else:
+                doc.id_statut = statut_a_signer
+                doc.id_nature = nature_obj
+                doc.id_format = format_obj
+                doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
+                doc.save()
+                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+            _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
     except ValidationError as e:
         return redirect_error(request, f"❌ {e.message}")
     except Exception as e:
@@ -2435,27 +2446,20 @@ def acte_pret_a_etre_envoye(request):
     #   Écriture Acte signé dans /Actes
     # =================================
 
-    """
-    Ici on est dans acte_pret_a_etre_envoye : manifestement c'est là que les actes signés (pdf) et rapport CA (pdf) sont écrit dans /Actes
-    Regarder ce qui se passe dans : envoyer_l_acte, envoyer_l_acte_de_refus --> J'ai l'impression qu'on Copie des trucs dans /Actes aussi ???
-    
-    """
 
     # === 1. On génère le nom (ex : DIR-I-2026-031_05-03-26) ===
-    if nature_document == "Déliberation CA" :
-        prefixe = "DELIB-CA"
-    elif nature_document == "Arrêté directeur" :
-        prefixe = "DIR-I"
-    elif nature_document == "Avis conforme" :
-        prefixe = "AVIS-CONFORME"
-    elif nature_document == "Avis simple" :
-        prefixe = "AVIS-SIMPLE"
-    else : 
+    if nature_document not in NATURES_VALIDES:
         logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Nature {nature_document} n'est pas parmis : Déliberation CA, Arrêté directeur, Avis conforme, Avis simple.")
         return redirect_error(request, f"❌ Nature de document '{nature_document}' non reconnue. Contactez le support.")
     
     date_du_jour = datetime.today().strftime("%d-%m")
-    nom_acte_genere = f"{prefixe}-{projet_acte.numero}_{date_du_jour}"
+    try:
+        nom_acte_genere = doc_nature.formater_nom_acte(projet_acte.numero, date_du_jour)
+    except ValidationError:
+        return redirect_error(
+            request,
+            "Le préfixe du nom de fichier est invalide. Corrigez la nature du document dans l’administration.",
+        )
 
 
     # === 2. On s'assure qu'on a un nom unique ===

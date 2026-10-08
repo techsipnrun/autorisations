@@ -18,19 +18,9 @@
 
 .faded {
     position: relative;
-}
-
-.faded::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: white;
-    opacity: 0.8;
-    pointer-events: none;
-    z-index: 100;
+    /* Atténuer le groupe entier : aucun bouton ne peut échapper à l'effet
+       via son z-index, contrairement à un voile superposé. */
+    opacity: 0.2;
 }
 
 
@@ -181,5 +171,15 @@
 
 .small-text-user {
     font-size: 1.1rem;
+}
+
+.timeline-item-numero-acte {
+    height: auto;
+    min-height: 5rem;
+}
+
+.timeline-details {
+    margin: 0.4rem 0;
+    overflow-wrap: anywhere;
 }
 

@@ -17,7 +17,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=23">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
@@ -951,7 +951,7 @@
                                 <!-- <strong>{{ doc_a_envoyer.0.id_nature.nature }}</strong>
                                 {% if doc_a_envoyer.0.numero %}
                                     <strong>
-                                        {% if doc_a_envoyer.0.id_nature.nature == "Déliberation CA" %}CA/{% elif doc_a_envoyer.0.id_nature.nature == "Arrêté directeur" %}DIR-I-{% endif %}{{ doc_a_envoyer.0.numero }}
+                                        {{ doc_a_envoyer.0.numero_affiche }}
                                     </strong>
                                 {% endif %} -->
                                 <strong>L'acte signé :</strong>
