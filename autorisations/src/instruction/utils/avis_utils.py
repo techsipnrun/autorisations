@@ -2,13 +2,14 @@
 import logging
 import os
 from pathlib import Path
-from autorisations.models.models_instruction import DossierChamp, Message
+from autorisations.models.models_instruction import Dossier, DossierChamp, Message
 from autorisations.models.models_avis import AvisDocument, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
 from autorisations.models.models_documents import MessageDocument
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils_instru import enregistrer_document
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
+from instruction.utils.dossier_utils import get_chemin_complet_dossier
 
 
 logger = logging.getLogger("ORM_DJANGO")
@@ -17,6 +18,30 @@ GROUPES_PUBLICATION_RAA_CS = (
     "Publication RAA CS",
     "Publication RAA Avis CS",
 )
+
+
+def get_dossiers_lies_affiches_avis(dossiers):
+    """Complète uniquement le bloc de navigation, sans rattacher de dossiers à l'avis."""
+    dossiers_par_id = {dossier.pk: dossier for dossier in dossiers}
+    ensembles_ids = {
+        dossier.id_ensemble_dossiers_id for dossier in dossiers_par_id.values()
+        if dossier.id_ensemble_dossiers_id is not None
+    }
+    if ensembles_ids:
+        membres = (
+            Dossier.objects.filter(id_ensemble_dossiers_id__in=ensembles_ids)
+            .exclude(pk__in=tuple(dossiers_par_id))
+            .select_related("id_demarche")
+            .only("id", "numero", "emplacement", "id_demarche__type")
+            .order_by("numero", "pk")
+        )
+        for dossier in membres:
+            dossiers_par_id[dossier.pk] = dossier
+
+    for dossier in dossiers_par_id.values():
+        dossier.chemin_complet = get_chemin_complet_dossier(dossier)
+    return list(dossiers_par_id.values())
+
 
 def get_pieces_jointes_demandeur(dossiers):
     """Retourne, sans doublon, les PJ de formulaire et de messagerie des dossiers."""

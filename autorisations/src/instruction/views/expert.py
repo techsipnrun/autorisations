@@ -22,6 +22,7 @@ from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
 from instruction.utils.avis_utils import (
     avis_est_conseil_scientifique,
     get_documents_zip_avis,
+    get_dossiers_lies_affiches_avis,
     get_email_expert,
     get_expert_from_user,
     get_pieces_jointes_demandeur,
@@ -278,7 +279,7 @@ def avis_expert(request, avis_id):
     # Tous les dossiers liés à cet avis
     dossiers_lies = Dossier.objects.filter(
         dossieravis__id_avis=avis
-    ).distinct()
+    ).select_related("id_demarche").distinct()
 
     # Tous les instructeurs associés à ces dossiers
     instructeurs_dossiers = Instructeur.objects.filter(
@@ -441,6 +442,9 @@ def avis_expert(request, avis_id):
 
     pieces_jointes_demandeur = get_pieces_jointes_demandeur(dossiers_lies)
     documents_zip_avis = get_documents_zip_avis(avis, dossiers_lies)
+    dossiers_lies_affiches = get_dossiers_lies_affiches_avis(
+        dossiers_lies or ([avis.id_dossier] if avis.id_dossier_id else [])
+    )
 
     return render(request, 'instruction/avis_expert.html', {
         "NAS_ROOT": os.getenv('NAS_ROOT'),
@@ -459,6 +463,7 @@ def avis_expert(request, avis_id):
         "est_instructeur_du_dossier": est_instructeur_du_dossier,
         "est_un_instructeur": est_un_instructeur,
         "dossiers_lies": dossiers_lies,
+        "dossiers_lies_affiches": dossiers_lies_affiches,
         "expert_is_CS": expert_is_CS,
         "peut_modifier_destinataire": bool(
             request.user.is_superuser

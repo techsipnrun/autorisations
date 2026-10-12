@@ -31,6 +31,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_scientifique, expert_est_conseil_scientifique, get_documents_zip_avis, get_expert_label,get_email_expert,count_unread_messages_for_avis,get_demandeur_label, get_or_create_expert_from_form,get_pieces_jointes_demandeur,get_reponse_label,count_avis_with_unread_messages_for_dossier, thematiques_avis_liees_a_demarche, utilisateur_est_publicateur_raa_cs)
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 from instruction.views.errors import avis_introuvable
+from instruction.utils.avis_utils import get_dossiers_lies_affiches_avis
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
@@ -1549,6 +1550,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         "nb_messages_non_lus": nb_messages_non_lus,
         "resume_pdf_titre": resume_pdf_titre,
         "dossiers_lies": dossiers_lies,
+        "dossiers_lies_affiches": get_dossiers_lies_affiches_avis(dossiers_lies),
         "nb_avis_avec_nouveau_mess": nb_avis_avec_nouveau_mess,
         "est_demandeur": est_demandeur,
         "est_expert": est_expert,

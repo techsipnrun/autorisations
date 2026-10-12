@@ -260,7 +260,7 @@
 
             <div class="dossiers-lies-avis">
                 <h2>
-                    {% if dossiers_lies|length > 1 %}
+                    {% if dossiers_lies_affiches|length > 1 %}
                         Dossiers liés
                     {% else %}
                         Dossier lié
@@ -268,7 +268,7 @@
                 </h2>
 
                 <ul>
-                    {% for dossier_lie in dossiers_lies %}
+                    {% for dossier_lie in dossiers_lies_affiches %}
                         <li>
                             <a href="{% url 'instruction_dossier' dossier_lie.numero %}"
                                target="_blank"
