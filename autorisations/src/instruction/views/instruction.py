@@ -1173,12 +1173,7 @@ def rechercher_projets_acte(request, num_dossier):
             Q(id_dossier__date_fin_instruction__isnull=True)
             | Q(id_dossier__date_fin_instruction__gte=date_fin_instruction_minimale),
             id_document__numero__isnull=False,
-            id_document__id_nature__nature__in=[
-                "Arrêté directeur",
-                "Déliberation CA",
-                "Avis simple",
-                "Avis conforme",
-            ],
+            id_document__id_nature__est_acte=True,
             id_document__id_statut__statut__in=[
                 "À valider",
                 "À relire",
@@ -1200,7 +1195,7 @@ def rechercher_projets_acte(request, num_dossier):
             id_dossier__id_etape_dossier__etape=etape_dossier
         )
     if nature:
-        liaisons = liaisons.filter(id_document__id_nature__nature=nature)
+        liaisons = liaisons.filter(**({"id_document__id_nature_id": int(nature)} if nature.isdecimal() else {"id_document__id_nature__nature": nature}))
     demandeur_filtre = (
         ContactExterne.objects.filter(id=demandeur_id).first()
         if demandeur_id

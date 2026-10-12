@@ -44,7 +44,7 @@
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}?v=9"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
-    <script src="{% static 'instruction/js/projet_acte_identique.js' %}" defer></script>
+    <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=2" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
     <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
     <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
@@ -328,10 +328,10 @@
                                             {% elif label == "Acte inchangé, envoyer pour relecture qualité" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Acte inchangé, envoyer pour relecture qualité</button>
                                             
-                                            {% elif label == "Prêt à la signature" and delibCA %}
+                                            {% elif label == "Prêt à la signature" and signature_ca %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
 
-                                            {% elif label == "Prêt à la signature" and not delibCA %}
+                                            {% elif label == "Prêt à la signature" and not signature_ca %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionDirecteur()">Prêt à la signature</button>
 
                                             <!-- SPPN : Passe direct de 'Instruction' à 'Acte prêt à la signature' -->
@@ -699,10 +699,9 @@
                             <label>Nature de l'acte :</label>
                             <select name="nature_document" id="nature_validation" required>
                                 <option value="" disabled selected>Choisir une nature</option>
-                                <option value="Arrêté directeur">Arrêté directeur</option>
-                                <option value="Déliberation CA">Déliberation CA</option>
-                                <option value="Avis simple">Avis simple</option>
-                                <option value="Avis conforme">Avis conforme</option>
+                                {% for type_acte in types_actes %}
+                                <option value="{{ type_acte.pk }}" data-signature-ca="{{ type_acte.signature_ca|yesno:'true,false' }}" data-rapport-ca="{{ type_acte.rapport_ca_obligatoire|yesno:'true,false' }}">{{ type_acte.nature }}</option>
+                                {% endfor %}
                             </select>
                         </div>
 
@@ -789,7 +788,7 @@
                         const selectCA = document.getElementById("choix_intermediaire_ca-sppn");
 
                         function updateUI() {
-                            const isDelibCA = selectNature.value === "Déliberation CA";
+                            const isDelibCA = selectNature.selectedOptions[0]?.dataset.signatureCa === "true";
                             const hasNature = selectNature.value !== "";
 
                             // --- (A) Champs intermédiaire : affichage + required ---
@@ -824,7 +823,7 @@
                             // --- (B) PJ Rapport CA : ajout/suppression ---
                             const existing = document.getElementById("piece_jointe_rapport_ca_sppn");
 
-                            if (isDelibCA) {
+                            if (selectNature.selectedOptions[0]?.dataset.rapportCa === "true") {
                                 if (!existing) {
                                     const wrapper = document.createElement("div");
                                     wrapper.innerHTML = genererBlocRapportCA(
@@ -855,7 +854,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                         <input type="hidden" name="id_doc_a_signer" value="{{ doc_a_signer.0.id }}">
-                        {% if delibCA and projets_rapport_ca %}
+                        {% if rapport_ca_requis and projets_rapport_ca %}
                             <input type="hidden" name="id_projet_rapport_ca" value="{{ projets_rapport_ca.0.id }}">
                         {% endif %}
 
@@ -868,7 +867,7 @@
                         </div>
 
                         <div class="validant">
-                            <label>Signataire {% if delibCA %}au Parc{% endif %} :</label>
+                            <label>Signataire {% if signature_ca %}au Parc{% endif %} :</label>
                             <select name="choix-signataire" id="choix-signataire" required>
                                 <option value="" disabled selected>Choisir un.e signataire</option>
                                 <!-- Liste signataires -->
@@ -916,7 +915,7 @@
                                 <input type="file" name="piece_jointe" id="pj_signe" accept=".pdf" required>
                             </div>
                             
-                            {% if delibCA %}
+                            {% if rapport_ca_requis %}
                                 <div class="projet_acte_pj" id="joindre_pj_rapportCA">
                                     <label for="pj_validation">Joindre le rapport au CA (PDF) :</label>
                                     <input type="file" name="pj_rapport_CA" id="pj_rapport_CA" accept=".pdf" required>
@@ -1276,10 +1275,9 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                             <label>Nature de l'acte :</label>
                             <select name="nature_document" id="nature_validation_avant_signa" required>
                                 <option value="" disabled selected>Choisir une nature</option>
-                                <option value="Arrêté directeur">Arrêté directeur</option>
-                                <option value="Déliberation CA">Déliberation CA</option>
-                                <option value="Avis simple">Avis simple</option>
-                                <option value="Avis conforme">Avis conforme</option>
+                                {% for type_acte in types_actes %}
+                                <option value="{{ type_acte.pk }}" data-signature-ca="{{ type_acte.signature_ca|yesno:'true,false' }}" data-rapport-ca="{{ type_acte.rapport_ca_obligatoire|yesno:'true,false' }}">{{ type_acte.nature }}</option>
+                                {% endfor %}
                             </select>
                         </div>
 
@@ -1368,10 +1366,9 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                             <label>Nature de l'acte :</label>
                             <select name="nature_document" id="nature_acte_avant_dmd_avis" required>
                                 <option value="" disabled selected>Choisir une nature</option>
-                                <option value="Arrêté directeur">Arrêté directeur</option>
-                                <option value="Déliberation CA">Déliberation CA</option>
-                                <option value="Avis simple">Avis simple</option>
-                                <option value="Avis conforme">Avis conforme</option>
+                                {% for type_acte in types_actes %}
+                                <option value="{{ type_acte.pk }}" data-signature-ca="{{ type_acte.signature_ca|yesno:'true,false' }}" data-rapport-ca="{{ type_acte.rapport_ca_obligatoire|yesno:'true,false' }}">{{ type_acte.nature }}</option>
+                                {% endfor %}
                             </select>
                         </div>
 
@@ -1542,7 +1539,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                         {% include "instruction/refacto/document_copy_row.html" with doc=doc NAS_ROOT=NAS_ROOT show_share_number=True %}
                                         
                                         <!-- Délib CA : L'insertion du numéro se fait plus tard -->
-                                        {% if doc.numero and not delibCA %}
+                                        {% if doc.numero and not signature_ca %}
                                             <span class="rappel-numero-acte">
                                                 N'oubliez pas d'insérer le numéro dans le projet d'acte
                                             </span>
@@ -1565,7 +1562,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                     {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True show_copy_path=True show_share_number=True NAS_ROOT=NAS_ROOT %}
 
                                     <span class="rappel-numero-acte">
-                                        {% if delibCA %}
+                                        {% if signature_ca %}
                                             N'oubliez pas d'insérer le numéro dans le projet d'acte <br>
                                         {% endif %}
                                         Attention : seules les modifications effectuées sur le document présent dans le dossier /Work seront prises en compte.
@@ -1631,7 +1628,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 {% csrf_token %}
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in doc_envoye %}
-                                        {% if not doc.publie_au_raa %}
+                                        {% if not doc.publie_au_raa and doc.id_nature.publication_raa_requise %}
                                             {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
                                         {% endif %}
                                     {% endfor %}
@@ -1675,7 +1672,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% endif %}
 
                 <!-- Projet de rapport au CA -->
-                {% if delibCA and projets_rapport_ca %}
+                {% if rapport_ca_requis and projets_rapport_ca %}
                     {% if etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "En attente réponse d'avis" or etape_actuelle.etape == "Avis à envoyer" %}
                         <div class="validation-documents">
                             <h2>Projet de rapport au CA</h2>
@@ -1712,7 +1709,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 {% endif %}
                     
                 <!-- Rapport CA PDF -->
-                {% if delibCA and rapports_ca %}
+                {% if rapport_ca_requis and rapports_ca %}
                     {% if etape_actuelle.etape == "Acte à envoyer" and doc_a_envoyer %}
                         <div class="validation-documents">
                             <h2>Rapport CA</h2>
@@ -1732,7 +1729,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                     {% endif %}
                 {% endif %}
                 
-                {% if delibCA_envoye_ou_non and rapports_ca_envoyes %}
+                {% if rapport_ca_present and rapports_ca_envoyes %}
                     {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé" %}
                         <div class="validation-documents">
                             <h2>Rapport CA</h2>
@@ -2252,7 +2249,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
 
 
                 <!-- ############################# INTERMÉDIAIRE SIGNATURE CA ############################# -->
-                {% if dossier.id_etape_dossier.etape == 'En attente de signature' and delibCA %}
+                {% if dossier.id_etape_dossier.etape == 'En attente de signature' and signature_ca %}
                     <div class="groupe-instructeur-info">
                         <h3>Intermédiaire pour la signature</h3>
                         {% if messages_intermediaire_signature %}
@@ -2292,7 +2289,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
 
 
                 <!-- ############################# INTERMÉDIAIRE SIGNATURE DIRECTION ############################# -->
-                {% if dossier.id_etape_dossier.etape == 'En attente de signature' and not delibCA %}
+                {% if dossier.id_etape_dossier.etape == 'En attente de signature' and not signature_ca %}
                     <div class="groupe-instructeur-info">
                         <h3>Intermédiaire pour la signature</h3>
                         <ul class="groupe-instructeur-liste">
@@ -3349,7 +3346,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
         // Pour confirmer la transmission du dossier à l'intermédiaire DIR (raccourci SPPN)
         function confirmerActePretALaSignature() {
-            // AJOUTER VERIF RAPPOR CA (si delibCA select)
+            // AJOUTER VERIF RAPPOR CA (si rapport_ca_requis select)
             const form = document.querySelector('#formulaire-acte-pret-a-la-signature form');
             effacerErreursFormulaire(form);
             if (!validerProjetActeIdentique(form)) return;
@@ -3363,12 +3360,12 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const rapportCA = form.querySelector('#piece_jointe_rapport_ca_sppn');
             const nomRapportCA = rapportCA?.value || "";
 
-            if (nature.value === "Déliberation CA" && !nomRapportCA) {
+            if (nature.selectedOptions[0]?.dataset.rapportCa === "true" && !nomRapportCA) {
                 alert("Veuillez sélectionner le projet de Rapport du CA dans le dossier Work.");
                 return;
             }
 
-            if (nature.value === "Déliberation CA" && fichierChoisi.value === nomRapportCA) {
+            if (nature.selectedOptions[0]?.dataset.rapportCa === "true" && fichierChoisi.value === nomRapportCA) {
                 alert("Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.");
                 return;
             }
@@ -3408,7 +3405,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const form = document.querySelector('#formulaire-validation-signature form');
             effacerErreursFormulaire(form);
             if (!validerProjetActeIdentique(form)) return;
-            // AJOUTER VERIF RAPPOR CA (si delibCA select)
+            // AJOUTER VERIF RAPPOR CA (si rapport_ca_requis select)
             const select = document.getElementById("nature_validation_avant_signa");
             const validant = document.getElementById("choix-validant");
             const fichierChoisi = document.getElementById("piece_jointe_work");
@@ -3424,12 +3421,12 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 return;
             }
 
-            if (select.value === "Déliberation CA" && !nomRapportCA) {
+            if (select.selectedOptions[0]?.dataset.rapportCa === "true" && !nomRapportCA) {
                 alert("Veuillez sélectionner le projet de Rapport du CA dans le dossier Work.");
                 return;
             }
 
-            if (select.value === "Déliberation CA" && fichierChoisi.value === nomRapportCA) {
+            if (select.selectedOptions[0]?.dataset.rapportCa === "true" && fichierChoisi.value === nomRapportCA) {
                 alert("Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.");
                 return;
             }
@@ -3477,12 +3474,12 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 return;
             }
 
-            if (select.value === "Déliberation CA" && !nomRapportCA) {
+            if (select.selectedOptions[0]?.dataset.rapportCa === "true" && !nomRapportCA) {
                 alert("Veuillez sélectionner le projet de Rapport du CA dans le dossier Work.");
                 return;
             }
 
-            if (select.value === "Déliberation CA" && fichierChoisi.value === nomRapportCA) {
+            if (select.selectedOptions[0]?.dataset.rapportCa === "true" && fichierChoisi.value === nomRapportCA) {
                 alert("Le projet de délibération et le projet de Rapport CA doivent être deux documents différents.");
                 return;
             }
@@ -3650,7 +3647,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             if (!select || !zoneRapport) return;
 
             function update() {
-                const isDelibCA = select.value === "Déliberation CA";
+                const isDelibCA = select.selectedOptions[0]?.dataset.rapportCa === "true";
                 const existing = document.getElementById(config.hiddenId);
 
                 if (isDelibCA) {

@@ -398,7 +398,7 @@ def reception_preparer_emplacements_dossier_dm(request, *, dossier_dm, sous_doss
 # ==========================================================
 # TRAITEMENT D'UN FICHIER JOINT POUR UN AVIS DM
 # ==========================================================
-def reception_traiter_fichier_avis_dm(request, *, fichier, token, avis_id, dossier_dm, root_folder, nouvel_emplacement, sous_dossier_cible, nature_document, description_document, message_erreur_metier, logger):
+def reception_traiter_fichier_avis_dm(request, *, fichier, token, avis_id, dossier_dm, root_folder, nouvel_emplacement, sous_dossier_cible, nature_document, description_document, message_erreur_metier, logger, document_source=None):
     """
     Traite un fichier joint lié à un avis DM :
     - dépôt sur Déclaration Manifestations ;
@@ -464,6 +464,8 @@ def reception_traiter_fichier_avis_dm(request, *, fichier, token, avis_id, dossi
         "id_nature": doc_nature,
         "description": description_document,
     }
+    if document_source is not None:
+        defaults["numero"] = document_source.numero
 
     doc, created = Document.objects.get_or_create(emplacement=nouvel_emplacement_fichier_rel_path, titre=titre_doc, defaults=defaults,)
 
@@ -485,7 +487,6 @@ def documents_deposes_sur_DM(doss_manif_sportive):
         annexes_deposees_sur_DM (list Document) : Liste des annexes déposées par l'instructeur sur DM
     """
 
-    actes_natures = {"Avis conforme", "Avis simple", "Déliberation CA", "Arrêté directeur",}
     documents_DM = [
         lien.id_document
         for lien in DossierManifSportiveDocument.objects.filter(
@@ -527,7 +528,7 @@ def documents_deposes_sur_DM(doss_manif_sportive):
     
     actes_deposes_sur_DM = [
         doc for doc in documents_DM
-        if doc.id_nature.nature in actes_natures
+        if doc.id_nature.est_acte
     ]
 
     annexes_deposees_sur_DM = [

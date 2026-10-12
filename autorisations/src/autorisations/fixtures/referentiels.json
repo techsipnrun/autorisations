@@ -1538,7 +1538,14 @@
     "fields": {
       "nature": "Pièce jointe demandeur",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1547,7 +1554,14 @@
     "fields": {
       "nature": "Capture mail",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1556,7 +1570,14 @@
     "fields": {
       "nature": "Arrêté directeur",
       "prefixe_numero": "DIR-I-",
-      "prefixe_nom_fichier": "DIR-I-"
+      "prefixe_nom_fichier": "DIR-I-",
+      "est_acte": true,
+      "actif": true,
+      "ordre_affichage": 10,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": true
     }
   },
   {
@@ -1565,7 +1586,14 @@
     "fields": {
       "nature": "Déliberation CA",
       "prefixe_numero": "CA/",
-      "prefixe_nom_fichier": "DELIB-CA-"
+      "prefixe_nom_fichier": "DELIB-CA-",
+      "est_acte": true,
+      "actif": true,
+      "ordre_affichage": 20,
+      "circuit_signature": "ca",
+      "rapport_ca_obligatoire": true,
+      "mode_publication_raa": "deja_realisee",
+      "autorise_dm": false
     }
   },
   {
@@ -1574,7 +1602,14 @@
     "fields": {
       "nature": "Avis simple",
       "prefixe_numero": "AVIS-SIMPLE-",
-      "prefixe_nom_fichier": "AVIS-SIMPLE-"
+      "prefixe_nom_fichier": "AVIS-SIMPLE-",
+      "est_acte": true,
+      "actif": true,
+      "ordre_affichage": 30,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1583,7 +1618,14 @@
     "fields": {
       "nature": "Avis conforme",
       "prefixe_numero": "AVIS-CONFORME-",
-      "prefixe_nom_fichier": "AVIS-CONFORME-"
+      "prefixe_nom_fichier": "AVIS-CONFORME-",
+      "est_acte": true,
+      "actif": true,
+      "ordre_affichage": 40,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1592,7 +1634,14 @@
     "fields": {
       "nature": "Avis instance",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1601,7 +1650,14 @@
     "fields": {
       "nature": "CERFA",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1610,7 +1666,14 @@
     "fields": {
       "nature": "Formulaire parc",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1619,7 +1682,14 @@
     "fields": {
       "nature": "Résumé dossier",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1628,7 +1698,14 @@
     "fields": {
       "nature": "Pièce jointe message",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1637,7 +1714,14 @@
     "fields": {
       "nature": "Annexe instructeur",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1646,7 +1730,14 @@
     "fields": {
       "nature": "Pièce jointe à relire",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1655,7 +1746,14 @@
     "fields": {
       "nature": "Annexe avis",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1664,7 +1762,14 @@
     "fields": {
       "nature": "Rapport CA",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1673,7 +1778,14 @@
     "fields": {
       "nature": "Projet Rapport CA",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {
@@ -1682,7 +1794,14 @@
     "fields": {
       "nature": "Annexe instructeur DM",
       "prefixe_numero": "",
-      "prefixe_nom_fichier": ""
+      "prefixe_nom_fichier": "",
+      "est_acte": false,
+      "actif": true,
+      "ordre_affichage": 0,
+      "circuit_signature": "direction",
+      "rapport_ca_obligatoire": false,
+      "mode_publication_raa": "manuelle",
+      "autorise_dm": false
     }
   },
   {

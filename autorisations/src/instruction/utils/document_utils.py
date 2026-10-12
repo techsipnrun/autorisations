@@ -4,16 +4,17 @@ import smbclient
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from autorisations.models.models_instruction import Action, DossierAction
 from autorisations.models.models_utilisateurs import Instructeur
 from autorisations.models.models_documents import (
     Document,
+    DocumentNature,
     DossierDocument,
 )
 
 
-NATURES_VALIDES = ['Déliberation CA', 'Arrêté directeur', 'Avis simple', 'Avis conforme']
-NATURES_VALIDES_AVEC_RAPPORT = NATURES_VALIDES + ["Projet Rapport CA"]
+PROJETS_ACTES_OU_RAPPORT = Q(id_nature__est_acte=True) | Q(id_nature__nature="Projet Rapport CA")
 ACTION_CHANGEMENT_NUMERO_ACTE = "Numéro d'acte changé"
 _NUMERO_ACTUEL = object()
 
@@ -21,6 +22,24 @@ _NUMERO_ACTUEL = object()
 def formater_numero_acte(numero, nature):
     """Affichage utilisé pour les projets d'acte et leur historique."""
     return nature.formater_numero(numero) if nature else (numero or "")
+
+
+def get_types_actes_selectionnables():
+    return DocumentNature.objects.filter(est_acte=True, actif=True).order_by("ordre_affichage", "nature", "id")
+
+
+def get_type_acte(valeur, *, nouveau=False):
+    """Les nouveaux formulaires transmettent l'ID ; les anciens onglets restent compatibles."""
+    valeur = str(valeur or "").strip()
+    filtres = {"pk": int(valeur)} if valeur.isdecimal() else {"nature": valeur}
+    queryset = DocumentNature.objects.filter(est_acte=True, **filtres)
+    if nouveau:
+        queryset = queryset.filter(actif=True)
+    return queryset.first()
+
+
+def est_projet_acte_ou_rapport(document):
+    return document.id_nature.est_acte or document.id_nature.nature == "Projet Rapport CA"
 
 
 def get_projets_work_manquants(dossier):
@@ -31,7 +50,7 @@ def get_projets_work_manquants(dossier):
     )
     projets = (
         Document.objects
-        .filter(id__in=document_ids, id_nature__nature__in=NATURES_VALIDES_AVEC_RAPPORT)
+        .filter(PROJETS_ACTES_OU_RAPPORT, id__in=document_ids)
         .select_related("id_nature")
         .distinct()
     )
@@ -59,8 +78,8 @@ def get_projet_acte_source(document_id, dossier_courant, nature=None):
             "Le projet d’acte sélectionné est introuvable ou ne possède pas de numéro."
         )
     if (
-        liaison.id_document.id_nature.nature not in NATURES_VALIDES
-        or (nature and liaison.id_document.id_nature.nature != nature)
+        not liaison.id_document.id_nature.est_acte
+        or (nature and str(nature) not in {str(liaison.id_document.id_nature_id), liaison.id_document.id_nature.nature})
     ):
         raise ValidationError(
             "Le projet d’acte sélectionné n’a pas le type d’acte attendu."
@@ -212,26 +231,25 @@ def build_documents_for_dossier(dossier):
     ).values_list("titre", flat=True)
 
     # Actes filtrés par statut & nature
-    def filtre_actes(statuts, natures=None, published_only=False):
+    def filtre_actes(statuts, avec_rapport=False, published_only=False):
         résultats = []
         for dd in docs_du_dossier:
             doc = dd.id_document
             stat = doc.id_statut.statut.lower() if doc.id_statut else ""
-            nat = doc.id_nature.nature if doc.id_nature else ""
-
-            if stat in statuts and (natures is None or nat in natures):
+            est_acte = doc.id_nature.est_acte or (avec_rapport and doc.id_nature.nature == "Projet Rapport CA")
+            if stat in statuts and est_acte:
                 if not published_only or doc.publie_au_raa:
                     résultats.append(doc)
 
         return résultats
 
-    acte_a_valider = filtre_actes(["à valider"], NATURES_VALIDES)
-    acte_a_relire = filtre_actes(["à relire"], NATURES_VALIDES_AVEC_RAPPORT)
-    acte_a_signer = filtre_actes(["à signer"], NATURES_VALIDES)
-    acte_a_envoyer = filtre_actes(["à envoyer"], NATURES_VALIDES)
-    acte_valide_avant_demande_avis = filtre_actes(["validé avant demande d'avis"], NATURES_VALIDES)
-    acte_envoye = filtre_actes(["envoyé"], NATURES_VALIDES)
-    acte_envoye_et_publie = filtre_actes(["envoyé"], NATURES_VALIDES, published_only=True)
+    acte_a_valider = filtre_actes(["à valider"])
+    acte_a_relire = filtre_actes(["à relire"], avec_rapport=True)
+    acte_a_signer = filtre_actes(["à signer"])
+    acte_a_envoyer = filtre_actes(["à envoyer"])
+    acte_valide_avant_demande_avis = filtre_actes(["validé avant demande d'avis"])
+    acte_envoye = filtre_actes(["envoyé"])
+    acte_envoye_et_publie = filtre_actes(["envoyé"], published_only=True)
     acte_envoye_et_pas_publie = [doc for doc in acte_envoye if not doc.publie_au_raa]
 
     # Paramètres PDF
@@ -258,18 +276,20 @@ def build_documents_for_dossier(dossier):
         and dd.id_document.id_statut.statut.lower() == "envoyé"
     ]
 
-    # Indicateur "délibération CA en cours"
-    delibCA = any(
-        dd.id_document.id_nature.nature.lower() == "déliberation ca"
+    rapport_ca_requis = any(
+        dd.id_document.id_nature.est_acte and dd.id_document.id_nature.rapport_ca_obligatoire
         and dd.id_document.id_statut and dd.id_document.id_statut.statut.lower() != "envoyé"
         for dd in docs_du_dossier
     )
 
-    delibCA_envoye_ou_non = any(
-        dd.id_document.id_nature.nature.lower() == "déliberation ca"
+    rapport_ca_present = any(
+        dd.id_document.id_nature.est_acte and dd.id_document.id_nature.rapport_ca_obligatoire
         and dd.id_document.id_statut
         for dd in docs_du_dossier
     )
+
+    actes = [dd.id_document for dd in docs_du_dossier if dd.id_document.id_nature.est_acte]
+    acte_courant = next((doc for doc in actes if doc.id_statut and doc.id_statut.statut.lower() != "envoyé"), actes[0] if actes else None)
 
 
 
@@ -293,9 +313,8 @@ def build_documents_for_dossier(dossier):
     titres_work = {nom.casefold() for nom in work_files}
     for liaison in docs_du_dossier:
         document = liaison.id_document
-        nature = document.id_nature.nature if document.id_nature else ""
         document.fichier_work_manquant = (
-            nature in NATURES_VALIDES_AVEC_RAPPORT
+            est_projet_acte_ou_rapport(document)
             and normaliser_emplacement(document.emplacement) == emplacement_work
             and document.titre.casefold() not in titres_work
         )
@@ -322,8 +341,11 @@ def build_documents_for_dossier(dossier):
         "projets_rapport_ca": projets_rapport_ca,
         "rapports_ca": rapports_ca,
         "rapports_ca_envoyes": rapports_ca_envoyes,
-        "delibCA": delibCA,
-        "delibCA_envoye_ou_non": delibCA_envoye_ou_non,
+        "rapport_ca_requis": rapport_ca_requis,
+        "rapport_ca_present": rapport_ca_present,
+        "signature_ca": bool(acte_courant and acte_courant.id_nature.signature_ca),
+        "publication_raa_requise": bool(acte_courant and acte_courant.id_nature.publication_raa_requise),
+        "types_actes": get_types_actes_selectionnables(),
         "work_files": work_files,
     }
 

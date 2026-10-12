@@ -256,9 +256,10 @@ admin.site.register(DocumentFormat)
 
 @admin.register(DocumentNature)
 class DocumentNatureAdmin(admin.ModelAdmin):
-    list_display = ("id", "nature", "prefixe_numero", "prefixe_nom_fichier")
+    list_display = ("id", "nature", "est_acte", "actif", "prefixe_numero", "prefixe_nom_fichier", "circuit_signature", "rapport_ca_obligatoire", "mode_publication_raa", "autorise_dm")
+    list_filter = ("est_acte", "actif", "circuit_signature", "mode_publication_raa", "autorise_dm")
     search_fields = ("nature", "prefixe_numero", "prefixe_nom_fichier")
-    ordering = ("nature",)
+    ordering = ("ordre_affichage", "nature")
 
 admin.site.register(DocumentStatut)
 

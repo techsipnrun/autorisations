@@ -30,11 +30,7 @@
                         {{ liaison.id_dossier.id_etape_dossier.etape }}
                     </span>
                     <span class="dossier-meme-acte-document">
-                        {% if liaison.id_document.id_nature.nature == "Arrêté directeur" %}
-                            Arrêté du directeur
-                        {% else %}
-                            {{ liaison.id_document.id_nature.nature }}
-                        {% endif %}
+                        {{ liaison.id_document.id_nature.nature }}
                         : {{ liaison.id_document.id_statut.statut|lower }}
                     </span>
                     <span class="dossier-meme-acte-fleche" aria-hidden="true">→</span>

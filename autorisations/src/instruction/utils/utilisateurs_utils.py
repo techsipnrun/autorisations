@@ -178,7 +178,7 @@ def _add_intermediaire_CA_if_needed(documents_du_dossier, base_list, intermediai
     # Parcourir les DossierDocument
     for dd in documents_du_dossier:
         doc = dd.id_document
-        if doc.id_nature.nature.lower() == "déliberation ca":
+        if doc.id_nature.est_acte and doc.id_nature.signature_ca:
             for inter in intermediaires_CA:
                 if inter not in base_list:
                     base_list.append(inter)

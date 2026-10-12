@@ -1,0 +1,27 @@
+<form class="back-office-acte-form" data-type-acte-form data-next-number="{{ prochain_numero }}" action="{% url 'back_office_enregistrer_type_acte' type_id %}" method="post">
+    {% csrf_token %}
+    <div class="back-office-acte-grid">
+        {% for field in form %}
+            <div class="back-office-acte-field">
+                <div class="back-office-acte-field-heading">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-label="obligatoire">*</span>{% endif %}</label>
+                    {% if field.help_text %}
+                        <span class="back-office-acte-help" tabindex="0" aria-label="Aide : {{ field.label }}" aria-describedby="{{ field.id_for_label }}-help">
+                            <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                            <span class="back-office-acte-help-bubble" id="{{ field.id_for_label }}-help" role="tooltip">{{ field.help_text }}</span>
+                        </span>
+                    {% endif %}
+                </div>
+                {{ field }}
+            </div>
+        {% endfor %}
+    </div>
+    <details class="back-office-acte-number-preview">
+        <summary><strong data-type-acte-preview></strong></summary>
+        <p>Préfixe + année en cours + compteur propre à ce type d’acte : le dernier numéro de l’année est augmenté de 1. Sans numéro pour cette année, le compteur démarre à 1000.</p>
+        <small>Aperçu indicatif, sans réservation : le numéro peut évoluer si un autre projet est créé entre-temps.</small>
+        <small data-type-acte-filename-preview></small>
+    </details>
+    <button type="submit" class="external-services-refresh">{% if type_id %}Enregistrer{% else %}Créer le type d’acte{% endif %}</button>
+    <p data-type-acte-status role="status" aria-live="polite"></p>
+</form>

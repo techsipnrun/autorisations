@@ -123,7 +123,7 @@ class BranchementHistoriqueNumeroActeTests(SimpleTestCase):
                             "Instructeur", "DossierDocument", "DossierValideur", "Avis",
                             "get_dossier_or_redirect", "get_instructeur_or_redirect",
                             "get_projets_work_manquants", "creer_dossier_sur_nas",
-                            "redirect_error", "_appliquer_numero_partage",
+                            "redirect_error", "_appliquer_numero_partage", "get_type_acte",
                         )
                     }
                     stack.enter_context(patch.object(changement_etape.transaction, "atomic"))
@@ -131,6 +131,7 @@ class BranchementHistoriqueNumeroActeTests(SimpleTestCase):
                     # Couper le workflow juste après le branchement testé, sans mail ni changement d'étape.
                     mocks["_appliquer_numero_partage"].side_effect = ValidationError("Fin du test")
                     mocks["get_projets_work_manquants"].return_value = []
+                    mocks["get_type_acte"].return_value = DocumentNature(nature="Arrêté directeur", est_acte=True)
                     mocks["redirect_error"].return_value = HttpResponse(status=302)
                     dossier = SimpleNamespace(numero=32737536, emplacement="test/Work")
                     document = MagicMock(numero="2026-1106")

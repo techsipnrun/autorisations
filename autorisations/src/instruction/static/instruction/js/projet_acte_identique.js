@@ -109,7 +109,9 @@ function afficherProjetsActeExclus(contexte, projetsExclus = []) {
 function verrouillerNatureProjet(bloc, nature) {
   const selectNature = document.getElementById(bloc.dataset.natureSelect);
   if (!selectNature) return;
-  selectNature.value = nature;
+  const option = Array.from(selectNature.options).find(option => option.value === String(nature) || option.textContent.trim() === nature);
+  if (!option) return;
+  selectNature.value = option.value;
   selectNature.disabled = true;
   let hidden = bloc.querySelector(".nature-acte-verrouillee");
   if (!hidden) {
@@ -119,7 +121,7 @@ function verrouillerNatureProjet(bloc, nature) {
     hidden.className = "nature-acte-verrouillee";
     bloc.appendChild(hidden);
   }
-  hidden.value = nature;
+  hidden.value = option.value;
   selectNature.dispatchEvent(new Event("change"));
 }
 

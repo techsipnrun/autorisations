@@ -7,6 +7,7 @@ from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
 from instruction.views import dossiers_lies
 from instruction.views import nom_dossier
+from instruction.views import types_actes
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -24,6 +25,8 @@ urlpatterns = [
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
     path("back-office/", views.back_office, name="back_office"),
+    path("back-office/types-actes/<int:type_id>/", types_actes.enregistrer_type_acte, name="back_office_enregistrer_type_acte"),
+    path("back-office/types-actes/<int:type_id>/ordre/", types_actes.deplacer_type_acte, name="back_office_deplacer_type_acte"),
     path("back-office/demarche/<int:demarche_id>/noms/", nom_dossier.enregistrer_regles_nom_dossier, name="back_office_enregistrer_noms"),
     path("back-office/demarche/<int:demarche_id>/noms/apercu/", nom_dossier.previsualiser_nom_dossier, name="back_office_apercu_nom"),
     path("back-office/demarche/<int:demarche_id>/noms/recalculer/", nom_dossier.recalculer_noms_dossiers, name="back_office_recalculer_noms"),

@@ -19,8 +19,7 @@ from declaration_manifestations.get_methods import ajouter_pj_avis, get_access_t
 from instruction.utils.dm import _get_contexte_dossier_dm, _soumettre_avis_dm, reception_charger_contexte_avis_dm, reception_lire_donnees_formulaire_avis_dm, reception_preparer_emplacements_dossier_dm, reception_rendre_avis_et_mettre_a_jour_dm, reception_traiter_fichier_avis_dm, reception_verifier_acces_et_fichiers_avis_dm, user_est_autorise_a_agir_reception_manif_sportive
 from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.document_utils import (
-    NATURES_VALIDES,
-    NATURES_VALIDES_AVEC_RAPPORT,
+    est_projet_acte_ou_rapport, get_type_acte,
     get_projets_work_manquants,
     get_projet_acte_source,
     normaliser_emplacement,
@@ -48,6 +47,21 @@ from synchronisation.utils.fichiers import get_nom_disponible
 
 logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
+
+
+def _deposer_acte_sur_dm(request, resultat_dm, document, fichier, root_folder):
+    if not document.id_nature.autorise_dm:
+        messages.info(request, "L’avis a été traité sur DM, mais ce type d’acte n’est pas autorisé au dépôt sur DM (configuration du back-office).")
+        return None
+    return reception_traiter_fichier_avis_dm(
+        request, fichier=fichier, token=resultat_dm["token"] or get_access_token(),
+        avis_id=resultat_dm["avis_id"], dossier_dm=resultat_dm["dossier_dm"],
+        root_folder=root_folder, nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
+        sous_dossier_cible="Annexes/Instruction/", nature_document=document.id_nature.nature,
+        description_document="Acte envoyé sur Déclaration Manifestations.",
+        message_erreur_metier="L’acte a été transmis sur DM. Contactez le support si besoin.",
+        logger=logger, document_source=document,
+    )
 
 
 def bloquer_avancement_si_projet_work_manquant(view_func):
@@ -94,7 +108,7 @@ def reassocier_document_work(request):
             status=400,
         )
 
-    if document.id_nature.nature not in NATURES_VALIDES_AVEC_RAPPORT:
+    if not est_projet_acte_ou_rapport(document):
         return JsonResponse(
             {"success": False, "error": "Ce type de document ne peut pas être réassocié."},
             status=400,
@@ -1022,16 +1036,18 @@ def faire_valider_une_demande_d_avis(request):
 
     else :
         # --- Récupération nature ---
-        nature_obj = DocumentNature.objects.filter(nature=nature).first()
+        nature_obj = get_type_acte(nature, nouveau=True)
         if not nature_obj:
             logger.error(f"[DOSSIER {dossier.numero}] User {request.user} : Aucune nature Document trouvée pour '{nature}'")
             return redirect_error(request, f"❌ Le nature de document '{nature}' n'a pas été trouvée en base. Contactez le support.")
     
     if not nom_fichier :
         return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
+    if nature_obj.rapport_ca_obligatoire and nom_fichier == nom_fichier_rapport_ca:
+        return redirect_error(request, "❌ Le projet d’acte et le rapport CA doivent être deux documents différents.")
 
     # Rapport CA obligatoire pour une Délibération CA
-    if nature == "Déliberation CA" and not nom_fichier_rapport_ca:
+    if nature_obj.rapport_ca_obligatoire and not nom_fichier_rapport_ca:
         return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
     
     else :
@@ -1159,7 +1175,7 @@ def faire_valider_une_demande_d_avis(request):
     ########################
     # Projet rapport CA
     ########################
-    if nature == "Déliberation CA":
+    if nature_obj.rapport_ca_obligatoire:
 
         extension_rapport = Path(nom_fichier_rapport_ca).suffix.lower()
         if extension_rapport not in {".doc", ".docx", ".odt"}:
@@ -1249,13 +1265,15 @@ def faire_valider_le_projet_d_acte(request):
         return redirect_error(request, "❌ La nature du projet d'acte est manquante. Contactez le support.")
     
     # Récup nature
-    nature_obj = DocumentNature.objects.filter(nature=nature).first()
+    nature_obj = get_type_acte(nature, nouveau=True)
     if not nature_obj:
         logger.error(f"[FAIRE VALIDER PROJET] Nature '{nature}' introuvable en base (user={request.user})")
         return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
 
     if not nom_fichier:
         return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
+    if nature_obj.rapport_ca_obligatoire and (not nom_fichier_rapport_ca or nom_fichier == nom_fichier_rapport_ca):
+        return redirect_error(request, "❌ Sélectionnez un projet de rapport CA distinct du projet d’acte.")
     
     extension = Path(nom_fichier).suffix.lower()
     if extension not in {".doc", ".docx", ".odt"}:
@@ -1347,7 +1365,7 @@ def faire_valider_le_projet_d_acte(request):
     # Projet rapport CA
     ########################
 
-    if nature == "Déliberation CA":
+    if nature_obj.rapport_ca_obligatoire:
         if not nom_fichier_rapport_ca:
             return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
 
@@ -1627,8 +1645,8 @@ def repasser_en_instruction(request):
     projets_acte_a_supprimer = list(
         DossierDocument.objects
         .filter(
+            Q(id_document__id_nature__est_acte=True) | Q(id_document__id_nature__nature="Projet Rapport CA"),
             id_dossier=dossier,
-            id_document__id_nature__nature__in=NATURES_VALIDES_AVEC_RAPPORT,
         )
         .filter(
             Q(id_document__id_statut__isnull=True)
@@ -1663,7 +1681,7 @@ def repasser_en_instruction(request):
     documents_du_dossier = (
         DossierDocument.objects
         .filter(id_dossier=dossier)
-        .exclude(id_document__id_nature__nature__in=NATURES_VALIDES_AVEC_RAPPORT)
+        .exclude(Q(id_document__id_nature__est_acte=True) | Q(id_document__id_nature__nature="Projet Rapport CA"))
         .select_related("id_document__id_statut", "id_document__id_nature")
     )
 
@@ -1792,7 +1810,7 @@ def valider_et_envoyer_pour_relecture_qualite(request):
     # =============================================
     #  Mise à jour documents À valider --> À relire
     # =============================================
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
 
     for lien in documents_du_dossier:
         doc = lien.id_document
@@ -1933,7 +1951,7 @@ def pret_a_la_signature(request):
 
 
     # --- Mise à jour Doc "À relire" --> "À signer"
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
     for lien in documents_du_dossier:
         doc = lien.id_document
         statut = doc.id_statut.statut.lower() if doc.id_statut else ""
@@ -1993,7 +2011,7 @@ def acte_pret_a_la_signature(request):
         return redirect_error(request, "❌ La nature du projet d'acte est manquante. Contactez le support.")
     
     # Récup nature
-    nature_obj = DocumentNature.objects.filter(nature=nature).first()
+    nature_obj = get_type_acte(nature, nouveau=True)
     if not nature_obj:
         logger.error(f"[DOSSIER {dossier.numero}] Échec du changement d'étape à 'En attente de signature' par {request.user} : Nature '{nature}' introuvable en base (user={request.user})")
         return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
@@ -2011,10 +2029,10 @@ def acte_pret_a_la_signature(request):
         return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
     
     # Rapport CA
-    if nature == "Déliberation CA" and not nom_fichier_rapport_ca:
+    if nature_obj.rapport_ca_obligatoire and not nom_fichier_rapport_ca:
         return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
 
-    if nature == "Déliberation CA" and nom_fichier and nom_fichier_rapport_ca and nom_fichier == nom_fichier_rapport_ca:
+    if nature_obj.rapport_ca_obligatoire and nom_fichier and nom_fichier_rapport_ca and nom_fichier == nom_fichier_rapport_ca:
         logger.warning(f"[DOSSIER {dossier.numero}] Prêt à la signature refusé par {request.user} : "
             f"le projet de délibération et le projet de Rapport CA sont identiques ({nom_fichier})."
         )
@@ -2085,7 +2103,7 @@ def acte_pret_a_la_signature(request):
     # Projet rapport CA
     ########################
 
-    if nature == "Déliberation CA" :
+    if nature_obj.rapport_ca_obligatoire :
 
         extension_rapport = Path(nom_fichier_rapport_ca).suffix.lower()
         if extension_rapport not in {".doc", ".docx", ".odt"} :
@@ -2179,7 +2197,7 @@ def acte_pret_a_la_signature(request):
 
 
     # --- Mise à jour Doc "À relire" --> "À signer"
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
     for lien in documents_du_dossier:
         doc = lien.id_document
         statut = doc.id_statut.statut.lower() if doc.id_statut else ""
@@ -2264,7 +2282,7 @@ def remplacer_acte_signe(request):
         and document.id_statut
         and document.id_statut.statut.casefold() == "à envoyer"
         and document.id_nature
-        and document.id_nature.nature in NATURES_VALIDES
+        and document.id_nature.est_acte
         and document.id_format
         and document.id_format.format.casefold() == "pdf"
         and Path(document.titre).suffix.casefold() == ".pdf"
@@ -2370,12 +2388,15 @@ def acte_pret_a_etre_envoye(request):
         return redirect_error(request, "❌ Statut 'À envoyer' introuvable en base. Contactez le support.")
     
     # --- Vérification Nature Acte ---
-    doc_nature = DocumentNature.objects.filter(nature__iexact = nature_document).first()
+    doc_nature = get_type_acte(nature_document)
     if not doc_nature:
         logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Nature {nature_document} introuvable en base.")
         return redirect_error(request, f"❌ Nature '{nature_document}' introuvable en base. Contactez le support.")
     
     # --- Vérification Rapport CA ---
+    nature_document = doc_nature.nature
+    if doc_nature.rapport_ca_obligatoire and not fichier_rapportCA:
+        return redirect_error(request, "❌ Le rapport du CA signé doit être joint.")
     if fichier_rapportCA :
         doc_nature_rapportCA = DocumentNature.objects.filter(nature__iexact = "Rapport CA").first()
         if not doc_nature_rapportCA:
@@ -2428,6 +2449,8 @@ def acte_pret_a_etre_envoye(request):
         if not projet_acte:
             logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' : Projet d'acte id={str(id_doc_a_signer)} introuvable.")
             return redirect_error(request,f"❌ Le projet d'acte (id = {str(id_doc_a_signer)}) est introuvable en base. Contactez le support.")
+        if projet_acte.id_nature_id != doc_nature.pk:
+            return redirect_error(request, "❌ Le type d’acte ne correspond pas au projet sélectionné.")
         if not projet_acte.numero :
             logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Le projet d'acte n'a pas de numéro.")
             return redirect_error(request, f"❌ Le projet d'acte n'a pas eu de numéro attribué. Contactez le support.")
@@ -2448,8 +2471,8 @@ def acte_pret_a_etre_envoye(request):
 
 
     # === 1. On génère le nom (ex : DIR-I-2026-031_05-03-26) ===
-    if nature_document not in NATURES_VALIDES:
-        logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Nature {nature_document} n'est pas parmis : Déliberation CA, Arrêté directeur, Avis conforme, Avis simple.")
+    if not doc_nature.est_acte:
+        logger.error(f"[DOSSIER {dossier.numero}] Type de document non configuré comme acte : {nature_document}.")
         return redirect_error(request, f"❌ Nature de document '{nature_document}' non reconnue. Contactez le support.")
     
     date_du_jour = datetime.today().strftime("%d-%m")
@@ -2525,7 +2548,7 @@ def acte_pret_a_etre_envoye(request):
     # Remise à zéro des statuts documents 
     # -----------------------------------
     statuts_cibles = {"à envoyer", "à signer", "à relire", "à valider"}
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
 
     for lien in documents_du_dossier:
         doc = lien.id_document
@@ -2813,12 +2836,12 @@ def classer_le_dossier_comme_accepte(request):
 
 
     # --- Mise à jour document publié au RAA ---
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
 
     for lien in documents_du_dossier:
         doc = lien.id_document
         try:
-            if doc.id_statut and doc.id_statut.statut.lower() == "envoyé" and not doc.publie_au_raa:
+            if doc.id_statut and doc.id_statut.statut.lower() == "envoyé" and not doc.publie_au_raa and doc.id_nature.publication_raa_requise:
                 doc.publie_au_raa = True
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Document {doc.titre} publié au RAA par {request.user}.")
@@ -3202,12 +3225,12 @@ def classer_le_dossier_comme_refuse(request):
     if dossier.id_etape_dossier.etape == "À publier au RAA":
         documents_du_dossier = DossierDocument.objects.filter(
             id_dossier=dossier
-        ).select_related("id_document__id_statut")
+        ).select_related("id_document__id_statut", "id_document__id_nature")
 
     for lien in documents_du_dossier:
         doc = lien.id_document
         try:
-            if doc.id_statut and doc.id_statut.statut.lower() == "envoyé" and not doc.publie_au_raa:
+            if doc.id_statut and doc.id_statut.statut.lower() == "envoyé" and not doc.publie_au_raa and doc.id_nature.publication_raa_requise:
                 doc.publie_au_raa = True
                 doc.save()
                 logger.info(f"[DOSSIER {dossier.numero}] Document {doc.titre} publié au RAA par {request.user}.")
@@ -3341,13 +3364,14 @@ def envoyer_l_acte(request):
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Nature du document {document_id} (Statut : À envoyer) manquante dans le formulaire.")
         return redirect_error(request,"❌ La nature (Arrêté, Délibération...) de l’acte à envoyer est manquante. Contactez le support.")
 
-    nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
+    nature_obj = get_type_acte(nature_document)
+    nature_document = nature_obj.nature if nature_obj else nature_document
     if not nature_obj:
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Document id={document_id} : Nature {nature_document} introuvable.")
         return redirect_error(request,f"❌ La nature de document '{nature_document}' est introuvable en base. Contactez le support.")
     
     # --- Publieur RAA ---
-    if nature_obj.nature != "Déliberation CA" :
+    if nature_obj.publication_raa_requise :
         if not publieur_raa_id :
             return redirect_error(request,"❌ Vous devez choisir la personne chargée de publier l’acte au RAA.")
         
@@ -3361,11 +3385,14 @@ def envoyer_l_acte(request):
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : ID du document signé (Statut : À envoyer) manquant dans le formulaire.")
         return redirect_error(request,"❌ L'acte signé à envoyer est introuvable depuis l'application (ID du document NULL). Contactez le support.")
 
-    document = Document.objects.filter(id=document_id).select_related("id_format").first()
+    document = Document.objects.filter(id=document_id).select_related("id_format", "id_nature").first()
     if not document:
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Document id={document_id} (Statut : À envoyer) introuvable.")
         return redirect_error(request,"❌ Le document signé à envoyer est introuvable en base. Contactez le support.")
     
+    if document.id_nature_id != nature_obj.pk:
+        return redirect_error(request, "❌ Le type d’acte ne correspond pas au document à envoyer.")
+
     # --- Format de l'acte ---
     if not document.id_format or not document.id_format.format:
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Format du Document id={document.id} (Statut : À envoyer) introuvable.")
@@ -3469,7 +3496,7 @@ def envoyer_l_acte(request):
                 # -------------------------------------------------------
                 # Ajout de la personne chargée de publier l'acte au RAA
                 # ------------------------------------------------------
-                if nature_obj.nature != "Déliberation CA" :
+                if nature_obj.publication_raa_requise :
                     err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
                     if err:
                         return err
@@ -3479,7 +3506,7 @@ def envoyer_l_acte(request):
                 #     MISE À JOUR ÉTAPE / ÉTAT / ACTION
                 # ============================================
                 # --- Mise à jour Étape ---
-                if nature_obj.nature == "Déliberation CA" :
+                if not nature_obj.publication_raa_requise :
                     # On classe le dossier comme accepté
                     err = safe_update_etape(dossier, "Accepté", request, break_si_erreur=True)
                     if err:
@@ -3493,7 +3520,7 @@ def envoyer_l_acte(request):
 
                 # --- Enregistrer Action ---
                 safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
-                if nature_obj.nature == "Déliberation CA" :
+                if not nature_obj.publication_raa_requise :
                     safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
 
                 
@@ -3501,7 +3528,7 @@ def envoyer_l_acte(request):
                 # ==============================================
                 #     Mise à jour Doc "À envoyer" --> "Envoyé"
                 # ==============================================
-                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
                 for lien in documents_du_dossier:
                     doc = lien.id_document
                     statut = doc.id_statut.statut.lower() if doc.id_statut else ""
@@ -3515,7 +3542,7 @@ def envoyer_l_acte(request):
                             logger.error(f"[DOSSIER {dossier.numero}] Envoi acte ({request.user}) : Erreur MAJ statut (À Envoyer → Envoyé) du document {doc.id} : {e}")
                     
                     # On considère que la délibération du CA a été publiée au RAA
-                    if doc.id_nature.nature == "Déliberation CA" :
+                    if doc.id_nature.est_acte and doc.id_nature.mode_publication_raa == DocumentNature.PublicationRAA.DEJA_REALISEE :
                         doc.publie_au_raa = True
                         doc.save()
 
@@ -3597,26 +3624,10 @@ def envoyer_l_acte(request):
                 # ---------------------------------
                 # DÉPOSER ACTE SUR DM ET SUR LE NAS
                 # ---------------------------------
-                if resultat_dm :
-                    erreur = reception_traiter_fichier_avis_dm(
-                        request,
-                        fichier=fichier,
-                        token=resultat_dm["token"],
-                        avis_id=resultat_dm["avis_id"],
-                        dossier_dm=resultat_dm["dossier_dm"],
-                        root_folder=root_folder,
-                        nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
-                        sous_dossier_cible="Annexes/Instruction/",
-                        nature_document="Arrêté directeur",
-                        description_document="Acte envoyé sur Déclaration Manifestations.",
-                        message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
-                        logger=logger,
-                    )
+                if resultat_dm:
+                    erreur = _deposer_acte_sur_dm(request, resultat_dm, document, fichier, root_folder)
                     if erreur:
                         return erreur
-                    
-                else :
-                    messages.info(request, f"L'acte n'a pas été déposé sur Déclaration Manifestations. Vous pourrez le faire une fois l'acte publié au RAA.")
         
 
 
@@ -3729,13 +3740,14 @@ def envoyer_l_acte_de_refus(request):
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Nature du document {document_id} (Statut : À envoyer) manquante dans le formulaire.")
         return redirect_error(request,"❌ La nature (Arrêté, Délibération...) de l’acte à envoyer est manquante. Contactez le support.")
 
-    nature_obj = DocumentNature.objects.filter(nature__iexact=nature_document.strip()).first()
+    nature_obj = get_type_acte(nature_document)
+    nature_document = nature_obj.nature if nature_obj else nature_document
     if not nature_obj:
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) - Document id={document_id} : Nature {nature_document} introuvable.")
         return redirect_error(request,f"❌ La nature de document '{nature_document}' est introuvable en base. Contactez le support.")
     
     # --- Publieur RAA ---
-    if nature_obj.nature != "Déliberation CA" :
+    if nature_obj.publication_raa_requise :
         if not publieur_raa_id :
             return redirect_error(request,"❌ Vous devez choisir la personne chargée de publier l’acte au RAA.")
         
@@ -3749,11 +3761,14 @@ def envoyer_l_acte_de_refus(request):
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : ID du document signé (Statut : À envoyer) manquant dans le formulaire.")
         return redirect_error(request,"❌ L'acte signé à envoyer est introuvable depuis l'application (ID du document NULL). Contactez le support.")
 
-    document = Document.objects.filter(id=document_id).select_related("id_format").first()
+    document = Document.objects.filter(id=document_id).select_related("id_format", "id_nature").first()
     if not document:
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Document id={document_id} (Statut : À envoyer) introuvable.")
         return redirect_error(request,"❌ Le document signé à envoyer est introuvable en base. Contactez le support.")
     
+    if document.id_nature_id != nature_obj.pk:
+        return redirect_error(request, "❌ Le type d’acte ne correspond pas au document à envoyer.")
+
     # --- Format de l'acte ---
     if not document.id_format or not document.id_format.format:
         logger.error(f"[DOSSIER {dossier_numero}] Envoi acte ({request.user}) : Format du Document id={document.id} (Statut : À envoyer) introuvable.")
@@ -3851,7 +3866,7 @@ def envoyer_l_acte_de_refus(request):
                 # -------------------------------------------------------
                 # Ajout de la personne chargée de publier l'acte au RAA
                 # ------------------------------------------------------
-                if nature_obj.nature != "Déliberation CA" :
+                if nature_obj.publication_raa_requise :
                     err = set_dossier_role(DossierPublicationRAA, dossier, publieur_raa, "Publieur RAA", request)
                     if err:
                         return err
@@ -3862,7 +3877,7 @@ def envoyer_l_acte_de_refus(request):
                 # ============================================
 
                 # --- Mise à jour Étape ---
-                if nature_obj.nature == "Déliberation CA" :
+                if not nature_obj.publication_raa_requise :
                     # On classe le dossier comme refusé
                     err = safe_update_etape(dossier, "Refusé", request, break_si_erreur=True)
                     if err:
@@ -3876,7 +3891,7 @@ def envoyer_l_acte_de_refus(request):
 
                 # --- Enregistrer Action ---
                 safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
-                if nature_obj.nature == "Déliberation CA" :
+                if not nature_obj.publication_raa_requise :
                     safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
 
 
@@ -3884,7 +3899,7 @@ def envoyer_l_acte_de_refus(request):
                 # ==============================================
                 #     Mise à jour Doc "À envoyer" --> "Envoyé"
                 # ==============================================
-                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut")
+                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
                 for lien in documents_du_dossier:
                     doc = lien.id_document
                     statut = doc.id_statut.statut.lower() if doc.id_statut else ""
@@ -3898,7 +3913,7 @@ def envoyer_l_acte_de_refus(request):
                             logger.error(f"[DOSSIER {dossier.numero}] Envoi acte ({request.user}) : Erreur MAJ statut (À Envoyer → Envoyé) du document {doc.id} : {e}")
                     
                     # On considère que la délibération du CA a été publiée au RAA
-                    if doc.id_nature.nature == "Déliberation CA" :
+                    if doc.id_nature.est_acte and doc.id_nature.mode_publication_raa == DocumentNature.PublicationRAA.DEJA_REALISEE :
                         doc.publie_au_raa = True
                         doc.save()
         except Exception as e:
@@ -3977,26 +3992,10 @@ def envoyer_l_acte_de_refus(request):
                 # ---------------------------------
                 # DÉPOSER ACTE SUR DM ET SUR LE NAS
                 # ---------------------------------
-                if resultat_dm :
-                    erreur = reception_traiter_fichier_avis_dm(
-                        request,
-                        fichier=fichier,
-                        token=resultat_dm["token"],
-                        avis_id=resultat_dm["avis_id"],
-                        dossier_dm=resultat_dm["dossier_dm"],
-                        root_folder=root_folder,
-                        nouvel_emplacement=resultat_dm["dossier_dm"].emplacement,
-                        sous_dossier_cible="Annexes/Instruction/",
-                        nature_document="Arrêté directeur",
-                        description_document="Acte envoyé sur Déclaration Manifestations.",
-                        message_erreur_metier="L'acte a bien été transmis sur Déclaration Manifestations. Contactez le support si besoin.",
-                        logger=logger,
-                    )
+                if resultat_dm:
+                    erreur = _deposer_acte_sur_dm(request, resultat_dm, document, fichier, root_folder)
                     if erreur:
                         return erreur
-                
-                else :
-                    messages.info(request, f"L'acte n'a pas été déposé sur Déclaration Manifestations. Vous pourrez le faire une fois l'acte publié au RAA.")
 
         except Exception as e:
             logger.error(f"[DOSSIER {dossier_numero}] Envoi acte de refus ({request.user}) : "

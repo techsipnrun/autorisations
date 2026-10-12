@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Back Office — AGiDA</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=35">
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=39">
+    <script src="{% static 'instruction/js/back_office_types_actes.js' %}?v=4" defer></script>
     <script src="{% static 'instruction/js/back_office_nommage.js' %}?v=8" defer></script>
 </head>
 <body>
@@ -42,9 +43,15 @@
                 <button type="button" class="back-office-nav-item" data-section="dossier">
                     <span class="back-office-nav-dot"></span>Dossier
                 </button>
-                <button type="button" class="back-office-nav-item" data-section="circuit">
+                <div class="back-office-nav-group">
+                <button type="button" class="back-office-nav-item" data-section="circuit" aria-controls="back-office-circuit-nav" aria-expanded="false">
                     <span class="back-office-nav-dot"></span>Circuit d’instruction
+                    <span class="back-office-nav-chevron" aria-hidden="true">›</span>
                 </button>
+                <div id="back-office-circuit-nav" class="back-office-nav-submenu" hidden>
+                    <button type="button" class="back-office-nav-subitem" data-section="types-actes">Types d’actes</button>
+                </div>
+                </div>
                 <button type="button" class="back-office-nav-item" data-section="notifications">
                     <span class="back-office-nav-dot"></span>Notifications
                 </button>
@@ -324,7 +331,10 @@
             <section class="back-office-panel" data-panel="circuit" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
                 <h1>Circuit d’instruction</h1>
-                <p>La configuration des rôles, étapes et circuits sera ajoutée ici.</p>
+                <p>Choisissez « Types d’actes » dans le panneau latéral pour gérer les actes disponibles.</p>
+            </section>
+            <section class="back-office-panel" data-panel="types-actes" hidden>
+                {% include "instruction/refacto/back_office_types_actes.html" %}
             </section>
             <section class="back-office-panel" data-panel="notifications" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
@@ -399,6 +409,12 @@
 
             sousMenuDemarches.hidden = !estDemarche;
             menuDemarche.setAttribute('aria-expanded', String(estDemarche));
+            const estCircuit = ['circuit', 'types-actes'].includes(sectionValide);
+            document.getElementById('back-office-circuit-nav').hidden = !estCircuit;
+            const menuCircuit = document.querySelector('.back-office-nav-item[data-section="circuit"]');
+            menuCircuit.setAttribute('aria-expanded', String(estCircuit));
+            menuCircuit.classList.toggle('is-active', estCircuit);
+            document.querySelector('.back-office-nav-subitem[data-section="types-actes"]').classList.toggle('is-active', sectionValide === 'types-actes');
             if (!estDemarche) return;
 
             const detailSelectionne = demarcheId && demarchePanel.querySelector(`[data-demarche-detail="${demarcheId}"]`);
@@ -407,12 +423,16 @@
                 detail.hidden = detail !== detailSelectionne;
             });
             document.querySelectorAll('.back-office-nav-subitem').forEach(item => {
-                item.classList.toggle('is-active', item.dataset.demarcheId === String(demarcheId));
+                if (item.dataset.demarcheId) item.classList.toggle('is-active', item.dataset.demarcheId === String(demarcheId));
             });
         }
 
         function etatDepuisUrl() {
             const fragment = window.location.hash.replace(/^#/, '');
+            if (fragment === 'circuit/types-actes') {
+                afficherBackOffice('types-actes');
+                return;
+            }
             const resultat = fragment.match(/^demarche\/(\d+)$/);
             if (resultat) {
                 afficherBackOffice('demarche', resultat[1]);
@@ -422,7 +442,7 @@
         }
 
         function naviguerBackOffice(section, demarcheId = null) {
-            const fragment = demarcheId ? `demarche/${demarcheId}` : section;
+            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'types-actes' ? 'circuit/types-actes' : section;
             if (window.location.hash === `#${fragment}`) {
                 afficherBackOffice(section, demarcheId);
                 return;
@@ -431,11 +451,19 @@
         }
 
         document.querySelectorAll('.back-office-nav-item').forEach(button => {
-            button.addEventListener('click', () => naviguerBackOffice(button.dataset.section));
+            button.addEventListener('click', () => {
+                const sousMenu = document.getElementById(button.getAttribute('aria-controls'));
+                if (sousMenu && button.classList.contains('is-active')) {
+                    sousMenu.hidden = !sousMenu.hidden;
+                    button.setAttribute('aria-expanded', String(!sousMenu.hidden));
+                    return;
+                }
+                naviguerBackOffice(button.dataset.section);
+            });
         });
 
         document.querySelectorAll('.back-office-nav-subitem').forEach(button => {
-            button.addEventListener('click', () => naviguerBackOffice('demarche', button.dataset.demarcheId));
+            button.addEventListener('click', () => button.dataset.section ? naviguerBackOffice(button.dataset.section) : naviguerBackOffice('demarche', button.dataset.demarcheId));
         });
         window.addEventListener('hashchange', etatDepuisUrl);
         etatDepuisUrl();

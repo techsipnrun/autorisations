@@ -3,6 +3,52 @@
   font-family: Arial, sans-serif;
 }
 
+.back-office-acte-card { margin-top: 1rem; }
+.back-office-acte-card.back-office-acte-create { border: 1px solid #000; }
+.back-office-acte-number-preview { margin: 1.2rem 0; padding: 1rem; border-radius: 8px; background: #edf4ef; overflow-wrap: anywhere; }
+.back-office-acte-number-preview strong { color: #21583a; }
+.back-office-acte-number-preview > summary { cursor: pointer; color: #21583a; }
+.back-office-acte-number-preview p, .back-office-acte-number-preview small { color: #63756a; font-size: .8rem; line-height: 1.5; }
+.back-office-acte-number-preview p { margin: .55rem 0; }
+.back-office-acte-number-preview small { display: block; margin-top: .4rem; }
+.back-office-acte-card > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; list-style: none; }
+.back-office-acte-card > summary::-webkit-details-marker { display: none; }
+.back-office-acte-card > summary h2 { margin: 0; }
+.back-office-acte-card > summary small { display: block; margin-top: .4rem; color: #63756a; line-height: 1.5; }
+.back-office-acte-form { margin-top: 1.3rem; }
+.back-office-acte-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem 1.5rem; }
+.back-office-acte-field { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
+.back-office-acte-field label { font-size: .86rem; font-weight: 600; }
+.back-office-acte-field select { width: auto; max-width: 100%; align-self: flex-start; border-color: #000; }
+/* Les anciens navigateurs gardent leur menu natif ; les compatibles stylent aussi le menu ouvert. */
+@supports (appearance: base-select) and selector(select::picker(select)) {
+  .back-office-acte-field select { appearance: base-select; }
+  .back-office-acte-field select::picker(select) { appearance: base-select; border: 1px solid #000; border-radius: 6px; background: #fff; color: #24342a; box-shadow: 0 4px 14px #0002; max-width: calc(100vw - 2rem); max-height: 18rem; overflow: auto; }
+  .back-office-acte-field select option { padding: .55rem .7rem; white-space: normal; overflow-wrap: anywhere; }
+}
+.back-office-acte-field-heading { display: flex; align-items: center; justify-content: flex-start; gap: .5rem; }
+.back-office-acte-help { position: relative; display: inline-flex; flex: 0 0 auto; cursor: default; }
+.back-office-acte-help-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.1rem; height: 1.1rem; border: 1px solid #859c8c; border-radius: 50%; color: #496f57; font: 600 .75rem/1 Arial, sans-serif; }
+.back-office-acte-help-bubble { position: fixed; z-index: 30; top: var(--acte-help-top, 1rem); left: var(--acte-help-left, 1rem); width: min(24rem, calc(100vw - 3rem)); padding: .8rem 1rem; border: 1px solid #c3d4c9; border-radius: 8px; background: #fff; color: #294334; box-shadow: 0 6px 20px #17332424; font-size: .8rem; font-weight: 400; line-height: 1.5; white-space: pre-line; visibility: hidden; opacity: 0; pointer-events: none; }
+.back-office-acte-help:hover .back-office-acte-help-bubble, .back-office-acte-help:focus .back-office-acte-help-bubble { visibility: visible; opacity: 1; }
+.back-office-acte-help:focus-visible { outline: 2px solid #317652; outline-offset: 3px; border-radius: 50%; }
+.back-office-acte-card > summary > div { flex: 1 1 15rem; min-width: 0; overflow-wrap: anywhere; }
+.back-office-acte-order-actions { display: inline-flex; align-items: center; gap: .3rem; margin-left: auto; flex: 0 0 auto; }
+.back-office-acte-rank { min-width: 1.4rem; color: #708076; font-size: .8rem; text-align: center; font-variant-numeric: tabular-nums; }
+.back-office-acte-order-actions button { width: 1.8rem; height: 1.8rem; padding: 0; border: 1px solid #c4d3c9; border-radius: 5px; background: #f4f8f5; color: #315e41; font: 700 1.1rem/1 Arial, sans-serif; cursor: pointer; }
+.back-office-acte-order-actions button:hover:not(:disabled) { background: #e2eee6; }
+.back-office-acte-order-actions button:disabled { opacity: .3; cursor: default; }
+.back-office-acte-order-status { color: #21583a; font-size: .8rem; }
+.back-office-acte-order-status:empty { display: none; }
+.back-office-acte-order-status.is-error { color: #a12619; }
+.back-office-acte-field small, .back-office-acte-note { color: #63756a; font-size: .8rem; line-height: 1.5; }
+.back-office-acte-input { width: 100%; min-width: 0; padding: .4rem .7rem; border: 1px solid #b8c8bd; border-radius: 7px; background: #fff; color: #24342a; }
+.back-office-acte-input:focus { outline: 2px solid #317652; outline-offset: 1px; }
+.back-office-acte-field label span { color: #9c321a; }
+.back-office-acte-form .is-error { color: #a12619; }
+.back-office-acte-success { padding: .8rem 1rem; background: #e6f3e9; color: #175b32; border-radius: 8px; }
+@media (max-width: 700px) { .back-office-acte-grid { grid-template-columns: minmax(0, 1fr); } }
+
 * {
   box-sizing: border-box;
 }

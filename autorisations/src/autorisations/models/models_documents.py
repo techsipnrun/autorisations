@@ -23,8 +23,24 @@ class DocumentFormat(models.Model):
 
 
 class DocumentNature(models.Model):
+    class CircuitSignature(models.TextChoices):
+        DIRECTION = "direction", "Direction"
+        CA = "ca", "Conseil d’administration"
+
+    class PublicationRAA(models.TextChoices):
+        MANUELLE = "manuelle", "Publication à effectuer dans AGIDA"
+        DEJA_REALISEE = "deja_realisee", "Publication considérée comme déjà réalisée hors AGIDA"
+        NON_REQUISE = "non_requise", "Publication non requise"
+
     id = models.AutoField(primary_key=True)
     nature = models.CharField(unique=True)
+    est_acte = models.BooleanField(default=False, verbose_name="Type d’acte")
+    actif = models.BooleanField(default=True)
+    ordre_affichage = models.PositiveSmallIntegerField(default=0)
+    circuit_signature = models.CharField(max_length=20, choices=CircuitSignature.choices, default=CircuitSignature.DIRECTION)
+    rapport_ca_obligatoire = models.BooleanField(default=False)
+    mode_publication_raa = models.CharField(max_length=20, choices=PublicationRAA.choices, default=PublicationRAA.MANUELLE)
+    autorise_dm = models.BooleanField(default=False, verbose_name="Autoriser l’envoi de l’acte sur DM")
     prefixe_numero = models.CharField(
         max_length=50, blank=True, default="",
         verbose_name="Préfixe du numéro",
@@ -46,6 +62,14 @@ class DocumentNature(models.Model):
 
     def __str__(self):
         return self.nature
+
+    @property
+    def signature_ca(self):
+        return self.circuit_signature == self.CircuitSignature.CA
+
+    @property
+    def publication_raa_requise(self):
+        return self.mode_publication_raa == self.PublicationRAA.MANUELLE
 
     def formater_numero(self, numero):
         if not numero:
@@ -119,32 +143,42 @@ class Document(models.Model):
 
         return emplacement
     
+    @staticmethod
+    def prochain_numero(dernier_numero, annee):
+        """Même calcul pour l'attribution effective et l'aperçu du back-office."""
+        compteur = 1000
+        if dernier_numero:
+            try:
+                compteur = int(dernier_numero.split('-')[-1]) + 1
+            except ValueError:
+                pass
+        return f"{annee}-{compteur:04d}"
+
     def save(self, *args, **kwargs):
         """
         Incrémente automatiquement le numéro au format AAAA-XXXX
-        pour les natures : 'Arrêté directeur', 'Déliberation CA', 'Avis simple', 'Avis conforme'.
+        pour les natures configurées comme actes.
         Si la nature du document change, le numéro est régénéré.
         """
 
         self.emplacement = self.normaliser_emplacement(self.emplacement)
         
-        natures_cibles = ["Arrêté directeur", "Déliberation CA", "Avis simple", "Avis conforme"]
         annee = date.today().year
-        nature_actuelle = self.id_nature.nature if self.id_nature else None
+        nature_actuelle = self.id_nature_id
 
         # Récupère la nature précédente si le doc existe déjà
         ancienne_nature = None
         if self.pk:
             try:
-                ancien_doc = Document.objects.get(pk=self.pk)
-                ancienne_nature = ancien_doc.id_nature.nature if ancien_doc.id_nature else None
+                ancien_doc = Document.objects.only("id_nature").get(pk=self.pk)
+                ancienne_nature = ancien_doc.id_nature_id
             except Document.DoesNotExist:
                 pass
 
-        nature_changee = (ancienne_nature != nature_actuelle)
+        nature_changee = self.pk is not None and ancienne_nature != nature_actuelle
 
         # Nouveau document cible OU changement de nature
-        if (not self.numero or nature_changee) and nature_actuelle in natures_cibles:
+        if (not self.numero or nature_changee) and self.id_nature.est_acte:
             for _ in range(3):
                 dernier = (
                     Document.objects
@@ -155,17 +189,7 @@ class Document(models.Model):
                     .aggregate(max_num=Max('numero'))
                 )
 
-                dernier_num = dernier["max_num"]
-                if dernier_num:
-                    try:
-                        last_counter = int(dernier_num.split('-')[-1])
-                        nouveau_num = f"{annee}-{last_counter + 1:04d}"
-                    except ValueError:
-                        nouveau_num = f"{annee}-1000"
-                else:
-                    nouveau_num = f"{annee}-1000"
-
-                self.numero = nouveau_num
+                self.numero = self.prochain_numero(dernier["max_num"], annee)
 
                 try:
                     with transaction.atomic():

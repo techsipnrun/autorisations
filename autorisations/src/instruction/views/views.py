@@ -1620,7 +1620,8 @@ def back_office(request):
             "transformations": TRANSFORMATIONS_NOM_DOSSIER,
         }
         demarche.nommage_script_id = f"nommage-demarche-{demarche.id}"
-    return render(request, "instruction/back_office.html", {"demarches_back_office": demarches})
+    from instruction.views.types_actes import contexte_types_actes
+    return render(request, "instruction/back_office.html", {"demarches_back_office": demarches, **contexte_types_actes()})
 
 
 @login_required

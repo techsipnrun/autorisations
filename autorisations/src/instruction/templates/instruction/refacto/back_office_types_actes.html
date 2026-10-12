@@ -1,0 +1,31 @@
+<header class="back-office-demarche-header">
+    <div><p class="back-office-eyebrow">Circuit d’instruction</p><h1>Types d’actes</h1>
+        <p>Configurez les différents types d'actes.</p></div>
+</header>
+<p class="back-office-acte-note">
+    Les réglages ne renumérotent aucun document et ne renomment aucun fichier existant.
+    L’ordre des blocs correspond à celui des listes de choix. Utilisez les flèches pour le modifier.
+</p>
+<p class="back-office-acte-order-status" data-type-acte-order-status role="status" aria-live="polite"></p>
+<div data-type-acte-list>
+{% for configuration in formulaires_types_actes %}
+    <details class="back-office-config-block back-office-acte-card" data-type-acte-id="{{ configuration.type.pk }}" data-order-url="{% url 'back_office_deplacer_type_acte' configuration.type.pk %}">
+        <summary class="back-office-fields-heading"><div><h2>{{ configuration.type.nature }}</h2>
+            <small>{{ configuration.type.actif|yesno:"Actif,Inactif" }} · {{ configuration.type.get_circuit_signature_display }} · {{ configuration.type.get_mode_publication_raa_display }}</small></div>
+            <span class="back-office-acte-order-actions">
+                <span class="back-office-acte-rank" data-type-acte-rank title="Position dans les listes de choix">{{ configuration.position }}</span>
+                <button type="button" data-type-acte-move="monter" title="Monter ce type d’acte" aria-label="Monter ce type d’acte" {% if forloop.first %}disabled{% endif %}>↑</button>
+                <button type="button" data-type-acte-move="descendre" title="Descendre ce type d’acte" aria-label="Descendre ce type d’acte" {% if forloop.last %}disabled{% endif %}>↓</button>
+            </span>
+            <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span></summary>
+        {% include "instruction/refacto/type_acte_form.html" with form=configuration.form type_id=configuration.type.pk prochain_numero=configuration.prochain_numero %}
+    </details>
+{% empty %}
+    <p>Aucun type d’acte configuré.</p>
+{% endfor %}
+</div>
+
+<details class="back-office-config-block back-office-acte-card back-office-acte-create">
+    <summary class="back-office-fields-heading"><h2>Ajouter un type d’acte</h2><span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span></summary>
+    {% include "instruction/refacto/type_acte_form.html" with form=formulaire_nouveau_type_acte type_id=0 prochain_numero=premier_numero_acte %}
+</details>

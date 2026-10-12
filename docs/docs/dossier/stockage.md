@@ -103,6 +103,26 @@ Contient **tous les actes signés** délivrés par le Parc (format PDF).
 | Avis Simple | AVIS-SIMPLE-{NUMERO}_{DATE DU JOUR} |
 | Avis Conforme | AVIS-CONFORME-{NUMERO}_{DATE DU JOUR} |
 
+Les préfixes sont configurables dans l’administration, rubrique **Documents → Document natures** :
+`prefixe_numero` pour l’affichage dans l’application, `prefixe_nom_fichier` pour les nouveaux fichiers signés.
+Inclure le séparateur final dans la valeur (par exemple `DIR-I-`, `CA/` ou `DELIB-CA-`).
+Une modification ne renomme pas les fichiers déjà stockés sur le NAS.
+
+Les superutilisateurs peuvent également gérer les types d’actes dans le
+**Back-office → Circuit d’instruction → Types d’actes** : libellé, disponibilité,
+ordre de proposition, préfixes, circuit de signature, rapport CA obligatoire et dépôt sur DM.
+Les deux préfixes sont obligatoires dans ce formulaire.
+
+Trois modes de publication au RAA sont proposés :
+
+- **Publication à effectuer dans AGIDA** : choix d’un publieur, puis étape « À publier au RAA » après l’envoi ;
+- **Publication considérée comme déjà réalisée hors AGIDA** : classement direct comme accepté/refusé après l’envoi, avec l’acte marqué publié (comportement initial des délibérations CA) ;
+- **Publication non requise** : classement direct après l’envoi, sans marquer l’acte comme publié.
+
+L’autorisation DM concerne uniquement le dépôt du fichier de l’acte. L’avis favorable ou
+défavorable reste déterminé par la décision du dossier. Désactiver un type le retire des
+nouveaux choix sans masquer ses actes existants. Ces réglages ne renumérotent aucun document
+et ne changent pas rétroactivement l’état des dossiers.
 
 > Ce dossier est **en lecture seule** : il est alimenté exclusivement par l’application.
 
