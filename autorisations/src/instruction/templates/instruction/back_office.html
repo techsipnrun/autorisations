@@ -9,6 +9,15 @@
     <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=39">
     <script src="{% static 'instruction/js/back_office_types_actes.js' %}?v=4" defer></script>
     <script src="{% static 'instruction/js/back_office_nommage.js' %}?v=8" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
+    <link rel="stylesheet" href="{% static 'instruction/css/cartographie.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office_cartographie.css' %}?v=8">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js" defer></script>
+    <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js" defer></script>
+    <script src="{% static 'instruction/js/cartographie.js' %}?v=4" defer></script>
+    <script src="{% static 'instruction/js/back_office_cartographie.js' %}?v=12" defer></script>
 </head>
 <body>
     <div class="back-office-layout">
@@ -37,9 +46,16 @@
                         {% endfor %}
                     </div>
                 </div>
-                <button type="button" class="back-office-nav-item" data-section="carto">
-                    <span class="back-office-nav-dot"></span>Carto
-                </button>
+                <div class="back-office-nav-group">
+                    <button type="button" class="back-office-nav-item" data-section="carto" aria-expanded="false" aria-controls="back-office-carto-nav">
+                        <span class="back-office-nav-dot"></span>Carto
+                        <span class="back-office-nav-chevron" aria-hidden="true">›</span>
+                    </button>
+                    <div id="back-office-carto-nav" class="back-office-nav-submenu" hidden>
+                        <button type="button" class="back-office-nav-subitem" data-section="carto" data-carto-view="catalogue">Catalogue</button>
+                        <button type="button" class="back-office-nav-subitem" data-section="carto" data-carto-view="cartes">Personnaliser les cartes</button>
+                    </div>
+                </div>
                 <button type="button" class="back-office-nav-item" data-section="dossier">
                     <span class="back-office-nav-dot"></span>Dossier
                 </button>
@@ -319,9 +335,7 @@
                 {% endfor %}
             </section>
             <section class="back-office-panel" data-panel="carto" hidden>
-                <p class="back-office-eyebrow">Back Office</p>
-                <h1>Cartographie</h1>
-                <p>Les outils de gestion des couches, périmètres et fonds de carte seront ajoutés ici.</p>
+                {% include 'instruction/refacto/back_office_cartographie.html' %}
             </section>
             <section class="back-office-panel" data-panel="dossier" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
@@ -395,9 +409,16 @@
         const menuDemarche = document.querySelector('.back-office-nav-item[data-section="demarche"]');
         const sousMenuDemarches = document.getElementById('back-office-demarches-nav');
 
-        function afficherBackOffice(section, demarcheId = null) {
+        function afficherBackOffice(section, demarcheId = null, vueCarto = 'catalogue') {
             const sectionValide = document.querySelector(`[data-panel="${section}"]`) ? section : 'services-externes';
             const estDemarche = sectionValide === 'demarche';
+            const estCarto = sectionValide === 'carto';
+            document.querySelector('[data-panel="carto"]').dataset.cartoVue = vueCarto;
+            document.getElementById('back-office-carto-nav').hidden = !estCarto;
+            document.querySelector('.back-office-nav-item[data-section="carto"]').setAttribute('aria-expanded', String(estCarto));
+            document.querySelectorAll('.back-office-nav-subitem[data-carto-view]').forEach(item => {
+                item.classList.toggle('is-active', estCarto && item.dataset.cartoView === vueCarto);
+            });
 
             document.querySelectorAll('.back-office-nav-item').forEach(item => {
                 item.classList.toggle('is-active', item.dataset.section === sectionValide);
@@ -429,6 +450,11 @@
 
         function etatDepuisUrl() {
             const fragment = window.location.hash.replace(/^#/, '');
+            const carto = fragment.match(/^carto(?:\/(catalogue|cartes))?$/);
+            if (carto) {
+                afficherBackOffice('carto', null, carto[1] || 'catalogue');
+                return;
+            }
             if (fragment === 'circuit/types-actes') {
                 afficherBackOffice('types-actes');
                 return;
@@ -441,10 +467,10 @@
             afficherBackOffice(fragment || 'services-externes');
         }
 
-        function naviguerBackOffice(section, demarcheId = null) {
-            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'types-actes' ? 'circuit/types-actes' : section;
+        function naviguerBackOffice(section, demarcheId = null, vueCarto = 'catalogue') {
+            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'types-actes' ? 'circuit/types-actes' : section === 'carto' ? `carto/${vueCarto}` : section;
             if (window.location.hash === `#${fragment}`) {
-                afficherBackOffice(section, demarcheId);
+                afficherBackOffice(section, demarcheId, vueCarto);
                 return;
             }
             window.location.hash = fragment;
@@ -463,7 +489,7 @@
         });
 
         document.querySelectorAll('.back-office-nav-subitem').forEach(button => {
-            button.addEventListener('click', () => button.dataset.section ? naviguerBackOffice(button.dataset.section) : naviguerBackOffice('demarche', button.dataset.demarcheId));
+            button.addEventListener('click', () => button.dataset.section ? naviguerBackOffice(button.dataset.section, null, button.dataset.cartoView) : naviguerBackOffice('demarche', button.dataset.demarcheId));
         });
         window.addEventListener('hashchange', etatDepuisUrl);
         etatDepuisUrl();

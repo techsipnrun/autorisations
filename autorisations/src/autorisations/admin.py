@@ -7,6 +7,39 @@ from .models.models_instruction import ActionsPossibles, AvisManifSportive, Cham
 from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, F, OuterRef, Subquery
 from .models.models_instruction import DemarcheNomDossierRegle, DemarcheNomDossierElement
+from .models.models_cartographie import CartographieSource, CartographieConfiguration, CartographieConfigurationSource
+
+
+@admin.register(CartographieSource)
+class CartographieSourceAdmin(admin.ModelAdmin):
+    list_display = ("nom", "code", "format", "actif")
+    list_filter = ("format", "actif")
+    search_fields = ("nom", "code")
+
+    def save_model(self, request, obj, form, change):
+        from uuid import uuid4
+        from django.core.cache import cache
+        from instruction.utils.cartographie import CACHE_KEY
+        obj.options["version"] = uuid4().hex[:12]
+        super().save_model(request, obj, form, change)
+        cache.delete(CACHE_KEY)
+
+
+class CartographieSourceInline(admin.TabularInline):
+    model = CartographieConfigurationSource
+    extra = 0
+
+
+@admin.register(CartographieConfiguration)
+class CartographieConfigurationAdmin(admin.ModelAdmin):
+    list_display = ("nom", "code")
+    inlines = (CartographieSourceInline,)
+
+    def save_related(self, request, form, formsets, change):
+        from django.core.cache import cache
+        from instruction.utils.cartographie import CACHE_KEY
+        super().save_related(request, form, formsets, change)
+        cache.delete(CACHE_KEY)
 
 # Personnalisation globale de l'admin
 admin.site.site_header = "Administration des Autorisations"

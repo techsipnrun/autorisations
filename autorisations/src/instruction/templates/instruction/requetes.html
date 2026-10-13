@@ -18,7 +18,8 @@
     <link rel="stylesheet" href="{% static 'instruction/css/requetes_carte.css' %}?v=6">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
-    <script src="{% static 'instruction/js/requetes_carte.js' %}?v=7" defer></script>
+    {% include 'instruction/refacto/cartographie_assets.html' with carto_contexte='requetes' %}
+    <script src="{% static 'instruction/js/requetes_carte.js' %}?v=8" defer></script>
 </head>
 <body>
     {% include 'navbar.html' %}

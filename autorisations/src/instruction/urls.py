@@ -8,6 +8,7 @@ from django.templatetags.static import static
 from instruction.views import dossiers_lies
 from instruction.views import nom_dossier
 from instruction.views import types_actes
+from instruction.views import cartographie
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -25,6 +26,13 @@ urlpatterns = [
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
     path("back-office/", views.back_office, name="back_office"),
+    path("back-office/cartographie/", cartographie.catalogue, name="back_office_cartographie"),
+    path("back-office/cartographie/convertir/", cartographie.convertir_source, name="back_office_cartographie_convertir"),
+    path("back-office/cartographie/source/", cartographie.enregistrer_source, name="back_office_cartographie_ajouter_source"),
+    path("back-office/cartographie/source/<int:source_id>/", cartographie.enregistrer_source, name="back_office_cartographie_source"),
+    path("back-office/cartographie/source/<int:source_id>/supprimer/", cartographie.supprimer_source, name="back_office_cartographie_supprimer_source"),
+    path("back-office/cartographie/carte/<slug:code>/", cartographie.enregistrer_configuration, name="back_office_cartographie_carte"),
+    path("cartographie/couche/<int:source_id>/", cartographie.geojson_source, name="cartographie_geojson"),
     path("back-office/types-actes/<int:type_id>/", types_actes.enregistrer_type_acte, name="back_office_enregistrer_type_acte"),
     path("back-office/types-actes/<int:type_id>/ordre/", types_actes.deplacer_type_acte, name="back_office_deplacer_type_acte"),
     path("back-office/demarche/<int:demarche_id>/noms/", nom_dossier.enregistrer_regles_nom_dossier, name="back_office_enregistrer_noms"),

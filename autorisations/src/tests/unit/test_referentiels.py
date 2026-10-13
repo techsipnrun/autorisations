@@ -45,3 +45,14 @@ class ReferentielsTests(SimpleTestCase):
             "en_cours": False, "date_maj": None,
             "date_derniere_tentative": None, "dernier_statut": "inconnu",
         })
+
+    def test_fonds_cartographiques_par_defaut(self):
+        fonds = [
+            entree["fields"] for entree in self.entrees
+            if entree["model"] == "autorisations.cartographiesource"
+        ]
+        par_code = {fond["code"]: fond for fond in fonds}
+        self.assertTrue({"ign", "osm", "satellite", "topo"}.issubset(par_code))
+        for code in ("ign", "osm", "satellite", "topo"):
+            self.assertEqual(par_code[code]["format"], "tuiles")
+            self.assertTrue(par_code[code]["actif"])

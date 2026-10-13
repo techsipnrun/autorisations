@@ -1147,7 +1147,8 @@ Dans l'attente de vos compléments,</textarea>
 
 
     <!-- 3. Script Leaflet personnalisé -->
-    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=6"></script>
+    {% include 'instruction/refacto/cartographie_assets.html' with carto_contexte=carto_contexte %}
+    <script src="{% static 'instruction/js/formulaire_map_manif_sportives.js' %}?v=7"></script>
 
 
 

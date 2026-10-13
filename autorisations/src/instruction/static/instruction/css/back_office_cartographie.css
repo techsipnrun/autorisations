@@ -1,0 +1,70 @@
+.bo-carto { --carto-green: #175d42; color: #253c30; }
+.back-office-panel[data-panel="carto"] { width: 100%; max-width: none; min-width: 0; padding: clamp(16px, 2vw, 32px); }
+.bo-carto [hidden] { display: none !important; }
+.bo-carto-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.bo-carto-intro h1 { margin-bottom: 8px; }
+.bo-carto-workspace { display: grid; grid-template-columns: minmax(340px, .9fr) minmax(0, 1.5fr); align-items: start; gap: 24px; }
+.bo-carto[data-vue="catalogue"] .bo-carto-workspace { grid-template-columns: minmax(300px, .8fr) minmax(0, 1.35fr); }
+.bo-carto[data-vue="catalogue"] #bo-carto-preview-map { height: min(740px, 76vh); min-height: 440px; }
+.bo-carto-settings { display: grid; gap: 20px; min-width: 0; }
+.bo-carto-card, .bo-carto-preview-card { min-width: 0; padding: 22px; border: 1px solid #dbe4de; border-radius: 16px; background: #fff; box-shadow: 0 5px 18px #183b2710; }
+.bo-carto h2 { margin: 0 0 14px; font-size: 1.12rem; }
+.bo-carto h2::after { display: none; }
+.bo-carto label { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 12px 0; font-size: .88rem; font-weight: 600; min-width: 0; }
+.bo-carto-field { display: grid; justify-items: start; gap: 6px; margin: 12px 0; min-width: 0; }
+.bo-carto-field-heading { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+.bo-carto .bo-carto-field-heading label { display: block; margin: 0; }
+.bo-carto [data-carto-url-hint] { overflow-wrap: anywhere; }
+.bo-carto input:where(:not([type=checkbox]):not([type=radio]):not([type=color])), .bo-carto select { box-sizing: border-box; min-width: 0; width: 100%; max-width: 100%; padding: 9px 11px; border: 1px solid #b9c9bf; border-radius: 8px; background: #fff; font: inherit; color: inherit; }
+.bo-carto input[type=color] { width: 48px; height: 34px; padding: 3px; border: 1px solid #b9c9bf; border-radius: 7px; cursor: pointer; }
+.bo-carto input[type=checkbox] { accent-color: var(--carto-green); flex: none; }
+.bo-carto input[type=file] { font-size: .8rem; }
+.bo-carto input:where(:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=file])) { width: auto; field-sizing: content; min-width: min(14ch, 100%); }
+.bo-carto input[type=number] { field-sizing: fixed; width: 9ch; min-width: 9ch; }
+.bo-carto input[name=latitude], .bo-carto input[name=longitude] { width: 15ch; }
+.bo-carto select { width: fit-content; }
+.bo-carto input:disabled { background: #edf0ee; color: #718078; border-color: #d5ddd7; cursor: not-allowed; }
+#bo-carto-preview-map .leaflet-interactive:focus:not(:focus-visible) { outline: none; }
+#bo-carto-preview-map .leaflet-interactive:focus-visible { outline: 2px solid #175d42; outline-offset: 2px; }
+.bo-carto .bo-carto-check { flex-direction: row; align-items: center; gap: 8px; font-weight: 500; }
+.bo-carto-hint { color: #637369; font-size: .82rem; line-height: 1.55; margin: 10px 0; }
+.bo-carto-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 15px; }
+.bo-carto-details { border-top: 1px solid #e0e8e2; padding-top: 14px; margin-top: 18px; }
+.bo-carto summary { cursor: pointer; font-weight: 650; color: #253c30; }
+.bo-carto-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
+.bo-carto button { border: 1px solid #c1d0c7; border-radius: 8px; background: #f7faf8; color: #214f37; padding: 9px 13px; font: inherit; font-size: .85rem; cursor: pointer; }
+.bo-carto button:disabled { cursor: wait; opacity: .55; }
+.bo-carto button:hover:not(:disabled) { background: #eaf2ed; }
+.bo-carto .bo-carto-primary { background: var(--carto-green); color: #fff; border-color: var(--carto-green); }
+.bo-carto-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.bo-carto-source-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #edf1ee; }
+.bo-carto-source-row > span:first-child { color: #82958a; font-size: .8rem; }
+.bo-carto-source-row strong { display: block; overflow-wrap: anywhere; font-size: .88rem; }
+.bo-carto-source-row small { font-size: .75rem; color: #6f8075; }
+.bo-carto-source-row .bo-carto-check { font-size: .78rem; margin: 4px 0; }
+.bo-carto-catalogue-nav { display: grid; gap: 16px; margin-bottom: 24px; }
+.bo-carto-catalogue-section { padding: 12px; border: 1px solid #dbe4de; border-radius: 10px; background: #f8faf9; }
+.bo-carto-catalogue-section > summary { padding: 3px 0; }
+.bo-carto-catalogue-list { display: grid; gap: 4px; margin-top: 12px; }
+.bo-carto .bo-carto-catalogue-source { width: 100%; text-align: left; overflow-wrap: anywhere; border-color: transparent; background: transparent; }
+.bo-carto .bo-carto-catalogue-source[aria-pressed="true"] { color: #175d42; border-color: #aacdbb; background: #e5f0e9; font-weight: 650; }
+.bo-carto .bo-carto-add-source { margin-top: 10px; background: #fff; }
+.bo-carto .bo-carto-danger { color: #a52121; border-color: #e4b9b9; background: #fff7f7; margin-left: auto; }
+.bo-carto-row-buttons { display: flex; gap: 4px; }
+.bo-carto-row-buttons button { padding: 5px 9px; font-weight: 700; }
+.bo-carto-preview-card { position: sticky; top: 24px; padding: 16px; }
+.bo-carto-preview-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.bo-carto-preview-heading > div { min-width: 0; }
+.bo-carto-preview-heading span { display: block; color: #6f8075; font-size: .78rem; overflow-wrap: anywhere; }
+.bo-carto-preview-heading > button { flex: 0 0 auto; }
+#bo-carto-preview-map { height: min(640px, 72vh); min-height: 360px; border-radius: 12px; border: 1px solid #c9d5cd; isolation: isolate; z-index: 0; }
+.bo-carto-category { display: grid; grid-template-columns: minmax(0, 1fr) 48px auto; align-items: center; gap: 8px; margin: 8px 0; }
+.bo-carto .is-error { color: #a52121; }
+.bo-carto [data-carto-preview-status], .bo-carto [data-carto-import-status] { margin: 10px 0 0; font-size: .82rem; line-height: 1.5; }
+.bo-carto .is-success { color: #17643d; }
+.bo-carto .is-dirty { border-color: #b57a20; }
+.bo-carto [role=status]:empty { display: none; }
+@media (max-width: 1200px) { .bo-carto-workspace, .bo-carto[data-vue="catalogue"] .bo-carto-workspace { grid-template-columns: 1fr; } .bo-carto-preview-card { position: static; } }
+@media (max-width: 600px) { .bo-carto[data-vue="catalogue"] #bo-carto-preview-map { min-height: 340px; height: 60vh; } }
+@media (max-width: 600px) { .bo-carto-card, .bo-carto-preview-card { padding: 15px; } .bo-carto-grid, .bo-carto-controls { grid-template-columns: 1fr; } .bo-carto-intro { align-items: flex-start; } .bo-carto-source-row { gap: 6px; } }
+@media (max-width: 600px) { .bo-carto-preview-heading { flex-wrap: wrap; } .bo-carto-preview-heading > button { margin-left: auto; } }

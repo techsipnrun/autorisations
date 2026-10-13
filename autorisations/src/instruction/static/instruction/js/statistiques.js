@@ -36,7 +36,7 @@
     couleurEvolution.value = localStorage.getItem("agida-stats-couleur-evolution") || "#16814a";
     couleurCourbe.value = localStorage.getItem("agida-stats-couleur-courbe") || "#16814a";
     couleurGroupes.value = localStorage.getItem("agida-stats-couleur-groupes") || "#3278b7";
-    couleurCarte.value = localStorage.getItem("agida-stats-couleur-carte") || "#00695c";
+    couleurCarte.value = localStorage.getItem("agida-stats-couleur-carte") || AGIDACarto.config("statistiques").options.couleur_densite;
 
     const cleCouleur = (libelle) => `agida-stats-couleur-${encodeURIComponent(libelle).replaceAll("%", "_")}`;
     const couleurType = (libelle, index) => localStorage.getItem(cleCouleur(libelle)) || palette[index % palette.length];
@@ -63,73 +63,9 @@
 
     function initialiserCarteDensite() {
         if (carteDensite || typeof L === "undefined") return;
-        const fonds = {
-            "IGN": L.tileLayer(
-                "https://data.geopf.fr/wmts?service=WMTS&request=GetTile&version=1.0.0" +
-                "&layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&style=normal&tilematrixset=PM" +
-                "&format=image/png&tilematrix={z}&tilerow={y}&tilecol={x}",
-                {maxZoom: 19, attribution: "© IGN - Géoplateforme", crossOrigin: true, updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 2}
-            ),
-            "OpenStreetMap": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                crossOrigin: true,
-                referrerPolicy: "strict-origin-when-cross-origin",
-            }),
-            "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19, attribution: "Esri & NASA", crossOrigin: true}),
-            "Topo": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {maxZoom: 18, attribution: "© OpenTopoMap", crossOrigin: true}),
-        };
-        carteDensite = L.map("statistiques-carte-leaflet", {preferCanvas: true}).setView([-21.12, 55.53], 10);
-        fonds.OpenStreetMap.addTo(carteDensite);
-        ajouterControleFondsCarte(carteDensite, fonds);
+        carteDensite = AGIDACarto.creerCarte("statistiques-carte-leaflet", "statistiques", {preferCanvas: true});
+        AGIDACarto.configurer(carteDensite, "statistiques");
         setTimeout(() => carteDensite.invalidateSize({pan: false}), 0);
-    }
-
-    function ajouterControleFondsCarte(carte, fonds) {
-        const fermer = () => carte.getContainer().querySelectorAll(".or-popover").forEach((element) => element.remove());
-        const Controle = L.Control.extend({
-            options: {position: "topright"},
-            onAdd() {
-                const conteneur = L.DomUtil.create("div", "leaflet-control or-mini");
-                const pile = L.DomUtil.create("div", "or-stack", conteneur);
-                const bouton = L.DomUtil.create("div", "or-btn", pile);
-                bouton.title = "Fonds de carte";
-                bouton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/><path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"/></svg>';
-                L.DomEvent.disableClickPropagation(conteneur);
-                bouton.addEventListener("click", () => {
-                    fermer();
-                    const menu = document.createElement("div");
-                    menu.className = "or-popover";
-                    menu.innerHTML = "<h4>Fonds de carte</h4>";
-                    Object.entries(fonds).forEach(([nom, couche], index) => {
-                        const id = `stats-fond-${index}`;
-                        const ligne = document.createElement("div");
-                        ligne.className = "or-row";
-                        ligne.innerHTML = `<input type="radio" name="stats-fond-carte" id="${id}" ${carte.hasLayer(couche) ? "checked" : ""}><label for="${id}">${nom}</label>`;
-                        ligne.querySelector("input").addEventListener("change", () => {
-                            Object.values(fonds).forEach((fond) => carte.removeLayer(fond));
-                            couche.addTo(carte).bringToBack();
-                        });
-                        menu.appendChild(ligne);
-                    });
-                    L.DomEvent.disableClickPropagation(menu);
-                    carte.getContainer().appendChild(menu);
-                    menu.style.top = `${bouton.offsetTop}px`;
-                    menu.style.right = `${bouton.offsetWidth + 20}px`;
-                    setTimeout(() => {
-                        const fermerExterieur = (event) => {
-                            if (menu.contains(event.target) || bouton.contains(event.target)) return;
-                            menu.remove();
-                            document.removeEventListener("mousedown", fermerExterieur);
-                        };
-                        document.addEventListener("mousedown", fermerExterieur);
-                    }, 0);
-                });
-                return conteneur;
-            },
-        });
-        new Controle().addTo(carte);
-        carte.on("click", fermer);
     }
 
     function couleurDensite(valeur, maximum) {
@@ -380,11 +316,13 @@
             carteDensite.on("zoomend", actualiserStyleDensite);
 
             if (coucheDensite.getLayers().length) {
-                carteDensite.fitBounds(coucheDensite.getBounds(), {padding: [18, 18], maxZoom: 15});
-                carteDensite.setZoom(Math.min(carteDensite.getZoom() + 1, carteDensite.getMaxZoom()));
+                if (AGIDACarto.config("statistiques").options.recentrage) {
+                    carteDensite.fitBounds(coucheDensite.getBounds(), {padding: [18, 18], maxZoom: AGIDACarto.config("statistiques").options.zoom_cadrage});
+                    carteDensite.setZoom(Math.min(carteDensite.getZoom() + 1, carteDensite.getMaxZoom(), AGIDACarto.config("statistiques").options.zoom_cadrage));
+                }
                 legendeCarte.hidden = false;
             } else {
-                carteDensite.setView([-21.12, 55.53], 10);
+                carteDensite.setView(AGIDACarto.config("statistiques").options.centre, AGIDACarto.config("statistiques").options.zoom);
                 legendeCarte.hidden = true;
             }
             afficherInformationCarte(donnees);

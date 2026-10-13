@@ -20,7 +20,7 @@ non ajoutés aux dépendances de l'application).
 | `unit/` | Synchronisation, notifications, instruction, back-office, admin et clients API simulés | Aucune BDD, aucun vrai mail/NAS/service externe |
 | `integration/test_reprise_http.py` | Reprise d'un téléchargement réellement interrompu | Serveur HTTP local, NAS simulé |
 | `integration/models/` | Anciens tests ORM et contraintes SQL | PostgreSQL de test préparé, activation volontaire |
-| `interface/` | Éditeur de nommage dans Chrome headless | Chrome local, API simulées ; ignoré si Chrome absent |
+| `interface/` | Nommage, types d’actes et cartographie dans Chrome headless | Chrome local, API simulées ; ignoré si Chrome absent |
 | `externes/` | Disponibilité et authentification réelles DN/DM | Activation volontaire et identifiants explicites |
 | `support/` | Fabriques, simulations et préparation partagée | Aucun cas de test ; ne pas importer des tests entre eux |
 | `verification_manuelle/` | Outils à lancer à la main, hors découverte automatique | BDD dev ou NAS réels selon l'outil |
@@ -36,6 +36,11 @@ Les modifications de formulaire sont testées séparément :
 Conserver le préfixe `test_` et les fichiers `__init__.py` pour la découverte Django.
 Un test doit rester proche de la fonctionnalité vérifiée ; `support/` ne contient
 pas de classe de tests ni de méthode `test_*`, afin d'éviter les doublons.
+
+Cartographie : `unit/back_office/test_cartographie.py` couvre la validation et
+les vues sans SQL réel ; `interface/test_cartographie.py` vérifie les formulaires,
+l’aperçu, les sauvegardes et le responsive (540/1600 px), avec Leaflet et API
+simulés. Les fournisseurs de tuiles et les parcours réels se vérifient en dev.
 
 ## Isolation par défaut
 

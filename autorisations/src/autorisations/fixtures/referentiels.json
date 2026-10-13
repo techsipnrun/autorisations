@@ -2206,5 +2206,69 @@
     "fields": {
       "type": "autre"
     }
+  },
+  {
+    "model": "autorisations.cartographiesource",
+    "pk": 1,
+    "fields": {
+      "code": "ign",
+      "nom": "Plan IGN",
+      "format": "tuiles",
+      "url": "https://data.geopf.fr/wmts?service=WMTS&request=GetTile&version=1.0.0&layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&style=normal&tilematrixset=PM&format=image/png&tilematrix={z}&tilerow={y}&tilecol={x}",
+      "geojson": null,
+      "attribution": "© IGN - Géoplateforme",
+      "actif": true,
+      "options": {
+        "maxZoom": 19
+      }
+    }
+  },
+  {
+    "model": "autorisations.cartographiesource",
+    "pk": 2,
+    "fields": {
+      "code": "osm",
+      "nom": "OpenStreetMap",
+      "format": "tuiles",
+      "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "geojson": null,
+      "attribution": "© OpenStreetMap",
+      "actif": true,
+      "options": {
+        "maxZoom": 19
+      }
+    }
+  },
+  {
+    "model": "autorisations.cartographiesource",
+    "pk": 3,
+    "fields": {
+      "code": "satellite",
+      "nom": "Satellite",
+      "format": "tuiles",
+      "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      "geojson": null,
+      "attribution": "Esri & NASA",
+      "actif": true,
+      "options": {
+        "maxZoom": 19
+      }
+    }
+  },
+  {
+    "model": "autorisations.cartographiesource",
+    "pk": 4,
+    "fields": {
+      "code": "topo",
+      "nom": "OpenTopoMap",
+      "format": "tuiles",
+      "url": "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+      "geojson": null,
+      "attribution": "© OpenTopoMap",
+      "actif": true,
+      "options": {
+        "maxZoom": 18
+      }
+    }
   }
 ]

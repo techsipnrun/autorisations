@@ -35,6 +35,16 @@ def dossier_manif_sportive_sans_ds(request, numero):
     Affichage en Reception des Dossiers DM (qui ne sont pas liés à un Dossier DN)
     """
 
+    # Le contexte cartographique suit la vue consultée, pas l'étape courante
+    # du dossier. Ainsi une consultation forcée depuis la réception conserve
+    # bien la configuration « Pré-instruction · DM », même pour un dossier
+    # déjà archivé.
+    carto_contexte = (
+        "instruction"
+        if request.resolver_match.url_name == "dossier_manif_sportive_sans_ds_archive"
+        else "preinstruction"
+    )
+
     doss_manif_sportive = DossierManifSportive.objects.filter(
         numero_dossier_declaration_manifestations=numero
     ).first()
@@ -363,6 +373,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "messages_notes": request.session.pop("messages_bloc_notes", []),
         # "emails_dossiers": emails_dossiers,
         "DM_API_URL": DM_API_URL,
+        "carto_contexte": carto_contexte,
     })
 
 

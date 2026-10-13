@@ -1,0 +1,150 @@
+{% load static %}
+<div id="bo-cartographie" class="bo-carto" data-url="{% url 'back_office_cartographie' %}" data-source-url="{% url 'back_office_cartographie_ajouter_source' %}" data-convert-url="{% url 'back_office_cartographie_convertir' %}">
+    {% csrf_token %}
+    <div class="bo-carto-intro">
+        <div><p class="back-office-eyebrow">Cartographie</p><h1 data-carto-title>Catalogue</h1><p data-carto-description>Gérer les fonds et les couches partagés par les cartes.</p></div>
+    </div>
+    <p data-carto-status role="status" aria-live="polite">Ouvrez cette rubrique pour charger les configurations.</p>
+    <div class="bo-carto-workspace" hidden>
+        <div class="bo-carto-settings">
+            <section class="bo-carto-card" data-carto-screen="cartes" hidden>
+                <h2>Carte à personnaliser</h2>
+                <label>Contexte <select data-carto-profil></select></label>
+                <p class="bo-carto-hint">Les réglages s’appliquent à toutes les cartes de ce contexte. Ils ne modifient ni les géométries des dossiers, ni les calculs géographiques.</p>
+            </section>
+            <form class="bo-carto-card" data-carto-config-form data-carto-screen="cartes" hidden>
+                <details class="bo-carto-details">
+                    <summary>Fonds de carte</summary>
+                    <p class="bo-carto-hint">Choisissez les fonds proposés et celui affiché au chargement.</p>
+                    <div data-carto-sources="tuiles"></div>
+                </details>
+                <details class="bo-carto-details">
+                    <summary>Couches cartographiques</summary>
+                    <p class="bo-carto-hint">Choisissez les couches disponibles et visibles. L’ordre va de l’arrière-plan vers le premier plan.</p>
+                    <div data-carto-sources="geojson"></div>
+                </details>
+                <details class="bo-carto-details"><summary>Cadrage initial</summary>
+                    <div class="bo-carto-grid">
+                        <label>Latitude <input type="number" name="latitude" step="any" min="-90" max="90" required></label>
+                        <label>Longitude <input type="number" name="longitude" step="any" min="-180" max="180" required></label>
+                        <label>Zoom initial <input type="number" name="zoom" min="0" max="22" required></label>
+                        <label>Zoom maximal du cadrage <input type="number" name="zoom_cadrage" min="0" max="22" required></label>
+                    </div>
+                    <label class="bo-carto-check"><input type="checkbox" name="recentrage"> Recentrer automatiquement sur les géométries</label>
+                </details>
+                <details class="bo-carto-details"><summary>Géométries du pétitionnaire</summary>
+                    <div data-carto-geometry></div>
+                    <p class="bo-carto-hint">Les pictogrammes métier DM et les icônes de ravitaillement/signaleur sont conservés.</p>
+                    <label data-carto-density-label hidden>Couleur de densité par défaut <input type="color" name="couleur_densite"></label>
+                    <p data-carto-density-hint class="bo-carto-hint" hidden>Dans les statistiques, la couleur déjà choisie dans le navigateur reste prioritaire.</p>
+                </details>
+                <details class="bo-carto-details"><summary>Fonctionnalités de la carte</summary><div data-carto-controls class="bo-carto-controls"></div></details>
+                <div class="bo-carto-actions"><button type="submit" class="bo-carto-primary">Enregistrer cette carte</button></div>
+                <p data-carto-config-status role="status" aria-live="polite"></p>
+            </form>
+            <section class="bo-carto-card" data-carto-catalogue data-carto-screen="catalogue">
+                <h2>Fonds et couches du catalogue</h2>
+                <p class="bo-carto-hint">Une modification du catalogue concerne toutes les cartes utilisant cette source. Une couche importée n’est pas automatiquement un nouveau filtre de recherche.</p>
+                <div class="bo-carto-catalogue-nav" aria-label="Sources à modifier">
+                    <details class="bo-carto-catalogue-section" open>
+                        <summary>Fonds de carte</summary>
+                        <div data-carto-catalogue-sources="tuiles" class="bo-carto-catalogue-list"></div>
+                        <button type="button" class="bo-carto-add-source" data-carto-new-source="tuiles">＋ Ajouter un fond</button>
+                    </details>
+                    <details class="bo-carto-catalogue-section" open>
+                        <summary>Couches cartographiques</summary>
+                        <div data-carto-catalogue-sources="geojson" class="bo-carto-catalogue-list"></div>
+                        <button type="button" class="bo-carto-add-source" data-carto-new-source="geojson">＋ Ajouter une couche</button>
+                    </details>
+                </div>
+                <h2 data-carto-source-heading hidden></h2>
+                <form data-carto-source-form hidden>
+                    <div class="bo-carto-grid">
+                        <div class="bo-carto-field">
+                            <div class="bo-carto-field-heading">
+                                <label for="bo-carto-source-name">Nom affiché *</label>
+                                <span class="back-office-acte-help" tabindex="0" aria-label="Aide : Nom affiché" aria-describedby="bo-carto-name-help">
+                                    <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                                    <span class="back-office-acte-help-bubble" id="bo-carto-name-help" role="tooltip">Ce nom apparaît dans le catalogue, les menus « Fonds de carte » ou « Couches » et, pour les couches, dans la légende si elle est activée. Le texte au clic ou au survol se règle séparément.</span>
+                                </span>
+                            </div>
+                            <input id="bo-carto-source-name" name="nom" maxlength="150" required>
+                        </div>
+                        <label>Type * <select name="format"><option value="geojson">Couche cartographique</option><option value="tuiles">Fond de carte · URL de tuiles</option></select></label>
+                    </div>
+                    <label class="bo-carto-check"><input name="actif" type="checkbox" checked> Source active</label>
+                    <div class="bo-carto-field">
+                        <div class="bo-carto-field-heading">
+                            <label for="bo-carto-source-url">URL</label>
+                            <span class="back-office-acte-help" tabindex="0" aria-label="Aide : URL" aria-describedby="bo-carto-url-help">
+                                <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                                <span class="back-office-acte-help-bubble" id="bo-carto-url-help" data-carto-url-hint role="tooltip"></span>
+                            </span>
+                        </div>
+                        <input id="bo-carto-source-url" name="url" placeholder="{% static 'instruction/carto/fond_coeur_de_parc.geojson' %}" data-geojson-example="{% static 'instruction/carto/fond_coeur_de_parc.geojson' %}">
+                    </div>
+                    <div class="bo-carto-field">
+                        <div class="bo-carto-field-heading">
+                            <label for="bo-carto-source-attribution">Attribution du fournisseur</label>
+                            <span class="back-office-acte-help" tabindex="0" aria-label="Aide : Attribution du fournisseur" aria-describedby="bo-carto-attribution-help">
+                                <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                                <span class="back-office-acte-help-bubble" id="bo-carto-attribution-help" role="tooltip">Crédit affiché sur la carte. Facultatif pour une couche, obligatoire pour un fond.</span>
+                            </span>
+                        </div>
+                        <input id="bo-carto-source-attribution" name="attribution" maxlength="250">
+                    </div>
+                    <div data-carto-tile-fields hidden><label>Zoom maximal <input name="maxZoom" type="number" min="0" max="22" value="19"></label></div>
+                    <div data-carto-layer-fields>
+                        <div class="bo-carto-field">
+                            <div class="bo-carto-field-heading">
+                                <label for="bo-carto-source-file">Importer une couche GeoJSON, GPX ou KML</label>
+                                <span class="back-office-acte-help" tabindex="0" aria-label="Aide : Importer une couche" aria-describedby="bo-carto-file-help">
+                                    <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                                    <span class="back-office-acte-help-bubble" id="bo-carto-file-help" role="tooltip">5 Mo maximum. Coordonnées WGS84 longitude/latitude (pas de reprojection automatique).
+GPX 1.0/1.1 : points, itinéraires et traces ; les segments restent séparés.
+KML : points, lignes et polygones ; sans liens réseau, images superposées ni modèles 3D. Les styles sont ceux d’AGIDA.
+Le fichier est converti et validé en GeoJSON pour l’aperçu. Le résultat n’est écrit en BDD qu’après « Enregistrer la source ». Aucun original n’est conservé sur le NAS. Shapefile et KMZ exclus.</span>
+                                </span>
+                            </div>
+                            <input id="bo-carto-source-file" name="fichier" type="file" accept=".geojson,.json,.gpx,.kml,application/geo+json,application/json,application/gpx+xml,application/vnd.google-earth.kml+xml">
+                        </div>
+                        <p data-carto-import-status role="status" aria-live="polite"></p>
+                        <div data-carto-source-style></div>
+                        <div class="bo-carto-grid">
+                            <label>Informations sur la carte <select name="popup_mode"><option value="aucun">Aucune</option><option value="survol">Au survol</option><option value="clic">Au clic</option></select></label>
+                            <div class="bo-carto-field">
+                                <div class="bo-carto-field-heading">
+                                    <label for="bo-carto-popup-property">Propriété GeoJSON à afficher</label>
+                                    <span class="back-office-acte-help" tabindex="0" aria-label="Aide : Propriété GeoJSON" aria-describedby="bo-carto-property-help">
+                                        <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                                        <span class="back-office-acte-help-bubble" id="bo-carto-property-help" role="tooltip">Une propriété est une information associée à un objet de la couche, par exemple son nom, son secteur ou sa description. Sa valeur s’affiche au clic ou au survol.
+Après conversion GPX/KML, les informations récupérées deviennent aussi des propriétés GeoJSON. Les propriétés détectées sont proposées automatiquement.</span>
+                                    </span>
+                                </div>
+                                <input id="bo-carto-popup-property" name="popup_propriete" maxlength="100" placeholder="Choisir ou saisir une propriété" list="bo-carto-properties">
+                            </div>
+                        </div>
+                        <datalist id="bo-carto-properties"></datalist>
+                        <p class="bo-carto-hint" data-carto-properties-status aria-live="polite"></p>
+                        <label>Texte à afficher <input name="popup_texte" maxlength="500"></label>
+                        <details class="bo-carto-details"><summary>Couleurs selon une propriété</summary>
+                            <label>Propriété GeoJSON <input name="categories_propriete" maxlength="100" placeholder="Choisir ou saisir une propriété" list="bo-carto-properties"></label>
+                            <div data-carto-categories></div><button type="button" data-carto-add-category>Ajouter une valeur</button>
+                        </details>
+                    </div>
+                    <div class="bo-carto-actions"><button type="submit" class="bo-carto-primary">Enregistrer la source</button><button type="button" class="bo-carto-danger" data-carto-source-delete hidden>Supprimer</button></div>
+                </form>
+                <p data-carto-source-status role="status" aria-live="polite"></p>
+            </section>
+        </div>
+        <aside class="bo-carto-preview-card">
+            <div class="bo-carto-preview-heading">
+                <div><h2>Aperçu</h2><span data-carto-preview-label>Configuration de travail · non enregistrée</span></div>
+                <button type="button" data-carto-preview>Actualiser l’aperçu</button>
+            </div>
+            <div id="bo-carto-preview-map"></div>
+            <p data-carto-preview-status role="status" aria-live="polite"></p>
+            <p class="bo-carto-hint">Le point, la ligne et le polygone sont des exemples, sans lien avec un dossier réel. L’aperçu ne publie aucune modification.</p>
+        </aside>
+    </div>
+</div>

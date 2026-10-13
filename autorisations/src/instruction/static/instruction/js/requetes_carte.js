@@ -36,126 +36,12 @@
         carte.invalidateSize({pan: false});
     }
 
-    function fondDeCartes() {
-        return {
-            "IGN": L.tileLayer(
-                "https://data.geopf.fr/wmts?service=WMTS&request=GetTile&version=1.0.0" +
-                "&layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&style=normal&tilematrixset=PM" +
-                "&format=image/png&tilematrix={z}&tilerow={y}&tilecol={x}",
-                {maxZoom: 19, tileSize: 256, attribution: "© IGN - Géoplateforme", updateWhenZooming: false, updateWhenIdle: true, keepBuffer: 2}
-            ),
-            "OpenStreetMap": L.tileLayer(
-                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                {
-                    maxZoom: 19,
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                    referrerPolicy: "strict-origin-when-cross-origin",
-                    updateWhenZooming: false,
-                    updateWhenIdle: true,
-                    keepBuffer: 2,
-                }
-            ),
-            "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19, attribution: "Esri & NASA"}),
-            "Topo": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {maxZoom: 18, attribution: "© OpenTopoMap"}),
-        };
-    }
-
     function rendreNonEditable(couche) {
         couche.options._isBackgroundLayer = true;
         couche.options.pmIgnore = true;
         couche.pmIgnore = true;
         if (couche.eachLayer) couche.eachLayer(rendreNonEditable);
         return couche;
-    }
-
-    function couchesDisponibles(donnees) {
-        return {
-            "Cœur du Parc national": rendreNonEditable(L.geoJSON(donnees.coeur, {interactive: false, style: {color: "#2E7D32", fillColor: "#4CAF50", weight: 2, fillOpacity: .4, opacity: 1}})),
-            "Aire d’adhésion": rendreNonEditable(L.geoJSON(donnees.adhesion, {interactive: false, style: {color: "#388E3C", fillColor: "#81C784", weight: 2, fillOpacity: .78, opacity: 1}})),
-            "Secteurs": rendreNonEditable(L.geoJSON(donnees.secteurs, {
-                interactive: false,
-                style: (feature) => {
-                    const couleur = couleursSecteurs[String(feature.properties?.secteur || "").toLowerCase()] || "#64748b";
-                    return {color: couleur, fillColor: couleur, weight: 2, opacity: .9, fillOpacity: .22};
-                },
-            })),
-        };
-    }
-
-    function iconeMini(type) {
-        if (type === "base") return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/><path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"/></svg>`;
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.831z"/><path d="M16 17h6M19 14v6M2 12a1 1 0 0 0 .58.91l8.6 3.91M2 17a1 1 0 0 0 .58.91l8.6 3.91"/></svg>`;
-    }
-
-    function ajouterControleCouches(baseLayers, overlays) {
-        const fermerMenus = () => {
-            carte.getContainer().querySelectorAll(".or-popover").forEach((element) => element.remove());
-            if (fermerPopoverAuClicExterieur) {
-                document.removeEventListener("mousedown", fermerPopoverAuClicExterieur);
-                fermerPopoverAuClicExterieur = null;
-            }
-        };
-        function ouvrirMenu(titre, entrees, type, ancre) {
-            fermerMenus();
-            const menu = document.createElement("div");
-            menu.className = "or-popover requete-carte-popover";
-            menu.innerHTML = `<h4>${titre}</h4>`;
-            entrees.forEach(([nom, couche], index) => {
-                const ligne = document.createElement("div");
-                ligne.className = "or-row";
-                const input = document.createElement("input");
-                input.type = type;
-                input.name = type === "radio" ? "requete-fond-carte" : `requete-couche-${index}`;
-                input.id = `${input.name}-${Math.random().toString(16).slice(2)}`;
-                input.checked = carte.hasLayer(couche);
-                const label = document.createElement("label");
-                label.htmlFor = input.id;
-                label.textContent = nom;
-                ligne.append(input, label);
-                ligne.addEventListener("click", (event) => { if (event.target !== input && event.target !== label) input.click(); });
-                input.addEventListener("change", () => {
-                    if (type === "radio") {
-                        Object.values(baseLayers).forEach((fond) => carte.removeLayer(fond));
-                        couche.addTo(carte);
-                    } else if (input.checked) couche.addTo(carte).bringToBack();
-                    else carte.removeLayer(couche);
-                });
-                menu.appendChild(ligne);
-            });
-            L.DomEvent.disableClickPropagation(menu);
-            L.DomEvent.disableScrollPropagation(menu);
-            carte.getContainer().appendChild(menu);
-            const rectAncre = ancre.getBoundingClientRect();
-            const rectCarte = carte.getContainer().getBoundingClientRect();
-            menu.style.top = `${Math.max(10, rectAncre.top - rectCarte.top)}px`;
-            menu.style.right = `${rectCarte.right - rectAncre.left + 8}px`;
-            setTimeout(() => {
-                fermerPopoverAuClicExterieur = (event) => {
-                    if (!menu.contains(event.target) && !ancre.contains(event.target)) fermerMenus();
-                };
-                document.addEventListener("mousedown", fermerPopoverAuClicExterieur);
-            }, 0);
-        }
-        const Mini = L.Control.extend({
-            options: {position: "topright"},
-            onAdd() {
-                const conteneur = L.DomUtil.create("div", "leaflet-control or-mini");
-                const pile = L.DomUtil.create("div", "or-stack", conteneur);
-                const boutonFonds = L.DomUtil.create("div", "or-btn", pile);
-                boutonFonds.innerHTML = iconeMini("base");
-                boutonFonds.title = "Fonds de carte";
-                const boutonCouches = L.DomUtil.create("div", "or-btn", pile);
-                boutonCouches.innerHTML = iconeMini("overlay");
-                boutonCouches.title = "Couches";
-                L.DomEvent.disableClickPropagation(conteneur);
-                L.DomEvent.disableScrollPropagation(conteneur);
-                boutonFonds.addEventListener("click", () => ouvrirMenu("Fonds de carte", Object.entries(baseLayers), "radio", boutonFonds));
-                boutonCouches.addEventListener("click", () => ouvrirMenu("Couches", Object.entries(overlays), "checkbox", boutonCouches));
-                return conteneur;
-            },
-        });
-        new Mini().addTo(carte);
-        carte.on("click", fermerMenus);
     }
 
     function actualiserStatut() {
@@ -194,7 +80,7 @@
     function restaurerDessins() {
         if (!champGeojson.value.trim()) return;
         try {
-            L.geoJSON(JSON.parse(champGeojson.value), {pointToLayer: (_feature, latlng) => L.marker(latlng), onEachFeature: (_feature, layer) => dessins.addLayer(layer)});
+            L.geoJSON(JSON.parse(champGeojson.value), {style: AGIDACarto.style("requetes"), pointToLayer: (_feature, latlng) => L.marker(latlng), onEachFeature: (_feature, layer) => dessins.addLayer(layer)});
         } catch (erreur) {
             console.warn("GeoJSON de recherche invalide", erreur);
             champGeojson.value = "";
@@ -213,12 +99,11 @@
 
     async function initialiserCarte() {
         if (carte) { setTimeout(ajusterHauteurCarte, 0); return; }
-        carte = L.map("requete-carte", {preferCanvas: true}).setView([-21.12, 55.53], 11);
-        const baseLayers = fondDeCartes();
-        baseLayers.IGN.addTo(carte);
+        carte = AGIDACarto.creerCarte("requete-carte", "requetes", {preferCanvas: true});
+        AGIDACarto.configurer(carte, "requetes");
         dessins = L.featureGroup().addTo(carte);
-        carte.pm.addControls({position: "topleft", drawMarker: true, drawCircleMarker: false, drawPolyline: true, drawRectangle: true, drawPolygon: true, drawCircle: false, drawText: false, editMode: true, dragMode: false, cutPolygon: false, removalMode: true, rotateMode: false});
-        carte.pm.setPathOptions({color: "#b62020", weight: 3, fillColor: "#d65555", fillOpacity: .18});
+        carte.pm.addControls(AGIDACarto.controlesDessin("requetes", {position: "topleft", drawMarker: true, drawCircleMarker: false, drawPolyline: true, drawRectangle: true, drawPolygon: true, drawCircle: false, drawText: false, editMode: true, dragMode: false, cutPolygon: false, removalMode: true, rotateMode: false}));
+        carte.pm.setPathOptions(AGIDACarto.style("requetes"));
         carte.on("pm:create", (event) => { dessins.addLayer(event.layer); actualiserStatut(); });
         carte.on("pm:remove", (event) => {
             if (dessins.hasLayer(event.layer)) dessins.removeLayer(event.layer);
@@ -228,7 +113,6 @@
         restaurerDessins();
         try {
             donneesCarto = await chargerDonneesCarto();
-            ajouterControleCouches(baseLayers, couchesDisponibles(donneesCarto));
             actualiserZonesFiltre();
         } catch (erreur) {
             console.error("Impossible de charger les périmètres cartographiques", erreur);
