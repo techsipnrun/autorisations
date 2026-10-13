@@ -171,6 +171,32 @@
     color: white;
 }
 
+.recherche-form #contacts-search {
+    box-sizing: border-box;
+    margin-bottom: 0.5rem;
+}
+
+.checkbox-menu-options .contacts-search-label {
+    padding: 0 0 0.3rem;
+    cursor: default;
+    font-size: 0.85rem;
+}
+
+.checkbox-menu-options .contacts-search-label:hover {
+    background: transparent;
+}
+
+[data-contacts-options] label {
+    overflow-wrap: anywhere;
+}
+
+[data-contacts-status] {
+    display: block;
+    margin-top: 0.5rem;
+    color: #555;
+    line-height: 1.4;
+}
+
 .recherche-form .checkbox-menu-options input[type="checkbox"] {
     position: absolute;
     opacity: 0;

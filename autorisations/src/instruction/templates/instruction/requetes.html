@@ -11,7 +11,8 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/requetes.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'instruction/css/requetes.css' %}?v=6">
+    <script src="{% static 'instruction/js/requetes_contacts.js' %}?v=1" defer></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -101,9 +102,23 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="nom">Bénéficiaire / Demandeur :</label>
-                    <input type="text" name="nom" id="nom" list="suggestions-nom" autocomplete="off" value="{{ nom_rempli }}">
-                    <datalist id="suggestions-nom"></datalist>
+                    <label id="contacts-label">Bénéficiaire / Demandeur :</label>
+                    <details class="checkbox-menu" data-contacts-menu data-url="{% url 'autocomplete_nom_beneficiaire' %}">
+                        <summary data-placeholder="- - -" aria-labelledby="contacts-label contacts-summary" id="contacts-summary">- - -</summary>
+                        <div class="checkbox-menu-options">
+                            <label class="contacts-search-label" for="contacts-search">Rechercher un nom</label>
+                            <input type="search" id="contacts-search" placeholder="Nom, organisation…" autocomplete="off">
+                            <div data-contacts-options>
+                                {% for nom in noms_selectionnes %}
+                                    <label class="is-selected">
+                                        <input type="checkbox" name="nom" value="{{ nom }}" checked>
+                                        {{ nom }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                            <small data-contacts-status role="status">Saisissez un nom, puis sélectionnez une ou plusieurs propositions.</small>
+                        </div>
+                    </details>
                 </div>
 
                 <div class="form-field">
@@ -502,9 +517,9 @@
 <script>
     document.querySelectorAll(".checkbox-menu").forEach((menu) => {
         const summary = menu.querySelector("summary");
-        const checkboxes = menu.querySelectorAll('input[type="checkbox"]');
 
         const updateSummary = () => {
+            const checkboxes = menu.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach((checkbox) => {
                 checkbox.closest("label").classList.toggle("is-selected", checkbox.checked);
             });
@@ -518,9 +533,7 @@
                 : summary.dataset.placeholder;
         };
 
-        checkboxes.forEach((checkbox) => {
-            checkbox.addEventListener("change", updateSummary);
-        });
+        menu.addEventListener("change", updateSummary);
 
         updateSummary();
     });
@@ -566,38 +579,6 @@
                 }, 100);
             });
 
-        });
-    });
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const nomInput = document.getElementById("nom");
-        const nomDatalist = document.getElementById("suggestions-nom");
-
-        nomInput.addEventListener("input", function () {
-            const query = nomInput.value;
-            if (!query) return;
-
-            fetch(`/autocomplete/nom/?term=${query}`)
-                .then(response => response.json())
-                .then(data => {
-                    nomDatalist.innerHTML = "";
-                    data
-                        .filter(item => item.value !== nomInput.value)
-                        .forEach(item => {
-                            const option = document.createElement("option");
-                            option.value = item.value;
-                            nomDatalist.appendChild(option);
-                        });
-                });
-        });
-
-        nomInput.addEventListener("change", function () {
-            setTimeout(() => {
-                nomDatalist.innerHTML = "";
-                nomInput.blur(); // retire le focus pour fermer datalist
-            }, 100);
         });
     });
 </script>

@@ -464,7 +464,9 @@ def requete_dossiers(request):
     types_demarche = [value for value in request.GET.getlist("d_type_demarche") if value]
     groupe = request.GET.get("groupe")
     etapes_selectionnees = [value for value in request.GET.getlist("etape") if value]
-    nom = request.GET.get("nom")
+    noms_selectionnes = list(dict.fromkeys(
+        value.strip() for value in request.GET.getlist("nom") if value.strip()
+    ))
     mots_cles = request.GET.get("mots_cles", "").strip()
     annee = request.GET.get("d_annee")
     instructeur = request.GET.get("instructeur")
@@ -566,7 +568,7 @@ def requete_dossiers(request):
         # Dossiers DM non liés
         dossiers_dm = dossiers_dm.none()
 
-    if nom:
+    if noms_selectionnes:
         dossiers = dossiers.annotate(
             nom_complet_beneficiaire=Concat(
                 F("dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom"),
@@ -578,14 +580,26 @@ def requete_dossiers(request):
                 Value(" "),
                 F("dossierinterlocuteur__id_demandeur_intermediaire__prenom")
             ),
-        ).filter(
-            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
-            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__iexact=nom) |
-            Q(nom_complet_beneficiaire__iexact=nom) |
-            Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale__iexact=nom) |
-            Q(dossierinterlocuteur__id_demandeur_intermediaire__organisation__iexact=nom) |
-            Q(nom_complet_demandeur__iexact=nom)
-        ).distinct()
+        )
+        filtre_contacts_dn = Q()
+        filtre_contacts_dm = Q()
+        for nom in noms_selectionnes:
+            filtre_contacts_dn |= (
+                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
+                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__iexact=nom) |
+                Q(nom_complet_beneficiaire__iexact=nom) |
+                Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale__iexact=nom) |
+                Q(dossierinterlocuteur__id_demandeur_intermediaire__organisation__iexact=nom) |
+                Q(nom_complet_demandeur__iexact=nom)
+            )
+            filtre_contacts_dm |= (
+                Q(nom_prenom__icontains=nom) |
+                Q(prenom_nom__icontains=nom) |
+                Q(nom_organisateur__icontains=nom) |
+                Q(prenom_organisateur__icontains=nom) |
+                Q(structure__icontains=nom)
+            )
+        dossiers = dossiers.filter(filtre_contacts_dn).distinct()
 
         # Dossiers DM non liés
         dossiers_dm = dossiers_dm.annotate(
@@ -601,13 +615,7 @@ def requete_dossiers(request):
                 F("nom_organisateur"),
                 output_field=TextField()
             )
-        ).filter(
-            Q(nom_prenom__icontains=nom) |
-            Q(prenom_nom__icontains=nom) |
-            Q(nom_organisateur__icontains=nom) |
-            Q(prenom_organisateur__icontains=nom) |
-            Q(structure__icontains=nom)
-        )
+        ).filter(filtre_contacts_dm).distinct()
 
     if mots_cles:
         dossiers, dossiers_dm = filtrer_dossiers_par_mots_cles(
@@ -776,7 +784,7 @@ def requete_dossiers(request):
 
 
         # Champs nettoyés pour pré-remplissage propre
-        "nom_rempli": nom or "",
+        "noms_selectionnes": noms_selectionnes,
         "mots_cles_remplis": mots_cles,
         "instructeur_rempli": instructeur or "",
         "numero_rempli": numero or "",
