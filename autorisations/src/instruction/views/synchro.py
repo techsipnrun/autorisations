@@ -159,6 +159,7 @@ def etat_actualisation(request):
             "dernier_statut": "inconnu",
             "date_maj": None,
             "date_derniere_tentative": None,
+            "synchro_globale_auto": os.getenv("DJANGO_ENV", "dev") == "prod",
             "dn_api_indisponible": bool(get_statut_demarche_numerique()),
         })
 
@@ -167,6 +168,7 @@ def etat_actualisation(request):
         "dernier_statut": etat.dernier_statut,
         "date_maj": etat.date_maj.isoformat() if etat.date_maj else None,
         "date_derniere_tentative": etat.date_derniere_tentative.isoformat() if etat.date_derniere_tentative else None,
+        "synchro_globale_auto": os.getenv("DJANGO_ENV", "dev") == "prod",
         "dn_api_indisponible": bool(get_statut_demarche_numerique()),
     })
 

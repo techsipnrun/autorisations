@@ -141,10 +141,10 @@ async function lancerActualisation() {
     // --- auto-lancement si >2h, basé sur la DERNIÈRE TENTATIVE ---
 function peutEtreLancerAuto() {
     return lireEtatBDD()
-        .then(({ en_cours, date_derniere_tentative, date_maj, dernier_statut }) => {
+        .then(({ en_cours, date_derniere_tentative, date_maj, synchro_globale_auto }) => {
 
-            // 🚫 Si synchro en cours → on ne lance pas
-            if (en_cours) return false;
+            // Le serveur désactive la relance automatique en développement.
+            if (!synchro_globale_auto || en_cours) return false;
 
             // On prend la dernière tentative si elle existe,
             // sinon on se rabat sur la dernière synchro réussie
