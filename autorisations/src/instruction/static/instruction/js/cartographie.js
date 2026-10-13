@@ -138,7 +138,10 @@
                     const bouton = document.createElement("summary");
                     bouton.title = titre;
                     bouton.setAttribute("aria-label", titre);
-                    bouton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"/></svg>';
+                    const dessin = format === "tuiles"
+                        ? '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>'
+                        : '<path d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"/>';
+                    bouton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dessin}</svg>`;
                     const liste = document.createElement("div");
                     liste.className = "agida-map-choices";
                     const entete = document.createElement("strong");
