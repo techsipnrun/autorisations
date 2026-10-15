@@ -21,6 +21,7 @@ from autorisations.models.models_avis import Avis, Expert
 from autorisations.utils.nas_fonctions import ecrire_file_sur_nas, supprimer_file_sur_nas
 from instruction.utils.dossier_utils import ajouter_message_action_courante, ajouter_message_bloc, ajouter_message_groupe_instructeur, redirect_error, safe_enregistrer_action
 from instruction.templatetags.group_tags import est_concerne_par_le_dossier
+from instruction.utils.annexes_notes import peut_supprimer_annexe
 from notifications.service import compute_dedupe_key, create_EmailOutbox, envoi_mail
 from instruction.utils_instru import dossiers_action_a_faire, dossiers_reception_action_a_faire, enregistrer_action
 from synchronisation.main import lancer_normalisation_et_synchronisation, lancer_normalisation_et_synchronisation_pour_une_demarche
@@ -1381,91 +1382,74 @@ def mes_avis_action_a_faire(request):
 
 
 @login_required(login_url='/login/')
+@require_POST
 def ajouter_annexe_dossier(request, dossier_id):
-
     dossier = get_object_or_404(Dossier, id=dossier_id)
 
-    if request.method == "POST" and request.FILES.get('annexe'):
-        fichier = request.FILES['annexe']
+    def reponse(message, statut=200):
+        ajouter_message_action_courante(request, message, "error" if statut >= 400 else "success")
+        if "application/json" in request.headers.get("Accept", ""):
+            return JsonResponse(
+                {"success": statut < 400, "error" if statut >= 400 else "message": message},
+                status=statut,
+            )
+        return redirect(request.META.get("HTTP_REFERER", "/"))
 
-        # Vérification de la taille (max 50 Mo)
-        if fichier.size > 50 * 1024 * 1024:
-            logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}")
-            ajouter_message_action_courante(request, f"Annexe refusée ({request.user}) Taille > 50 Mo pour {fichier.name}", "error")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+    if not est_concerne_par_le_dossier(request.user, dossier) and not request.user.groups.filter(
+        name__in=["Réception SAADD", "Réception SPPN"],
+    ).exists():
+        return reponse("Vous n’êtes pas autorisé à ajouter une annexe à ce dossier.", 403)
 
-        # Extension du fichier
-        nom, extension = os.path.splitext(fichier.name)
-        extension = extension.lstrip('.').lower()
+    fichier = request.FILES.get("annexe")
+    if not fichier:
+        return reponse("Aucun fichier reçu.", 400)
+    if fichier.size > 50 * 1024 * 1024:
+        return reponse("L’annexe dépasse la taille maximale de 50 Mo.", 400)
 
-        # Récupérer le format
-        format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
-        if not format_obj:
-            logger.warning(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) car le format n'est pas reconnu : {fichier.name}.{extension}")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+    extension = os.path.splitext(fichier.name)[1].lstrip(".").lower()
+    format_obj = DocumentFormat.objects.filter(format__iexact=extension).first()
+    if not format_obj:
+        return reponse("Le format de cette annexe n’est pas reconnu.", 400)
+    nature_obj = DocumentNature.objects.filter(nature__iexact="Annexe instructeur").first()
+    if not nature_obj:
+        logger.error("[DOSSIER %s] Nature Annexe instructeur introuvable.", dossier.numero)
+        return reponse("La nature documentaire de l’annexe est introuvable. Contactez le support.", 500)
 
+    repertoire = Document.normaliser_emplacement(posixpath.join(dossier.emplacement.replace("\\", "/"), "Annexes"))
+    chemin_complet = f"{os.getenv('NAS_ROOT')}{repertoire}{fichier.name}"
+    ancien_doc = Document.objects.filter(emplacement=repertoire, titre=fichier.name).first()
+    if ancien_doc and (
+        ancien_doc.id_nature_id != nature_obj.pk
+        or not peut_supprimer_annexe(ancien_doc, dossier, request.user)
+    ):
+        return reponse("Vous ne pouvez pas remplacer l’annexe d’un autre déposant. Choisissez un autre nom de fichier.", 403)
 
-        # Nature "Annexe instructeur"
-        nature_obj = DocumentNature.objects.filter(nature__iexact="Annexe instructeur").first()
-        if not nature_obj:
-            logger.error(f"[DOSSIER {dossier.numero}] Annexe refusée ({request.user}) La nature 'Annexe instructeur' est introuvable en BDD.")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
-        
-        # Création du Document
-        emplacement = f"{dossier.emplacement}Annexes/{fichier.name}"
-        # chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
-        chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement}"
-
-        # Vérification si un Document avec le même emplacement existe déjà en base, si on est ici c'est qu'on a confirmé l'écrasement dans le pop up JS
-        if Document.objects.filter(emplacement=f"{dossier.emplacement}Annexes/", titre=fichier.name).exists():
-            
-            try:
-                ancien_doc = Document.objects.get(emplacement=f"{dossier.emplacement}Annexes/", titre=fichier.name)
-                # Supprimer le lien avec le dossier
-                DossierDocument.objects.filter(id_document=ancien_doc).delete()
-                # Supprimer le document lui-même
-                ancien_doc.delete()
-            except Document.DoesNotExist:
-                pass  # Aucun doc à supprimer, donc on ignore
-
-            logger.info(f"[DOSSIER {dossier.numero}] Annexe {fichier.name} écrasée par {request.user} — ancien document supprimé.")
-
-        doc = Document.objects.create(
-            id_format=format_obj,
-            id_nature=nature_obj,
-            titre=fichier.name,
-            emplacement=f"{dossier.emplacement}Annexes/",
-            description=f"Annexe ajouté par l'instructeur {request.user} sur le dossier {dossier.numero}"
-        )
-
-
-        # Lien avec le Dossier
-        DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-
-
-        # 1) Supprimer si un fichier du même nom existe déjà
-        try:
-            if smbclient.path.exists(chemin_complet):
-                if not supprimer_file_sur_nas(chemin_complet):
-                    ajouter_message_action_courante(request, f"Erreur lors du remplacement de l'ancien fichier {fichier.name} sur le NAS.", "error")
-                    return redirect(request.META.get("HTTP_REFERER", "/"))
-        except Exception as e:
-            logger.error(f"[NAS] Erreur en vérifiant/supprimant l'existant : {e}")
-            ajouter_message_action_courante(request, "Erreur lors de la vérification du fichier existant sur le NAS.", "error")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
-
-
-        # 2) Écrire l’upload directement sur le NAS
+    try:
+        if smbclient.path.exists(chemin_complet):
+            if not ancien_doc:
+                return reponse("Un fichier de ce nom existe déjà sans déposant identifiable. Choisissez un autre nom.", 409)
+            if not supprimer_file_sur_nas(chemin_complet):
+                return reponse("Impossible de remplacer le fichier existant sur le NAS.", 500)
         if not ecrire_file_sur_nas(fichier, chemin_complet):
-            logger.error(f"[NAS] Erreur lors de l'écriture de l'annexe sur le NAS : {e}")
-            ajouter_message_action_courante(request, "Erreur lors de l'écriture de l'annexe sur le NAS.", "error")
-            return redirect(request.META.get("HTTP_REFERER", "/"))
+            logger.error("[DOSSIER %s] Échec écriture de l’annexe %s sur le NAS.", dossier.numero, fichier.name)
+            return reponse("Erreur lors de l’écriture de l’annexe sur le NAS. Réessayez.", 500)
 
+        # Aucune nouvelle annexe n'est référencée tant que l'upload NAS n'a pas réussi.
+        with transaction.atomic():
+            if ancien_doc:
+                ancien_doc.delete()
+            doc = Document.objects.create(
+                id_format=format_obj, id_nature=nature_obj, titre=fichier.name,
+                emplacement=repertoire,
+                description=f"Annexe ajouté par l'instructeur {request.user.get_username()} sur le dossier {dossier.numero}",
+            )
+            DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+    except Exception:
+        logger.exception("[DOSSIER %s] Échec ajout de l’annexe %s.", dossier.numero, fichier.name)
+        return reponse("L’annexe n’a pas pu être enregistrée. Réessayez ou contactez le support.", 500)
 
-    logger.warning(f"[DOSSIER {dossier.numero}] Annexe non ajoutée par {request.user} : Aucune pièce jointe reçue.")
-    return redirect(request.META.get("HTTP_REFERER", "/"))
-
+    logger.info("[DOSSIER %s] Annexe %s ajoutée par %s.", dossier.numero, fichier.name, request.user)
+    return reponse("Annexe ajoutée.", 201)
 
 
 # @login_required
@@ -1536,10 +1520,12 @@ def supprimer_annexe_instructeur(request):
     doc = get_object_or_404(Document, id=document_id, id_nature__nature__iexact="Annexe instructeur")
     dossier = get_object_or_404(Dossier, id=dossier_id)
 
-    try:
-        # Supprimer le lien
-        DossierDocument.objects.filter(id_dossier=dossier, id_document=doc).delete()
+    # Contrôler auteur et rattachement avant toute suppression BDD ou NAS.
+    if not peut_supprimer_annexe(doc, dossier, request.user):
+        raise PermissionDenied("Seule la personne ayant déposé cette annexe peut la supprimer.")
+    get_object_or_404(DossierDocument, id_dossier=dossier, id_document=doc)
 
+    try:
         # Supprimer le fichier physique
         chemin_fichier = os.path.join(os.getenv("NAS_ROOT"), doc.emplacement, doc.titre)
         if smbclient.path.exists(chemin_fichier):

@@ -24,6 +24,7 @@ from instruction.utils.avis_dm_utils import (
 from instruction.utils.dm import documents_deposes_sur_DM, user_recoit_notifications_reception_manif_sportive
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, build_champs_prepares, build_timeline_for_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_actions_possibles_DM, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_motif_decision, redirect_error, safe_enregistrer_action
 from instruction.utils.files_utils import load_geojson
+from instruction.utils.annexes_notes import preparer_annexes_notes
 from instruction.utils.ensembles_dossiers import contexte_dossiers_lies
 from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance, get_choix_destinataires_notification
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
@@ -546,7 +547,7 @@ def preinstruction_dossier(request, numero):
     # -----------------------------------
     # Documents du dossier
     # -----------------------------------
-    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document")
+    dossier_documents = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_nature")
     emplacements_documents = [ f"{doc.id_document.emplacement}{doc.id_document.titre}" for doc in dossier_documents]
 
 
@@ -556,6 +557,7 @@ def preinstruction_dossier(request, numero):
         for dd in dossier_documents
         if (dd.id_document.id_nature and (dd.id_document.id_nature.nature or "").lower() == "annexe instructeur")
     ]
+    annexes_instructeur = preparer_annexes_notes(annexes_instructeur, dossier, request.user)
 
     # Résumé PDF du dossier
     resume_pdf_titre = f"dossier-{dossier.numero}.pdf"

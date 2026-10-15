@@ -293,6 +293,12 @@
     max-width: 100%;
 }
 
+/* Une table impose sa largeur intrinsèque aux PJ, même avec max-width. */
+.champ-dn-apres-depot-compact {
+    display: block;
+    box-sizing: border-box;
+}
+
 .champs strong {
     color: #222;
 }
@@ -367,6 +373,7 @@ h2 {
 /* Affichage des images PJ */
 .champs .pj_champ {
     margin: 1rem 0;
+    box-sizing: border-box;
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
@@ -393,6 +400,18 @@ h2 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+    .champs .pj_champ > p {
+        flex-wrap: wrap;
+    }
+
+    .champs .pj_champ > p > strong {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
 }
 .champs .apercu_PJ {
     max-width: 80%;
@@ -839,7 +858,8 @@ h2 {
 }
 
 .notification-agents-panel[hidden],
-.notification-agents-loading[hidden] {
+.notification-agents-loading[hidden],
+.notes-loading[hidden] {
     display: none;
 }
 
@@ -1035,7 +1055,8 @@ h2 {
 .notification-agents-status.success { color: #006131; }
 .notification-agents-status.error { color: #a11919; }
 
-.notification-agents-loading {
+.notification-agents-loading,
+.notes-loading {
     position: fixed;
     inset: 0;
     z-index: 9998;
@@ -1046,7 +1067,8 @@ h2 {
     backdrop-filter: blur(2px);
 }
 
-.notification-agents-loading .envoi-acte-attente-contenu {
+.notification-agents-loading .envoi-acte-attente-contenu,
+.notes-loading .envoi-acte-attente-contenu {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1061,7 +1083,8 @@ h2 {
     text-align: center;
 }
 
-.notification-agents-loading .envoi-acte-spinner {
+.notification-agents-loading .envoi-acte-spinner,
+.notes-loading .envoi-acte-spinner {
     width: 2.6rem;
     height: 2.6rem;
     border: 0.32rem solid #dce8e0;
@@ -2241,12 +2264,20 @@ textarea[name="note"] {
 }
 
 .annexe-item {
-    position: relative;
-    display: flex;
+    width: fit-content;
+    max-width: 100%;
+}
 
+.annexe-ligne {
+    display: grid;
+    grid-template-columns: minmax(0, max-content) auto auto;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.2rem 0;
+    column-gap: 0.5rem;
+    padding: 0.3rem;
+    border-radius: 4px;
+    min-width: 0;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease;
 }
 
 .liste-annexes-instructeur li a {
@@ -2254,9 +2285,9 @@ textarea[name="note"] {
     color: #006131;
 }
 
-.annexe-item:hover .annexe-texte {
-    font-weight: bold;
-    cursor: pointer;
+.annexe-ligne:hover,
+.annexe-ligne:focus-within {
+    background-color: #eef4ef;
 }
 
 /* --- Bouton copier --- */
@@ -2274,6 +2305,50 @@ textarea[name="note"] {
     opacity: 1;
 }
 
+.annexe-item:focus-within .btn-copier-chemin,
+.annexe-item:focus-within .btn-supprimer-annexe {
+    opacity: 1;
+}
+
+.annexe-texte {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.annexe-item .btn-copier-chemin {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.btn-copier-chemin img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex: 0 0 auto;
+    vertical-align: middle;
+}
+
+.notes-annexe-upload-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #006131;
+    font-size: 0.9rem;
+}
+
+.notes-annexe-upload-status.is-error { color: #9b2929; }
+.notes-annexe-upload-status[hidden] { display: none; }
+.notes-loading { z-index: 1000000; }
+.form-ajout-annexe[aria-busy="true"] .annexe-label { pointer-events: none; opacity: 0.45; }
+@media (hover: none) {
+    .annexe-item .btn-copier-chemin,
+    .annexe-item .btn-supprimer-annexe { opacity: 1; }
+}
+
 .copie-feedback.show {
     opacity: 1;
     transform: scale(1);
@@ -2289,6 +2364,21 @@ textarea[name="note"] {
     font-weight: bold;
     font-size: 0.9rem;
     white-space: nowrap;
+}
+
+.annexe-item .copie-feedback {
+    display: none;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    color: #000;
+    background: transparent;
+    font-weight: bold;
+    border: 0;
+    box-shadow: none;
+}
+
+.annexe-item .copie-feedback.show {
+    display: block;
 }
 
 .btn-copier-chemin:hover {
@@ -2312,8 +2402,9 @@ textarea[name="note"] {
 }
 
 .form-supprimer-annexe {
-    display: inline;
-    margin-left: 0.3rem;
+    grid-column: 3;
+    grid-row: 1;
+    margin: 0;
 }
 
 .btn-supprimer-annexe:hover {

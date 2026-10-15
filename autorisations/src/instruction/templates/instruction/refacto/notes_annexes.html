@@ -1,0 +1,59 @@
+{% load static group_tags %}
+<h3 class="notes-titre">
+    <span class="notes-titre-libelle">
+        <img src="{% static 'instruction/img/notebook-pen.png' %}" alt="" class="notes-titre-icon">
+        Notes :
+    </span>
+    {% if request.user|est_concerné_par_le_dossier:dossier or notes_reception and request.user|has_any_group:"Réception SAADD,Réception SPPN" %}
+        <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
+            {% csrf_token %}
+            <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
+                <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
+            </label>
+            <input type="file" id="file-upload" name="annexe" data-dossier="{{ dossier.emplacement }}"
+                   accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf" class="annexe-input">
+        </form>
+    {% endif %}
+</h3>
+<p class="notes-annexe-upload-status" data-annexe-upload-status role="status" aria-live="polite" hidden>
+    <span></span>
+</p>
+<div class="notes-loading" data-notes-loading role="status" aria-live="polite" hidden>
+    <div class="envoi-acte-attente-contenu">
+        <span class="envoi-acte-spinner" aria-hidden="true"></span>
+        <strong data-notes-loading-titre>Enregistrement en cours…</strong>
+        <span>Veuillez patienter pendant l’enregistrement et l’actualisation du dossier.</span>
+    </div>
+</div>
+{% if messages_notes %}
+    <div class="bloc-retours">
+        {% for retour in messages_notes %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
+    </div>
+{% endif %}
+{% if annexes_instructeur %}
+    <ul class="liste-annexes-instructeur">
+        {% for annexe in annexes_instructeur %}
+            <li class="annexe-item" title="{% if annexe.depose_par %}Déposé par {{ annexe.depose_par }}{% else %}Auteur non renseigné{% endif %} le {{ annexe.date|date:'d/m/Y' }}">
+                <div class="annexe-ligne">
+                    <a class="annexe-texte" href="{% url 'afficher_annexe' chemin=annexe.emplacement titre=annexe.titre %}" target="_blank" rel="noopener noreferrer">
+                        {{ annexe.titre }}
+                    </a>
+                    <button type="button" class="btn-copier-chemin" data-path="{{ NAS_ROOT }}{{ annexe.emplacement }}{{ annexe.titre }}"
+                            onclick="copierPath(this, this.dataset.path)" title="Copier le chemin" aria-label="Copier le chemin de l’annexe">
+                        <img src="{% static 'instruction/img/copy.png' %}" alt="">
+                    </button>
+                    {% if annexe.peut_supprimer %}
+                        <form method="post" action="{% url 'supprimer_annexe_instructeur' %}" class="form-supprimer-annexe">
+                            {% csrf_token %}
+                            <input type="hidden" name="document_id" value="{{ annexe.id }}">
+                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
+                            <button type="button" class="btn-supprimer-annexe" title="Supprimer l'annexe" aria-label="Supprimer l'annexe" onclick="confirmerSuppressionAnnexe(this)">✕</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <span class="copie-feedback" role="status">Copié !</span>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+<script src="{% static 'instruction/js/notes_annexes.js' %}?v=3" defer></script>

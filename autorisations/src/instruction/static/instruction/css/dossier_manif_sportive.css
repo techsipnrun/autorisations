@@ -168,6 +168,18 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.document-avec-apercu > .document-titre {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .document-apercu-trigger {
@@ -276,6 +288,10 @@
 }
 
 @media (max-width: 800px) {
+    .document-avec-apercu > .document-titre {
+        font-size: 0.9rem;
+    }
+
     .document-apercu-popover {
         width: 90vw;
         height: 70vh;

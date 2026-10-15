@@ -16,9 +16,9 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=23">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=27">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=7">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
@@ -42,7 +42,7 @@
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
-    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=9"></script>
+    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=12"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=2" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
@@ -2840,67 +2840,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
                 <!-- ############################# NOTES ############################# -->
                 <div class="groupe-instructeur-info notes_instructeurs">
-                    <h3 class="notes-titre">
-                        <span class="notes-titre-libelle">
-                            <img src="{% static 'instruction/img/notebook-pen.png' %}" alt="" class="notes-titre-icon">
-                            Notes :
-                        </span>
-
-                        {% if request.user|est_concerné_par_le_dossier:dossier %}
-                            <form action="{% url 'ajouter_annexe_dossier' dossier_id=dossier.id %}" method="post" enctype="multipart/form-data" class="form-ajout-annexe">
-                                {% csrf_token %}
-                                <label for="file-upload" class="annexe-label" title="Ajouter une annexe">
-                                    <img src="{% static 'instruction/img/trombone.png' %}" alt="Ajouter une annexe" class="annexe-icon">
-                                </label>
-                                <input type="file" id="file-upload" name="annexe" data-dossier="{{ dossier.emplacement }}"
-                                    accept=".xlsx,.txt,.svg,.gif,.xml,.json,.kml,.shp,.gpx,.csv,.docx,.doc,.png,.jpeg,.jpg,.pdf"
-                                    class="annexe-input">
-                            </form>
-                        {% endif %}
-                    </h3>
-
-                    {% if messages_notes %}
-                        <div class="bloc-retours">
-                            {% for retour in messages_notes %}<div class="message {{ retour.niveau }}">{{ retour.texte }}</div>{% endfor %}
-                        </div>
-                    {% endif %}
-
-                    {% if annexes_instructeur %}
-                        <ul class="liste-annexes-instructeur">
-                            {% for annexe in annexes_instructeur %}
-                                <li class="annexe-item">
-                                    
-                                    <!-- Nom annexe instructeur -->
-                                    <a class="annexe-texte"
-                                        href="{% url 'afficher_annexe' chemin=annexe.emplacement titre=annexe.titre %}"
-                                        target="_blank"
-                                        rel="noopener noreferrer">
-                                        📎 {{ annexe.titre }}
-                                    </a>
-
-                                    <!-- Supprimer annexe instructeur -->
-                                    {% if annexe.description|contains:request.user %}
-                                        <form method="post" action="{% url 'supprimer_annexe_instructeur' %}" class="form-supprimer-annexe">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="document_id" value="{{ annexe.id }}">
-                                            <input type="hidden" name="dossier_id" value="{{ dossier.id }}">
-                                            <button type="button" class="btn-supprimer-annexe" title="Supprimer l'annexe"
-                                                    onclick="confirmerSuppressionAnnexe(this)">✕</button>
-                                        </form>
-                                    {% endif %}
-                                    
-                                    <!-- Copier path annexe instructeur -->
-                                    <button type="button" class="btn-copier-chemin"
-                                            onclick="copierPath(this, '{{ NAS_ROOT }}{{ annexe.emplacement }}')"
-                                            title="Copier le chemin">📋</button>
-                                    
-                                    <span class="copie-feedback">Copié !</span> 
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-
-                    <!-- Notes -->
+                    {% include "instruction/refacto/notes_annexes.html" %}
                     {% for n in notes %}
                         <div class="note-item">
                             <p class="note-meta">

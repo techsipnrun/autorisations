@@ -4,9 +4,9 @@
 {% with titre_lower=fichier_titre|lower %}
     <span class="document-avec-apercu">
         {% if download_icon_only %}
-            <span>{{ libelle }}</span>
+            <span class="document-titre" title="{{ libelle }}">{{ libelle }}</span>
         {% else %}
-            <a href="{{ document_url }}" target="_blank" rel="noopener noreferrer" title="Télécharger le document">
+            <a class="document-titre" href="{{ document_url }}" target="_blank" rel="noopener noreferrer" title="{{ libelle }}">
                 {{ libelle }}
             </a>
         {% endif %}

@@ -304,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function () {
 function confirmerSuppressionAnnexe(bouton) {
     const ok = confirm("Êtes-vous sûr de vouloir supprimer définitivement cette annexe du dossier ?");
     if (ok) {
-        bouton.closest("form").submit();
+        bouton.closest("form").requestSubmit();
     }
 }
 
@@ -320,7 +320,7 @@ function copierPath(button, path) {
 }
 
 function afficherFeedbackCopie(button) {
-    const feedback = button.nextElementSibling;
+    const feedback = button.closest(".annexe-item")?.querySelector(".copie-feedback") || button.nextElementSibling;
     if (!feedback) return;
 
     feedback.classList.add("show");
@@ -495,56 +495,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 // ------------------------------------------------------------------
-// -------- Annulation ou écrasement document en cas de doublon -----
-// ------------------------------------------------------------------
-document.addEventListener("DOMContentLoaded", function () {
-    const input = document.getElementById("file-upload");
-    if (!input) return;
-
-    const form = input.closest("form");
-    if (!form) return;
-
-    const script = document.getElementById("emplacements-existants");
-    if (!script) return;
-
-    const dossierEmplacement = input.dataset.dossier;
-    if (!dossierEmplacement) {
-        console.warn("data-dossier manquant sur #file-upload");
-        return;
-    }
-
-    let emplacements = [];
-    try {
-        emplacements = JSON.parse(script.textContent);
-    } catch (e) {
-        console.error("Erreur parsing emplacements-existants :", e);
-        return;
-    }
-
-    input.addEventListener("change", function () {
-        const fichier = input.files[0];
-        if (!fichier) return;
-
-        const emplacement = `${dossierEmplacement}Annexes/${fichier.name}`;
-
-        if (emplacements.includes(emplacement)) {
-            const confirmReplace = confirm(
-                `Un fichier nommé "${fichier.name}" existe déjà. Voulez-vous le remplacer ?`
-            );
-
-            if (!confirmReplace) {
-                input.value = "";
-                return;
-            }
-        }
-
-        form.submit();
-    });
-});
-
-
-
-// ------------------------------------------------------------------
 // --------------------- RELIER DOSSIER DM et DN --------------------
 // ------------------------------------------------------------------
 // Menu déroulant pour relier 2 Dossiers (DM - DN)
@@ -633,13 +583,16 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-// Conserver la position de la page après l'enregistrement ou la suppression d'une note
+// Conserver la position après une note ou la suppression d'une annexe.
 document.addEventListener("DOMContentLoaded", function () {
     const scrollKey = `notes-scroll:${window.location.pathname}`;
 
-    document.querySelectorAll(".notes_instructeurs form.form-note").forEach(function (form) {
-        form.addEventListener("submit", function () {
-            sessionStorage.setItem(scrollKey, String(window.scrollY));
+    document.querySelectorAll(".notes_instructeurs form.form-note, .notes_instructeurs .form-supprimer-annexe").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            if (event.defaultPrevented) return;
+            try {
+                sessionStorage.setItem(scrollKey, String(window.scrollY));
+            } catch { /* Ne pas bloquer l'enregistrement si le stockage est indisponible. */ }
         });
     });
 
