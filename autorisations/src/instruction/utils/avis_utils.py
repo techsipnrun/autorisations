@@ -1,9 +1,12 @@
 # instruction/services/avis_utils.py
 import logging
 import os
+import errno
+import re
 from pathlib import Path
+import smbclient
 from autorisations.models.models_instruction import Dossier, DossierChamp, Message
-from autorisations.models.models_avis import AvisDocument, AvisThematique, DossierAvis, Expert
+from autorisations.models.models_avis import Avis, AvisDocument, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
 from autorisations.models.models_documents import MessageDocument
 from autorisations.utils.nas_fonctions import creer_dossier_sur_nas
@@ -18,6 +21,42 @@ GROUPES_PUBLICATION_RAA_CS = (
     "Publication RAA CS",
     "Publication RAA Avis CS",
 )
+
+
+def emplacement_demande_avis_dossier(dossier, nom_expert, brouillon=None):
+    """Réserver nom_expert, nom_expert_2, etc., sans déplacer les avis existants."""
+    if brouillon and brouillon.emplacement:
+        return brouillon.emplacement
+    nom_expert = nettoyer_nom_fichier(nom_expert or "Instance") or "instance"
+    parent = f"{dossier.emplacement.rstrip('/')}/Avis/"
+    nas_root = os.getenv("NAS_ROOT")
+    if not nas_root:
+        raise OSError("NAS_ROOT n’est pas configuré.")
+    nas_root = nas_root.rstrip("/\\")
+    parent_nas = f"{nas_root}/{parent}"
+
+    # Une requête et une lecture du répertoire, même avec beaucoup de demandes.
+    emplacements = Avis.objects.filter(emplacement__istartswith=f"{parent}{nom_expert}").values_list("emplacement", flat=True)
+    noms_utilises = [
+        emplacement.replace("\\", "/")[len(parent):].split("/", 1)[0]
+        for emplacement in emplacements
+    ]
+    smbclient.makedirs(parent_nas, exist_ok=True)
+    noms_utilises.extend(smbclient.listdir(parent_nas))
+    motif = re.compile(rf"{re.escape(nom_expert)}(?:_([2-9]|[1-9][0-9]+))?", re.IGNORECASE)
+    numeros = [int(match.group(1) or 1) for nom in noms_utilises if (match := motif.fullmatch(nom))]
+    numero = max(numeros, default=0) + 1
+
+    while True:
+        nom = nom_expert if numero == 1 else f"{nom_expert}_{numero}"
+        try:
+            # mkdir (mode exclusif) protège aussi deux créations simultanées.
+            smbclient.mkdir(f"{parent_nas}{nom}")
+            return f"{parent}{nom}/"
+        except OSError as erreur:
+            if erreur.errno != errno.EEXIST:
+                raise
+            numero += 1
 
 
 def get_dossiers_lies_affiches_avis(dossiers):

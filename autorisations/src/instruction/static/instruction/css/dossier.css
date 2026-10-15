@@ -98,9 +98,22 @@
 
 .identites-dossier {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 1rem;
     flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: 2rem;
+}
+
+.identites-dossier > .identite_demandeur,
+.identites-dossier > .nom_du_dossier {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 0;
+    overflow-wrap: anywhere;
 }
 
 .identite_demandeur {

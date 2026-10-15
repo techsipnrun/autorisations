@@ -16,8 +16,8 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=27">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=29">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
@@ -1753,9 +1753,18 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                 ###############################################################-->
 
                 <!-- ######################## AVIS ENVOYÉS ######################### -->
-                {% if etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "Refusé" or etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "En attente réponse d'avis" %}
-                    {% if avis_envoye %}
+                {% if actes_deja_envoyes or etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "Refusé" or etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "En attente réponse d'avis" %}
+                    {% if actes_deja_envoyes or avis_envoye %}
                         <div class="validation-documents">
+                            {% if actes_deja_envoyes %}
+                                <h2>Acte{{ actes_deja_envoyes|pluralize }} déjà envoyé{{ actes_deja_envoyes|pluralize }}</h2>
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in actes_deja_envoyes %}
+                                        {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if avis_envoye %}
                             <h2>Demandes d'avis envoyées</h2>
                             <ul class="avis-a-valider-liste">
                                 {% for da in avis_envoye %}
@@ -1785,6 +1794,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                     <li>Aucun avis à envoyer</li>
                                 {% endfor %}
                             </ul>
+                            {% endif %}
                         </div>
                     {% endif %}
                 {% endif %}   
@@ -1898,9 +1908,6 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 {% if demandeur_intermediaire.raison_sociale %}<p><strong>Raison Sociale</strong> : {{ demandeur_intermediaire.raison_sociale|capfirst }}</p>{% endif %}
                             </div>
                         {% endif %}
-                    </div>
-
-
                     <!-------------------->
                     <!-- Nom du dossier -->
                     <!-------------------->
@@ -1951,6 +1958,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                             {% endif %}
                         </div>
                     {% endif %}
+                    </div>
 
                     <!---------------------------------->
                     <!--   LES CHAMPS DU FORMULAIRE   -->

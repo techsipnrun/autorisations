@@ -755,6 +755,7 @@
 
 .doc-a-valider-liste {
     list-style: none;
+    padding-left: 0;
 }
 
 .doc-item {
@@ -794,6 +795,7 @@
 /* --- Projet d'acte à valider, à relire, à signer : copie chemin / téléchargement doc--- */
 .doc-copy-row, .doc-download-row{
     display: flex;
+    flex-wrap: wrap;
     position: relative;
     align-items: center;
     gap: 0.5rem;
@@ -804,9 +806,25 @@
 }
 
 .doc-copy-row > .doc-titre-no-download,
-.doc-download-row > .doc-titre-no-download,
+.doc-download-row > .doc-titre-no-download {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.doc-copy-row > .doc-fichier-titre {
+    flex: 1 1 10rem;
+    min-width: 0;
+    max-width: 100%;
+    color: #006131;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .doc-download-row > .document-avec-apercu {
-    flex: 0 1 auto;
+    flex: 1 1 10rem;
+    min-width: min(100%, 8rem);
 }
 
 .doc-download-row {

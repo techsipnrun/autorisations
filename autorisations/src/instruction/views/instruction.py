@@ -1416,6 +1416,15 @@ def instruction_dossier(request, num_dossier):
     # Documents
     #############################
     documents_data = build_documents_for_dossier(dossier)
+    # Les actes des cycles précédents restent accessibles pendant la reprise.
+    # Aux étapes finales, ils disposent déjà de leurs rubriques dédiées.
+    actes_deja_envoyes = (
+        documents_data["doc_envoye"]
+        if etape_actuelle and etape_actuelle.etape not in (
+            "Accepté", "Refusé", "À publier au RAA",
+        )
+        else []
+    )
     documents_data["annexes_instructeur"] = preparer_annexes_notes(
         documents_data["annexes_instructeur"], dossier, request.user,
     )
@@ -1753,6 +1762,7 @@ def instruction_dossier(request, num_dossier):
         **roles,
         **avis_data,
         **documents_data,
+        "actes_deja_envoyes": actes_deja_envoyes,
     })
 
 

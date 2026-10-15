@@ -32,6 +32,7 @@ from instruction.utils.avis_utils import (attach_pj_to_avis, avis_est_conseil_sc
 from instruction.utils.dossier_utils import count_unread_messages_for_dossier, get_chemin_complet_dossier, redirect_error
 from instruction.views.errors import avis_introuvable
 from instruction.utils.avis_utils import get_dossiers_lies_affiches_avis
+from instruction.utils.avis_utils import emplacement_demande_avis_dossier
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
@@ -192,11 +193,9 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
     # Tous les avis déjà envoyés pour ce dossier
     avis_existants = Avis.objects.filter(id_dossier=dossier, statut="Envoyé")
 
-    # Extraire les instructeurs et contacts déjà utilisés
+    # La restriction existante concerne les experts internes, pas les instances.
     instructeurs_utilises = avis_existants.filter(id_expert__id_instructeur__isnull=False) \
                                           .values_list("id_expert__id_instructeur__email", flat=True)
-    contacts_utilises = avis_existants.filter(id_expert__id_contact_externe__isnull=False) \
-                                      .values_list("id_expert__id_contact_externe__email", flat=True)
 
 
     # Instructeurs candidats
@@ -216,7 +215,6 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         .filter(email__isnull=False, id_type__type="Instance")
         .exclude(email__exact="")
         .exclude(email=request.user.email)  # pas soi-même
-        .exclude(email__in=contacts_utilises)  # pas déjà utilisé
         .order_by("nom", "email")
     )
 
@@ -323,7 +321,6 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         .filter(email__isnull=False, id_type__type="Instance")
         .exclude(email__exact="")
         .exclude(email=request.user.email)  # pas soi-même
-        # .exclude(email__in=contacts_utilises)  # pas déjà utilisé
         .exclude(id_type__type__in=["Demandeur intermédiaire", "Bénéficiaire"])
         .order_by("nom", "email")
     )
@@ -537,9 +534,7 @@ def ajouter_avis_hors_appli(request, num_dossier):
                 instructeur_demandeur = Instructeur.objects.get(id=instructeur_demandeur_id)
 
             # Création emplacement
-            emplacement = ""
-            if nom_prenom_expert :  
-                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+            emplacement = emplacement_demande_avis_dossier(dossier, nom_prenom_expert)
 
 
             # 2. Créer l’avis
@@ -780,13 +775,11 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
         
         # ---- On récupère l'emplacement physique de l'avis ----
-        if brouillon_avis :
-            if not brouillon_avis.emplacement :
-                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
-            else :
-                emplacement = brouillon_avis.emplacement
-        else :
-            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+        try:
+            emplacement = emplacement_demande_avis_dossier(dossier, nom_prenom_expert, brouillon_avis)
+        except Exception:
+            logger.exception("[DOSSIER %s] Impossible de préparer le répertoire de la demande d'avis.", dossier.numero)
+            return redirect_error(request, "Impossible de préparer le répertoire de la demande d'avis sur le NAS. Réessayez ou contactez le support.")
         
         doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
 
@@ -1199,13 +1192,11 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 
 
         # ---- On récupère l'emplacement physique de l'avis ----
-        if brouillon_avis :
-            if not brouillon_avis.emplacement :
-                emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
-            else :
-                emplacement = brouillon_avis.emplacement
-        else :
-            emplacement = f"{dossier.emplacement}Avis/{nom_prenom_expert}/"
+        try:
+            emplacement = emplacement_demande_avis_dossier(dossier, nom_prenom_expert, brouillon_avis)
+        except Exception:
+            logger.exception("[DOSSIER %s] Impossible de préparer le répertoire du brouillon d'avis.", dossier.numero)
+            return redirect_error(request, "Impossible de préparer le répertoire du brouillon d'avis sur le NAS. Réessayez ou contactez le support.")
 
 
         # ---- Création des folders
