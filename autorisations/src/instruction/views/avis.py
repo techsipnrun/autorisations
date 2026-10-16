@@ -3,14 +3,18 @@ import logging
 import os
 import tempfile
 import zipfile
-from django.http import FileResponse, HttpResponseBadRequest
+from functools import wraps
+from uuid import uuid4
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.urls import reverse
+from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Exists, OuterRef
 import smbclient
 from autorisations.settings import EMAIL_NOTIF_TEST, NOTIFS_PROD
@@ -33,10 +37,39 @@ from instruction.utils.dossier_utils import count_unread_messages_for_dossier, g
 from instruction.views.errors import avis_introuvable
 from instruction.utils.avis_utils import get_dossiers_lies_affiches_avis
 from instruction.utils.avis_utils import emplacement_demande_avis_dossier
+from instruction.utils.avis_reservations import creation_avis_reservee, modification_brouillon_verrouillee, reserver_numero, lire_reservation, utiliser_reservation
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
 logger = logging.getLogger('ORM_DJANGO')
+
+
+def _creation_avec_numero_reserve(vue):
+    @wraps(vue)
+    def executer(request, *args, **kwargs):
+        avis_id = kwargs.get("avis_id", args[1] if len(args) > 1 else None)
+        num_dossier = kwargs.get("num_dossier", args[0] if args else None)
+        try:
+            if avis_id:
+                with modification_brouillon_verrouillee(request, num_dossier, avis_id) as avis:
+                    if avis and avis.statut != "Brouillon":
+                        return redirect("instruction_dossier_consultation", num_dossier=num_dossier)
+                    request.brouillon_reservation = avis
+                    return vue(request, *args, **kwargs)
+            with creation_avis_reservee(request, num_dossier) as reservation:
+                request.reservation_avis = reservation
+                if reservation.id_avis_id:
+                    if num_dossier is not None:
+                        if vue.__name__ == "instruction_dossier_enregistrer_brouillon_avis":
+                            return redirect("instruction_dossier_ajouter_avis", num_dossier=num_dossier, avis_id=reservation.id_avis_id)
+                        return redirect("instruction_dossier_consultation", num_dossier=num_dossier)
+                    return redirect("avis_expert", avis_id=reservation.id_avis_id)
+                return vue(request, *args, **kwargs)
+        except PermissionDenied as erreur:
+            return HttpResponseForbidden(str(erreur))
+        except ValidationError as erreur:
+            return HttpResponseBadRequest(" ".join(erreur.messages))
+    return executer
 
 
 def _destinataire_cs_depuis_formulaire(request, expert, obligatoire=True):
@@ -51,6 +84,82 @@ def _destinataire_cs_depuis_formulaire(request, expert, obligatoire=True):
     if obligatoire:
         raise ValueError("Le destinataire CS ou BCS est obligatoire pour une demande d'avis au Conseil scientifique.")
     return None
+
+
+def _notifier_demande_avis(request, avis, dossier=None):
+    """Préparer l'outbox en transaction ; envoyer seulement après le commit."""
+    destinataires = [get_email_expert(avis)] if NOTIFS_PROD else [EMAIL_NOTIF_TEST]
+    generique = dossier is None
+    sujet = f"{avis.id_instructeur} vous demande votre avis"
+    if dossier:
+        sujet += f" sur le dossier n° {dossier.numero} ({dossier.id_demarche.type})"
+    elif avis.id_demarche.type:
+        sujet += f" ({avis.id_demarche.type})"
+    contexte = {
+        "avis_numero": avis.id, "demarche_type": avis.id_demarche.type,
+        "demandeur": str(avis.id_instructeur), "message": avis.formulation,
+        "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/",
+    }
+    if dossier:
+        contexte["dossier_numero"] = dossier.numero
+    template = "nouvelle_demande_avis_generique" if generique else "nouvelle_demande_avis_dossier"
+    try:
+        cle = compute_dedupe_key(destinataires, sujet, template, contexte)
+        outbox = create_EmailOutbox(destinataires, sujet, template, cle, contexte, dossier, type_mail="Notification")
+        if not outbox:
+            raise ValueError("La notification n'a pas pu être préparée.")
+    except Exception:
+        logger.exception("[AVIS %s] Échec de préparation de la notification.", avis.id)
+        messages.error(request, "La notification n'a pas pu être préparée. Contactez le support.")
+        return
+
+    def envoyer():
+        try:
+            ok, erreur = envoi_mail(outbox.id)
+            if not ok:
+                raise ValueError(erreur)
+            logger.info("[AVIS %s] Notification %s envoyée.", avis.id, outbox.id)
+        except Exception:
+            logger.exception("[AVIS %s] Échec d'envoi de la notification %s.", avis.id, outbox.id)
+            messages.error(request, "La demande a été enregistrée mais sa notification n'a pas pu être envoyée. Contactez le support.")
+    transaction.on_commit(envoyer)
+
+
+def _enregistrer_pj_complementaires(request, avis):
+    """Conserver les PJ d'un brouillon et ne remplacer que celles de cet avis."""
+    nouveaux = request.FILES.getlist("pj_lie_avis")
+    remplacements = {cle for cle in request.FILES if cle.startswith("remplacer_pj_")}
+    if not nouveaux and not remplacements:
+        return
+    liens = list(AvisDocument.objects.filter(id_avis=avis).select_related("id_document")) if remplacements else []
+    cles_connues = {f"remplacer_pj_{lien.id_document_id}" for lien in liens}
+    if remplacements - cles_connues:
+        raise ValueError("La pièce jointe à remplacer n'appartient pas à cet avis.")
+    fichiers = nouveaux + [request.FILES[cle] for cle in remplacements]
+    for fichier in fichiers:
+        if Path(fichier.name).suffix.lower() not in {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".odt"}:
+            raise ValueError(f"Format non autorisé pour la pièce jointe {fichier.name}.")
+    if not creer_dossier_sur_nas(f"{os.getenv('NAS_ROOT')}{avis.emplacement}Annexes/"):
+        raise ValueError("Impossible de préparer le répertoire des pièces jointes sur le NAS.")
+
+    def enregistrer(fichier):
+        doc = enregistrer_document(
+            fichier=fichier, nature_str="Annexe avis", request=request,
+            description=f"Pièce jointe pour la demande d'avis {avis.id}", emplacement_avis=avis.emplacement,
+        )
+        if not doc:
+            raise ValueError(f"La pièce jointe {fichier.name} n'a pas pu être enregistrée. Réessayez.")
+        return doc
+
+    for lien in liens:
+        fichier = request.FILES.get(f"remplacer_pj_{lien.id_document_id}")
+        if fichier:
+            doc = enregistrer(fichier)
+            if doc.pk != lien.id_document_id:
+                AvisDocument.objects.get_or_create(id_avis=avis, id_document=doc)
+                lien.delete()
+    for fichier in nouveaux:
+        AvisDocument.objects.get_or_create(id_avis=avis, id_document=enregistrer(fichier))
 
 
 @login_required
@@ -157,6 +266,7 @@ def instruction_dossier_consultation(request, num_dossier) :
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
     
     # --- Récupération du dossier ---
@@ -167,28 +277,59 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         
 
 
+    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
+    if not instructeur_connecte:
+        return HttpResponseForbidden("Vous devez disposer d'un profil instructeur pour créer une demande d'avis.")
+    reservation = None
+    if avis_id is None:
+        try:
+            if request.method == "POST":
+                reservation = reserver_numero(instructeur_connecte, dossier, request.POST.get("reservation"))
+                return redirect(reverse("instruction_dossier_ajouter_avis", kwargs={"num_dossier": num_dossier}) + "?reservation=" + str(reservation.pk))
+            if not request.GET.get("reservation"):
+                return render(request, "instruction/avis_reserver_numero.html", {
+                    "reservation_cle": uuid4(), "dossier": dossier,
+                })
+            reservation = lire_reservation(request.GET["reservation"], instructeur_connecte, dossier)
+            if reservation.id_avis_id:
+                return redirect("instruction_dossier_ajouter_avis", num_dossier=num_dossier, avis_id=reservation.id_avis_id)
+        except PermissionDenied as erreur:
+            return HttpResponseForbidden(str(erreur))
+        except ValidationError as erreur:
+            return HttpResponseBadRequest(" ".join(erreur.messages))
+        except Exception:
+            logger.exception("[DOSSIER %s] Impossible de préparer la réservation d'avis.", num_dossier)
+            return HttpResponse("Impossible de réserver le numéro d'avis. Réessayez ou contactez le support.", status=503)
+    elif request.method != "GET":
+        return HttpResponseBadRequest("Utilisez les boutons d'enregistrement ou d'envoi de l'avis.")
+
     # --- Récupération éventuelle de l'avis (édition) ---
     avis = None
     if avis_id is not None:
-        avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+        avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).select_related(
+            "id_projet_avis", "id_projet_acte", "id_rapport_instance",
+        ).first()
         if not avis:
             logger.error(f"[AJOUT AVIS] Dossier {num_dossier} — Avis {avis_id} introuvable ou non lié au dossier.")
             return avis_introuvable(request, avis_id, num_dossier)
             
         
 
+    pieces_complementaires = []
+    if avis:
+        # AvisDocument matérialise l'ajout aux « Autres PJ », même si le même
+        # Document est également référencé par un ou plusieurs champs principaux.
+        pieces_complementaires = (
+            AvisDocument.objects.filter(id_avis=avis)
+            .exclude(id_document__id_nature__nature="Avis instance")
+            .select_related("id_document").order_by("id")
+        )
+
     # Récupérer toutes les natures et thématiques
     natures = AvisNature.objects.all().order_by("nature")
 
     # thematiques = AvisThematique.objects.all().order_by("thematique")
     thematiques = thematiques_avis_liees_a_demarche(dossier.id_demarche)
-
-    # --- Instructeur courant (user connecté) ---
-    instructeur_connecte = Instructeur.objects.filter(email=request.user.email).first()
-    if not instructeur_connecte:
-        logger.warning(f"[AJOUT AVIS] Utilisateur {request.user.email} sans profil instructeur")
-        messages.warning(request, "Vous n'avez pas de profil 'Instructeur.trice'. Contactez le support.")
-
 
     # Tous les avis déjà envoyés pour ce dossier
     avis_existants = Avis.objects.filter(id_dossier=dossier, statut="Envoyé")
@@ -261,6 +402,9 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "thematiques": thematiques, 
         "instructeurs": instructeurs,
         "contacts_externes": contacts_externes,
+        "pieces_complementaires": pieces_complementaires,
+        "reservation": reservation,
+        "numero_avis": avis.id if avis else reservation.numero,
         "is_formulaire_active": False,
         "is_messagerie_active": False,
         "is_consultation_active": True,
@@ -666,55 +810,58 @@ def supprimer_pj_avis(request, avis_id, document_id):
         return redirect_error(request, "L'avis est introuvable en base. Contactez le support.")
     
     avis_doc = AvisDocument.objects.filter(id_avis=avis, id_document_id=document_id).first()
-    
-    if not avis_doc:
-        logger.warning(f"[SUPPR PJ AVIS] Relation AvisDocument introuvable — Avis {avis_id}, Document {document_id}")
-        doc = Document.objects.get(id=document_id)
-        doc.delete()
-        logger.info(f"[SUPPR PJ AVIS] Le Document {document_id} a quand même été supprimé.")
-        # return redirect_error(request, "La pièce jointe est introuvable. Contactez le support.")
-        
-        return redirect(request.META.get("HTTP_REFERER", "/"))
+    champs_principaux = ("id_projet_avis", "id_projet_acte", "id_rapport_instance")
+    champs = [
+        champ for champ in champs_principaux
+        if getattr(avis, f"{champ}_id") == document_id
+    ]
+    source = request.POST.get("source")
+    if source in champs_principaux:
+        if source not in champs:
+            return JsonResponse({"success": False, "error": "Cette pièce jointe n'appartient pas au champ indiqué."}, status=403)
+        champs = [source]
+        avis_doc = None
+    elif source == "annexe" or (not source and avis_doc):
+        # Une annexe et un champ principal peuvent référencer le même Document.
+        champs = []
+    elif source or len(champs) > 1:
+        return JsonResponse({"success": False, "error": "Précisez le champ de la pièce jointe à retirer. Rechargez la page puis réessayez."}, status=400)
+    if not avis_doc and not champs:
+        logger.warning("[SUPPR PJ AVIS] Document %s non lié à l'avis %s.", document_id, avis_id)
+        return JsonResponse({"success": False, "error": "Cette pièce jointe n'appartient pas à cet avis."}, status=403)
 
-
-    # Supprime le lien Avis ↔ Document
-    doc = avis_doc.id_document
-
-    # Suppression relation
     try:
-        avis_doc.delete()
-    except Exception as e:
-        logger.error(f"[SUPPR_PJ_AVIS] Erreur lors de la suppression du lien AvisDocument — Avis {avis_id}, Document {doc.id} : {e}")
-        return redirect_error(request, f"Erreur lors de la suppression du document. Contactez le support.")
-        
+        for champ in champs:
+            setattr(avis, champ, None)
+        if champs:
+            avis.save(update_fields=champs)
+        if avis_doc:
+            avis_doc.delete()
+        # Conserver le Document et son fichier : d'autres messages peuvent le référencer.
+    except Exception:
+        logger.exception("[AVIS %s] Échec du retrait de la pièce jointe %s.", avis_id, document_id)
+        return JsonResponse({"success": False, "error": "La pièce jointe n'a pas pu être retirée."}, status=500)
 
-
-    # Suppression document (On ne le supprime pas physiquement pour garder une trace)
-    try:
-        doc.delete()
-    except Exception as e:
-        logger.error(f"[SUPPR_PJ_AVIS] Liaison AvisDocument bien supprimée. Erreur lors de la suppression du Document {doc.id} (Avis {avis_id}) : {e}")
-        return redirect_error(request, f"Erreur lors de la suppression du document. Contactez le support.")
-        
-
-    logger.info(f"[AVIS {avis_id}] Pièce jointe {document_id} ({doc.titre}) supprimée par {request.user}")
-
+    logger.info("[AVIS %s] Pièce jointe %s retirée de %s par %s.", avis_id, document_id, source or "lien historique", request.user)
+    if "application/json" in request.headers.get("Accept", ""):
+        return JsonResponse({"success": True})
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
 @require_POST
 @login_required
+@_creation_avec_numero_reserve
 def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None):
     
 
-    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    instructeur = getattr(request, "instructeur_reservation", None) or Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
         logger.warning(f"Erreur lors de la récupération de l'instructeur pour le user {request.user} : {e}")
         return redirect_error(request, f"Aucun instructeur.rice n'est associé.e à votre profil. Contactez le support.")
 
     
     # --- Récupération dossier ---
-    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    dossier = getattr(request, "dossier_reservation", None) or Dossier.objects.filter(numero=num_dossier).first()
     if not dossier:
         logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {num_dossier} introuvable en base.")
         return redirect_error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
@@ -723,7 +870,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
     # --- Récupération brouillon éventuel ---
     brouillon_avis = None
     if avis_id:
-        brouillon_avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+        brouillon_avis = getattr(request, "brouillon_reservation", None) or Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
         if not brouillon_avis:
             logger.error(f"[CONFIRMER AJOUT AVIS] Brouillon avis {avis_id} introuvable pour dossier {num_dossier}.")
             return redirect_error(request, "Le brouillon de l'avis est introuvable. Contactez le support.")
@@ -746,10 +893,12 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
     if request.method == "POST":
         # Champs du formulaire
         nature_id = request.POST.get("nature")
+        if brouillon_avis and brouillon_avis.statut == "Brouillon" and str(nature_id) != str(brouillon_avis.id_avis_nature_id):
+            return redirect_error(request, "La nature d'un avis au statut Brouillon ne peut pas être modifiée.")
         thematique_id = request.POST.get("thematique")
         note = request.POST.get("note_demandeur", "").strip()
-        mode_contact = request.POST.get("mode_contact")
-        formulation_avis = request.POST.get("formulation_avis")
+        mode_contact = "Application"
+        formulation_avis = (request.POST.get("formulation_avis") or "").strip()
         pj_projet_avis = request.FILES.get("pj_demande_avis")
         pj_projet_acte = request.FILES.get("pj_projet_acte")
         pj_rapport_cs = request.FILES.get("pj_rapport_cs")
@@ -774,6 +923,22 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             
 
         
+        if not formulation_avis:
+            return redirect_error(request, "Renseignez la formulation de l'avis avant l'envoi.")
+        if nature.nature not in {"Consultation en interne", "Demande à une instance"}:
+            return redirect_error(request, "La nature de l'avis n'est pas autorisée pour ce formulaire.")
+        if (nature.nature == "Consultation en interne") != bool(expert.est_interne):
+            return redirect_error(request, "L'expert sélectionné ne correspond pas à la nature de l'avis.")
+        if nature.nature == "Demande à une instance":
+            for fichier, champ, libelle in (
+                (pj_projet_avis, "id_projet_avis_id", "le projet d'avis de l'instance"),
+                (pj_projet_acte, "id_projet_acte_id", "le projet d'acte"),
+            ):
+                if not fichier and not (brouillon_avis and getattr(brouillon_avis, champ)):
+                    return redirect_error(request, f"Joignez {libelle} avant l'envoi.")
+        else:
+            pj_projet_avis = pj_projet_acte = pj_rapport_cs = None
+
         # ---- On récupère l'emplacement physique de l'avis ----
         try:
             emplacement = emplacement_demande_avis_dossier(dossier, nom_prenom_expert, brouillon_avis)
@@ -873,6 +1038,15 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
 
 
+        for fichier, document in (
+            (pj_projet_avis, doc_projet_avis),
+            (pj_projet_acte, doc_projet_acte),
+            (pj_rapport_cs, doc_rapport_instance),
+        ):
+            if fichier and not document:
+                logger.error("[DOSSIER %s] Échec de l'enregistrement de la pièce jointe %s.", num_dossier, fichier.name)
+                return redirect_error(request, f"La pièce jointe {fichier.name} n'a pas pu être enregistrée. Réessayez.")
+
         ####################################################
         # ---- CAS 1 : BROUILLON D'AVIS DÉJÀ EXISTANT ---- #
         ####################################################
@@ -915,18 +1089,19 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
             # Create message (formulation) + projet demande d'avis en PJ si il existe
             try:
+                projet_avis_message = brouillon_avis.id_projet_avis
                 msg = Message.objects.create(
                     body=brouillon_avis.formulation,
                     date_envoi=timezone.now(),
-                    piece_jointe=True if doc_projet_avis else False,
+                    piece_jointe=bool(projet_avis_message),
                     email_emetteur=request.user.email,
                     id_avis=brouillon_avis,
                     lu=False,
                 )
 
                 # Joindre le projet de demande d'avis au message
-                if doc_projet_avis :
-                    MessageDocument.objects.create(id_message=msg, id_document=doc_projet_avis)
+                if projet_avis_message:
+                    MessageDocument.objects.create(id_message=msg, id_document=projet_avis_message)
 
                 logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : message par défaut envoyé à {brouillon_avis.id_expert} par {request.user}")
 
@@ -945,6 +1120,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             try:
 
                 avis = Avis.objects.create(
+                        id=request.reservation_avis.numero,
                         id_avis_nature=nature,
                         id_avis_thematique=thematique,
                         date_demande_avis=timezone.now(),
@@ -963,6 +1139,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                         emplacement = emplacement,
                 )
 
+                utiliser_reservation(request, avis)
                 logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero} : Avis {avis.id} créé par {request.user}")
 
             except Exception as e:
@@ -1002,82 +1179,14 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
                     logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Demande d'avis de {request.user} non transmise à {avis.id_expert} - Erreur lors de la création du message par défaut (formulation avis) : {e}")
                     return redirect_error(request, f"Avis non transmis : Erreur lors de la création du message par défaut (formulation avis): {e}")
 
-        # Autres PJ
-        if liste_autres_pj :
-            try :
-            
-                # Ecriture physique
-                for pj in liste_autres_pj :
-
-                    if avis_id:
-                        description = f"Pièce jointe déposée par {request.user} pour la demande d'avis {avis_id}"
-                    else:
-                        description = f"Pièce jointe déposée par {request.user}"
-                    
-                    doc_pj = enregistrer_document(
-                        fichier=pj,
-                        nature_str="Annexe avis",
-                        description=description,
-                        request=request,
-                        emplacement_avis = emplacement,
-                    )
-
-                    # Création AvisDocument
-                    if doc_pj:
-                        AvisDocument.objects.create(id_avis=avis, id_document=doc_pj)
-
-            except Exception as e:
-                logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Echec du rattachement des autres pièces jointes à la demande d'avis par {request.user} : {e}")
-                return redirect_error(request, f"Erreur lors du rattachement des pièces jointes annexes à la demande d'avis. Contactez le support.")
-            
-
-        #################################
-        # NOTIFICATION PAR MAIL à l'expert
-        #################################
-        # On notifie les agents dans le cadre d'une vraie instruction
-        if NOTIFS_PROD :
-            emails_norm = [get_email_expert(avis)]
-        # Test de notification par mail à EMAIL_NOTIF_TEST   
-        else :
-            emails_norm = [EMAIL_NOTIF_TEST]
-
-
-        if (DossierAvis.objects.filter(id_avis=avis).exists() or avis.id_dossier) and avis.id_demarche.type :
-            sujet = f"{avis.id_instructeur} vous demande votre avis sur le dossier n° {dossier.numero} ({dossier.id_demarche.type})"
-        else :
-            sujet = f"{avis.id_instructeur} vous demande votre avis"
-
-        context = {
-            "avis_numero": avis.id,
-            "dossier_numero": dossier.numero,
-            "demarche_type": avis.id_demarche.type,
-            "demandeur": str(avis.id_instructeur),
-            "message": avis.formulation,
-            "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/",
-        }
-        template_name = "nouvelle_demande_avis_dossier" 
-
-        try :
-            dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-
+        try:
+            _enregistrer_pj_complementaires(request, avis)
         except Exception as e:
-            messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-            logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-            return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
-        
-        outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, dossier, type_mail = "Notification")
+            logger.exception("[AVIS %s] Échec de l'enregistrement des pièces jointes.", avis.id)
+            return redirect_error(request, str(e))
 
-        if outbox :
-            ok, err = envoi_mail(outbox.id)
-        else :
-            logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
-            messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-        if ok:
-            logger.info(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Notification Email {outbox.id} envoyée à {', '.join(outbox.to)} ")
-        else:
-            logger.error(f"[CONFIRMER AJOUT AVIS] Dossier {dossier.numero}, Avis {avis.id} : Échec envoi notification email {outbox.id} à {', '.join(outbox.to)} : {err}")
-            messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
+        request.creation_avis_validee = True
+        _notifier_demande_avis(request, avis, dossier)
 
     else :
         logger.error(f"[CONFIRMER AJOUT AVIS] Erreur lors de la transmission du formulaire par {request.user} : méthode POST requise.")
@@ -1090,10 +1199,14 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
 
 @require_POST
 @login_required
+@_creation_avec_numero_reserve
 def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id=None):
 
+    generation_numero = request.POST.get("generer_numero") == "1"
+    if generation_numero and avis_id:
+        return redirect_error(request, "Cette demande possède déjà un numéro d'avis.")
     try:
-        instructeur = Instructeur.objects.filter(email=request.user.email).first()
+        instructeur = getattr(request, "instructeur_reservation", None) or Instructeur.objects.filter(email=request.user.email).first()
         if not instructeur:
             return redirect_error(request, f"Aucun instructeur.rice n'est associé.e à votre profil. Contactez le support")
             
@@ -1102,7 +1215,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
         
 
     # --- Récupération dossier ---
-    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    dossier = getattr(request, "dossier_reservation", None) or Dossier.objects.filter(numero=num_dossier).first()
     if not dossier:
         logger.error(f"[SAVE BROUILLON AVIS] Dossier {num_dossier} introuvable")
         return redirect_error(request, f"Dossier {num_dossier} introuvable. Contactez le support.")
@@ -1111,7 +1224,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
     # Si on reçoit un brouillon d'avis existant
     brouillon_avis = None
     if avis_id:
-        brouillon_avis = Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
+        brouillon_avis = getattr(request, "brouillon_reservation", None) or Avis.objects.filter(id=avis_id, id_dossier=dossier).first()
         if not brouillon_avis:
             logger.error(f"[SAVE BROUILLON AVIS] Brouillon d'avis {avis_id} introuvable en base pour dossier {num_dossier}")
             return redirect_error(request, "Avis introuvable en base. Contactez le support.")
@@ -1121,10 +1234,12 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
     if request.method == "POST":
         # Champs du formulaire
         nature_id = request.POST.get("nature")
+        if brouillon_avis and brouillon_avis.statut == "Brouillon" and str(nature_id) != str(brouillon_avis.id_avis_nature_id):
+            return redirect_error(request, "La nature d'un avis au statut Brouillon ne peut pas être modifiée.")
         thematique_id = request.POST.get("thematique")
         note = request.POST.get("note_demandeur", "").strip()
-        mode_contact = request.POST.get("mode_contact")
-        formulation_avis = request.POST.get("formulation_avis")
+        mode_contact = "Application"
+        formulation_avis = request.POST.get("formulation_avis") or ""
         expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
         expert_externe_id = request.POST.get("expert_externe") # contact externe ici
         pj_projet_avis = request.FILES.get("pj_demande_avis")
@@ -1147,6 +1262,11 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
             return redirect_error(request, f"Erreur lors de la récupération de la thématique de l'avis. Contactez le suppport.")
 
     
+        if bool(expert_interne_id) == bool(expert_externe_id):
+            return redirect_error(request, "Sélectionnez un seul expert pour la demande d'avis.")
+        if generation_numero and (nature.nature != "Demande à une instance" or not expert_externe_id):
+            return redirect_error(request, "La génération du numéro est réservée aux demandes à une instance.")
+
         if expert_interne_id:
             try:
                 instru = Instructeur.objects.get(id=expert_interne_id)
@@ -1187,7 +1307,10 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 logger.error(f"[SAVE BROUILLON AVIS] Expert externe {expert_externe_id} introuvable : {e}")
                 return redirect_error(request, f"Erreur lors de la récupération de l'expert externe. Contactez le suppport.")
 
-        destinataire = _destinataire_cs_depuis_formulaire(request, expert, obligatoire=False)
+        try:
+            destinataire = _destinataire_cs_depuis_formulaire(request, expert, obligatoire=generation_numero)
+        except ValueError as e:
+            return redirect_error(request, str(e))
                 
                 
 
@@ -1260,8 +1383,16 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 emplacement_avis = emplacement,
             )
                 
-        # Pour le moment : On ne sauvegarde pas les autres pj (liste_autres_pj) pour les brouillon d'avis.
         
+        for fichier, document in (
+            (pj_projet_avis, doc_projet_avis),
+            (pj_projet_acte, doc_projet_acte),
+            (pj_rapport_cs, doc_rapport_instance),
+        ):
+            if fichier and not document:
+                logger.error("[DOSSIER %s] Échec de l'enregistrement de la pièce jointe %s.", num_dossier, fichier.name)
+                return redirect_error(request, f"La pièce jointe {fichier.name} n'a pas pu être enregistrée. Réessayez.")
+
         ####################################################
         # ---- CAS 1 : BROUILLON D'AVIS DÉJÀ EXISTANT ---- #
         ####################################################
@@ -1295,6 +1426,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                         f"[DOSSIER {dossier.numero}] Brouillon d'avis ({brouillon_avis}) mis à jour. "
                         f"Changements: {', '.join(updated_fields)}"
                     )
+                avis = brouillon_avis
             except Exception as e:
                 logger.error(f"[SAVE BROUILLON AVIS] Dossier {dossier.numero}, Avis {brouillon_avis.id} : Erreur lors de la mise à jour de l'avis : {e}")
                 return redirect_error(request, f"Erreur lors de la sauvegarde de l'avis. Contactez le support.")
@@ -1308,6 +1440,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
         else:
             try:
                 avis = Avis.objects.create(
+                        id=request.reservation_avis.numero,
                         id_avis_nature=nature,
                         id_avis_thematique=thematique,
                         date_demande_avis=timezone.now(),
@@ -1316,6 +1449,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                         formulation= formulation_avis,
                         mode_contact=mode_contact,
                         id_dossier=dossier,
+                        id_demarche=dossier.id_demarche,
                         id_expert=expert,
                         destinataire=destinataire,
                         id_instructeur=instructeur,
@@ -1324,6 +1458,7 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                         id_projet_avis=doc_projet_avis,
                         emplacement = emplacement
                 )
+                utiliser_reservation(request, avis)
 
                 logger.info(f"[DOSSIER {dossier.numero}] Brouillon de demande d'avis créé : {avis}")
 
@@ -1341,6 +1476,17 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
                 return redirect_error(request, f"Erreur lors de la création du lien entre le dossier et l'avis. Contactez le support.")
                 
               
+        try:
+            _enregistrer_pj_complementaires(request, avis)
+        except Exception as e:
+            logger.exception("[AVIS %s] Échec de sauvegarde des pièces jointes du brouillon.", avis.id)
+            return redirect_error(request, str(e))
+        if generation_numero:
+            request.creation_avis_validee = True
+            return redirect("instruction_dossier_ajouter_avis", num_dossier=num_dossier, avis_id=avis.id)
+
+        request.creation_avis_validee = True
+
     else :
         logger.error(f"[SAVE BROUILLON AVIS] Erreur lors de la transmission du formulaire par {request.user} : méthode POST requise.")
         return redirect_error(request, f"Erreur lors de la transmission du formulaire : méthode POST requise. Contactez le support.")
@@ -2084,6 +2230,7 @@ def mettre_a_jour_note_avis(request, avis_id):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def nouvelle_demande_avis_generique(request):
     
     try :
@@ -2099,6 +2246,15 @@ def nouvelle_demande_avis_generique(request):
             logger.warning(f"[NOUVELLE DEMANDE AVIS GÉNÉRIQUE] User {request.user} a tenté une demande d'avis sans profil instructeur.")
             return redirect_error(request, "Vous devez disposer d'un profil instructeur pour créer une demande d’avis. Contactez le support.")
 
+        if request.method == "POST":
+            reservation = reserver_numero(instructeur_connecte, cle=request.POST.get("reservation"))
+            return redirect(reverse("nouvelle_demande_avis_generique") + "?reservation=" + str(reservation.pk))
+        if not request.GET.get("reservation"):
+            return render(request, "instruction/avis_reserver_numero.html", {"reservation_cle": uuid4()})
+        reservation = lire_reservation(request.GET["reservation"], instructeur_connecte)
+        if reservation.id_avis_id:
+            return redirect("avis_expert", avis_id=reservation.id_avis_id)
+
         # Instructeurs candidats
         instructeurs_ = Instructeur.objects.filter(email__isnull=False).exclude(email__exact="").exclude(email__exact="autorisations@reunion-parcnational.fr").order_by("id_agent_autorisations__nom","id_agent_autorisations__prenom")
 
@@ -2109,12 +2265,17 @@ def nouvelle_demande_avis_generique(request):
         instructeurs = {i.email: i for i in instructeurs_}.values()
         contacts_externes = {c.email: c for c in contacts_}.values()
 
+    except PermissionDenied as erreur:
+        return HttpResponseForbidden(str(erreur))
+    except ValidationError as erreur:
+        return HttpResponseBadRequest(" ".join(erreur.messages))
     except Exception as e:
         logger.error(f"[NOUVELLE DEMANDE GENERIQUE] Erreur inattendue (user {request.user}) : {e}")
-        return redirect_error(request, "Erreur lors du chargement des données. Contactez le support.")
+        return HttpResponse("Impossible de préparer la demande d'avis. Réessayez ou contactez le support.", status=503)
     
 
     return render(request, "instruction/avis_nouvelle_demande_generique.html", {
+        "reservation": reservation,
         "natures": natures,
         "thematiques": thematiques,
         "instructeurs": instructeurs,
@@ -2126,11 +2287,12 @@ def nouvelle_demande_avis_generique(request):
 
 @require_POST
 @login_required
+@_creation_avec_numero_reserve
 def avis_confirmer_nouvelle_demande_generique(request):
     
 
     # --- Récupération instructeur ---
-    instructeur = Instructeur.objects.filter(email=request.user.email).first()
+    instructeur = getattr(request, "instructeur_reservation", None) or Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
         logger.warning(f"[CONFIRMER AVIS GENERIQUE] Le user {request.user} a tenté de confirmer une nouvelle demande d'avis générique sans profil Instructeur.")
         return redirect_error(request, "Vous devez disposer d'un profil instructeur pour créer une demande d’avis. Contactez le support.")
@@ -2141,7 +2303,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
     demarche_id = request.POST.get("demarche")
     thematique_id = request.POST.get("thematique")
     note = request.POST.get("note_demandeur", "").strip()
-    formulation_avis = request.POST.get("formulation_avis")
+    formulation_avis = (request.POST.get("formulation_avis") or "").strip()
     expert_interne_id = request.POST.get("expert_interne") # instructeur ici 
     expert_externe_id = request.POST.get("expert_externe") # contact externe ici
     pj_projet_avis = request.FILES.get("pj_demande_avis")
@@ -2173,6 +2335,19 @@ def avis_confirmer_nouvelle_demande_generique(request):
         logger.error(f"[CONFIRMER AVIS GENERIQUE] Erreur lors de la récupération de la démarche {demarche_id} (User {request.user}) : {e}")
         return redirect_error(request, "Erreur lors de la récupération de la démarche. Contactez le support.")
 
+    consultation = nature.nature == "Consultation en interne"
+    instance = nature.nature == "Demande à une instance"
+    if not consultation and not instance:
+        return redirect_error(request, "La nature de l'avis n'est pas autorisée pour ce formulaire.")
+    if not formulation_avis or bool(expert_interne_id) == bool(expert_externe_id):
+        return redirect_error(request, "Renseignez la formulation et choisissez un seul expert.")
+    if consultation != bool(expert_interne_id):
+        return redirect_error(request, "L'expert sélectionné ne correspond pas à la nature de l'avis.")
+    if consultation:
+        pj_projet_avis = pj_projet_acte = pj_rapport_cs = None
+    elif not pj_projet_avis or not pj_projet_acte:
+        return redirect_error(request, "Joignez le projet d'avis de l'instance et le projet d'acte avant l'envoi.")
+
     # --- EXPERT ---
     try:
         expert, nom_prenom_expert = get_or_create_expert_from_form(request)
@@ -2188,13 +2363,14 @@ def avis_confirmer_nouvelle_demande_generique(request):
         
     
     # --- Emplacement ---
-    emplacement_avis = f"Avis/{nettoyer_nom_fichier(demarche.type)}/{date.today().year}/{nom_prenom_expert}_{date.today().strftime('%d_%m')}/"
+    emplacement_avis = f"Avis/{nettoyer_nom_fichier(demarche.type)}/{date.today().year}/{nom_prenom_expert}_{date.today().strftime('%d_%m')}_{request.reservation_avis.numero}/"
     doc_projet_acte = doc_rapport_instance = doc_projet_avis = None
     jour_mois_annee = date.today().strftime("%d/%m/%Y")
     
     if pj_projet_avis or pj_projet_acte or pj_rapport_cs or pjs_avis :
         chemin_complet = f"{os.getenv('NAS_ROOT')}{emplacement_avis}Annexes/"
-        creer_dossier_sur_nas(chemin_complet)
+        if not creer_dossier_sur_nas(chemin_complet):
+            return redirect_error(request, "Impossible de préparer le répertoire des pièces jointes sur le NAS.")
 
 
     # --- Écriture fichiers ---
@@ -2240,10 +2416,15 @@ def avis_confirmer_nouvelle_demande_generique(request):
 
 
 
+    for fichier, document in ((pj_projet_avis, doc_projet_avis), (pj_projet_acte, doc_projet_acte), (pj_rapport_cs, doc_rapport_instance)):
+        if fichier and not document:
+            return redirect_error(request, f"La pièce jointe {fichier.name} n'a pas pu être enregistrée. Réessayez.")
+
     # --- Création Avis ---
     try:
 
         avis = Avis.objects.create(
+                id=request.reservation_avis.numero,
                 id_avis_nature=nature,
                 id_avis_thematique=thematique,
                 date_demande_avis=timezone.now(),
@@ -2261,6 +2442,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
                 emplacement = emplacement_avis,
         )
 
+        utiliser_reservation(request, avis)
         logger.info(f"[AVIS GENERIQUE {avis.id}] Avis créé par {request.user}")
     
     except Exception as e:
@@ -2281,12 +2463,13 @@ def avis_confirmer_nouvelle_demande_generique(request):
                     emplacement_avis = emplacement_avis,
                 )
                 
+                if not doc_pj_avis:
+                    raise ValueError(f"La pièce jointe {pj.name} n'a pas pu être enregistrée.")
                 AvisDocument.objects.get_or_create(id_avis=avis, id_document=doc_pj_avis)
                 
             except Exception as e:
                 logger.error(f"[AVIS GENERIQUE {avis.id}] Erreur lors de l'enregistrement d'une pièce jointe : {e}")
-                messages.error(request, "Erreur lors de l'enregistrement d'une pièce jointe. Contactez le support.")
-                return redirect('avis_expert', avis_id=avis.id)
+                return redirect_error(request, "Erreur lors de l’enregistrement d’une pièce jointe. Réessayez.")
 
 
     # Create message (formulation)
@@ -2309,62 +2492,12 @@ def avis_confirmer_nouvelle_demande_generique(request):
 
         except Exception as e:
             logger.error(f"[AVIS GENERIQUE {avis.id}] Erreur lors de la création du message initial : {e}")
-            messages.error(request, "Erreur lors de la création du message initial. Contactez le support.")
-            return redirect('avis_expert', avis_id=avis.id)
+            return redirect_error(request, "Erreur lors de la création du message initial. Réessayez.")
 
     
-    #################################
-    # NOTIFICATION PAR MAIL À L'EXPERT
-    #################################
+    request.creation_avis_validee = True
+    _notifier_demande_avis(request, avis)
 
-    # On notifie les agents dans le cadre d'une vraie instruction
-    if NOTIFS_PROD :
-        emails_norm = [get_email_expert(avis)]
-    # Test de notification par mail à EMAIL_NOTIF_TEST   
-    else :
-        emails_norm = [EMAIL_NOTIF_TEST]
-
-
-    # Demande générique non liée à un dossier
-    if avis.id_demarche.type :
-        sujet = f"{avis.id_instructeur} vous demande votre avis ({avis.id_demarche.type})"
-    else :
-        sujet = f"{avis.id_instructeur} vous demande votre avis"
-
-
-    context = {
-        "avis_numero": avis.id,
-        "demarche_type": avis.id_demarche.type,
-        "demandeur": str(avis.id_instructeur),
-        "message": avis.formulation,
-        "url": f"{os.getenv('URL_APPLI')}reception_avis/{avis.id}/"
-    }
-    template_name = "nouvelle_demande_avis_generique" 
-
-
-    try :
-        dedupe = compute_dedupe_key(emails_norm, sujet, template_name, context)
-
-    except Exception as e:
-        messages.error(request, f"L'email de notification à {avis.id_expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-        logger.error(f"[AVIS GENERIQUE {avis.id}] Nouvelle demande : Erreur lors de la création de la clé unique (compute_dedupe_key) : {e}")
-        return redirect('avis_expert', avis_id=avis.id)
-
-    outbox = create_EmailOutbox(emails_norm, sujet, template_name, dedupe, context, None, type_mail = "Notification")
-
-    if outbox :
-        ok, err = envoi_mail(outbox.id)
-    else :
-        logger.error(f"[NOUVELLE DEMANDE D'AVIS] Erreur lors de la création de l'EmailOutbox, {expert} n'a pas été notifié par mail.")
-        messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-    if ok:
-        logger.info(f"[NOUVELLE DEMANDE D'AVIS] Notification Email {outbox.id} (Nouvelle demande d'avis) envoyée à {', '.join(outbox.to)} ")
-    else:
-        logger.error(f"[NOUVELLE DEMANDE D'AVIS] Échec envoi notification email {outbox.id} (Nouvelle demande d'avis) à {', '.join(outbox.to)} : {err}")
-        messages.error(request, f"L'email de notification à {expert} n'a pas été envoyé. Contactez le support pour en savoir plus.")
-
-    
     return redirect('avis_expert', avis_id=avis.id)
 
 

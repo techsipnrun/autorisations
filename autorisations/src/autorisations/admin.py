@@ -1,7 +1,7 @@
 import logging
 from django.contrib import admin
 from django.db import transaction
-from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis
+from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis, AvisReservation
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EnsembleDossiers, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
@@ -51,6 +51,25 @@ admin.site.index_title = "Portail d'administration"
 # AVIS
 #######################
 """
+
+@admin.register(AvisReservation)
+class AvisReservationAdmin(admin.ModelAdmin):
+    list_display = ("numero", "contexte", "id_instructeur", "id_dossier", "date_creation", "date_utilisation", "id_avis")
+    list_filter = ("contexte", "date_utilisation")
+    search_fields = ("=numero", "id_instructeur__email")
+    list_select_related = ("id_instructeur", "id_dossier", "id_avis")
+    ordering = ("-numero",)
+    readonly_fields = ("id", "numero", "contexte", "id_instructeur", "id_dossier", "date_creation", "date_utilisation", "id_avis")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(Avis)
 class AvisAdmin(admin.ModelAdmin):

@@ -12,13 +12,13 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_ajouter_avis_existant.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_ajouter_avis_existant.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=21">
     <link rel="stylesheet" href="{% static 'instruction/css/copie_dossier_titre.css' %}?v=3">
 
     <!-- JS Ajout Avis existant -->
-    <script src="{% static 'instruction/js/ajouter_avis_existant.js' %}"></script>
+    <script src="{% static 'instruction/js/ajouter_avis_existant.js' %}?v=2"></script>
 
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
@@ -89,7 +89,7 @@
                         </div>
 
                         <div class="attribut_avis" id="bloc_demandeur_avis">
-                            <label>Instructeur.rice à l'origine de la demande* :</label>
+                            <label for="demandeur_avis">Instructeur.rice à l'origine de la demande* :</label>
                             <select id="demandeur_avis" name="demandeur_avis">
                                 <option value="">-- Sélectionner --</option>
                                 {% for i in tous_les_instructeurs %}
@@ -105,7 +105,7 @@
                         </div>
 
                         <div class="attribut_avis" id="bloc_expert_interne">
-                            <label>Expert interne* :</label>
+                            <label for="expert_interne">Expert interne* :</label>
                             <select id="expert_interne" name="expert_interne">
                                 <option value="">-- Sélectionner --</option>
                                 {% for i in instructeurs %}
@@ -121,7 +121,7 @@
                         </div>
 
                         <div class="attribut_avis" id="bloc_expert_externe">
-                            <label>Expert externe* :</label>
+                            <label for="expert_externe">Expert externe* :</label>
                             <select id="expert_externe" name="expert_externe">
                                 <option value="">-- Sélectionner --</option>
                                 {% for c in contacts_externes %}
@@ -163,9 +163,9 @@
                             </select>
                         </div>
 
-                        <div class="attribut_avis">
-                            <label>Réponse de l'avis* :</label>
-                            <div class="radio-group">
+                        <div class="attribut_avis avis-reponse-champ">
+                            <span class="avis-reponse-label" id="label_reponse_avis">Réponse de l'avis* :</span>
+                            <div class="radio-group" role="radiogroup" aria-labelledby="label_reponse_avis">
                                 <label>
                                     <input type="radio" name="reponse" value="favorable" checked required>
                                     Favorable

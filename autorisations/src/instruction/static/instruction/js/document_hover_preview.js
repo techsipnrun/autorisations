@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const closePreview = (container) => {
         if (!container) return;
         container.classList.remove("is-preview-open");
+        container.querySelector(".document-apercu-trigger")?.setAttribute("aria-expanded", "false");
         delete container.dataset.apercuOuvertParClic;
         if (activeContainer === container) activeContainer = null;
     };
@@ -129,6 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             activeContainer = container;
             container.classList.add("is-preview-open");
+            trigger.setAttribute("aria-expanded", "true");
             loadPreview();
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => positionPreview(trigger, popover, bridge));
@@ -166,6 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     window.initialiserApercuDocument = initialiserApercuDocument;
+    window.fermerApercuDocument = () => closePreview(activeContainer);
     document.querySelectorAll(".document-apercu-trigger").forEach(initialiserApercuDocument);
 
     window.addEventListener("resize", () => {

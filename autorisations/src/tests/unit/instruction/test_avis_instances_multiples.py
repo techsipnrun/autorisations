@@ -1,5 +1,5 @@
 """Demandes successives à une même instance : choix, avis distincts et fichiers isolés."""
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 import errno
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -87,11 +87,16 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
                 avis = stack.enter_context(patch.object(vues, "Avis"))
                 stack.enter_context(patch.object(vues, "AvisNature"))
                 stack.enter_context(patch.object(vues, "DossierAvis"))
+                stack.enter_context(patch.object(vues, "AvisDocument"))
+                stack.enter_context(patch.object(vues, "lire_reservation", return_value=SimpleNamespace(id=1, numero=50, id_avis_id=None)))
                 for nom in ("thematiques_avis_liees_a_demarche", "get_chemin_complet_dossier", "count_unread_messages_for_dossier", "count_avis_with_unread_messages_for_dossier"):
                     stack.enter_context(patch.object(vues, nom, return_value=0))
                 render = stack.enter_context(patch.object(vues, "render", return_value=HttpResponse()))
                 dossier.objects.filter.return_value.first.return_value = self.dossier
                 avis.objects.filter.return_value.first.return_value = SimpleNamespace(id=5, id_expert=self.expert)
+                avis.objects.filter.return_value.select_related.return_value.first.return_value = SimpleNamespace(
+                    id=5, id_expert=self.expert, id_projet_avis_id=None, id_projet_acte_id=None, id_rapport_instance_id=None,
+                )
                 instructeur_qs = instructeur.objects.filter.return_value
                 instructeur_qs.first.return_value = self.user
                 instructeur_qs.exclude.return_value = instructeur_qs
@@ -99,7 +104,7 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
                 contacts_qs = contact.objects.filter.return_value
                 contacts_qs.exclude.return_value = contacts_qs
                 contacts_qs.order_by.return_value = [self.instance]
-                request = self.factory.get("/ajouter-avis/")
+                request = self.factory.get("/ajouter-avis/", {"reservation": "00000000-0000-0000-0000-000000000001"})
                 request.user = self.user
                 vues.instruction_dossier_ajouter_avis(request, self.dossier.numero, avis_id=avis_id)
                 self.assertEqual(list(render.call_args.args[2]["contacts_externes"]), [self.instance])
@@ -110,24 +115,28 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
         demandes = []
 
         def creer_avis(**champs):
-            demande = SimpleNamespace(id=len(demandes) + 1, **champs)
+            demande = SimpleNamespace(**champs)
             demandes.append(demande)
             self.emplacements.append(demande.emplacement)
             return demande
 
         with ExitStack() as stack:
+            stack.enter_context(patch.object(vues, "creation_avis_reservee", side_effect=lambda *args: nullcontext(SimpleNamespace(numero=len(demandes) + 1, id_avis_id=None))))
+            stack.enter_context(patch.object(vues, "utiliser_reservation"))
+            stack.enter_context(patch.object(vues.transaction, "on_commit", side_effect=lambda callback: callback()))
             dossier = stack.enter_context(patch.object(vues, "Dossier"))
             instructeur = stack.enter_context(patch.object(vues, "Instructeur"))
             avis = stack.enter_context(patch.object(vues, "Avis"))
             liaison = stack.enter_context(patch.object(vues, "DossierAvis"))
-            stack.enter_context(patch.object(vues, "AvisNature"))
+            nature = stack.enter_context(patch.object(vues, "AvisNature"))
+            nature.objects.get.return_value = SimpleNamespace(nature="Demande à une instance")
             stack.enter_context(patch.object(vues, "AvisThematique"))
             stack.enter_context(patch.object(vues, "Message"))
             stack.enter_context(patch.object(vues, "MessageDocument"))
             stack.enter_context(patch.object(vues, "get_or_create_expert_from_form", return_value=(self.expert, "Instance_test")))
             stack.enter_context(patch.object(vues, "_destinataire_cs_depuis_formulaire", return_value=None))
             stack.enter_context(patch.object(vues, "creer_dossier_sur_nas"))
-            document = stack.enter_context(patch.object(vues, "enregistrer_document", side_effect=[SimpleNamespace(id=50), SimpleNamespace(id=51)]))
+            document = stack.enter_context(patch.object(vues, "enregistrer_document", side_effect=[SimpleNamespace(id=pk) for pk in range(50, 54)]))
             stack.enter_context(patch.object(vues, "NOTIFS_PROD", False))
             stack.enter_context(patch.object(vues, "compute_dedupe_key", return_value="cle-test"))
             outbox = stack.enter_context(patch.object(vues, "create_EmailOutbox", return_value=SimpleNamespace(id=1, to=["test@example.test"])))
@@ -141,6 +150,7 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
                     "nature": "1", "thematique": "1", "expert_externe": "20", "mode_contact": "Application",
                     "formulation_avis": "Nouvelle demande à cette même instance.",
                     "pj_demande_avis": SimpleUploadedFile("demande.docx", b"projet"),
+                    "pj_projet_acte": SimpleUploadedFile("acte.pdf", b"pdf"),
                 })
                 request.user = self.user
                 response = vues.instruction_dossier_confirmer_ajout_avis(request, self.dossier.numero)
@@ -151,6 +161,6 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
             self.assertNotEqual(demandes[0].emplacement, demandes[1].emplacement)
             self.assertEqual([demande.emplacement for demande in demandes], ["Dossier/Avis/instance_test/", "Dossier/Avis/instance_test_2/"])
             self.assertEqual(liaison.objects.create.call_count, 2)
-            self.assertEqual([appel.kwargs["emplacement_avis"] for appel in document.call_args_list], [demande.emplacement for demande in demandes])
+            self.assertEqual([appel.kwargs["emplacement_avis"] for appel in document.call_args_list], [demande.emplacement for demande in demandes for _ in range(2)])
             self.assertEqual([appel.args[4]["avis_numero"] for appel in outbox.call_args_list], [1, 2])
             self.assertTrue(all(appel.args[0] == [vues.EMAIL_NOTIF_TEST] for appel in outbox.call_args_list))

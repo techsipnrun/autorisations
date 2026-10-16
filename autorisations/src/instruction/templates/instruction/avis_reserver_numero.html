@@ -1,0 +1,23 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nouvelle demande d'avis{% if not dossier %} générique{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
+    <script src="{% static 'instruction/js/reserver_avis.js' %}" defer></script>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <main class="avis-reservation-entree">
+        <h1>Nouvelle demande d'avis{% if not dossier %} générique{% endif %}</h1>
+        <p role="status">Réservation du numéro d'avis…</p>
+        <form method="post" action="{% if dossier %}{% url 'instruction_dossier_ajouter_avis' num_dossier=dossier.numero %}{% else %}{% url 'nouvelle_demande_avis_generique' %}{% endif %}" data-reserver-avis>
+            {% csrf_token %}
+            <input type="hidden" name="reservation" value="{{ reservation_cle }}">
+            <button type="submit">Ouvrir le formulaire</button>
+        </form>
+    </main>
+</body>
+</html>

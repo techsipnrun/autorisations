@@ -1,0 +1,37 @@
+{% load static custom_filters %}
+{% with type_apercu=document.titre|type_apercu_document %}
+<div class="avis-pj-controle{% if document and type_apercu %} document-avec-apercu{% endif %}" data-pj-controle>
+    <input type="file" id="{{ input_id }}" name="{{ input_name }}" accept="{{ accept }}"
+           data-exists="{{ document|yesno:'true,false' }}" {% if document %}hidden{% endif %}>
+    {% if document %}
+        <div class="avis-pj-ligne">
+            <span class="avis-pj-titre" title="{{ document.titre }}" data-pj-titre>{{ document.titre }}</span>
+            {% if type_apercu %}
+                <button type="button" class="avis-pj-action document-apercu-trigger"
+                        data-preview-url="{% url 'afficher_annexe' chemin=document.emplacement titre=document.titre %}"
+                        data-preview-type="{{ type_apercu }}" aria-expanded="false"
+                        title="Aperçu du document" aria-label="Afficher un aperçu de {{ document.titre }}">
+                    <img src="{% static 'instruction/img/loupe.png' %}" alt="">
+                </button>
+            {% endif %}
+            <a class="avis-pj-action" href="{% url 'afficher_annexe' chemin=document.emplacement titre=document.titre %}?download=1"
+               title="Télécharger la pièce jointe" aria-label="Télécharger {{ document.titre }}">
+                <img src="{% static 'instruction/img/download.png' %}" alt="">
+            </a>
+            <button type="button" class="avis-pj-action" data-remplacer-pj="{{ input_id }}" title="Remplacer la pièce jointe" aria-label="Remplacer {{ document.titre }}">
+                <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
+            </button>
+            <button type="button" class="avis-pj-action avis-pj-supprimer"
+                    data-supprimer-pj="{% url 'supprimer_pj_avis' avis_id=avis.id document_id=document.id %}"
+                    data-pj-source="{{ source_pj|default:'annexe' }}"
+                    title="Supprimer la pièce jointe" aria-label="Supprimer {{ document.titre }}"></button>
+        </div>
+        {% if type_apercu %}
+            <span class="document-apercu-pont" aria-hidden="true"></span>
+            <span class="document-apercu-popover" role="tooltip" aria-label="Aperçu de {{ document.titre }}">
+                <span class="document-apercu-chargement">Chargement de l’aperçu…</span>
+            </span>
+        {% endif %}
+    {% endif %}
+</div>
+{% endwith %}

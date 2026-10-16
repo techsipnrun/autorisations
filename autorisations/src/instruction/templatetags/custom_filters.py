@@ -9,6 +9,16 @@ register = template.Library()
 
 
 @register.filter
+def type_apercu_document(titre):
+    titre = str(titre or "").lower()
+    if titre.endswith(".pdf"):
+        return "pdf"
+    if titre.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp")):
+        return "image"
+    return ""
+
+
+@register.filter
 def est_contact_conseil_scientifique(contact):
     return any(
         (valeur or "").strip().casefold() == "conseil scientifique"

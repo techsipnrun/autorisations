@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="{% static 'instruction/css/messagerie.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_messagerie.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/avis_expert.css' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/avis_responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/avis_responsive.css' %}?v=3">
 
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
@@ -315,7 +315,7 @@
                         <div class="date-transmission-cs {% if not avis.date_transmission_cs %}edition-active{% endif %}">
                             {% if avis.date_transmission_cs %}
                                 <p class="date-transmission-cs-valeur">
-                                    <strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}
+                                    {% include "instruction/refacto/avis_libelle_transmission_cs.html" %} {{ avis.date_transmission_cs|date:"d/m/Y" }}
                                     <button type="button" class="btn-modifier-destinataire" title="Modifier la date de transmission" aria-label="Modifier la date de transmission" onclick="this.closest('.date-transmission-cs').classList.add('edition-active')">
                                         <img src="{% static 'instruction/img/modifier.svg' %}" alt="">
                                     </button>
@@ -323,7 +323,7 @@
                             {% endif %}
                             <form method="post" action="{% url 'enregistrer_date_transmission_cs' avis.id %}" class="form-date-cs form-edition-date-cs">
                                 {% csrf_token %}
-                                <label for="date_transmission_cs"><strong>Date de transmission aux membres du CS :</strong></label>
+                                <label for="date_transmission_cs">{% include "instruction/refacto/avis_libelle_transmission_cs.html" %}</label>
                                 <span class="date-cs-controls">
                                     <input type="date" id="date_transmission_cs" name="date_transmission_cs" value="{{ avis.date_transmission_cs|date:'Y-m-d' }}" required>
                                     <button type="submit" class="btn-valider-date-cs" aria-label="Enregistrer" title="Enregistrer">
@@ -333,7 +333,7 @@
                             </form>
                         </div>
                     {% elif avis.date_transmission_cs %}
-                        <p><strong>Date de transmission aux membres du CS :</strong> {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
+                        <p>{% include "instruction/refacto/avis_libelle_transmission_cs.html" %} {{ avis.date_transmission_cs|date:"d/m/Y" }}</p>
                     {% endif %}
                 {% endif %}
 

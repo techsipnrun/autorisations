@@ -1,210 +1,209 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("form-avis");
-
-    // Champs principaux
-    const nature       = document.getElementById("nature");
-    const thematique   = document.getElementById("thematique");
-    const modeContact  = document.getElementById("mode_contact");
-    const formulation  = document.getElementById("formulation_avis");
-
-    // Experts
-    const blocInterne  = document.getElementById("bloc_expert_interne");
-    const blocExterne  = document.getElementById("bloc_expert_externe");
-    const expertInterne = document.getElementById("expert_interne");
-    const expertExterne = document.getElementById("expert_externe");
-    const blocDestinataireCS = document.getElementById("bloc_destinataire_cs");
-    const destinataire = document.getElementById("destinataire");
-
-    function expertExterneEstCS() {
-        const natureSelectionnee = nature.options[nature.selectedIndex]?.text.trim();
-        return natureSelectionnee === "Demande à une instance"
-            && expertExterne?.selectedOptions[0]?.dataset.estCs === "true";
+    if (!form) return;
+    const nature = form.querySelector("#nature");
+    const formulation = form.querySelector("#formulation_avis");
+    const interne = form.querySelector("#expert_interne");
+    const externe = form.querySelector("#expert_externe");
+    const destinataire = form.querySelector("#destinataire");
+    const actions = form.querySelector(".avis-form-actions");
+    let formulationAuto = null;
+    let enCours = false;
+    const attente = form.querySelector("[data-avis-loading]");
+    function chargement(message) {
+        if (!attente) return;
+        document.body.appendChild(attente);
+        attente.querySelector("[data-avis-loading-titre]").textContent = message;
+        attente.hidden = false;
+        form.setAttribute("aria-busy", "true");
     }
-
-    function toggleDestinataireCS() {
-        const visible = expertExterneEstCS();
-        blocDestinataireCS.hidden = !visible;
-        blocDestinataireCS.style.display = visible ? "flex" : "none";
-        if (!visible) {
-            destinataire.required = false;
-            destinataire.value = "";
-        }
+    function terminerChargement() {
+        if (attente) attente.hidden = true;
+        form.removeAttribute("aria-busy");
     }
+    window.addEventListener("pageshow", event => {
+        if (!event.persisted) return;
+        terminerChargement();
+        enCours = false;
+        form.querySelectorAll("button").forEach(button => { button.disabled = false; });
+    });
+    const type = () => nature.selectedOptions[0]?.textContent.trim();
+    const estCS = () => type() === "Demande à une instance" && externe.selectedOptions[0]?.dataset.estCs === "true";
 
-    expertExterne.addEventListener("change", toggleDestinataireCS);
-    toggleDestinataireCS();
-
-    // Pièces jointes
-    const blocAutresPJ = document.getElementById("bloc_autres_pj_avis");
-    const blocPJ_demandeAvis = document.getElementById("bloc_pj_demande_avis");
-    const blocPJ_rapportCS   = document.getElementById("bloc_pj_rapport_cs");
-    const blocPJ_projetActe  = document.getElementById("bloc_pj_projet_acte");
-    const pjDemandeAvis = document.getElementById("pj_demande_avis");
-    const pjProjetActe  = document.getElementById("pj_projet_acte");
-
-    // ---- Masquer / afficher selon la nature ----
-    function toggleExperts() {
-        [blocInterne, blocExterne, blocPJ_demandeAvis, blocPJ_rapportCS, blocPJ_projetActe, blocAutresPJ]
-            .forEach(b => b.style.display = "none");
-
-        const selected = nature.options[nature.selectedIndex]?.text.trim();
-
-        if (selected === "Consultation en interne") {
-            expertExterne.value = "";
-            blocInterne.style.display = "flex";
-            blocPJ_demandeAvis.style.display = "flex";
-            blocAutresPJ.style.display = "flex";
-        } 
-        else if (selected === "Demande à une instance") {
-            expertInterne.value = "";
-            blocExterne.style.display = "flex";
-            // expertExterne.required = true;
-            blocPJ_demandeAvis.style.display = "flex";
-            blocAutresPJ.style.display = "flex";
-            blocPJ_rapportCS.style.display = "flex";
-            blocPJ_projetActe.style.display = "flex";
-        }
-
-        toggleDestinataireCS();
-    }
-
-    nature.addEventListener("change", toggleExperts);
-    toggleExperts(); // au chargement
-
-
-    // Mettre un astérisque au champ 'Joindre le projet d'avis de l'instance (Word)'
-    const labelPJDemandeAvis = document.getElementById("label_pj_demande_avis");
-    function toggleAsteriskPJDemandeAvis() {
-        const selected = nature.options[nature.selectedIndex]?.text.trim();
-
-        if (selected === "Consultation en interne") {
-            // pas d’astérisque
-            labelPJDemandeAvis.textContent = "Joindre le projet d'avis de l'instance (Word)";
-        } else {
-            // astérisque
-            labelPJDemandeAvis.textContent = "Joindre le projet d'avis de l'instance (Word)*";
-        }
-    }
-
-    nature.addEventListener("change", toggleAsteriskPJDemandeAvis);
-    toggleAsteriskPJDemandeAvis(); // au chargement
-
-
-
-
-
-    // ########################
-    // Formulation de l'avis
-    // ########################
-    function mettreDefaultFormulationSiVide() {
-        // Ne jamais écraser un texte déjà écrit (avis existant ou saisi par l'utilisateur)
-
-        if (formulation.value.trim() !== "") return;
-
-        const selected = nature.options[nature.selectedIndex]?.text.trim();
-        console.log({selected})
-        if (!selected || selected === "Consultation en interne") {
-            formulation.value = `Bonjour,
-
-Je vous consulte sur ce dossier car [saisir la raison].
-
-Merci d’avance pour votre retour.`;
-        } else if (selected === "Demande à une instance") {
-            formulation.value = "Bonjour, vous trouverez ci-joint la demande d'avis associée au dossier.";
-        } else {
-            formulation.value = "";
-        }
-    }
-
-    // Déclenche le changement lorsqu'on sélectionne la nature
-    nature.addEventListener("change", mettreDefaultFormulationSiVide);
-
-    // Appel au chargement
-    mettreDefaultFormulationSiVide();
-
-
-
-    // ---- Gestion des required selon bouton ----
-    function resetRequired() {
-        [nature, thematique, modeContact, formulation,
-         expertInterne, expertExterne, destinataire, pjDemandeAvis, pjProjetActe].forEach(el => {
-            if (el) el.required = false;
+    function afficher(id, visible) {
+        const bloc = form.querySelector("#" + id);
+        bloc.hidden = !visible;
+        bloc.querySelectorAll("input, select, textarea").forEach(champ => {
+            champ.disabled = !visible;
+            if (!visible) champ.required = false;
         });
     }
 
-    function setRequired(buttonType) {
-        resetRequired();
+    function toggleFormulaire() {
+        const consultationInterne = type() === "Consultation en interne";
+        const instance = type() === "Demande à une instance";
+        afficher("bloc_expert_interne", consultationInterne);
+        afficher("bloc_expert_externe", instance);
+        if (!consultationInterne) interne.value = "";
+        if (!instance) externe.value = "";
+        afficher("bloc_destinataire_cs", estCS());
+        if (estCS() && !destinataire.value) destinataire.value = "CS";
+        afficher("bloc_note_avis", consultationInterne || instance);
+        afficher("bloc_formulation_avis", consultationInterne || instance);
+        afficher("bloc_pj_demande_avis", instance);
+        afficher("bloc_pj_projet_acte", instance);
+        afficher("bloc_pj_rapport_cs", instance);
+        afficher("bloc_autres_pj_avis", consultationInterne || instance);
+        form.querySelector("#label_autres_pj").textContent = consultationInterne
+            ? "Pièces jointes à transmettre :" : "Autres pièce(s) jointe(s) liée(s) à l'avis :";
+        form.querySelector("#label_pj_demande_avis").textContent = consultationInterne
+            ? "Joindre le projet d'avis de l'instance (Word) :" : "Joindre le projet d'avis de l'instance (Word)* :";
+        actions.hidden = !(consultationInterne || instance);
+        if (!formulation.value.trim() || formulation.value === formulationAuto) {
+            formulationAuto = consultationInterne
+                ? "Bonjour, je sollicite votre avis sur le dossier " + form.dataset.numeroDossier + "…"
+                : instance ? "Bonjour, vous trouverez ci-joint la demande d'avis associée au dossier." : "";
+            formulation.value = formulationAuto;
+        }
+    }
 
-        // toujours obligatoires
+    function soumettre(button, intention) {
+        if (enCours || !button || button.hidden) return;
+        form.querySelectorAll("[required]").forEach(champ => { champ.required = false; });
         nature.required = true;
-        thematique.required = true;
-        modeContact.required = true;
-
-        const selected = nature.options[nature.selectedIndex]?.text.trim();
-
-        if (selected === "Consultation en interne") {
-            expertInterne.required = true;
-        }
-
-        if (selected === "Demande à une instance") {
-        expertExterne.required = true;
-        destinataire.required = buttonType === "confirmer" && expertExterneEstCS();
-
-        if (buttonType === "confirmer") {
-            if (pjDemandeAvis.dataset.exists !== "true") {
-                pjDemandeAvis.required = true;
-            }
-            if (pjProjetActe.dataset.exists !== "true") {
-                pjProjetActe.required = true;
+        form.querySelector("#thematique").required = true;
+        interne.required = type() === "Consultation en interne";
+        externe.required = type() === "Demande à une instance";
+        destinataire.required = estCS() && intention !== "brouillon";
+        if (intention === "confirmer") {
+            formulation.required = true;
+            if (type() === "Demande à une instance") {
+                ["pj_demande_avis", "pj_projet_acte"].forEach(id => {
+                    const input = form.querySelector("#" + id);
+                    input.required = input.dataset.exists !== "true";
+                });
             }
         }
-    }
-
-        if (buttonType === "confirmer") {
-            formulation.required = true;     
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+        if (intention === "confirmer" && !confirm("Voulez-vous vraiment envoyer la demande d'avis ?")) return;
+        form.action = button.getAttribute("formaction").trim();
+        window.fermerApercuDocument?.();
+        enCours = true;
+        form.querySelectorAll("button").forEach(item => { item.disabled = true; });
+        chargement(intention === "brouillon" ? "Enregistrement du brouillon…" : "Envoi de la demande…");
+        try {
+            form.submit();
+        } catch (erreur) {
+            terminerChargement();
+            enCours = false;
+            form.querySelectorAll("button").forEach(item => { item.disabled = false; });
+            const message = form.querySelector(".avis-form-erreur");
+            message.textContent = "L'enregistrement n'a pas pu être lancé. Réessayez.";
+            message.hidden = false;
         }
     }
 
-    function handleSubmit(e, buttonType) {
-        e.preventDefault();
-        setRequired(buttonType);
-
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-
-         // 💬 Confirmation avant envoi pour les boutons "confirmer"
-        if (buttonType === "confirmer") {
-            const ok = confirm("Voulez-vous vraiment envoyer la demande d'avis ?");
-            if (!ok) return; // annule l'envoi si l'utilisateur clique sur Annuler
-        }
-
-        const action = e.target.getAttribute("formaction") || form.getAttribute("action");
-        form.setAttribute("action", action);
-        form.submit();
-    }
-
-    // ---- Boutons ----
-    document.querySelector(".main-btn").addEventListener("click", e => handleSubmit(e, "confirmer"));
-    document.querySelector(".btn-confirmer-envoi").addEventListener("click", e => handleSubmit(e, "confirmer"));
-    document.querySelector(".btn-brouillon").addEventListener("click", e => handleSubmit(e, "brouillon"));
-
-    // ---- Menu déroulant ----
-    document.querySelectorAll(".btn-dropdown .toggle-btn").forEach(btn => {
-        btn.addEventListener("click", e => {
-            e.stopPropagation();
-            const parent = btn.closest(".btn-dropdown");
-            document.querySelectorAll(".btn-dropdown.show").forEach(open => {
-                if (open !== parent) open.classList.remove("show");
-            });
-            parent.classList.toggle("show");
-        });
+    nature.addEventListener("change", toggleFormulaire);
+    externe.addEventListener("change", toggleFormulaire);
+    toggleFormulaire();
+    form.querySelector(".btn-confirmer-envoi").addEventListener("click", event => soumettre(event.currentTarget, "confirmer"));
+    form.querySelector(".btn-brouillon").addEventListener("click", event => soumettre(event.currentTarget, "brouillon"));
+    form.addEventListener("submit", event => {
+        event.preventDefault();
+        if (!actions.hidden) soumettre(form.querySelector(".btn-confirmer-envoi"), "confirmer");
     });
 
-    document.addEventListener("click", e => {
-        document.querySelectorAll(".btn-dropdown.show").forEach(open => {
-            if (!open.contains(e.target)) open.classList.remove("show");
+    form.querySelectorAll("[data-remplacer-pj]").forEach(button => {
+        button.addEventListener("click", () => {
+            window.fermerApercuDocument?.();
+            document.getElementById(button.dataset.remplacerPj).click();
+        });
+    });
+    form.querySelectorAll("[data-pj-controle] input").forEach(input => {
+        input.addEventListener("change", () => {
+            const controle = input.closest("[data-pj-controle]");
+            const titre = controle.querySelector("[data-pj-titre]");
+            const apercu = controle.querySelector(".document-apercu-trigger");
+            if (apercu) {
+                window.fermerApercuDocument?.();
+                apercu.hidden = Boolean(input.files.length);
+            }
+            if (titre && input.files[0]) {
+                titre.textContent = input.files[0].name;
+                titre.title = input.files[0].name;
+            }
+        });
+    });
+    document.addEventListener("click", event => {
+        const controle = event.target.closest("[data-pj-controle]");
+        if (!controle?.classList.contains("is-preview-open") || event.target.closest(".avis-pj-action:not(.document-apercu-trigger)")) {
+            window.fermerApercuDocument?.();
+        }
+    });
+    const nouvellesPJ = form.querySelector("#pj_lie_avis");
+    const listePJ = form.querySelector("[data-pj-a-enregistrer]");
+    let fichiersEnAttente = [];
+    function afficherNouvellesPJ() {
+        const transfert = new DataTransfer();
+        fichiersEnAttente.forEach(fichier => transfert.items.add(fichier));
+        nouvellesPJ.files = transfert.files;
+        listePJ.replaceChildren();
+        listePJ.hidden = !fichiersEnAttente.length;
+        fichiersEnAttente.forEach((fichier, index) => {
+            const ligne = document.createElement("div");
+            ligne.className = "avis-pj-ligne avis-pj-nouvelle";
+            const titre = document.createElement("span");
+            titre.className = "avis-pj-titre";
+            titre.textContent = fichier.name;
+            titre.title = fichier.name + " — À enregistrer";
+            const retirer = document.createElement("button");
+            retirer.type = "button";
+            retirer.className = "avis-pj-action avis-pj-supprimer";
+            retirer.title = "Retirer de la sélection";
+            retirer.setAttribute("aria-label", "Retirer " + fichier.name + " de la sélection");
+            retirer.addEventListener("click", () => {
+                fichiersEnAttente.splice(index, 1);
+                afficherNouvellesPJ();
+            });
+            ligne.append(titre, retirer);
+            listePJ.append(ligne);
+        });
+    }
+    nouvellesPJ.addEventListener("change", () => {
+        // Le sélecteur natif remplace sa sélection : conserver les ajouts précédents.
+        for (const fichier of nouvellesPJ.files) {
+            const index = fichiersEnAttente.findIndex(ancien => ancien.name === fichier.name);
+            if (index === -1) fichiersEnAttente.push(fichier);
+            else fichiersEnAttente[index] = fichier;
+        }
+        afficherNouvellesPJ();
+    });
+    form.querySelectorAll("[data-supprimer-pj]").forEach(button => {
+        button.addEventListener("click", async () => {
+            if (enCours) return;
+            if (!confirm("Supprimer ce document ?")) return;
+            window.fermerApercuDocument?.();
+            const erreur = form.querySelector(".avis-form-erreur");
+            erreur.hidden = true;
+            enCours = true;
+            button.disabled = true;
+            chargement("Suppression de la pièce jointe…");
+            try {
+                const response = await fetch(button.dataset.supprimerPj, {
+                    method: "POST", credentials: "same-origin",
+                    headers: {"X-CSRFToken": getCookie("csrftoken"), "Accept": "application/json"},
+                    body: new URLSearchParams({source: button.dataset.pjSource}),
+                });
+                const resultat = await response.json();
+                if (!response.ok || !resultat.success) throw new Error(resultat.error || "La pièce jointe n'a pas pu être retirée.");
+                window.location.reload();
+            } catch (e) {
+                terminerChargement();
+                enCours = false;
+                erreur.textContent = e.message || "La suppression a échoué. Réessayez.";
+                erreur.hidden = false;
+                button.disabled = false;
+            }
         });
     });
 });

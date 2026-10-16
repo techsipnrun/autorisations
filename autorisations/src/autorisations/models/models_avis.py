@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+import uuid
 
 from .models_utilisateurs import ContactExterne, Instructeur
 
@@ -202,6 +203,26 @@ class Avis(models.Model):
                 f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert} "
                 f"{' : ' + self.get_reponse_display() if self.reponse else ''}"
             )
+
+
+class AvisReservation(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    numero = models.PositiveIntegerField(unique=True)
+    id_instructeur = models.ForeignKey(Instructeur, models.RESTRICT, db_column="id_instructeur")
+    contexte = models.CharField(max_length=10, choices=(("generique", "Générique"), ("dossier", "Dossier")))
+    id_dossier = models.ForeignKey("autorisations.Dossier", models.SET_NULL, db_column="id_dossier", null=True, blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_utilisation = models.DateTimeField(null=True, blank=True)
+    id_avis = models.OneToOneField(Avis, models.SET_NULL, db_column="id_avis", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = '"avis"."avis_reservation"'
+        verbose_name = "Réservation de numéro d'avis"
+        verbose_name_plural = "Réservations de numéros d'avis"
+
+    def __str__(self):
+        return str(self.numero)
 
 
 class AvisDocument(models.Model):

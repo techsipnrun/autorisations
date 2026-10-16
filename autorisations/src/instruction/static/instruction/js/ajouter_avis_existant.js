@@ -36,10 +36,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const selectedText = nature.options[nature.selectedIndex]?.text.trim();
 
         if (selectedText === "Consultation en interne") {
-            blocInterne.style.display = "block";
+            blocInterne.style.display = "flex";
             expertInterne.setAttribute("required", "required");
         } else if (selectedText === "Demande à une instance") {
-            blocExterne.style.display = "block";
+            blocExterne.style.display = "flex";
             expertExterne.setAttribute("required", "required");
         }
     }

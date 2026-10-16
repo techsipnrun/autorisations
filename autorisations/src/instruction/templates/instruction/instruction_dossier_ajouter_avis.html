@@ -13,13 +13,14 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_ajouter_avis.css' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier_ajouter_avis.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'instruction/css/navbar.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=21">
     <link rel="stylesheet" href="{% static 'instruction/css/copie_dossier_titre.css' %}?v=3">
 
     <!-- JS Formulaire Avis -->
-    <script src="{% static 'instruction/js/ajouter_avis.js' %}?v=5"></script>
+    <script src="{% static 'instruction/js/ajouter_avis.js' %}?v=10"></script>
+    <script src="{% static 'instruction/js/document_hover_preview.js' %}?v=2"></script>
     
     <!-- Copier chemin d'accès du dossier -->
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
@@ -45,7 +46,7 @@
 
             <div class="form_ajout_demande_avis">
                 <div class="header_nouvelle_demande_avis">
-                    <h2>Nouvelle demande d'avis</h2>
+                    <h2>Nouvelle demande d'avis n° {{ numero_avis }}</h2>
                     {% if avis.statut %}
                         <div class="etat-badge-menu">
                             {{ avis.statut }}
@@ -53,211 +54,7 @@
                     {% endif %}
                 </div>
 
-                <form id="form-avis" method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-
-                    <div class="attribut_avis">
-                        <label>Nature de l'avis* :</label>
-                        <select id="nature" name="nature" required>
-                            <option value="">-- Sélectionner --</option>
-                            {% for nature in natures %}
-                                <option value="{{ nature.id }}"
-                                {% if avis and avis.id_avis_nature.id == nature.id %}selected{% endif %}>
-                                    {{ nature.nature }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="attribut_avis">
-                        <label>Thématique de l'avis* :</label>
-                        <select id="thematique" name="thematique" required>
-                            <option value="">-- Sélectionner --</option>
-                            {% for t in thematiques %}
-                                <option value="{{ t.id }}"
-                                {% if avis and avis.id_avis_thematique.id == t.id %}selected{% endif %}>
-                                    {{ t.thematique }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="attribut_avis texte_libre">
-                        <label for="note_demandeur">Note :</label>
-                        <textarea id="note_demandeur" name="note_demandeur" rows="2" placeholder="Note libre pour le demandeur...">{{ avis.note|default_if_none:"" }}</textarea>
-                    </div>
-
-                    <div class="attribut_avis" title="Si vous souhaitez ajouter une demande d'avis faite en dehors de l'application, vous devez aller dans la rubrique : + Ajouter un avis existant">
-                        <label>Mode de contact* :</label>
-                        <select id="mode_contact" name="mode_contact" required>
-                            <option value="Application" {% if avis and avis.mode_contact == "Application" %}selected{% endif %}>Via l'application</option>
-                            <!-- <option value="Courrier papier" {% if avis and avis.mode_contact == "Courrier papier" %}selected{% endif %}>Courrier papier</option>
-                            <option value="Téléphone" {% if avis and avis.mode_contact == "Téléphone" %}selected{% endif %}>Téléphone</option>
-                            <option value="Mail" {% if avis and avis.mode_contact == "Mail" %}selected{% endif %}>Mail</option> -->
-                        </select>
-
-                    </div>
-
-                    <div class="attribut_avis" id="bloc_pj_demande_avis">
-                        <label id="label_pj_demande_avis" for="pj_avis">Joindre le projet d'avis de l'instance (Word) :</label>
-                        <input type="file" id="pj_demande_avis" name="pj_demande_avis" accept=".odt,.doc,.docx"
-                               data-exists="{% if avis.id_projet_avis %}true{% else %}false{% endif %}">
-                        {% if avis.id_projet_avis %}
-                            <p class="pj-existante">
-                                📎 Déjà joint : 
-                                <a href="{% url 'afficher_annexe' chemin=avis.id_projet_avis.emplacement titre=avis.id_projet_avis.titre %}" target="_blank">
-                                    {{ avis.id_projet_avis.titre }}
-                                </a>
-                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, {{ avis.id_projet_avis.id }}); return false;">
-                                    ✕
-                                </a>
-
-                            </p>
-                        {% endif %}
-                    </div>
-
-                    <div class="attribut_avis" id="bloc_pj_projet_acte">
-                        <label for="pj_avis">Joindre le projet d'acte (Word, PDF)* :</label>
-                        <input type="file" id="pj_projet_acte" name="pj_projet_acte"accept=".odt,.doc,.docx,.pdf"
-                               data-exists="{% if avis.id_projet_acte %}true{% else %}false{% endif %}">
-                        {% if avis.id_projet_acte %}
-                            <p class="pj-existante">
-                                📎 Déjà joint : 
-                                <a href="{% url 'afficher_annexe' chemin=avis.id_projet_acte.emplacement titre=avis.id_projet_acte.titre %}" target="_blank">
-                                    {{ avis.id_projet_acte.titre }}
-                                </a>
-                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, {{ avis.id_projet_acte.id }}); return false;">
-                                    ✕
-                                </a>
-                            </p>
-                        {% endif %}
-                    </div>
-
-                    <div class="attribut_avis" id="bloc_pj_rapport_cs">
-                        <label for="pj_avis">Joindre le rapport d'avis du CS (PDF) :</label>
-                        <input type="file" id="pj_rapport_cs" name="pj_rapport_cs" accept=".pdf">
-                        {% if avis.id_rapport_instance %}
-                            <p class="pj-existante">
-                                📎 Déjà joint : 
-                                <a href="{% url 'afficher_annexe' chemin=avis.id_rapport_instance.emplacement titre=avis.id_rapport_instance.titre %}" target="_blank">
-                                    {{ avis.id_rapport_instance.titre }}
-                                </a>
-                                <a href="#" title="Supprimer la pièce jointe" class="croix-retirer" onclick="supprimerDoc({{ avis.id }}, {{ avis.id_rapport_instance.id }}); return false;">
-                                    ✕
-                                </a>
-                            </p>
-                        {% endif %}
-                    </div>
-
-                    <div class="attribut_avis" id="bloc_autres_pj_avis">
-                        <label for="pj_avis">Autres pièce(s) jointe(s) liée(s) à l'avis :</label>
-                        <input type="file" id="pj_lie_avis" name="pj_lie_avis" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple>
-                    </div>
-
-                    
-                    <div class="attribut_avis" id="bloc_expert_interne">
-                        <label>Choix de l'expert interne* :</label>
-                        <select id="expert_interne" name="expert_interne">
-                            <option value="">-- Sélectionner --</option>
-                            {% for i in instructeurs %}
-                                <option value="{{ i.id }}"
-                                    {% if avis and avis.id_expert and avis.id_expert.id_instructeur and avis.id_expert.id_instructeur.id == i.id %}selected{% endif %}>
-                                    {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}
-                                        {{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {{ i.email }}
-                                    {% else %}
-                                        {{ i.email }}
-                                    {% endif %}
-                                </option>
-                            {% endfor %}
-                        </select>
-
-                    </div>
-
-                    <div class="attribut_avis" id="bloc_expert_externe">
-                        <label>Choix de l'expert externe* :</label>
-                        <select id="expert_externe" name="expert_externe">
-                            <option value="">-- Sélectionner --</option>
-                            {% for c in contacts_externes %}
-                                <option value="{{ c.id }}" data-est-cs="{{ c|est_contact_conseil_scientifique|yesno:'true,false' }}"
-                                    {% if avis and avis.id_expert and avis.id_expert.id_contact_externe and avis.id_expert.id_contact_externe.id == c.id %}selected{% endif %}>
-                                    {% if c.nom and c.prenom and c.email %}
-                                        {{ c.nom }} {{ c.prenom }} - {{ c.email }}
-                                    {% elif c.nom and c.prenom %}
-                                        {{ c.nom }} {{ c.prenom }}
-                                    {% elif c.raison_sociale %}
-                                        {{ c.raison_sociale }} - {{ c.email }}
-                                    {% elif c.organisation %}
-                                        {{ c.organisation }} - {{ c.email }}
-                                    {% else %}
-                                        {{ c.email }}
-                                    {% endif %}
-                                </option>
-                            {% endfor %}
-                        </select>
-
-                    </div>
-
-                    <div class="attribut_avis" id="bloc_destinataire_cs" hidden style="display: none;">
-                        <label for="destinataire">Destinataire* :</label>
-                        <select id="destinataire" name="destinataire">
-                            <option value="">-- Sélectionner --</option>
-                            <option value="CS" {% if avis.destinataire == "CS" %}selected{% endif %}>CS</option>
-                            <option value="BCS" {% if avis.destinataire == "BCS" %}selected{% endif %}>BCS</option>
-                        </select>
-                    </div>
-
-                    <div class="attribut_avis texte_libre">
-                        <label for="formulation_avis">Formulation de l'avis* :</label>
-                        <textarea id="formulation_avis" name="formulation_avis" rows="5">{{ avis.formulation|default:"" }}</textarea>
-                    </div>
-
-                    {% if messages %}
-                        <div class="django-messages">
-                            {% for message in messages %}
-                                <div class="message {{ message.tags }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <div class="btn-dropdown">
-                        <!-- Bouton principal -->
-                        <button type="button" class="main-btn"
-                            formaction="{% if avis %}
-                                            {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}
-                                        {% else %}
-                                            {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}
-                                        {% endif %}">
-                            Envoyer
-                        </button>
-
-                        <!-- Flèche pour ouvrir le menu -->
-                        <button type="button" class="toggle-btn">&#9662;</button>
-
-                        <!-- Menu déroulant -->
-                        <div class="dropdown-content">
-                            <button type="button" class="btn-confirmer-envoi"
-                                formaction="{% if avis %}
-                                                {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}
-                                            {% else %}
-                                                {% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}
-                                            {% endif %}">
-                                Envoyer la demande
-                            </button>
-
-
-                            <button type="button" class="btn-brouillon"
-                                formaction="{% if avis %}
-                                                {% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}
-                                            {% else %}
-                                                {% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero %}
-                                            {% endif %}">
-                                Enregistrer le brouillon
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                {% include "instruction/refacto/demande_avis_formulaire.html" %}
             </div>
         </div>
     

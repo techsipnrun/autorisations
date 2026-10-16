@@ -1,5 +1,35 @@
+.infos-avis {
+    container: avis-infos / inline-size;
+}
+
+.avis-transmission-cs-label {
+    display: inline-block;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.date-transmission-cs-valeur {
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+.avis-transmission-cs-libelle-court {
+    display: none;
+    white-space: nowrap;
+}
+
+/* La colonne peut être étroite même sur une grande fenêtre. */
+@container avis-infos (max-width: 430px) {
+    .avis-transmission-cs-libelle-complet { display: none; }
+    .avis-transmission-cs-libelle-court { display: inline; }
+    .avis-transmission-cs-label { font-size: min(1em, 5.5cqi); }
+}
+
 /* Mise en page plus compacte sur les ordinateurs portables. */
 @media (max-width: 1400px) {
+    .avis-transmission-cs-libelle-complet { display: none; }
+    .avis-transmission-cs-libelle-court { display: inline; }
+
     .page-container {
         gap: 1.25rem;
         padding: 2rem;

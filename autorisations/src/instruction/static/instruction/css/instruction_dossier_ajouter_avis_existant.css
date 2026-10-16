@@ -11,14 +11,19 @@
 
 .avis-page-container {
     display: flex;
+    box-sizing: border-box;
+    min-width: 0;
     gap: 2rem;
     padding: 4rem;
     margin-bottom: 8rem;
 }
 
 .avis {
-    width: 70%;
+    flex: 1 1 70%;
+    min-width: 0;
 }
+
+.avis-page-container > .nav_preinstruction { flex: 1 1 26%; min-width: 0; }
 
 .avis h1{
     margin-top: 0;
@@ -26,10 +31,12 @@
 
 .form_ajout_demande_avis {
     position: relative;
+    box-sizing: border-box;
+    max-width: 100%;
     width: 100%;
     border: solid #006131 3px;
     margin-top: 2rem;
-    padding: 2rem 1rem 4rem 1rem;
+    padding: 2rem 1rem 2rem 1rem;
 }
 
 .form_ajout_demande_avis h2 {
@@ -71,23 +78,32 @@
 /* ---------------------------------------------------------------- */
 .attribut_avis {
     display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
     align-items: center;
     vertical-align: center;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
     padding: 0.8rem 1rem;
     font-size: 1rem;
     gap: 1rem;
 }
 
 /* Label à gauche */
-.attribut_avis label {
+.attribut_avis > label, .avis-reponse-label {
     font-weight: bold;
     font-size: 1.2rem;
     color: #006131;
+    max-width: 100%;
+    flex: 0 1 auto;
 }
 
 /* Menu déroulant Select */
 .attribut_avis select {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 1 auto;
+    field-sizing: content;
     padding: 0.4rem 0.6rem;
     border: 2px solid #006131;
     border-radius: 4px;
@@ -129,10 +145,9 @@
 
 /* Bouton confirmer */
 .confirm-ajout-avis {
-    position: absolute;
-    display: inline-flex;
-    right: 1rem;
-    bottom: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
     border-radius: 8px;
     color: #ffffff;
     font-weight: bold;
@@ -157,17 +172,43 @@
 /* boutons à cocher */
 .radio-group {
     display: flex;
-    gap: 1rem;
+    flex: 1 1 26rem;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
-.radio-group input {
+.attribut_avis .radio-group input {
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: #006131;
     cursor: pointer;
 }
 
-.radio-group label {
+.attribut_avis .radio-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    margin: 0;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid #d6dfd9;
+    border-radius: 6px;
+    background: #f7f9f7;
+    font-size: 1rem;
+    line-height: 1.35;
     font-weight: normal;
-    color: black;
+    color: #26382d;
+    cursor: pointer;
 }
+
+.attribut_avis .radio-group label:has(input:checked) { border-color: #006131; background: #eaf4ed; color: #004e27; }
+.attribut_avis .radio-group label:focus-within { outline: 2px solid #006131; outline-offset: 2px; }
+.avis-reponse-label { white-space: nowrap; flex: 0 0 auto; }
+.attribut_avis input:not([type="radio"]), .attribut_avis textarea { box-sizing: border-box; min-width: 0; max-width: 100%; }
 
 /* Champs date */
 #date_reponse_avis, #date_demande_avis {
@@ -209,7 +250,7 @@
 /* Formulaire de recherche */
 .form_avis_dans_appli form {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
     gap: 1rem 1.5rem;
     align-items: center;
     margin-bottom: 1.5rem;
@@ -238,7 +279,7 @@
 
 /* Bouton rechercher */
 .form_avis_dans_appli button[type="submit"] {
-    grid-column: span 2;
+    grid-column: 1 / -1;
     justify-self: start;
     padding: 0.6rem 1.2rem;
     background-color: #006131;
@@ -391,4 +432,19 @@
     outline: none;
     border-color: #004e27;
     box-shadow: 0 0 5px rgba(0, 97, 49, 0.3);
+}
+
+.form_avis_hors_appli, .form_avis_hors_appli form, .form_avis_dans_appli,
+.form_avis_dans_appli form > *, .filtre_date { min-width: 0; }
+.form_avis_dans_appli { box-sizing: border-box; max-width: 100%; }
+.form_avis_dans_appli select { min-width: 0; max-width: 100%; }
+@media (max-width: 1100px) {
+    .avis-page-container { flex-direction: column; padding: 1rem; }
+    .avis, .avis-page-container > .nav_preinstruction { flex: auto; width: 100%; }
+}
+@media (max-width: 600px) {
+    .attribut_avis { padding-inline: 0; gap: 0.6rem; }
+    .attribut_avis > label, .avis-reponse-label { font-size: 0.95rem; }
+    .attribut_avis select { font-size: 0.95rem; }
+    .attribut_avis .radio-group label { font-size: 0.9rem; }
 }

@@ -35,7 +35,7 @@
     display: flex;
     align-items: center;
     vertical-align: center;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
     padding: 0.8rem 1rem;
     font-size: 1rem;
     gap: 1rem;
@@ -117,4 +117,18 @@
 .btn-confirmer-envoi:hover {
     background-color: #006131;
     color: #fff;
+}
+
+#bloc_pj_demande_avis { row-gap: 0.35rem; }
+.avis-generique-rappel-numero { flex: 0 0 100%; font-style: italic; color: #8b1e1e; }
+#form-avis [hidden] { display: none !important; }
+.attribut_avis { min-width: 0; flex-wrap: wrap; }
+.attribut_avis select { box-sizing: border-box; min-width: 0; max-width: 100%; field-sizing: content; }
+#bloc_expert_externe, #bloc_expert_interne { flex-wrap: nowrap; }
+#bloc_expert_externe label, #bloc_expert_interne label { flex: 0 0 auto; white-space: nowrap; }
+#bloc_expert_externe select, #bloc_expert_interne select { flex: 0 1 auto; }
+.attribut_avis input[type="file"], .attribut_avis textarea { min-width: 0; max-width: 100%; }
+@media (max-width: 600px) {
+    .attribut_avis { padding-inline: 0; gap: 0.5rem; }
+    .attribut_avis label { font-size: 0.95rem; }
 }

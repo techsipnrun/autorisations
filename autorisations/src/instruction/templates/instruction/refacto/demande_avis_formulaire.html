@@ -1,0 +1,113 @@
+{% load custom_filters %}
+<form id="form-avis" method="post" enctype="multipart/form-data"
+      data-edition="{{ avis|yesno:'true,false' }}" data-numero-dossier="{{ dossier.numero }}">
+    {% csrf_token %}
+    <input type="hidden" name="mode_contact" id="mode_contact" value="Application">
+    {% if not avis %}<input type="hidden" name="reservation" value="{{ reservation.id }}">{% endif %}
+
+    <div class="attribut_avis">
+        <label for="nature">Nature de l'avis* :</label>
+        <select id="nature" name="nature" required {% if avis.statut == "Brouillon" %}disabled{% endif %}>
+            <option value="">-- Sélectionner --</option>
+            {% for nature in natures %}
+                <option value="{{ nature.id }}" {% if avis.id_avis_nature.id == nature.id %}selected{% endif %}>{{ nature.nature }}</option>
+            {% endfor %}
+        </select>
+        {% if avis.statut == "Brouillon" %}<input type="hidden" name="nature" value="{{ avis.id_avis_nature.id }}">{% endif %}
+    </div>
+
+    <div class="attribut_avis avis-expert" id="bloc_expert_externe" hidden>
+        <label for="expert_externe">Choix de l'expert externe* :</label>
+        <select id="expert_externe" name="expert_externe">
+            <option value="">-- Sélectionner --</option>
+            {% for c in contacts_externes %}
+                <option value="{{ c.id }}" data-est-cs="{{ c|est_contact_conseil_scientifique|yesno:'true,false' }}"
+                        {% if avis.id_expert.id_contact_externe.id == c.id %}selected{% endif %}>
+                    {% if c.nom and c.prenom %}{{ c.nom }} {{ c.prenom }}{% elif c.raison_sociale %}{{ c.raison_sociale }}{% elif c.organisation %}{{ c.organisation }}{% endif %}{% if c.email %} - {{ c.email }}{% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="attribut_avis avis-expert" id="bloc_expert_interne" hidden>
+        <label for="expert_interne">Choix de l'expert interne* :</label>
+        <select id="expert_interne" name="expert_interne">
+            <option value="">-- Sélectionner --</option>
+            {% for i in instructeurs %}
+                <option value="{{ i.id }}" {% if avis.id_expert.id_instructeur.id == i.id %}selected{% endif %}>
+                    {% if i.id_agent_autorisations.nom and i.id_agent_autorisations.prenom %}{{ i.id_agent_autorisations.nom }} {{ i.id_agent_autorisations.prenom }} - {% endif %}{{ i.email }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="attribut_avis" id="bloc_destinataire_cs" hidden>
+        <label for="destinataire">Destinataire* :</label>
+        <select id="destinataire" name="destinataire">
+            <option value="">-- Sélectionner --</option>
+            <option value="CS" {% if avis.destinataire == "CS" %}selected{% endif %}>CS</option>
+            <option value="BCS" {% if avis.destinataire == "BCS" %}selected{% endif %}>BCS</option>
+        </select>
+    </div>
+
+    <div class="attribut_avis">
+        <label for="thematique">Thématique de l'avis* :</label>
+        <select id="thematique" name="thematique" required>
+            <option value="">-- Sélectionner --</option>
+            {% for t in thematiques %}
+                <option value="{{ t.id }}" {% if avis.id_avis_thematique.id == t.id %}selected{% endif %}>{{ t.thematique }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="attribut_avis texte_libre" id="bloc_note_avis" hidden>
+        <label for="note_demandeur">Note :</label>
+        <textarea id="note_demandeur" name="note_demandeur" rows="2" placeholder="Note libre pour le demandeur...">{{ avis.note|default_if_none:"" }}</textarea>
+    </div>
+
+    <div class="attribut_avis avis-pj-champ" id="bloc_pj_demande_avis" hidden>
+        <label id="label_pj_demande_avis" for="pj_demande_avis">Joindre le projet d'avis de l'instance (Word)* :</label>
+        {% include "instruction/refacto/avis_piece_jointe_form.html" with document=avis.id_projet_avis input_id="pj_demande_avis" input_name="pj_demande_avis" source_pj="id_projet_avis" accept=".odt,.doc,.docx" %}
+        <small class="avis-rappel-numero">N'oubliez pas d'insérer le numéro de l'avis {{ numero_avis }} dans le document.</small>
+    </div>
+    <div class="attribut_avis avis-pj-champ" id="bloc_pj_projet_acte" hidden>
+        <label for="pj_projet_acte">Joindre le projet d'acte (Word, PDF)* :</label>
+        {% include "instruction/refacto/avis_piece_jointe_form.html" with document=avis.id_projet_acte input_id="pj_projet_acte" input_name="pj_projet_acte" source_pj="id_projet_acte" accept=".odt,.doc,.docx,.pdf" %}
+    </div>
+    <div class="attribut_avis avis-pj-champ" id="bloc_pj_rapport_cs" hidden>
+        <label for="pj_rapport_cs">Joindre le rapport d'avis du CS (PDF) :</label>
+        {% include "instruction/refacto/avis_piece_jointe_form.html" with document=avis.id_rapport_instance input_id="pj_rapport_cs" input_name="pj_rapport_cs" source_pj="id_rapport_instance" accept=".pdf" %}
+    </div>
+    <div class="attribut_avis avis-pj-champ" id="bloc_autres_pj_avis" hidden>
+        <label for="pj_lie_avis" id="label_autres_pj">Autres pièce(s) jointe(s) liée(s) à l'avis :</label>
+        <input type="file" id="pj_lie_avis" name="pj_lie_avis" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.odt" multiple>
+        <div class="avis-pj-liste" data-pj-enregistrees>
+            {% for piece in pieces_complementaires %}
+                {% with identifiant=piece.id_document.id|stringformat:"s" %}
+                    {% with input_name="remplacer_pj_"|add:identifiant %}
+                        {% include "instruction/refacto/avis_piece_jointe_form.html" with document=piece.id_document input_id=input_name input_name=input_name source_pj="annexe" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.odt" %}
+                    {% endwith %}
+                {% endwith %}
+            {% endfor %}
+        </div>
+        <div class="avis-pj-liste" data-pj-a-enregistrer aria-live="polite" hidden></div>
+    </div>
+    <div class="attribut_avis texte_libre" id="bloc_formulation_avis" hidden>
+        <label for="formulation_avis">Formulation de l'avis* :</label>
+        <textarea id="formulation_avis" name="formulation_avis" rows="3">{{ avis.formulation|default:"" }}</textarea>
+    </div>
+
+    {% if messages %}
+        <div class="django-messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>
+    {% endif %}
+
+    <div class="avis-form-actions" hidden>
+        <button type="button" class="avis-form-button btn-brouillon" formaction="{% if avis %}{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}{% else %}{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero %}{% endif %}">Enregistrer le brouillon</button>
+        <button type="button" class="avis-form-button btn-confirmer-envoi" formaction="{% if avis %}{% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}{% else %}{% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}{% endif %}">Envoyer</button>
+    </div>
+    <p class="avis-form-erreur" role="alert" hidden></p>
+    <div class="notes-loading" data-avis-loading role="status" aria-live="polite" hidden>
+        <div class="envoi-acte-attente-contenu">
+            <span class="envoi-acte-spinner" aria-hidden="true"></span>
+            <strong data-avis-loading-titre>Enregistrement du brouillon…</strong>
+        </div>
+    </div>
+</form>
