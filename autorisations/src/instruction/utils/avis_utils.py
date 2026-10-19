@@ -5,6 +5,7 @@ import errno
 import re
 from pathlib import Path
 import smbclient
+from django.db.models import Q
 from autorisations.models.models_instruction import Dossier, DossierChamp, Message
 from autorisations.models.models_avis import Avis, AvisDocument, AvisThematique, DossierAvis, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, Instructeur
@@ -16,6 +17,17 @@ from instruction.utils.dossier_utils import get_chemin_complet_dossier
 
 
 logger = logging.getLogger("ORM_DJANGO")
+
+
+def filtre_numero_avis(numero):
+    """Rechercher une référence affichée ou un identifiant interne, sans les confondre."""
+    valeur = str(numero).strip()
+    filtre = Q(numero_avis_externe__iexact=valeur)
+    # La référence peut être numérique et dépasser la plage de l'AutoField PostgreSQL.
+    interne = valeur.lstrip("0") or "0"
+    if interne.isascii() and interne.isdigit() and len(interne) <= 10 and int(interne) <= 2147483647:
+        filtre |= Q(id=int(interne))
+    return filtre
 
 GROUPES_PUBLICATION_RAA_CS = (
     "Publication RAA CS",
@@ -559,14 +571,10 @@ def build_avis_for_dossier(dossier):
 
 
 
-def thematiques_avis_liees_a_demarche(demarche):
-    """
-    Retourne les thématiques d'avis liées à une démarche donnée.
-    Inclut toujours 'Tous' et 'Autre'.
-    """
-
+def categories_thematiques_avis(demarche):
+    """Catégories historiques, conservées en l'absence de liste personnalisée."""
     if not demarche or not demarche.type:
-        return AvisThematique.objects.all().order_by("thematique")
+        return None
 
     type_demarche = demarche.type.lower()
 
@@ -592,7 +600,19 @@ def thematiques_avis_liees_a_demarche(demarche):
 
     valeurs = ["Autre"]
 
-    if demarche_cible:
-        valeurs.append(demarche_cible)
+    valeurs.append(demarche_cible or demarche.type)
 
-    return AvisThematique.objects.filter(demarche__in=valeurs).order_by("thematique")
+    return valeurs
+
+
+def thematiques_avis_liees_a_demarche(demarche):
+    categories = categories_thematiques_avis(demarche)
+    choix = AvisThematique.objects.all() if categories is None else AvisThematique.objects.filter(demarche__in=categories)
+    return choix.order_by("thematique")
+
+
+def repartition_thematiques_avis(thematiques, demarches):
+    """Même répartition pour les formulaires et leur aperçu, à partir du catalogue."""
+    return {str(getattr(d, "pk", getattr(d, "id", ""))): [str(t.pk) for t in thematiques
+                        if categories_thematiques_avis(d) is None or t.demarche in categories_thematiques_avis(d)]
+            for d in demarches}

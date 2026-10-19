@@ -110,6 +110,7 @@ class Avis(models.Model):
 
     id = models.AutoField(primary_key=True)
     id_ds = models.CharField(blank=True, null=True)
+    numero_avis_externe = models.CharField(max_length=100, blank=True, null=True)
     id_avis_nature = models.ForeignKey(AvisNature, models.RESTRICT, db_column='id_avis_nature')
     id_avis_thematique = models.ForeignKey(AvisThematique, models.RESTRICT, db_column='id_avis_thematique')
     id_expert_ds = models.CharField(unique=True, blank=True, null=True)
@@ -186,6 +187,10 @@ class Avis(models.Model):
             raise ValidationError(erreurs)
     
     @property
+    def numero_affiche(self):
+        return (self.numero_avis_externe or "").strip() or (str(self.pk) if self.pk is not None else "")
+
+    @property
     def demarche_effective(self):
         if self.id_demarche:
             return self.id_demarche
@@ -203,6 +208,55 @@ class Avis(models.Model):
                 f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert} "
                 f"{' : ' + self.get_reponse_display() if self.reponse else ''}"
             )
+
+
+class AvisFormulaireConfiguration(models.Model):
+    code = models.CharField(max_length=20, unique=True, choices=(("dossier", "Depuis un dossier"), ("generique", "Demande générique"), ("existant", "Ajouter un avis existant")))
+    nom = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = '"avis"."avis_formulaire_configuration"'
+        verbose_name = "Configuration de formulaire d'avis"
+
+    def __str__(self):
+        return self.nom
+
+
+class AvisFormulaireChamp(models.Model):
+    id_configuration = models.ForeignKey(AvisFormulaireConfiguration, models.CASCADE, db_column="id_configuration", related_name="champs")
+    code = models.CharField(max_length=40)
+    ordre = models.PositiveSmallIntegerField(default=0)
+    libelle = models.CharField(max_length=180)
+    aide = models.TextField(blank=True, default="")
+    placeholder = models.TextField(blank=True, default="")
+    choix_autorises = models.JSONField(blank=True, null=True, default=None)  # Compatibilité : listes désormais issues d'AvisThematique.
+    visible = models.BooleanField(default=True)
+    requis_brouillon = models.BooleanField(default=False)
+    requis_envoi = models.BooleanField(default=False)
+    defaut = models.TextField(blank=True, default="")
+    regles = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = '"avis"."avis_formulaire_champ"'
+        ordering = ("ordre", "id")
+        constraints = [models.UniqueConstraint(fields=("id_configuration", "code"), name="avis_formulaire_champ_unique")]
+        verbose_name = "Champ de formulaire d'avis"
+
+    def __str__(self):
+        return self.libelle
+
+    def clean(self):
+        super().clean()
+        if not self.id_configuration_id:
+            return
+        from instruction.utils.avis_formulaires import configuration_standard, verifier_configuration
+        standards = configuration_standard(self.id_configuration.code)
+        if self.code not in {champ["code"] for champ in standards}:
+            raise ValidationError({"code": "Champ de formulaire inconnu."})
+        champs = [{cle: getattr(self, cle) for cle in champ} if champ["code"] == self.code else champ for champ in standards]
+        verifier_configuration(self.id_configuration.code, champs)
 
 
 class AvisReservation(models.Model):

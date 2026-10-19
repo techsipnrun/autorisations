@@ -1,0 +1,28 @@
+<div class="bo-avis" data-avis-configuration data-url-dossier="{% url 'back_office_avis_formulaire' contexte='dossier' %}" data-url-generique="{% url 'back_office_avis_formulaire' contexte='generique' %}" data-url-existant="{% url 'back_office_avis_formulaire' contexte='existant' %}">
+    <p class="back-office-eyebrow">Back Office · Avis · Formulaires d’avis</p>
+    <h1>Formulaires d’avis</h1>
+    <p>Personnalisez les champs, leurs conditions d’affichage et les informations requises avant enregistrement ou envoi.</p>
+    <div class="bo-avis-toolbar">
+        <label>Formulaire <select data-avis-contexte><option value="dossier">Depuis un dossier · Consultation</option><option value="generique">Nouvelle demande générique</option><option value="existant">Ajouter un avis existant · Hors application</option></select></label>
+        <button type="button" data-avis-restaurer disabled>Rétablir les réglages standards</button>
+    </div>
+    <div class="bo-avis-workspace" hidden>
+        <div>
+            <p class="bo-avis-notice">Les cas sont essayés dans l’ordre : le premier correspondant est retenu. Les sélecteurs structurels sont protégés. Les champs masqués ne sont pas demandés.</p>
+            <div data-avis-champs></div>
+            <div class="bo-avis-save"><button type="button" data-avis-enregistrer>Enregistrer ce formulaire</button></div>
+        </div>
+        <aside class="bo-avis-preview">
+            <h2>Aperçu du formulaire</h2>
+            <p>Simulation sans création d’avis ni réservation de numéro.</p>
+            <details class="bo-avis-preview-scenario">
+                <summary>Scénario de prévisualisation</summary>
+                <div class="bo-avis-preview-controls" data-avis-simulation></div>
+            </details>
+            <div data-avis-preview-mode></div>
+            <div class="bo-avis-preview-fields" data-avis-apercu></div>
+        </aside>
+    </div>
+    <p data-avis-message role="status" aria-live="polite"></p>
+    {% csrf_token %}
+</div>

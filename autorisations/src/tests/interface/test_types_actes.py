@@ -149,6 +149,15 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 assert(location.hash==='#carto/catalogue'&&cartoPanel.dataset.cartoVue==='catalogue','Navigation Catalogue');
                 window.dispatchEvent(new HashChangeEvent('hashchange'));await wait();
                 assert(cartoPanel.dataset.cartoVue==='catalogue','Rubrique restaurée depuis URL');
+                document.querySelector('.back-office-nav-item[data-section="avis"]').click();await wait();
+                assert(location.hash==='#avis/formulaires'&&!document.querySelector('[data-panel="avis"]').hidden,'Sous-rubrique Formulaires d’avis');
+                const menuAvis=document.querySelector('.back-office-nav-item[data-section="avis"]');
+                menuAvis.click();assert(document.getElementById('back-office-avis-nav').hidden,'Repli du menu Avis');
+                menuAvis.click();
+                document.querySelector('#back-office-avis-nav [data-section="avis-thematiques"]').click();await wait();
+                assert(location.hash==='#avis/thematiques'&&!document.querySelector('[data-panel="avis-thematiques"]').hidden,'Sous-rubrique Thématiques');
+                window.dispatchEvent(new HashChangeEvent('hashchange'));await wait();
+                assert(!document.querySelector('[data-panel="avis-thematiques"]').hidden,'Thématiques restaurées depuis URL');
                 const source = document.querySelector('#test-project-source');
                 verrouillerNatureProjet(source, 'Nouveau type d’acte');
                 const select = document.querySelector('#test-project-nature');

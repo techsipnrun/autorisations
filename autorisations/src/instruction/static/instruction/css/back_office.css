@@ -1416,6 +1416,8 @@ body {
 
 .back-office-content {
   align-content: start;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   padding: clamp(1.4rem, 3.8vw, 3.4rem);
 }
 
@@ -1428,11 +1430,11 @@ body {
 }
 
 .back-office-panel[data-panel="demarche"] {
-  width: min(100%, 1360px);
+  width: min(100%, 1720px);
 }
 
 .back-office-panel {
-  width: min(100%, 1120px);
+  width: min(100%, 1720px);
 }
 
 .back-office-panel h1 {

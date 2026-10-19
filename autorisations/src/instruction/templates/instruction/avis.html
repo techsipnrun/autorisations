@@ -63,7 +63,7 @@
                                             Non renseignée
                                         {% endif %}
                                     </td>
-                                    <td>{{ avis.id }}</td>
+                                    <td>{{ avis.numero_affiche }}</td>
                                     <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>
                                         {{ avis.id_instructeur }}
@@ -139,7 +139,7 @@
                                             Non renseignée
                                         {% endif %}
                                     </td>
-                                    <td>{{ avis.id }}</td>
+                                    <td>{{ avis.numero_affiche }}</td>
                                     <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>
                                         {{ avis.id_instructeur }}
@@ -207,7 +207,7 @@
                                         {% endif %}
                                     </td>
 
-                                    <td>{{ avis.id }}</td>
+                                    <td>{{ avis.numero_affiche }}</td>
                                     <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>{{ avis.id_avis_nature.nature }}</td>
                                     <td>
@@ -284,7 +284,7 @@
                                             Non renseignée
                                         {% endif %}
                                     </td>
-                                    <td>{{ avis.id }}</td>
+                                    <td>{{ avis.numero_affiche }}</td>
                                     <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                     <td>{{ avis.id_avis_nature.nature }}</td>
                                     <td>
@@ -338,7 +338,7 @@
                                                 Non renseignée
                                             {% endif %}
                                         </td>
-                                        <td>{{ avis.id }}</td>
+                                        <td>{{ avis.numero_affiche }}</td>
                                         <td>{% for liaison in avis.dossieravis_set.all %}{{ liaison.id_dossier.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                                         <td>{{ avis.id_avis_nature.nature }}</td>
                                         <td>

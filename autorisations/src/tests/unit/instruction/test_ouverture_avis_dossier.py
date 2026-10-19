@@ -22,7 +22,8 @@ class OuvertureAvisDossierTests(SimpleTestCase):
         self.render = self.enterContext(patch.object(vues, "render", return_value=HttpResponse()))
         self.reserver = self.enterContext(patch.object(vues, "reserver_numero", return_value=self.reservation))
         self.lire = self.enterContext(patch.object(vues, "lire_reservation", return_value=self.reservation))
-        for nom in ("thematiques_avis_liees_a_demarche", "get_chemin_complet_dossier", "count_unread_messages_for_dossier", "count_avis_with_unread_messages_for_dossier"):
+        self.enterContext(patch.object(vues, "thematiques_avis_liees_a_demarche", return_value=[]))
+        for nom in ("get_chemin_complet_dossier", "count_unread_messages_for_dossier", "count_avis_with_unread_messages_for_dossier"):
             self.enterContext(patch.object(vues, nom, return_value=0))
 
     def get(self, reservation=None):

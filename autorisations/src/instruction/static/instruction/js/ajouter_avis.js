@@ -1,13 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("form-avis");
     if (!form) return;
-    const nature = form.querySelector("#nature");
-    const formulation = form.querySelector("#formulation_avis");
-    const interne = form.querySelector("#expert_interne");
-    const externe = form.querySelector("#expert_externe");
-    const destinataire = form.querySelector("#destinataire");
     const actions = form.querySelector(".avis-form-actions");
-    let formulationAuto = null;
+    const moteur = window.AvisFormulaires?.initialiser(form);
+    if (!moteur) return;
     let enCours = false;
     const attente = form.querySelector("[data-avis-loading]");
     function chargement(message) {
@@ -27,63 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
         enCours = false;
         form.querySelectorAll("button").forEach(button => { button.disabled = false; });
     });
-    const type = () => nature.selectedOptions[0]?.textContent.trim();
-    const estCS = () => type() === "Demande à une instance" && externe.selectedOptions[0]?.dataset.estCs === "true";
-
-    function afficher(id, visible) {
-        const bloc = form.querySelector("#" + id);
-        bloc.hidden = !visible;
-        bloc.querySelectorAll("input, select, textarea").forEach(champ => {
-            champ.disabled = !visible;
-            if (!visible) champ.required = false;
-        });
-    }
-
-    function toggleFormulaire() {
-        const consultationInterne = type() === "Consultation en interne";
-        const instance = type() === "Demande à une instance";
-        afficher("bloc_expert_interne", consultationInterne);
-        afficher("bloc_expert_externe", instance);
-        if (!consultationInterne) interne.value = "";
-        if (!instance) externe.value = "";
-        afficher("bloc_destinataire_cs", estCS());
-        if (estCS() && !destinataire.value) destinataire.value = "CS";
-        afficher("bloc_note_avis", consultationInterne || instance);
-        afficher("bloc_formulation_avis", consultationInterne || instance);
-        afficher("bloc_pj_demande_avis", instance);
-        afficher("bloc_pj_projet_acte", instance);
-        afficher("bloc_pj_rapport_cs", instance);
-        afficher("bloc_autres_pj_avis", consultationInterne || instance);
-        form.querySelector("#label_autres_pj").textContent = consultationInterne
-            ? "Pièces jointes à transmettre :" : "Autres pièce(s) jointe(s) liée(s) à l'avis :";
-        form.querySelector("#label_pj_demande_avis").textContent = consultationInterne
-            ? "Joindre le projet d'avis de l'instance (Word) :" : "Joindre le projet d'avis de l'instance (Word)* :";
-        actions.hidden = !(consultationInterne || instance);
-        if (!formulation.value.trim() || formulation.value === formulationAuto) {
-            formulationAuto = consultationInterne
-                ? "Bonjour, je sollicite votre avis sur le dossier " + form.dataset.numeroDossier + "…"
-                : instance ? "Bonjour, vous trouverez ci-joint la demande d'avis associée au dossier." : "";
-            formulation.value = formulationAuto;
-        }
-    }
-
     function soumettre(button, intention) {
         if (enCours || !button || button.hidden) return;
         form.querySelectorAll("[required]").forEach(champ => { champ.required = false; });
-        nature.required = true;
-        form.querySelector("#thematique").required = true;
-        interne.required = type() === "Consultation en interne";
-        externe.required = type() === "Demande à une instance";
-        destinataire.required = estCS() && intention !== "brouillon";
-        if (intention === "confirmer") {
-            formulation.required = true;
-            if (type() === "Demande à une instance") {
-                ["pj_demande_avis", "pj_projet_acte"].forEach(id => {
-                    const input = form.querySelector("#" + id);
-                    input.required = input.dataset.exists !== "true";
-                });
-            }
-        }
+        moteur.obligations(intention === "brouillon" ? "brouillon" : "envoi");
         if (!form.checkValidity()) { form.reportValidity(); return; }
         if (intention === "confirmer" && !confirm("Voulez-vous vraiment envoyer la demande d'avis ?")) return;
         form.action = button.getAttribute("formaction").trim();
@@ -103,9 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    nature.addEventListener("change", toggleFormulaire);
-    externe.addEventListener("change", toggleFormulaire);
-    toggleFormulaire();
     form.querySelector(".btn-confirmer-envoi").addEventListener("click", event => soumettre(event.currentTarget, "confirmer"));
     form.querySelector(".btn-brouillon").addEventListener("click", event => soumettre(event.currentTarget, "brouillon"));
     form.addEventListener("submit", event => {

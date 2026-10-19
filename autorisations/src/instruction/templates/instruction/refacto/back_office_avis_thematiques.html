@@ -1,0 +1,23 @@
+<div class="bo-avis" data-avis-thematiques data-url="{% url 'back_office_avis_thematiques' %}">
+    <p class="back-office-eyebrow">Back Office · Avis · Thématiques</p>
+    <h1>Thématiques d’avis</h1>
+    <p class="bo-avis-theme-intro">Un catalogue commun aux trois formulaires, organisé par démarche.</p>
+    <details class="bo-avis-field bo-avis-theme-add">
+        <summary><span aria-hidden="true" class="bo-avis-theme-add-icon">+</span>Ajouter une thématique</summary>
+        <form class="bo-avis-theme-form" data-theme-ajout>
+            <label>Thématique <input name="thematique" maxlength="180" required></label>
+            <label>Rattachement <select name="demarche"></select></label>
+            <button type="submit" disabled>Ajouter</button>
+            <p data-theme-message role="status" aria-live="polite"></p>
+        </form>
+    </details>
+    <div class="bo-avis-toolbar bo-avis-theme-filters">
+        <label>Rechercher <input type="search" data-theme-recherche placeholder="Rechercher une thématique…"></label>
+        <label>Rattachement <select data-theme-filtre><option value="__tous__">Tous les rattachements</option></select></label>
+    </div>
+    <p class="bo-avis-notice bo-avis-theme-guide">« Toutes les démarches » : thème commun. « Non rattachée » : absent des listes par démarche.</p>
+    <p data-theme-statut role="status" aria-live="polite"></p>
+    <div data-theme-liste></div>
+    <p class="bo-avis-theme-empty" data-theme-vide hidden>Aucune thématique ne correspond à votre recherche.</p>
+    {% csrf_token %}
+</div>

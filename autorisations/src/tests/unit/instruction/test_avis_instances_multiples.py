@@ -11,10 +11,13 @@ from django.test import RequestFactory, SimpleTestCase
 from instruction.utils.avis_utils import emplacement_demande_avis_dossier
 from instruction.utils import avis_utils
 from instruction.views import avis as vues
+from instruction.utils.avis_formulaires import configuration_standard
 
 
 class AvisInstancesMultiplesTests(SimpleTestCase):
     def setUp(self):
+        self.enterContext(patch.object(vues, "charger_configuration", side_effect=configuration_standard))
+        self.enterContext(patch.object(vues, "thematiques_avis_liees_a_demarche", return_value=[SimpleNamespace(pk=1)]))
         self.factory = RequestFactory()
         self.user = SimpleNamespace(email="instructeur@example.test", is_authenticated=True)
         self.dossier = SimpleNamespace(id=10, numero=123456, emplacement="Dossier/", id_demarche=SimpleNamespace(type="Travaux"))
@@ -89,7 +92,9 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
                 stack.enter_context(patch.object(vues, "DossierAvis"))
                 stack.enter_context(patch.object(vues, "AvisDocument"))
                 stack.enter_context(patch.object(vues, "lire_reservation", return_value=SimpleNamespace(id=1, numero=50, id_avis_id=None)))
-                for nom in ("thematiques_avis_liees_a_demarche", "get_chemin_complet_dossier", "count_unread_messages_for_dossier", "count_avis_with_unread_messages_for_dossier"):
+                stack.enter_context(patch.object(vues, "AvisThematique"))
+                stack.enter_context(patch.object(vues, "thematiques_avis_liees_a_demarche", return_value=[]))
+                for nom in ("get_chemin_complet_dossier", "count_unread_messages_for_dossier", "count_avis_with_unread_messages_for_dossier"):
                     stack.enter_context(patch.object(vues, nom, return_value=0))
                 render = stack.enter_context(patch.object(vues, "render", return_value=HttpResponse()))
                 dossier.objects.filter.return_value.first.return_value = self.dossier
@@ -121,6 +126,7 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
             return demande
 
         with ExitStack() as stack:
+            stack.enter_context(patch.object(vues, "charger_configuration", side_effect=configuration_standard))
             stack.enter_context(patch.object(vues, "creation_avis_reservee", side_effect=lambda *args: nullcontext(SimpleNamespace(numero=len(demandes) + 1, id_avis_id=None))))
             stack.enter_context(patch.object(vues, "utiliser_reservation"))
             stack.enter_context(patch.object(vues.transaction, "on_commit", side_effect=lambda callback: callback()))
@@ -130,6 +136,8 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
             liaison = stack.enter_context(patch.object(vues, "DossierAvis"))
             nature = stack.enter_context(patch.object(vues, "AvisNature"))
             nature.objects.get.return_value = SimpleNamespace(nature="Demande à une instance")
+            contact = stack.enter_context(patch.object(vues, "ContactExterne"))
+            contact.objects.get.return_value = self.instance
             stack.enter_context(patch.object(vues, "AvisThematique"))
             stack.enter_context(patch.object(vues, "Message"))
             stack.enter_context(patch.object(vues, "MessageDocument"))

@@ -6,8 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Back Office — AGiDA</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=39">
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=40">
     <script src="{% static 'instruction/js/back_office_types_actes.js' %}?v=4" defer></script>
+    <link rel="stylesheet" href="{% static 'instruction/css/back_office_avis.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'instruction/css/avis_formulaires.css' %}?v=3">
+    <script src="{% static 'instruction/js/avis_formulaires.js' %}?v=6" defer></script>
+    <script src="{% static 'instruction/js/back_office_avis.js' %}?v=8" defer></script>
+    <script src="{% static 'instruction/js/back_office_avis_thematiques.js' %}?v=2" defer></script>
     <script src="{% static 'instruction/js/back_office_nommage.js' %}?v=8" defer></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
@@ -66,6 +71,16 @@
                 </button>
                 <div id="back-office-circuit-nav" class="back-office-nav-submenu" hidden>
                     <button type="button" class="back-office-nav-subitem" data-section="types-actes">Types d’actes</button>
+                </div>
+                </div>
+                <div class="back-office-nav-group">
+                <button type="button" class="back-office-nav-item" data-section="avis" aria-controls="back-office-avis-nav" aria-expanded="false">
+                    <span class="back-office-nav-dot"></span>Avis
+                    <span class="back-office-nav-chevron" aria-hidden="true">›</span>
+                </button>
+                <div id="back-office-avis-nav" class="back-office-nav-submenu" hidden>
+                    <button type="button" class="back-office-nav-subitem" data-section="avis">Formulaires d’avis</button>
+                    <button type="button" class="back-office-nav-subitem" data-section="avis-thematiques">Thématiques</button>
                 </div>
                 </div>
                 <button type="button" class="back-office-nav-item" data-section="notifications">
@@ -350,6 +365,12 @@
             <section class="back-office-panel" data-panel="types-actes" hidden>
                 {% include "instruction/refacto/back_office_types_actes.html" %}
             </section>
+            <section class="back-office-panel" data-panel="avis" hidden>
+                {% include "instruction/refacto/back_office_avis.html" %}
+            </section>
+            <section class="back-office-panel" data-panel="avis-thematiques" hidden>
+                {% include "instruction/refacto/back_office_avis_thematiques.html" %}
+            </section>
             <section class="back-office-panel" data-panel="notifications" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
                 <h1>Notifications</h1>
@@ -436,6 +457,12 @@
             menuCircuit.setAttribute('aria-expanded', String(estCircuit));
             menuCircuit.classList.toggle('is-active', estCircuit);
             document.querySelector('.back-office-nav-subitem[data-section="types-actes"]').classList.toggle('is-active', sectionValide === 'types-actes');
+            const estAvis = ['avis', 'avis-thematiques'].includes(sectionValide);
+            document.getElementById('back-office-avis-nav').hidden = !estAvis;
+            const menuAvis = document.querySelector('.back-office-nav-item[data-section="avis"]');
+            menuAvis.setAttribute('aria-expanded', String(estAvis));
+            menuAvis.classList.toggle('is-active', estAvis);
+            document.querySelectorAll('#back-office-avis-nav [data-section]').forEach(item => item.classList.toggle('is-active', item.dataset.section === sectionValide));
             if (!estDemarche) return;
 
             const detailSelectionne = demarcheId && demarchePanel.querySelector(`[data-demarche-detail="${demarcheId}"]`);
@@ -450,6 +477,10 @@
 
         function etatDepuisUrl() {
             const fragment = window.location.hash.replace(/^#/, '');
+            if (['avis', 'avis/formulaires', 'avis/thematiques'].includes(fragment)) {
+                afficherBackOffice(fragment === 'avis/thematiques' ? 'avis-thematiques' : 'avis');
+                return;
+            }
             const carto = fragment.match(/^carto(?:\/(catalogue|cartes))?$/);
             if (carto) {
                 afficherBackOffice('carto', null, carto[1] || 'catalogue');
@@ -468,7 +499,7 @@
         }
 
         function naviguerBackOffice(section, demarcheId = null, vueCarto = 'catalogue') {
-            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'types-actes' ? 'circuit/types-actes' : section === 'carto' ? `carto/${vueCarto}` : section;
+            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'avis' ? 'avis/formulaires' : section === 'avis-thematiques' ? 'avis/thematiques' : section === 'types-actes' ? 'circuit/types-actes' : section === 'carto' ? `carto/${vueCarto}` : section;
             if (window.location.hash === `#${fragment}`) {
                 afficherBackOffice(section, demarcheId, vueCarto);
                 return;

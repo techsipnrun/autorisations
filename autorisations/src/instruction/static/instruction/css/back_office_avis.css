@@ -1,0 +1,115 @@
+.back-office-panel[data-panel="avis"], .back-office-panel[data-panel="avis-thematiques"] { width: 100%; max-width: none; }
+.bo-avis { color: #26372e; }
+.bo-avis [hidden] { display: none !important; }
+.bo-avis-toolbar, .bo-avis-checks, .bo-avis-rule-actions, .bo-avis-condition { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.bo-avis-toolbar { justify-content: space-between; margin: 1.5rem 0; }
+.bo-avis-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1.5rem; align-items: start; }
+.bo-avis-workspace > * { min-width: 0; }
+.bo-avis-notice { font-size: .85rem; color: #596a60; }
+.bo-avis button, .bo-avis select, .bo-avis input, .bo-avis textarea { box-sizing: border-box; max-width: 100%; font: inherit; border: 1px solid #b5c4bc; border-radius: 6px; padding: .45rem .65rem; }
+.bo-avis button, .bo-avis select { cursor: pointer; background: white; }
+.bo-avis select { width: fit-content; field-sizing: content; min-width: 0; justify-self: start; flex: 0 1 auto; text-overflow: ellipsis; }
+.bo-avis button:disabled { cursor: default; opacity: .5; }
+.bo-avis input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: #006131; padding: 0; }
+.bo-avis label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.bo-avis label.bo-avis-text { display: grid; grid-template-columns: minmax(0, 1fr); gap: .3rem; margin: .7rem 0; font-size: .9rem; }
+.bo-avis-text input, .bo-avis-text textarea { width: 100%; min-width: 0; }
+[data-avis-champs] .bo-avis-text { justify-items: start; }
+[data-avis-champs] .bo-avis-text input { field-sizing: content; width: auto; min-width: min(12ch, 100%); max-width: 100%; }
+[data-avis-champs] .bo-avis-text textarea { field-sizing: content; width: auto; min-width: min(20ch, 100%); max-width: min(65ch, 100%); max-height: 16rem; }
+[data-avis-champs], [data-avis-apercu] { overflow-anchor: none; }
+.bo-avis textarea { resize: vertical; min-height: 3rem; }
+.bo-avis-field { background: white; border: 1px solid #cbd8d0; border-radius: 10px; margin: .7rem 0; overflow: hidden; }
+.bo-avis-field summary { display: flex; align-items: center; gap: .7rem; padding: .9rem; cursor: pointer; list-style: none; }
+.bo-avis-field summary::-webkit-details-marker { display: none; }
+.bo-avis-field summary::after { content: '+'; margin-left: auto; font-size: 1.2rem; flex: 0 0 auto; }
+.bo-avis-field[open] summary::after { content: '−'; }
+.bo-avis-field summary strong { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bo-avis-rank { font-size: .8rem; color: #687c6e; }
+.bo-avis-field-body { padding: 0 1rem 1rem; }
+.bo-avis-lock { color: #687c6e; font-size: .8rem; }
+.bo-avis-protected-conditions { border-left: 3px solid #aac0b1; padding-left: .7rem; font-size: .85rem; color: #42624e; }
+.bo-avis-case { padding: .7rem; border: 1px solid #d8e1dc; background: #f6f9f7; border-radius: 8px; margin-top: .9rem; min-width: 0; }
+.bo-avis-case legend { font-size: .85rem; font-weight: 600; }
+.bo-avis-add-case, .bo-avis-case .bo-avis-checks { margin-top: .5rem; }
+.bo-avis-add-case { display: block; width: fit-content; }
+.bo-avis-condition { margin: .6rem 0; }
+.bo-avis-condition input { min-width: 0; flex: 0 1 12ch; }
+.bo-avis-condition button { flex: 0 0 auto; }
+.bo-avis-rule-actions { margin-top: .7rem; justify-content: flex-end; }
+.bo-avis-preview { position: sticky; top: 1rem; background: #f5f8f6; border: 1px solid #cbd8d0; border-radius: 12px; padding: 1.2rem; }
+.bo-avis-preview h2 { margin-top: 0; }
+.bo-avis-preview > p { color: #607268; font-size: .85rem; }
+.bo-avis-preview-controls { display: grid; gap: .6rem; padding-bottom: 1rem; border-bottom: 2px solid #d1ded6; }
+.bo-avis-preview-scenario { margin-bottom: 1rem; }
+.bo-avis-preview-scenario > summary { cursor: pointer; padding: .5rem 0; font-size: .9rem; }
+.bo-avis-preview-controls label { display: grid; grid-template-columns: minmax(0, 1fr); font-size: .85rem; }
+.bo-avis-preview-user-form { padding: 1.25rem .85rem; background: white; border: 3px solid #006131; color: #202820; }
+.bo-avis-preview-user-form h3 { text-align: center; color: #006131; font-size: 1.2rem; margin: 0 0 1.2rem; }
+.bo-avis-preview-field { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; min-width: 0; margin: .5rem 0; padding: .65rem .3rem; }
+.bo-avis .bo-avis-preview-field > label, .bo-avis .bo-avis-preview-field > .avis-field-heading label { color: #006131; font-weight: 700; font-size: 1.05rem; }
+.bo-avis-preview-textarea { align-items: flex-start; }
+.bo-avis .bo-avis-preview-field select { padding: .4rem .6rem; border: 2px solid #006131; border-radius: 4px; background: white; }
+.bo-avis .bo-avis-preview-field textarea { flex: 1 1 220px; width: 70%; min-width: 0; min-height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; line-height: 1.5; background: white; color: #202820; }
+.bo-avis-preview-field small { flex-basis: 100%; color: #687c6e; white-space: pre-line; }
+.bo-avis-preview-radios { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
+.bo-avis .bo-avis-preview-radios label { flex-wrap: nowrap; background: #f4f8f5; border: 1px solid #d1ded6; border-radius: 5px; padding: .4rem .55rem; }
+.bo-avis-preview-radios input { flex: 0 0 auto; accent-color: #006131; margin: 0; }
+.bo-avis-preview-field .bo-avis-preview-reminder { font-style: italic; color: #8b1e1e; }
+.bo-avis-preview-file { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.bo-avis .bo-avis-preview-file button:disabled { cursor: default; opacity: 1; color: #333; background: #f3f3f3; border-color: #999; padding: .25rem .45rem; }
+.bo-avis-preview-file span { color: #565f58; font-size: .85rem; }
+.bo-avis-preview-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.bo-avis .bo-avis-preview-actions button:disabled { opacity: 1; background: #006131; border-color: #006131; color: white; cursor: default; }
+.bo-avis .bo-avis-preview-actions button.bo-avis-preview-draft { background: #4b5563; border-color: #4b5563; }
+.bo-avis-preview-mode { margin-bottom: .8rem; font-size: .85rem; }
+.bo-avis-save { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.bo-avis-save button { background: #006131; color: white; border-color: #006131; }
+.bo-avis.is-dirty .bo-avis-save button { outline: 2px solid #b7791f; outline-offset: 3px; }
+.bo-avis [data-avis-message].is-error { color: #a12828; }
+.bo-avis [data-avis-message].is-success { color: #006131; }
+.bo-avis-theme-form { display: flex; flex-wrap: wrap; align-items: end; gap: .8rem; padding: .9rem; margin: .6rem 0; border: 1px solid #cbd8d0; border-radius: 8px; background: white; }
+.bo-avis-theme-form label { display: grid; justify-items: start; gap: .4rem; }
+.bo-avis-theme-form input { field-sizing: content; width: auto; min-width: min(16ch, 100%); }
+.bo-avis-theme-form p { flex-basis: 100%; margin: 0; font-size: .85rem; }
+.bo-avis-theme-form .is-error, [data-avis-thematiques] .is-error { color: #a12828; }
+.bo-avis-theme-form .is-success { color: #006131; }
+.bo-avis-theme-form.is-dirty { border-color: #b7791f; }
+.bo-avis-theme-intro { color: #63756a; margin-bottom: 1.2rem; }
+.bo-avis .bo-avis-theme-add { border: 0; border-radius: 0; background: transparent; overflow: visible; margin: 1rem 0; }
+.bo-avis .bo-avis-theme-add > summary { display: inline-flex; width: fit-content; max-width: 100%; box-sizing: border-box; gap: .55rem; padding: .65rem .9rem; border: 1px solid #075c31; border-radius: 8px; background: #075c31; color: #fff; font-size: .9rem; font-weight: 600; transition: background .15s; }
+.bo-avis .bo-avis-theme-add > summary:hover { background: #0a7140; }
+.bo-avis .bo-avis-theme-add > summary::after { content: none; }
+.bo-avis-theme-add-icon { display: inline-flex; justify-content: center; align-items: center; width: 1rem; height: 1rem; font-size: 1.35rem; font-weight: 400; transition: transform .15s; }
+.bo-avis-theme-add[open] .bo-avis-theme-add-icon { transform: rotate(45deg); }
+.bo-avis .bo-avis-theme-add .bo-avis-theme-form { width: fit-content; max-width: 100%; box-sizing: border-box; margin-top: .75rem; background: #f3f8f5; border: 1px solid #bcd0c2; }
+.bo-avis .bo-avis-theme-add button[type="submit"] { width: fit-content; justify-self: start; flex: 0 0 auto; background: #075c31; border-color: #075c31; color: white; }
+.bo-avis-theme-filters { justify-content: flex-start; gap: 1.5rem; margin: 1.5rem 0 .65rem; padding: .9rem 1rem; background: #f5f8f6; border: 1px solid #e0e7e2; border-radius: 10px; }
+.bo-avis-theme-filters label { font-size: .8rem; color: #63756a; }
+.bo-avis-theme-filters input { min-width: 0; width: 28ch; background: white; }
+.bo-avis-theme-guide { margin: .5rem 0 1rem; font-size: .8rem; }
+[data-theme-statut] { color: #63756a; font-size: .8rem; }
+[data-theme-liste] { width: 100%; max-width: 64rem; box-sizing: border-box; border: 1px solid #dde6df; border-radius: 10px; overflow: hidden; }
+[data-theme-liste]:empty { display: none; }
+.bo-avis [data-theme-liste] .bo-avis-theme-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content; align-items: end; gap: .5rem 1.25rem; border: 0; border-bottom: 1px solid #e7ede9; border-radius: 0; margin: 0; padding: .8rem 1rem; transition: background .15s; }
+.bo-avis [data-theme-liste] .bo-avis-theme-form:last-child { border-bottom: 0; }
+.bo-avis [data-theme-liste] .bo-avis-theme-form:hover { background: #f8fbf9; }
+.bo-avis [data-theme-liste] .bo-avis-theme-form.is-dirty { background: #fffcf5; box-shadow: inset 3px 0 #b7791f; }
+.bo-avis-theme-form label { font-size: .75rem; color: #63756a; min-width: 0; }
+.bo-avis-theme-form input, .bo-avis-theme-form select { color: #26372e; font-size: .9rem; }
+.bo-avis-theme-form input { max-width: 100%; }
+.bo-avis .bo-avis-theme-save { width: fit-content; justify-self: start; border-color: #d5e1d9; background: #f0f6f2; color: #28563b; font-size: .8rem; }
+.bo-avis .bo-avis-theme-save:hover:not(:disabled) { border-color: #7ca68c; background: #e5f0e8; }
+.bo-avis-theme-form p:empty { display: none; }
+.bo-avis [data-theme-liste] .bo-avis-theme-form p { grid-column: 1 / -1; font-size: .8rem; }
+.bo-avis-theme-empty { padding: 1.5rem; border: 1px dashed #cbd8d0; border-radius: 10px; color: #63756a; text-align: center; }
+.bo-avis .bo-avis-catalogue-link { display: inline-flex; align-items: center; gap: .85rem; box-sizing: border-box; width: fit-content; max-width: 100%; margin: .9rem 0 .25rem; padding: .8rem 1rem; border: 1px solid #c8dcd0; border-radius: 9px; background: #f1f7f3; color: #235637; text-decoration: none; transition: background .15s, border-color .15s; }
+.bo-avis .bo-avis-catalogue-link:hover { background: #e5f1e9; border-color: #7aa88a; text-decoration: none; }
+.bo-avis-catalogue-link svg { flex: 0 0 22px; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.bo-avis-catalogue-link-text { display: grid; gap: .2rem; min-width: 0; }
+.bo-avis-catalogue-link-text strong { font-size: .9rem; }
+.bo-avis-catalogue-link-text small { font-size: .78rem; color: #637b6b; }
+.bo-avis-catalogue-link-arrow { margin-left: .4rem; font-size: 1.25rem; }
+.bo-avis-catalogue-link:focus-visible, .bo-avis-theme-add > summary:focus-visible { outline: 2px solid #317652; outline-offset: 3px; }
+@media (max-width: 900px) { .bo-avis [data-theme-liste] .bo-avis-theme-form { grid-template-columns: minmax(0, 1fr); } .bo-avis-theme-filters { gap: .8rem; } .bo-avis-theme-form label { max-width: 100%; } }
+@media (max-width: 1400px) { .bo-avis-workspace { grid-template-columns: minmax(0, 1fr); } .bo-avis-preview { position: static; } }

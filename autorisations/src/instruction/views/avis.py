@@ -5,7 +5,7 @@ import tempfile
 import zipfile
 from functools import wraps
 from uuid import uuid4
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.urls import reverse
 from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -40,8 +40,65 @@ from instruction.utils.avis_utils import emplacement_demande_avis_dossier
 from instruction.utils.avis_reservations import creation_avis_reservee, modification_brouillon_verrouillee, reserver_numero, lire_reservation, utiliser_reservation
 
 from synchronisation.utils.fichiers import nettoyer_nom_fichier
+from instruction.forms_avis import DemandeAvisForm, ImportAvisCSForm
+from instruction.utils.avis_formulaires import charger_configuration
+from instruction.utils.avis_utils import contact_est_conseil_scientifique, filtre_numero_avis, repartition_thematiques_avis
 
 logger = logging.getLogger('ORM_DJANGO')
+
+
+def _configuration_formulaire(contexte, dossier=None, numero=None):
+    thematiques = list(AvisThematique.objects.all().order_by("thematique"))
+    demarches = [dossier.id_demarche] if dossier else list(Demarche.objects.all())
+    return {"champs": charger_configuration(contexte),
+        "thematiques_par_demarche": repartition_thematiques_avis(thematiques, demarches),
+        "variables": {
+        "numero_dossier": dossier.numero if dossier else "", "numero_avis": numero or "",
+        "type_demarche": dossier.id_demarche.type if dossier else "",
+        "demarche": str(getattr(dossier.id_demarche, "pk", "")) if dossier else "",
+    }}
+
+
+def _valider_formulaire_configure(request, dossier=None, avis=None, brouillon=False, contexte=None):
+    contexte = contexte or ("dossier" if dossier else "generique")
+    configuration = charger_configuration(contexte)
+    donnees = request.POST.copy()
+    for champ in configuration:
+        if champ["code"] in {"nature", "demarche", "expert_interne", "expert_externe", "thematique", "demandeur_avis"} and not donnees.get(champ["code"]):
+            donnees[champ["code"]] = champ["defaut"]
+    try:
+        nature = AvisNature.objects.get(id=donnees.get("nature"))
+        type_nature = {"Consultation en interne": "interne", "Demande à une instance": "instance"}.get(nature.nature, "")
+        contact = ContactExterne.objects.get(id=donnees["expert_externe"]) if type_nature == "instance" and donnees.get("expert_externe") else None
+        demarche = dossier.id_demarche if dossier else Demarche.objects.get(id=donnees.get("demarche"))
+        etat = {cle: donnees.get(cle, "") for cle in ("expert_interne", "expert_externe", "demarche")}
+        if dossier:
+            etat["demarche"] = str(getattr(demarche, "pk", ""))
+        etat.update(nature_type=type_nature, expert_cs="true" if contact_est_conseil_scientifique(contact) else "false")
+        numero = "" if contexte == "existant" else avis.id if avis else request.reservation_avis.numero
+        formulaire = DemandeAvisForm(donnees, request.FILES, configuration=configuration, etat=etat, avis=avis, brouillon=brouillon,
+            variables={"numero_dossier": dossier.numero if dossier else "", "numero_avis": numero, "type_demarche": demarche.type},
+            thematiques_autorisees=[str(t.pk) for t in thematiques_avis_liees_a_demarche(demarche)])
+        if formulaire.is_valid():
+            if contexte == "existant":
+                # Vérifier les références avant toute écriture (Expert, NAS, Avis).
+                Instructeur.objects.get(id=formulaire.cleaned_data["demandeur_avis"])
+                if type_nature == "interne":
+                    Instructeur.objects.get(id=formulaire.cleaned_data["expert_interne"])
+                AvisThematique.objects.get(id=formulaire.cleaned_data["thematique"])
+                for code in ("date_demande_avis", "date_reponse_avis"):
+                    valeur = formulaire.cleaned_data.get(code)
+                    formulaire.donnees[code] = valeur.isoformat() if valeur else ""
+            request.POST = formulaire.donnees
+            request._files = formulaire.fichiers_actifs
+            return None
+        erreurs = [f"{formulaire.fields[cle].label} : {message}" if cle in formulaire.fields else str(message)
+                   for cle, messages_champ in formulaire.errors.items() for message in messages_champ]
+        return redirect_error(request, " ".join(erreurs))
+    except (ObjectDoesNotExist, ValueError, TypeError):
+        if contexte == "existant":
+            return redirect_error(request, "Sélectionnez une nature, un instructeur, une thématique et un expert valides.")
+        return redirect_error(request, "Sélectionnez une nature, une démarche et un expert valides.")
 
 
 def _creation_avec_numero_reserve(vue):
@@ -55,6 +112,14 @@ def _creation_avec_numero_reserve(vue):
                     if avis and avis.statut != "Brouillon":
                         return redirect("instruction_dossier_consultation", num_dossier=num_dossier)
                     request.brouillon_reservation = avis
+                    if not avis or request.POST.get("generer_numero") == "1":
+                        return vue(request, *args, **kwargs)
+                    if str(request.POST.get("nature")) != str(avis.id_avis_nature_id):
+                        return redirect_error(request, "La nature d'un avis au statut Brouillon ne peut pas être modifiée.")
+                    erreur = _valider_formulaire_configure(request, avis.id_dossier if avis else None, avis,
+                        brouillon=vue.__name__ == "instruction_dossier_enregistrer_brouillon_avis")
+                    if erreur is not None:
+                        return erreur
                     return vue(request, *args, **kwargs)
             with creation_avis_reservee(request, num_dossier) as reservation:
                 request.reservation_avis = reservation
@@ -64,6 +129,11 @@ def _creation_avec_numero_reserve(vue):
                             return redirect("instruction_dossier_ajouter_avis", num_dossier=num_dossier, avis_id=reservation.id_avis_id)
                         return redirect("instruction_dossier_consultation", num_dossier=num_dossier)
                     return redirect("avis_expert", avis_id=reservation.id_avis_id)
+                dossier = getattr(request, "dossier_reservation", None) or (Dossier.objects.filter(numero=num_dossier).first() if num_dossier is not None else None)
+                erreur = _valider_formulaire_configure(request, dossier,
+                    brouillon=vue.__name__ == "instruction_dossier_enregistrer_brouillon_avis")
+                if erreur is not None:
+                    return erreur
                 return vue(request, *args, **kwargs)
         except PermissionDenied as erreur:
             return HttpResponseForbidden(str(erreur))
@@ -73,10 +143,7 @@ def _creation_avec_numero_reserve(vue):
 
 
 def _destinataire_cs_depuis_formulaire(request, expert, obligatoire=True):
-    """Valide et retourne le destinataire d'une demande adressée au CS."""
-    if not expert_est_conseil_scientifique(expert):
-        return None
-
+    """Valide le code de destinataire ; l'obligation dépend de la configuration."""
     destinataire = (request.POST.get("destinataire") or "").strip().upper()
     valeurs_valides = {choix for choix, _ in Avis.Destinataire.choices}
     if destinataire in valeurs_valides:
@@ -222,6 +289,7 @@ def instruction_dossier_consultation(request, num_dossier) :
             "statut": avis.statut,
             "expert": expert or "N/A",
             "numero": avis.id,
+            "numero_affiche": avis.numero_affiche,
             "demandeur": demandeur,
             "date_demande": avis.date_demande_avis,
             "date_reponse": avis.date_reponse_avis,
@@ -329,7 +397,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
     natures = AvisNature.objects.all().order_by("nature")
 
     # thematiques = AvisThematique.objects.all().order_by("thematique")
-    thematiques = thematiques_avis_liees_a_demarche(dossier.id_demarche)
+    thematiques = AvisThematique.objects.all().order_by("thematique")
 
     # Tous les avis déjà envoyés pour ce dossier
     avis_existants = Avis.objects.filter(id_dossier=dossier, statut="Envoyé")
@@ -405,6 +473,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "pieces_complementaires": pieces_complementaires,
         "reservation": reservation,
         "numero_avis": avis.id if avis else reservation.numero,
+        "avis_formulaire_configuration": _configuration_formulaire("dossier", dossier, avis.id if avis else reservation.numero),
         "is_formulaire_active": False,
         "is_messagerie_active": False,
         "is_consultation_active": True,
@@ -501,7 +570,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
             statut = request.GET.get("statut")
 
             if numero:
-                avis_list = avis_list.filter(id=numero)
+                avis_list = avis_list.filter(filtre_numero_avis(numero))
             if expert:
                 avis_list = avis_list.filter(id_expert=expert)
             if demandeur:
@@ -554,6 +623,7 @@ def instruction_dossier_ajouter_avis_existant(request, num_dossier):
         "NAS_ROOT": os.getenv('NAS_ROOT'),
         "avis_list": avis_list,
         "tous_les_experts": tous_les_experts,
+        "avis_formulaire_configuration": _configuration_formulaire("existant", dossier),
     })
 
 
@@ -612,12 +682,15 @@ def ajouter_avis_hors_appli(request, num_dossier):
 
     if request.method == "POST":
         try:
+            erreur = _valider_formulaire_configure(request, dossier, contexte="existant")
+            if erreur is not None:
+                return erreur
             # 1. Récupérer les champs du formulaire
             nature_id = request.POST.get("nature")
             thematique_id = request.POST.get("thematique")
             mode_contact = request.POST.get("mode_contact")
             reponse = request.POST.get("reponse")
-            if reponse not in {valeur for valeur, _libelle in Avis.Reponse.choices}:
+            if reponse and reponse not in {valeur for valeur, _libelle in Avis.Reponse.choices}:
                 return redirect_error(request, "La réponse de l'avis n'est pas valide.")
             note = request.POST.get("note_demandeur")
             date_demande_avis = parse_datetime(request.POST.get("date_demande_avis")) if request.POST.get("date_demande_avis") else None
@@ -677,6 +750,23 @@ def ajouter_avis_hors_appli(request, num_dossier):
             if instructeur_demandeur_id:
                 instructeur_demandeur = Instructeur.objects.get(id=instructeur_demandeur_id)
 
+            numero_avis_externe = None
+            publie_au_raa = None
+            if expert_est_conseil_scientifique(expert):
+                donnees_cs = request.POST.copy()
+                # Conserver le comportement historique si un ancien formulaire est soumis.
+                if not donnees_cs.get("publication_raa"):
+                    donnees_cs["publication_raa"] = "a_publier"
+                formulaire_cs = ImportAvisCSForm(donnees_cs)
+                if not formulaire_cs.is_valid():
+                    return redirect_error(request, " ".join(
+                        f"{formulaire_cs.fields[cle].label} : {message}"
+                        for cle, erreurs in formulaire_cs.errors.items() for message in erreurs
+                    ))
+                numero_avis_externe = formulaire_cs.cleaned_data["numero_avis_externe"] or None
+                # Choix métier : non requise et déjà publiée sont toutes deux traitées.
+                publie_au_raa = None if formulaire_cs.cleaned_data["publication_raa"] == "a_publier" else True
+
             # Création emplacement
             emplacement = emplacement_demande_avis_dossier(dossier, nom_prenom_expert)
 
@@ -696,8 +786,10 @@ def ajouter_avis_hors_appli(request, num_dossier):
                 id_instructeur=instructeur_demandeur,
                 mode_contact=mode_contact,
                 statut="Envoyé",
+                numero_avis_externe=numero_avis_externe,
+                publie_au_raa=publie_au_raa,
                 formulation=formulation,
-                reponse=reponse,
+                reponse=reponse or None,
                 note=note,
                 date_demande_avis=date_demande_avis,
                 date_reponse_avis=date_reponse_avis,
@@ -885,7 +977,7 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
         return redirect_error(request, f"Erreur lors de la récupération de l’expert. Contactez le support.")
 
     try:
-        destinataire = _destinataire_cs_depuis_formulaire(request, expert)
+        destinataire = _destinataire_cs_depuis_formulaire(request, expert, obligatoire=False)
     except ValueError as e:
         return redirect_error(request, str(e))
 
@@ -923,22 +1015,10 @@ def instruction_dossier_confirmer_ajout_avis(request, num_dossier, avis_id=None)
             
 
         
-        if not formulation_avis:
-            return redirect_error(request, "Renseignez la formulation de l'avis avant l'envoi.")
         if nature.nature not in {"Consultation en interne", "Demande à une instance"}:
             return redirect_error(request, "La nature de l'avis n'est pas autorisée pour ce formulaire.")
         if (nature.nature == "Consultation en interne") != bool(expert.est_interne):
             return redirect_error(request, "L'expert sélectionné ne correspond pas à la nature de l'avis.")
-        if nature.nature == "Demande à une instance":
-            for fichier, champ, libelle in (
-                (pj_projet_avis, "id_projet_avis_id", "le projet d'avis de l'instance"),
-                (pj_projet_acte, "id_projet_acte_id", "le projet d'acte"),
-            ):
-                if not fichier and not (brouillon_avis and getattr(brouillon_avis, champ)):
-                    return redirect_error(request, f"Joignez {libelle} avant l'envoi.")
-        else:
-            pj_projet_avis = pj_projet_acte = pj_rapport_cs = None
-
         # ---- On récupère l'emplacement physique de l'avis ----
         try:
             emplacement = emplacement_demande_avis_dossier(dossier, nom_prenom_expert, brouillon_avis)
@@ -2281,6 +2361,7 @@ def nouvelle_demande_avis_generique(request):
         "instructeurs": instructeurs,
         "contacts_externes": contacts_externes,
         "demarches": demarches,
+        "avis_formulaire_configuration": _configuration_formulaire("generique", numero=reservation.numero),
     })
 
 
@@ -2339,14 +2420,10 @@ def avis_confirmer_nouvelle_demande_generique(request):
     instance = nature.nature == "Demande à une instance"
     if not consultation and not instance:
         return redirect_error(request, "La nature de l'avis n'est pas autorisée pour ce formulaire.")
-    if not formulation_avis or bool(expert_interne_id) == bool(expert_externe_id):
-        return redirect_error(request, "Renseignez la formulation et choisissez un seul expert.")
+    if bool(expert_interne_id) == bool(expert_externe_id):
+        return redirect_error(request, "Choisissez un seul expert.")
     if consultation != bool(expert_interne_id):
         return redirect_error(request, "L'expert sélectionné ne correspond pas à la nature de l'avis.")
-    if consultation:
-        pj_projet_avis = pj_projet_acte = pj_rapport_cs = None
-    elif not pj_projet_avis or not pj_projet_acte:
-        return redirect_error(request, "Joignez le projet d'avis de l'instance et le projet d'acte avant l'envoi.")
 
     # --- EXPERT ---
     try:
@@ -2357,7 +2434,7 @@ def avis_confirmer_nouvelle_demande_generique(request):
         return redirect_error(request, "Erreur lors de la récupération de l'expert. Contactez le support.")
 
     try:
-        destinataire = _destinataire_cs_depuis_formulaire(request, expert)
+        destinataire = _destinataire_cs_depuis_formulaire(request, expert, obligatoire=False)
     except ValueError as e:
         return redirect_error(request, str(e))
         

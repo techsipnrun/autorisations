@@ -9,6 +9,7 @@ from instruction.views import dossiers_lies
 from instruction.views import nom_dossier
 from instruction.views import types_actes
 from instruction.views import cartographie
+from instruction.views import avis_configuration
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -26,6 +27,8 @@ urlpatterns = [
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
     path("back-office/", views.back_office, name="back_office"),
+    path("back-office/avis/formulaires/<slug:contexte>/", avis_configuration.configurer_formulaire, name="back_office_avis_formulaire"),
+    path("back-office/avis/thematiques/", avis_configuration.configurer_thematiques, name="back_office_avis_thematiques"),
     path("back-office/cartographie/", cartographie.catalogue, name="back_office_cartographie"),
     path("back-office/cartographie/convertir/", cartographie.convertir_source, name="back_office_cartographie_convertir"),
     path("back-office/cartographie/source/", cartographie.enregistrer_source, name="back_office_cartographie_ajouter_source"),

@@ -89,7 +89,7 @@
 }
 
 /* Label à gauche */
-.attribut_avis > label, .avis-reponse-label {
+.attribut_avis > label, .attribut_avis > .avis-field-heading > label, .avis-reponse-label {
     font-weight: bold;
     font-size: 1.2rem;
     color: #006131;
@@ -208,6 +208,8 @@
 .attribut_avis .radio-group label:has(input:checked) { border-color: #006131; background: #eaf4ed; color: #004e27; }
 .attribut_avis .radio-group label:focus-within { outline: 2px solid #006131; outline-offset: 2px; }
 .avis-reponse-label { white-space: nowrap; flex: 0 0 auto; }
+[data-import-avis-cs][hidden] { display: none !important; }
+#numero_avis_externe { width: 24ch; padding: .4rem .6rem; border: 2px solid #006131; border-radius: 4px; font: inherit; }
 .attribut_avis input:not([type="radio"]), .attribut_avis textarea { box-sizing: border-box; min-width: 0; max-width: 100%; }
 
 /* Champs date */
@@ -444,7 +446,7 @@
 }
 @media (max-width: 600px) {
     .attribut_avis { padding-inline: 0; gap: 0.6rem; }
-    .attribut_avis > label, .avis-reponse-label { font-size: 0.95rem; }
+    .attribut_avis > label, .attribut_avis > .avis-field-heading > label, .avis-reponse-label { font-size: 0.95rem; }
     .attribut_avis select { font-size: 0.95rem; }
     .attribut_avis .radio-group label { font-size: 0.9rem; }
 }

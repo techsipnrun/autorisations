@@ -17,7 +17,9 @@
     <link rel="stylesheet" href="{% static 'instruction/css/avis_nouvelle_demande_generique.css' %}?v=4">
 
     <!-- JS -->
-    <script src="{% static 'instruction/js/nouvelle_demande_avis_generique.js' %}?v=6"></script>
+    <link rel="stylesheet" href="{% static 'instruction/css/avis_formulaires.css' %}?v=3">
+    <script src="{% static 'instruction/js/avis_formulaires.js' %}?v=6"></script>
+    <script src="{% static 'instruction/js/nouvelle_demande_avis_generique.js' %}?v=7"></script>
 </head>
 <body>
 
@@ -28,6 +30,7 @@
         <h1>Nouvelle demande d'avis générique {{ reservation.numero }}</h1>
 
         <div class="form_nouvelle_demande_generique">
+            {% if avis_formulaire_configuration %}{{ avis_formulaire_configuration|json_script:"avis-formulaire-configuration" }}{% endif %}
             <form id="form-avis" method="post" enctype="multipart/form-data" action="{% url 'avis_confirmer_nouvelle_demande_generique' %}">
                 {% csrf_token %}
                 <input type="hidden" name="reservation" value="{{ reservation.id }}">
@@ -37,7 +40,7 @@
                     <select id="nature" name="nature" required>
                         <option value="">-- Sélectionner --</option>
                         {% for nature in natures %}
-                            <option value="{{ nature.id }}">
+                            <option value="{{ nature.id }}" data-nature-type="{% if nature.nature == 'Consultation en interne' %}interne{% elif nature.nature == 'Demande à une instance' %}instance{% endif %}">
                                 {{ nature.nature }}
                             </option>
                         {% endfor %}

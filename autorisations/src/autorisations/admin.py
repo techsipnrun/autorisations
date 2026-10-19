@@ -1,13 +1,32 @@
 import logging
 from django.contrib import admin
 from django.db import transaction
-from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis, AvisReservation
+from .models.models_avis import Avis, AvisNature, AvisThematique, Expert, AvisDocument, DossierAvis, AvisReservation, AvisFormulaireConfiguration, AvisFormulaireChamp
 from .models.models_documents import Document, DocumentFormat, DocumentNature, DocumentStatut, DossierDocument, DossierManifSportiveDocument, DossierRelecteurDocument, MessageDocument
 from .models.models_instruction import ActionsPossibles, AvisManifSportive, Champ, ChangementEtape, DemarcheColonneVueEnsemble, DemarcheDateActiviteChamp, DemarcheDateActiviteConfiguration, DossierAction, DossierChamp, DossierGroupe, DossierManifSportive, DossierManifestationLiaison, DossierNote, EnsembleDossiers, EtapeDossier, Groupe, Message, ChampType, DemandeChamp, DemandeType, Dossier, Demande, Demarche, DossierType, EtatDemande, EtatDossier, EtatDemarche, Action, Priorite, SynchronisationEtat
 from .models.models_utilisateurs import ContactExterne, DestinataireNotification, DossierBeneficiaire, DossierEnvoiActe, DossierInterlocuteur, DossierInstructeur, DossierIntermediaireSignature, DossierPublicationRAA, EmailOutbox, GroupeinstructeurDemarche, GroupeinstructeurInstructeur, Instructeur, AgentAutorisations, Groupeinstructeur, TypeContactExterne, DossierValideur, DossierRelecteur, DossierRelecteurQualite, DossierSignataire
 from django.db.models import Exists, F, OuterRef, Subquery
 from .models.models_instruction import DemarcheNomDossierRegle, DemarcheNomDossierElement
 from .models.models_cartographie import CartographieSource, CartographieConfiguration, CartographieConfigurationSource
+
+
+class AvisFormulaireChampInline(admin.StackedInline):
+    model = AvisFormulaireChamp
+    extra = 0
+    exclude = ("choix_autorises",)
+
+
+@admin.register(AvisFormulaireConfiguration)
+class AvisFormulaireConfigurationAdmin(admin.ModelAdmin):
+    list_display = ("nom", "code")
+    inlines = (AvisFormulaireChampInline,)
+
+
+@admin.register(AvisFormulaireChamp)
+class AvisFormulaireChampAdmin(admin.ModelAdmin):
+    list_display = ("libelle", "id_configuration", "ordre", "visible", "requis_brouillon", "requis_envoi")
+    list_filter = ("id_configuration", "visible")
+    exclude = ("choix_autorises",)
 
 
 @admin.register(CartographieSource)
@@ -75,6 +94,7 @@ class AvisReservationAdmin(admin.ModelAdmin):
 class AvisAdmin(admin.ModelAdmin):
     list_display = (
         'id',
+        'numero_affiche',
         'statut',
         'nature',
         'thematique',
@@ -87,12 +107,17 @@ class AvisAdmin(admin.ModelAdmin):
     list_filter = ('id_avis_nature', 'id_avis_thematique', 'reponse', 'statut')
     search_fields = (
         'id',
+        'numero_avis_externe',
         'id_dossier__nom_dossier',
         'id_expert__id_instructeur__id_agent_autorisations__nom',
         'id_expert__id_contact_externe__nom',
         'id_instructeur__id_agent_autorisations__nom',
     )
     list_per_page = 25
+
+    @admin.display(description="N° avis")
+    def numero_affiche(self, obj):
+        return obj.numero_affiche
 
     def nature(self, obj):
         return obj.id_avis_nature.nature

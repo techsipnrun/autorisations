@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 from django.template import Context, Template
 from django.template.loader import get_template, render_to_string
 from django.test import SimpleTestCase
+from instruction.utils.avis_formulaires import configuration_standard
 
 
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -30,7 +31,7 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
             id_expert=SimpleNamespace(id_contact_externe=cs, id_instructeur=None), destinataire="BCS", note="Note existante",
             formulation="Formulation conservée", id_projet_avis=fichier, id_projet_acte=fichier, id_rapport_instance=fichier)
         contexte = {
-            "dossier": SimpleNamespace(numero=30655697), "natures": natures, "thematiques": [thematique],
+            "dossier": SimpleNamespace(numero=30655697), "natures": natures, "thematiques": [thematique, SimpleNamespace(id=4, thematique="Autre")],
             "contacts_externes": [cs, autre], "instructeurs": [SimpleNamespace(id=10, email="interne@example.test")],
             "csrf_token": "test",
             "reservation_cle": "6ae3c209-3546-407f-a7df-b07cdf02c53d",
@@ -38,7 +39,7 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
         source = get_template("instruction/instruction_dossier_ajouter_avis.html").template.source
         entete = source[source.index('<div class="header_nouvelle_demande_avis">'):source.index('{% include "instruction/refacto/demande_avis_formulaire.html" %}')]
         pages = {}
-        for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus"):
+        for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus", "configuration"):
             contexte["avis"] = avis if scenario in ("brouillon", "envoi", "apercus") else None
             if scenario == "apercus":
                 contexte["avis"] = SimpleNamespace(**{**vars(avis),
@@ -46,11 +47,29 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
                     "id_rapport_instance": SimpleNamespace(id=32, titre="photo.png", emplacement=fichier.emplacement)})
             contexte["reservation"] = SimpleNamespace(id=contexte["reservation_cle"], numero=1026)
             contexte["numero_avis"] = avis.id if contexte["avis"] else 1026
+            contexte["avis_formulaire_configuration"] = {"champs": configuration_standard("dossier"), "variables": {
+                "numero_dossier": 30655697, "numero_avis": contexte["numero_avis"], "type_demarche": "Travaux", "demarche": "7"},
+                "thematiques_par_demarche": {"7": ["3", "4"]}}
+            if scenario == "configuration":
+                contexte["avis_formulaire_configuration"]["thematiques_par_demarche"] = {"7": ["3"]}
+                for champ in contexte["avis_formulaire_configuration"]["champs"]:
+                    if champ["code"] in {"pj_demande_avis", "pj_projet_acte"}:
+                        champ["regles"][0]["requis_envoi"] = False
+                    elif champ["code"] == "pj_rapport_cs":
+                        champ["regles"] = []
+                    elif champ["code"] == "note_demandeur":
+                        champ["libelle"] = "Précisions pour l’instance"
+                        champ["aide"] = "Aide configurée pour la note"
+                        champ["placeholder"] = "Commentaire facultatif"
+                        champ["regles"] = [{"conditions": [{"champ": "expert_externe", "operateur": "egal", "valeur": "20"}],
+                            "visible": True, "requis_brouillon": True, "requis_envoi": True, "defaut": "Note n° {numero_avis}"}]
             contexte["pieces_complementaires"] = [SimpleNamespace(id_document=SimpleNamespace(id=pk, titre=fichier.titre, emplacement=fichier.emplacement)) for pk in (40, 41)] if contexte["avis"] else []
             contenu = Template(entete).render(Context(contexte)) + render_to_string("instruction/refacto/demande_avis_formulaire.html", contexte)
             pages[f"/{scenario}/"] = f'''<!doctype html><html lang="fr"><head><meta charset="utf-8">
             <link rel="stylesheet" href="/static/instruction/css/instruction_dossier_ajouter_avis.css">
             <link rel="stylesheet" href="/static/instruction/css/dossier.css">
+            <link rel="stylesheet" href="/static/instruction/css/avis_formulaires.css">
+            <script src="/static/instruction/js/avis_formulaires.js"></script>
             <script src="/static/instruction/js/ajouter_avis.js"></script>
             <script src="/static/instruction/js/document_hover_preview.js"></script>
             </head><body data-scenario="{scenario}"><header class="navigation_header" style="position:fixed;top:0;height:64px;width:100%;background:white;z-index:10001"></header><div class="avis"><div class="form_ajout_demande_avis">{contenu}</div></div>
@@ -83,7 +102,7 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
         thread = Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus"):
+            for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus", "configuration"):
                 with self.subTest(scenario=scenario), tempfile.TemporaryDirectory(prefix="agida-form-avis-") as profile:
                     resultat = subprocess.run([
                         str(CHROME), "--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking",
@@ -116,6 +135,22 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
             };
             try {
                 const scenario=document.body.dataset.scenario;
+                if(scenario==='configuration') {
+                    choisir('#nature','1');choisir('#expert_externe','20');choisir('#thematique','3');
+                    assert(q('#note_demandeur').value==='Note n° 1026','Valeur initiale configurée et variable remplacée');
+                    assert(q('#bloc_note_avis label').textContent==='Précisions pour l’instance* :','Libellé configuré');
+                    assert(q('#bloc_note_avis [role=tooltip]').textContent==='Aide configurée pour la note','Aide configurable en i');
+                    assert(q('#note_demandeur').placeholder==='Commentaire facultatif','Texte indicatif indépendant de la valeur');
+                    assert(!q('#thematique option[value="4"]'),'Liste de thématiques personnalisée appliquée au vrai formulaire');
+                    assert(!visible('#bloc_pj_rapport_cs')&&q('#pj_rapport_cs').disabled,'Champ masqué par configuration');
+                    q('#note_demandeur').value='';q('.btn-brouillon').click();
+                    assert(!envoi&&q('#note_demandeur').required,'Obligation personnalisée du brouillon');
+                    q('#note_demandeur').value='Note personnalisée';
+                    q('.btn-confirmer-envoi').click();
+                    assert(envoi&&envoi.donnees.get('note_demandeur')==='Note personnalisée','Envoi sans les projets configurés facultatifs');
+                    assert(!envoi.donnees.has('pj_rapport_cs'),'Aucun champ masqué envoyé');
+                    sortie.textContent='FORMULAIRE_AVIS_OK';return;
+                }
                 assert(getComputedStyle(q('.btn-brouillon')).backgroundColor==='rgb(75, 85, 99)','Bouton Brouillon gris foncé');
                 if(scenario==='apercus') {
                     const attendre=()=>new Promise(resolve=>setTimeout(resolve,70));

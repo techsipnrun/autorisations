@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
+from instruction.utils.avis_formulaires import configuration_standard
 
 
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -26,8 +27,10 @@ class AvisExistantInterfaceTests(SimpleTestCase):
             "natures": [SimpleNamespace(id=1, nature="Demande à une instance"), SimpleNamespace(id=2, nature="Consultation en interne")],
             "thematiques": [SimpleNamespace(id=3, thematique="Travaux")],
             "tous_les_instructeurs": [instructeur], "instructeurs": [instructeur],
-            "contacts_externes": [SimpleNamespace(id=20, nom="COLLIN", prenom="Gérard", email=instructeur.email)],
+            "contacts_externes": [SimpleNamespace(id=20, nom="COLLIN", prenom="Gérard", email=instructeur.email),
+                                  SimpleNamespace(id=21, nom=None, prenom=None, raison_sociale="Conseil scientifique", organisation=None, email="cs@example.test")],
             "tous_les_experts": [instructeur], "avis_list": None,
+            "avis_formulaire_configuration": {"champs": configuration_standard("existant"), "variables": {"numero_dossier": 30655697}},
         })
         page = page.replace("</body>", f"<script>{self.script()}</script></body>").encode("utf-8")
 
@@ -85,6 +88,7 @@ class AvisExistantInterfaceTests(SimpleTestCase):
                 const largeur=Number(location.hash.slice(1));
                 if(largeur<innerWidth)q('.avis-page-container').style.width=largeur+'px';
                 choisir('#type_avis','avis_hors_application');
+                assert(q('input[name=reponse]:checked')?.value==='favorable','Valeur initiale du B-O appliquée aux radios');
                 choisir('#demandeur_avis','10');
                 const contenu=q('.form_ajout_demande_avis');
                 const cadre=contenu.getBoundingClientRect();
@@ -114,8 +118,29 @@ class AvisExistantInterfaceTests(SimpleTestCase):
                 assert(new FormData(q('#form-avis')).get('reponse')==='absence_avis_en_etat','Valeurs transmises inchangées');
                 choisir('#nature','1');choisir('#expert_externe','20');
                 assert(getComputedStyle(q('#bloc_expert_externe')).display==='flex','Expert externe en ligne flexible');
+                assert(q('#numero_avis_externe').disabled&&q('#publication_raa').disabled,'Champs CS masqués pour autre expert');
+                choisir('#expert_externe','21');
+                assert(!q('#numero_avis_externe').disabled&&!q('#publication_raa').disabled,'Champs import CS activés');
+                assert(q('#publication_raa').value==='a_publier'&&q('#publication_raa').required,'À publier par défaut');
+                const aide=q('label[for=numero_avis_externe]').closest('.avis-field-heading');
+                assert(aide.querySelector('[role=tooltip]').textContent.includes('numéro par défaut'),'Aide du numéro explicite');
+                assert(getComputedStyle(aide.querySelector('button')).cursor!=='help','Pas de curseur point d’interrogation');
+                const boutonAide=aide.querySelector('button');const dimensions=boutonAide.getBoundingClientRect();
+                assert(Math.abs(dimensions.width-dimensions.height)<.1,'Icône aide parfaitement circulaire');
+                assert(getComputedStyle(boutonAide).backgroundColor==='rgba(0, 0, 0, 0)','Icône sans fond coloré');
+                const rangeInfo=document.createRange();rangeInfo.selectNodeContents(boutonAide);
+                const texteInfo=rangeInfo.getBoundingClientRect();
+                assert(Math.abs((texteInfo.top+texteInfo.bottom-dimensions.top-dimensions.bottom)/2)<2,'i centré verticalement');
+                assert(Math.abs((texteInfo.left+texteInfo.right-dimensions.left-dimensions.right)/2)<1,'i centré horizontalement');
+                aide.querySelector('button').focus();
+                assert(getComputedStyle(aide.querySelector('[role=tooltip]')).display==='block','Aide accessible au clavier');
+                contenuDansCadre('.attribut_avis select, #numero_avis_externe');
+                q('#numero_avis_externe').value='CS-2026-042';choisir('#publication_raa','non_requise');
+                const donneesCS=new FormData(q('#form-avis'));
+                assert(donneesCS.get('numero_avis_externe')==='CS-2026-042'&&donneesCS.get('publication_raa')==='non_requise','Valeurs CS transmises');
                 contenuDansCadre('.attribut_avis select');
                 choisir('#nature','2');choisir('#expert_interne','10');
+                assert(!new FormData(q('#form-avis')).has('numero_avis_externe'),'Champs CS non transmis pour consultation interne');
                 assert(getComputedStyle(q('#bloc_expert_interne')).display==='flex','Expert interne en ligne flexible');
                 contenuDansCadre('.attribut_avis select');
                 choisir('#type_avis','avis_sur_application');

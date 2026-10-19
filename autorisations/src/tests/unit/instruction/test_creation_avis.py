@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase
 
 from instruction.views import avis as vues
+from instruction.utils.avis_formulaires import configuration_standard
 
 
 class CreationAvisTests(SimpleTestCase):
@@ -23,6 +24,8 @@ class CreationAvisTests(SimpleTestCase):
         self.ancien = None
         self.crees = []
         stack = self.enterContext(ExitStack())
+        stack.enter_context(patch.object(vues, "charger_configuration", side_effect=configuration_standard))
+        stack.enter_context(patch.object(vues, "thematiques_avis_liees_a_demarche", return_value=[SimpleNamespace(pk=1)]))
         self.modeles = {nom: stack.enter_context(patch.object(vues, nom)) for nom in (
             "Dossier", "Avis", "Instructeur", "ContactExterne", "Expert", "AvisNature", "AvisThematique", "DossierAvis", "AvisDocument", "Message", "MessageDocument",
         )}
@@ -78,7 +81,7 @@ class CreationAvisTests(SimpleTestCase):
         self.assertEqual(self.crees[0].statut, "Brouillon")
         self.assertEqual(self.crees[0].mode_contact, "Application")
         self.assertEqual(self.crees[0].destinataire, "CS")
-        self.assertEqual(self.crees[0].formulation, "")
+        self.assertIn("demande d'avis", self.crees[0].formulation)
         self.assertIs(self.crees[0].id_demarche, self.dossier.id_demarche)
         self.outbox.assert_not_called()
         self.modeles["Message"].objects.create.assert_not_called()
@@ -102,10 +105,10 @@ class CreationAvisTests(SimpleTestCase):
         self.assertEqual(response.status_code, 400)
         self.modeles["Avis"].objects.create.assert_not_called()
 
-    def test_generation_cs_exige_destinataire(self):
+    def test_generation_cs_applique_destinataire_initial_configure(self):
         response = vues.instruction_dossier_enregistrer_brouillon_avis(self.requete(generer_numero="1", destinataire=""), 123456)
-        self.assertEqual(response.status_code, 400)
-        self.modeles["Avis"].objects.create.assert_not_called()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.crees[0].destinataire, "CS")
 
     def test_autres_pj_sauvegardees_avec_nouveau_brouillon(self):
         response = vues.instruction_dossier_enregistrer_brouillon_avis(self.requete(pj_lie_avis=SimpleUploadedFile("piece.pdf", b"pdf")), 123456)

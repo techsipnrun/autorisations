@@ -3,6 +3,7 @@ from functools import lru_cache
 import json
 import logging
 from django.db.models import Q, TextField, Value
+from instruction.utils.avis_utils import filtre_numero_avis
 from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import render
@@ -386,7 +387,7 @@ def _export_avis_xlsx(avis_iterable):
         publie = "Oui" if getattr(a, "publie_au_raa", False) else "Non"
 
         ws.append([
-            a.id,
+            a.numero_affiche if a.numero_avis_externe else a.id,
             date_demande,
             demarche,
             thematique,
@@ -396,6 +397,9 @@ def _export_avis_xlsx(avis_iterable):
             reponse,
             publie,
         ])
+        if a.numero_avis_externe:
+            # Une référence importée reste du texte, jamais une formule Excel.
+            ws.cell(row=ws.max_row, column=1).data_type = "s"
 
     # Largeurs de colonnes (simple + lisible)
     widths = [10, 14, 35, 30, 50, 25, 25, 22, 14]
@@ -843,7 +847,7 @@ def requete_avis(request):
 
 
     # --- Récupération des filtres GET ---
-    num_avis = clean_int(request.GET.get("num_avis"))
+    num_avis = (request.GET.get("num_avis") or "").strip()
     mois = request.GET.get("mois")
     annee = request.GET.get("a_annee")
     reponse = request.GET.get("reponse")
@@ -860,7 +864,7 @@ def requete_avis(request):
 
     # --- Application des filtres ---
     if num_avis:
-        avis_list = avis_list.filter(id=num_avis)
+        avis_list = avis_list.filter(filtre_numero_avis(num_avis))
 
     if mois:
         avis_list = avis_list.filter(date_demande_avis__month=mois)

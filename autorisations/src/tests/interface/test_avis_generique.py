@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
+from instruction.utils.avis_formulaires import configuration_standard
 
 
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -22,6 +23,7 @@ class AvisGeneriqueInterfaceTests(SimpleTestCase):
         reservation = SimpleNamespace(id="af2cd0a5-dacd-4488-958d-bb83db1cc2bf", numero=1051)
         html = render_to_string("instruction/avis_nouvelle_demande_generique.html", {
             "reservation": reservation,
+            "avis_formulaire_configuration": {"champs": configuration_standard("generique"), "variables": {"numero_avis": 1051}},
             "natures": [SimpleNamespace(id=1, nature="Demande à une instance"), SimpleNamespace(id=2, nature="Consultation en interne")],
             "demarches": [SimpleNamespace(id=3, type="Travaux")], "thematiques": [SimpleNamespace(id=4, thematique="Travaux")],
             "instructeurs": [SimpleNamespace(id=8, email="interne@example.test")],

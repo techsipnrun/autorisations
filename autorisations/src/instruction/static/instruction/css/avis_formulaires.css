@@ -1,0 +1,8 @@
+.avis-field-heading { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .35rem; max-width: 100%; min-width: 0; }
+.avis-field-heading > label { margin: 0; }
+.avis-expert > .avis-field-heading { flex: 0 0 auto; flex-wrap: nowrap; }
+.avis-expert > .avis-field-heading > label { white-space: nowrap; }
+.avis-field-help { display: inline-flex; flex: 0 0 auto; align-items: center; }
+.avis-field-help > button { display: inline-grid; place-items: center; box-sizing: border-box; flex: 0 0 1.25rem; width: 1.25rem; height: 1.25rem; min-width: 1.25rem; max-width: 1.25rem; min-height: 1.25rem; max-height: 1.25rem; aspect-ratio: 1; margin: 0; padding: 0; border: 1px solid #788d80; border-radius: 50%; background: transparent; color: #42624e; font: 700 .85rem/1 Georgia, serif; text-align: center; letter-spacing: normal; appearance: none; cursor: pointer; }
+.avis-field-help-bubble { display: none; position: fixed; z-index: 10000; box-sizing: border-box; width: max-content; max-width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: .65rem .8rem; border: 1px solid #c6d4cb; border-radius: 7px; background: #fff; color: #26372e; box-shadow: 0 4px 16px #0002; font: normal .85rem/1.45 Arial, sans-serif; white-space: pre-line; overflow-wrap: anywhere; cursor: default; }
+.avis-field-help:hover > .avis-field-help-bubble, .avis-field-help:focus-within > .avis-field-help-bubble { display: block; }

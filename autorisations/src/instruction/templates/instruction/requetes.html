@@ -478,7 +478,7 @@
                     <tbody>
                         {% for a in avis_list %}
                             <tr onclick="window.location.href='/reception_avis/{{ a.id }}'" class="clickable-row"> 
-                                <td>{{ a.id }}</td>
+                                <td>{{ a.numero_affiche }}</td>
                                 <td>{{ a.date_demande_avis|date:"d/m/Y" }}</td>
                                 <td>{{ a.id_dossier.id_demarche.type }}</td>
                                 <td>{{ a.id_avis_thematique.thematique }}</td>
