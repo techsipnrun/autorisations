@@ -1,4 +1,5 @@
 import os
+import re
 
 import smbclient
 
@@ -17,6 +18,38 @@ from autorisations.models.models_documents import (
 PROJETS_ACTES_OU_RAPPORT = Q(id_nature__est_acte=True) | Q(id_nature__nature="Projet Rapport CA")
 ACTION_CHANGEMENT_NUMERO_ACTE = "Numéro d'acte changé"
 _NUMERO_ACTUEL = object()
+
+
+def numero_document(document):
+    return (document.numero_reference if getattr(getattr(document, "id_nature", None), "numerotation_manuelle", False) is True
+            else document.numero)
+
+
+def cle_acte(document):
+    """Une référence libre identique ne constitue pas une liaison entre actes."""
+    if getattr(document.id_nature, "numerotation_manuelle", False) is True:
+        return (document.id_nature_id, document.id_document_reference_id or document.pk, document.numero_reference)
+    return (document.id_nature_id, document.numero)
+
+
+def filtre_documents_numerotes():
+    return (Q(id_document__numero__isnull=False) & ~Q(id_document__numero="")
+            | Q(id_document__numero_reference__isnull=False) & ~Q(id_document__numero_reference=""))
+
+
+def filtre_meme_acte(document):
+    if getattr(document.id_nature, "numerotation_manuelle", False) is True:
+        racine = document.id_document_reference_id or document.pk
+        return (Q(id_document_id=racine) | Q(id_document__id_document_reference_id=racine)) & Q(
+            id_document__id_nature=document.id_nature, id_document__numero_reference=document.numero_reference)
+    return Q(id_document__id_nature=document.id_nature, id_document__numero=document.numero)
+
+
+def valider_reference_acte(valeur):
+    valeur = (valeur or "").strip()
+    if not valeur or len(valeur) > 150 or re.search(r'[\x00-\x1f\x7f]', valeur):
+        raise ValidationError("Saisissez une référence d’acte de 1 à 150 caractères, sans retour à la ligne.")
+    return valeur
 
 
 def formater_numero_acte(numero, nature):
@@ -73,7 +106,7 @@ def get_projet_acte_source(document_id, dossier_courant, nature=None):
         .exclude(id_dossier=dossier_courant)
         .first()
     )
-    if not liaison or not liaison.id_document.numero:
+    if not liaison or not numero_document(liaison.id_document):
         raise ValidationError(
             "Le projet d’acte sélectionné est introuvable ou ne possède pas de numéro."
         )
@@ -96,16 +129,21 @@ def reprendre_numero_projet_acte(
             "Les deux projets doivent avoir le même type d’acte."
         )
 
-    if not source.numero:
+    valeur_source = numero_document(source)
+    if not valeur_source:
         raise ValidationError("Le projet d’acte source ne possède pas de numéro.")
 
     # La modification du numéro et sa trace doivent réussir ensemble.
     with transaction.atomic():
         document_actuel = Document.objects.select_for_update().get(pk=document.pk)
         if ancien_numero is _NUMERO_ACTUEL:
-            ancien_numero = document_actuel.numero
+            ancien_numero = numero_document(document_actuel)
 
-        if ancien_numero != source.numero:
+        manuel = getattr(document.id_nature, "numerotation_manuelle", False) is True
+        if manuel and (source.id_document_reference_id or source.pk) == document.pk:
+            raise ValidationError("Ce projet reprend déjà la référence de ce document. Choisissez un autre projet.")
+        nouvelle_liaison = manuel and document_actuel.id_document_reference_id != (source.id_document_reference_id or source.pk)
+        if ancien_numero != valeur_source or nouvelle_liaison:
             instructeur = Instructeur.objects.filter(
                 email__iexact=(utilisateur.email or "").strip(),
             ).first()
@@ -125,14 +163,20 @@ def reprendre_numero_projet_acte(
             if numero_source is None:
                 raise ValidationError("Le dossier source du numéro est introuvable.")
 
-        document.numero = source.numero
-        if document_actuel.numero != source.numero:
-            document.save(update_fields=["numero"])
+        if manuel:
+            document.numero_reference = valeur_source
+            document.id_document_reference_id = source.id_document_reference_id or source.pk
+            document.numero = None
+            document.save(update_fields=["numero", "numero_reference", "id_document_reference"])
+        else:
+            document.numero = valeur_source
+            if document_actuel.numero != valeur_source:
+                document.save(update_fields=["numero"])
 
-        if ancien_numero != source.numero:
+        if ancien_numero != valeur_source or nouvelle_liaison:
             changement = (
-                f"{ancien_numero} → {source.numero}"
-                if ancien_numero else f"Numéro attribué : {source.numero}"
+                f"{ancien_numero} → {valeur_source}"
+                if ancien_numero else f"Numéro attribué : {valeur_source}"
             )
             DossierAction.objects.create(
                 id_dossier=dossier,
@@ -141,7 +185,7 @@ def reprendre_numero_projet_acte(
                 description=(
                     f"{document.id_nature.nature} : {changement}\n"
                     f"Numéro repris depuis le dossier n° {numero_source}\n"
-                    f"Numéro d’acte affiché : {formater_numero_acte(source.numero, document.id_nature)}"
+                    f"Numéro d’acte affiché : {formater_numero_acte(valeur_source, document.id_nature)}"
                 ),
             )
     return ancien_numero

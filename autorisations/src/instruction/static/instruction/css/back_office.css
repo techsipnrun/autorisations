@@ -4,7 +4,7 @@
 }
 
 .back-office-acte-card { margin-top: 1rem; }
-.back-office-acte-card.back-office-acte-create { border: 1px solid #000; }
+.back-office-acte-card.back-office-acte-create { width: min(100%, 52rem); border: 1px solid #000; }
 .back-office-acte-number-preview { margin: 1.2rem 0; padding: 1rem; border-radius: 8px; background: #edf4ef; overflow-wrap: anywhere; }
 .back-office-acte-number-preview strong { color: #21583a; }
 .back-office-acte-number-preview > summary { cursor: pointer; color: #21583a; }

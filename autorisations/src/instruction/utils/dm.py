@@ -466,6 +466,8 @@ def reception_traiter_fichier_avis_dm(request, *, fichier, token, avis_id, dossi
     }
     if document_source is not None:
         defaults["numero"] = document_source.numero
+        defaults["numero_reference"] = document_source.numero_reference
+        defaults["id_document_reference_id"] = document_source.id_document_reference_id
 
     doc, created = Document.objects.get_or_create(emplacement=nouvel_emplacement_fichier_rel_path, titre=titre_doc, defaults=defaults,)
 

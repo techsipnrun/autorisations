@@ -24,6 +24,7 @@ from instruction.utils.document_utils import (
     get_projet_acte_source,
     normaliser_emplacement,
     reprendre_numero_projet_acte,
+    numero_document, filtre_meme_acte, valider_reference_acte,
 )
 from instruction.utils.dossier_utils import enregistrer_motif_decision, get_dossier_or_redirect, redirect_error, safe_enregistrer_action, safe_update_etape, safe_update_etat, set_dossier_role
 from instruction.utils.dossier_utils import get_actions_possibles
@@ -238,6 +239,25 @@ def _appliquer_numero_partage(request, dossier, document, nature, *, ancien_nume
         reprendre_numero_projet_acte(
             document, source, dossier, request.user, ancien_numero=ancien_numero,
         )
+    elif document and getattr(document.id_nature, "numerotation_manuelle", False) is True:
+        reference = valider_reference_acte(request.POST.get("numero_reference"))
+        partagee = document.numero_reference and document.numero_reference != reference and (
+            document.id_document_reference_id or DossierDocument.objects.filter(
+                filtre_meme_acte(document)).exclude(id_dossier=dossier).exists()
+        )
+        if partagee:
+            raise ValidationError("Cette référence provient d’un autre dossier. Reprenez un autre projet ou créez un nouveau projet pour changer de référence.")
+        document.numero_reference = reference
+        document.save(update_fields=["numero_reference"])
+
+
+def _verifier_reference_acte(request, nature):
+    if getattr(nature, "numerotation_manuelle", False) is True and request.POST.get("projet_acte_identique") != "on":
+        try:
+            valider_reference_acte(request.POST.get("numero_reference"))
+        except ValidationError as erreur:
+            return redirect_error(request, erreur.message)
+    return None
 
 
 @require_POST
@@ -280,8 +300,7 @@ def remplacer_numero_projet_acte(request):
             "Le projet d’acte n’appartient pas à ce dossier.",
         )
     if DossierDocument.objects.filter(
-        id_document__id_nature=document.id_nature,
-        id_document__numero=document.numero,
+        filtre_meme_acte(document),
         id_document__id_statut__statut__in=[
             "À valider",
             "À relire",
@@ -317,12 +336,12 @@ def remplacer_numero_projet_acte(request):
 
     logger.info(
         f"[DOSSIER {dossier.numero}] Numéro du projet d'acte {document.id} "
-        f"remplacé par {source.numero} depuis le document {source.id} "
+        f"remplacé par {numero_document(source)} depuis le document {source.id} "
         f"par {request.user}."
     )
     messages.success(
         request,
-        f"Le numéro du projet d’acte est maintenant {source.numero}. "
+        f"Le numéro du projet d’acte est maintenant {numero_document(source)}. "
         "Le fichier Word du dossier n’a pas été modifié.",
     )
     return _redirect_instruction_dossier(dossier)
@@ -1041,6 +1060,9 @@ def faire_valider_une_demande_d_avis(request):
             logger.error(f"[DOSSIER {dossier.numero}] User {request.user} : Aucune nature Document trouvée pour '{nature}'")
             return redirect_error(request, f"❌ Le nature de document '{nature}' n'a pas été trouvée en base. Contactez le support.")
     
+    erreur_reference = _verifier_reference_acte(request, nature_obj)
+    if erreur_reference is not None:
+        return erreur_reference
     if not nom_fichier :
         return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
     if nature_obj.rapport_ca_obligatoire and nom_fichier == nom_fichier_rapport_ca:
@@ -1147,7 +1169,7 @@ def faire_valider_une_demande_d_avis(request):
                 },
             )
             # Ne pas historiser le numéro intermédiaire généré par doc.save().
-            ancien_numero = None if created else doc.numero
+            ancien_numero = None if created else numero_document(doc)
             if created:
                 DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
                 logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {nom_fichier} créé en base par {request.user}.")
@@ -1270,6 +1292,9 @@ def faire_valider_le_projet_d_acte(request):
         logger.error(f"[FAIRE VALIDER PROJET] Nature '{nature}' introuvable en base (user={request.user})")
         return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
 
+    erreur_reference = _verifier_reference_acte(request, nature_obj)
+    if erreur_reference is not None:
+        return erreur_reference
     if not nom_fichier:
         return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
     if nature_obj.rapport_ca_obligatoire and (not nom_fichier_rapport_ca or nom_fichier == nom_fichier_rapport_ca):
@@ -1337,7 +1362,7 @@ def faire_valider_le_projet_d_acte(request):
                     "description": f"{nature_obj.nature} du dossier {dossier.numero}",
                 },
             )
-            ancien_numero = None if created else doc.numero
+            ancien_numero = None if created else numero_document(doc)
             if created:
                 DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
                 logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
@@ -2028,6 +2053,9 @@ def acte_pret_a_la_signature(request):
     if extension not in {".doc", ".docx", ".odt"} :
         return redirect_error(request, f"❌ Le projet d'acte joint doit etre .doc ou .docx ou .odt --> Type de fichier non autorisé : {extension}")
     
+    erreur_reference = _verifier_reference_acte(request, nature_obj)
+    if erreur_reference is not None:
+        return erreur_reference
     # Rapport CA
     if nature_obj.rapport_ca_obligatoire and not nom_fichier_rapport_ca:
         return redirect_error(request, "❌ Le projet de rapport du CA n'a pas été sélectionné.")
@@ -2075,7 +2103,7 @@ def acte_pret_a_la_signature(request):
                     "description": f"{nature_obj.nature} du dossier {dossier.numero}",
                 },
             )
-            ancien_numero = None if created else doc.numero
+            ancien_numero = None if created else numero_document(doc)
             if created:
                 DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
                 logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
@@ -2451,7 +2479,7 @@ def acte_pret_a_etre_envoye(request):
             return redirect_error(request,f"❌ Le projet d'acte (id = {str(id_doc_a_signer)}) est introuvable en base. Contactez le support.")
         if projet_acte.id_nature_id != doc_nature.pk:
             return redirect_error(request, "❌ Le type d’acte ne correspond pas au projet sélectionné.")
-        if not projet_acte.numero :
+        if not numero_document(projet_acte):
             logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Le projet d'acte n'a pas de numéro.")
             return redirect_error(request, f"❌ Le projet d'acte n'a pas eu de numéro attribué. Contactez le support.")
     else :
@@ -2477,7 +2505,7 @@ def acte_pret_a_etre_envoye(request):
     
     date_du_jour = datetime.today().strftime("%d-%m")
     try:
-        nom_acte_genere = doc_nature.formater_nom_acte(projet_acte.numero, date_du_jour)
+        nom_acte_genere = doc_nature.formater_nom_acte(numero_document(projet_acte), date_du_jour)
     except ValidationError:
         return redirect_error(
             request,

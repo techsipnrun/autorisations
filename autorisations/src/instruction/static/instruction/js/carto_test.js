@@ -93,9 +93,13 @@
         const layer = geojson ? renderExistingGeometry(map, geojson) : null;
 
         if (layer && layer.getBounds().isValid() && AGIDACarto.config("edition").options.recentrage) {
+            const optionsCarto = AGIDACarto.config("edition").options;
+            map.once("moveend", () => {
+                if (map.getZoom() < optionsCarto.zoom) map.setZoom(optionsCarto.zoom);
+            });
             map.fitBounds(layer.getBounds(), {
                 padding: [30, 30],  
-                maxZoom: AGIDACarto.config("edition").options.zoom_cadrage
+                maxZoom: optionsCarto.zoom_cadrage
             });
         } else {
             map.setView(AGIDACarto.config("edition").options.centre, AGIDACarto.config("edition").options.zoom);

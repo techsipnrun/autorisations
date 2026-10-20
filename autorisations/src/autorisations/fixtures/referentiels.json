@@ -1537,6 +1537,7 @@
     "pk": 1,
     "fields": {
       "nature": "Pièce jointe demandeur",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1553,6 +1554,7 @@
     "pk": 2,
     "fields": {
       "nature": "Capture mail",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1569,6 +1571,7 @@
     "pk": 3,
     "fields": {
       "nature": "Arrêté directeur",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "DIR-I-",
       "prefixe_nom_fichier": "DIR-I-",
       "est_acte": true,
@@ -1585,6 +1588,7 @@
     "pk": 4,
     "fields": {
       "nature": "Déliberation CA",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "CA/",
       "prefixe_nom_fichier": "DELIB-CA-",
       "est_acte": true,
@@ -1601,6 +1605,7 @@
     "pk": 5,
     "fields": {
       "nature": "Avis simple",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "AVIS-SIMPLE-",
       "prefixe_nom_fichier": "AVIS-SIMPLE-",
       "est_acte": true,
@@ -1617,6 +1622,7 @@
     "pk": 6,
     "fields": {
       "nature": "Avis conforme",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "AVIS-CONFORME-",
       "prefixe_nom_fichier": "AVIS-CONFORME-",
       "est_acte": true,
@@ -1633,6 +1639,7 @@
     "pk": 7,
     "fields": {
       "nature": "Avis instance",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1649,6 +1656,7 @@
     "pk": 8,
     "fields": {
       "nature": "CERFA",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1665,6 +1673,7 @@
     "pk": 9,
     "fields": {
       "nature": "Formulaire parc",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1681,6 +1690,7 @@
     "pk": 10,
     "fields": {
       "nature": "Résumé dossier",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1697,6 +1707,7 @@
     "pk": 11,
     "fields": {
       "nature": "Pièce jointe message",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1713,6 +1724,7 @@
     "pk": 12,
     "fields": {
       "nature": "Annexe instructeur",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1729,6 +1741,7 @@
     "pk": 13,
     "fields": {
       "nature": "Pièce jointe à relire",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1745,6 +1758,7 @@
     "pk": 14,
     "fields": {
       "nature": "Annexe avis",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1761,6 +1775,7 @@
     "pk": 15,
     "fields": {
       "nature": "Rapport CA",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1777,6 +1792,7 @@
     "pk": 16,
     "fields": {
       "nature": "Projet Rapport CA",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,
@@ -1793,6 +1809,7 @@
     "pk": 17,
     "fields": {
       "nature": "Annexe instructeur DM",
+      "mode_numerotation": "automatique",
       "prefixe_numero": "",
       "prefixe_nom_fichier": "",
       "est_acte": false,

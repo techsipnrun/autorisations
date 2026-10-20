@@ -44,7 +44,10 @@ class ValidationCartographieTests(SimpleTestCase):
         self.assertFalse(valider_options_carte("instruction_dn", options)["controles"]["editMode"])
 
     def test_centre_zoom_et_booleens_controles(self):
-        for options in ({"centre": [91, 55]}, {"zoom": 1.5}, {"recentrage": "oui"}, {"controles": {"zoom": "non"}}):
+        for options in (
+            {"centre": [91, 55]}, {"zoom": 1.5}, {"recentrage": "oui"},
+            {"controles": {"zoom": "non"}}, {"zoom": 15, "zoom_cadrage": 12},
+        ):
             with self.subTest(options=options), self.assertRaises(ValidationError):
                 valider_options_carte("edition", options)
 

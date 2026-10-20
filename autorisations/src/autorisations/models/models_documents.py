@@ -4,6 +4,8 @@ from datetime import date
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+import re
 
 from .models_utilisateurs import DossierRelecteur
 
@@ -23,6 +25,10 @@ class DocumentFormat(models.Model):
 
 
 class DocumentNature(models.Model):
+    class Numerotation(models.TextChoices):
+        AUTOMATIQUE = "automatique", "Automatique"
+        MANUELLE = "manuelle", "Manuelle"
+
     class CircuitSignature(models.TextChoices):
         DIRECTION = "direction", "Direction"
         CA = "ca", "Conseil d’administration"
@@ -36,6 +42,7 @@ class DocumentNature(models.Model):
     nature = models.CharField(unique=True)
     est_acte = models.BooleanField(default=False, verbose_name="Type d’acte")
     actif = models.BooleanField(default=True)
+    mode_numerotation = models.CharField(max_length=12, choices=Numerotation.choices, default=Numerotation.AUTOMATIQUE)
     ordre_affichage = models.PositiveSmallIntegerField(default=0)
     circuit_signature = models.CharField(max_length=20, choices=CircuitSignature.choices, default=CircuitSignature.DIRECTION)
     rapport_ca_obligatoire = models.BooleanField(default=False)
@@ -68,6 +75,10 @@ class DocumentNature(models.Model):
         return self.circuit_signature == self.CircuitSignature.CA
 
     @property
+    def numerotation_manuelle(self):
+        return self.mode_numerotation == self.Numerotation.MANUELLE
+
+    @property
     def publication_raa_requise(self):
         return self.mode_publication_raa == self.PublicationRAA.MANUELLE
 
@@ -80,7 +91,11 @@ class DocumentNature(models.Model):
     def formater_nom_acte(self, numero, suffixe_date):
         # Contrôle aussi les configurations saisies directement en SQL.
         self._meta.get_field("prefixe_nom_fichier").clean(self.prefixe_nom_fichier, self)
-        return f"{self.prefixe_nom_fichier}{numero}_{suffixe_date}"
+        # La référence affichée reste intacte ; seuls les noms NAS sont nettoyés.
+        reference_fichier = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '-', numero or '').strip(' .')
+        if not reference_fichier:
+            raise ValidationError("Le numéro de l'acte ne permet pas de former un nom de fichier.")
+        return f"{self.prefixe_nom_fichier}{reference_fichier}_{suffixe_date}"
     
 class DocumentStatut(models.Model):
     id = models.AutoField(primary_key=True)
@@ -104,6 +119,11 @@ class Document(models.Model):
     emplacement = models.CharField()
     description = models.CharField(blank=True, null=True)
     numero = models.CharField(blank=True, null=True)
+    numero_reference = models.CharField(max_length=150, blank=True, null=True)
+    id_document_reference = models.ForeignKey(
+        'self', models.SET_NULL, db_column='id_document_reference',
+        blank=True, null=True, related_name='references_reprises',
+    )
     titre = models.CharField()
     publie_au_raa = models.BooleanField(default=False)
     date = models.DateTimeField(default=timezone.now)
@@ -111,7 +131,11 @@ class Document(models.Model):
 
     @property
     def numero_affiche(self):
-        return self.id_nature.formater_numero(self.numero)
+        return self.id_nature.formater_numero(self.numero_effectif)
+
+    @property
+    def numero_effectif(self):
+        return self.numero_reference if self.id_nature.numerotation_manuelle else self.numero
 
     class Meta:
         managed = False
@@ -178,7 +202,11 @@ class Document(models.Model):
         nature_changee = self.pk is not None and ancienne_nature != nature_actuelle
 
         # Nouveau document cible OU changement de nature
-        if (not self.numero or nature_changee) and self.id_nature.est_acte:
+        if self.id_nature.est_acte and self.id_nature.numerotation_manuelle:
+            self.numero = None
+            if nature_changee:
+                self.id_document_reference_id = None
+        elif (not self.numero or nature_changee) and self.id_nature.est_acte:
             for _ in range(3):
                 dernier = (
                     Document.objects
@@ -203,8 +231,8 @@ class Document(models.Model):
 
 
     def __str__(self):
-        if self.numero :
-            return f"{self.id_nature} {self.numero} - {self.emplacement}{self.titre}"  #Extraire le nom du dossier du Path
+        if self.numero_effectif:
+            return f"{self.id_nature} {self.numero_effectif} - {self.emplacement}{self.titre}"
         return f"{self.id_nature} - {self.emplacement}{self.titre}" #Extraire le nom du dossier du Path
 
 

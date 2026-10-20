@@ -420,7 +420,7 @@
 
                     {% if avis.id_projet_acte %}
                         <li class="document-avec-apercu" data-zip-document="document:{{ avis.id_projet_acte.id }}">
-                            <p><strong>Projet d'acte {% if avis.id_projet_acte.numero %} {{ avis.id_projet_acte.numero }} {% endif %} :</strong></p>
+                            <p><strong>Projet d'acte {% if avis.id_projet_acte.numero_effectif %} {{ avis.id_projet_acte.numero_affiche }} {% endif %} :</strong></p>
                             {% with format=avis.id_projet_acte.id_format.format|lower %}
                                 {% if format == 'pdf' %}
                                     <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="PDF" class="doc-icon">

@@ -24,7 +24,10 @@ from instruction.utils.avis_dm_utils import (
     get_dates_demande_avis_dm,
 )
 from instruction.utils.dm import documents_deposes_sur_DM
-from instruction.utils.document_utils import build_documents_for_dossier, formater_numero_acte
+from instruction.utils.document_utils import (
+    build_documents_for_dossier, formater_numero_acte, numero_document,
+    cle_acte, filtre_meme_acte, filtre_documents_numerotes,
+)
 from instruction.utils.annexes_notes import preparer_annexes_notes
 from instruction.utils.dossier_utils import actualisation_dossier_est_bloquee, ajouter_message_bloc, build_champs_prepares, build_timeline_for_dossier, clear_etat_actualisation_dossier, count_unread_messages_for_dossier, get_actions_possibles, get_beneficiaire_for_dossier, get_demandeur_for_dossier, get_etat_actualisation_dossier, get_motif_decision, redirect_error, redirect_warning, safe_enregistrer_action, set_etat_actualisation_dossier
 from instruction.utils.files_utils import load_geojson
@@ -1126,7 +1129,7 @@ def instruction_demarche(request, num_demarche):
 
 
 def _numero_acte_affiche(document):
-    return formater_numero_acte(document.numero, document.id_nature)
+    return formater_numero_acte(numero_document(document), document.id_nature)
 
 
 def _cle_identite_demandeur(demandeur):
@@ -1171,9 +1174,9 @@ def rechercher_projets_acte(request, num_dossier):
             "id_document__id_statut",
         )
         .filter(
+            filtre_documents_numerotes(),
             Q(id_dossier__date_fin_instruction__isnull=True)
             | Q(id_dossier__date_fin_instruction__gte=date_fin_instruction_minimale),
-            id_document__numero__isnull=False,
             id_document__id_nature__est_acte=True,
             id_document__id_statut__statut__in=[
                 "À valider",
@@ -1183,7 +1186,6 @@ def rechercher_projets_acte(request, num_dossier):
                 "Envoyé",
             ],
         )
-        .exclude(id_document__numero="")
         .exclude(id_dossier=dossier_courant)
         .order_by("-id_document__date")
     )
@@ -1203,18 +1205,14 @@ def rechercher_projets_acte(request, num_dossier):
         else None
     )
     cle_demandeur_filtre = _cle_identite_demandeur(demandeur_filtre)
-    actes_deja_presents = set(
-        DossierDocument.objects
-        .filter(
-            id_dossier=dossier_courant,
-            id_document__numero__isnull=False,
+    actes_deja_presents = {
+        cle_acte(liaison.id_document)
+        for liaison in (
+            DossierDocument.objects
+            .filter(filtre_documents_numerotes(), id_dossier=dossier_courant)
+            .select_related("id_document__id_nature")
         )
-        .exclude(id_document__numero="")
-        .values_list(
-            "id_document__id_nature_id",
-            "id_document__numero",
-        )
-    )
+    }
 
     resultats = []
     demandeurs = {}
@@ -1227,12 +1225,9 @@ def rechercher_projets_acte(request, num_dossier):
             and _cle_identite_demandeur(demandeur) != cle_demandeur_filtre
         ):
             continue
-        cle_acte = (
-            liaison.id_document.id_nature_id,
-            liaison.id_document.numero,
-        )
-        if cle_acte in actes_deja_presents:
-            projets_exclus[cle_acte] = (
+        cle_document = cle_acte(liaison.id_document)
+        if cle_document in actes_deja_presents:
+            projets_exclus[cle_document] = (
                 f"{liaison.id_document.id_nature.nature} "
                 f"{_numero_acte_affiche(liaison.id_document)}"
             )
@@ -1252,7 +1247,7 @@ def rechercher_projets_acte(request, num_dossier):
                     _affichage_demandeur(demandeur)
                 ),
                 "nature": liaison.id_document.id_nature.nature,
-                "numero": liaison.id_document.numero,
+                "numero": numero_document(liaison.id_document),
                 "numero_affiche": _numero_acte_affiche(liaison.id_document),
             }
         )
@@ -1433,10 +1428,9 @@ def instruction_dossier(request, num_dossier):
         for liaison in (
             DossierDocument.objects
             .filter(
+                filtre_documents_numerotes(),
                 id_dossier=dossier,
-                id_document__numero__isnull=False,
             )
-            .exclude(id_document__numero="")
             .select_related("id_document__id_nature")
         )
     }
@@ -1452,8 +1446,7 @@ def instruction_dossier(request, num_dossier):
         dossiers_meme_acte_par_document[document.id] = list(
             DossierDocument.objects
             .filter(
-                id_document__id_nature=document.id_nature,
-                id_document__numero=document.numero,
+                filtre_meme_acte(document),
                 id_document__id_statut__statut__in=statuts_projet_acte_actif,
             )
             .exclude(id_dossier=dossier)
@@ -1762,6 +1755,10 @@ def instruction_dossier(request, num_dossier):
         **roles,
         **avis_data,
         **documents_data,
+        "references_actes_manuelles": {
+            f"{doc.id_nature_id}:{doc.titre}": doc.numero_reference
+            for doc in documents_numerotes.values() if doc.id_nature.numerotation_manuelle
+        },
         "actes_deja_envoyes": actes_deja_envoyes,
     })
 

@@ -1062,6 +1062,27 @@
     margin-top: 1rem;
 }
 
+.reference-acte-manuelle { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin: .7rem 0 1rem; }
+.reference-acte-manuelle[hidden] { display: none; }
+.reference-acte-manuelle input {
+    box-sizing: border-box;
+    width: auto;
+    field-sizing: content;
+    min-width: min(24ch, 100%);
+    max-width: 100%;
+    padding: .6rem .8rem;
+    border: 1px solid #b8c8bd;
+    border-radius: 7px;
+    background: #fff;
+    color: #24342a;
+    font: inherit;
+    line-height: 1.4;
+}
+.reference-acte-manuelle input:focus { outline: 2px solid #317652; outline-offset: 1px; }
+.reference-acte-manuelle [data-reference-prefixe] { font-weight: 600; color: #496f57; overflow-wrap: anywhere; }
+.reference-acte-manuelle [data-reference-prefixe]:empty { display: none; }
+.reference-acte-manuelle label { width: auto; }
+
 .projet-acte-identique-entete {
     display: inline-flex;
     align-items: center;
@@ -2177,9 +2198,15 @@
 
 
 /* Bloc transmettre document signé */
+.numero-acte { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .numero-acte input[type="text"] {
+    box-sizing: border-box;
+    field-sizing: content;
+    width: auto;
+    min-width: min(24ch, 100%);
+    max-width: 100%;
     padding: 0.5rem 0.8rem;
-    margin-left: 0.5rem;
+    margin-left: 0;
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 1rem;

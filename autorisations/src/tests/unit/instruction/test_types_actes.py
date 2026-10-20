@@ -24,6 +24,7 @@ class ConfigurationTypesActesTests(SimpleTestCase):
     def donnees(self, **changes):
         return {
             "nature": "Nouveau type", "actif": "true",
+            "mode_numerotation": "automatique",
             "prefixe_numero": "TEST/", "prefixe_nom_fichier": "TEST-",
             "circuit_signature": "direction", "rapport_ca_obligatoire": "false",
             "mode_publication_raa": "non_requise", "autorise_dm": "false", **changes,
@@ -44,6 +45,8 @@ class ConfigurationTypesActesTests(SimpleTestCase):
 
     def test_champs_requis_et_choix_invalides_refuses(self):
         for nom in self.donnees():
+            if nom == "prefixe_numero":
+                continue
             with self.subTest(nom=nom):
                 self.assertIn(nom, self.formulaire(**{nom: ""}).errors)
         for nom in ("circuit_signature", "mode_publication_raa", "autorise_dm"):
@@ -173,9 +176,18 @@ class ConfigurationTypesActesTests(SimpleTestCase):
     def test_template_formulaire_requis_et_identifiants_uniques(self):
         form = TypeActeForm(instance=DocumentNature(est_acte=True), auto_id="nouveau-acte-%s")
         html = render_to_string("instruction/refacto/type_acte_form.html", {"form": form, "type_id": 0})
-        self.assertRegex(html, r'<input[^>]*name="prefixe_numero"[^>]* required[^>]*id="nouveau-acte-prefixe_numero"')
+        self.assertIn('id="nouveau-acte-prefixe_numero"', str(form["prefixe_numero"]))
+        self.assertNotIn('required', str(form["prefixe_numero"]))
         self.assertIn('name="mode_publication_raa"', html)
         self.assertIn("non_requise", html)
+
+    def test_prefixe_facultatif_en_modes_automatique_et_manuel(self):
+        for mode in ("automatique", "manuelle"):
+            with self.subTest(mode=mode):
+                form = self.formulaire(mode_numerotation=mode, prefixe_numero="")
+                self.assertFalse(form.errors)
+                document = Document(id_nature=form.instance, numero="2026-1000", numero_reference="2025-018/PF")
+                self.assertEqual(document.numero_affiche, "2025-018/PF" if mode == "manuelle" else "2026-1000")
 
     def test_migration_script_et_modeles_coherents(self):
         migration = importlib.import_module("autorisations.migrations.0038_types_actes_configurables")

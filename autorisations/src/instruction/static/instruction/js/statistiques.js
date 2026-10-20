@@ -317,8 +317,15 @@
 
             if (coucheDensite.getLayers().length) {
                 if (AGIDACarto.config("statistiques").options.recentrage) {
-                    carteDensite.fitBounds(coucheDensite.getBounds(), {padding: [18, 18], maxZoom: AGIDACarto.config("statistiques").options.zoom_cadrage});
-                    carteDensite.setZoom(Math.min(carteDensite.getZoom() + 1, carteDensite.getMaxZoom(), AGIDACarto.config("statistiques").options.zoom_cadrage));
+                    const optionsCarto = AGIDACarto.config("statistiques").options;
+                    carteDensite.once("moveend", () => {
+                        carteDensite.setZoom(Math.min(
+                            Math.max(optionsCarto.zoom, carteDensite.getZoom() + 1),
+                            carteDensite.getMaxZoom(),
+                            optionsCarto.zoom_cadrage,
+                        ));
+                    });
+                    carteDensite.fitBounds(coucheDensite.getBounds(), {padding: [18, 18], maxZoom: optionsCarto.zoom_cadrage});
                 }
                 legendeCarte.hidden = false;
             } else {

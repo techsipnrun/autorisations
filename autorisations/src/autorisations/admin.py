@@ -324,19 +324,25 @@ class DossierAvisAdmin(admin.ModelAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'titre', 'id_nature', 'id_format', 'description', 'numero', 'id_statut', 'emplacement')
+    list_display = ('id', 'titre', 'id_nature', 'id_format', 'description', 'numero', 'numero_reference', 'id_statut', 'emplacement')
     list_filter = ('id_nature', 'id_format')
-    search_fields = ('titre', 'numero', 'emplacement')
+    search_fields = ('titre', 'numero', 'numero_reference', 'emplacement')
     list_per_page = 30
 
 admin.site.register(DocumentFormat)
 
 @admin.register(DocumentNature)
 class DocumentNatureAdmin(admin.ModelAdmin):
-    list_display = ("id", "nature", "est_acte", "actif", "prefixe_numero", "prefixe_nom_fichier", "circuit_signature", "rapport_ca_obligatoire", "mode_publication_raa", "autorise_dm")
-    list_filter = ("est_acte", "actif", "circuit_signature", "mode_publication_raa", "autorise_dm")
+    list_display = ("id", "nature", "est_acte", "actif", "mode_numerotation", "prefixe_numero", "prefixe_nom_fichier", "circuit_signature", "rapport_ca_obligatoire", "mode_publication_raa", "autorise_dm")
+    list_filter = ("est_acte", "actif", "mode_numerotation", "circuit_signature", "mode_publication_raa", "autorise_dm")
     search_fields = ("nature", "prefixe_numero", "prefixe_nom_fichier")
     ordering = ("ordre_affichage", "nature")
+
+    def get_readonly_fields(self, request, obj=None):
+        champs = super().get_readonly_fields(request, obj)
+        if obj and Document.objects.filter(id_nature=obj).exists():
+            return (*champs, "mode_numerotation")
+        return champs
 
 admin.site.register(DocumentStatut)
 

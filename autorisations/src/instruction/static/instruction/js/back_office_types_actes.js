@@ -17,6 +17,9 @@ window.addEventListener('scroll', repositionnerAidesTypesActes, {passive: true, 
 
 document.querySelectorAll('[data-type-acte-form]').forEach(form => {
   const apercu = () => {
+    const manuel = form.elements.mode_numerotation.value === 'manuelle';
+    form.querySelector('.back-office-acte-number-preview').hidden = manuel;
+    form.querySelector('[data-type-acte-manual-help]').hidden = !manuel;
     const numero = form.dataset.nextNumber;
     form.querySelector('[data-type-acte-preview]').textContent = `Prochain numéro estimé : ${form.elements.prefixe_numero.value}${numero}`;
     form.querySelector('[data-type-acte-filename-preview]').textContent = `Exemple de fichier signé : ${form.elements.prefixe_nom_fichier.value}${numero}_JJ-MM.pdf`;

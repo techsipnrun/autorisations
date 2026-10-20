@@ -1,6 +1,6 @@
 from django import forms
 
-from autorisations.models.models_documents import DocumentNature
+from autorisations.models.models_documents import Document, DocumentNature
 
 
 class TypeActeForm(forms.ModelForm):
@@ -9,16 +9,19 @@ class TypeActeForm(forms.ModelForm):
     class Meta:
         model = DocumentNature
         fields = (
-            "nature", "actif", "prefixe_numero", "prefixe_nom_fichier",
+            "nature", "actif", "mode_numerotation", "prefixe_numero", "prefixe_nom_fichier",
             "circuit_signature", "rapport_ca_obligatoire", "mode_publication_raa", "autorise_dm",
         )
         labels = {
             "nature": "Nom du type d’acte", "actif": "Actif",
+            "mode_numerotation": "Numérotation",
             "circuit_signature": "Circuit de signature",
             "rapport_ca_obligatoire": "Rapport CA obligatoire", "mode_publication_raa": "Publication au RAA",
             "autorise_dm": "Ce type d'acte peut être déposé sur DM",
         }
         help_texts = {
+            "prefixe_numero": "Facultatif : préfixe affiché devant le numéro ou la référence manuelle. Si ce champ est vide, le numéro est affiché tel quel.",
+            "mode_numerotation": "Automatique : numéro généré automatiquement par AGIDA. Manuelle : référence saisie par l’instructeur, réutilisable sur plusieurs dossiers.",
             "actif": (
                 "Oui : proposé lors de la création d’un projet d’acte.\n"
                 "Non : retiré des nouveaux choix ; les actes existants restent accessibles et peuvent poursuivre leur traitement."
@@ -38,8 +41,8 @@ class TypeActeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for nom in ("prefixe_numero", "prefixe_nom_fichier"):
-            self.fields[nom].required = True
+        self.fields["prefixe_numero"].required = False
+        self.fields["prefixe_nom_fichier"].required = True
         for nom in ("actif", "rapport_ca_obligatoire", "autorise_dm"):
             self.initial[nom] = "true" if getattr(self.instance, nom) else "false"
             self.fields[nom] = forms.TypedChoiceField(
@@ -50,10 +53,14 @@ class TypeActeForm(forms.ModelForm):
             )
         for champ in self.fields.values():
             champ.widget.attrs["class"] = "back-office-acte-input"
-            champ.widget.attrs["required"] = True
+            if champ.required:
+                champ.widget.attrs["required"] = True
 
     def clean(self):
         donnees = super().clean()
+        if self.instance.pk and donnees.get("mode_numerotation") and "mode_numerotation" in self.changed_data:
+            if Document.objects.filter(id_nature=self.instance).exists():
+                raise forms.ValidationError("Le mode de numérotation ne peut plus être changé lorsqu’un document utilise ce type. Créez un nouveau type pour préserver les références existantes.")
         if donnees.get("rapport_ca_obligatoire"):
             manquants = {"Projet Rapport CA", "Rapport CA"} - set(
                 DocumentNature.objects.filter(nature__in=("Projet Rapport CA", "Rapport CA")).values_list("nature", flat=True)

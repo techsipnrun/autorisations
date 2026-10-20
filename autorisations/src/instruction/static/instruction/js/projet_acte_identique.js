@@ -6,6 +6,7 @@ function toggleProjetActeIdentique(checkbox) {
   const selectNature = document.getElementById(bloc.dataset.natureSelect);
 
   rubrique.hidden = !checkbox.checked;
+  synchroniserReferenceManuelle(bloc);
   if (checkbox.checked) {
     rechercherProjetsActeInline(rubrique.querySelector("button"));
     return;
@@ -80,13 +81,16 @@ function creerBoutonResultatProjet(resultat) {
   const bouton = document.createElement("button");
   bouton.type = "button";
   bouton.className = "resultat-projet-acte";
-  bouton.innerHTML =
-    `<span class="resultat-projet-entete">` +
-      `<strong>Dossier ${resultat.dossier_numero}</strong>` +
-      `<span>(${resultat.dossier_etape})</span>` +
-    `</span>` +
-    `Projet ${resultat.nature} ${resultat.numero_affiche}` +
-    `<small>${resultat.demarche_type} — ${resultat.demandeur}</small>`;
+  const entete = document.createElement('span');
+  entete.className = 'resultat-projet-entete';
+  const dossier = document.createElement('strong');
+  dossier.textContent = `Dossier ${resultat.dossier_numero}`;
+  const etape = document.createElement('span');
+  etape.textContent = `(${resultat.dossier_etape})`;
+  entete.append(dossier, etape);
+  const details = document.createElement('small');
+  details.textContent = `${resultat.demarche_type} — ${resultat.demandeur}`;
+  bouton.append(entete, document.createTextNode(`Projet ${resultat.nature} ${resultat.numero_affiche}`), details);
   return bouton;
 }
 
@@ -134,6 +138,11 @@ function completerDemandeursDansSelect(select, demandeurs) {
 }
 
 function validerProjetActeIdentique(form) {
+  const reference = form.querySelector('[name="numero_reference"]');
+  if (reference && !reference.disabled && !reference.value.trim()) {
+    afficherErreurFormulaire(reference.closest('[data-reference-acte]'), 'Saisissez la référence de l’acte.');
+    return false;
+  }
   const checkbox = form.querySelector("[name='projet_acte_identique']");
   if (!checkbox?.checked) return true;
   const source = form.querySelector("[name='projet_acte_source_id']");
@@ -144,6 +153,39 @@ function validerProjetActeIdentique(form) {
   );
   return false;
 }
+
+function synchroniserReferenceManuelle(bloc) {
+  const nature = document.getElementById(bloc.dataset.natureSelect)?.selectedOptions[0];
+  const zone = bloc.querySelector('[data-reference-acte]');
+  if (!zone) return;
+  const champ = zone.querySelector('input');
+  const manuel = nature?.dataset.numerotation === 'manuelle';
+  zone.hidden = !manuel || bloc.querySelector('[name="projet_acte_identique"]').checked;
+  champ.disabled = zone.hidden;
+  champ.required = !zone.hidden;
+  zone.querySelector('[data-reference-prefixe]').textContent = nature?.dataset.prefixe || '';
+  const form = bloc.closest('form');
+  const fichier = form.querySelector('[name="piece_jointe_work"]')?.value || '';
+  const cle = `${nature?.value}:${fichier}`;
+  if (champ.dataset.cle !== cle) {
+    const references = JSON.parse(document.getElementById('references-actes-manuelles')?.textContent || '{}');
+    champ.value = references[cle] || '';
+    champ.dataset.cle = cle;
+  }
+  champ.size = Math.max(24, champ.value.length + 3);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.projet-acte-identique-option').forEach(bloc => {
+    const form = bloc.closest('form');
+    document.getElementById(bloc.dataset.natureSelect)?.addEventListener('change', () => synchroniserReferenceManuelle(bloc));
+    form.querySelector('[name="piece_jointe_work"]')?.addEventListener('change', () => synchroniserReferenceManuelle(bloc));
+    bloc.querySelector('[name="numero_reference"]')?.addEventListener('input', event => {
+      event.target.size = Math.max(24, event.target.value.length + 3);
+    });
+    synchroniserReferenceManuelle(bloc);
+  });
+});
 
 function toggleRechercheProjetRemplacement(bouton) {
   const section = bouton.closest(".doc-item").querySelector(".recherche-projet-remplacement");

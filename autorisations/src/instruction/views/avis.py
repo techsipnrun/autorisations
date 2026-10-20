@@ -2674,6 +2674,8 @@ def remplacer_document_avis(request):
                 description=f"Nouveau document pour l'avis {avis.id}",
                 titre=f"{titre_final}{ext}",
                 numero=document.numero,
+                numero_reference=document.numero_reference,
+                id_document_reference_id=document.id_document_reference_id,
             )
 
             # On détermine quel champ de l’avis doit être mis à jour

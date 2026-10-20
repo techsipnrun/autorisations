@@ -33,12 +33,22 @@ class DocumentsDossierInterfaceTests(SimpleTestCase):
                 }) + '</ul>')
         css = "\n".join((src / f"instruction/static/instruction/css/{nom}.css").read_text(encoding="utf-8")
                         for nom in ("dossier", "instruction_dossier", "dossier_manif_sportive"))
+        reference = "CourrierTEST-2020-929/LC/JDP"
+        for classe in ("numero-acte", "reference-acte-manuelle"):
+            lignes.append(f'<div class="test-numerotation validant {classe}"><label>Numéro de l’acte :</label><input type="text" value="{reference}" size="{len(reference) + 3}" readonly></div>')
         script = """
         window.addEventListener('load',()=>{
             const sortie=document.createElement('pre');document.body.append(sortie);
             const assert=(ok,message)=>{if(!ok) throw new Error(message);};
             try {
                 for(const largeur of [240,320,480,900]) {
+                    for (const zone of document.querySelectorAll('.test-numerotation')) {
+                        zone.style.width=largeur+'px';
+                        const champ=zone.querySelector('input');
+                        assert(champ.getBoundingClientRect().right<=zone.getBoundingClientRect().right+1, 'Saisie du numéro sans débordement à '+largeur+'px');
+                        assert(parseFloat(getComputedStyle(champ).paddingLeft)>=8, 'Saisie avec padding');
+                        if (largeur>=480) assert(champ.scrollWidth<=champ.clientWidth+1, 'Référence longue entièrement visible à '+largeur+'px');
+                    }
                     for(const zone of document.querySelectorAll('.test-documents')) {
                         zone.style.width=largeur+'px';
                         const titre=zone.querySelector('.doc-titre-no-download');

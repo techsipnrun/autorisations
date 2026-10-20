@@ -180,6 +180,8 @@ def valider_options_carte(code, options):
         if int(valeur) != valeur:
             raise ValidationError("Le zoom doit être entier.")
         resultat[cle] = int(valeur)
+    if resultat["zoom"] > resultat["zoom_cadrage"]:
+        raise ValidationError("Le zoom initial ne peut pas être supérieur au zoom maximal du cadrage.")
     resultat["recentrage"] = options.get("recentrage", True)
     if type(resultat["recentrage"]) is not bool:
         raise ValidationError("Recentrage invalide.")

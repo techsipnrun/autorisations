@@ -3,6 +3,11 @@
      data-nature-select="{{ nature_select_id }}"
      data-search-url="{% url 'rechercher_projets_acte' dossier.numero %}"
      data-demandeur-id="{% if demandeur %}{{ demandeur.id }}{% endif %}">
+    <div class="validant reference-acte-manuelle" data-reference-acte hidden>
+        <label for="reference-{{ nature_select_id }}">Numéro / référence de l’acte * :</label>
+        <span data-reference-prefixe></span>
+        <input type="text" name="numero_reference" id="reference-{{ nature_select_id }}" maxlength="150" placeholder="Ex: 2025-018/AS/JPD" disabled>
+    </div>
     <div class="projet-acte-identique-entete">
         <label class="projet-acte-identique-label">
             <input type="checkbox"

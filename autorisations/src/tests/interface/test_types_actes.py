@@ -71,6 +71,13 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 assert(preview.open && card.open, 'Clic déplie seulement l’explication du numéro');
                 preview.querySelector('summary').click();
                 assert(!preview.open, 'Explication à nouveau repliée');
+                form.elements.mode_numerotation.value = 'manuelle';
+                form.elements.mode_numerotation.dispatchEvent(new Event('input', {bubbles:true}));
+                assert(preview.hidden && !form.querySelector('[data-type-acte-manual-help]').hidden, 'Mode manuel : explication et aucun prochain compteur');
+                assert(!form.elements.prefixe_numero.disabled, 'Préfixe disponible en mode manuel');
+                form.elements.mode_numerotation.value = 'automatique';
+                form.elements.mode_numerotation.dispatchEvent(new Event('input', {bubbles:true}));
+                assert(!preview.hidden, 'Retour à l’aperçu automatique');
                 assert([...form.querySelectorAll('label')].some(label => label.textContent.trim() === 'Actif *'), 'Libellé Actif');
                 assert(form.elements.autorise_dm.value === 'false', 'Dépôt DM désactivé correctement affiché');
                 assert(form.elements.mode_publication_raa.value === 'non_requise', 'Mode RAA affiché');
@@ -80,7 +87,8 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 if (CSS.supports('appearance', 'base-select') && CSS.supports('selector(select::picker(select))')) {
                     assert(getComputedStyle(form.elements.actif, '::picker(select)').borderTopColor === 'rgb(0, 0, 0)', 'Bordure noire du menu déroulant');
                 }
-                assert([...form.querySelectorAll('input:not([type="hidden"]), select')].every(field => field.required), 'Champs obligatoires');
+                assert([...form.querySelectorAll('input:not([type="hidden"]):not([name="prefixe_numero"]), select')].every(field => field.required), 'Champs obligatoires');
+                assert(!form.elements.prefixe_numero.required, 'Préfixe du numéro facultatif');
                 const icon = card.querySelector('.back-office-collapse-icon-open');
                 assert(getComputedStyle(icon).display !== 'none', 'Icône moins visible');
                 assert(document.documentElement.scrollWidth <= innerWidth, 'Pas de débordement horizontal');
@@ -163,6 +171,26 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 const select = document.querySelector('#test-project-nature');
                 assert(select.value === '90' && select.disabled, 'Reprise de numéro : sélection du type par identifiant');
                 assert(source.querySelector('.nature-acte-verrouillee').value === '90', 'Identifiant transmis au serveur');
+                for (const form of document.querySelectorAll('[data-test-reference]')) {
+                    const bloc = form.querySelector('.projet-acte-identique-option');
+                    const nature = form.querySelector('select');
+                    const reference = form.querySelector('[name="numero_reference"]');
+                    const zone = form.querySelector('[data-reference-acte]');
+                    assert(zone.hidden && reference.disabled, 'Référence masquée pour numérotation automatique');
+                    nature.value='99';nature.dispatchEvent(new Event('change'));
+                    assert(!zone.hidden && reference.required && !reference.disabled, 'Référence obligatoire en mode manuel');
+                    assert(reference.value==='2025-018/PF', 'Référence existante préremplie');
+                    reference.value='2025-019/PF';
+                    assert(validerProjetActeIdentique(form), 'Référence manuelle acceptée');
+                    const checkbox=form.querySelector('[name="projet_acte_identique"]');
+                    checkbox.checked=true;synchroniserReferenceManuelle(bloc);
+                    assert(zone.hidden && reference.disabled, 'Reprise explicite : pas de double saisie');
+                    checkbox.checked=false;synchroniserReferenceManuelle(bloc);
+                    assert(reference.value==='2025-019/PF', 'Saisie conservée au retour');
+                    reference.value='';assert(!validerProjetActeIdentique(form), 'Référence vide bloquée avant envoi');
+                }
+                const resultat = creerBoutonResultatProjet({dossier_numero:1, dossier_etape:'En instruction', nature:'PF', numero_affiche:'<img src=x>', demarche_type:'Test', demandeur:'Test'});
+                assert(!resultat.querySelector('img') && resultat.textContent.includes('<img src=x>'), 'Référence affichée comme texte');
                 output.textContent = 'TYPES_ACTES_OK';
             } catch (error) { output.textContent = 'TYPES_ACTES_ERROR: ' + error.message; }
         });
@@ -172,6 +200,14 @@ class TypesActesInterfaceTests(SimpleTestCase):
             <select id="test-project-nature"><option value=""></option><option value="90">Nouveau type d’acte</option></select>
             <div id="test-project-source" data-nature-select="test-project-nature"></div>
         </div></body>''')
+        references = []
+        for numero in range(3):
+            identifiant = f"nature-reference-{numero}"
+            bloc = render_to_string("instruction/refacto/projet_acte_identique_option.html", {
+                "nature_select_id": identifiant, "dossier": {"numero": 1},
+            })
+            references.append(f'<form data-test-reference><select id="{identifiant}"><option value="1" data-numerotation="automatique">Auto</option><option value="99" data-numerotation="manuelle" data-prefixe="PF-">Manuel</option></select><select name="piece_jointe_work"><option value="projet.docx">projet.docx</option></select>{bloc}</form>')
+        html = html.replace("</body>", '<script type="application/json" id="references-actes-manuelles">{"99:projet.docx":"2025-018/PF"}</script>' + ''.join(references) + '</body>')
 
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *_args):

@@ -174,13 +174,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const bounds = groupeGlobal.getBounds();
 
         if (bounds.isValid() && AGIDACarto.config(contexteCarte).options.recentrage) {
+            const optionsCarto = AGIDACarto.config(contexteCarte).options;
+            // Leaflet peut animer fitBounds : attendre moveend avant de
+            // garantir le zoom minimal, sinon l'animation le remplace.
+            map.once("moveend", () => {
+                if (map.getZoom() < optionsCarto.zoom) map.setZoom(optionsCarto.zoom);
+            });
             map.fitBounds(bounds, {
-                maxZoom: AGIDACarto.config(contexteCarte).options.zoom_cadrage,
+                maxZoom: optionsCarto.zoom_cadrage,
                 padding: [20, 20]
             });
-            if (map.getZoom() < Math.min(defaultDisplayZoom, AGIDACarto.config(contexteCarte).options.zoom_cadrage)) {
-                map.setZoom(Math.min(defaultDisplayZoom, AGIDACarto.config(contexteCarte).options.zoom_cadrage));
-            }
         } else {
             map.setView(AGIDACarto.config(contexteCarte).options.centre, AGIDACarto.config(contexteCarte).options.zoom);
         }

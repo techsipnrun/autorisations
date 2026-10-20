@@ -288,7 +288,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const all = L.featureGroup(visibleGroups);
             const b = all.getBounds();
             if (b.isValid() && AGIDACarto.config(contexteCarte).options.recentrage) {
-                map.fitBounds(b, { padding: [20, 20], maxZoom: AGIDACarto.config(contexteCarte).options.zoom_cadrage });
+                const optionsCarto = AGIDACarto.config(contexteCarte).options;
+                map.once("moveend", () => {
+                    if (map.getZoom() < optionsCarto.zoom) map.setZoom(optionsCarto.zoom);
+                });
+                map.fitBounds(b, { padding: [20, 20], maxZoom: optionsCarto.zoom_cadrage });
             }
         }
 
@@ -331,9 +335,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const allBounds = allCoursesGroup.getBounds();
             if (allBounds.isValid() && AGIDACarto.config(contexteCarte).options.recentrage) {
+                const optionsCarto = AGIDACarto.config(contexteCarte).options;
+                map.once("moveend", () => {
+                    if (map.getZoom() < optionsCarto.zoom) map.setZoom(optionsCarto.zoom);
+                });
                 map.fitBounds(allBounds, {
                     padding: [20, 20],
-                    maxZoom: AGIDACarto.config(contexteCarte).options.zoom_cadrage,
+                    maxZoom: optionsCarto.zoom_cadrage,
                     animate: false
                 });
             }
@@ -456,10 +464,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Centrer sur la géométrie pétitionnaire
         // --------------------------------------
         if (AGIDACarto.config(contexteCarte).options.recentrage && allCoursesGroup.getBounds().isValid()) {
-            map.fitBounds(allCoursesGroup.getBounds(), {maxZoom: AGIDACarto.config(contexteCarte).options.zoom_cadrage, padding: [20, 20]});
-            if (map.getZoom() < Math.min(defaultDisplayZoom, AGIDACarto.config(contexteCarte).options.zoom_cadrage)) {
-                map.setZoom(Math.min(defaultDisplayZoom, AGIDACarto.config(contexteCarte).options.zoom_cadrage));
-            }
+            const optionsCarto = AGIDACarto.config(contexteCarte).options;
+            map.once("moveend", () => {
+                if (map.getZoom() < optionsCarto.zoom) map.setZoom(optionsCarto.zoom);
+            });
+            map.fitBounds(allCoursesGroup.getBounds(), {maxZoom: optionsCarto.zoom_cadrage, padding: [20, 20]});
         }
 
 
