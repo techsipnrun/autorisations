@@ -9,6 +9,18 @@ register = template.Library()
 
 
 @register.filter
+def raison_sociale_affichee(contact):
+    from autorisations.models.models_utilisateurs import raison_sociale_affichee as afficher
+    return afficher(contact)
+
+
+@register.filter
+def organisation_affichee(contact):
+    from autorisations.models.models_utilisateurs import organisation_affichee as afficher
+    return afficher(contact)
+
+
+@register.filter
 def type_apercu_document(titre):
     titre = str(titre or "").lower()
     if titre.endswith(".pdf"):

@@ -41,7 +41,8 @@ def ajouter_numerotation(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [("autorisations", "0044_avis_aides_et_thematiques")]
     operations = [migrations.SeparateDatabaseAndState(
-        database_operations=[migrations.RunPython(ajouter_numerotation, migrations.RunPython.noop)],
+        # Le schéma PostgreSQL est administré exclusivement via sql/0045_actes_numerotation_manuelle.sql.
+        database_operations=[],
         state_operations=[
             migrations.AddField(model_name="documentnature", name="mode_numerotation",
                 field=models.CharField(max_length=12, choices=[("automatique", "Automatique"), ("manuelle", "Manuelle")], default="automatique")),

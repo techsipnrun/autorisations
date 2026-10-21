@@ -24,7 +24,7 @@
             {% for c in contacts_externes %}
                 <option value="{{ c.id }}" data-est-cs="{{ c|est_contact_conseil_scientifique|yesno:'true,false' }}"
                         {% if avis.id_expert.id_contact_externe.id == c.id %}selected{% endif %}>
-                    {% if c.nom and c.prenom %}{{ c.nom }} {{ c.prenom }}{% elif c.raison_sociale %}{{ c.raison_sociale }}{% elif c.organisation %}{{ c.organisation }}{% endif %}{% if c.email %} - {{ c.email }}{% endif %}
+                    {% if c.nom and c.prenom %}{{ c.nom }} {{ c.prenom }}{% elif c|raison_sociale_affichee %}{{ c|raison_sociale_affichee }}{% elif c|organisation_affichee %}{{ c|organisation_affichee }}{% endif %}{% if c.email %} - {{ c.email }}{% endif %}
                 </option>
             {% endfor %}
         </select>

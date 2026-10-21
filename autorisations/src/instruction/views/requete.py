@@ -10,6 +10,7 @@ from django.shortcuts import render
 from autorisations.models.models_instruction import Dossier, DossierManifSportive, DossierManifestationLiaison, EtapeDossier, Demarche
 from autorisations.models.models_avis import AvisThematique, Expert
 from autorisations.models.models_utilisateurs import ContactExterne, DossierBeneficiaire, DossierInterlocuteur, Groupeinstructeur, Instructeur
+from autorisations.models.models_utilisateurs import raison_sociale_affichee, organisation_affichee
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import ExtractYear, Coalesce
 from django.db.models import Value, F
@@ -176,10 +177,12 @@ def filtrer_dossiers_par_mots_cles(dossiers, dossiers_dm, recherche):
             Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__nom__icontains=mot) |
             Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__prenom__icontains=mot) |
             Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__icontains=mot) |
+            Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale_raccourci__icontains=mot) |
             Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__icontains=mot) |
             Q(dossierinterlocuteur__id_demandeur_intermediaire__nom__icontains=mot) |
             Q(dossierinterlocuteur__id_demandeur_intermediaire__prenom__icontains=mot) |
             Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale__icontains=mot) |
+            Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale_raccourci__icontains=mot) |
             Q(dossierinterlocuteur__id_demandeur_intermediaire__organisation__icontains=mot) |
             Q(dossiermanifestationliaison__id_dossier_manif__nom_dossier__icontains=mot) |
             Q(dossiermanifestationliaison__id_dossier_manif__nom_organisateur__icontains=mot) |
@@ -590,9 +593,11 @@ def requete_dossiers(request):
         for nom in noms_selectionnes:
             filtre_contacts_dn |= (
                 Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale__iexact=nom) |
+                Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__raison_sociale_raccourci__iexact=nom) |
                 Q(dossierinterlocuteur__dossierbeneficiaire__id_beneficiaire__organisation__iexact=nom) |
                 Q(nom_complet_beneficiaire__iexact=nom) |
                 Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale__iexact=nom) |
+                Q(dossierinterlocuteur__id_demandeur_intermediaire__raison_sociale_raccourci__iexact=nom) |
                 Q(dossierinterlocuteur__id_demandeur_intermediaire__organisation__iexact=nom) |
                 Q(nom_complet_demandeur__iexact=nom)
             )
@@ -699,10 +704,10 @@ def requete_dossiers(request):
             db = beneficiaires[0] if beneficiaires else None
             if db and db.id_beneficiaire:
                 b = db.id_beneficiaire
-                if getattr(b, "raison_sociale", None):
-                    beneficiaire = b.raison_sociale
-                elif getattr(b, "organisation", None):
-                    beneficiaire = b.organisation
+                if raison_sociale_affichee(b):
+                    beneficiaire = raison_sociale_affichee(b)
+                elif organisation_affichee(b):
+                    beneficiaire = organisation_affichee(b)
                 elif getattr(b, "nom", None) and getattr(b, "prenom", None):
                     beneficiaire = f"{b.nom} {b.prenom}"
 
@@ -957,6 +962,7 @@ def requete_avis(request):
                 Q(interne__iexact=expert)
                 | Q(externe__iexact=expert)
                 | Q(id_contact_externe__raison_sociale__iexact=expert)
+                | Q(id_contact_externe__raison_sociale_raccourci__iexact=expert)
                 | Q(id_contact_externe__organisation__iexact=expert)
             )
             .exists()
@@ -978,6 +984,7 @@ def requete_avis(request):
                 Q(nom_complet_expert__iexact=expert) |
                 Q(nom_complet_externe__iexact=expert) |
                 Q(id_expert__id_contact_externe__raison_sociale__iexact=expert) |
+                Q(id_expert__id_contact_externe__raison_sociale_raccourci__iexact=expert) |
                 Q(id_expert__id_contact_externe__organisation__iexact=expert)
             )
         else:
@@ -1159,20 +1166,22 @@ def autocomplete_nom_beneficiaire(request):
         )
         .filter(
             Q(raison_sociale__icontains=query) |
+            Q(raison_sociale_raccourci__icontains=query) |
             Q(organisation__icontains=query) |
             Q(nom__icontains=query) |
             Q(prenom__icontains=query)
         )
-        .values("raison_sociale", "organisation", "nom", "prenom")
+        .values("raison_sociale", "raison_sociale_raccourci", "organisation", "nom", "prenom")
         .distinct()[:10]
     )
 
     for contact in contacts_dossiers:
-        if contact["raison_sociale"] and query.lower() in contact["raison_sociale"].lower():
-            add_value(contact["raison_sociale"])
+        if any(query.casefold() in (contact.get(champ) or "").casefold()
+               for champ in ("raison_sociale", "raison_sociale_raccourci")):
+            add_value(raison_sociale_affichee(contact))
 
         if contact["organisation"] and query.lower() in contact["organisation"].lower():
-            add_value(contact["organisation"])
+            add_value(organisation_affichee(contact))
 
         if contact["nom"] and contact["prenom"] and (
             query.lower() in contact["nom"].lower()
@@ -1303,6 +1312,7 @@ def autocomplete_expert(request):
             | Q(id_contact_externe__nom__icontains=term)
             | Q(id_contact_externe__prenom__icontains=term)
             | Q(id_contact_externe__raison_sociale__icontains=term)
+            | Q(id_contact_externe__raison_sociale_raccourci__icontains=term)
             | Q(id_contact_externe__organisation__icontains=term)
         )
         .select_related(
@@ -1320,7 +1330,7 @@ def autocomplete_expert(request):
         elif e.id_contact_externe:
             c = e.id_contact_externe
             nom_complet = f"{c.prenom or ''} {c.nom or ''}".strip()
-            nom = nom_complet or c.raison_sociale or c.organisation or c.email
+            nom = nom_complet or raison_sociale_affichee(c) or organisation_affichee(c) or c.email
         else:
             continue
 

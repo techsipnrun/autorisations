@@ -100,7 +100,7 @@ class AvisInstancesMultiplesTests(SimpleTestCase):
                 dossier.objects.filter.return_value.first.return_value = self.dossier
                 avis.objects.filter.return_value.first.return_value = SimpleNamespace(id=5, id_expert=self.expert)
                 avis.objects.filter.return_value.select_related.return_value.first.return_value = SimpleNamespace(
-                    id=5, id_expert=self.expert, id_projet_avis_id=None, id_projet_acte_id=None, id_rapport_instance_id=None,
+                    id=5, numero_affiche="5", id_expert=self.expert, id_projet_avis_id=None, id_projet_acte_id=None, id_rapport_instance_id=None,
                 )
                 instructeur_qs = instructeur.objects.filter.return_value
                 instructeur_qs.first.return_value = self.user

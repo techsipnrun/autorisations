@@ -45,6 +45,20 @@ class TypeContactExterne(models.Model):
         return self.type
 
 
+def _valeur_contact_affichee(contact, champ):
+    """Le raccourci est réservé à l'affichage, sans altérer l'identité d'origine."""
+    lire = contact.get if isinstance(contact, dict) else lambda cle: getattr(contact, cle, None)
+    return (lire("raison_sociale_raccourci") or "").strip() or lire(champ) or ""
+
+
+def raison_sociale_affichee(contact):
+    return _valeur_contact_affichee(contact, "raison_sociale")
+
+
+def organisation_affichee(contact):
+    return _valeur_contact_affichee(contact, "organisation")
+
+
 class ContactExterne(models.Model):
     id = models.AutoField(primary_key=True)
     email = models.CharField(blank=True, null=True)
@@ -56,6 +70,7 @@ class ContactExterne(models.Model):
     siret = models.CharField(blank=True, null=True)
     organisation = models.CharField(blank=True, null=True)
     raison_sociale = models.CharField(blank=True, null=True)
+    raison_sociale_raccourci = models.CharField(max_length=255, blank=True, default="")
 
     class Meta:
         managed = False
@@ -72,18 +87,26 @@ class ContactExterne(models.Model):
             ),
         ]
     
+    @property
+    def raison_sociale_affichee(self):
+        return raison_sociale_affichee(self)
+
+    @property
+    def organisation_affichee(self):
+        return organisation_affichee(self)
+
     def get_display_name(self):
         """
         Retourne un affichage lisible selon les infos disponibles.
         """
         if self.nom and self.prenom:
-            if self.raison_sociale:
-                return f"{self.nom} {self.prenom} ({self.raison_sociale})"
+            if self.raison_sociale_affichee:
+                return f"{self.nom} {self.prenom} ({self.raison_sociale_affichee})"
             return f"{self.nom} {self.prenom}"
-        if self.raison_sociale:
-            return f"{self.raison_sociale}"
-        if self.organisation:
-            return f"{self.organisation}"
+        if self.raison_sociale_affichee:
+            return self.raison_sociale_affichee
+        if self.organisation_affichee:
+            return self.organisation_affichee
         return self.email or f"Contact {self.id}"
     
 
@@ -91,10 +114,10 @@ class ContactExterne(models.Model):
         if self.id_type.type != 'Autre' :
             if self.nom and self.prenom :
                 return f"{self.nom} {self.prenom}"
-            elif self.raison_sociale :
-                return f"{self.raison_sociale}"
-            elif self.organisation :
-                return f"{self.organisation}"
+            elif self.raison_sociale_affichee:
+                return self.raison_sociale_affichee
+            elif self.organisation_affichee:
+                return self.organisation_affichee
             elif self.email :
                 return f"{self.email}"
             else :
@@ -103,10 +126,10 @@ class ContactExterne(models.Model):
         else :
             if self.nom and self.prenom :
                 return f"{self.nom} {self.prenom}"
-            elif self.raison_sociale :
-                return f"{self.raison_sociale}"
-            elif self.organisation :
-                return f"{self.organisation}"
+            elif self.raison_sociale_affichee:
+                return self.raison_sociale_affichee
+            elif self.organisation_affichee:
+                return self.organisation_affichee
             elif self.email :
                 return f"{self.email}"
             else :

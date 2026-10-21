@@ -120,6 +120,7 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
 
 
     for doss in dossiers_list:
+        ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
         contexte_nom = construire_contexte_nommage(
             doss["dossier"], doss["contacts_externes"], doss["dossier_champs"],
             dossier_dm=valeurs_dm_par_numero_dn.get(doss["dossier"]["numero"]),
@@ -128,7 +129,6 @@ def sync_dossiers(dossiers_list, demarche_number, un_seul_doss=False, dico_notif
             regles_nommage, contexte_nom,
         )["nom_genere"]
         id_dossier = sync_doss(doss['dossier'], dico_notifs, doss['dossier_champs'])
-        ids_beneficiaire_intermediaire = sync_contacts_externes(doss['contacts_externes'])
 
         id_dossier_interlocuteur = sync_dossier_interlocuteur(doss['dossier_interlocuteur'], ids_beneficiaire_intermediaire, id_dossier)
 

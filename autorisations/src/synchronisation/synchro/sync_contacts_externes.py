@@ -153,6 +153,8 @@ def sync_contacts_externes(contacts_externes):
 
         if obj is not None:
             result_ids[role] = obj.id
+            # Valeur administrée dans AGIDA : jamais remplacée par les données DN.
+            data["raison_sociale_raccourci"] = obj.raison_sociale_raccourci
         else:
             logger.error(
                 f"Aucun ContactExterne n'a pu être résolu pour le rôle {role}."

@@ -159,6 +159,45 @@ class NommageTests(SimpleTestCase):
         ], self.contexte(contacts={"beneficiaire": {"raison_sociale": "Les Gîtes de Mafate"}}))
         self.assertEqual(resultat["nom_genere"], "Les Gîtes de Mafate")
 
+    def test_raison_sociale_raccourcie_prioritaire_pour_les_deux_roles(self):
+        contexte = self.contexte(contacts={
+            "beneficiaire": {"raison_sociale": "Office national des forets", "raison_sociale_raccourci": "ONF"},
+            "demandeur_intermediaire": {"raison_sociale": "Administration", "raison_sociale_raccourci": "ADM"},
+        })
+        resultat = generer_nom_dossier([regle([
+            attribut("demandeur.raison_sociale"), attribut("beneficiaire.raison_sociale"),
+        ])], contexte)
+        self.assertEqual(resultat["nom_genere"], "ADM ONF")
+
+    def test_transformation_personnalisee_appliquee_au_raccourci(self):
+        contexte = self.contexte(contacts={"beneficiaire": {
+            "raison_sociale": "OFFICE NATIONAL DES FORETS", "raison_sociale_raccourci": "ONF",
+        }})
+        element = personnalise(attribut("demandeur.raison_sociale"), [("ONF", "Forêts")], "ignorer_regle")
+        self.assertEqual(generer_nom_dossier([regle([element])], contexte)["nom_genere"], "Forêts")
+
+    def test_variable_organisation_utilise_le_raccourci_pour_les_deux_roles(self):
+        contexte = self.contexte(contacts={
+            "beneficiaire": {"organisation": "Organisation bénéficiaire", "raison_sociale_raccourci": "ONF"},
+            "demandeur_intermediaire": {"organisation": "Organisation intermédiaire", "raison_sociale_raccourci": "ADM"},
+        })
+        resultat = generer_nom_dossier([regle([
+            attribut("demandeur.organisation"), attribut("beneficiaire.organisation"),
+        ])], contexte)
+        self.assertEqual(resultat["nom_genere"], "ADM ONF")
+        element = personnalise(attribut("beneficiaire.organisation"), [("ONF", "Forêts")], "ignorer_regle")
+        self.assertEqual(generer_nom_dossier([regle([element])], contexte)["nom_genere"], "Forêts")
+
+    def test_organisation_sans_raccourci_garde_sa_valeur_sans_repli_raison_sociale(self):
+        contexte = self.contexte(contacts={"beneficiaire": {
+            "raison_sociale": "Raison complète", "organisation": "Organisation complète",
+            "raison_sociale_raccourci": "   ",
+        }})
+        resultat = generer_nom_dossier([regle([attribut("demandeur.organisation")])], contexte)
+        self.assertEqual(resultat["nom_genere"], "Organisation complète")
+        contexte = self.contexte(contacts={"beneficiaire": {"raison_sociale": "Raison complète"}})
+        self.assertIsNone(generer_nom_dossier([regle([attribut("demandeur.organisation")])], contexte)["nom_genere"])
+
     @override_settings(TIME_ZONE="Indian/Reunion")
     def test_format_date_locale_et_date_francaise(self):
         resultat = generer_nom_dossier([regle([attribut("dossier.date_depot", "date_heure")])], self.contexte())
@@ -305,7 +344,7 @@ class NommageValidationTests(SimpleTestCase):
 
 
 class NommageSynchronisationTests(SimpleTestCase):
-    def synchroniser(self, regles):
+    def synchroniser(self, regles, raccourci=None):
         dossier = {
             "dossier": {"id_ds": "dn-id", "numero": 123, "nom_dossier": "123_HOARAU_Denis_05-10"},
             "contacts_externes": {"beneficiaire": {"nom": "Hoarau", "prenom": "Denis"}},
@@ -322,7 +361,12 @@ class NommageSynchronisationTests(SimpleTestCase):
             stack.enter_context(patch(f"{module}.compiler_regles_nommage", return_value=regles))
             for function in ["sync_doss", "sync_contacts_externes", "sync_dossier_interlocuteur", "sync_dossier_beneficiaire",
                              "sync_dossier_champs", "sync_dossier_document", "sync_messages", "sync_demandes"]:
-                stack.enter_context(patch(f"{module}.{function}"))
+                mock = stack.enter_context(patch(f"{module}.{function}"))
+                if function == "sync_contacts_externes" and raccourci is not None:
+                    def enrichir(contacts):
+                        contacts["beneficiaire"]["raison_sociale_raccourci"] = raccourci
+                        return {"beneficiaire": 1, "demandeur_intermediaire": None}
+                    mock.side_effect = enrichir
             sync_dossiers([dossier], 123, un_seul_doss=True)
         return dossier["dossier"]
 
@@ -336,3 +380,7 @@ class NommageSynchronisationTests(SimpleTestCase):
         dossier = self.synchroniser([])
         self.assertIsNone(dossier["nom_dossier_genere"])
         self.assertEqual(dossier["nom_dossier"], "123_HOARAU_Denis_05-10")
+
+    def test_synchro_recupere_raccourci_avant_generation_du_nom(self):
+        dossier = self.synchroniser([regle([attribut("demandeur.raison_sociale")])], raccourci="ONF")
+        self.assertEqual(dossier["nom_dossier_genere"], "ONF")

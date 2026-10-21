@@ -36,7 +36,8 @@ def preparer_formulaires(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [("autorisations", "0040_avis_reservations")]
     operations = [migrations.SeparateDatabaseAndState(
-        database_operations=[migrations.RunPython(preparer_formulaires, migrations.RunPython.noop)],
+        # Le schéma PostgreSQL est administré exclusivement via sql/0041_avis_formulaires.sql.
+        database_operations=[],
         state_operations=[
             migrations.CreateModel(name="AvisFormulaireConfiguration", fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),

@@ -147,7 +147,8 @@ def breadcrumb_context(request):
     elif view_name == "instruction_dossier_avis":
         items.append({"label": "Instruction", "url": "/instruction/"})
         numero = kwargs.get("num_dossier")
-        numero_avis = kwargs.get("avis_id")
+        avis_courant = getattr(request, "avis_courant", None)
+        numero_avis = avis_courant.numero_affiche if avis_courant else kwargs.get("avis_id")
         demarche = get_demarche_from_num_dossier(numero)
 
         if demarche:
@@ -160,7 +161,8 @@ def breadcrumb_context(request):
 
     elif view_name == "avis_expert":
         items.append({"label": "Mes avis", "url": "/reception_avis/"})
-        numero_avis = kwargs.get("avis_id")
+        avis_courant = getattr(request, "avis_courant", None)
+        numero_avis = avis_courant.numero_affiche if avis_courant else kwargs.get("avis_id")
 
        
         if numero_avis:

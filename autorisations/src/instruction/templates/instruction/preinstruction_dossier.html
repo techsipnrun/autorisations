@@ -448,8 +448,8 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 </a>
                             </div>
                         {% endif %}
-                        {% if beneficiaire.raison_sociale %}
-                            <p><strong>Raison Sociale</strong> : {{ beneficiaire.raison_sociale|capfirst }}</p>
+                        {% if beneficiaire|raison_sociale_affichee %}
+                            <p><strong>Raison Sociale</strong> : {{ beneficiaire|raison_sociale_affichee|capfirst }}</p>
                         {% endif %}
                         </div>
                     {% endif %}
@@ -477,8 +477,8 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 </a>
                             </div>
                         {% endif %}
-                        {% if demandeur_intermediaire.raison_sociale %}
-                            <p><strong>Raison Sociale</strong> : {{ demandeur_intermediaire.raison_sociale|capfirst }}</p>
+                        {% if demandeur_intermediaire|raison_sociale_affichee %}
+                            <p><strong>Raison Sociale</strong> : {{ demandeur_intermediaire|raison_sociale_affichee|capfirst }}</p>
                         {% endif %}
                         </div>
                     {% endif %}
@@ -517,7 +517,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
                                 class="nom_dossier_input"
                                 id="nomDossierInput"
                                 value="{{ dossier.nom_affiche }}"
-                                maxlength="60"
+                                maxlength="100"
                                 autocomplete="off"
                             />
 

@@ -65,6 +65,12 @@ class ActesEtAvisEnvoyesTests(SimpleTestCase):
                 self.assertIn("Demandes d'avis envoyées", html)
                 self.assertNotIn("Acte déjà envoyé", html)
 
+    def test_reference_externe_dans_bloc_avis_et_lien_interne_inchange(self):
+        self.avis.id_avis.numero_affiche = "CS-2026-042"
+        html = self.rendu(avis=[self.avis])
+        self.assertIn("Avis n°CS-2026-042", html)
+        self.assertIn("/instruction/123456/consultation/42/", html)
+
     def test_pas_de_bloc_vide(self):
         self.assertNotIn('class="validation-documents"', self.rendu())
 

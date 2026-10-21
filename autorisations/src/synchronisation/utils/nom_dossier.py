@@ -5,6 +5,7 @@ import re
 
 from django.utils import timezone
 from autorisations.models.models_instruction import DossierManifSportive
+from autorisations.models.models_utilisateurs import raison_sociale_affichee, organisation_affichee
 from synchronisation.utils.date_activite import parser_date_activite
 
 
@@ -51,7 +52,11 @@ def construire_contexte_nommage(dossier, contacts, dossier_champs, dossier_dm=No
     }
     for role, contact in [("beneficiaire", beneficiaire), ("demandeur", demandeur)]:
         for champ in ("prenom", "nom", "raison_sociale", "organisation"):
-            attributs[f"{role}.{champ}"] = contact.get(champ)
+            attributs[f"{role}.{champ}"] = (
+                raison_sociale_affichee(contact) if champ == "raison_sociale"
+                else organisation_affichee(contact) if champ == "organisation"
+                else contact.get(champ)
+            )
     return {
         "attributs": attributs,
         "champs": {

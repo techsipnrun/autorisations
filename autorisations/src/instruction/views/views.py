@@ -1932,6 +1932,12 @@ def gestion_contacts(request):
             contact.telephone = request.POST.get("telephone")
             contact.organisation = request.POST.get("organisation")
             contact.raison_sociale = request.POST.get("raison_sociale")
+            contact.raison_sociale_raccourci = (
+                request.POST.get("raison_sociale_raccourci", contact.raison_sociale_raccourci) or ""
+            ).strip()
+            if len(contact.raison_sociale_raccourci) > 255:
+                messages.error(request, "Le raccourci de raison sociale est limité à 255 caractères.")
+                return redirect("gestion_contacts")
             contact.adresse = request.POST.get("adresse")
             contact.save()
             messages.success(request, f"✅ Contact {contact.get_display_name()} mis à jour.")

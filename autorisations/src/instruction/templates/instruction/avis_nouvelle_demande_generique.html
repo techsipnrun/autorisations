@@ -57,10 +57,10 @@
                                     {{ c.nom }} {{ c.prenom }} - {{ c.email }}
                                 {% elif c.nom and c.prenom %}
                                     {{ c.nom }} {{ c.prenom }}
-                                {% elif c.raison_sociale %}
-                                    {{ c.raison_sociale }} - {{ c.email }}
-                                {% elif c.organisation %}
-                                    {{ c.organisation }} - {{ c.email }}
+                                {% elif c|raison_sociale_affichee %}
+                                    {{ c|raison_sociale_affichee }} - {{ c.email }}
+                                {% elif c|organisation_affichee %}
+                                    {{ c|organisation_affichee }} - {{ c.email }}
                                 {% else %}
                                     {{ c.email }}
                                 {% endif %}

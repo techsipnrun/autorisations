@@ -46,7 +46,8 @@ $migration$;
 class Migration(migrations.Migration):
     dependencies = [("autorisations", "0037_document_nature_prefixes")]
     operations = [migrations.SeparateDatabaseAndState(
-        database_operations=[migrations.RunSQL(SQL, reverse_sql=migrations.RunSQL.noop)],
+        # Le schéma PostgreSQL est administré exclusivement via sql/0038_types_actes_configurables.sql.
+        database_operations=[],
         state_operations=[
             migrations.AddField(model_name="documentnature", name="est_acte", field=models.BooleanField(default=False, verbose_name="Type d’acte")),
             migrations.AddField(model_name="documentnature", name="actif", field=models.BooleanField(default=True)),

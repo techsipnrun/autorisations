@@ -89,6 +89,7 @@
                             <th>Type</th>
                             <th class="th_email2">Email</th>
                             <th>Organisation / Raison sociale</th>
+                            <th>Raison sociale raccourcie</th>
                             <th>Téléphone</th>
                             <th class="th_adresse">Adresse</th>
                             <th>Sauvegarder</th>
@@ -106,6 +107,7 @@
                                 <td><input type="text" name="type" value="{{ c.id_type.type }}"></td>
                                 <td class="td_email2"><input type="email" name="email" value="{{ c.email }}"></td>
                                 <td><input type="text" name="raison_sociale" value="{{ c.raison_sociale }}"></td>
+                                <td><input type="text" name="raison_sociale_raccourci" maxlength="255" value="{{ c.raison_sociale_raccourci }}" title="Facultatif : remplace la raison sociale et l’organisation à l’affichage et dans les règles de nommage."></td>
                                 <td><input type="text" name="telephone" value="{{ c.telephone }}"></td>
                                 <td class="td_adresse"><input type="text" name="adresse" value="{{ c.adresse }}"></td>
                                 <td class="td_save">

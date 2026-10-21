@@ -30,6 +30,7 @@ from autorisations.models.models_utilisateurs import (
     DossierValideur,
     Groupeinstructeur,
     Instructeur,
+    raison_sociale_affichee,
 )
 from autorisations.models.models_avis import Avis, DossierAvis, Expert
 from instruction.utils.carto_utils import _geojson_to_shapely
@@ -344,19 +345,19 @@ def tableau_de_bord(request):
         "id_instructeur__id_agent_autorisations", "id_contact_externe"
     ).distinct().order_by("id")
     experts_choices = [{"value": f"expert:{expert.id}", "label": str(expert)} for expert in experts]
-    raisons_sociales = set()
+    raisons_sociales = {}
     for expert in experts.filter(est_interne=False):
         contact = expert.id_contact_externe
         raison = ((contact.raison_sociale or contact.organisation or "").strip() if contact else "")
         if raison:
-            raisons_sociales.add(raison)
+            raisons_sociales[raison] = raison_sociale_affichee(contact) or raison
     experts_choices.extend(
-        {"value": f"organisation:{raison}", "label": raison, "est_organisation": True}
+        {"value": f"organisation:{raison}", "label": raisons_sociales[raison], "est_organisation": True}
         for raison in sorted(raisons_sociales, key=str.casefold)
     )
     expert_par_defaut = next((
         choix["value"] for choix in experts_choices
-        if choix.get("est_organisation") and choix["label"].casefold() == "conseil scientifique"
+        if choix.get("est_organisation") and choix["value"].casefold() == "organisation:conseil scientifique"
     ), None)
 
     return render(request, "instruction/statistiques.html", {

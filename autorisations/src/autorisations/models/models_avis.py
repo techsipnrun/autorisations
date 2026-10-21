@@ -198,7 +198,7 @@ class Avis(models.Model):
         return da.id_dossier.id_demarche if da else None
 
     def __str__(self):
-        avis_id = f" {self.pk}" if self.pk else ""
+        avis_id = f" {self.numero_affiche}" if self.numero_affiche else ""
         if self.id_expert.est_interne :
             return (
                 f"{self.id_avis_nature.nature} {avis_id} - Expert {self.id_expert.id_instructeur} "
@@ -294,9 +294,9 @@ class AvisDocument(models.Model):
     def __str__(self):
 
         if self.id_avis.id_expert.est_interne :
-                return (f"{self.id_document.id_nature.nature} {self.id_document.id} : {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
+                return (f"{self.id_document.id_nature.nature} {self.id_document.id} : {self.id_avis.id_avis_nature.nature} {self.id_avis.numero_affiche} "
                         f"(Expert {self.id_avis.id_expert.id_instructeur.id_agent_autorisations.prenom} {self.id_avis.id_expert.id_instructeur.id_agent_autorisations.nom})")
-        return (f"{self.id_document.id_nature.nature} {self.id_document.id} : {self.id_avis.id_avis_nature.nature} {self.id_avis.id} " 
+        return (f"{self.id_document.id_nature.nature} {self.id_document.id} : {self.id_avis.id_avis_nature.nature} {self.id_avis.numero_affiche} "
                         f"(Expert {self.id_avis.id_expert.id_contact_externe.prenom} {self.id_avis.id_expert.id_contact_externe.nom} - {self.id_avis.id_expert.id_contact_externe.id_type.type})")
 
 
@@ -322,5 +322,5 @@ class DossierAvis(models.Model):
         verbose_name_plural = "Dossiers avis"
 
     def __str__(self):
-        return f"Dossier {self.id_dossier.numero} associée à l'avis {self.id_avis.id}"
+        return f"Dossier {self.id_dossier.numero} associée à l'avis {self.id_avis.numero_affiche}"
 

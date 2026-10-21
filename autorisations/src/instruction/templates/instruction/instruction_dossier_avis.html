@@ -33,7 +33,7 @@
     <div class="page-container">
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
-            <h1>AVIS n° {{ avis.id }} - {{ dossier.id_demarche.type }}</h1>
+            <h1>AVIS n° {{ avis.numero_affiche }} - {{ dossier.id_demarche.type }}</h1>
             
             <div class="etat-badge-menu {% if avis.reponse == 'favorable' or avis.reponse == 'favorable_sous_reserve' %}etat-green{% elif avis.reponse == 'defavorable' %}etat-red{% elif avis.reponse == 'absence_avis_en_etat' %}etat-neutral{% endif %}">
                 {% if avis.date_reponse_avis %}

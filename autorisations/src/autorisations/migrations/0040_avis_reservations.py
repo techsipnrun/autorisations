@@ -46,7 +46,8 @@ class Migration(migrations.Migration):
     dependencies = [("autorisations", "0039_cartographie")]
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[migrations.RunPython(preparer_reservations, migrations.RunPython.noop)],
+            # Le schéma PostgreSQL est administré exclusivement via sql/0040_avis_reservations.sql.
+            database_operations=[],
             state_operations=[
                 migrations.CreateModel(
                     name="AvisReservation",

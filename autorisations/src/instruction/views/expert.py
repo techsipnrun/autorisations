@@ -265,6 +265,7 @@ def avis_expert(request, avis_id):
         logger.error(f"[AVIS EXPERT] Avis {avis_id} introuvable — User {request.user}")
         return avis_introuvable(request, avis_id)
 
+    request.avis_courant = avis
     instructeur = Instructeur.objects.filter(email=email_user).first()
 
     est_un_instructeur = bool(instructeur)

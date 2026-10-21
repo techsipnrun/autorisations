@@ -33,13 +33,15 @@ ON CONFLICT (code) DO NOTHING;
 
 def ajouter_contexte(apps, schema_editor):
     if schema_editor.connection.vendor == "postgresql":
-        schema_editor.execute(SQL)
+        # Le %I de format() appartient à PostgreSQL, pas aux paramètres psycopg.
+        schema_editor.execute(SQL, params=None)
 
 
 class Migration(migrations.Migration):
     dependencies = [("autorisations", "0042_avis_numero_externe")]
     operations = [migrations.SeparateDatabaseAndState(
-        database_operations=[migrations.RunPython(ajouter_contexte, migrations.RunPython.noop)],
+        # Le schéma PostgreSQL est administré exclusivement via sql/0043_avis_formulaire_existant.sql.
+        database_operations=[],
         state_operations=[migrations.AlterField(
             model_name="avisformulaireconfiguration", name="code",
             field=models.CharField(max_length=20, unique=True, choices=[

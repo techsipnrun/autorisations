@@ -84,7 +84,7 @@ class OuvertureAvisDossierTests(SimpleTestCase):
         documents = [SimpleNamespace(id=pk, pk=pk, titre=nom, emplacement="Avis/instance/Annexes/")
                      for pk, nom in enumerate(noms, start=40)]
         self.ancien = self.creer_avis(id_projet_avis=documents[2], id_projet_acte=documents[3],
-            id_rapport_instance=documents[3], id_avis_nature=self.nature)
+            id_rapport_instance=documents[3], id_avis_nature=self.nature, numero_affiche="101")
         self.modeles["Avis"].objects.filter.return_value.select_related.return_value.first.return_value = self.ancien
         liens = [SimpleNamespace(id_document=doc, id_document_id=doc.pk) for doc in documents]
         query = self.modeles["AvisDocument"].objects.filter.return_value

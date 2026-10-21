@@ -179,7 +179,7 @@ def contexte_nommage_depuis_bdd(dossier, regles=()):
 
     def contact_dict(contact):
         return {champ: getattr(contact, champ, None) for champ in (
-            "prenom", "nom", "raison_sociale", "organisation",
+            "prenom", "nom", "raison_sociale", "raison_sociale_raccourci", "organisation",
         )} if contact else {}
 
     liaison = getattr(dossier, "liaison_nommage", None)

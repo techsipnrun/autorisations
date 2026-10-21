@@ -280,6 +280,7 @@ class DossierAvisAdmin(admin.ModelAdmin):
         "id_avis__id_expert__id_contact_externe__nom",
         "id_avis__id_expert__id_contact_externe__prenom",
         "id_avis__id_expert__id_contact_externe__raison_sociale",
+        "id_avis__id_expert__id_contact_externe__raison_sociale_raccourci",
         "id_avis__id_expert__id_instructeur__id_agent_autorisations__nom",
         "id_avis__id_expert__id_instructeur__id_agent_autorisations__prenom",
     )
@@ -292,7 +293,7 @@ class DossierAvisAdmin(admin.ModelAdmin):
     id_dossier_numero.short_description = "Numéro dossier"
 
     def id_avis_numero(self, obj):
-        return obj.id_avis.id
+        return obj.id_avis.numero_affiche
     id_avis_numero.short_description = "Numéro avis"
 
     def expert_interne(self, obj):
@@ -309,7 +310,7 @@ class DossierAvisAdmin(admin.ModelAdmin):
             contact = expert.id_contact_externe
             if contact.nom and contact.prenom:
                 return f"{contact.nom} {contact.prenom}"
-            return contact.raison_sociale or "-"
+            return contact.raison_sociale_affichee or "-"
         return "-"
     expert_externe.short_description = "Expert externe"
 
@@ -861,10 +862,14 @@ class PersonneMoraleFilter(admin.SimpleListFilter):
 
 @admin.register(ContactExterne)
 class ContactExterneAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'prenom', 'email', 'id_type', 'raison_sociale')
+    list_display = ('nom', 'prenom', 'email', 'id_type', 'raison_sociale_courte')
     list_filter = ('id_type', PersonneMoraleFilter)
-    search_fields = ('nom', 'prenom', 'email', 'organisation', 'raison_sociale')
+    search_fields = ('nom', 'prenom', 'email', 'organisation', 'raison_sociale', 'raison_sociale_raccourci')
     list_per_page = 25
+
+    @admin.display(description="Raison sociale", ordering="raison_sociale")
+    def raison_sociale_courte(self, obj):
+        return obj.raison_sociale_affichee
 
 admin.site.register(TypeContactExterne)
 admin.site.register(Instructeur)

@@ -28,7 +28,7 @@ class EnteteDossierInterfaceTests(SimpleTestCase):
             # Isoler l'en-tête réel sans rendre les autres rubriques métier du dossier.
             fragment = source.split('<div class="identites-dossier">', 1)[1].split("{% for champ in champs %}", 1)[0]
             fragment = fragment.split('<div class="champs">', 1)[0]
-            template = Template('{% load static group_tags %}<div class="identites-dossier">' + fragment)
+            template = Template('{% load static group_tags custom_filters %}<div class="identites-dossier">' + fragment)
             for nombre in (3, 2):
                 with patch("instruction.templatetags.group_tags._instructeur_for_user", return_value=object()):
                     rendu = template.render(Context({

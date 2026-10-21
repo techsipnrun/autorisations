@@ -472,7 +472,7 @@ def instruction_dossier_ajouter_avis(request, num_dossier, avis_id=None):
         "contacts_externes": contacts_externes,
         "pieces_complementaires": pieces_complementaires,
         "reservation": reservation,
-        "numero_avis": avis.id if avis else reservation.numero,
+        "numero_avis": avis.numero_affiche if avis else reservation.numero,
         "avis_formulaire_configuration": _configuration_formulaire("dossier", dossier, avis.id if avis else reservation.numero),
         "is_formulaire_active": False,
         "is_messagerie_active": False,
@@ -1626,6 +1626,7 @@ def instruction_dossier_avis(request, num_dossier, avis_id):
         return avis_introuvable(request, avis_id, num_dossier)
 
 
+    request.avis_courant = avis
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
 
     # --- Instructeur du dossier ? ---

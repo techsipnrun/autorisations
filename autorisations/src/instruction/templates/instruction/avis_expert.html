@@ -33,7 +33,7 @@
     <div class="page-container">
         <!-- Colonne gauche : Messagerie -->
         <div class="messagerie">
-            <h1>AVIS n° {{ avis.id }} - {{ avis.demarche_effective.type }}</h1>
+            <h1>AVIS n° {{ avis.numero_affiche }} - {{ avis.demarche_effective.type }}</h1>
 
             <div class="badge_et_publi_raa">
                 {% if est_expert and avis.reponse == None %}

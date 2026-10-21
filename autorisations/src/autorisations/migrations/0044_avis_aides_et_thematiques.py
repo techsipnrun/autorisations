@@ -29,7 +29,8 @@ def enrichir_champs(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [("autorisations", "0043_avis_formulaire_existant")]
     operations = [migrations.SeparateDatabaseAndState(
-        database_operations=[migrations.RunPython(enrichir_champs, migrations.RunPython.noop)],
+        # Le schéma PostgreSQL est administré exclusivement via sql/0044_avis_aides_et_thematiques.sql.
+        database_operations=[],
         state_operations=[
             migrations.AddField(model_name="avisformulairechamp", name="placeholder", field=models.TextField(blank=True, default="")),
             migrations.AddField(model_name="avisformulairechamp", name="choix_autorises", field=models.JSONField(blank=True, null=True, default=None)),

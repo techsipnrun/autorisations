@@ -47,7 +47,8 @@ def autocomplete_demandeur_dossiers_lies(request, dossier_id):
     if terme:
         demandeurs = demandeurs.filter(
             Q(nom__icontains=terme) | Q(prenom__icontains=terme)
-            | Q(raison_sociale__icontains=terme) | Q(organisation__icontains=terme)
+            | Q(raison_sociale__icontains=terme) | Q(raison_sociale_raccourci__icontains=terme)
+            | Q(organisation__icontains=terme)
             | Q(email__icontains=terme)
         )
     suggestions = [

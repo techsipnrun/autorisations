@@ -120,6 +120,32 @@ class NumeroAfficheAvisTests(SimpleTestCase):
         for reference in (None, "", "  "):
             self.assertEqual(Avis(id=1058, numero_avis_externe=reference).numero_affiche, "1058")
 
+    def test_titres_des_deux_interfaces_et_actions_conservent_les_identifiants(self):
+        demarche = SimpleNamespace(type="Travaux", numero=100)
+        dossier = SimpleNamespace(numero=123456, id_demarche=demarche, emplacement="test/")
+        for reference in ("CS-2026-042", None):
+            numero = Avis(id=1058, numero_avis_externe=reference).numero_affiche
+            avis = SimpleNamespace(id=1058, numero_affiche=numero, demarche_effective=demarche)
+            for template in ("avis_expert.html", "instruction_dossier_avis.html"):
+                with self.subTest(reference=reference, template=template):
+                    html = render_to_string("instruction/" + template, {
+                        "avis": avis, "dossier": dossier,
+                        "est_demandeur": True, "peut_envoyer_message": True, "resume_pdf_titre": "dossier-123456.pdf",
+                        "request": SimpleNamespace(user=AnonymousUser()),
+                    })
+                    self.assertIn(f"<h1>AVIS n° {numero} - Travaux</h1>", html)
+                    self.assertIn('name="avis_id" value="1058"', html)
+                    self.assertNotIn('name="avis_id" value="CS-2026-042"', html)
+
+    def test_fil_ariane_utilise_reference_deja_chargee_sans_nouvelle_requete(self):
+        from instruction.context_processors import breadcrumb_context
+        for vue in ("avis_expert", "instruction_dossier_avis"):
+            request = RequestFactory().get("/test")
+            request.resolver_match = SimpleNamespace(view_name=vue, kwargs={"avis_id": 1058, "num_dossier": 123456})
+            request.avis_courant = Avis(id=1058, numero_avis_externe="CS-2026-042")
+            with patch("instruction.context_processors.get_demarche_from_num_dossier", return_value=None):
+                self.assertEqual(breadcrumb_context(request)["breadcrumb_items"][-1]["label"], "Avis n°CS-2026-042")
+
     def test_recherche_reference_externe_ou_id_sans_conversion_abusive(self):
         self.assertEqual(filtre_numero_avis(" CS-2026-042 "), Q(numero_avis_externe__iexact="CS-2026-042"))
         self.assertEqual(filtre_numero_avis("1058"), Q(numero_avis_externe__iexact="1058") | Q(id=1058))

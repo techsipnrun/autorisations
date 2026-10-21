@@ -181,7 +181,8 @@ WHERE c.code = 'edition' AND NOT EXISTS (
 class Migration(migrations.Migration):
     dependencies = [("autorisations", "0038_types_actes_configurables")]
     operations = [migrations.SeparateDatabaseAndState(
-        database_operations=[migrations.RunSQL(SQL, reverse_sql=migrations.RunSQL.noop)],
+        # Le schéma PostgreSQL est administré exclusivement via sql/0039_cartographie_dev.sql.
+        database_operations=[],
         state_operations=[
             migrations.CreateModel(name="CartographieSource", fields=[
                     ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
