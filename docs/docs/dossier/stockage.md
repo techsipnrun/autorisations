@@ -147,10 +147,19 @@ Exemple :
 │
 ├── calu_louis/
 ├── collin_gerard/
+├── collin_gerard_2/
+├── collin_gerard_3/
 ├── ...
 ```
 
-Pour chaque dossier relatif à un avis on retrouvera :
+Une même instance peut recevoir plusieurs demandes sur un même dossier.
+La première demande utilise le nom de l'expert ou de l'instance (`collin_gerard`),
+les suivantes ajoutent un suffixe (`collin_gerard_2`, `collin_gerard_3`, etc.).
+Le suffixe suivant tient compte des emplacements enregistrés et des dossiers présents sur le NAS.
+Deux pièces jointes de même nom appartenant à des demandes différentes ne s'écrasent donc pas.
+Les avis et brouillons existants conservent leur emplacement historique.
+
+Pour chaque dossier relatif à une demande d'avis on retrouvera :
 
 - L'avis signé s'il existe.
 - Un dossier `Annexes` qui contient l'ensemble des documents liés à l'avis (Rapport CS, Projet d'avis, Projet d'arrêté etc.).

@@ -45,6 +45,10 @@ Cette configuration concerne uniquement les dossiers Démarche Numérique. Elle 
 
 Une règle est composée d’éléments placés dans l’ordre : texte fixe, champ du formulaire DN, champ DM pour les Manifestations sportives, ou information déjà connue par AGIDA (numéro, date de dépôt, demandeur, bénéficiaire, etc.). AGIDA ajoute automatiquement un espace entre les éléments.
 
+Les variables **Raison sociale** et **Organisation**, pour le demandeur comme pour le bénéficiaire, utilisent le raccourci de raison sociale du contact s’il est renseigné dans la gestion des contacts ou l’administration Django. Par exemple, « OFFICE NATIONAL DES FORETS » peut ainsi être affiché « ONF », sans modifier les valeurs complètes en base. Sans raccourci, chaque variable utilise sa propre valeur d’origine. Les transformations de la règle s’appliquent à la valeur ainsi retenue.
+
+Après modification du raccourci d’un contact, utiliser **Appliquer aux dossiers existants** pour mettre à jour les noms déjà générés. Les prochaines synchronisations utilisent également ce raccourci et ne l’écrasent pas.
+
 Les règles sont essayées par priorité. Une règle est retenue uniquement si toutes ses variables sont exploitables ; sinon AGIDA passe à la suivante. Si aucune règle ne convient, le nom standard est conservé.
 
 Les transformations permettent par exemple d’utiliser des majuscules, une date formatée ou une correspondance personnalisée : une valeur telle que « Renouvellement de demande » peut être affichée comme « Renouvellement ». Pour une correspondance personnalisée, choisir le comportement souhaité si la valeur ne figure pas dans la liste des correspondances.

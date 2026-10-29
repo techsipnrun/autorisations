@@ -17,12 +17,17 @@ Les champs obligatoires sont signalés par une étoile.
 
 ### Numérotation et nom de fichier
 
-- **Préfixe du numéro** : préfixe affiché devant l’année et le compteur, par exemple DIR-I.
+- **Numérotation** : automatique (compteur annuel AGIDA) ou manuelle (référence libre saisie par l’instructeur lors de la création du projet).
+- **Préfixe du numéro** : facultatif, affiché devant le numéro automatique ou la référence manuelle, par exemple DIR-I- ou PF-. Sans préfixe, le numéro ou la référence est affiché tel quel.
 - **Préfixe du nom de fichier** : préfixe utilisé dans le nom du fichier signé. Il peut être différent du préfixe affiché du numéro.
 
 La fiche affiche un **prochain numéro estimé**. Ouvrir cette ligne pour voir le détail : le numéro associe le préfixe, l’année en cours et le dernier compteur de ce type d’acte augmenté de 1. Sans numéro attribué cette année, le compteur commence à 1000.
 
 Cet aperçu ne réserve aucun numéro : il peut changer si un autre projet est créé avant le vôtre.
+
+En mode **Manuelle**, il n’y a aucun compteur ni aperçu de prochain numéro. L’instructeur saisit une référence, par exemple `2025-018/PF`, dans chacun des formulaires de création d’un projet. Elle est conservée pendant les validations, la signature et l’envoi. Plusieurs dossiers peuvent utiliser la même référence sans être liés automatiquement. Pour indiquer qu’il s’agit du même acte, utiliser explicitement la reprise depuis un autre dossier.
+
+Les `/` et `\` sont conservés dans la référence affichée, mais remplacés par des tirets dans le nom du fichier NAS. Les deux préfixes restent configurables. Une fois le type utilisé par un document, son mode de numérotation ne peut plus être changé ; créer un nouveau type si le fonctionnement évolue.
 
 ### Circuit et documents associés
 

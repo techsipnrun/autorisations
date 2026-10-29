@@ -73,6 +73,7 @@ nav:
       - Réception: manif_sportive/reception_manif_sportive.md
       - Dossier Déclaration Manifestations: manif_sportive/dossier_dm.md
   - Back-office:
+      - Avis: back_office/avis.md
       - Cartographie: back_office/cartographie.md
       - Démarche: back_office/demarche.md
       - Circuit d’instruction · Types d’actes: back_office/types-actes.md

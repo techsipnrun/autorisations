@@ -22,6 +22,8 @@ Une fois trouvé, il suffit de cliquer sur « Associer au dossier ». **L'avis a
 
 On laisse la possibilité d'ajouter un avis qui aurait été émis en dehors de l'application.
 
+Les libellés, l’ordre, la visibilité, les valeurs initiales et les obligations de ce formulaire peuvent être personnalisés dans **Back-office → Avis → Ajouter un avis existant · Hors application**. La liste ci-dessous décrit les réglages standards. La recherche d’un avis déjà présent dans AGIDA reste indépendante de cette configuration.
+
 Pour ce faire, vous devez dérouler le formulaire :
 
 
@@ -32,6 +34,11 @@ Pour ce faire, vous devez dérouler le formulaire :
 - **Thématique de l'avis** : Choisir dans le menu déroulant
 
 - **Expert interne/externe** : Choisir dans le menu déroulant
+
+- Pour un **avis du Conseil scientifique**, deux champs supplémentaires apparaissent :
+
+    - **Numéro de l’avis CS importé** : référence facultative, par exemple `2026-42` ou `CS-2026-042`. Si elle est renseignée, elle est affichée dans les colonnes **N° Avis**. Sinon, le numéro attribué par AGIDA est affiché. Dans les deux cas, l’identifiant interne et les liens restent gérés automatiquement. La recherche par numéro accepte les deux références.
+    - **Publication au RAA** : **À publier** conserve l’état non traité (`publie_au_raa` à `NULL`). **Déjà publié** et **Publication non requise** positionnent tous deux `publie_au_raa` à `True`, pour ne plus proposer l’avis à la publication. Ces deux derniers motifs ne sont donc pas distingués en base. L’apparition dans la liste de publication reste soumise aux critères habituels, notamment une réponse favorable ou favorable sous réserve.
 
 - **Expert.e sollicité.e via** : Courrier papier, Mail, Téléphone, Autre
 
