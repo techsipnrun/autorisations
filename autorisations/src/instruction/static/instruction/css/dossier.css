@@ -1249,6 +1249,75 @@ h2 {
     color: white;
 }
 
+.etape-archives {
+    position: relative;
+}
+
+.etape-archives-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.etape-archives-trigger[aria-expanded="true"] {
+    background-color: #006131;
+    color: white;
+}
+
+.etape-archives-arrow {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.etape-archives-panel {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: max-content;
+    min-width: 310px;
+    max-width: min(28rem, calc(100vw - 2rem));
+    box-sizing: border-box;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    z-index: 1;
+}
+
+.etape-archives-panel[hidden] {
+    display: none;
+}
+
+.etape-archives-panel form {
+    margin: 0;
+}
+
+.etape-archives-panel .btn_dropdown_instruction {
+    display: block;
+}
+
+.etape-archives.ouvre-gauche .etape-archives-panel {
+    left: auto;
+    right: 100%;
+}
+
+.etape-archives.ouvre-dessous .etape-archives-panel {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding-left: 0.75rem;
+    border-left: 2px solid #006131;
+}
+
+.etape-archives.ouvre-dessous .etape-archives-arrow {
+    transform: rotate(90deg);
+}
+
 /* Téléchargement PDF */
 .download-pdf {
     width: 40px;

@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const dropdownWrapper = toggleBtn.closest(".etat-badge-menu-dropdown");
     if (!dropdownWrapper) return;
+
+    initialiserMenuArchivage(menuContent);
     
     toggleBtn.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -22,24 +24,104 @@ document.addEventListener("DOMContentLoaded", function () {
             menuContent.classList.add("show");
             dropdownWrapper.classList.add("open");
 
-            // Appliquer la hauteur comme margin-bottom
-            const hauteur = menuContent.scrollHeight;
-            dropdownWrapper.style.marginBottom = `${hauteur}px`;
+            ajusterHauteurMenuEtape();
         } else {
-            menuContent.classList.remove("show");
-            dropdownWrapper.classList.remove("open");
-            dropdownWrapper.style.marginBottom = "";
+            fermerMenuEtape();
         }
     });
 
     document.addEventListener("click", function (e) {
         if (!dropdownWrapper.contains(e.target)) {
-            menuContent.classList.remove("show");
-            dropdownWrapper.classList.remove("open");
-            dropdownWrapper.style.marginBottom = "";
+            fermerMenuEtape();
         }
     });
 });
+
+function ajusterHauteurMenuEtape() {
+    const menu = document.getElementById("etapeMenuContent");
+    const wrapper = menu?.closest(".etat-badge-menu-dropdown");
+    if (!wrapper?.classList.contains("open")) return;
+    // Le panneau latéral ne doit pas augmenter l'espace réservé sous le menu.
+    const hauteur = menu.querySelector(".etape-archives") ? menu.offsetHeight : menu.scrollHeight;
+    wrapper.style.marginBottom = `${hauteur}px`;
+}
+
+function fermerSousMenuArchivage() {
+    const groupe = document.querySelector("#etapeMenuContent .etape-archives");
+    if (!groupe) return;
+    groupe.querySelector(".etape-archives-panel").hidden = true;
+    groupe.querySelector(".etape-archives-trigger").setAttribute("aria-expanded", "false");
+    groupe.classList.remove("ouvre-gauche", "ouvre-dessous");
+    ajusterHauteurMenuEtape();
+}
+
+function initialiserMenuArchivage(menu) {
+    if (!menu.hasAttribute("data-archivage-dn")) return;
+    const actions = [...menu.children].filter(element => element.hasAttribute("data-archive-action"));
+    if (actions.length < 2) return;
+
+    const groupe = document.createElement("div");
+    groupe.className = "etape-archives";
+    const bouton = document.createElement("button");
+    bouton.type = "button";
+    bouton.className = "btn_dropdown_instruction etape-archives-trigger";
+    bouton.setAttribute("aria-expanded", "false");
+    bouton.setAttribute("aria-controls", "etape-archives-panel");
+    const fleche = document.createElement("span");
+    fleche.className = "etape-archives-arrow";
+    fleche.setAttribute("aria-hidden", "true");
+    fleche.textContent = "›";
+    bouton.append("Archiver", fleche);
+    const panneau = document.createElement("div");
+    panneau.id = "etape-archives-panel";
+    panneau.className = "etape-archives-panel";
+    panneau.hidden = true;
+    groupe.append(bouton, panneau);
+    menu.insertBefore(groupe, actions[0]);
+
+    // Déplacer les vrais boutons/formulaires conserve leurs handlers et champs.
+    const ordre = ["annule", "refuse", "accepte", "non_soumis"];
+    actions.sort((a, b) => ordre.indexOf(a.dataset.archiveAction) - ordre.indexOf(b.dataset.archiveAction));
+    panneau.append(...actions);
+
+    const petitEcran = window.matchMedia("(max-width: 760px)");
+    const survolDisponible = window.matchMedia("(hover: hover) and (pointer: fine)");
+    function positionnerPanneau() {
+        groupe.classList.remove("ouvre-gauche", "ouvre-dessous");
+        if (petitEcran.matches) {
+            groupe.classList.add("ouvre-dessous");
+        } else {
+            const largeur = panneau.getBoundingClientRect().width;
+            const ancre = groupe.getBoundingClientRect();
+            const placeDroite = document.documentElement.clientWidth - ancre.right - 8;
+            const placeGauche = ancre.left - 8;
+            if (largeur > placeDroite) {
+                groupe.classList.add(largeur <= placeGauche ? "ouvre-gauche" : "ouvre-dessous");
+            }
+        }
+        ajusterHauteurMenuEtape();
+    }
+    function ouvrir() {
+        panneau.hidden = false;
+        bouton.setAttribute("aria-expanded", "true");
+        positionnerPanneau();
+    }
+    bouton.addEventListener("click", event => {
+        event.stopPropagation();
+        if (panneau.hidden) ouvrir();
+        else fermerSousMenuArchivage();
+    });
+    groupe.addEventListener("pointerenter", event => {
+        if (event.pointerType !== "touch" && survolDisponible.matches && !petitEcran.matches) ouvrir();
+    });
+    groupe.addEventListener("pointerleave", event => {
+        if (event.pointerType !== "touch" && survolDisponible.matches && !petitEcran.matches) fermerSousMenuArchivage();
+    });
+    window.addEventListener("resize", () => {
+        if (!panneau.hidden) positionnerPanneau();
+        else ajusterHauteurMenuEtape();
+    });
+}
 
 
 // Réassociation manuelle d'un projet renommé dans le dossier Work.
@@ -642,6 +724,7 @@ function fermerMenuEtape() {
     const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
 
     if (menuContent && menuWrapper) {
+        fermerSousMenuArchivage();
         menuContent.classList.remove("show");
         menuWrapper.classList.remove("open");
         menuWrapper.style.marginBottom = "";

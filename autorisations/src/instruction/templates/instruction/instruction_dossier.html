@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=29">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=30">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=11">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -42,7 +42,7 @@
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
-    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=12"></script>
+    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=13"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=4" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
@@ -296,7 +296,7 @@
                         </div>
 
                         {% if peut_changer_etape or peut_annuler_en_instruction %}
-                            <div class="etat-badge-menu-content" id="etapeMenuContent">
+                            <div class="etat-badge-menu-content" id="etapeMenuContent"{% if dossier.present_sur_ds %} data-archivage-dn{% endif %}>
 
                                     {% if actions_possibles %}
                                         {% for label in actions_possibles %}
@@ -317,7 +317,7 @@
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Faire valider le projet d'acte</button>
                                             
                                             {% elif label == "Faire valider avant l'envoi d'une demande d'avis à une instance" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider avant l'envoi d'une demande d'avis à une instance</button>
+                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider le projet d'avis CS</button>
                                             
                                             {% elif label == "Valider et envoyer pour relecture qualité" %}
                                                 <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
@@ -351,14 +351,14 @@
                                             
                                             {% elif label == "Archiver le dossier comme non soumis à autorisation" %} 
                                                 {% if dossier.present_sur_ds %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
+                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="non_soumis" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
                                                 
                                                 <!-- Cas ou Doss plus sur DN mais encore sur DM et avis pas donné -->
                                                 {% elif dossier_lie_manif_sportive and doss_manif_sportive and not doss_manif_sportive.archive %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
+                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="non_soumis" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
 
                                                 {% else %}
-                                                    <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement-2">
+                                                    <form method="post" data-archive-action="non_soumis" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement-2">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
@@ -373,11 +373,11 @@
 
                                                 <!-- Dossier présent sur DN mais pas à l'étape "" -->
                                                 {% elif dossier.present_sur_ds and etape_actuelle.etape != "À publier au RAA" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Archiver le dossier comme refusé</button>
+                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="refuse" onclick="afficherFormulaireRefus()">Archiver le dossier comme refusé</button>
                                                 
                                                 <!-- Dossier absent de DN OU dossier présent sur DN à l'étape "À publier au RAA" pour un acte de refus -->
                                                 {% else %}
-                                                    <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus-2">
+                                                    <form method="post" data-archive-action="refuse" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus-2">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeRefuse()">Archiver le dossier comme refusé</button>
@@ -389,9 +389,9 @@
                                                 {% if etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "accepte" %}
                                                         <!-- pas de bouton -->
                                                 {% elif dossier.present_sur_ds and etape_actuelle.etape != "À publier au RAA" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptationDirecte()">Archiver le dossier comme accepté</button>
+                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="accepte" onclick="afficherFormulaireAcceptationDirecte()">Archiver le dossier comme accepté</button>
                                                 {% else %}
-                                                    <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-3">
+                                                    <form method="post" data-archive-action="accepte" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-3">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
@@ -400,9 +400,9 @@
 
                                             {% elif label == "Classer comme annulé" %}
                                                 {% if dossier.present_sur_ds and etape_actuelle.etape == "À affecter" or dossier.present_sur_ds and etape_actuelle.etape == "En pré-instruction" or dossier.present_sur_ds and etape_actuelle.etape == "En instruction" %}
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
+                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="annule" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
                                                 {% else %}
-                                                    <form method="post" action="{% url 'classer_comme_annule_url' %}">
+                                                    <form method="post" data-archive-action="annule" action="{% url 'classer_comme_annule_url' %}">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAnnule(this)">Classer comme annulé</button>
@@ -3183,6 +3183,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
 
             if (menuContent && menuWrapper) {
+                fermerSousMenuArchivage();
                 menuContent.classList.remove("show");
                 menuWrapper.classList.remove("open");
                 menuWrapper.style.marginBottom = "";

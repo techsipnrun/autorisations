@@ -117,12 +117,39 @@ def _filtrer_dossiers_carte(request, demarche):
     return queryset, est_manifestation
 
 
+def _geojson_carte_2d(geojson):
+    """Copie les coordonnées XY pour le calcul, sans modifier le GeoJSON source."""
+    if isinstance(geojson, str):
+        geojson = json.loads(geojson)
+    if not isinstance(geojson, dict):
+        return geojson
+
+    def coordonnees_xy(coordonnees):
+        if not isinstance(coordonnees, (list, tuple)) or not coordonnees:
+            return coordonnees
+        if isinstance(coordonnees[0], (list, tuple)):
+            return [coordonnees_xy(enfant) for enfant in coordonnees]
+        return coordonnees[:2]
+
+    copie = dict(geojson)
+    type_geojson = copie.get("type")
+    if type_geojson == "FeatureCollection":
+        copie["features"] = [_geojson_carte_2d(feature) for feature in copie.get("features", [])]
+    elif type_geojson == "Feature":
+        copie["geometry"] = _geojson_carte_2d(copie.get("geometry"))
+    elif type_geojson == "GeometryCollection":
+        copie["geometries"] = [_geojson_carte_2d(geometrie) for geometrie in copie.get("geometries", [])]
+    elif "coordinates" in copie:
+        copie["coordinates"] = coordonnees_xy(copie["coordinates"])
+    return copie
+
+
 def _preparer_geometrie_carte(geojson, tolerance):
-    geometrie = _geojson_to_shapely(geojson)
+    # Un même tracé DN peut contenir des positions XY et XYZ : retirer
+    # l'altitude avant shape()/unary_union(), qui refusent ce mélange.
+    geometrie = _geojson_to_shapely(_geojson_carte_2d(geojson))
     if geometrie is None or geometrie.is_empty:
         return None
-    # Les GeoJSON DN peuvent mélanger des tracés XYZ et XY. L'altitude n'est
-    # pas utile à cette analyse et ferait échouer certaines transformations.
     geometrie = force_2d(geometrie)
     geometrie = geometrie if geometrie.is_valid else make_valid(geometrie)
     if geometrie.is_empty:

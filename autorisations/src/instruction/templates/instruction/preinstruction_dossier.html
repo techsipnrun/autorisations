@@ -15,7 +15,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=29">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=30">
     <link rel="stylesheet" href="{% static 'instruction/css/preinstruction_dossier.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -38,7 +38,7 @@
     <script src="{% static 'instruction/js/copie_chemin.js' %}"></script>
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
-    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=12"></script>
+    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=13"></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
     <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
@@ -235,7 +235,7 @@
 
                         {% if request.user|has_any_group:"Réception SAADD,Réception SPPN" or request.user|est_concerné_par_le_dossier:dossier or request.user.is_superuser %}
 
-                            <div class="etat-badge-menu-content" id="etapeMenuContent">
+                            <div class="etat-badge-menu-content" id="etapeMenuContent"{% if dossier.present_sur_ds %} data-archivage-dn{% endif %}>
 
                                         {% if actions_possibles %}
                                             {% for label in actions_possibles %}
@@ -245,20 +245,21 @@
                                             <!-- ============================================= -->
 
                                                 {% if label == "Archiver le dossier comme non soumis à autorisation" %}
-                                                    {% if not dossier.present_sur_ds %}
-                                                        <form method="post" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
+                                                    {% if dossier.present_sur_ds %}
+                                                        <button type="button" class="btn_dropdown_instruction" data-archive-action="non_soumis" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
+                                                    {% else %}
+                                                        <form method="post" data-archive-action="non_soumis" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
                                                             {% csrf_token %}
                                                             <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                             <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
                                                         </form>
                                                     {% endif %}
-                                                    <!-- Pour le moment on ne laisse pas la possibilité de classer comme non soumis si doss existe sur DN  -->
                                                 
                                                 {% elif label == "Archiver le dossier comme refusé" %}
                                                     {% if dossier.present_sur_ds %}
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefusDirect()">Archiver le dossier comme refusé</button>
+                                                        <button type="button" class="btn_dropdown_instruction" data-archive-action="refuse" onclick="afficherFormulaireRefusDirect()">Archiver le dossier comme refusé</button>
                                                     {% else %}
-                                                    <form method="post" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
+                                                    <form method="post" data-archive-action="refuse" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeRefuse()">Archiver le dossier comme refusé</button>
@@ -268,9 +269,9 @@
 
                                                 {% elif label == "Archiver le dossier comme accepté" %}
                                                     {% if dossier.present_sur_ds %}
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptationDirecte()">Archiver le dossier comme accepté</button>
+                                                        <button type="button" class="btn_dropdown_instruction" data-archive-action="accepte" onclick="afficherFormulaireAcceptationDirecte()">Archiver le dossier comme accepté</button>
                                                     {% else %}
-                                                    <form method="post" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
+                                                    <form method="post" data-archive-action="accepte" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-2">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                         <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
@@ -279,9 +280,9 @@
 
                                                 {% elif label == "Classer comme annulé" %}
                                                     {% if dossier.present_sur_ds %}
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
+                                                        <button type="button" class="btn_dropdown_instruction" data-archive-action="annule" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
                                                     {% else %}
-                                                        <form method="post" action="{% url 'classer_comme_annule_url' %}">
+                                                        <form method="post" data-archive-action="annule" action="{% url 'classer_comme_annule_url' %}">
                                                             {% csrf_token %}
                                                             <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
                                                             <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAnnule(this)">Classer comme annulé</button>
@@ -364,6 +365,25 @@
                     <div class="instruction-warning">
                         {{ preinstruction_message }}
                     </div>
+                {% endif %}
+
+                {% if dossier.present_sur_ds %}
+                <div id="formulaire-classement-dn" class="zone-complement zone-envoyer-pour-validation">
+                    <form id="form-classement-sans-suite" method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme non soumis à autorisation ?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p>
+                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
+
+[Préciser les raisons].</textarea>
+                        <div class="zone-pj-complement">
+                            <label for="justificatif-classement-preinstruction">Joindre un justificatif (facultatif) :</label>
+                            <input id="justificatif-classement-preinstruction" type="file" name="justificatif" data-taille-max="10485760">
+                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+                            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
+                        </div>
+                    </form>
+                </div>
                 {% endif %}
 
                 <div id="formulaire-refus-direct" class="zone-complement zone-envoyer-pour-validation">
@@ -1039,6 +1059,12 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
         fermerMenuEtape();
     }
 
+    function afficherFormulaireClassement() {
+        masquerToutesZonesComplementaires();
+        document.getElementById("formulaire-classement-dn").classList.add("show");
+        fermerMenuEtape();
+    }
+
     function afficherFormulaireAcceptationDirecte() {
         masquerToutesZonesComplementaires();
         document.getElementById("formulaire-acceptation-directe").classList.add("show");
@@ -1051,6 +1077,7 @@ L’établissement du Parc national de La Réunion ne peut donner une suite favo
         const menuWrapper = document.querySelector(".etat-badge-menu-dropdown");
 
         if (menuContent && menuWrapper) {
+            fermerSousMenuArchivage();
             menuContent.classList.remove("show");
             menuWrapper.classList.remove("open");
             menuWrapper.style.marginBottom = "";
