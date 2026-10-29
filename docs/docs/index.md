@@ -6,7 +6,7 @@ Bienvenue dans la documentation utilisateur de l'application **AGIDA**.
 <img src="agida_logo.png" alt="Logo AGIDA" width="500">
 
 !!! info "Information"
-    Date de la dernière mise à jour : **13/10/2026**
+    Date de la dernière mise à jour : **29/10/2026**
 
 
 ---
