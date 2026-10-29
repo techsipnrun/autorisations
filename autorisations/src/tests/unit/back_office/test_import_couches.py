@@ -7,8 +7,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, SimpleTestCase
 
 from autorisations.models.models_cartographie import CartographieSource
-from instruction.utils.import_couches import TAILLE_MAX, convertir_couche
-from instruction.views import cartographie
+from backoffice.services.import_couches import TAILLE_MAX, convertir_couche
+from backoffice.views import cartographie
 
 
 def fichier(nom, contenu):
@@ -112,7 +112,7 @@ class ImportCouchesTests(SimpleTestCase):
         with self.assertRaisesMessage(ValidationError, "5 Mo"):
             convertir_couche(fichier("gros.gpx", b'x' * (TAILLE_MAX + 1)))
         contenu = gpx('<wpt lat="-21" lon="55"/>' * 100)
-        with patch("instruction.utils.import_couches.TAILLE_MAX", len(contenu.encode()) + 1):
+        with patch("backoffice.services.import_couches.TAILLE_MAX", len(contenu.encode()) + 1):
             with self.assertRaisesMessage(ValidationError, "GeoJSON obtenu"):
                 convertir_couche(fichier("converti.gpx", contenu))
 
@@ -176,7 +176,7 @@ class ConversionCouchesVuesTests(SimpleTestCase):
         request = self.requete(fichier("invalide.kml", '<kml'))
         request.POST = request.POST.copy()
         request.POST['configuration'] = json.dumps({"nom": "Nouveau", "format": "geojson", "options": {}})
-        with patch('instruction.views.cartographie.get_object_or_404', return_value=source), patch.object(CartographieSource, "save") as save:
+        with patch('backoffice.views.cartographie.get_object_or_404', return_value=source), patch.object(CartographieSource, "save") as save:
             reponse = cartographie.enregistrer_source(request, 10)
         self.assertEqual(reponse.status_code, 400)
         save.assert_not_called()

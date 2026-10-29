@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 from autorisations.models.models_documents import Document, DocumentNature
-from instruction.forms_types_actes import TypeActeForm
+from backoffice.forms.types_actes import TypeActeForm
 
 
 def contexte_types_actes():

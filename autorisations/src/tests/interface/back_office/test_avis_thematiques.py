@@ -17,8 +17,8 @@ CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
 @skipUnless(CHROME.exists(), "Chrome headless indisponible.")
 class CatalogueAvisInterfaceTests(SimpleTestCase):
     def test_filtres_edition_creation_erreur_et_responsive(self):
-        src = Path(__file__).resolve().parents[2] / "instruction/static/instruction"
-        contenu = render_to_string("instruction/refacto/back_office_avis_thematiques.html", {"csrf_token": "test"})
+        src = Path(__file__).resolve().parents[3]
+        contenu = render_to_string("backoffice/back_office_avis_thematiques.html", {"csrf_token": "test"})
         categories = [{"valeur": "", "libelle": "Non rattachée"}, {"valeur": "Autre", "libelle": "Toutes les démarches"},
                       {"valeur": "Activités commerciales", "libelle": "Activités commerciales"}]
         script = """
@@ -65,9 +65,9 @@ class CatalogueAvisInterfaceTests(SimpleTestCase):
         });
         """
         page = f'''<!doctype html><html><head><meta charset="utf-8">
-        <link rel="stylesheet" href="/static/instruction/css/back_office.css">
-        <link rel="stylesheet" href="/static/instruction/css/back_office_avis.css">
-        <script src="/static/instruction/js/back_office_avis_thematiques.js"></script></head>
+        <link rel="stylesheet" href="/static/backoffice/css/back_office.css">
+        <link rel="stylesheet" href="/static/backoffice/css/back_office_avis.css">
+        <script src="/static/backoffice/js/back_office_avis_thematiques.js"></script></head>
         <body><div class="back-office-layout"><aside class="back-office-sidebar"></aside><main class="back-office-content"><section class="back-office-panel" data-panel="avis-thematiques">{contenu}</section></main></div><script>{script}</script></body></html>'''.encode()
 
         class Handler(BaseHTTPRequestHandler):
@@ -80,8 +80,8 @@ class CatalogueAvisInterfaceTests(SimpleTestCase):
             def do_GET(self):
                 if self.path == "/":
                     self.repondre(page, "text/html; charset=utf-8")
-                elif self.path.startswith("/static/instruction/"):
-                    fichier = src / self.path.removeprefix("/static/instruction/")
+                elif self.path.startswith(("/static/instruction/", "/static/backoffice/")):
+                    fichier = src / self.path.split("/")[2] / "static" / self.path.removeprefix("/static/")
                     self.repondre(fichier.read_bytes(), "text/css" if fichier.suffix == ".css" else "application/javascript")
                 elif self.path == "/back-office/avis/thematiques/":
                     self.server.tentative = 0

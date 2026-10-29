@@ -19,6 +19,7 @@ urlpatterns = [
     path('bancarisation/', redirect_to_admin, name='bancarisation_view'),
     path('bancarisation_guide/', views.guide_bancarisation, name='guide_bancarisation_view'), # Guide bancarisation
     path('', include('authent.urls')),
+    path('', include('backoffice.urls')),
     path('', include('instruction.urls')),
     path('', include('BDD.urls')),
     path("favicon.ico", RedirectView.as_view(url="/static/instruction/img/favicon.ico", permanent=True),),

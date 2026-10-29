@@ -11,7 +11,7 @@ from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
 from autorisations.models.models_documents import DocumentNature
-from instruction.forms_types_actes import TypeActeForm
+from backoffice.forms.types_actes import TypeActeForm
 
 
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -20,13 +20,13 @@ CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
 @skipUnless(CHROME.exists(), "Chrome headless n'est pas installé.")
 class TypesActesInterfaceTests(SimpleTestCase):
     def test_navigation_formulaire_et_affichage_responsif(self):
-        src = Path(__file__).resolve().parents[2]
+        src = Path(__file__).resolve().parents[3]
         nature = DocumentNature(
             id=90, nature="Nouveau type d’acte", est_acte=True,
             prefixe_numero="TEST/", prefixe_nom_fichier="TEST-",
             mode_publication_raa="non_requise", autorise_dm=False,
         )
-        html = render_to_string("instruction/back_office.html", {
+        html = render_to_string("backoffice/back_office.html", {
             "demarches_back_office": [], "csrf_token": "test",
             "formulaires_types_actes": [
                 {"type": nature, "form": TypeActeForm(instance=nature, auto_id="acte-90-%s"), "prochain_numero": "2026-1044", "position": 1},
@@ -217,8 +217,8 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 path = urlsplit(self.path).path
                 if path == "/":
                     data, content_type = html.encode("utf-8"), "text/html; charset=utf-8"
-                elif path.startswith("/static/instruction/"):
-                    resource = src / "instruction/static/instruction" / path.removeprefix("/static/instruction/")
+                elif path.startswith(("/static/instruction/", "/static/backoffice/")):
+                    resource = src / path.split("/")[2] / "static" / path.removeprefix("/static/")
                     if not resource.is_file():
                         self.send_error(404)
                         return

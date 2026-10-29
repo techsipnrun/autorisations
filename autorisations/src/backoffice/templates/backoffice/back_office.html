@@ -6,23 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Back Office — AGiDA</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office.css' %}?v=41">
-    <script src="{% static 'instruction/js/back_office_types_actes.js' %}?v=5" defer></script>
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office_avis.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'backoffice/css/back_office.css' %}?v=41">
+    <script src="{% static 'backoffice/js/back_office_types_actes.js' %}?v=5" defer></script>
+    <link rel="stylesheet" href="{% static 'backoffice/css/back_office_avis.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'instruction/css/avis_formulaires.css' %}?v=3">
     <script src="{% static 'instruction/js/avis_formulaires.js' %}?v=6" defer></script>
-    <script src="{% static 'instruction/js/back_office_avis.js' %}?v=8" defer></script>
-    <script src="{% static 'instruction/js/back_office_avis_thematiques.js' %}?v=2" defer></script>
-    <script src="{% static 'instruction/js/back_office_nommage.js' %}?v=8" defer></script>
+    <script src="{% static 'backoffice/js/back_office_avis.js' %}?v=8" defer></script>
+    <script src="{% static 'backoffice/js/back_office_avis_thematiques.js' %}?v=2" defer></script>
+    <script src="{% static 'backoffice/js/back_office_nommage.js' %}?v=8" defer></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
     <link rel="stylesheet" href="{% static 'instruction/css/cartographie.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'instruction/css/back_office_cartographie.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'backoffice/css/back_office_cartographie.css' %}?v=8">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js" defer></script>
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js" defer></script>
     <script src="{% static 'instruction/js/cartographie.js' %}?v=5" defer></script>
-    <script src="{% static 'instruction/js/back_office_cartographie.js' %}?v=12" defer></script>
+    <script src="{% static 'backoffice/js/back_office_cartographie.js' %}?v=12" defer></script>
 </head>
 <body>
     <div class="back-office-layout">
@@ -341,7 +341,7 @@
                                     </div>
                                     <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span>
                                 </summary>
-                                {% include "instruction/refacto/back_office_nommage.html" %}
+                                {% include "backoffice/back_office_nommage.html" %}
                             </details>
 
 
@@ -350,7 +350,7 @@
                 {% endfor %}
             </section>
             <section class="back-office-panel" data-panel="carto" hidden>
-                {% include 'instruction/refacto/back_office_cartographie.html' %}
+                {% include 'backoffice/back_office_cartographie.html' %}
             </section>
             <section class="back-office-panel" data-panel="dossier" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
@@ -363,13 +363,13 @@
                 <p>Choisissez « Types d’actes » dans le panneau latéral pour gérer les actes disponibles.</p>
             </section>
             <section class="back-office-panel" data-panel="types-actes" hidden>
-                {% include "instruction/refacto/back_office_types_actes.html" %}
+                {% include "backoffice/back_office_types_actes.html" %}
             </section>
             <section class="back-office-panel" data-panel="avis" hidden>
-                {% include "instruction/refacto/back_office_avis.html" %}
+                {% include "backoffice/back_office_avis.html" %}
             </section>
             <section class="back-office-panel" data-panel="avis-thematiques" hidden>
-                {% include "instruction/refacto/back_office_avis_thematiques.html" %}
+                {% include "backoffice/back_office_avis_thematiques.html" %}
             </section>
             <section class="back-office-panel" data-panel="notifications" hidden>
                 <p class="back-office-eyebrow">Back Office</p>

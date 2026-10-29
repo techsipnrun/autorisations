@@ -3,14 +3,14 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from instruction.services_externes import (
+from backoffice.services.externes import (
     get_etat_expiration_token_dn,
     verifier_disponibilite_swagger,
 )
 
 
 class ServicesExternesTests(SimpleTestCase):
-    @patch("instruction.services_externes.requests.get")
+    @patch("backoffice.services.externes.requests.get")
     def test_swagger_est_considere_disponible_sur_reponse_http(self, get):
         get.return_value = MagicMock(status_code=200)
 
@@ -25,7 +25,7 @@ class ServicesExternesTests(SimpleTestCase):
         )
 
     @patch.dict(os.environ, {"DN_DATE_EXPIRATION_TOKEN": "2026-10-15"}, clear=False)
-    @patch("instruction.services_externes.timezone.localdate")
+    @patch("backoffice.services.externes.timezone.localdate")
     def test_duree_restante_du_jeton_dn(self, localdate):
         from datetime import date
 

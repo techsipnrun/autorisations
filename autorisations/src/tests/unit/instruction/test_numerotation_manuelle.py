@@ -13,7 +13,7 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase
 
 from autorisations.models.models_documents import Document, DocumentNature
-from instruction.forms_types_actes import TypeActeForm
+from backoffice.forms.types_actes import TypeActeForm
 from instruction.utils import document_utils
 from instruction.views import changement_etape
 

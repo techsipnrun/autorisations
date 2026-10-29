@@ -18,7 +18,7 @@
                 <button type="button" data-type-acte-move="descendre" title="Descendre ce type d’acte" aria-label="Descendre ce type d’acte" {% if forloop.last %}disabled{% endif %}>↓</button>
             </span>
             <span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span></summary>
-        {% include "instruction/refacto/type_acte_form.html" with form=configuration.form type_id=configuration.type.pk prochain_numero=configuration.prochain_numero %}
+        {% include "backoffice/type_acte_form.html" with form=configuration.form type_id=configuration.type.pk prochain_numero=configuration.prochain_numero %}
     </details>
 {% empty %}
     <p>Aucun type d’acte configuré.</p>
@@ -27,5 +27,5 @@
 
 <details class="back-office-config-block back-office-acte-card back-office-acte-create">
     <summary class="back-office-fields-heading"><h2>Ajouter un type d’acte</h2><span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span></summary>
-    {% include "instruction/refacto/type_acte_form.html" with form=formulaire_nouveau_type_acte type_id=0 prochain_numero=premier_numero_acte %}
+    {% include "backoffice/type_acte_form.html" with form=formulaire_nouveau_type_acte type_id=0 prochain_numero=premier_numero_acte %}
 </details>

@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from autorisations.models.models_instruction import Dossier
-from instruction.views.nom_dossier import (
+from backoffice.views.nom_dossier import (
     autocomplete_numeros_dossiers, enregistrer_regles_nom_dossier, previsualiser_nom_dossier, recalculer_noms_dossiers,
     valider_regles_nommage,
 )
@@ -228,7 +228,7 @@ class NommageTests(SimpleTestCase):
 class NommageValidationTests(SimpleTestCase):
     def setUp(self):
         self.field = SimpleNamespace(pk=12, nom="Lieu", id_ds="dn-field", id_champ_type=SimpleNamespace(type="text"))
-        self.fields = patch("instruction.views.nom_dossier.Champ.objects.filter")
+        self.fields = patch("backoffice.views.nom_dossier.Champ.objects.filter")
         self.mock_fields = self.fields.start()
         self.addCleanup(self.fields.stop)
         self.mock_fields.return_value.select_related.return_value = [self.field]
@@ -248,7 +248,7 @@ class NommageValidationTests(SimpleTestCase):
     def test_champ_dm_restreint_aux_manifestations_sportives(self):
         demarche = SimpleNamespace(type="Manifestations sportives")
         champ_dm_modele = SimpleNamespace(name="activite", verbose_name="activité")
-        with patch("instruction.views.nom_dossier.champs_dm_nommage_autorises", return_value=[champ_dm_modele]):
+        with patch("backoffice.views.nom_dossier.champs_dm_nommage_autorises", return_value=[champ_dm_modele]):
             resultat = valider_regles_nommage({"regles": [regle([champ_dm("activite")])]}, demarche)
         self.assertEqual(resultat[0]["elements"][0]["champ_dm"], "activite")
         with self.assertRaises(ValidationError):
@@ -292,13 +292,13 @@ class NommageValidationTests(SimpleTestCase):
         request = RequestFactory().post("/", data={"regles": [regle([element])]}, content_type="application/json")
         request.user = SimpleNamespace(is_authenticated=True, is_superuser=True)
         from autorisations.models.models_instruction import Demarche, DemarcheNomDossierRegle
-        with patch("instruction.views.nom_dossier.get_object_or_404", return_value=Demarche(pk=1)), \
-             patch("instruction.views.nom_dossier.Champ.objects.filter") as champs, \
-             patch("instruction.views.nom_dossier.transaction.atomic"), \
-             patch("instruction.views.nom_dossier.Demarche.objects.select_for_update"), \
-             patch("instruction.views.nom_dossier.DemarcheNomDossierRegle.objects.filter"), \
-             patch("instruction.views.nom_dossier.DemarcheNomDossierRegle.objects.bulk_create", return_value=[DemarcheNomDossierRegle(pk=2)]), \
-             patch("instruction.views.nom_dossier.DemarcheNomDossierElement.objects.bulk_create") as elements:
+        with patch("backoffice.views.nom_dossier.get_object_or_404", return_value=Demarche(pk=1)), \
+             patch("backoffice.views.nom_dossier.Champ.objects.filter") as champs, \
+             patch("backoffice.views.nom_dossier.transaction.atomic"), \
+             patch("backoffice.views.nom_dossier.Demarche.objects.select_for_update"), \
+             patch("backoffice.views.nom_dossier.DemarcheNomDossierRegle.objects.filter"), \
+             patch("backoffice.views.nom_dossier.DemarcheNomDossierRegle.objects.bulk_create", return_value=[DemarcheNomDossierRegle(pk=2)]), \
+             patch("backoffice.views.nom_dossier.DemarcheNomDossierElement.objects.bulk_create") as elements:
             champs.return_value.select_related.return_value = []
             response = enregistrer_regles_nom_dossier(request, 1)
         self.assertEqual(response.status_code, 200)
@@ -314,8 +314,8 @@ class NommageValidationTests(SimpleTestCase):
     def test_autocompletion_ne_consulte_que_la_demarche_courante(self):
         request = RequestFactory().get("/?q=342")
         request.user = SimpleNamespace(is_authenticated=True, is_superuser=True)
-        with patch("instruction.views.nom_dossier.get_object_or_404") as demarche, \
-             patch("instruction.views.nom_dossier.Dossier.objects.filter") as dossiers:
+        with patch("backoffice.views.nom_dossier.get_object_or_404") as demarche, \
+             patch("backoffice.views.nom_dossier.Dossier.objects.filter") as dossiers:
             chaine = dossiers.return_value.annotate.return_value.filter.return_value.order_by.return_value
             chaine.values_list.return_value = [34215599, 34218888]
             resultat = autocomplete_numeros_dossiers(request, 123)
@@ -326,14 +326,14 @@ class NommageValidationTests(SimpleTestCase):
         dossier = Dossier(pk=1, numero=123, nom_dossier="Standard", nom_dossier_genere="Ancien", nom_dossier_plus_parlant="Manuel")
         request = RequestFactory().post("/", data={}, content_type="application/json")
         request.user = SimpleNamespace(is_authenticated=True, is_superuser=True)
-        with patch("instruction.views.nom_dossier.get_object_or_404"), \
-             patch("instruction.views.nom_dossier.DemarcheNomDossierRegle.objects.filter"), \
-             patch("instruction.views.nom_dossier.compiler_regles_nommage", return_value=[]), \
-             patch("instruction.views.nom_dossier.dossiers_avec_contexte_nommage") as queryset, \
-             patch("instruction.views.nom_dossier.contexte_nommage_depuis_bdd", return_value={}), \
-             patch("instruction.views.nom_dossier.Dossier.objects.filter"), \
-             patch("instruction.views.nom_dossier.Dossier.objects.bulk_update") as update, \
-             patch("instruction.views.nom_dossier.transaction.atomic"):
+        with patch("backoffice.views.nom_dossier.get_object_or_404"), \
+             patch("backoffice.views.nom_dossier.DemarcheNomDossierRegle.objects.filter"), \
+             patch("backoffice.views.nom_dossier.compiler_regles_nommage", return_value=[]), \
+             patch("backoffice.views.nom_dossier.dossiers_avec_contexte_nommage") as queryset, \
+             patch("backoffice.views.nom_dossier.contexte_nommage_depuis_bdd", return_value={}), \
+             patch("backoffice.views.nom_dossier.Dossier.objects.filter"), \
+             patch("backoffice.views.nom_dossier.Dossier.objects.bulk_update") as update, \
+             patch("backoffice.views.nom_dossier.transaction.atomic"):
             queryset.return_value.iterator.return_value = iter([dossier])
             resultat = recalculer_noms_dossiers(request, 1)
             self.assertEqual(json.loads(resultat.content)["modifies"], 1)

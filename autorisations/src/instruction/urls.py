@@ -6,10 +6,7 @@ from django.contrib import admin
 from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
 from instruction.views import dossiers_lies
-from instruction.views import nom_dossier
-from instruction.views import types_actes
 from instruction.views import cartographie
-from instruction.views import avis_configuration
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -26,25 +23,7 @@ urlpatterns = [
     path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),
     path("gestion_contacts/", views.gestion_contacts, name="gestion_contacts"),
     path("gestion_logs/", views.gestion_logs, name="gestion_logs"),
-    path("back-office/", views.back_office, name="back_office"),
-    path("back-office/avis/formulaires/<slug:contexte>/", avis_configuration.configurer_formulaire, name="back_office_avis_formulaire"),
-    path("back-office/avis/thematiques/", avis_configuration.configurer_thematiques, name="back_office_avis_thematiques"),
-    path("back-office/cartographie/", cartographie.catalogue, name="back_office_cartographie"),
-    path("back-office/cartographie/convertir/", cartographie.convertir_source, name="back_office_cartographie_convertir"),
-    path("back-office/cartographie/source/", cartographie.enregistrer_source, name="back_office_cartographie_ajouter_source"),
-    path("back-office/cartographie/source/<int:source_id>/", cartographie.enregistrer_source, name="back_office_cartographie_source"),
-    path("back-office/cartographie/source/<int:source_id>/supprimer/", cartographie.supprimer_source, name="back_office_cartographie_supprimer_source"),
-    path("back-office/cartographie/carte/<slug:code>/", cartographie.enregistrer_configuration, name="back_office_cartographie_carte"),
     path("cartographie/couche/<int:source_id>/", cartographie.geojson_source, name="cartographie_geojson"),
-    path("back-office/types-actes/<int:type_id>/", types_actes.enregistrer_type_acte, name="back_office_enregistrer_type_acte"),
-    path("back-office/types-actes/<int:type_id>/ordre/", types_actes.deplacer_type_acte, name="back_office_deplacer_type_acte"),
-    path("back-office/demarche/<int:demarche_id>/noms/", nom_dossier.enregistrer_regles_nom_dossier, name="back_office_enregistrer_noms"),
-    path("back-office/demarche/<int:demarche_id>/noms/apercu/", nom_dossier.previsualiser_nom_dossier, name="back_office_apercu_nom"),
-    path("back-office/demarche/<int:demarche_id>/noms/recalculer/", nom_dossier.recalculer_noms_dossiers, name="back_office_recalculer_noms"),
-    path("back-office/demarche/<int:demarche_id>/noms/numeros/", nom_dossier.autocomplete_numeros_dossiers, name="back_office_autocomplete_numeros_noms"),
-    path("back-office/demarche/<int:demarche_id>/date-activite/", views.back_office_enregistrer_date_activite, name="back_office_enregistrer_date_activite"),
-    path("back-office/demarche/<int:demarche_id>/personnalisation-tableau/", views.back_office_enregistrer_personnalisation_tableau, name="back_office_enregistrer_personnalisation_tableau"),
-    path("back-office/services-status/", views.back_office_services_status, name="back_office_services_status"),
     path("statistiques/", statistiques.tableau_de_bord, name="statistiques"),
     path("statistiques/donnees/", statistiques.donnees_tableau_de_bord, name="statistiques_donnees"),
     path("statistiques/donnees-carte/", statistiques.donnees_carte, name="statistiques_donnees_carte"),

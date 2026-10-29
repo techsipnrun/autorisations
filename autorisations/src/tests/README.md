@@ -5,6 +5,7 @@ Depuis `autorisations/src`, utiliser ce point d'entrée isolé :
 ```powershell
 python -m tests
 python -m tests tests.unit
+python -m tests tests.unit.back_office tests.interface.back_office
 python -m tests tests.unit.synchronisation.test_formulaire_modifie
 python -m tests tests.unit.notifications.test_notification_formulaire_modifie
 ```
@@ -38,7 +39,7 @@ Un test doit rester proche de la fonctionnalité vérifiée ; `support/` ne cont
 pas de classe de tests ni de méthode `test_*`, afin d'éviter les doublons.
 
 Cartographie : `unit/back_office/test_cartographie.py` couvre la validation et
-les vues sans SQL réel ; `interface/test_cartographie.py` vérifie les formulaires,
+les vues sans SQL réel ; `interface/back_office/test_cartographie.py` vérifie les formulaires,
 l’aperçu, les sauvegardes et le responsive (540/1600 px), avec Leaflet et API
 simulés. Les fournisseurs de tuiles et les parcours réels se vérifient en dev.
 

@@ -13,7 +13,7 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase
 
 from instruction.utils.cartographie import CONTROLES, configurations_par_defaut, sources_par_defaut
-from instruction.views.cartographie import convertir_source
+from backoffice.views.cartographie import convertir_source
 
 
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -22,7 +22,7 @@ CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
 @skipUnless(CHROME.exists(), "Chrome headless n’est pas installé.")
 class CartographieInterfaceTests(SimpleTestCase):
     def test_configuration_apercu_sources_et_responsif(self):
-        src = Path(__file__).resolve().parents[2]
+        src = Path(__file__).resolve().parents[3]
         sources = sources_par_defaut()
         for identifiant, source in enumerate(sources, 1):
             source.update(id=identifiant, url_source=source["url"], importe=False)
@@ -103,7 +103,7 @@ class CartographieInterfaceTests(SimpleTestCase):
             }}
         };
         """.replace("PAYLOAD", json.dumps(donnees, ensure_ascii=True))
-        body = render_to_string("instruction/refacto/back_office_cartographie.html", {"csrf_token": "test"})
+        body = render_to_string("backoffice/back_office_cartographie.html", {"csrf_token": "test"})
         script = """
         window.addEventListener('load', async () => {
             const output = document.createElement('pre'); output.id='browser-test-result';document.body.append(output);
@@ -128,7 +128,7 @@ class CartographieInterfaceTests(SimpleTestCase):
                     root=panel.querySelector('#bo-cartographie');delete root.dataset.vue;
                     root.querySelector('#bo-carto-preview-map').replaceChildren();
                     form=root.querySelector('[data-carto-config-form]');select=root.querySelector('[data-carto-profil]');
-                    new Function(await nativeFetch('/static/instruction/js/back_office_cartographie.js').then(reponse=>reponse.text()))();
+                    new Function(await nativeFetch('/static/backoffice/js/back_office_cartographie.js').then(reponse=>reponse.text()))();
                     await wait();
                 };
                 assert(root.dataset.vue==='catalogue' && form.hidden,'Catalogue par défaut, personnalisation masquée');
@@ -356,7 +356,7 @@ class CartographieInterfaceTests(SimpleTestCase):
                 assert(document.documentElement.scrollWidth<=innerWidth,'Pas de débordement horizontal');
                 for(const name of ['formulaire_map.js','formulaire_map_manif_sportives.js','carto_test.js','requetes_carte.js','statistiques.js']) {
                     // Analyse syntaxique des adaptateurs sans exécuter leur logique métier.
-                    const source = await nativeFetch('/static/instruction/js/'+name).then(r=>r.text());
+                    const source = await nativeFetch('/static/'+(name.startsWith('back_office')?'backoffice':'instruction')+'/js/'+name).then(r=>r.text());
                     try { new Function(source); } catch(error) { throw new Error(name+': '+error.message); }
                 }
                 output.textContent='CARTOGRAPHIE_OK';
@@ -364,14 +364,14 @@ class CartographieInterfaceTests(SimpleTestCase):
         });
         """
         html = f'''<!doctype html><html lang="fr"><head><meta charset="utf-8">
-        <link rel="stylesheet" href="/static/instruction/css/back_office.css">
+        <link rel="stylesheet" href="/static/backoffice/css/back_office.css">
         <link rel="stylesheet" href="/static/instruction/css/cartographie.css">
-        <link rel="stylesheet" href="/static/instruction/css/back_office_cartographie.css">
+        <link rel="stylesheet" href="/static/backoffice/css/back_office_cartographie.css">
         <style>body{{margin:0;padding:16px;font-family:Arial;box-sizing:border-box}}*{{box-sizing:border-box}}</style>
         <script>const nativeFetch=window.fetch;{mock}</script>
         <script src="/static/instruction/js/cartographie.js" defer></script>
-        <script src="/static/instruction/js/back_office_types_actes.js" defer></script>
-        <script src="/static/instruction/js/back_office_cartographie.js" defer></script>
+        <script src="/static/backoffice/js/back_office_types_actes.js" defer></script>
+        <script src="/static/backoffice/js/back_office_cartographie.js" defer></script>
         </head><body><section class="back-office-panel" data-panel="carto">{body}</section><script>{script}</script></body></html>'''
 
         class Handler(BaseHTTPRequestHandler):
@@ -394,8 +394,8 @@ class CartographieInterfaceTests(SimpleTestCase):
                 path = urlsplit(self.path).path
                 if path == "/":
                     content, content_type = html.encode("utf-8"), "text/html; charset=utf-8"
-                elif path.startswith("/static/instruction/"):
-                    resource = src / "instruction/static/instruction" / path.removeprefix("/static/instruction/")
+                elif path.startswith(("/static/instruction/", "/static/backoffice/")):
+                    resource = src / path.split("/")[2] / "static" / path.removeprefix("/static/")
                     content = resource.read_bytes()
                     content_type = "text/css" if resource.suffix == ".css" else "application/javascript"
                 else:

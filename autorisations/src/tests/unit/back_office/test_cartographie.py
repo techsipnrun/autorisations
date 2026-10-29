@@ -17,7 +17,8 @@ from instruction.utils.cartographie import (
     options_par_defaut, serialiser_source, valider_geojson, valider_options_carte,
     valider_options_source, valider_style, valider_url,
 )
-from instruction.views import cartographie
+from backoffice.views import cartographie
+from instruction.views import cartographie as couches
 
 
 class ValidationCartographieTests(SimpleTestCase):
@@ -98,7 +99,7 @@ class ValidationCartographieTests(SimpleTestCase):
         self.assertNotIn("geojson", resultat)
 
     def test_templates_compilables(self):
-        for nom in ("instruction/back_office.html", "instruction/refacto/back_office_cartographie.html", "instruction/refacto/cartographie_assets.html"):
+        for nom in ("backoffice/back_office.html", "backoffice/back_office_cartographie.html", "instruction/refacto/cartographie_assets.html"):
             with self.subTest(nom=nom):
                 get_template(nom)
 
@@ -133,7 +134,7 @@ class VuesCartographieTests(SimpleTestCase):
     def test_geojson_inactif_consultable_uniquement_en_apercu_admin(self):
         source = CartographieSource(id=9, format="geojson", actif=False, geojson={"type": "Point", "coordinates": [55, -21]})
         with patch("instruction.views.cartographie.get_object_or_404", return_value=source) as obtenir:
-            reponse = cartographie.geojson_source(self.requete("/?apercu=1"), 9)
+            reponse = couches.geojson_source(self.requete("/?apercu=1"), 9)
         obtenir.assert_called_once_with(CartographieSource, pk=9, format="geojson")
         self.assertEqual(reponse.status_code, 200)
         self.assertEqual(json.loads(reponse.content), source.geojson)
@@ -143,19 +144,19 @@ class VuesCartographieTests(SimpleTestCase):
     def test_geojson_apercu_refuse_aux_non_administrateurs(self):
         with patch("instruction.views.cartographie.get_object_or_404") as obtenir:
             with self.assertRaises(PermissionDenied):
-                cartographie.geojson_source(self.requete("/?apercu=1", admin=False), 9)
+                couches.geojson_source(self.requete("/?apercu=1", admin=False), 9)
         obtenir.assert_not_called()
 
     def test_geojson_inactif_reste_inaccessible_sur_url_normale(self):
         with patch("instruction.views.cartographie.get_object_or_404", side_effect=Http404) as obtenir:
             with self.assertRaises(Http404):
-                cartographie.geojson_source(self.requete(admin=False), 9)
+                couches.geojson_source(self.requete(admin=False), 9)
         obtenir.assert_called_once_with(CartographieSource, pk=9, format="geojson", actif=True)
 
     def test_geojson_actif_conserve_acces_et_cache_habituels(self):
         source = CartographieSource(id=5, format="geojson", actif=True, geojson={"type": "Point", "coordinates": [55, -21]})
         with patch("instruction.views.cartographie.get_object_or_404", return_value=source) as obtenir:
-            reponse = cartographie.geojson_source(self.requete(admin=False), 5)
+            reponse = couches.geojson_source(self.requete(admin=False), 5)
         obtenir.assert_called_once_with(CartographieSource, pk=5, format="geojson", actif=True)
         self.assertEqual(reponse.status_code, 200)
         self.assertEqual(reponse["Cache-Control"], "private, max-age=60")
@@ -163,7 +164,7 @@ class VuesCartographieTests(SimpleTestCase):
     def test_suppression_source_utilisee_refusee(self):
         source = MagicMock()
         source.configurations.values_list.return_value = ["Instruction · DN"]
-        with patch("instruction.views.cartographie.transaction.atomic"), patch("instruction.views.cartographie.CartographieSource.objects.select_for_update"), patch("instruction.views.cartographie.get_object_or_404", return_value=source), patch("instruction.views.cartographie.cache.delete") as invalider:
+        with patch("backoffice.views.cartographie.transaction.atomic"), patch("backoffice.views.cartographie.CartographieSource.objects.select_for_update"), patch("backoffice.views.cartographie.get_object_or_404", return_value=source), patch("backoffice.views.cartographie.cache.delete") as invalider:
             reponse = cartographie.supprimer_source(self.requete(donnees={}), 3)
         self.assertEqual(reponse.status_code, 409)
         self.assertIn("Instruction", json.loads(reponse.content)["erreur"])
@@ -173,7 +174,7 @@ class VuesCartographieTests(SimpleTestCase):
     def test_suppression_source_libre_invalide_cache(self):
         source = MagicMock()
         source.configurations.values_list.return_value = []
-        with patch("instruction.views.cartographie.transaction.atomic"), patch("instruction.views.cartographie.CartographieSource.objects.select_for_update"), patch("instruction.views.cartographie.get_object_or_404", return_value=source), patch("instruction.views.cartographie.cache.delete") as invalider:
+        with patch("backoffice.views.cartographie.transaction.atomic"), patch("backoffice.views.cartographie.CartographieSource.objects.select_for_update"), patch("backoffice.views.cartographie.get_object_or_404", return_value=source), patch("backoffice.views.cartographie.cache.delete") as invalider:
             reponse = cartographie.supprimer_source(self.requete(donnees={}), 3)
         self.assertEqual(reponse.status_code, 200)
         source.delete.assert_called_once()
@@ -183,12 +184,12 @@ class VuesCartographieTests(SimpleTestCase):
         source = MagicMock()
         source.configurations.values_list.return_value = []
         source.delete.side_effect = IntegrityError("source désormais utilisée")
-        with patch("instruction.views.cartographie.transaction.atomic"), patch("instruction.views.cartographie.CartographieSource.objects.select_for_update"), patch("instruction.views.cartographie.get_object_or_404", return_value=source):
+        with patch("backoffice.views.cartographie.transaction.atomic"), patch("backoffice.views.cartographie.CartographieSource.objects.select_for_update"), patch("backoffice.views.cartographie.get_object_or_404", return_value=source):
             reponse = cartographie.supprimer_source(self.requete(donnees={}), 3)
         self.assertEqual(reponse.status_code, 409)
 
     def test_absence_tables_message_sql_explicite(self):
-        with patch("instruction.views.cartographie.sources_sans_geometries", side_effect=OperationalError("table absente")):
+        with patch("backoffice.views.cartographie.sources_sans_geometries", side_effect=OperationalError("table absente")):
             reponse = cartographie.catalogue(self.requete())
         self.assertEqual(reponse.status_code, 503)
         self.assertIn("0039", json.loads(reponse.content)["erreur"])
@@ -199,7 +200,7 @@ class VuesCartographieTests(SimpleTestCase):
 
     def test_config_refuse_deux_fonds_visibles(self):
         requete = self.requete(donnees={"sources": [{"id": 1, "visible": True}, {"id": 2, "visible": True}]})
-        with patch("instruction.views.cartographie.CartographieSource.objects.filter") as filtrer:
+        with patch("backoffice.views.cartographie.CartographieSource.objects.filter") as filtrer:
             filtrer.return_value.in_bulk.return_value = {i: SimpleNamespace(format="tuiles") for i in (1, 2)}
             reponse = cartographie.enregistrer_configuration(requete, "edition")
         self.assertEqual(reponse.status_code, 400)
@@ -207,7 +208,7 @@ class VuesCartographieTests(SimpleTestCase):
     def test_config_ordre_et_visibilite_enregistres_en_bloc(self):
         configuration = CartographieConfiguration(id=3, code="edition", nom="Édition")
         requete = self.requete(donnees={"options": {"geometrie": {"color": "#123456"}}, "sources": [{"id": 2, "visible": True}, {"id": 1, "visible": False}]})
-        with patch("instruction.views.cartographie.CartographieSource.objects.filter") as filtrer, patch("instruction.views.cartographie.transaction.atomic"), patch("instruction.views.cartographie.get_object_or_404", return_value=configuration), patch("instruction.views.cartographie.CartographieConfiguration.objects.select_for_update"), patch.object(configuration, "save") as sauvegarder, patch.object(CartographieConfiguration, "sources", new_callable=PropertyMock) as liens, patch("instruction.views.cartographie.CartographieConfigurationSource.objects.bulk_create") as creer, patch("instruction.views.cartographie.cache.delete") as invalider:
+        with patch("backoffice.views.cartographie.CartographieSource.objects.filter") as filtrer, patch("backoffice.views.cartographie.transaction.atomic"), patch("backoffice.views.cartographie.get_object_or_404", return_value=configuration), patch("backoffice.views.cartographie.CartographieConfiguration.objects.select_for_update"), patch.object(configuration, "save") as sauvegarder, patch.object(CartographieConfiguration, "sources", new_callable=PropertyMock) as liens, patch("backoffice.views.cartographie.CartographieConfigurationSource.objects.bulk_create") as creer, patch("backoffice.views.cartographie.cache.delete") as invalider:
             filtrer.return_value.in_bulk.return_value = {2: SimpleNamespace(format="tuiles"), 1: SimpleNamespace(format="geojson")}
             reponse = cartographie.enregistrer_configuration(requete, "edition")
             self.assertEqual(reponse.status_code, 200)

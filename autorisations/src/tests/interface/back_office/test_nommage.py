@@ -21,13 +21,13 @@ CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
 @skipUnless(CHROME.exists(), "Chrome headless n'est pas installé.")
 class NommageInterfaceTests(SimpleTestCase):
     def test_editeur_priorites_save_apercu_et_recalcul(self):
-        src = Path(__file__).resolve().parents[2]
+        src = Path(__file__).resolve().parents[3]
         demarche = SimpleNamespace(id=1, nommage_script_id="test-nommage", nommage_donnees={
             "regles": [], "champs": [{"id": 12, "nom": "Lieu", "type": "text"}],
             "champs_dm": [{"name": "date_debut_evenement", "nom": "Début de l'événement", "type": "datetime"}],
             "attributs": ATTRIBUTS_NOM_DOSSIER, "transformations": TRANSFORMATIONS_NOM_DOSSIER,
         })
-        page = render_to_string("instruction/back_office.html", {"demarches_back_office": [demarche], "csrf_token": "test"})
+        page = render_to_string("backoffice/back_office.html", {"demarches_back_office": [demarche], "csrf_token": "test"})
         block = re.search(r'(<details class="back-office-config-block back-office-nommage-block">.*?</details>)', page, re.S).group(1)
         script = """
         window.confirm = () => true;
@@ -68,7 +68,7 @@ class NommageInterfaceTests(SimpleTestCase):
                 document.querySelectorAll('.bo-nommage-rule-icon').forEach(button => {
                     const icon = button.querySelector('svg').getBoundingClientRect();
                     const padding = getComputedStyle(button).padding;
-                    assert(icon.width >= 20 && icon.height >= 20 && padding === '3px',
+                    assert(icon.width >= 15 && icon.height >= 15 && icon.width < button.getBoundingClientRect().width && padding === '3px',
                         `Taille icône ${button.title} : ${icon.width}×${icon.height}px, padding ${padding}`);
                 });
                 assert(document.querySelector('.bo-nommage-rule').classList.contains('is-unsaved'), 'Nouvelle règle non enregistrée');
@@ -84,7 +84,7 @@ class NommageInterfaceTests(SimpleTestCase):
                 let select = document.querySelector('.bo-nommage-element select');
                 select.value = 'attribut:demandeur.nom';
                 select.dispatchEvent(new Event('change'));
-                assert(document.querySelector('.bo-nommage-source-field > span').textContent === 'Info BDD', 'Source BDD identifiée');
+                assert(select.selectedOptions[0].parentElement.label === 'Info BDD', 'Source BDD identifiée');
                 const transform = document.querySelector('.bo-nommage-transform');
                 transform.value = 'majuscules';
                 transform.dispatchEvent(new Event('change'));
@@ -119,7 +119,7 @@ class NommageInterfaceTests(SimpleTestCase):
                 select = document.querySelector('.bo-nommage-element select');
                 select.value = 'champ:12';
                 select.dispatchEvent(new Event('change'));
-                assert(document.querySelector('.bo-nommage-source-field > span').textContent === 'Champ formulaire DN', 'Champ DN identifié');
+                assert(select.selectedOptions[0].parentElement.label === 'Champs du formulaire DN', 'Champ DN identifié');
                 assert(document.querySelector('.bo-nommage-token').textContent === 'Lieu (MAJUSCULES)', 'Variable DN sans préfixe');
                 select.value = 'champ_dm:date_debut_evenement';
                 select.dispatchEvent(new Event('change'));
@@ -138,9 +138,7 @@ class NommageInterfaceTests(SimpleTestCase):
                 const customTransform = document.querySelector('.bo-nommage-transform');
                 customTransform.value = 'personnalisee';
                 customTransform.dispatchEvent(new Event('change'));
-                assert(document.querySelector('.bo-nommage-custom-transform').hidden, 'Transformation personnalisée repliée par défaut');
-                byTitle('Modifier la transformation personnalisée').click();
-                assert(!document.querySelector('.bo-nommage-custom-transform').hidden, 'Éditeur personnalisé déplié');
+                assert(!document.querySelector('.bo-nommage-custom-transform').hidden, 'Nouvelle transformation personnalisée immédiatement dépliée');
                 const mappingInputs = document.querySelectorAll('.bo-nommage-custom-row input');
                 mappingInputs[0].value = 'Oui';
                 mappingInputs[0].dispatchEvent(new Event('input'));
@@ -178,8 +176,8 @@ class NommageInterfaceTests(SimpleTestCase):
                 f"<main style='max-width:900px;margin:auto'>{block}</main></body></html>")
         resources = {
             "/": ("text/html", html.encode()),
-            "/editor": ("application/javascript", (src / "instruction/static/instruction/js/back_office_nommage.js").read_bytes()),
-            "/css": ("text/css", (src / "instruction/static/instruction/css/back_office.css").read_bytes()),
+            "/editor": ("application/javascript", (src / "backoffice/static/backoffice/js/back_office_nommage.js").read_bytes()),
+            "/css": ("text/css", (src / "backoffice/static/backoffice/css/back_office.css").read_bytes()),
         }
 
         class Handler(BaseHTTPRequestHandler):

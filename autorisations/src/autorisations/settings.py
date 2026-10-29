@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'autorisations',
     'authent',
     'instruction',
+    'backoffice.apps.BackofficeConfig',
     'BDD',
     'DS',
     'drf_yasg', #Swagger

@@ -9,7 +9,7 @@ from autorisations.models.models_utilisateurs import (
     ContactExterne, TypeContactExterne, raison_sociale_affichee, organisation_affichee,
 )
 from instruction.templatetags.custom_filters import est_contact_conseil_scientifique
-from instruction.views.nom_dossier import contexte_nommage_depuis_bdd
+from backoffice.views.nom_dossier import contexte_nommage_depuis_bdd
 from synchronisation.synchro.sync_contacts_externes import sync_contacts_externes
 
 

@@ -20,8 +20,8 @@ CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
 @skipUnless(CHROME.exists(), "Chrome headless indisponible.")
 class BackOfficeAvisInterfaceTests(SimpleTestCase):
     def test_editeur_conditions_apercu_enregistrement_et_erreur(self):
-        src = Path(__file__).resolve().parents[2] / "instruction/static/instruction"
-        contenu = render_to_string("instruction/refacto/back_office_avis.html", {"csrf_token": "test"})
+        src = Path(__file__).resolve().parents[3]
+        contenu = render_to_string("backoffice/back_office_avis.html", {"csrf_token": "test"})
         pages = {code: dict(champs=configuration_standard(code), standards=configuration_standard(code), structurels=sorted(STRUCTURELS), thematiques_par_demarche={"1": ["1"]}, choix={
             "nature_type": [{"valeur": "instance", "libelle": "Demande à une instance"}, {"valeur": "interne", "libelle": "Consultation en interne"}],
             "nature": [{"valeur": "1", "libelle": "Demande à une instance", "nature_type": "instance"}, {"valeur": "2", "libelle": "Consultation en interne", "nature_type": "interne"}],
@@ -166,11 +166,11 @@ class BackOfficeAvisInterfaceTests(SimpleTestCase):
         });
         """
         page = f'''<!doctype html><html><head><meta charset="utf-8">
-            <link rel="stylesheet" href="/static/instruction/css/back_office.css">
-            <link rel="stylesheet" href="/static/instruction/css/back_office_avis.css">
+            <link rel="stylesheet" href="/static/backoffice/css/back_office.css">
+            <link rel="stylesheet" href="/static/backoffice/css/back_office_avis.css">
             <link rel="stylesheet" href="/static/instruction/css/avis_formulaires.css">
             <script src="/static/instruction/js/avis_formulaires.js"></script>
-            <script src="/static/instruction/js/back_office_avis.js"></script></head>
+            <script src="/static/backoffice/js/back_office_avis.js"></script></head>
             <body><div class="back-office-layout"><aside class="back-office-sidebar"></aside><main class="back-office-content"><section class="back-office-panel" data-panel="avis">{contenu}</section></main></div><script>{script}</script></body></html>'''.encode("utf-8")
 
         class Handler(BaseHTTPRequestHandler):
@@ -184,8 +184,8 @@ class BackOfficeAvisInterfaceTests(SimpleTestCase):
                 path = urlsplit(self.path).path
                 if path == "/":
                     self.repondre(page, "text/html; charset=utf-8")
-                elif path.startswith("/static/instruction/"):
-                    fichier = src / path.removeprefix("/static/instruction/")
+                elif path.startswith(("/static/instruction/", "/static/backoffice/")):
+                    fichier = src / path.split("/")[2] / "static" / path.removeprefix("/static/")
                     self.repondre(fichier.read_bytes(), "text/css" if fichier.suffix == ".css" else "application/javascript")
                 elif path.startswith("/back-office/avis/formulaires/"):
                     self.repondre(json.dumps(pages[path.strip("/").split("/")[-1]]).encode())
