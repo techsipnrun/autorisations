@@ -26,7 +26,7 @@ from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, 
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.annexes_notes import preparer_annexes_notes
 from instruction.utils.ensembles_dossiers import contexte_dossiers_lies
-from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance, get_choix_destinataires_notification
+from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance, get_choix_destinataires_notification, get_destinataires_relance_dm
 from instruction.utils_instru import dossiers_reception_action_a_faire, enregistrer_action, format_etat_dossier
 from DS.call_DS import passer_en_instruction_ds
 import logging
@@ -245,7 +245,7 @@ def preinstruction(request):
             # n'est pas passé. Pour un dossier déjà calculé, l'avis DM doit exister.
             peut_envoyer_relance_auto = (
                 nb_relances == 0
-                and dm.email_structure
+                and get_destinataires_relance_dm(dm)
                 and not dm.date_evenement_passee
                 and (coeur_de_parc_non_calcule or hasattr(dm, "avis"))
             )

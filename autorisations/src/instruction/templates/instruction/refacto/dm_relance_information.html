@@ -1,0 +1,12 @@
+{% if instructeur_connecte and instructeur_connecte.id in instructeurs_dm_affectes_ids and not doss_manif_sportive.archive and doss_manif_sportive.id_etape.etape == "En réception" %}
+    <aside class="dm-relance-information" role="note" aria-label="Relance du dossier Parc DN">
+        <strong>Dossier Démarche Numérique manquant</strong>
+        <p>Si la dernière relance a été effectuée il y a plus de 15 jours, vous pouvez relancer l’organisateur de la manifestation afin qu’il transmette le dossier Parc sur Démarche Numérique (DN).</p>
+        {% if not emails_relance_organisateur %}
+            <p>Aucune adresse e-mail de la structure ni du coordinateur sécurité ne nous a été fournie par l’organisation.</p>
+            {% if doss_manif_sportive.numero_telephone %}
+                <p>Vous pouvez contacter l’organisation par téléphone.</p>
+            {% endif %}
+        {% endif %}
+    </aside>
+{% endif %}

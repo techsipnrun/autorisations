@@ -665,6 +665,18 @@ def envoyer_copie_document_par_mail( *, request, dossier, document, nature_docum
 
 
 
+def get_destinataires_relance_dm(dossier_dm):
+    """Structure puis coordinateur sécurité, sans adresse vide ni doublon."""
+    destinataires = []
+    deja_vus = set()
+    for champ in ("email_structure", "email_coordinateur_securite"):
+        email = (getattr(dossier_dm, champ, None) or "").strip()
+        if email and email.casefold() not in deja_vus:
+            destinataires.append(email)
+            deja_vus.add(email.casefold())
+    return destinataires
+
+
 def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
     """
 
@@ -674,11 +686,9 @@ def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
         True si bien envoyé, False sinon
     
     """
+    numero_dossier_dm = dossier_dm.numero_dossier_declaration_manifestations
     try :
-        logger.info(dossier_dm.email_structure)
-        logger.warning(dossier_dm.email_structure)
-        
-        numero_dossier_dm = None
+        destinataires = get_destinataires_relance_dm(dossier_dm)
         nom_manif = dossier_dm.nom_dossier
         LIEN_FORM_MANIF_SPORTIVE = os.getenv('LIEN_FORM_MANIF_SPORTIVE')
 
@@ -689,17 +699,11 @@ def envoi_auto_mail_relance(dossier_dm : DossierManifSportive):
             )
             return False
 
-        if NOTIFS_PROD :
-            if not dossier_dm.email_structure :
-                logger.info(f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Aucun email de structure renseigné. Pas d'envoi de mail de relance.")
-                return False
-            emails_norm = [dossier_dm.email_structure]
-        else :
-            
-            if not dossier_dm.email_structure :
-                logger.info(f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Aucun email de structure renseigné. Pas d'envoi de mail de relance.")
-                return False
-            emails_norm = [EMAIL_NOTIF_TEST]
+        if not destinataires:
+            logger.info(f"[NOUVEAU DOSSIER DM {numero_dossier_dm}] Intersection avec le coeur de parc - Aucun email de structure ni de coordinateur sécurité renseigné. Pas d'envoi de mail de relance.")
+            return False
+        # En automatique, le coordinateur sert uniquement de secours.
+        emails_norm = [destinataires[0]] if NOTIFS_PROD else [EMAIL_NOTIF_TEST]
 
         sujet = f"{nom_manif} : formulaire du Parc national de La Réunion à compléter"
         

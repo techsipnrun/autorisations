@@ -2691,7 +2691,7 @@ textarea[name="note"] {
 }
 
 .btn-liaison-ds{
-  font-size: clamp(0.9rem, 1vw, 1.2rem);
+  font-size: clamp(0.9rem, 1vw, 1rem);
 }
 
 /* Le bouton de liaison depuis un dossier DN ne remplit pas tout son bloc. */

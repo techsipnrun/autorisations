@@ -1,0 +1,21 @@
+<div class="champ-mail">
+    <label for="nouvel-email-relance">À :</label>
+    <div class="destinataires-relance-box">
+        <div id="selected-chips-relance" class="selected-chips">
+            {% for email in emails_relance_organisateur %}
+                <span class="chip" data-email="{{ email }}">
+                    {{ email }}
+                    <button type="button" onclick="retirerEmailRelance(this)" aria-label="Retirer {{ email }}">×</button>
+                </span>
+            {% endfor %}
+        </div>
+        <div class="search-wrapper">
+            <input type="email" id="nouvel-email-relance" class="search-contacts" placeholder="Ajouter une adresse email" aria-label="Ajouter un destinataire">
+            <button type="button" id="add-email-relance-btn" class="add-email-btn" onclick="ajouterEmailRelance()">+</button>
+        </div>
+    </div>
+    {% for email in emails_relance_organisateur %}
+        <input type="hidden" name="emails[]" value="{{ email }}" class="hidden-email-relance">
+    {% endfor %}
+    <div id="hidden-emails-relance"></div>
+</div>

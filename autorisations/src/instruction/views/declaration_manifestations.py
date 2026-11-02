@@ -19,7 +19,7 @@ from instruction.utils.dm import documents_deposes_sur_DM, reception_charger_con
 from instruction.utils.avis_dm_utils import get_avis_dm_le_plus_recent
 from instruction.utils.date_activite import extraire_date_debut_activite_dm
 from instruction.utils.dossier_utils import ajouter_message_groupe_instructeur, get_actions_possibles_DM, redirect_error
-from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail
+from instruction.utils.utilisateurs_utils import envoyer_copie_document_par_mail, get_destinataires_relance_dm
 from instruction.views.errors import dossier_introuvable
 from notifications.service import compute_dedupe_key, create_EmailOutbox_DM, envoi_mail
 from synchronisation.utils.instruction import archive_lier_dossier_dm_au_dossier_dn, lier_dossier_dm_au_dossier_dn
@@ -341,6 +341,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "groupe_instructeur_dm_id": groupe_instructeur_dm_id,
         "membres_groupes_dm": membres_groupes_dm,
         "instructeurs_dm_affectes_ids": instructeurs_dm_affectes_ids,
+        "emails_relance_organisateur": get_destinataires_relance_dm(doss_manif_sportive),
         "autres_instructeurs_du_dossier_dm": autres_instructeurs_du_dossier_dm,
         "instructeur_connecte_dans_groupe_dm": instructeur_connecte_dans_groupe_dm,
         "date_debut_manifestation": date_debut_manifestation,

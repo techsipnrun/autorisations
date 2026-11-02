@@ -25,7 +25,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=31">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=11">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=12">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
     <link rel="stylesheet" href="{% static 'instruction/carto/picto-vtm-img.css' %}">
@@ -229,6 +229,8 @@
                     </div>
                 </div>
             {% endif %}
+
+            {% include "instruction/refacto/dm_relance_information.html" %}
 
             <div class="titre-manif">
                 <h1> {{ doss_manif_sportive.nom_dossier|default:"Non renseigné" }} </h1>
@@ -912,14 +914,14 @@ Le Parc national de La Réunion</textarea>
                         <!-- <button type="button" class="btn-relance-demandeur" onclick="afficherFormulaireRelanceDemandeur()">
                             Relancer l’organisateur·rice
                         </button> -->
-                        <span {% if not doss_manif_sportive.email_structure %}
+                        <span {% if not emails_relance_organisateur %}
                                  title="Impossible de relancer l'organisateur : aucune adresse e-mail n'est renseignée."
                               {% endif %}>
                             <button
                                 type="button"
                                 class="btn-relance-demandeur"
                                 onclick="afficherFormulaireRelanceDemandeur()"
-                                {% if not doss_manif_sportive.email_structure %}disabled{% endif %}>
+                                {% if not emails_relance_organisateur %}disabled{% endif %}>
                                 Relancer l’organisateur·rice
                             </button>
                         </span>
@@ -934,34 +936,7 @@ Le Parc national de La Réunion</textarea>
 
                                 <h4>Nouveau mail de relance</h4>
 
-                                <div class="champ-mail">
-                                    <label for="destinataires-relance">À :</label>
-
-                                    <div class="destinataires-relance-box">
-                                        <div id="selected-chips-relance" class="selected-chips">
-                                            {% if doss_manif_sportive.email_structure %}
-                                                <span class="chip" data-email="{{ doss_manif_sportive.email_structure }}">
-                                                    {{ doss_manif_sportive.email_structure }}
-                                                    <button type="button" onclick="retirerEmailRelance(this)">×</button>
-                                                </span>
-                                            {% endif %}
-                                        </div>
-
-                                        <div class="search-wrapper">
-                                            <input
-                                                type="email"
-                                                id="nouvel-email-relance"
-                                                class="search-contacts"
-                                                placeholder="Ajouter une adresse email">
-                                            <button type="button" id="add-email-relance-btn" class="add-email-btn" onclick="ajouterEmailRelance()">+</button>
-                                        </div>
-                                    </div>
-
-                                    {% if doss_manif_sportive.email_structure %}
-                                        <input type="hidden" name="emails[]" value="{{ doss_manif_sportive.email_structure }}" class="hidden-email-relance">
-                                    {% endif %}
-                                    <div id="hidden-emails-relance"></div>
-                                </div>
+                                {% include "instruction/refacto/dm_relance_destinataires.html" %}
 
                                 <div class="champ-mail">
                                     <label for="objet-relance">Objet :</label>
