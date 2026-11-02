@@ -1,0 +1,5 @@
+<form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
+</form>

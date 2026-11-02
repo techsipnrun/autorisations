@@ -1,0 +1,5 @@
+<form method="post" action="{% url action.url_name %}">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="submit" class="btn_dropdown_instruction">{{ action.label }}</button>
+</form>

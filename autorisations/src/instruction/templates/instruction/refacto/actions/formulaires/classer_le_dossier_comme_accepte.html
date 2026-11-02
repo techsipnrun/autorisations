@@ -1,0 +1,18 @@
+<div id="formulaire-acceptation-directe" data-action-form="{{ action.code }}" class="zone-complement zone-envoyer-pour-validation">
+    <form method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_accepte_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme accepté ?');">
+        {% csrf_token %}
+        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+        <div class="instruction-warning">
+            <strong>Attention :</strong> l’utilisation de ce raccourci d’archivage doit avoir été vue et accordée par le valideur.
+        </div>
+        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p>{% if interface != 'preinstruction' %} <br>{% endif %}
+        <textarea name="motivation" class="textarea-complement"{% if interface != 'preinstruction' %} placeholder="Message d’acceptation au pétitionnaire..."{% endif %} required>L’établissement du Parc national de La Réunion vous notifie sa décision sur le dossier {{ dossier.numero }}.</textarea>
+
+        <div class="zone-pj-complement">
+            <label for="justificatif-acceptation-{% if interface == 'preinstruction' %}preinstruction{% else %}directe{% endif %}">Joindre un justificatif (facultatif) :</label>
+            <input id="justificatif-acceptation-{% if interface == 'preinstruction' %}preinstruction{% else %}directe{% endif %}" type="file" name="justificatif" data-taille-max="10485760">
+            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+            <button type="submit" class="btn-envoyer-complement">Confirmer l'acceptation</button>
+        </div>
+    </form>
+</div>

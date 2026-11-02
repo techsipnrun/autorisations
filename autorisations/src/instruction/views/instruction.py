@@ -545,7 +545,6 @@ def accueil(request):
 
     current_year = date.today().year
 
-    etapes_terminees = ["Non soumis à autorisation", "Refusé", "Accepté", "Annulé"]
     compteurs_dossiers = {
         ligne["id_demarche_id"]: ligne
         for ligne in (
@@ -555,12 +554,12 @@ def accueil(request):
                 ),
                 nb_suivis=Count(
                     "id",
-                    filter=~Q(id_etape_dossier__etape__in=[*etapes_terminees, "À affecter"]),
+                    filter=~(Q(id_etape_dossier__est_archivage=True) | Q(id_etape_dossier__etape="À affecter")),
                 ),
                 nb_traites=Count(
                     "id",
                     filter=Q(
-                        id_etape_dossier__etape__in=etapes_terminees,
+                        id_etape_dossier__est_archivage=True,
                         date_fin_instruction__year=current_year,
                     ),
                 ),
@@ -636,12 +635,12 @@ def mesdossiers(request):
         return render(request, "instruction/mesdossiers.html", { "dossiers_par_demarche": [] })
     
     # Étapes exclues
-    etapes_termines_et_a_affecter = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé", "À affecter"])
+    etapes_termines_et_a_affecter = EtapeDossier.objects.filter(Q(est_archivage=True) | Q(etape="À affecter"))
 
     # Tous les dossiers où l'instructeur intervient (Hors étape 'À affecter')
     base_query = get_dossiers_instructeur(instructeur)
 
-    # Liste dossiers liés à instructeur. Exclusion étapes ["Non soumis à autorisation", "Refusé", "Accepté", "À affecter"]
+    # Exclure les dossiers archivés et ceux encore à affecter.
     dossiers = base_query.exclude(id_etape_dossier__in=etapes_termines_et_a_affecter)
 
 
@@ -857,7 +856,7 @@ def instruction_demarche(request, num_demarche):
     )
 
 
-    etapes_termines = EtapeDossier.objects.filter(etape__in=["Non soumis à autorisation", "Refusé", "Accepté", "Annulé"])
+    etapes_termines = EtapeDossier.objects.filter(est_archivage=True)
 
     instructeur = Instructeur.objects.filter(email=request.user.email).first()
     if not instructeur:
@@ -892,7 +891,7 @@ def instruction_demarche(request, num_demarche):
     dossiers = (
         Dossier.objects
         .filter(id_demarche=demarche)
-        .exclude(id_etape_dossier__etape__in=["Accepté", "Refusé", "Non soumis à autorisation", "Annulé", "À affecter"])
+        .exclude(Q(id_etape_dossier__est_archivage=True) | Q(id_etape_dossier__etape="À affecter"))
         .select_related("id_groupeinstructeur", "id_etape_dossier", "id_demarche")
         .order_by("date_depot")
     )
@@ -1649,6 +1648,8 @@ def instruction_dossier(request, num_dossier):
     )
     if not peut_changer_etape:
         actions_possibles = ["Classer comme annulé"] if peut_annuler_en_instruction else []
+    from instruction.utils.actions_interface import preparer_menu
+    actions_menu = preparer_menu(actions_possibles, dossier, "instruction")
 
     DM_API_URL = os.getenv('DM_API_URL')
 
@@ -1682,6 +1683,7 @@ def instruction_dossier(request, num_dossier):
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         "actions_possibles": actions_possibles,
+        "actions_menu": actions_menu,
         "motif_decision": get_motif_decision(dossier),
         "peut_changer_etape": peut_changer_etape,
         "peut_annuler_en_instruction": peut_annuler_en_instruction,

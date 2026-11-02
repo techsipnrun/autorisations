@@ -13,6 +13,8 @@ from urllib.parse import urlsplit
 from django.template import Context, Template
 from django.test import SimpleTestCase
 
+from instruction.utils.actions_interface import construire_menu
+
 
 SRC = Path(__file__).resolve().parents[2]
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -24,7 +26,7 @@ ACTIONS = [
 ]
 
 
-def rendre_menu(nom="instruction_dossier", present=True, actions=None, etape="En instruction", autorise=True):
+def rendre_menu(nom="instruction_dossier", present=True, actions=None, etape="En instruction", autorise=True, formulaires=False):
     source = (SRC / f"instruction/templates/instruction/{nom}.html").read_text(encoding="utf-8")
     fragment = '<div class="etat-badge-menu-dropdown">' + source.split(
         '<div class="etat-badge-menu-dropdown">', 1)[1].split("<!-- Téléchargement PDF -->", 1)[0]
@@ -32,11 +34,19 @@ def rendre_menu(nom="instruction_dossier", present=True, actions=None, etape="En
                                  _instruction_group_names_cache=set(), _instruction_instructeur_cache=None)
     contexte = {
         "request": SimpleNamespace(user=utilisateur), "peut_changer_etape": autorise,
-        "dossier": SimpleNamespace(id_ds="Dossier-test", present_sur_ds=present,
+        "dossier": SimpleNamespace(id_ds="Dossier-test", numero=123, present_sur_ds=present,
                                    id_etat_dossier=SimpleNamespace(nom="accepte")),
         "etape_actuelle": SimpleNamespace(etape=etape), "etape_dossier": etape,
         "actions_possibles": ACTIONS if actions is None else actions, "csrf_token": "test",
     }
+    codes = {ACTIONS[0]: "classer_comme_annule", ACTIONS[1]: "classer_le_dossier_comme_refuse",
+             ACTIONS[2]: "classer_le_dossier_comme_accepte", ACTIONS[3]: "dossier_non_soumis_a_autorisation"}
+    interface = "preinstruction" if nom == "preinstruction_dossier" else "instruction"
+    objets = [SimpleNamespace(code=codes[label], action=label) for label in contexte["actions_possibles"]]
+    contexte["actions_menu"] = construire_menu(objets, contexte["actions_possibles"], "dn",
+                                                "À affecter" if interface == "preinstruction" else etape, interface)
+    if formulaires:
+        fragment += '{% include "instruction/refacto/actions/formulaires.html" %}'
     return Template("{% load group_tags custom_filters %}" + fragment).render(Context(contexte)), source
 
 
@@ -77,8 +87,11 @@ class MenuArchivageTests(SimpleTestCase):
     @skipUnless(CHROME.exists(), "Chrome headless indisponible.")
     def test_survol_clic_formulaires_et_petits_ecrans(self):
         css = (SRC / "instruction/static/instruction/css/dossier.css").read_text(encoding="utf-8")
+        for fichier in ("instruction_dossier.css", "preinstruction_dossier.css", "dossier_manif_sportive_sans_ds.css"):
+            css += (SRC / "instruction/static/instruction/css" / fichier).read_text(encoding="utf-8")
         commun = (SRC / "instruction/static/instruction/js/dossier_commun.js").read_text(encoding="utf-8")
         menu_js = commun.split("// Réassociation manuelle", 1)[0]
+        menu_js += "\n" + (SRC / "instruction/static/instruction/js/actions_dossier.js").read_text(encoding="utf-8")
         pages = {}
         for cas, template, present, actions, etape in (
             ("instruction", "instruction_dossier", True, ACTIONS, "En instruction"),
@@ -88,13 +101,9 @@ class MenuArchivageTests(SimpleTestCase):
             ("unique", "instruction_dossier", True, ACTIONS[:1], "En instruction"),
             ("raa", "instruction_dossier", True, ACTIONS[1:3], "À publier au RAA"),
         ):
-            menu, source = rendre_menu(template, present, actions, etape)
-            noms = ["masquerToutesZonesComplementaires", "fermerMenuEtape", "afficherFormulaireClassement",
-                    "afficherFormulaireAnnulation", "afficherFormulaireAcceptationDirecte",
-                    "afficherFormulaireRefusDirect" if template == "preinstruction_dossier" else "afficherFormulaireRefus"]
-            fonctions = "\n".join(fonction_js(source, nom) for nom in noms)
-            zones = set(re.findall(r'getElementById\("(formulaire-[^"]+)"\)\.classList.add', fonctions))
-            formulaires = "".join(f'<div id="{zone}" class="zone-complement"></div>' for zone in zones)
+            menu, source = rendre_menu(template, present, actions, etape, formulaires=True)
+            fonctions = "\n".join(fonction_js(source, nom) for nom in
+                                    ("masquerToutesZonesComplementaires", "fermerMenuEtape"))
             test = """
             const mediaNatif=window.matchMedia.bind(window);
             window.matchMedia=query=>query.includes('hover: hover')?{matches:true}:mediaNatif(query);
@@ -103,6 +112,18 @@ class MenuArchivageTests(SimpleTestCase):
                 const sortie=document.createElement('pre');document.body.append(sortie);
                 const assert=(ok,message)=>{if(!ok)throw new Error(message);};
                 try {
+                    // Les transmissions CA/direction utilisent display, sans classe show.
+                    for(const mode of ['classe','display']) {
+                        const zone=document.createElement('div');
+                        zone.className='zone-complement zone-envoyer-pour-validation';
+                        if(mode==='classe')zone.classList.add('show');
+                        else zone.style.display='block';
+                        document.body.append(zone);
+                        const rem=parseFloat(getComputedStyle(document.documentElement).fontSize);
+                        assert(getComputedStyle(zone).display!=='none','Formulaire visible : '+mode);
+                        assert(parseFloat(getComputedStyle(zone).marginBottom)===rem,'Marge basse de 1rem : '+mode);
+                        zone.remove();
+                    }
                     const menu=document.getElementById('etapeMenuContent');
                     const groupe=menu.querySelector('.etape-archives');
                     const attendu=['instruction','preinstruction','deux'].includes(CAS);
@@ -112,6 +133,17 @@ class MenuArchivageTests(SimpleTestCase):
                     document.getElementById('etapeMenuToggle').click();
                     if(!attendu) {
                         assert(noeudsAvant.every(noeud=>noeud.parentElement===menu),'Actions exclues inchangées');
+                        for(const bouton of menu.querySelectorAll('[data-confirmer-action]')){
+                            const form=bouton.closest('form');
+                            let envois=0, message='';
+                            form.submit=()=>{envois++;};
+                            window.confirm=texte=>{message=texte;return false;};
+                            bouton.click();assert(envois===0,'Archivage direct annulé');
+                            window.confirm=()=>true;bouton.click();
+                            assert(envois===1&&form.method==='post'&&form.elements.dossierId.value==='Dossier-test','POST direct conservé');
+                            if(form.dataset.archiveAction==='annule')assert(message.includes('irréversible'),'Avertissement annulation directe');
+                        }
+                        window.confirm=()=>false;
                         document.body.click();
                         assert(!menu.classList.contains('show'),'Clic extérieur ferme le menu');
                     } else {
@@ -155,6 +187,37 @@ class MenuArchivageTests(SimpleTestCase):
                             panneau.querySelector('[data-archive-action="'+action+'"]').click();
                             assert(document.getElementById(cible).classList.contains('show'),'Formulaire actuel ouvert : '+action);
                             assert(!menu.classList.contains('show')&&panneau.hidden,'Fermeture complète après action');
+                            const zone=document.getElementById(cible), form=zone.querySelector('form');
+                            const motivation=form.elements.motivation;
+                            assert(motivation.required===(action!=='annule'),'Motivation facultative pour annulation seulement');
+                            let confirmations=0, envois=0;
+                            window.confirm=()=>{confirmations++;return false;};
+                            const bloquer=e=>{envois++;assert(e.defaultPrevented,'Confirmation annulée');};
+                            form.addEventListener('submit',bloquer);
+                            form.requestSubmit();
+                            assert(confirmations===1&&envois===1,'Confirmation avant envoi');
+                            if(motivation.required){
+                                const texte=motivation.value;motivation.value='';
+                                form.requestSubmit();
+                                assert(confirmations===1,'Champ requis validé avant confirmation');
+                                motivation.value=texte;
+                            }
+                            form.removeEventListener('submit',bloquer);
+                            window.confirm=()=>true;
+                            const accepter=e=>{assert(!e.defaultPrevented,'Confirmation acceptée');e.preventDefault();envois++;};
+                            form.addEventListener('submit',accepter,{once:true});
+                            form.requestSubmit();
+                            assert(envois===2,'Envoi unique après confirmation');
+                            const input=form.elements.justificatif;
+                            if(input){
+                                const transfert=new DataTransfer();
+                                transfert.items.add(new File([new Uint8Array(10485761)],'trop-grand.pdf'));
+                                input.files=transfert.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+                                assert(!input.checkValidity(),'Justificatif supérieur à 10 Mo refusé');
+                                input.value='';input.dispatchEvent(new Event('change',{bubbles:true}));
+                                assert(input.checkValidity(),'Validité rétablie après retrait');
+                            }
+                            window.confirm=()=>false;
                         }
                         document.getElementById('etapeMenuToggle').click();bouton.click();
                         document.body.click();
@@ -168,7 +231,7 @@ class MenuArchivageTests(SimpleTestCase):
                 '<!doctype html><html><head><meta charset="utf-8">'
                 f'<style>{css}body{{margin:16px}}body.droite{{margin-left:calc(100vw - 360px)}}</style>'
                 f'<script>{test}</script><script src="/menu.js" defer></script></head>'
-                f'<body>{menu}{formulaires}<script>{fonctions}\n'
+                f'<body>{menu}<script>{fonctions}\n'
                 "if(location.search.includes('droite'))document.body.classList.add('droite');"
                 "const noeudsAvant=[...document.querySelectorAll('[data-archive-action]')];"
                 "const htmlAvant=noeudsAvant.map(noeud=>noeud.outerHTML);</script></body></html>"

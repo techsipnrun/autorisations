@@ -1,0 +1,49 @@
+{% if interface != "preinstruction" or dossier.present_sur_ds %}
+<div id="{% if interface == 'preinstruction' %}formulaire-classement-dn{% else %}formulaire-classement{% endif %}" data-action-form="{{ action.code }}" class="zone-complement zone-envoyer-pour-validation">
+    <form id="form-classement-sans-suite" method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme non soumis à autorisation ?');">
+        {% csrf_token %}
+        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+        
+        {% if interface == "preinstruction" %}
+        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p>
+        {% else %}
+        {% if dossier.present_sur_ds %}
+
+            {% if dossier_lie_manif_sportive and doss_manif_sportive %}
+
+                {% if doss_manif_sportive.archive %}
+                    <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique. 
+                        Aucune mise à jour ne sera faite sur Déclaration Manifestations car un avis a déjà été rendu.
+                    </p> <br>
+                {% else %}
+                    <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique et Déclaration Manifestations.</p> <br>
+                {% endif %}
+
+            {% else %}
+                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
+            {% endif %}
+
+        {% else %}
+
+            {% if dossier_lie_manif_sportive and doss_manif_sportive and not doss_manif_sportive.archive %}
+                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Déclaration Manifestations.</p> <br>
+            {% endif %}
+        {% endif %}
+
+
+        {% endif %}
+        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
+
+[Préciser les raisons].</textarea>
+
+        <div class="zone-pj-complement">
+            {% if dossier.present_sur_ds %}
+                <label for="justificatif-classement{% if interface == 'preinstruction' %}-preinstruction{% endif %}">Joindre un justificatif (facultatif) :</label>
+                <input id="justificatif-classement{% if interface == 'preinstruction' %}-preinstruction{% endif %}" type="file" name="justificatif" data-taille-max="10485760">
+                <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+            {% endif %}
+            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
+        </div>
+    </form>
+</div>
+{% endif %}

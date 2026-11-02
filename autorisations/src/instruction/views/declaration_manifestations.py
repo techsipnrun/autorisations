@@ -175,14 +175,16 @@ def dossier_manif_sportive_sans_ds(request, numero):
     # -------------------------------------------------------------------
     dossiers_deja_lies_ids = DossierManifestationLiaison.objects.values_list("id_dossier_id", flat=True)
 
-    etapes_avec_acte_deja_envoye = ["À publier au RAA", "Non soumis à autorisation", "Refusé", "Accepté", "Annulé"]
+    etapes_avec_acte_deja_envoye = EtapeDossier.objects.filter(
+        Q(est_archivage=True) | Q(etape="À publier au RAA")
+    )
     
     # DOSSIER DN NON ARCHIVÉ, PAS LIÉ
     dossiers_DN_manif_sportive_non_lie = (
         Dossier.objects
         .filter(id_demarche__type="Manifestations sportives", date_depot__gte=timezone.now() - timedelta(days=365))
         .exclude(id__in=dossiers_deja_lies_ids)
-        .exclude(id_etape_dossier__etape__in=etapes_avec_acte_deja_envoye)
+        .exclude(id_etape_dossier__in=etapes_avec_acte_deja_envoye)
         .select_related("id_demarche", "id_etape_dossier")
         .order_by("date_depot")
     )
@@ -194,7 +196,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
 
     dossiers_DN_archive_manif_sportive_non_lie = (
         Dossier.objects
-        .filter(id_demarche__type="Manifestations sportives", date_depot__gte=timezone.now() - timedelta(days=365), id_etape_dossier__etape__in=etapes_avec_acte_deja_envoye)
+        .filter(id_demarche__type="Manifestations sportives", date_depot__gte=timezone.now() - timedelta(days=365), id_etape_dossier__in=etapes_avec_acte_deja_envoye)
         .filter(
             Q(date_fin_instruction__gte=limite_un_an) |
             Q(date_fin_instruction__isnull=True)
@@ -276,6 +278,8 @@ def dossier_manif_sportive_sans_ds(request, numero):
 
     # Actions possibles
     actions_possibles = get_actions_possibles_DM(doss_manif_sportive)
+    from instruction.utils.actions_interface import preparer_menu
+    actions_menu = preparer_menu(actions_possibles, doss_manif_sportive, "dm")
 
 
     # On récupère les actes/annexe déposées sur DM
@@ -357,6 +361,7 @@ def dossier_manif_sportive_sans_ds(request, numero):
         "dossiers_DN_refuse_manif_sportive_non_lie": dossiers_DN_refuse_manif_sportive_non_lie,
         "dossiers_DN_accepte_manif_sportive_non_lie": dossiers_DN_accepte_manif_sportive_non_lie,
         "actions_possibles": actions_possibles,
+        "actions_menu": actions_menu,
         "now": timezone.now(),
         # "emails_uniques": emails_uniques,
         "emails_relance": emails_relance,
@@ -673,8 +678,7 @@ def archive_lier_dossier_manif_sportive_a_DN(request):
 
     
     # --- Sécurité : vérifier que Dossier DN "Manifestations sportives" + dossier archivé ---
-    etapes_archive = ["Non répondu", "Non soumis à autorisation", "Refusé", "Accepté", "Annulé"]
-    if (dossier_dn.id_demarche.type != "Manifestations sportives" or dossier_dn.id_etape_dossier.etape not in etapes_archive) :
+    if (dossier_dn.id_demarche.type != "Manifestations sportives" or not dossier_dn.id_etape_dossier.est_archivage) :
         return redirect_error(request, f"Erreur lors de la liaison entre les deux dossiers. Le dossier Démarche Numérique {dossier_dn.numero} n'est pas archivé. Contactez le support.")
     
     if not dossier_manif.archive :

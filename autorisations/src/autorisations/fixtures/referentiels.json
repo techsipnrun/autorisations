@@ -458,126 +458,144 @@
     "model": "autorisations.etapedossier",
     "pk": 1,
     "fields": {
-      "etape": "En attente de compléments"
+      "etape": "En attente de compléments",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 2,
     "fields": {
-      "etape": "En attente réponse d'avis"
+      "etape": "En attente réponse d'avis",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 3,
     "fields": {
-      "etape": "Acte à envoyer"
+      "etape": "Acte à envoyer",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 4,
     "fields": {
-      "etape": "À valider avant demande d'avis"
+      "etape": "À valider avant demande d'avis",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 5,
     "fields": {
-      "etape": "À publier au RAA"
+      "etape": "À publier au RAA",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 6,
     "fields": {
-      "etape": "En attente de signature"
+      "etape": "En attente de signature",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 7,
     "fields": {
-      "etape": "En relecture qualité"
+      "etape": "En relecture qualité",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 9,
     "fields": {
-      "etape": "En pré-instruction"
+      "etape": "En pré-instruction",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 10,
     "fields": {
-      "etape": "À affecter"
+      "etape": "À affecter",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 11,
     "fields": {
-      "etape": "En instruction"
+      "etape": "En instruction",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 12,
     "fields": {
-      "etape": "Accepté"
+      "etape": "Accepté",
+      "est_archivage": true
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 13,
     "fields": {
-      "etape": "Refusé"
+      "etape": "Refusé",
+      "est_archivage": true
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 14,
     "fields": {
-      "etape": "Non soumis à autorisation"
+      "etape": "Non soumis à autorisation",
+      "est_archivage": true
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 15,
     "fields": {
-      "etape": "À valider avant signature"
+      "etape": "À valider avant signature",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 16,
     "fields": {
-      "etape": "Avis à envoyer"
+      "etape": "Avis à envoyer",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 17,
     "fields": {
-      "etape": "En réception"
+      "etape": "En réception",
+      "est_archivage": false
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 18,
     "fields": {
-      "etape": "Non répondu"
+      "etape": "Non répondu",
+      "est_archivage": true
     }
   },
   {
     "model": "autorisations.etapedossier",
     "pk": 19,
     "fields": {
-      "etape": "Annulé"
+      "etape": "Annulé",
+      "est_archivage": true
     }
   },
   {

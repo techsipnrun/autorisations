@@ -8,6 +8,8 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'backoffice/css/back_office.css' %}?v=41">
     <script src="{% static 'backoffice/js/back_office_types_actes.js' %}?v=5" defer></script>
+    <link rel="stylesheet" href="{% static 'backoffice/css/back_office_actions.css' %}?v=8">
+    <script src="{% static 'backoffice/js/back_office_actions.js' %}?v=13" defer></script>
     <link rel="stylesheet" href="{% static 'backoffice/css/back_office_avis.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'instruction/css/avis_formulaires.css' %}?v=3">
     <script src="{% static 'instruction/js/avis_formulaires.js' %}?v=6" defer></script>
@@ -71,6 +73,7 @@
                 </button>
                 <div id="back-office-circuit-nav" class="back-office-nav-submenu" hidden>
                     <button type="button" class="back-office-nav-subitem" data-section="types-actes">Types d’actes</button>
+                    <button type="button" class="back-office-nav-subitem" data-section="actions">Les actions possibles</button>
                 </div>
                 </div>
                 <div class="back-office-nav-group">
@@ -360,10 +363,13 @@
             <section class="back-office-panel" data-panel="circuit" hidden>
                 <p class="back-office-eyebrow">Back Office</p>
                 <h1>Circuit d’instruction</h1>
-                <p>Choisissez « Types d’actes » dans le panneau latéral pour gérer les actes disponibles.</p>
+                <p>Choisissez « Types d’actes » ou « Les actions possibles » dans le panneau latéral.</p>
             </section>
             <section class="back-office-panel" data-panel="types-actes" hidden>
                 {% include "backoffice/back_office_types_actes.html" %}
+            </section>
+            <section class="back-office-panel" data-panel="actions" hidden>
+                {% include "backoffice/back_office_actions.html" %}
             </section>
             <section class="back-office-panel" data-panel="avis" hidden>
                 {% include "backoffice/back_office_avis.html" %}
@@ -451,12 +457,12 @@
 
             sousMenuDemarches.hidden = !estDemarche;
             menuDemarche.setAttribute('aria-expanded', String(estDemarche));
-            const estCircuit = ['circuit', 'types-actes'].includes(sectionValide);
+            const estCircuit = ['circuit', 'types-actes', 'actions'].includes(sectionValide);
             document.getElementById('back-office-circuit-nav').hidden = !estCircuit;
             const menuCircuit = document.querySelector('.back-office-nav-item[data-section="circuit"]');
             menuCircuit.setAttribute('aria-expanded', String(estCircuit));
             menuCircuit.classList.toggle('is-active', estCircuit);
-            document.querySelector('.back-office-nav-subitem[data-section="types-actes"]').classList.toggle('is-active', sectionValide === 'types-actes');
+            document.querySelectorAll('#back-office-circuit-nav [data-section]').forEach(item => item.classList.toggle('is-active', item.dataset.section === sectionValide));
             const estAvis = ['avis', 'avis-thematiques'].includes(sectionValide);
             document.getElementById('back-office-avis-nav').hidden = !estAvis;
             const menuAvis = document.querySelector('.back-office-nav-item[data-section="avis"]');
@@ -490,6 +496,10 @@
                 afficherBackOffice('types-actes');
                 return;
             }
+            if (fragment === 'circuit/actions') {
+                afficherBackOffice('actions');
+                return;
+            }
             const resultat = fragment.match(/^demarche\/(\d+)$/);
             if (resultat) {
                 afficherBackOffice('demarche', resultat[1]);
@@ -499,7 +509,7 @@
         }
 
         function naviguerBackOffice(section, demarcheId = null, vueCarto = 'catalogue') {
-            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'avis' ? 'avis/formulaires' : section === 'avis-thematiques' ? 'avis/thematiques' : section === 'types-actes' ? 'circuit/types-actes' : section === 'carto' ? `carto/${vueCarto}` : section;
+            const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'avis' ? 'avis/formulaires' : section === 'avis-thematiques' ? 'avis/thematiques' : section === 'types-actes' ? 'circuit/types-actes' : section === 'actions' ? 'circuit/actions' : section === 'carto' ? `carto/${vueCarto}` : section;
             if (window.location.hash === `#${fragment}`) {
                 afficherBackOffice(section, demarcheId, vueCarto);
                 return;

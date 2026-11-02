@@ -16,7 +16,7 @@
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=30">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=31">
     <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=11">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
@@ -43,6 +43,7 @@
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}?v=13"></script>
+    <script src="{% static 'instruction/js/actions_dossier.js' %}?v=1" defer></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=4" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
@@ -298,129 +299,11 @@
                         {% if peut_changer_etape or peut_annuler_en_instruction %}
                             <div class="etat-badge-menu-content" id="etapeMenuContent"{% if dossier.present_sur_ds %} data-archivage-dn{% endif %}>
 
-                                    {% if actions_possibles %}
-                                        {% for label in actions_possibles %}
-                                        
-                                            {% if label == "Demander des compléments" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireComplement()">Demander des compléments</button>
-                                            
-                                            {% elif label == "Classer le dossier comme refusé" %} <!-- Non utilisé à ce jour -->
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefus()">Classer le dossier comme refusé</button>
-
-                                            {% elif label == "Envoyer l'acte d'acceptation" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAcceptation()">Envoyer l’acte d'acceptation</button>
-                                            
-                                            {% elif label == "Envoyer l'acte de refus" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerActeRefus()">Envoyer l’acte de refus</button>
-                                            
-                                            {% elif label == "Faire valider le projet d'acte" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantSignature()">Faire valider le projet d'acte</button>
-                                            
-                                            {% elif label == "Faire valider avant l'envoi d'une demande d'avis à une instance" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourValidAvantDemandeAvis()">Faire valider le projet d'avis CS</button>
-                                            
-                                            {% elif label == "Valider et envoyer pour relecture qualité" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Valider et envoyer pour relecture qualité</button>
-                                            
-                                            {% elif label == "Envoyer pour relecture qualité" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Envoyer pour relecture qualité</button>
-                                            
-                                            {% elif label == "Acte inchangé, envoyer pour relecture qualité" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireEnvoyerPourRelectureQualite()">Acte inchangé, envoyer pour relecture qualité</button>
-                                            
-                                            {% elif label == "Prêt à la signature" and signature_ca %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
-
-                                            {% elif label == "Prêt à la signature" and not signature_ca %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionDirecteur()">Prêt à la signature</button>
-
-                                            <!-- SPPN : Passe direct de 'Instruction' à 'Acte prêt à la signature' -->
-                                            {% elif label == "Raccourci SPPN - Acte prêt à la signature" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretALaSignature()">Acte prêt à la signature</button>
-
-                                            {% elif label == "Acte prêt à être envoyé" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretAEtreEnvoye()">Transmettre l'acte signé</button>
-                                            
-                                            {% elif label == "Repasser en instruction" %}
-                                                <form method="post" action="{% url 'repasser_en_instruction_url' %}" id="form-retour-instruction">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                    <button type="button" class="btn_dropdown_instruction" onclick="confirmerRetourInstruction()">Repasser en instruction</button>
-                                                </form>
-                                            
-                                            
-                                            {% elif label == "Archiver le dossier comme non soumis à autorisation" %} 
-                                                {% if dossier.present_sur_ds %}
-                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="non_soumis" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
-                                                
-                                                <!-- Cas ou Doss plus sur DN mais encore sur DM et avis pas donné -->
-                                                {% elif dossier_lie_manif_sportive and doss_manif_sportive and not doss_manif_sportive.archive %}
-                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="non_soumis" onclick="afficherFormulaireClassement()">Archiver le dossier comme non soumis à autorisation</button>
-
-                                                {% else %}
-                                                    <form method="post" data-archive-action="non_soumis" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement-2">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeNonSoumis()">Archiver le dossier comme non soumis à autorisation</button>
-                                                    </form>
-                                                {% endif %}
-                                            
-
-                                            {% elif label == "Archiver le dossier comme refusé" %}
-                                                <!-- Dossier présent sur DN et à l'étape "À publier au RAA" mais pour un acte d'acceptation -->
-                                                {% if dossier.present_sur_ds and etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "refuse" %}
-                                                    <!-- pas de bouton -->  
-
-                                                <!-- Dossier présent sur DN mais pas à l'étape "" -->
-                                                {% elif dossier.present_sur_ds and etape_actuelle.etape != "À publier au RAA" %}
-                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="refuse" onclick="afficherFormulaireRefus()">Archiver le dossier comme refusé</button>
-                                                
-                                                <!-- Dossier absent de DN OU dossier présent sur DN à l'étape "À publier au RAA" pour un acte de refus -->
-                                                {% else %}
-                                                    <form method="post" data-archive-action="refuse" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus-2">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeRefuse()">Archiver le dossier comme refusé</button>
-                                                    </form>
-                                                {% endif %}
-                              
-
-                                            {% elif label == "Archiver le dossier comme accepté" %}
-                                                {% if etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "accepte" %}
-                                                        <!-- pas de bouton -->
-                                                {% elif dossier.present_sur_ds and etape_actuelle.etape != "À publier au RAA" %}
-                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="accepte" onclick="afficherFormulaireAcceptationDirecte()">Archiver le dossier comme accepté</button>
-                                                {% else %}
-                                                    <form method="post" data-archive-action="accepte" action="{% url 'classer_le_dossier_comme_accepte_url' %}" id="form-retour-instruction-3">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAccepte()">Archiver le dossier comme accepté</button>
-                                                    </form>
-                                                {% endif %}
-
-                                            {% elif label == "Classer comme annulé" %}
-                                                {% if dossier.present_sur_ds and etape_actuelle.etape == "À affecter" or dossier.present_sur_ds and etape_actuelle.etape == "En pré-instruction" or dossier.present_sur_ds and etape_actuelle.etape == "En instruction" %}
-                                                    <button type="button" class="btn_dropdown_instruction" data-archive-action="annule" onclick="afficherFormulaireAnnulation()">Classer comme annulé</button>
-                                                {% else %}
-                                                    <form method="post" data-archive-action="annule" action="{% url 'classer_comme_annule_url' %}">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                        <button type="button" class="btn_dropdown_instruction" onclick="confirmerClasserCommeAnnule(this)">Classer comme annulé</button>
-                                                    </form>
-                                                {% endif %}
-
-                                            {% else %}
-                                                <form method="post" action="{% url label|url_name_from_label %}">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                                                    <button type="submit" class="btn_dropdown_instruction">{{ label }}</button>
-                                                </form>
-                                            {% endif %}
-
-                                        {% endfor %}
-                                    {% else %}
-                                        <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
-                                    {% endif %}
+                                {% for action in actions_menu %}
+                                    {% include action.template %}
+                                {% empty %}
+                                    <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
+                                {% endfor %}
 
                             </div>
                         {% endif %}
@@ -1139,133 +1022,10 @@ Le Parc national de La Réunion</textarea>
                 </div>
 
 
-                <!----------------------------------------------------------------------->
-                <!-- Zone masquée : justification classement sans suite, refus dossier -->
-                <!----------------------------------------------------------------------->
-                <div id="formulaire-classement" class="zone-complement zone-envoyer-pour-validation">
-                    <form id="form-classement-sans-suite" method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme non soumis à autorisation ?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        
-                        <!---------------->
-                        <!-- PRESENT DN -->
-                        <!---------------->
-                        {% if dossier.present_sur_ds %}
+                <!-- Formulaires associés aux actions disponibles, hors du menu. -->
+                {% include "instruction/refacto/actions/formulaires.html" %}
 
-                            <!-- Lié à un dossier DM -->
-                            {% if dossier_lie_manif_sportive and doss_manif_sportive %}
-
-                                <!-- Dossier DM archivé -->
-                                {% if doss_manif_sportive.archive %}
-                                    <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique. 
-                                        Aucune mise à jour ne sera faite sur Déclaration Manifestations car un avis a déjà été rendu.
-                                    </p> <br>
-                                <!-- Dossier DM pas encore archivé -->
-                                {% else %}
-                                    <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique et Déclaration Manifestations.</p> <br>
-                                {% endif %}
-
-                            {% else %}
-                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
-                            {% endif %}
-
-                        <!--------------->
-                        <!-- ABSENT DN -->
-                        <!--------------->
-                        {% else %}
-
-                            <!-- PRESENT DM (NON ARCHIVÉ) -->
-                            {% if dossier_lie_manif_sportive and doss_manif_sportive and not doss_manif_sportive.archive %}
-                                <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Déclaration Manifestations.</p> <br>
-                            {% endif %}
-                        {% endif %}
-
-
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification de la décision auprès du pétitionnaire..." required>Après analyse complète de votre dossier, l’établissement du Parc national de La Réunion considère que votre projet n’entre pas dans le champ des activités soumises à autorisation.
-
-[Préciser les raisons].</textarea>
-
-                        <div class="zone-pj-complement">
-                            {% if dossier.present_sur_ds %}
-                                <label for="justificatif-classement">Joindre un justificatif (facultatif) :</label>
-                                <input id="justificatif-classement" type="file" name="justificatif" data-taille-max="10485760">
-                                <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
-                            {% endif %}
-                            <button type="submit" class="btn-envoyer-complement">Confirmer le classement</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div id="formulaire-annulation" class="zone-complement zone-envoyer-pour-validation formulaire-annulation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_comme_annule_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme annulé ?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <p class="formulaire-annulation-aide">
-                            Le message et la pièce jointe sont facultatifs. S'ils sont renseignés, ils seront visibles par le demandeur sur son espace Démarche Numérique{% if dossier_lie_manif_sportive %} ; le message sera également transmis sur Déclaration Manifestations{% endif %}.
-                        </p>
-                        <textarea name="motivation" class="textarea-complement textarea-annulation" rows="3" placeholder="Message facultatif au demandeur..."></textarea>
-
-                        <div class="zone-pj-complement">
-                            <label for="justificatif-annulation">Joindre une pièce (facultatif) :</label>
-                            <input id="justificatif-annulation" type="file" name="justificatif" data-taille-max="10485760">
-                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
-                            <button type="submit" class="btn-envoyer-complement">Confirmer l'annulation</button>
-                        </div>
-                    </form>
-                </div>
-
-
-                <!------------------------------------------->
-                <!-- Zone masquée : justification du refus -->
-                <!------------------------------------------->
-                <div id="formulaire-refus" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_refuse_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme refusé ?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <div class="instruction-warning">
-                            <strong>Attention :</strong> l’utilisation de ce raccourci d’archivage doit avoir été vue et accordée par le valideur.
-                        </div>
-                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
-                        <textarea name="motivation" class="textarea-complement" placeholder="Justification du refus auprès du pétitionnaire..." required>[Donner les motifs de refus]
-
-L’établissement du Parc national de La Réunion ne peut donner une suite favorable à votre demande.</textarea>
-
-                        <div class="zone-pj-complement">
-                            <label for="justificatif-refus">Joindre un justificatif (facultatif) :</label>
-                            <input id="justificatif-refus" type="file" name="justificatif" data-taille-max="10485760">
-                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
-                            <button type="submit" class="btn-envoyer-complement">Confirmer le refus</button>
-                        </div>
-                    </form>
-                </div>
-
-
-                <!-------------------------------------------------->
-                <!-- Zone masquée : acceptation directe du dossier -->
-                <!-------------------------------------------------->
-                <div id="formulaire-acceptation-directe" class="zone-complement zone-envoyer-pour-validation">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'classer_le_dossier_comme_accepte_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme accepté ?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
-                        <div class="instruction-warning">
-                            <strong>Attention :</strong> l’utilisation de ce raccourci d’archivage doit avoir été vue et accordée par le valideur.
-                        </div>
-                        <p style="font-style: italic">Ce message sera visible par le pétitionnaire sur son espace Démarche Numérique.</p> <br>
-                        <textarea name="motivation" class="textarea-complement" placeholder="Message d’acceptation au pétitionnaire..." required>L’établissement du Parc national de La Réunion vous notifie sa décision sur le dossier {{ dossier.numero }}.</textarea>
-
-                        <div class="zone-pj-complement">
-                            <label for="justificatif-acceptation-directe">Joindre un justificatif (facultatif) :</label>
-                            <input id="justificatif-acceptation-directe" type="file" name="justificatif" data-taille-max="10485760">
-                            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
-                            <button type="submit" class="btn-envoyer-complement">Confirmer l'acceptation</button>
-                        </div>
-                    </form>
-                </div>
-
-
-                <!--------------------------------------------------------------->
                 <!-- Zone masquée pour envoyer pour validation avant signature -->
-                <!--------------------------------------------------------------->
                 <div id="formulaire-validation-signature" class="zone-complement zone-envoyer-pour-validation">
                     <form method="post" enctype="multipart/form-data" action="{% url 'faire_valider_le_projet_d_acte_url' %}">
                         {% csrf_token %}
@@ -2976,37 +2736,6 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
         // Masquer les boutons submit après clic
         document.addEventListener("DOMContentLoaded", function () {
-            const justificatifClassement = document.getElementById("justificatif-classement");
-            if (justificatifClassement) {
-                justificatifClassement.addEventListener("change", function () {
-                    const fichier = this.files[0];
-                    const tailleMax = Number(this.dataset.tailleMax);
-                    const message = fichier && fichier.size > tailleMax
-                        ? "Le justificatif dépasse la taille maximale autorisée de 10 Mo."
-                        : "";
-
-                    this.setCustomValidity(message);
-                    if (message) {
-                        this.reportValidity();
-                    }
-                });
-            }
-
-            const justificatifRefus = document.getElementById("justificatif-refus");
-            if (justificatifRefus) {
-                justificatifRefus.addEventListener("change", function () {
-                    const fichier = this.files[0];
-                    const tailleMax = Number(this.dataset.tailleMax);
-                    const message = fichier && fichier.size > tailleMax
-                        ? "Le justificatif dépasse la taille maximale autorisée de 10 Mo."
-                        : "";
-
-                    this.setCustomValidity(message);
-                    if (message) {
-                        this.reportValidity();
-                    }
-                });
-            }
 
             // Sélectionne toutes les zones contenant des boutons d'envoi
             const zones = document.querySelectorAll(".zone-envoyer-pour-validation form");
@@ -3039,47 +2768,10 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
         });
 
 
-        function confirmerClasserCommeNonSoumis() {
-            masquerToutesZonesComplementaires();
-            const confirmation = confirm("Confirmez-vous le classement du dossier comme non soumis à autorisation ?");
-            if (confirmation) {
-                document.getElementById("formulaire-classement-2").submit();
-            }
-            fermerMenuEtape();
-        }
 
-        function confirmerClasserCommeAccepte() {
-            masquerToutesZonesComplementaires();
-            const confirmation = confirm("Confirmez-vous le classement du dossier comme accepté ?");
-            if (confirmation) {
-                document.getElementById("form-retour-instruction-3").submit();
-            }
-            fermerMenuEtape();
-        }
 
-        function confirmerClasserCommeRefuse() {
-            masquerToutesZonesComplementaires();
-            const confirmation = confirm("Confirmez-vous le classement du dossier comme refusé ?");
-            if (confirmation) {
-                document.getElementById("formulaire-refus-2").submit();
-            }
-            fermerMenuEtape();
-        }
 
-        function confirmerClasserCommeAnnule(button) {
-            masquerToutesZonesComplementaires();
-            const confirmation = confirm("Confirmez-vous le classement du dossier comme annulé ?\n\nCette action sera irréversible.");
-            if (confirmation) {
-                button.closest("form").submit();
-            }
-            fermerMenuEtape();
-        }
 
-        function afficherFormulaireAnnulation() {
-            masquerToutesZonesComplementaires();
-            document.getElementById("formulaire-annulation").classList.add("show");
-            fermerMenuEtape();
-        }
 
         function afficherFormulaireComplement() {
             masquerToutesZonesComplementaires();
@@ -3087,23 +2779,8 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             fermerMenuEtape();
         }
 
-        function afficherFormulaireClassement() {
-            masquerToutesZonesComplementaires();
-            document.getElementById("formulaire-classement").classList.add("show");
-            fermerMenuEtape();
-        }
 
-        function afficherFormulaireRefus() {
-            masquerToutesZonesComplementaires();
-            document.getElementById("formulaire-refus").classList.add("show");
-            fermerMenuEtape();
-        }
 
-        function afficherFormulaireAcceptationDirecte() {
-            masquerToutesZonesComplementaires();
-            document.getElementById("formulaire-acceptation-directe").classList.add("show");
-            fermerMenuEtape();
-        }
 
         function afficherFormulaireAcceptation() {
             masquerToutesZonesComplementaires();

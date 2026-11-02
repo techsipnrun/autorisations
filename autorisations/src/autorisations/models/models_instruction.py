@@ -60,6 +60,7 @@ class EtatDossier(models.Model):
 class EtapeDossier(models.Model):
     id = models.AutoField(primary_key=True)
     etape = models.CharField(unique=True)
+    est_archivage = models.BooleanField(default=False, verbose_name="Étape d’archivage")
 
     class Meta:
         managed = False
@@ -779,6 +780,16 @@ class ChangementEtape(models.Model):
     def __str__(self):
         return self.action
     
+
+class ActionsPriorites(models.Model):
+    code = models.CharField(max_length=12, primary_key=True)
+    niveaux = models.JSONField(default=list)
+
+    class Meta:
+        managed = False
+        db_table = '"instruction"."actions_priorites"'
+        verbose_name = "Priorités des actions possibles"
+
 
 class ActionsPossibles(models.Model):
     TYPE_MANIF_SPORTIVE_CHOICES = [

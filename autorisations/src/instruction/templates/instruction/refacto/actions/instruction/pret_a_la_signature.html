@@ -1,0 +1,7 @@
+{% if signature_ca %}
+<button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionCA()">Prêt à la signature</button>
+{% else %}
+<button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireTransmissionDirecteur()">Prêt à la signature</button>
+
+<!-- SPPN : Passe direct de 'Instruction' à 'Acte prêt à la signature' -->
+{% endif %}

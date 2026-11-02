@@ -1,0 +1,5 @@
+<form method="post" action="{% url 'passer_en_pre_instruction_url' %}">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="submit" class="btn_dropdown_instruction">Passer en pré-instruction</button>
+</form>

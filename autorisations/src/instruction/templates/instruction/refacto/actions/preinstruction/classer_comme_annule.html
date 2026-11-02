@@ -1,0 +1,9 @@
+{% if dossier.present_sur_ds %}
+<button type="button" class="btn_dropdown_instruction" data-archive-action="annule" data-ouvrir-formulaire="{{ action.code }}">Classer comme annulé</button>
+{% else %}
+<form method="post" data-archive-action="annule" action="{% url 'classer_comme_annule_url' %}">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="button" class="btn_dropdown_instruction" data-confirmer-action="Confirmez-vous le classement du dossier comme annulé ?&#10;&#10;Cette action sera irréversible.">Classer comme annulé</button>
+</form>
+{% endif %}

@@ -24,7 +24,7 @@
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=21">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=31">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive_sans_ds.css' %}?v=11">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/pois.css' %}">
@@ -247,30 +247,11 @@
                         {% if request.user.is_superuser or request.user|est_autorise_a_agir_reception_manif_sportive:doss_manif_sportive %}
                             <div class="etat-badge-menu-content" id="etapeMenuContent">
 
-                                    {% if actions_possibles %}
-                                        {% for label in actions_possibles %}
-                                        
-                                            {% if label == "Déclaration Manifestations - Accepter" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAccepterDeclarationManifestations()">Rendre un avis favorable sur Déclaration Manifestations</button>
-
-                                            {% elif label == "Déclaration Manifestations - Refuser" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireRefuserDeclarationManifestations()">Rendre un avis défavorable sur Déclaration Manifestations</button>
-
-                                            {% elif label == "Déclaration Manifestations - Non Soumis" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonSoumisDeclarationManifestations()">Préciser que le Parc n'est pas concerné par ce dossier</button>
-                                            
-                                            {% elif label == "Déclaration Manifestations - Non répondu" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireNonReponduDeclarationManifestations()">Ne pas rendre d'avis</button>
-
-                                            {% elif label == "Déclaration Manifestations - Classer comme annulé" %}
-                                                <button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireAnnulerDeclarationManifestations()">Classer comme annulé</button>
-                                            
-                                            {% endif %}
-
-                                        {% endfor %}
-                                    {% else %}
-                                        <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
-                                    {% endif %}
+                                {% for action in actions_menu %}
+                                    {% include action.template %}
+                                {% empty %}
+                                    <button type="button" class="btn_dropdown_instruction">Aucune action disponible</button>
+                                {% endfor %}
 
                             </div>
                         {% endif %}

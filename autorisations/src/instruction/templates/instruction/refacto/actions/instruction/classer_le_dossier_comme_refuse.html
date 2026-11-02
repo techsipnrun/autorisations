@@ -1,0 +1,16 @@
+<!-- Dossier présent sur DN et à l'étape "À publier au RAA" mais pour un acte d'acceptation -->
+{% if dossier.present_sur_ds and etape_actuelle.etape == "À publier au RAA" and dossier.id_etat_dossier.nom != "refuse" %}
+<!-- pas de bouton -->  
+
+<!-- Dossier présent sur DN mais pas à l'étape "" -->
+{% elif dossier.present_sur_ds and etape_actuelle.etape != "À publier au RAA" %}
+<button type="button" class="btn_dropdown_instruction" data-archive-action="refuse" data-ouvrir-formulaire="{{ action.code }}">Archiver le dossier comme refusé</button>
+
+<!-- Dossier absent de DN OU dossier présent sur DN à l'étape "À publier au RAA" pour un acte de refus -->
+{% else %}
+<form method="post" data-archive-action="refuse" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus-2">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="button" class="btn_dropdown_instruction" data-confirmer-action="Confirmez-vous le classement du dossier comme refusé ?">Archiver le dossier comme refusé</button>
+</form>
+{% endif %}

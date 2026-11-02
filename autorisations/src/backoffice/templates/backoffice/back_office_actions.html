@@ -1,0 +1,67 @@
+<div class="bo-actions" data-actions-office
+     data-catalogue-url="{% url 'back_office_actions' %}"
+     data-priorites-url="{% url 'back_office_actions_priorites' %}"
+     data-configuration-url="{% url 'back_office_actions_configuration' %}"
+     data-dossiers-url="{% url 'back_office_actions_dossiers' %}"
+     data-tester-url="{% url 'back_office_actions_tester' %}">
+    <p class="back-office-eyebrow">Circuit d’instruction</p>
+    <h1>Les actions possibles</h1>
+    <p class="bo-actions-intro">Choisissez les actions proposées à chaque étape.</p>
+    <p data-actions-status role="status" aria-live="polite"></p>
+    <div class="bo-actions-toolbar">
+        <label>Circuit <select data-actions-circuit aria-label="Circuit à configurer">
+            <option value="dn">Dossiers DN · hors manifestations sportives</option>
+            <option value="sportif">Manifestations sportives · DN seul ou lié à DM</option>
+            <option value="dm">Dossiers DM seuls · sans liaison DN</option>
+        </select></label>
+    </div>
+    <div class="bo-actions-tabs-row">
+    <nav class="bo-actions-tabs" aria-label="Paramétrage des actions possibles">
+        <button type="button" data-actions-tab="configurations" aria-pressed="true">Configurations</button>
+        <button type="button" data-actions-tab="priorites" aria-pressed="false">Priorités</button>
+        <button type="button" data-actions-tab="tester" aria-pressed="false">Tester un contexte</button>
+    </nav>
+    <p class="bo-actions-common" data-actions-common>Critères communs obligatoires : Étape · Présence sur DN</p>
+    </div>
+
+    <div data-actions-page="configurations">
+        <div class="bo-actions-toolbar">
+            <label>Étape à examiner <select data-actions-etape><option value="">— Choisir une étape —</option></select></label>
+            <button type="button" class="bo-actions-primary" data-actions-ajouter disabled>+ Ajouter une configuration</button>
+        </div>
+        <p class="bo-actions-warning">Une configuration regroupe toutes les actions d’un même contexte.<br>Les règles générales peuvent être partagées entre circuits ; les modifier peut donc affecter plusieurs parcours.</p>
+        <div data-actions-configurations></div>
+        <dialog class="bo-actions-editor" data-actions-editor hidden aria-labelledby="bo-actions-editor-title"></dialog>
+    </div>
+
+    <div data-actions-page="priorites" hidden>
+        <h2>Ordre de priorité des configurations</h2>
+        <p class="bo-actions-warning">Le premier niveau applicable contenant des actions fournit <strong>toute la liste</strong>. Les niveaux suivants ne la complètent pas.</p>
+        <div data-actions-priorites></div>
+        <div class="bo-actions-toolbar">
+            <button type="button" data-actions-standard>Revenir à l’ordre standard</button>
+            <button type="button" class="bo-actions-primary" data-actions-enregistrer-priorites>Enregistrer les priorités</button>
+        </div>
+    </div>
+
+    <div data-actions-page="tester" hidden>
+        <h2>Tester sans modifier de dossier</h2>
+        <p class="bo-actions-help">Ce test utilise les configurations et priorités enregistrées, avec le même moteur que les dossiers réels. Les droits utilisateur et les conditions des templates peuvent encore restreindre les boutons visibles. Aucun mail, changement d’étape ou écriture DN/DM n’est exécuté.</p>
+        <div class="bo-actions-test-layout">
+            <form data-actions-test-form class="bo-actions-card">
+                {% csrf_token %}
+                <label>Point de départ * <select name="mode" required><option value="fictif">Contexte fictif</option><option value="dossier">Depuis un dossier existant</option></select></label>
+                <div data-actions-test-dossier hidden>
+                    <label>Numéro du dossier * <input name="numero" list="bo-actions-dossiers" autocomplete="off" inputmode="numeric" pattern="[0-9]+" placeholder="Ex. 30655697" maxlength="15" aria-describedby="bo-actions-dossier-status"></label>
+                    <datalist id="bo-actions-dossiers"></datalist>
+                    <p id="bo-actions-dossier-status" class="bo-actions-help" data-actions-dossier-status role="status"></p>
+                    <label>Étape fictive * <select name="etape_fictive"></select></label>
+                    <p class="bo-actions-help">Les autres critères sont lus sur le dossier ; seule l’étape peut être simulée, sans l’enregistrer.</p>
+                </div>
+                <div data-actions-test-fictif></div>
+                <button type="submit" class="bo-actions-primary">Voir les actions proposées</button>
+            </form>
+            <div data-actions-resultat aria-live="polite"><p class="bo-actions-empty">Renseignez un contexte pour voir le niveau retenu et les règles écartées.</p></div>
+        </div>
+    </div>
+</div>

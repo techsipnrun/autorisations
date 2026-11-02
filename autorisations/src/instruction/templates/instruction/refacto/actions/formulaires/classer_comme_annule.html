@@ -1,0 +1,17 @@
+<div id="formulaire-annulation" data-action-form="{{ action.code }}" class="zone-complement zone-envoyer-pour-validation formulaire-annulation">
+    <form method="post" enctype="multipart/form-data" action="{% url 'classer_comme_annule_url' %}" onsubmit="return confirm('Confirmez-vous le classement du dossier comme annulé ?');">
+        {% csrf_token %}
+        <input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+        <p class="formulaire-annulation-aide">
+            Le message et la pièce jointe sont facultatifs. S'ils sont renseignés, ils seront visibles par le demandeur sur son espace Démarche Numérique{% if dossier_lie_manif_sportive %} ; le message sera également transmis sur Déclaration Manifestations{% endif %}.
+        </p>
+        <textarea name="motivation" class="textarea-complement textarea-annulation" rows="3" placeholder="Message facultatif au demandeur..."></textarea>
+
+        <div class="zone-pj-complement">
+            <label for="justificatif-annulation{% if interface == 'preinstruction' %}-preinstruction{% endif %}">Joindre une pièce (facultatif) :</label>
+            <input id="justificatif-annulation{% if interface == 'preinstruction' %}-preinstruction{% endif %}" type="file" name="justificatif" data-taille-max="10485760">
+            <small class="aide-taille-justificatif">Taille maximale : 10 Mo</small>
+            <button type="submit" class="btn-envoyer-complement">Confirmer l'annulation</button>
+        </div>
+    </form>
+</div>

@@ -1,11 +1,16 @@
 """Routes historiques du Back Office, sans namespace supplémentaire."""
 from django.urls import path
 
-from backoffice.views import accueil, avis, cartographie, demarches, nom_dossier, services, types_actes
+from backoffice.views import accueil, actions, avis, cartographie, demarches, nom_dossier, services, types_actes
 
 
 urlpatterns = [
     path("back-office/", accueil.back_office, name="back_office"),
+    path("back-office/actions/", actions.catalogue, name="back_office_actions"),
+    path("back-office/actions/priorites/", actions.enregistrer_priorites, name="back_office_actions_priorites"),
+    path("back-office/actions/configuration/", actions.enregistrer_configuration, name="back_office_actions_configuration"),
+    path("back-office/actions/tester/", actions.tester, name="back_office_actions_tester"),
+    path("back-office/actions/dossiers/", actions.rechercher_dossiers, name="back_office_actions_dossiers"),
     path("back-office/avis/formulaires/<slug:contexte>/", avis.configurer_formulaire, name="back_office_avis_formulaire"),
     path("back-office/avis/thematiques/", avis.configurer_thematiques, name="back_office_avis_thematiques"),
     path("back-office/cartographie/", cartographie.catalogue, name="back_office_cartographie"),

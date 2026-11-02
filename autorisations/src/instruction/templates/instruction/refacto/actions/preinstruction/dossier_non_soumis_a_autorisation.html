@@ -1,0 +1,9 @@
+{% if dossier.present_sur_ds %}
+<button type="button" class="btn_dropdown_instruction" data-archive-action="non_soumis" data-ouvrir-formulaire="{{ action.code }}">Archiver le dossier comme non soumis à autorisation</button>
+{% else %}
+<form method="post" data-archive-action="non_soumis" action="{% url 'classer_le_dossier_comme_non_soumis_a_autorisation_url' %}" id="formulaire-classement">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="button" class="btn_dropdown_instruction" data-confirmer-action="Confirmez-vous le classement du dossier comme non soumis à autorisation ?">Archiver le dossier comme non soumis à autorisation</button>
+</form>
+{% endif %}

@@ -18,6 +18,11 @@ from backoffice.views import accueil, services
 # Adresses et noms publics existant avant l'extraction de l'application.
 ROUTES = (
     ("back_office", "/back-office/", {}, "get"),
+    ("back_office_actions", "/back-office/actions/", {}, "get"),
+    ("back_office_actions_priorites", "/back-office/actions/priorites/", {}, "post"),
+    ("back_office_actions_configuration", "/back-office/actions/configuration/", {}, "post"),
+    ("back_office_actions_tester", "/back-office/actions/tester/", {}, "post"),
+    ("back_office_actions_dossiers", "/back-office/actions/dossiers/", {}, "get"),
     ("back_office_avis_formulaire", "/back-office/avis/formulaires/dossier/", {"contexte":"dossier"}, "get"),
     ("back_office_avis_thematiques", "/back-office/avis/thematiques/", {}, "get"),
     ("back_office_cartographie", "/back-office/cartographie/", {}, "get"),
@@ -99,7 +104,7 @@ class ContratBackOfficeTests(SimpleTestCase):
             reponse = accueil.back_office(requete)
         self.assertEqual(reponse.status_code, 200)
         html = reponse.content.decode()
-        for section in ("demarche", "carto", "types-actes", "avis", "avis-thematiques", "services-externes"):
+        for section in ("demarche", "carto", "types-actes", "actions", "avis", "avis-thematiques", "services-externes"):
             with self.subTest(section=section):
                 self.assertIn(f'data-panel="{section}"', html)
         self.assertIn("/static/backoffice/css/back_office.css", html)

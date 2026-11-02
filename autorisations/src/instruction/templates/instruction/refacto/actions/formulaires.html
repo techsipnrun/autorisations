@@ -1,0 +1,6 @@
+{# Hors du menu déroulant : le formulaire accompagne automatiquement son composant. #}
+{% for action in actions_menu %}
+    {% if action.formulaire %}
+        {% include action.formulaire with interface=action.interface %}
+    {% endif %}
+{% endfor %}

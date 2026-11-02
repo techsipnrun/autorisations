@@ -1632,11 +1632,13 @@ def repasser_en_instruction(request):
             result = repasser_en_instruction_ds(dossier.id_ds, instructeur)
 
             if not result.get("success"):
-                if result.get('message') == "Le dossier est déjà en instruction" :
-                    logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'est pas repassé en instruction sur DS car il est déjà en instruction : {result.get('message')}")
-                    return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarche Numérique car il est déjà en instruction. Contactez le support.")
+                # DN peut déjà être à jour alors que l'état local ne l'est pas.
+                # Normaliser aussi les espaces insécables renvoyés par l'API.
+                message_dn = " ".join((result.get("message") or "").split())
+                if message_dn == "Le dossier est déjà en instruction":
+                    logger.info(f"[DOSSIER {dossier.numero}] Déjà en instruction sur DN : poursuite du repassage en instruction local.")
 
-                elif result.get('message') == "Le dossier est déjà en construction" :
+                elif message_dn == "Le dossier est déjà en construction":
                     logger.warning(f"[DOSSIER {dossier.numero}] Le dossier n'est pas repassé en instruction sur DS car il est déjà en construction : {result.get('message')}")
                     return redirect_error(request, "❌ Le dossier n'est pas repassé en instruction sur Démarche Numérique car il est déjà en construction. Contactez le support.")
  

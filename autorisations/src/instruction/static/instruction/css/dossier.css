@@ -1186,7 +1186,8 @@ h2 {
     color: #603b26;
 }
 
-.zone-complement.show {
+/* Commun aux formulaires ouverts par .show ou directement via display. */
+.zone-complement {
     margin-bottom: 1rem;
 }
 

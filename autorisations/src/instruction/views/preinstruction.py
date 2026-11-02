@@ -660,6 +660,8 @@ def preinstruction_dossier(request, numero):
 
     # Actions possibles
     actions_possibles = get_actions_possibles(dossier)
+    from instruction.utils.actions_interface import preparer_menu
+    actions_menu = preparer_menu(actions_possibles, dossier, "preinstruction")
 
 
     DM_API_URL = os.getenv('DM_API_URL')
@@ -691,6 +693,7 @@ def preinstruction_dossier(request, numero):
         "nb_messages_non_lus": nb_messages_non_lus,
         "synchro_globale_en_cours": etat_global["en_cours"] if etat_global else False,
         "actions_possibles": actions_possibles,
+        "actions_menu": actions_menu,
         "motif_decision": get_motif_decision(dossier),
 
         # Manif sportive

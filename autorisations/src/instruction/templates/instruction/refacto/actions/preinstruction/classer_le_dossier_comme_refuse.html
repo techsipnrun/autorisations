@@ -1,0 +1,9 @@
+{% if dossier.present_sur_ds %}
+<button type="button" class="btn_dropdown_instruction" data-archive-action="refuse" data-ouvrir-formulaire="{{ action.code }}">Archiver le dossier comme refusé</button>
+{% else %}
+<form method="post" data-archive-action="refuse" action="{% url 'classer_le_dossier_comme_refuse_url' %}" id="formulaire-refus">
+{% csrf_token %}
+<input type="hidden" name="dossierId" value="{{ dossier.id_ds }}">
+<button type="button" class="btn_dropdown_instruction" data-confirmer-action="Confirmez-vous le classement du dossier comme refusé ?">Archiver le dossier comme refusé</button>
+</form>
+{% endif %}

@@ -529,7 +529,11 @@ admin.site.register(EtatDemande)
 
 admin.site.register(EtatDossier)
 
-admin.site.register(EtapeDossier)
+@admin.register(EtapeDossier)
+class EtapeDossierAdmin(admin.ModelAdmin):
+    list_display = ("id", "etape", "est_archivage")
+    list_filter = ("est_archivage",)
+    search_fields = ("etape",)
 
 admin.site.register(Action)
 

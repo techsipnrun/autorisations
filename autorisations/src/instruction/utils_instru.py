@@ -77,7 +77,7 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
         dossier.id_etape_dossier = nouvelle_etape
 
         # Une étape finale clôt la période d'instruction.
-        if nouvelle_etape.etape in ['Accepté', 'Refusé', 'Non soumis à autorisation', 'Annulé']:
+        if nouvelle_etape.est_archivage:
             dossier.date_fin_instruction = timezone.now()
             
         dossier.save()
@@ -92,7 +92,7 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
     #######################
 
     # --- Étapes finales → pas de notification mail pour le moment ---
-    if nouvelle_etape.etape in ['Accepté', 'Refusé', 'Non soumis à autorisation', 'Annulé']:
+    if nouvelle_etape.est_archivage:
         return
     
     # --- Notification mail pour les autres étapes ---
