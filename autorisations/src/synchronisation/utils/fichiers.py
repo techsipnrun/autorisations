@@ -17,6 +17,7 @@ from pathlib import Path
 
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
 from autorisations.utils.nas_fonctions import _normalize_unc_path, creer_dossier_sur_nas, donner_droits_ecriture_groupe, ecrire_file_sur_nas
 from instruction.utils.document_utils import normaliser_emplacement
@@ -772,6 +773,19 @@ def geoareas_to_geojson_text(geoareas):
     }
     return geojson
 
+
+
+def construire_emplacement_manif_sportive(nom_manifestation, date_reception):
+    """Nouveau DM : année de réception au Parc, ou année courante en secours."""
+    date_reception = parse_datetime_with_tz(date_reception)
+    if date_reception is None:
+        date_reception = timezone.localtime(timezone.now())
+        loggerSynchro.warning(
+            "Date de réception DM absente pour %s : année NAS courante %s utilisée.",
+            nom_manifestation, date_reception.year,
+        )
+    nom = nettoyer_nom_fichier(nom_manifestation or "") or "manifestation"
+    return f"Manifestations_sportives/{date_reception.year}/Declaration Manifestations/{nom}/"
 
 
 def construire_emplacement_dossier(doss: dict, contact_beneficiaire: dict, titre_demarche: str) -> str:

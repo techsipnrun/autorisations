@@ -1,6 +1,6 @@
 import os
 from autorisations.models.models_documents import Document
-from declaration_manifestations.call_api_dm import recup_pj_dossiers
+from declaration_manifestations.call_api_dm import parser_date_dm, recup_pj_dossiers
 from declaration_manifestations.get_methods import get_access_token, get_access_token_prod
 from .sync_declaration_manifestations import sync_declaration_manifestations
 from .sync_avis_declaration_manifestations import sync_avis_declaration_manifestations
@@ -9,6 +9,27 @@ from .sync_champ import sync_champs
 from .sync_dossiers import sync_dossiers
 import logging
 import time
+
+
+def _dates_reception_dm(avis_normalises):
+    """Dernière demande d'avis par numéro DM, comme la réception des tableaux."""
+    dates = {}
+    for avis in avis_normalises or []:
+        numero = avis.get("id_dossier_manif_sportive")
+        if not numero:
+            continue
+        try:
+            numero = int(numero)
+            date_reception = parser_date_dm(avis.get("date_demande"))
+        except (TypeError, ValueError):
+            logging.getLogger("SYNCHRONISATION").warning(
+                "Date de réception DM invalide pour le dossier %s : année NAS non déduite de cet avis.", numero,
+            )
+            continue
+        if date_reception and (numero not in dates or date_reception > dates[numero]):
+            dates[numero] = date_reception
+    return dates
+
 
 def synchro_process(dico, dico_notifs, demarche_obj):
     
@@ -33,6 +54,7 @@ def synchro_process(dico, dico_notifs, demarche_obj):
 
                 token = get_access_token()
                 token_prod = get_access_token_prod()
+                dates_reception = _dates_reception_dm(dico.get("avis_manif_sportives"))
                 avis_rendus = {
                     int(avis["id_dossier_manif_sportive"])
                     for avis in (dico.get("avis_manif_sportives") or [])
@@ -41,7 +63,18 @@ def synchro_process(dico, dico_notifs, demarche_obj):
                 }
 
                 for doss in dico["manif_sportives"] :
-                    doss_manif_sportive, doss_lie = sync_declaration_manifestations(doss, logger, dico_notifs)
+                    resultat_dm = sync_declaration_manifestations(
+                        doss, logger, dico_notifs,
+                        date_reception=dates_reception.get(int(doss["numero_dossier_declaration_manifestations"])),
+                    )
+                    if resultat_dm is None:
+                        logger.error(
+                            "Dossier DM %s non synchronisé : consulter l'erreur d'initialisation. Les autres dossiers sont poursuivis.",
+                            doss["numero_dossier_declaration_manifestations"],
+                        )
+                        statut = False
+                        continue
+                    doss_manif_sportive, doss_lie = resultat_dm
                     manif_id = doss_manif_sportive.numero_dossier_declaration_manifestations
 
                     # Récupération des Documents du DossierManifSportive

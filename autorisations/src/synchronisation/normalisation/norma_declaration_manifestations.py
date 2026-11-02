@@ -1,5 +1,4 @@
 from synchronisation.utils.conversion import parse_datetime_with_tz
-from synchronisation.utils.fichiers import nettoyer_nom_fichier
 
 
 def dossiers_declaration_manifestations_normalize(d):
@@ -11,9 +10,8 @@ def dossiers_declaration_manifestations_normalize(d):
     dossiers_manifs_sportives = []
     for doss in d :
 
-            # emplacement = f"Manifestations_sportives/{doss.get('date_debut')[:4]}/0 - En attente d'un dossier Démarche Numérique/{nettoyer_nom_fichier(doss.get('nom'))}/"
-            emplacement = f"Manifestations_sportives/{doss.get('date_debut')[:4]}/Declaration Manifestations/{nettoyer_nom_fichier(doss.get('nom'))}/"
-            
+            # Le chemin NAS est calculé à la première création en base, depuis
+            # la date de réception par le Parc (demande d'avis), pas l'événement.
 
             dossiers_manifs_sportives.append(
                 {
@@ -89,8 +87,7 @@ def dossiers_declaration_manifestations_normalize(d):
                     "signataire_charte_balisage": doss.get("convention_balisage"),
                     "description_balisage": doss.get("balisage"),
 
-                    "geometrie": doss.get("geometrie"), 
-                    "emplacement": emplacement
+                    "geometrie": doss.get("geometrie"),
                 }
             )
     return dossiers_manifs_sportives

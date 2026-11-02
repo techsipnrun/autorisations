@@ -1,14 +1,18 @@
 from datetime import date, datetime, timedelta
+import hashlib
 import json
 import logging
-from django.db import models
+import os
+import smbclient
+from django.db import connection, models
 from django.utils import timezone
+from autorisations.utils.nas_fonctions import _normalize_unc_path
 
 from autorisations.models.models_instruction import Champ, Dossier, DossierManifSportive, DossierManifestationLiaison
 from instruction.utils.carto_utils import intersecte_coeur_de_parc
 from instruction.utils.files_utils import load_geojson
 from instruction.utils.utilisateurs_utils import envoi_auto_mail_relance
-from synchronisation.utils.fichiers import create_emplacement, create_emplacement_manif_sportive, nettoyer_nom_fichier, write_geojson
+from synchronisation.utils.fichiers import construire_emplacement_manif_sportive, create_emplacement, create_emplacement_manif_sportive, nettoyer_nom_fichier, write_geojson
 from synchronisation.utils.model_helpers import foreign_keys_add_suffixe_id, update_fields
 
 
@@ -21,6 +25,27 @@ CHAMPS_IDENTITE_DM = {
     "prenom_coordinateur_securite",
 }
 DATE_LIMITE_IDENTITES_ANONYMISEES_DM = date(2025, 8, 1)
+
+
+def _choisir_emplacement_nouveau_dm(nom_manifestation, date_reception):
+    """Réserve un nom libre via la transaction de création de get_or_create."""
+    base = construire_emplacement_manif_sportive(nom_manifestation, date_reception).rstrip("/")
+    racine = os.environ["NAS_ROOT"]
+    if connection.vendor == "postgresql":
+        # Sérialiser les créations d'une même racine annuelle : les noms
+        # « trail » et « trail_2 » peuvent se croiser via les suffixes.
+        # Le chemin enregistré en BDD réserve ensuite le nom retenu.
+        parent = base.rsplit("/", 1)[0].casefold()
+        cle = int.from_bytes(hashlib.sha256(parent.encode()).digest()[:4], "big", signed=True)
+        with connection.cursor() as curseur:
+            curseur.execute("SELECT pg_advisory_xact_lock(%s, %s)", [0x444D4E41, cle])
+    indice = 1
+    while True:
+        candidat = f"{base}{'_' + str(indice) if indice > 1 else ''}/"
+        utilise_en_bdd = DossierManifSportive.objects.filter(emplacement__iexact=candidat).exists()
+        if not utilise_en_bdd and not smbclient.path.exists(_normalize_unc_path(os.path.join(racine, candidat))):
+            return candidat
+        indice += 1
 
 
 def doit_preserver_identite_anonymisee(dossier):
@@ -39,9 +64,11 @@ def doit_preserver_identite_anonymisee(dossier):
 
 
 
-def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
+def sync_declaration_manifestations(dossier, logger, dico_notifs={}, *, date_reception=None):
     """
     Synchronise un objet DossierManifSportive à partir des données de déclaration-manifestations.
+    date_reception est la dernière demande d'avis connue pour le Parc ; elle
+    sert uniquement à initialiser le chemin NAS d'un dossier encore absent.
 
      {
                 "nom_organisateur","prenom_organisateur","qualite_declarant","structure","adresse","numero_telephone","email_structure",
@@ -65,10 +92,10 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
 
                 "signataire_charte_balisage","description_balisage",
 
-                "geometrie","emplacement"
+                "geometrie"
             }
     """
-    # Exemple emplacement : f"Manifestations_sportives/2026/le_grand_trail_de_louest"
+    # Exemple : Manifestations_sportives/2026/Declaration Manifestations/trail/
 
     manif_id = int(dossier["numero_dossier_declaration_manifestations"])
     champ_num_dm = Champ.objects.get(nom="Numéro du dossier sur la plateforme déclaration-manifestations")
@@ -78,6 +105,11 @@ def sync_declaration_manifestations(dossier, logger, dico_notifs={}):
 
     try:
         defaults = foreign_keys_add_suffixe_id(DossierManifSportive, dossier)
+        # Django n'évalue ce callable que si le dossier n'existe pas encore.
+        # Les emplacements historiques ne sont ni recalculés ni déplacés.
+        defaults["emplacement"] = lambda: _choisir_emplacement_nouveau_dm(
+            dossier.get("nom_dossier"), date_reception,
+        )
     except Exception as e:
         logger.error(f"Erreur lors du foreign_keys_add_suffixe_id DossierManifSportive : {e}")
         return None
