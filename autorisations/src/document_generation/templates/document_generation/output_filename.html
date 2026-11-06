@@ -1,0 +1,10 @@
+{% if filename_pattern %}
+<div class="output-filename-field" data-output-filename>
+    <label id="output-filename-label">Nom du fichier à générer</label>
+    <input type="hidden" name="output_filename" value="{{ filename_pattern }}">
+    <div class="output-filename-box"><div role="group" aria-labelledby="output-filename-label" data-output-editor></div><span>.docx</span></div>
+    <small>Le texte brute est modifiable. Les variables sont protégées.</small>
+    {% if filename_error %}<p class="filename-error" role="alert">{{ filename_error }}</p>{% endif %}
+    {{ filename_values|json_script:'output-filename-values' }}
+</div>
+{% endif %}

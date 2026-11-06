@@ -1,0 +1,52 @@
+{% load static %}
+    {{ scroll_position|json_script:"generation-scroll-position" }}
+    <div class="generation-workspace"><div>
+    {% if form is not None %}<form method="post" id="generation-form" data-generation-started="{% if form.is_bound %}true{% else %}false{% endif %}">{% csrf_token %}{% endif %}
+    <section>
+        <div class="card-heading"><h2>Informations déjà connues</h2>
+        {% if known_form.fields %}<button type="button" class="edit-known" aria-label="Modifier les informations déjà connues" aria-expanded="{% if known_edited %}true{% else %}false{% endif %}" aria-controls="known-editor"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/></svg></button>{% endif %}</div>
+        <input type="hidden" name="edit_known" value="{% if known_edited %}1{% else %}0{% endif %}">
+        <div id="known-editor" {% if not known_edited %}hidden{% endif %}>
+            <fieldset {% if not known_edited %}disabled{% endif %}>
+            {{ known_form.non_field_errors }}
+            {% for field in known_form %}<div class="field"><label for="{{ field.id_for_label }}">✓ {{ field.label }}<small>{{ field.field.balise_code }}</small></label>{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}
+            </fieldset>
+            <div class="known-edit-footer">
+                <p>Ces modifications s’appliquent uniquement à ce document. Le dossier reste inchangé.</p>
+                <div class="actions"><button type="button" data-known-cancel>Annuler</button><button type="button" data-known-save>Enregistrer</button></div>
+            </div>
+        </div><div id="known-display" {% if known_edited %}hidden{% endif %}>
+        <dl>{% for item in resolved_balises %}<div><dt>✓ {{ item.libelle }} <small>{{ item.code }}</small></dt><dd>{{ item.value }}</dd></div>{% empty %}<p>Aucune information automatique disponible.</p>{% endfor %}</dl></div>
+    </section>
+    {% if form is not None %}
+    <section class="manual-fields"><h2>Informations à compléter</h2>
+
+            {{ form.non_field_errors }}
+            {% for field in form %}
+            <div class="field" data-field-required="{{ field.field.required|yesno:'true,false' }}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %} <span class="field-completion-hint" data-field-status hidden>À renseigner</span></label>
+                {{ field }}
+                {% if field.help_text %}<small id="{{ field.auto_id }}_helptext">{{ field.help_text }}</small>{% endif %}
+                {{ field.errors }}
+            </div>
+            {% empty %}<p>Toutes les informations nécessaires sont déjà disponibles.</p>{% endfor %}
+            {% include 'document_generation/output_filename.html' %}
+            {% include 'document_generation/number_controls.html' %}
+            <div class="actions">
+                <button type="submit" name="action" value="generate_file" data-requires-valid-form disabled>Générer le fichier</button>
+            </div>
+            {% if generated_file %}<div class="generation-file-result success" role="status">Le fichier <strong>{{ generated_file.filename }}</strong> a été généré ici : <strong>{{ generated_file.destination }}</strong></div>{% endif %}
+            {% if generation_error %}<div class="generation-file-result errors" role="alert">{{ generation_error }}</div>{% endif %}
+    </section>
+    </form>
+    {% endif %}
+    {% if complete %}
+    <details><summary>Contexte JSON · Développement</summary><pre>{{ context_json }}</pre></details>
+    {% endif %}
+    </div><aside class="preview-panel"><div class="preview-heading"><h2>Aperçu PDF</h2>{% if form is not None %}<button type="submit" form="generation-form" name="action" value="preview_pdf" data-requires-valid-form disabled>Actualiser l’aperçu</button>{% endif %}</div>
+        {% if preview_exists %}
+        {% if errors or form.errors or known_form.errors or generation_error %}<p>Le dernier aperçu valide est conservé.</p>{% endif %}
+        <iframe src="{{ preview_url }}" title="Aperçu PDF du document" class="document-preview"></iframe>
+        <p><a href="{{ preview_url }}" target="_blank" rel="noopener">Ouvrir le PDF dans un nouvel onglet</a></p>
+        {% else %}<p>Aucun aperçu généré.</p>{% endif %}
+    </aside></div>

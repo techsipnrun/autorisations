@@ -1,0 +1,62 @@
+<section class="back-office-panel bo-documents" data-panel="documents" data-documents-catalogue="{% url 'back_office_templates' %}" data-documents-verification="{% url 'back_office_templates_verifier' %}" data-documents-options="{% url 'back_office_template_options' %}" data-documents-create="{% url 'back_office_template_creer' %}" hidden>
+    <header class="back-office-panel-header">
+        <p class="back-office-eyebrow">Back Office · Documents · Templates</p>
+        <h1>Templates</h1>
+    </header>
+    <div class="bo-documents-toolbar" data-documents-toolbar>
+        <label>Rechercher un modèle<input type="search" data-documents-recherche placeholder="Nom, code ou nature…"></label>
+        <label>État<select data-documents-filtre><option value="">Tous les templates</option><option value="actif">Actifs</option><option value="inactif">Inactifs</option></select></label>
+        <label>Statut<select data-documents-statut><option value="">---</option><option value="a_corriger">À corriger</option><option value="valide">Valide</option></select></label>
+        <label>Démarche concernée<select data-documents-demarche><option value="">---</option></select></label>
+        <button type="button" data-document-new class="bo-documents-primary">Ajouter un template</button>
+        <span data-documents-compte></span>
+    </div>
+    <p data-documents-status role="status" aria-live="polite" class="bo-documents-status"></p>
+    <div data-documents-liste class="bo-documents-liste"></div>
+    <article data-document-fiche hidden>
+        <button type="button" data-document-retour class="bo-documents-retour" aria-label="Revenir à la liste des templates">
+            <span class="bo-documents-retour-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5-7 7 7 7M5 12h14"/></svg></span>
+            <span>Tous les templates</span>
+        </button>
+        {% load static %}
+        <div class="bo-documents-detail-heading"><div><div class="bo-document-eyebrow-row"><p class="back-office-eyebrow">Fiche du template</p><a data-document-download title="Télécharger le template" aria-label="Télécharger le template" download hidden><img src="{% static 'instruction/img/logo_word.png' %}" width="24" height="24" alt=""></a></div><h2 data-document-nom tabindex="-1"></h2></div><span data-document-etat></span></div>
+        <div class="bo-documents-workspace">
+        <aside class="bo-documents-identite">
+            <div class="bo-documents-identite-heading"><h3>Informations du modèle</h3>
+                <button type="button" data-document-edit class="bo-documents-edit" aria-label="Modifier les informations du modèle" title="Modifier les informations du modèle" aria-expanded="false" aria-controls="document-edition">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/></svg>
+                </button>
+            </div>
+            <dl data-document-informations></dl>
+            <p data-document-configuration class="bo-documents-status" role="status"></p>
+            <form data-document-edition id="document-edition" class="bo-documents-edition" hidden>
+                {% csrf_token %}
+                <label>Nom<input name="nom" required maxlength="200"></label>
+                <label>Nature (facultative)<select name="id_nature"></select></label>
+                <label>Chemin sous Templates/<input name="chemin_relatif" required maxlength="500" placeholder="TEST/test_generation.docx"><small>Word source à utiliser, par exemple TEST/test_generation.docx. Ce champ est distinct de la destination du fichier généré.</small></label>
+                <label class="bo-documents-checkbox"><input name="actif" type="checkbox">Template actif</label>
+                <fieldset><legend>Démarches</legend><p>Aucune sélection : template global.</p><div data-document-demarches></div></fieldset>
+                <div class="bo-document-token-field" data-token-field="destination_relative">
+                    <div class="bo-document-field-label"><label id="destination-label" for="destination-editor">Destination du fichier généré</label><span class="bo-document-info" data-document-nas-info tabindex="0" aria-label="Depuis la racine NAS" data-tooltip="Depuis la racine NAS">i</span></div>
+                    <input type="hidden" name="destination_relative">
+                    <div class="bo-document-token-box"><div id="destination-editor" contenteditable="true" role="textbox" aria-labelledby="destination-label" aria-required="true" data-token-editor></div></div>
+                    <div class="bo-document-variable-choices" data-token-choices></div>
+                </div>
+                <div class="bo-document-token-field" data-token-field="nom_fichier">
+                    <div class="bo-document-field-label"><label id="filename-label" for="filename-editor">Nom du fichier</label><span class="bo-document-info" tabindex="0" aria-label="En cas de doublon, un suffixe sera ajouté (_2, _3, etc..)" data-tooltip="En cas de doublon, un suffixe sera ajouté (_2, _3, etc..)">i</span></div>
+                    <input type="hidden" name="nom_fichier">
+                    <div class="bo-document-token-box"><div id="filename-editor" contenteditable="true" role="textbox" aria-labelledby="filename-label" aria-required="true" data-token-editor></div><span class="bo-document-extension">.docx</span></div>
+                    <div class="bo-document-variable-choices" data-token-choices></div>
+                </div>
+                <p data-document-edition-status class="bo-documents-status" role="status" aria-live="polite"></p>
+                <div class="bo-documents-edition-actions"><button type="button" data-document-annuler>Annuler</button><button type="submit" class="bo-documents-primary">Enregistrer</button></div>
+            </form>
+        </aside>
+        <div class="bo-documents-controle">
+        <div class="bo-documents-controle-heading"><div><h3>Analyse du modèle</h3></div>
+        </div>
+        <div data-document-rapport aria-live="polite"></div>
+        </div>
+        </div>
+    </article>
+</section>

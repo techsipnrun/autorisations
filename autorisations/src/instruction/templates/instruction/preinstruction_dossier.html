@@ -42,6 +42,7 @@
     <script src="{% static 'instruction/js/actions_dossier.js' %}?v=1" defer></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_actions_menu.css' %}?v=3">
     <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
 
 </head>
@@ -189,21 +190,7 @@
                     </div>
                 {% endif %}
 
-                <!-- Copier le chemin d'accès du dossier -->
-                {% include "instruction/refacto/notification_agents_dossier.html" %}
-                {% include "instruction/refacto/dossiers_lies_bouton.html" %}
-                <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
-                    <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
-                    <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
-                    <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
-                </button>
-
-
-                {% if dossier.id_demarche.type != "Manifestations sportives" %}
-                    <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
-                {% else %}
-                    <h1> Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
-                {% endif %}
+                {% include "instruction/refacto/dossier_header.html" %}
 
                 {% if messages %}
                     <div class="django-messages">

@@ -6,6 +6,7 @@
                 aria-label="Notifier des agents" aria-expanded="false"
                 onclick="toggleNotificationAgents(this)">
             <img src="{% static 'instruction/img/bell.svg' %}" alt="">
+            {% if action_menu %}<span>Notifier</span>{% endif %}
         </button>
         <div class="notification-agents-panel" hidden>
             <button type="button" class="notification-agents-close" aria-label="Fermer"

@@ -50,6 +50,42 @@ logger = logging.getLogger('ORM_DJANGO')
 loggerDS = logging.getLogger("API_DS")
 
 
+def _verifier_fichiers_generes_actes(request, dossier):
+    # Import différé : le module de génération reste limité au développement.
+    from django.conf import settings as django_settings
+    if django_settings.ENVIRONMENT != 'dev':
+        return None
+    from django.db import DatabaseError
+    from document_generation.services.act_file_guard import act_file_status, blocked_message
+    from document_generation.services.act_integration import find_generated_act, replacement_candidate
+    try:
+        status = act_file_status(dossier)
+        if not status['blocked'] and request is not None:
+            request._generated_act = find_generated_act(dossier, request.POST.get('piece_jointe_work', ''), request.POST.get('nature_document'))
+            if request._generated_act is not None:
+                previous = replacement_candidate(request._generated_act, dossier)
+                if previous is not None and str(previous.pk) != request.POST.get('generated_act_replace_id', ''):
+                    raise ValidationError('Confirmez explicitement le remplacement du projet précédent avant de poursuivre.')
+    except ValidationError as exc:
+        return redirect_error(request, ' '.join(exc.messages))
+    except DatabaseError:
+        logger.exception('Contrôle générations actes indisponible dossier=%s', dossier.numero)
+        return redirect_error(request, 'Vérification de l’historique des générations impossible. Contactez l’administrateur.')
+    if status['blocked']:
+        return redirect_error(request, blocked_message(status))
+    return None
+
+
+def _integrer_fichier_acte_genere(dossier, filename, nature, statut, file_format, *, request=None):
+    from django.conf import settings as django_settings
+    if django_settings.ENVIRONMENT != 'dev':
+        return None
+    from document_generation.services.act_integration import integrate_generated_act
+    return integrate_generated_act(dossier, filename, nature, statut, file_format,
+        replace_document_id=request.POST.get('generated_act_replace_id') if request else None,
+        user=request.user if request else None)
+
+
 def _deposer_acte_sur_dm(request, resultat_dm, document, fichier, root_folder):
     if not document.id_nature.autorise_dm:
         messages.info(request, "L’avis a été traité sur DM, mais ce type d’acte n’est pas autorisé au dépôt sur DM (configuration du back-office).")
@@ -252,6 +288,8 @@ def _appliquer_numero_partage(request, dossier, document, nature, *, ancien_nume
 
 
 def _verifier_reference_acte(request, nature):
+    if getattr(request, '_generated_act', None) is not None:
+        return None
     if getattr(nature, "numerotation_manuelle", False) is True and request.POST.get("projet_acte_identique") != "on":
         try:
             valider_reference_acte(request.POST.get("numero_reference"))
@@ -1060,9 +1098,6 @@ def faire_valider_une_demande_d_avis(request):
             logger.error(f"[DOSSIER {dossier.numero}] User {request.user} : Aucune nature Document trouvée pour '{nature}'")
             return redirect_error(request, f"❌ Le nature de document '{nature}' n'a pas été trouvée en base. Contactez le support.")
     
-    erreur_reference = _verifier_reference_acte(request, nature_obj)
-    if erreur_reference is not None:
-        return erreur_reference
     if not nom_fichier :
         return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
     if nature_obj.rapport_ca_obligatoire and nom_fichier == nom_fichier_rapport_ca:
@@ -1111,6 +1146,14 @@ def faire_valider_une_demande_d_avis(request):
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Envoi pour validation avant demande d'avis")
     if err: 
         return err
+
+    erreur_generation = _verifier_fichiers_generes_actes(request, dossier)
+    if erreur_generation is not None:
+        return erreur_generation
+
+    erreur_reference = _verifier_reference_acte(request, nature_obj)
+    if erreur_reference is not None:
+        return erreur_reference
     
 
     avis_selectionnes = Avis.objects.filter(id__in=ids_selectionnes)
@@ -1159,29 +1202,31 @@ def faire_valider_une_demande_d_avis(request):
     try:
         
         with transaction.atomic():
-            doc, created = Document.objects.get_or_create(
-                emplacement=dossier_path, titre=nom_fichier,
-                defaults={
-                    "id_format": format_obj,
-                    "id_nature": nature_obj,
-                    "id_statut": statut_obj,
-                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                },
-            )
-            # Ne pas historiser le numéro intermédiaire généré par doc.save().
-            ancien_numero = None if created else numero_document(doc)
-            if created:
-                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-                logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {nom_fichier} créé en base par {request.user}.")
-            else:
-                doc.id_statut = statut_obj
-                doc.id_nature = nature_obj
-                doc.id_format = format_obj
-                doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
-                doc.numero = None
-                doc.save()
-                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
-            _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
+            doc = _integrer_fichier_acte_genere(dossier, nom_fichier, nature_obj, statut_obj, format_obj, request=request)
+            if doc is None:
+                doc, created = Document.objects.get_or_create(
+                    emplacement=dossier_path, titre=nom_fichier,
+                    defaults={
+                        "id_format": format_obj,
+                        "id_nature": nature_obj,
+                        "id_statut": statut_obj,
+                        "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                    },
+                )
+                # Ne pas historiser le numéro intermédiaire généré par doc.save().
+                ancien_numero = None if created else numero_document(doc)
+                if created:
+                    DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                    logger.info(f"[DOSSIER {dossier.numero}] Document {nature_obj.nature} {nom_fichier} créé en base par {request.user}.")
+                else:
+                    doc.id_statut = statut_obj
+                    doc.id_nature = nature_obj
+                    doc.id_format = format_obj
+                    doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
+                    doc.numero = None
+                    doc.save()
+                    logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+                _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
 
     except ValidationError as e:
         return redirect_error(request, f"❌ {e.message}")
@@ -1292,9 +1337,6 @@ def faire_valider_le_projet_d_acte(request):
         logger.error(f"[FAIRE VALIDER PROJET] Nature '{nature}' introuvable en base (user={request.user})")
         return redirect_error(request, f"❌ La nature '{nature}' n'existe pas en base. Contactez le support.")
 
-    erreur_reference = _verifier_reference_acte(request, nature_obj)
-    if erreur_reference is not None:
-        return erreur_reference
     if not nom_fichier:
         return redirect_error(request, "❌ Le projet d'acte n'a pas été sélectionné.")
     if nature_obj.rapport_ca_obligatoire and (not nom_fichier_rapport_ca or nom_fichier == nom_fichier_rapport_ca):
@@ -1332,6 +1374,14 @@ def faire_valider_le_projet_d_acte(request):
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Validation projet d'acte")
     if err: return err
 
+    erreur_generation = _verifier_fichiers_generes_actes(request, dossier)
+    if erreur_generation is not None:
+        return erreur_generation
+
+    erreur_reference = _verifier_reference_acte(request, nature_obj)
+    if erreur_reference is not None:
+        return erreur_reference
+
 
     # Vérification que le file sélectionné est bien dans le sous dossier Work
     dossier_path = os.path.join(dossier.emplacement, "Work/").replace("\\", "/")
@@ -1353,27 +1403,29 @@ def faire_valider_le_projet_d_acte(request):
     try:
 
         with transaction.atomic():
-            doc, created = Document.objects.get_or_create(
-                emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
-                defaults={
-                    "id_format": format_obj,
-                    "id_nature": nature_obj,
-                    "id_statut": statut_obj,
-                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                },
-            )
-            ancien_numero = None if created else numero_document(doc)
-            if created:
-                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
-            else:
-                doc.id_statut = statut_obj
-                doc.id_nature = nature_obj
-                # Force un nouveau numéro
-                doc.numero = None
-                doc.save()
-                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
-            _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
+            doc = _integrer_fichier_acte_genere(dossier, nom_fichier, nature_obj, statut_obj, format_obj, request=request)
+            if doc is None:
+                doc, created = Document.objects.get_or_create(
+                    emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
+                    defaults={
+                        "id_format": format_obj,
+                        "id_nature": nature_obj,
+                        "id_statut": statut_obj,
+                        "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                    },
+                )
+                ancien_numero = None if created else numero_document(doc)
+                if created:
+                    DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                    logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
+                else:
+                    doc.id_statut = statut_obj
+                    doc.id_nature = nature_obj
+                    # Force un nouveau numéro
+                    doc.numero = None
+                    doc.save()
+                    logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+                _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
     except ValidationError as e:
         return redirect_error(request, f"❌ {e.message}")
     except Exception as e:
@@ -1669,8 +1721,16 @@ def repasser_en_instruction(request):
 
     # Suppression en base des projets d'acte non envoyés. Les fichiers présents
     # dans le dossier Work ne sont volontairement pas supprimés.
+    from django.conf import settings as django_settings
+    projets_lies = DossierDocument.objects
+    if django_settings.ENVIRONMENT == 'dev':
+        # Une génération doit rester traçable et réutilisable avec son numéro.
+        Document.objects.filter(generation__id_dossier=dossier, id_nature__est_acte=True).filter(
+            Q(id_statut__isnull=True) | ~Q(id_statut__statut__iexact='Envoyé'),
+        ).update(id_statut=None)
+        projets_lies = projets_lies.exclude(id_document__generation__isnull=False)
     projets_acte_a_supprimer = list(
-        DossierDocument.objects
+        projets_lies
         .filter(
             Q(id_document__id_nature__est_acte=True) | Q(id_document__id_nature__nature="Projet Rapport CA"),
             id_dossier=dossier,
@@ -2027,6 +2087,10 @@ def acte_pret_a_la_signature(request):
     instructeur, err = get_instructeur_or_redirect(request, numero_dossier=dossier.numero, action="Prêt à la signature")
     if err:
         return err
+
+    erreur_generation = _verifier_fichiers_generes_actes(request, dossier)
+    if erreur_generation is not None:
+        return erreur_generation
     
     # --- Récupération statut 'À signer' ---
     statut_a_signer = DocumentStatut.objects.filter(statut__iexact="à signer").first()
@@ -2096,27 +2160,29 @@ def acte_pret_a_la_signature(request):
         #     raise Exception(f"[NAS] ❌ Échec de l’écriture du fichier {fichier.name} sur {filepath}")
         
         with transaction.atomic():
-            doc, created = Document.objects.get_or_create(
-                emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
-                defaults={
-                    "id_format": format_obj,
-                    "id_nature": nature_obj,
-                    "id_statut": statut_a_signer,
-                    "description": f"{nature_obj.nature} du dossier {dossier.numero}",
-                },
-            )
-            ancien_numero = None if created else numero_document(doc)
-            if created:
-                DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-                logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
-            else:
-                doc.id_statut = statut_a_signer
-                doc.id_nature = nature_obj
-                doc.id_format = format_obj
-                doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
-                doc.save()
-                logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
-            _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
+            doc = _integrer_fichier_acte_genere(dossier, nom_fichier, nature_obj, statut_a_signer, format_obj, request=request)
+            if doc is None:
+                doc, created = Document.objects.get_or_create(
+                    emplacement=dossier_path, titre=nom_fichier, id_format=format_obj,
+                    defaults={
+                        "id_format": format_obj,
+                        "id_nature": nature_obj,
+                        "id_statut": statut_a_signer,
+                        "description": f"{nature_obj.nature} du dossier {dossier.numero}",
+                    },
+                )
+                ancien_numero = None if created else numero_document(doc)
+                if created:
+                    DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
+                    logger.info(f"[DOSSIER {dossier.numero}] {nature_obj.nature} {nom_fichier} créé dans le dossier Work")
+                else:
+                    doc.id_statut = statut_a_signer
+                    doc.id_nature = nature_obj
+                    doc.id_format = format_obj
+                    doc.description = f"{nature_obj.nature} du dossier {dossier.numero}"
+                    doc.save()
+                    logger.warning(f"[DOSSIER {dossier.numero}] User {request.user}, Document {nature_obj.nature} {nom_fichier} déjà existant en base – aucune création")
+                _appliquer_numero_partage(request, dossier, doc, nature, ancien_numero=ancien_numero)
     except ValidationError as e:
         return redirect_error(request, f"❌ {e.message}")
     except Exception as e:

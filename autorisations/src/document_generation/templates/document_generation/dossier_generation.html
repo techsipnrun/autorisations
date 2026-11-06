@@ -1,0 +1,79 @@
+{% load static breadcrumb_tags %}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Génération de fichiers — Dossier {{ dossier.numero }}</title>
+    <link rel="icon" href="{% static 'instruction/img/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=31">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=11">
+    <link rel="stylesheet" href="{% static 'document_generation/css/dossier_generation.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'document_generation/css/generation_fields.css' %}?v=15">
+</head>
+<body class="document-generation-page">
+{% include 'navbar.html' %}
+{% include 'timeline.html' with numero_dossier=dossier.numero %}
+<div class="page_instruction_dossier">
+    {% breadcrumb breadcrumb_items %}
+    <div class="refresh_et_timeline">
+        <div class="refresh-doss"><a class="refresh-button generation-return" href="{% url 'instruction_dossier' dossier.numero %}">← Revenir sur le dossier</a></div>
+        {% include 'instruction/refacto/mini_timeline.html' %}
+    </div>
+    <div class="page-container generation-blocks">
+        <main class="formulaire document-generation">
+            <div class="generation-heading">
+                <h1>Génération de fichiers - DOSSIER n° {{ dossier.numero }}</h1>
+                <span class="etat-badge-label {% if etape_actuelle.etape == 'Accepté' %}etape-acceptee{% elif etape_actuelle.etape == 'Refusé' %}etape-refusee{% elif etape_actuelle.etape == 'Non soumis à autorisation' %}etape-non-soumise{% elif etape_actuelle.etape == 'Annulé' %}etape-annulee{% endif %}">{{ etape_actuelle.etape|default:"Non défini" }}</span>
+            </div>
+            <form method="get" class="generation-selection" data-generation-selection>
+                <label>Démarche concernée
+                    <select name="demarche" data-generation-demarche>
+                        {% for item in demarches_generation %}<option value="{{ item.pk }}" {% if item.pk == selected_demarche.pk %}selected{% endif %}>{{ item.type }}</option>{% endfor %}
+                    </select>
+                </label>
+                <label>Choix du Template
+                    <select name="template" data-generation-template>
+                        <option value="">Sélectionner un template</option>
+                        {% for item in templates_generation %}<option value="{{ item.pk }}" {% if item.pk == document_template.pk %}selected{% endif %}>{{ item.nom }}</option>{% endfor %}
+                    </select>
+                </label>
+                <noscript><button type="submit">Afficher</button></noscript>
+            </form>
+            {% if not templates_generation %}<p>Aucun template actif, valide et complet pour cette démarche.</p>{% endif %}
+            {% if errors %}<section class="errors" role="alert"><h2>Impossible de poursuivre</h2><ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul></section>{% endif %}
+            {% if document_template %}{% include 'document_generation/generation_workspace.html' %}{% endif %}
+            {% include 'document_generation/generation_loading.html' %}
+        </main>
+        {% include 'document_generation/generation_history.html' with separate_block=True %}
+    </div>
+</div>
+{% include 'document_generation/generation_script.html' %}
+<script>
+(() => {
+    const selection=document.querySelector('[data-generation-selection]');
+    for(const input of selection.querySelectorAll('select')) {
+        input.addEventListener('focus',()=>{input.dataset.previous=input.value;});
+        input.addEventListener('change',()=>{
+            const target=new URL(window.location.href);
+            target.search='';
+            target.searchParams.set('demarche',selection.elements.demarche.value);
+            if(input.name==='template' && input.value) target.searchParams.set('template',input.value);
+            // Reuse the form's abandonment confirmation for selector navigation.
+            if(window.confirmDocumentGenerationLeave && !window.confirmDocumentGenerationLeave()) {
+                input.value=input.dataset.previous || '';return;
+            }
+            window.showDocumentGenerationLoading();
+            window.location.assign(target);
+        });
+    }
+    selection.addEventListener('submit',event=>{
+        if(window.confirmDocumentGenerationLeave && !window.confirmDocumentGenerationLeave()) {event.preventDefault();return;}
+        window.showDocumentGenerationLoading();
+    });
+})();
+</script>
+<script src="{% static 'document_generation/js/generation_history.js' %}?v=5" defer></script>
+<script src="{% static 'document_generation/js/generation_number.js' %}?v=3" defer></script>
+</body>
+</html>

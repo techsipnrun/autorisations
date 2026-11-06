@@ -3,12 +3,22 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from instruction.views import changement_etape
 
 
 class RepasserEnInstructionTests(SimpleTestCase):
+    @override_settings(ENVIRONMENT='dev')
+    def test_actes_generes_conservent_document_numero_et_lien(self):
+        with patch.object(changement_etape.Document, 'objects') as documents:
+            response = changement_etape.repasser_en_instruction(self.request)
+        self.assertEqual(response.status_code, 302)
+        self.liaisons.exclude.assert_called_once_with(id_document__generation__isnull=False)
+        documents.filter.assert_called_once_with(generation__id_dossier=self.dossier, id_nature__est_acte=True)
+        documents.filter.return_value.filter.return_value.update.assert_called_once_with(id_statut=None)
+        documents.filter.return_value.delete.assert_not_called()
+
     def setUp(self):
         stack = self.enterContext(ExitStack())
 

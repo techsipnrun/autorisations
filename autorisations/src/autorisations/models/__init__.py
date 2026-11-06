@@ -3,3 +3,4 @@ from .models_instruction import *
 from .models_utilisateurs import *
 from .models_avis import *
 from .models_cartographie import *
+from .models_generation import *

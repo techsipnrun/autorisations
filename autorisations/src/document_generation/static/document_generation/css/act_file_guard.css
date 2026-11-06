@@ -1,0 +1,25 @@
+.dossier-actions-menu .generated-act-repair-count {
+    display:inline-flex; align-items:center; justify-content:center; flex:none;
+    min-width:1.25rem; height:1.25rem; padding:0 .2rem; box-sizing:border-box;
+    border-radius:50%; background:#fff0d8; color:#a34d16; font-size:.72rem; font-weight:600;
+}
+.dossier-actions-menu .generated-act-repair-count[hidden] { display:none; }
+.act-history-guard-fields { border:0; padding:0; margin:0; min-width:0; }
+.act-history-guard-fields[hidden] { display:none !important; }
+.act-history-guard-fields:disabled { opacity:.45; }
+.act-history-guard-fields:disabled :is(button,input,select,textarea) { cursor:not-allowed !important; }
+.act-history-guard-notice { padding:.9rem 1rem; margin:0 0 1rem; border:1px solid #e7c397; border-radius:7px; background:#fff7eb; color:#9b4b1c; }
+.act-history-guard-notice[hidden] { display:none; }
+.act-history-guard-notice p { margin:0 0 .65rem; }
+.act-history-guard-notice a { display:inline-block; padding:.4rem .65rem; border:1px solid #d5b48e; border-radius:5px; color:#874117; background:white; text-decoration:none; }
+.act-history-guard-notice a:hover { background:#ffedd7; }
+.generated-act-selection-layout { display:flex; flex-wrap:wrap; align-items:flex-start; gap:1rem; }
+.generated-act-selection-layout > .selection-fichier-work { flex:0 1 auto; min-width:0; }
+.generated-act-provenance { flex:1 1 13rem; max-width:25rem; margin:.2rem 0; padding:.65rem .8rem; background:#edf5ef; border-left:3px solid #7ca68c; border-radius:5px; color:#356247; font-size:.85rem; line-height:1.5; }
+.generated-act-provenance[hidden] { display:none; }
+.generated-act-provenance.is-mismatch { color:#b2342d; background:#fff3ef; border-color:#d4887e; font-style:italic; }
+.act-history-guard-fields .projet-acte-identique-option[hidden] { display:none !important; }
+.act-history-guard-fields button:disabled { opacity:.45; cursor:not-allowed !important; }
+.generated-act-replacement { display:flex; flex:1 1 100%; align-items:flex-start; gap:.5rem; padding:.7rem; background:#fff5e8; border:1px solid #e5c49a; border-radius:6px; font-size:.85rem; color:#874917; }
+.generated-act-replacement[hidden] { display:none; }
+.generated-act-replacement input { flex:none; margin:.15rem 0 0; }

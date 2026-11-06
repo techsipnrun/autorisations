@@ -12,6 +12,7 @@ defusedxml==0.7.1
 django-filter==25.1
 djangorestframework==3.15.2
 docx2pdf==0.1.8
+docxtpl==0.20.2
 drf-yasg==1.21.10
 et_xmlfile==2.0.0
 ghp-import==2.1.0

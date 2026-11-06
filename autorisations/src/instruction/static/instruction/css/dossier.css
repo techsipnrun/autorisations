@@ -16,6 +16,16 @@
     margin: 0 auto;
 }
 
+/* Réserver la même place aux actions pour stabiliser la timeline entre les écrans. */
+.page_instruction_dossier > .refresh_et_timeline {
+    display:grid;
+    grid-template-columns:14rem minmax(0,1fr);
+}
+.page_instruction_dossier > .refresh_et_timeline .mini_timeline {
+    grid-column:2;
+}
+.generer-fichier img { display:block; width:40px; height:40px; }
+
 .refresh-status {
     display: inline-block;
     margin: 0.5rem;
@@ -2560,14 +2570,14 @@ textarea[name="note"] {
 
 
 /* ICON DS et DM */
-.icon_DS, .icon_DM {
+.icon_DS, .icon_DM, .generer-fichier {
     width: 40px;
     margin-left: 1rem;
     align-self: flex-start;
     transition: transform 0.2s ease-in-out;
 }
 
-.icon_DS:hover, .icon_DM:hover {
+.icon_DS:hover, .icon_DM:hover, .generer-fichier:hover {
     transform: scale(1.2);
     cursor: pointer;
 }

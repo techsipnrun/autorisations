@@ -25,6 +25,7 @@
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js" defer></script>
     <script src="{% static 'instruction/js/cartographie.js' %}?v=5" defer></script>
     <script src="{% static 'backoffice/js/back_office_cartographie.js' %}?v=12" defer></script>
+{% if generation_documents_dev %}<link rel="stylesheet" href="{% static 'backoffice/css/back_office_documents.css' %}?v=7"><script src="{% static 'backoffice/js/back_office_documents.js' %}?v=13" defer></script>{% endif %}
 </head>
 <body>
     <div class="back-office-layout">
@@ -86,6 +87,18 @@
                     <button type="button" class="back-office-nav-subitem" data-section="avis-thematiques">Thématiques</button>
                 </div>
                 </div>
+                {% if generation_documents_dev %}
+                <div class="back-office-nav-group">
+                    <button type="button" class="back-office-nav-item" data-section="documents" aria-controls="back-office-documents-nav" aria-expanded="false">
+                        <span class="back-office-nav-dot"></span>Documents
+                        <span class="back-office-nav-chevron" aria-hidden="true">›</span>
+                    </button>
+                    <div id="back-office-documents-nav" class="back-office-nav-submenu" hidden>
+                        <button type="button" class="back-office-nav-subitem" data-section="documents">Templates</button>
+                        <button type="button" class="back-office-nav-subitem" data-section="balises">Balises</button>
+                    </div>
+                </div>
+                {% endif %}
                 <button type="button" class="back-office-nav-item" data-section="notifications">
                     <span class="back-office-nav-dot"></span>Notifications
                 </button>
@@ -428,6 +441,11 @@
 
                 </section>
             </section>
+            {% if generation_documents_dev %}
+                {% include "backoffice/back_office_documents.html" %}
+                {% include "backoffice/back_office_balises.html" %}
+                <script src="{% static 'backoffice/js/back_office_balises.js' %}?v=5" defer></script>
+            {% endif %}
         </main>
     </div>
 
@@ -440,6 +458,13 @@
             const sectionValide = document.querySelector(`[data-panel="${section}"]`) ? section : 'services-externes';
             const estDemarche = sectionValide === 'demarche';
             const estCarto = sectionValide === 'carto';
+            const documentsNav = document.getElementById('back-office-documents-nav');
+            if (documentsNav) {
+                const estDocuments = ['documents', 'balises'].includes(sectionValide);
+                documentsNav.hidden = !estDocuments;
+                document.querySelector('.back-office-nav-item[data-section="documents"]').setAttribute('aria-expanded', String(estDocuments));
+                documentsNav.querySelectorAll('button').forEach(button=>button.classList.toggle('is-active',button.dataset.section===sectionValide));
+            }
             document.querySelector('[data-panel="carto"]').dataset.cartoVue = vueCarto;
             document.getElementById('back-office-carto-nav').hidden = !estCarto;
             document.querySelector('.back-office-nav-item[data-section="carto"]').setAttribute('aria-expanded', String(estCarto));
@@ -450,6 +475,7 @@
             document.querySelectorAll('.back-office-nav-item').forEach(item => {
                 item.classList.toggle('is-active', item.dataset.section === sectionValide);
             });
+            if(sectionValide==='balises') document.querySelector('.back-office-nav-item[data-section="documents"]').classList.add('is-active');
             document.querySelectorAll('.back-office-panel').forEach(panel => {
                 panel.hidden = panel.dataset.panel !== sectionValide;
             });
@@ -483,6 +509,14 @@
 
         function etatDepuisUrl() {
             const fragment = window.location.hash.replace(/^#/, '');
+            if (/^documents\/balises(?:\/.*)?$/.test(fragment)) {
+                afficherBackOffice('balises');
+                return;
+            }
+            if (/^documents\/templates(?:\/(?:nouveau|\d+))?$/.test(fragment)) {
+                afficherBackOffice('documents');
+                return;
+            }
             if (['avis', 'avis/formulaires', 'avis/thematiques'].includes(fragment)) {
                 afficherBackOffice(fragment === 'avis/thematiques' ? 'avis-thematiques' : 'avis');
                 return;
@@ -509,6 +543,12 @@
         }
 
         function naviguerBackOffice(section, demarcheId = null, vueCarto = 'catalogue') {
+            if(section==='balises') {window.location.hash='documents/balises';afficherBackOffice('balises');return;}
+            if (section === 'documents') {
+                window.location.hash = 'documents/templates';
+                afficherBackOffice('documents');
+                return;
+            }
             const fragment = demarcheId ? `demarche/${demarcheId}` : section === 'avis' ? 'avis/formulaires' : section === 'avis-thematiques' ? 'avis/thematiques' : section === 'types-actes' ? 'circuit/types-actes' : section === 'actions' ? 'circuit/actions' : section === 'carto' ? `carto/${vueCarto}` : section;
             if (window.location.hash === `#${fragment}`) {
                 afficherBackOffice(section, demarcheId, vueCarto);

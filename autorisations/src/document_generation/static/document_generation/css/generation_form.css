@@ -1,0 +1,51 @@
+* { box-sizing:border-box; }
+body { margin:0; background:#f3f6f3; color:#26372e; font-family:Arial,sans-serif; line-height:1.5; }
+main { width:min(100% - 2rem, 90rem); margin:2rem auto; }
+.generation-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.5rem; align-items:start; }
+.generation-workspace > * { min-width:0; }
+.preview-panel { margin:1rem 0; padding:1.5rem; border:1px solid #cbd8d0; border-radius:10px; background:white; position:sticky; top:1rem; }
+.document-preview { width:100%; height:75vh; min-height:28rem; border:1px solid #cbd8d0; }
+@media(max-width:950px) { .generation-workspace { grid-template-columns:minmax(0,1fr); } .preview-panel { position:static; } }
+a { color:#006131; }
+header { margin:1.5rem 0; }
+.eyebrow { color:#63756a; font-size:.8rem; }
+h1 { font-size:1.8rem; margin:.5rem 0; }
+h2 { font-size:1.1rem; margin-top:0; }
+section,details { margin:1rem 0; padding:1.5rem; border:1px solid #cbd8d0; border-radius:10px; background:white; }
+dl { margin:0; } dl > div { margin:.8rem 0; } dt { font-weight:600; } dt small { display:block; font-weight:400; color:#63756a; font-family:monospace; overflow-wrap:anywhere; } dd { margin:.3rem 0; overflow-wrap:anywhere; }
+.field { margin:1.2rem 0; } label { display:block; margin-bottom:.4rem; font-weight:600; }
+input,select,textarea { font:inherit; width:100%; border:1px solid #b5c4bc; border-radius:6px; padding:.6rem; background:white; color:inherit; }
+textarea { resize:vertical; } small { display:block; color:#63756a; } button { background:#006131; color:white; border:0; border-radius:6px; padding:.7rem 1rem; font:inherit; cursor:pointer; }
+button:hover { background:#084b2c; } :focus-visible { outline:2px solid #006131; outline-offset:3px; }
+.actions { display:flex; flex-wrap:wrap; gap:.75rem; }
+.actions button[value="validate"] { background:#e5f2e9; color:#146039; border:1px solid #b5c4bc; }
+.errors,.errorlist { color:#a12828; } .errors { background:#fff3ef; border-color:#efd5cc; } .success { background:#e5f2e9; color:#146039; } pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.85rem; } summary { cursor:pointer; }
+@media(max-width:600px) { section,details { padding:1rem; } }
+
+.card-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.card-heading h2 { margin:0; }
+.edit-known { display:inline-flex; padding:.5rem; background:transparent; color:#006131; border:1px solid transparent; }
+.edit-known:hover { background:#edf5ef; border-color:#7ca68c; }
+#known-editor fieldset { border:0; padding:0; margin:0; min-width:0; }
+#known-editor .field { margin:.8rem 0; }
+#known-editor label { margin-bottom:.3rem; }
+#known-editor label small { font-weight:400; font-family:monospace; overflow-wrap:anywhere; }
+.known-edit-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-top:1rem; }
+.known-edit-footer p { flex:1 1 15rem; margin:0; font-size:.75rem; font-style:italic; color:#63756a; }
+.known-edit-footer .actions { margin-left:auto; }
+[data-known-cancel] { background:white; color:#356247; border:1px solid #cbd8d0; }
+[data-known-cancel]:hover { background:#edf5ef; border-color:#7ca68c; }
+[hidden] { display:none !important; }
+.preview-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem; }
+.preview-heading h2 { margin:0; }
+.generation-loading:not([open]) { display:none; }
+.generation-loading[open] { position:fixed; inset:0; width:100vw; height:100dvh; max-width:none; max-height:none; box-sizing:border-box; margin:0; border:0; display:grid; place-items:center; background:#ffffffd9; }
+.generation-loading::backdrop { background:#0004; }
+.generation-loading > div { padding:2rem 3rem; border:1px solid #cbd8d0; border-radius:12px; background:white; text-align:center; color:#26372e; box-shadow:0 8px 35px #0002; }
+.generation-file-action { flex:1 1 12rem; }
+.generation-file-result { margin-top:.75rem; padding:1rem; border-radius:8px; font-size:.9rem; overflow-wrap:anywhere; }
+.repeated-text-row { margin:.75rem 0; }
+.repeated-text-input { display:flex; align-items:center; gap:.5rem; }
+.repeated-text-input input { flex:1; min-width:0; }
+.repeated-text-input button { flex:none; background:#edf5ef; color:#356247; }
+.repeated-text [data-add-row] { font-size:.85rem; background:#edf5ef; color:#356247; border-color:#b5c4bc; }

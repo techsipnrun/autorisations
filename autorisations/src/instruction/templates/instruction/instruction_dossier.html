@@ -48,6 +48,7 @@
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=4" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
     <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_actions_menu.css' %}?v=3">
     <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
 
 </head>
@@ -87,27 +88,7 @@
                 </div>
             {% endif %}
             
-            <!-- Mini timeline -->
-            {% if etape_actuelle.etape != "Non soumis à autorisation" and etape_actuelle.etape != "Refusé" and etape_actuelle.etape != "Accepté" and etape_actuelle.etape != "Annulé" %}
-                <div class="mini_timeline">
-                
-                    {% if etape_actuelle.etape == "À affecter" or etape_actuelle.etape == "En pré-instruction" %}
-                        <img src="{% static 'instruction/img/timeline/1.svg' %}" alt="Timeline" class="mini_timeline">
-
-                    {% elif etape_actuelle.etape == "En attente de signature" %}
-                        <img src="{% static 'instruction/img/timeline/3.svg' %}" alt="Timeline" class="mini_timeline">
- 
-                    {% elif etape_actuelle.etape == "Acte à envoyer" %}
-                        <img src="{% static 'instruction/img/timeline/4.svg' %}" alt="Timeline" class="mini_timeline">
-
-                    {% elif etape_actuelle.etape == "À publier au RAA" %}
-                        <img src="{% static 'instruction/img/timeline/5.svg' %}" alt="Timeline" class="mini_timeline">
-
-                    {% else %}
-                        <img src="{% static 'instruction/img/timeline/2.svg' %}" alt="Timeline" class="mini_timeline">
-                    {% endif %}
-                </div>
-            {% endif %}
+            {% include "instruction/refacto/mini_timeline.html" %}
         </div>
         
 
@@ -246,21 +227,8 @@
 
 
                 
-                <!-- Copier le chemin d'accès du dossier -->
-                {% include "instruction/refacto/notification_agents_dossier.html" %}
-                {% include "instruction/refacto/dossiers_lies_bouton.html" %}
-                <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
-                    <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
-                    <img class="icon-hover" src="{% static 'instruction/img/copy.png' %}" alt="">
-                    <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
-                </button>
+                {% include "instruction/refacto/dossier_header.html" %}
 
-                {% if dossier.id_demarche.type != "Manifestations sportives" %}
-                    <h1>DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}</h1>
-                {% else %}
-                    <h1>Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}</h1>
-                {% endif %}
-                
                 {% if messages %}
                     <div class="django-messages">
                         {% for message in messages %}

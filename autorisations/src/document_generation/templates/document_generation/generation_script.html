@@ -1,0 +1,176 @@
+<script>
+(() => {
+    window.showDocumentGenerationLoading=()=>{
+        const overlay=document.querySelector('[data-generation-progress]');
+        if(!overlay.open) overlay.showModal();
+        document.body.style.overflow='hidden';
+    };
+    document.querySelector('[data-generation-progress]')?.addEventListener('cancel',event=>event.preventDefault());
+    window.addEventListener('pageshow',event=>{
+        if(event.persisted) {document.querySelector('[data-generation-progress]')?.close();document.body.style.overflow='';}
+    });
+    const scrollState=document.getElementById('generation-scroll-position');
+    const position=scrollState ? JSON.parse(scrollState.textContent) : null;
+    if(position) {
+        const restore=()=>setTimeout(()=>window.scrollTo(position.x,position.y),0);
+        if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',restore,{once:true});
+        else restore();
+    }
+    const form=document.querySelector('#generation-form');
+    if (!form) return;
+    function refreshValidity() {
+        const fields=[...form.querySelectorAll('input,select,textarea')];
+        let valid=fields.filter(field=>!field.disabled).every(field=>field.validity.valid && (!field.required || field.value.trim()!==''));
+        for(const group of form.querySelectorAll('[data-repeated-text]')) {
+            if(group.closest('[data-field-required="true"]') && ![...group.querySelectorAll('input')].some(input=>input.value.trim())) valid=false;
+        }
+        for(const field of form.querySelectorAll('.manual-fields > .field')) {
+            const inputs=[...field.querySelectorAll('input,select,textarea')].filter(input=>!input.disabled);
+            const emptyList=field.dataset.fieldRequired==='true' && field.querySelector('[data-repeated-text]') && !inputs.some(input=>input.value.trim());
+            const invalid=inputs.some(input=>!input.validity.valid || (input.required && !input.value.trim()));
+            const incomplete=Boolean(emptyList || invalid);
+            field.classList.toggle('needs-attention',incomplete);
+            const hint=field.querySelector('[data-field-status]');
+            if(hint) {
+                hint.hidden=!incomplete;
+                const text=inputs.some(input=>input.value.trim()) && !emptyList ? 'À corriger' : 'À renseigner';
+                if(hint.textContent!==text) hint.textContent=text;
+            }
+        }
+        const number=form.querySelector('[name=number_selection]');
+        if(form.querySelector('.output-variable.is-pending:not([data-variable="document.numero"])')) valid=false;
+        const filename=form.querySelector('[name=output_filename]');
+        if(filename && !filename.value.replace(/\.docx$/i,'').trim()) valid=false;
+        const numberControl=form.querySelector('[data-document-number]');
+        if(numberControl) numberControl.hidden=!valid;
+        if(number && !number.value) valid=false;
+        if(form.querySelector('.output-variable.is-pending')) valid=false;
+        document.querySelectorAll('[data-requires-valid-form]').forEach(button=>{button.disabled=!valid || form.getAttribute('aria-busy')==='true';});
+    }
+    form.addEventListener('input',refreshValidity);
+    form.addEventListener('change',refreshValidity);
+    new MutationObserver(refreshValidity).observe(form,{childList:true,subtree:true,characterData:true});
+    document.addEventListener('DOMContentLoaded',refreshValidity,{once:true});
+    refreshValidity();
+    form.querySelectorAll('[data-repeated-text]').forEach(group=>{
+        const rows=group.querySelector('[data-repeated-rows]');
+        const prototype=rows.firstElementChild.cloneNode(true);
+        function renumber() {
+            [...rows.children].forEach((row,index)=>{
+                const number=index+1,input=row.querySelector('input');
+                input.id=`${group.dataset.baseId}_${number}`;
+                row.querySelector('label').htmlFor=input.id;
+                row.querySelector('[data-row-number]').textContent=number;
+                row.querySelector('[data-remove-row]').setAttribute('aria-label',`Supprimer ${group.dataset.itemLabel} ${number}`);
+            });
+            group.querySelector('[data-add-row]').disabled=rows.children.length>=100;
+        }
+        function add() {
+            const row=prototype.cloneNode(true);row.querySelector('input').value='';rows.append(row);renumber();return row;
+        }
+        group.addEventListener('click',event=>{
+            if(event.target.closest('[data-add-row]')) {
+                if(rows.children.length<100) add().querySelector('input').focus();
+            } else if(event.target.closest('[data-remove-row]')) {
+                event.target.closest('.repeated-text-row').remove();
+                if(!rows.children.length) add();
+                renumber();rows.lastElementChild.querySelector('input').focus();
+            }
+        });
+        renumber();
+    });
+    const pencil=form.querySelector('.edit-known');
+    const editor=form.querySelector('#known-editor');
+    const display=form.querySelector('#known-display');
+    const flag=form.querySelector('[name="edit_known"]');
+    const knownInputs=[...editor.querySelectorAll('input, select, textarea')];
+    const manualValues=()=>[...form.querySelectorAll('input, select, textarea')].filter(
+        input => input.name.startsWith('balise_') || ['number_selection','output_filename'].includes(input.name)).map(input=>[input.name,input.value]);
+    const values=inputs => inputs.map(input => input.value);
+    const initialKnown=values(knownInputs), initialManual=JSON.stringify(manualValues());
+    let savedKnown=values(knownInputs), savedActive=flag.value==='1';
+    let leaving=false;
+    const changed=(inputs, initial) => values(inputs).some((value, i) => value!==initial[i]);
+    const hasWork=() => JSON.stringify(manualValues())!==initialManual
+        || (flag.value==='1' && changed(knownInputs, initialKnown));
+    window.confirmDocumentGenerationLeave=() => {
+        if(hasWork() && !window.confirm('Voulez-vous vraiment abandonner la génération en cours ?')) return false;
+        leaving=true;
+        window.setTimeout(()=>{leaving=false;},1000);
+        return true;
+    };
+    function toggleEdition(editing) {
+        pencil?.setAttribute('aria-expanded', String(editing));
+        editor.hidden=!editing;
+        display.hidden=editing;
+        editor.querySelector('fieldset').disabled=!(editing || savedActive);
+        flag.value=editing || savedActive ? '1' : '0';
+        refreshValidity();
+        if (editing) knownInputs[0]?.focus();
+    }
+    function cancelEdition() {
+        knownInputs.forEach((input, i) => {input.value=savedKnown[i];});
+        toggleEdition(false);
+    }
+    pencil?.addEventListener('click', () => {
+        if (pencil.getAttribute('aria-expanded')==='true') cancelEdition();
+        else toggleEdition(true);
+    });
+    form.querySelector('[data-known-cancel]').addEventListener('click', cancelEdition);
+    form.querySelector('[data-known-save]').addEventListener('click', () => {
+        for (const input of knownInputs) {
+            if (!input.reportValidity()) return;
+        }
+        savedKnown=values(knownInputs);
+        savedActive=true;
+        display.querySelectorAll('dd').forEach((value, i) => {
+            const input=knownInputs[i];
+            value.textContent=input.tagName==='SELECT' ? input.selectedOptions[0]?.textContent || '—' : input.value || '—';
+        });
+        toggleEdition(false);
+    });
+    window.addEventListener('beforeunload', event => {
+        if (leaving || !hasWork()) return;
+        event.preventDefault();
+        event.returnValue='';
+    });
+    window.addEventListener('pageshow', () => {leaving=false;});
+    document.addEventListener('click', event => {
+        const link=event.target.closest('a[href]');
+        if (!link || event.defaultPrevented || event.button!==0 || event.ctrlKey || event.metaKey
+            || event.shiftKey || event.altKey || link.target==='_blank' || link.hasAttribute('download')
+            || link.getAttribute('href').startsWith('#') || !hasWork()) return;
+        if (!window.confirm('Voulez-vous vraiment abandonner la génération en cours ?')) {
+            event.preventDefault();
+        } else {
+            leaving=true;
+            window.setTimeout(() => {leaving=false;}, 1000);
+        }
+    });
+    form.addEventListener('submit', event => {
+        refreshValidity();
+        if(event.submitter?.matches('[data-requires-valid-form]') && event.submitter.disabled) {event.preventDefault();return;}
+        if(form.getAttribute('aria-busy')==='true') {event.preventDefault();return;}
+        leaving=true;
+        for(const [axis,value] of [['x',window.scrollX],['y',window.scrollY]]) {
+            const state=document.createElement('input');state.type='hidden';state.name=`_scroll_${axis}`;state.value=Math.round(value);form.append(state);
+        }
+        if (event.submitter?.value==='generate_docx') {
+            window.setTimeout(() => {leaving=false;}, 1000);
+        }
+        const hidden=document.createElement('input');hidden.type='hidden';hidden.name='action';hidden.value=event.submitter?.value || 'validate';
+        form.append(hidden);
+        document.querySelectorAll('#generation-form button, button[form="generation-form"]').forEach(button=>{button.disabled=true;});
+        form.setAttribute('aria-busy','true');
+        window.showDocumentGenerationLoading();
+    });
+    window.addEventListener('pageshow',event=>{
+        if(!event.persisted) return;
+        document.querySelector('[data-generation-progress]')?.close();
+        document.body.style.overflow='';
+        form.removeAttribute('aria-busy');
+        document.querySelectorAll('#generation-form button, button[form="generation-form"]').forEach(button=>{button.disabled=false;});
+        refreshValidity();
+    });
+})();
+</script>

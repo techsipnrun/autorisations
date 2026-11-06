@@ -1,0 +1,25 @@
+{% load static group_tags %}
+<div class="dossier-form-header">
+    <h1>{% if dossier.id_demarche.type != "Manifestations sportives" %}DOSSIER n° {{ dossier.numero }} - {{ dossier.id_demarche.type }}{% else %}Dossier Démarche Numérique n° {{ dossier.numero }} - {{ doss_manif_sportive.nom_dossier|default:dossier.id_demarche.type }}{% endif %}</h1>
+    <nav class="dossier-actions-menu" aria-label="Actions du dossier">
+        <button type="button" class="btn-copy-dossier" data-path="{{ chemin_complet }}" aria-label="Copier le chemin d'accès du dossier" title="Copier le chemin d'accès du dossier">
+            <img class="icon-default" src="{% static 'instruction/img/copy.png' %}" alt="">
+            <span>Copier</span>
+            <span class="copy-feedback" role="status" aria-live="polite">Chemin copié</span>
+        </button>
+        {% include "instruction/refacto/notification_agents_dossier.html" with action_menu=True %}
+        {% include "instruction/refacto/dossiers_lies_bouton.html" with action_menu=True %}
+        {% if generation_documents_dev %}
+            {% if request.user.is_superuser or request.user|est_concerné_par_le_dossier:dossier %}
+                <a class="dossier-action-generer" href="{% url 'document_generation:dossier_generation' dossier.numero %}" title="Générer un fichier">
+                    <img src="{% static 'instruction/img/generer_doc.png' %}" alt="">
+                    <span>Générer</span>
+                    <span class="generated-act-repair-count" data-act-repair-count hidden aria-live="polite"></span>
+                </a>
+                <span hidden data-act-history-guard data-status-url="{% url 'document_generation:act_history_status' dossier.numero %}" data-repair-url="{% url 'document_generation:dossier_generation' dossier.numero %}#generation-history"></span>
+                <script src="{% static 'document_generation/js/act_file_guard.js' %}?v=5" defer></script>
+                <link rel="stylesheet" href="{% static 'document_generation/css/act_file_guard.css' %}?v=5">
+            {% endif %}
+        {% endif %}
+    </nav>
+</div>

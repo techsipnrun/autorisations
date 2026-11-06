@@ -1,0 +1,18 @@
+{% if numbering_kind %}
+<div class="document-number-controls" hidden data-document-number data-select-url="{% url 'document_generation:number_select' dossier.numero document_template.pk %}?demarche={{ selected_demarche.pk|default:dossier.id_demarche_id }}" data-choices-url="{% url 'document_generation:number_choices' dossier.numero document_template.pk %}?demarche={{ selected_demarche.pk|default:dossier.id_demarche_id }}">
+    {% csrf_token %}
+    <div class="number-heading"><strong>{% if numbering_kind == 'avis' %}Numéro de l’avis{% else %}Numéro de l’acte{% endif %}</strong>
+    <span class="number-value-wrapper"><span class="document-number-value{% if not number_reservation %} is-unassigned{% endif %}" data-number-value>{{ number_reservation.numero|default:'Non attribué' }}</span><button type="button" class="number-switch" data-number-toggle title="Changer le numéro" aria-label="Changer le numéro" aria-expanded="false" {% if not number_reservation %}hidden{% endif %}>⇄</button></span>
+    <div class="number-actions" {% if number_reservation %}hidden{% endif %}><button type="button" data-number-reserve>Générer un nouveau</button><button type="button" data-number-recover>Récupérer un existant</button></div></div>
+    <small class="number-format-example" {% if number_reservation %}hidden{% endif %}>Exemple : {% if numbering_kind == 'avis' %}42{% else %}{% now 'Y' %}-0012{% endif %}</small>
+    <input type="hidden" name="number_selection" value="{{ number_reservation.pk|default:'' }}">
+    <input type="hidden" data-number-request value="{{ number_state.request_key }}">
+    <p data-number-message role="status"></p>
+    <dialog class="history-file-dialog" data-number-dialog aria-labelledby="number-dialog-title">
+        <h2 id="number-dialog-title">Récupérer un numéro</h2>
+        <p>Numéros de même nature pour ce dossier et ses dossiers liés accessibles.</p>
+        <select data-number-choice aria-label="Numéro à récupérer"><option value="">Sélectionner un numéro</option></select>
+        <div class="history-dialog-actions"><button type="button" data-number-cancel>Annuler</button><button type="button" data-number-confirm disabled>Récupérer ce numéro</button></div>
+    </dialog>
+</div>
+{% endif %}

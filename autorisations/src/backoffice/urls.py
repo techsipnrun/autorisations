@@ -2,9 +2,22 @@
 from django.urls import path
 
 from backoffice.views import accueil, actions, avis, cartographie, demarches, nom_dossier, services, types_actes
+from backoffice.views import documents
+from backoffice.views import balises
 
 
 urlpatterns = [
+    path("back-office/documents/balises/", balises.catalogue, name="back_office_balises"),
+    path("back-office/documents/balises/creer/", balises.enregistrer, name="back_office_balise_creer"),
+    path("back-office/documents/balises/<int:balise_id>/enregistrer/", balises.enregistrer, name="back_office_balise_enregistrer"),
+    path("back-office/documents/balises/champs/<int:demarche_id>/", balises.champs, name="back_office_balise_champs"),
+    path("back-office/documents/templates/verifier/", documents.verifier_tous, name="back_office_templates_verifier"),
+    path("back-office/documents/templates/options/", documents.options_edition, name="back_office_template_options"),
+    path("back-office/documents/templates/creer/", documents.enregistrer, name="back_office_template_creer"),
+    path("back-office/documents/templates/<int:template_id>/enregistrer/", documents.enregistrer, name="back_office_template_enregistrer"),
+    path("back-office/documents/templates/", documents.catalogue, name="back_office_templates"),
+    path("back-office/documents/templates/<int:template_id>/verifier/", documents.verifier, name="back_office_template_verifier"),
+    path("back-office/documents/templates/<int:template_id>/telecharger/", documents.telecharger, name="back_office_template_telecharger"),
     path("back-office/", accueil.back_office, name="back_office"),
     path("back-office/actions/", actions.catalogue, name="back_office_actions"),
     path("back-office/actions/priorites/", actions.enregistrer_priorites, name="back_office_actions_priorites"),

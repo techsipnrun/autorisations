@@ -207,6 +207,16 @@ class Document(models.Model):
             if nature_changee:
                 self.id_document_reference_id = None
         elif (not self.numero or nature_changee) and self.id_nature.est_acte:
+            from django.conf import settings
+            if settings.ENVIRONMENT == 'dev':
+                annee = timezone.localdate().year
+                # Même compteur verrouillé que la réservation de génération.
+                from django.db import connection
+                with transaction.atomic():
+                    with connection.cursor() as cursor:
+                        cursor.execute('SELECT generation.prochain_numero_acte(%s,%s)', [self.id_nature_id, annee])
+                        self.numero = cursor.fetchone()[0]
+                    return super().save(*args, **kwargs)
             for _ in range(3):
                 dernier = (
                     Document.objects

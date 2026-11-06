@@ -6,6 +6,7 @@ from django.contrib.admin import AdminSite
 
 
 SCHEMA_LABELS = {
+    "generation": "Génération de documents",
     "instruction": "Instruction",
     "documents": "Documents",
     "avis": "Avis",

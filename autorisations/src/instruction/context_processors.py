@@ -6,7 +6,10 @@ from django.utils import timezone
 from DS.service_status import get_statut_demarche_numerique
 
 
-def get_demarche_from_num_dossier(num_dossier):
+def get_demarche_from_num_dossier(num_dossier, request=None):
+    dossier_courant = getattr(request, "dossier_courant", None)
+    if dossier_courant is not None and str(dossier_courant.numero) == str(num_dossier):
+        return dossier_courant.id_demarche
     try:
         dossier = Dossier.objects.select_related("id_demarche").get(numero=num_dossier)
         return dossier.id_demarche
@@ -86,7 +89,7 @@ def breadcrumb_context(request):
    
         items.append({"label": "Instruction", "url": "/instruction/"})
         numero = kwargs.get("num_dossier")
-        demarche = get_demarche_from_num_dossier(numero)
+        demarche = get_demarche_from_num_dossier(numero, request)
         if demarche:
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
 
@@ -97,7 +100,7 @@ def breadcrumb_context(request):
     elif view_name == "instruction_dossier_messagerie":
         items.append({"label": "Instruction", "url": "/instruction/"})
         numero = kwargs.get("num_dossier")
-        demarche = get_demarche_from_num_dossier(numero)
+        demarche = get_demarche_from_num_dossier(numero, request)
         if demarche:
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
 
@@ -109,7 +112,7 @@ def breadcrumb_context(request):
     elif view_name == "instruction_dossier_consultation":
         items.append({"label": "Instruction", "url": "/instruction/"})
         numero = kwargs.get("num_dossier")
-        demarche = get_demarche_from_num_dossier(numero)
+        demarche = get_demarche_from_num_dossier(numero, request)
 
         if demarche:
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
@@ -121,7 +124,7 @@ def breadcrumb_context(request):
     elif view_name == "instruction_dossier_ajouter_avis":
         items.append({"label": "Instruction", "url": "/instruction/"})
         numero = kwargs.get("num_dossier")
-        demarche = get_demarche_from_num_dossier(numero)
+        demarche = get_demarche_from_num_dossier(numero, request)
 
         if demarche:
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
@@ -134,7 +137,7 @@ def breadcrumb_context(request):
     elif view_name == "instruction_dossier_ajouter_avis_existant":
         items.append({"label": "Instruction", "url": "/instruction/"})
         numero = kwargs.get("num_dossier")
-        demarche = get_demarche_from_num_dossier(numero)
+        demarche = get_demarche_from_num_dossier(numero, request)
 
         if demarche:
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})
@@ -149,7 +152,7 @@ def breadcrumb_context(request):
         numero = kwargs.get("num_dossier")
         avis_courant = getattr(request, "avis_courant", None)
         numero_avis = avis_courant.numero_affiche if avis_courant else kwargs.get("avis_id")
-        demarche = get_demarche_from_num_dossier(numero)
+        demarche = get_demarche_from_num_dossier(numero, request)
 
         if demarche:
             items.append({"label": demarche.type, "url": f"/instruction-demarche/{demarche.numero}"})

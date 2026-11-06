@@ -1,0 +1,59 @@
+.document-generation.formulaire { flex:1 1 100%; padding:2rem; }
+.document-generation-page .generation-blocks { flex-direction:column; gap:0; margin-top:2rem; }
+.document-generation-page .generation-blocks > .formulaire { flex:none; width:100%; }
+.document-generation-page .generation-history-block { margin:0; padding:2rem; border-top:0; }
+.generation-history-block .generation-heading { display:flex; align-items:center; margin-bottom:2rem; }
+.generation-history-block .generation-heading h2 { font-size:1.5rem; margin:0; }
+@media(max-width:650px) { .document-generation-page .generation-history-block { padding:1rem; min-width:0; } }
+.document-generation-page .generation-return { color:inherit; text-decoration:none; width:fit-content; font-size:.9rem; }
+.document-generation .generation-heading { display:flex; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:2rem; }
+.document-generation .generation-heading h1 { font-size:1.5rem; margin:0; }
+.document-generation .etat-badge-label { cursor:default; font-size:1rem; }
+.document-generation .generation-selection { display:flex; flex-wrap:wrap; align-items:flex-start; gap:1rem 1.5rem; margin-bottom:1.5rem; }
+.document-generation .generation-selection label { display:flex; flex-direction:column; align-items:flex-start; max-width:100%; }
+.document-generation label { display:block; font-weight:600; margin-bottom:.4rem; }
+.document-generation input,.document-generation select,.document-generation textarea { box-sizing:border-box; width:100%; padding:.65rem; font:inherit; border:1px solid #b5c4bc; border-radius:6px; background:white; color:#26372e; }
+.document-generation select { margin-top:.4rem; }
+.document-generation .generation-selection select { width:auto; max-width:100%; }
+.document-generation .generation-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; gap:1.5rem; }
+.document-generation .generation-workspace > * { min-width:0; }
+.document-generation section,.document-generation details,.document-generation .preview-panel { padding:1.5rem; margin:1rem 0; border:1px solid #cbd8d0; border-radius:10px; background:white; }
+.document-generation h2 { font-size:1.1rem; margin:0 0 1rem; }
+.document-generation .preview-panel { position:sticky; top:1rem; }
+.document-generation .preview-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem; }
+.document-generation .preview-heading h2 { margin:0; }
+.document-generation .generation-loading:not([open]) { display:none; }
+.document-generation .generation-loading[open] { position:fixed; inset:0; width:100vw; height:100dvh; max-width:none; max-height:none; box-sizing:border-box; margin:0; border:0; display:grid; place-items:center; background:#ffffffd9; }
+.document-generation .generation-loading::backdrop { background:#0004; }
+.document-generation .generation-loading > div { padding:2rem 3rem; border:1px solid #cbd8d0; border-radius:12px; background:white; text-align:center; color:#26372e; box-shadow:0 8px 35px #0002; }
+.document-generation .generation-file-action { flex:1 1 12rem; }
+.document-generation .generation-file-result { margin-top:.75rem; padding:1rem; border-radius:8px; font-size:.9rem; overflow-wrap:anywhere; }
+.document-generation .repeated-text-row { margin:.75rem 0; }
+.document-generation .repeated-text-input { display:flex; align-items:center; gap:.5rem; }
+.document-generation .repeated-text-input input { flex:1; min-width:0; }
+.document-generation .repeated-text-input button { flex:none; background:#edf5ef; color:#356247; }
+.document-generation .repeated-text [data-add-row] { font-size:.85rem; background:#edf5ef; color:#356247; border-color:#b5c4bc; }
+.document-generation .document-preview { width:100%; height:70vh; min-height:28rem; border:1px solid #cbd8d0; }
+.document-generation dl { margin:0; }
+.document-generation dl > div,.document-generation .field { margin:.8rem 0; }
+.document-generation dt { font-weight:600; }
+.document-generation dd { margin:.3rem 0; overflow-wrap:anywhere; }
+.document-generation small { display:block; font-size:.8rem; color:#63756a; }
+.document-generation dt small,.document-generation #known-editor label small { font-family:monospace; font-weight:400; overflow-wrap:anywhere; }
+.document-generation .card-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.document-generation .card-heading h2 { margin:0; }
+.document-generation button { padding:.65rem .9rem; font:inherit; cursor:pointer; background:#006131; color:white; border:1px solid transparent; border-radius:6px; }
+.document-generation .edit-known { display:inline-flex; padding:.5rem; color:#006131; background:transparent; }
+.document-generation .edit-known:hover { background:#edf5ef; border-color:#7ca68c; }
+.document-generation fieldset { border:0; padding:0; margin:0; min-width:0; }
+.document-generation .actions { display:flex; flex-wrap:wrap; gap:.75rem; }
+.document-generation .known-edit-footer { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-top:1rem; }
+.document-generation .known-edit-footer p { flex:1 1 15rem; margin:0; font-size:.75rem; font-style:italic; color:#63756a; }
+.document-generation [data-known-cancel],.document-generation button[value="validate"] { background:#edf5ef; color:#356247; border-color:#b5c4bc; }
+.document-generation .errors,.document-generation .errorlist { color:#a12828; }
+.document-generation .success { background:#e5f2e9; color:#146039; }
+.document-generation pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+.document-generation [hidden] { display:none !important; }
+@media(max-width:1100px) { .document-generation .generation-workspace { grid-template-columns:minmax(0,1fr); } .document-generation .preview-panel { position:static; } }
+@media(max-width:900px) { .document-generation-page .refresh_et_timeline { box-sizing:border-box; width:100%; } .document-generation-page .refresh_et_timeline .mini_timeline { min-width:0; max-width:100%; } }
+@media(max-width:650px) { .document-generation-page .page-container { padding:.5rem 1rem 3rem; } .document-generation-page .refresh_et_timeline { padding:1.5rem 1rem 0; grid-template-columns:1fr; gap:1rem; } .document-generation-page .refresh_et_timeline .mini_timeline { grid-column:1; } .document-generation.formulaire { padding:1rem; min-width:0; } .document-generation section,.document-generation .preview-panel { padding:1rem; } }

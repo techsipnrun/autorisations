@@ -1,0 +1,27 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Préparer un document — AGIDA</title>
+    <link rel="stylesheet" href="{% static 'document_generation/css/generation_form.css' %}">
+    <link rel="stylesheet" href="{% static 'document_generation/css/generation_fields.css' %}?v=15">
+</head>
+<body>
+<main>
+    <a href="{% url 'back_office' %}#documents/templates">← Templates</a>
+    <header><p class="eyebrow">Génération de documents · Développement</p><h1>Préparer un document</h1>
+        <p>Dossier <strong>{{ dossier.numero }}</strong> · {{ dossier.nom_dossier }}</p>
+        <p>Template : <strong>{{ document_template.nom }}</strong></p>
+    </header>
+    {% if errors %}<section class="errors" role="alert"><h2>Impossible de poursuivre</h2><ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul></section>{% endif %}
+    {% include "document_generation/generation_workspace.html" %}
+    {% include 'document_generation/generation_history.html' %}
+{% include 'document_generation/generation_loading.html' %}
+</main>
+{% include "document_generation/generation_script.html" %}
+<script src="{% static 'document_generation/js/generation_history.js' %}?v=5" defer></script>
+<script src="{% static 'document_generation/js/generation_number.js' %}?v=3" defer></script>
+</body>
+</html>

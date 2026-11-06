@@ -1,5 +1,6 @@
 """Accueil du Back Office."""
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
 from django.shortcuts import render
@@ -74,4 +75,4 @@ def back_office(request):
         }
         demarche.nommage_script_id = f"nommage-demarche-{demarche.id}"
     from backoffice.views.types_actes import contexte_types_actes
-    return render(request, "backoffice/back_office.html", {"demarches_back_office": demarches, **contexte_types_actes()})
+    return render(request, "backoffice/back_office.html", {"generation_documents_dev": settings.ENVIRONMENT == "dev", "demarches_back_office": demarches, **contexte_types_actes()})

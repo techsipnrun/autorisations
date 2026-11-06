@@ -45,6 +45,10 @@ INSTALLED_APPS = [
     'notifications.apps.NotificationsConfig',
 ]
 
+# Module en cours de développement : aucun enregistrement admin en production.
+if ENVIRONMENT == "dev":
+    INSTALLED_APPS.append('document_generation.apps.DocumentGenerationConfig')
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

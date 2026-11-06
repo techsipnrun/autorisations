@@ -1,0 +1,11 @@
+<div class="repeated-text" data-repeated-text data-field-name="{{ widget.name }}" data-base-id="{{ widget.attrs.id }}" data-item-label="{{ widget.item_label }}">
+    <div data-repeated-rows>
+    {% for value in widget.items %}
+        <div class="repeated-text-row">
+            <label for="{{ widget.attrs.id }}_{{ forloop.counter }}"><span data-row-number>{{ forloop.counter }}</span> {{ widget.item_label }}</label>
+            <div class="repeated-text-input"><input type="text" name="{{ widget.name }}" id="{{ widget.attrs.id }}_{{ forloop.counter }}" value="{{ value }}" maxlength="500"{% if widget.attrs.disabled %} disabled{% endif %}><button type="button" data-remove-row title="Supprimer cette ligne" aria-label="Supprimer {{ widget.item_label }} {{ forloop.counter }}"{% if widget.attrs.disabled %} disabled{% endif %}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div>
+        </div>
+    {% endfor %}
+    </div>
+    <button type="button" data-add-row{% if widget.attrs.disabled %} disabled{% endif %}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter : {{ widget.item_label }}</span></button>
+</div>

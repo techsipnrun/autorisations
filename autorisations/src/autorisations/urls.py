@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import include, path, re_path
 from django.views.generic import RedirectView
@@ -26,3 +27,7 @@ urlpatterns = [
     # Ce dernier motif permet d'utiliser notre page 404 également avec DEBUG=True, lorsque le handler404 de Django n'est normalement pas rendu.
     re_path(r"^.*$", errors.erreur_404, name="page_introuvable"),
 ]
+
+if settings.ENVIRONMENT == "dev":
+    # Doit précéder la route 404 finale. Aucun endpoint en production.
+    urlpatterns.insert(0, path("document-generation/", include("document_generation.urls")))

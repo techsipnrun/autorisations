@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import json
 import logging
 import os
+from django.conf import settings
 from django.db.models import Q, Count
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -1270,10 +1271,13 @@ def rechercher_projets_acte(request, num_dossier):
 @login_required
 def instruction_dossier(request, num_dossier):
 
-    dossier = Dossier.objects.filter(numero=num_dossier).first()
+    dossier = Dossier.objects.select_related(
+        "id_demarche", "id_etape_dossier", "id_etat_dossier", "id_groupeinstructeur"
+    ).filter(numero=num_dossier).first()
     if not dossier:
         logger.error(f"[INSTRUCTION DOSSIER] Erreur lors de l'affichage de la page par {request.user} : Dossier {num_dossier} introuvable.")
         return dossier_introuvable(request, num_dossier, "DN")
+    request.dossier_courant = dossier
     
     demarche = dossier.id_demarche
 
@@ -1665,6 +1669,7 @@ def instruction_dossier(request, num_dossier):
         # Dossier
         "demarche": demarche,
         "dossier": dossier,
+        "generation_documents_dev": settings.ENVIRONMENT == "dev",
         "etat_dossier": format_etat_dossier(dossier.id_etat_dossier.nom),
         "chemin_complet": chemin_complet,
         "champs": champs_prepares,

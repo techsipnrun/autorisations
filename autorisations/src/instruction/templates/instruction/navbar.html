@@ -39,7 +39,7 @@
                     </a>
 
                     <a href="{% url 'accueil_view' %}">
-                        <li class="{% if '/instruction' in request.path %}active{% endif %}">
+                        <li class="{% if '/instruction' in request.path or '/document-generation/' in request.path %}active{% endif %}">
                             Vue d'ensemble 
                         </li>
                     </a>
