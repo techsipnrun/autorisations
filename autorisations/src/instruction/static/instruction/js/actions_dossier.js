@@ -9,9 +9,33 @@ document.addEventListener("click", function (event) {
         if (zone) zone.classList.add("show");
     } else if (window.confirm(bouton.dataset.confirmerAction)) {
         // Archivage direct : mêmes champs POST et même soumission qu'auparavant.
-        bouton.closest("form").submit();
+        bouton.closest("form").requestSubmit();
     }
     fermerMenuEtape();
+});
+
+// Tous les changements d'étape partagent le même écran d'attente, une fois
+// les validations et confirmations terminées. requestSubmit() préserve aussi
+// les contrôles métier branchés sur l'événement submit.
+const etapesEnCours = new WeakSet();
+document.addEventListener("submit", function (event) {
+    const form = event.target;
+    if (!form.matches(".zone-envoyer-pour-validation form, #etapeMenuContent form") || event.defaultPrevented) return;
+    if (etapesEnCours.has(form)) { event.preventDefault(); return; }
+    const attente = document.getElementById("envoi-acte-attente");
+    if (!attente) return;
+    etapesEnCours.add(form);
+    const titre = document.getElementById("attente-action-titre");
+    const detail = document.getElementById("attente-action-detail");
+    if (titre) titre.textContent = "Changement d’étape en cours…";
+    if (detail) detail.textContent = "Veuillez patienter pendant le traitement du dossier.";
+    attente.hidden = false;
+});
+window.addEventListener("pageshow", function (event) {
+    if (!event.persisted) return;
+    document.querySelectorAll(".zone-envoyer-pour-validation form, #etapeMenuContent form").forEach(form => etapesEnCours.delete(form));
+    const attente = document.getElementById("envoi-acte-attente");
+    if (attente) attente.hidden = true;
 });
 
 // Les justificatifs conservent la limite de 10 Mo contrôlée aussi par le serveur.

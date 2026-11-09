@@ -36,12 +36,13 @@ document.addEventListener('DOMContentLoaded',()=>{
         const source=sourceFilter.value,demarche=demarcheFilter.value;
         const usedCodes=new Set(templatesForDemarche().filter(t=>!templateFilter.value || String(t.id)===templateFilter.value)
             .flatMap(t=>t.balise_codes));
+        const usedTemplates=templatesForDemarche().filter(t=>!templateFilter.value || String(t.id)===templateFilter.value);
         for(const item of data.balises.filter(b=>(!state || b.actif===(state==='actif'))
             && (!source || (b.source || (b.mode==='CONNUE' ? 'AGIDA' : 'MANUELLE'))===source)
-            && (!demarche || usedCodes.has(b.code))
+            && (!demarche || (b.id_template ? usedTemplates.some(t=>String(t.id)===String(b.id_template)) : usedCodes.has(b.code)))
             && `${b.code} ${b.libelle}`.toLocaleLowerCase('fr').includes(query))) {
             const button=node('button');button.type='button';button.className='bo-documents-card';
-            const identity=node('div');identity.append(node('strong',item.libelle),node('small',item.code));
+            const identity=node('div');identity.append(node('strong',item.libelle),node('small',item.code),node('small',item.id_template ? `Template : ${item.template_nom || item.id_template}` : item.source==='AGIDA' ? 'AGIDA · Globale' : 'Sans template · À rattacher'));
             const state=node('span',!item.actif ? 'Inactive' : item.erreurs.length ? 'À configurer' : item.mode==='CONNUE' ? (item.source==='FORMULAIRE' ? 'Formulaire' : 'AGIDA') : 'À renseigner');
             state.className='bo-documents-badge '+(!item.actif || item.erreurs.length ? 'is-warning' : 'is-success');
             button.append(identity,state);button.addEventListener('click',()=>{location.hash=`documents/balises/${item.id}`;});list.append(button);
@@ -49,6 +50,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(!list.children.length) list.append(node('p','Aucune balise ne correspond à la recherche.'));
     }
     function sourceVisibility() {
+        const global=form.elements.source.value==='AGIDA';
+        panel.querySelector('[data-balise-template]').hidden=global;
+        form.elements.id_template.disabled=global;form.elements.id_template.required=!global;
         panel.querySelector('[data-balise-property]').hidden=form.elements.source.value!=='AGIDA';
         form.elements.source_propriete.required=form.elements.source.value==='AGIDA';
         panel.querySelector('[data-balise-mappings]').hidden=form.elements.source.value!=='FORMULAIRE';
@@ -88,9 +92,20 @@ document.addEventListener('DOMContentLoaded',()=>{
         panel.querySelector('[data-balise-back]').textContent=returnTemplate ? '← Revenir au template' : '← Toutes les balises';
         form.reset();list.hidden=true;toolbar.hidden=true;detail.hidden=false;message(saveStatus,'');
         panel.querySelector('[data-balise-title]').textContent=current ? current.libelle : 'Nouvelle balise';
+        const impact=panel.querySelector('[data-balise-impact]');impact.replaceChildren();
+        const usages=current?.source==='AGIDA' ? (data.templates || []).filter(template=>(template.balise_codes || []).includes(current.code)) : [];
+        impact.hidden=usages.length<2;
+        if(usages.length>1) {
+            impact.append(node('strong',`Cette modification s’appliquera aux ${usages.length} templates utilisant cette balise.`));
+            const details=node('details'),summary=node('summary','Voir les templates concernés'),list=node('ul');
+            usages.forEach(template=>{const row=node('li'),link=node('a',template.nom);link.href=`#documents/templates/${template.id}`;row.append(link);list.append(row);});
+            details.append(summary,list);impact.append(details);
+        }
         options(form.elements.source_propriete,data.proprietes,'Choisir une information');options(form.elements.type,data.types,'Choisir un type');
         for(const name of ['code','libelle','source','source_propriete','type','libelle_element','help_text']) form.elements[name].value=current?.[name] || '';
         form.elements.code.disabled=!!current;
+        options(form.elements.id_template,data.templates || [],'Choisir un template');
+        form.elements.id_template.value=current?.id_template || returnTemplate || '';
         if(!current) {form.elements.code.value=params.get('code') || '';form.elements.source.value='MANUELLE';form.elements.type.value='TEXT';}
         for(const name of ['required','actif']) form.elements[name].checked=current ? current[name] : name!=='required';
         sources.replaceChildren();sourceVisibility();

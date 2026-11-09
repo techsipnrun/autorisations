@@ -1,0 +1,18 @@
+    {% with field=form.nom_fichier_signe %}
+    <div class="back-office-acte-field act-filename-field">
+        <div class="back-office-acte-field-heading">
+            <label for="{{ field.id_for_label }}">{{ field.label }} <span aria-label="obligatoire">*</span></label>
+            <span class="back-office-acte-help" tabindex="0" aria-label="Aide : nom du fichier signé" aria-describedby="{{ field.id_for_label }}-help">
+                <span class="back-office-acte-help-icon" aria-hidden="true">i</span>
+                <span class="back-office-acte-help-bubble" id="{{ field.id_for_label }}-help" role="tooltip">Nommage de {{ nom_document|default:"l’acte PDF signé" }} déposé dans le dossier Actes/. La date utilisée sera celle de la transmission dans AGIDA.</span>
+            </span>
+        </div>
+                <div class="act-filename" data-act-filename data-year="{% now 'Y' %}" data-day="{% now 'd-m' %}" data-date="{% now 'd-m-y' %}">
+                    <input type="hidden" name="nom_fichier_signe" value="{{ field.value|default_if_none:'' }}">
+                    <div class="act-filename-box"><div id="{{ field.id_for_label }}" contenteditable="true" role="textbox" aria-label="Nom du fichier PDF signé" data-act-filename-editor></div><span>.pdf</span></div>
+                    <small data-act-filename-error role="alert" hidden></small>
+                    <div class="act-filename-choices" data-act-filename-choices></div>
+                    <small data-type-acte-filename-preview></small>
+                </div>
+    </div>
+    {% endwith %}

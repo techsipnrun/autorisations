@@ -2,6 +2,7 @@
     {% csrf_token %}
     <div class="back-office-acte-grid">
         {% for field in form %}
+            {% if field.name != 'nom_fichier_signe' %}
             <div class="back-office-acte-field">
                 <div class="back-office-acte-field-heading">
                     <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-label="obligatoire">*</span>{% endif %}</label>
@@ -14,15 +15,16 @@
                 </div>
                 {{ field }}
             </div>
+            {% endif %}
         {% endfor %}
     </div>
     <details class="back-office-acte-number-preview">
         <summary><strong data-type-acte-preview></strong></summary>
         <p>Préfixe + année en cours + compteur propre à ce type d’acte : le dernier numéro de l’année est augmenté de 1. Sans numéro pour cette année, le compteur démarre à 1000.</p>
         <small>Aperçu indicatif, sans réservation : le numéro peut évoluer si un autre projet est créé entre-temps.</small>
-        <small data-type-acte-filename-preview></small>
     </details>
     <p data-type-acte-manual-help hidden>Le numéro de référence sera saisi par l’instructeur. Il peut être identique sur plusieurs dossiers. Les / et \ sont conservés à l’affichage et remplacés par des tirets dans le nom du fichier.</p>
+    {% include "backoffice/act_filename_field.html" %}
     <button type="submit" class="external-services-refresh">{% if type_id %}Enregistrer{% else %}Créer le type d’acte{% endif %}</button>
     <p data-type-acte-status role="status" aria-live="polite"></p>
 </form>

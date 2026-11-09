@@ -23,6 +23,7 @@ class ConfigurationTypesActesTests(SimpleTestCase):
             "nature": "Nouveau type", "actif": "true",
             "mode_numerotation": "automatique",
             "prefixe_numero": "TEST/", "prefixe_nom_fichier": "TEST-",
+            "nom_fichier_signe": "{prefixe_fichier}{document.numero}_{date.jour_mois}.pdf",
             "circuit_signature": "direction", "rapport_ca_obligatoire": "false",
             "mode_publication_raa": "non_requise", "autorise_dm": "false", **changes,
         }
@@ -40,9 +41,18 @@ class ConfigurationTypesActesTests(SimpleTestCase):
         self.assertFalse(form.cleaned_data["rapport_ca_obligatoire"])
         self.assertTrue(form.instance.est_acte)
 
+    def test_patron_personnalise_et_configuration_invalide(self):
+        pattern = 'Mon-acte_{dossier.numero}_{document.numero}.pdf'
+        form = self.formulaire(nom_fichier_signe=pattern, prefixe_nom_fichier='')
+        self.assertFalse(form.errors)
+        self.assertEqual(form.instance.nom_fichier_signe, pattern)
+        for invalid in ('../acte.pdf', '{inconnue}.pdf', '{document.numero}{document.numero}.pdf'):
+            with self.subTest(pattern=invalid):
+                self.assertIn('nom_fichier_signe', self.formulaire(nom_fichier_signe=invalid).errors)
+
     def test_champs_requis_et_choix_invalides_refuses(self):
         for nom in self.donnees():
-            if nom == "prefixe_numero":
+            if nom in ("prefixe_numero", "prefixe_nom_fichier"):
                 continue
             with self.subTest(nom=nom):
                 self.assertIn(nom, self.formulaire(**{nom: ""}).errors)

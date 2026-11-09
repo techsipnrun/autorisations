@@ -25,7 +25,7 @@ class ActIntegrationTests(SimpleTestCase):
         stack.enter_context(patch.object(service.transaction, 'atomic', return_value=nullcontext()))
         stack.enter_context(patch.object(service.Dossier, 'objects'))
         objects = stack.enter_context(patch.object(service.Document, 'objects'))
-        objects.select_for_update.return_value.select_related.return_value.get.return_value = self.document
+        objects.select_for_update.return_value.get.return_value = self.document
         objects.filter.return_value.exclude.return_value.values_list.return_value = []
         reservations = stack.enter_context(patch.object(service.DocumentNumberReservation, 'objects'))
         reservations.select_for_update.return_value.get.return_value = self.reservation
@@ -41,6 +41,10 @@ class ActIntegrationTests(SimpleTestCase):
         self.assertEqual(result.id_nature_id, 3)
         self.assertEqual(result.numero, '2026-0123')
         self.assertEqual(objects.filter.return_value.update.call_args.kwargs['numero'], '2026-0123')
+        # Sans jointure nullable ni clause OF avec nom de table qualifié.
+        objects.select_for_update.assert_called_once_with()
+        objects.select_for_update.return_value.select_related.assert_not_called()
+        self.assertIsNone(result.id_statut_id)
         save.assert_not_called()
 
     def test_nature_differente_ou_plusieurs_generations_refusees(self):
@@ -54,6 +58,12 @@ class ActIntegrationTests(SimpleTestCase):
                 service.find_generated_act(self.dossier, 'projet.docx', 3)
             query.return_value = []
             self.assertIsNone(service.find_generated_act(self.dossier, 'manuel.docx', 3))
+
+    def test_word_source_deja_transmis_peut_etre_reutilise(self):
+        self.row.id_document_signe_id = 20
+        with patch.object(service.DocumentGeneration, 'objects') as objects:
+            objects.filter.return_value.exclude.return_value.exclude.return_value.select_related.return_value.defer.return_value = [self.row]
+            self.assertIs(service.find_generated_act(self.dossier, 'projet.docx', 3), self.row)
 
     def test_numero_modifie_et_conflit_existant_refuses(self):
         for conflict in (False, True):

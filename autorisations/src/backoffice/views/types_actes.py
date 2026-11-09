@@ -9,11 +9,12 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 from autorisations.models.models_documents import Document, DocumentNature
-from backoffice.forms.types_actes import TypeActeForm
+from backoffice.forms.types_actes import TypeActeForm, RapportCAForm
 
 
 def contexte_types_actes():
     types = list(DocumentNature.objects.filter(est_acte=True).order_by("ordre_affichage", "nature", "id"))
+    rapport = DocumentNature.objects.filter(nature__iexact='Rapport CA', est_acte=False).first()
     annee = date.today().year
     # Une seule agrégation pour tous les types, sans réserver de numéro.
     derniers_numeros = {
@@ -23,6 +24,8 @@ def contexte_types_actes():
         ).values("id_nature_id").annotate(dernier_numero=Max("numero"))
     }
     return {
+        'rapport_ca': rapport,
+        'formulaire_rapport_ca': RapportCAForm(instance=rapport, auto_id='rapport-ca-%s') if rapport else None,
         "formulaire_nouveau_type_acte": TypeActeForm(instance=DocumentNature(est_acte=True), auto_id="nouveau-acte-%s"),
         "premier_numero_acte": Document.prochain_numero(None, annee),
         "formulaires_types_actes": [
@@ -87,4 +90,17 @@ def enregistrer_type_acte(request, type_id):
     except IntegrityError:
         return JsonResponse({"success": False, "error": "Un type portant ce nom existe déjà."}, status=400)
     return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
+def enregistrer_nommage_rapport_ca(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied('Cette page est réservée aux administrateurs.')
+    rapport = get_object_or_404(DocumentNature, nature__iexact='Rapport CA', est_acte=False)
+    form = RapportCAForm(request.POST, instance=rapport)
+    if not form.is_valid():
+        return JsonResponse({'success':False,'errors':form.errors},status=400)
+    form.save()
+    return JsonResponse({'success':True})
 

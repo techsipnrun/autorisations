@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit',event=>{if(guard.blocked){event.preventDefault();event.stopImmediatePropagation();}},true);
         return guard;
     });
-    let recognized=[];
+    let recognized=[],reportFiles=[];
     guards.forEach(guard=>{
         const selection=guard.form.querySelector('[name="piece_jointe_work"]');
         const nature=guard.form.querySelector('[name="nature_document"]');
@@ -22,6 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!box || !nature) return;
         box.classList.add('generated-act-selection-layout');
         const info=document.createElement('p');info.className='generated-act-provenance';info.hidden=true;info.setAttribute('role','status');box.append(info);
+        const alignProvenance=()=>{
+            const list=box.querySelector('.liste-work-files'),files=box.querySelector('.selection-fichier-work');
+            if(!list || !files || info.hidden) return;
+            const beside=info.getBoundingClientRect().left>=files.getBoundingClientRect().right;
+            const margin=beside ? Math.max(0,list.getBoundingClientRect().top-files.getBoundingClientRect().top+parseFloat(getComputedStyle(files).marginTop || 0)) : 0;
+            info.style.marginTop=`${margin}px`;
+        };
+        new ResizeObserver(alignProvenance).observe(box);
         const replacement=document.createElement('label');replacement.className='generated-act-replacement';replacement.hidden=true;
         const consent=document.createElement('input');consent.type='checkbox';
         const consentText=document.createElement('span');replacement.append(consent,consentText);box.append(replacement);
@@ -43,18 +51,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const replacementBlocked=previous.length>0 && (previous.length!==1 || !previous[0].replaceable || !consent.checked);
             info.hidden=!match && !mismatch;
             info.classList.toggle('is-mismatch',mismatch);
-            info.textContent=mismatch ? `Ce fichier a été généré pour une autre nature (${selected[0].nature || 'nature différente'}). Choisissez la même nature ou un autre fichier.` : match ? selected[0].description : '';
+            const provenance=selected[0]?.author && selected[0]?.date ? ` par ${selected[0].author} le ${selected[0].date}` : '';
+            const modelNature=selected[0]?.nature || 'nature différente';
+            const modelArticle=/^[aeiouyàâéèêëîïôùûüœ]/i.test(modelNature) ? 'd’' : 'de ';
+            info.textContent=mismatch ? `Ce fichier a été généré à partir d’un modèle ${modelArticle}${modelNature}${provenance}. La nature du fichier généré doit correspondre à la nature de l’acte sélectionnée plus haut dans le formulaire.` : match ? selected[0].description : '';
+            requestAnimationFrame(alignProvenance);
             if(match && previous.length && !previous[0].replaceable) {info.hidden=false;info.textContent='Le projet précédent est encore dans le circuit ou a été diffusé. Son remplacement est bloqué.';info.classList.add('is-mismatch');}
-            guard.blocked=guard.historyBlocked || mismatch || replacementBlocked;
+            const report=guard.form.querySelector('[name="piece_jointe_rapport_ca_work"]');
+            report?.closest('.projet_rapport_ca_pj')?.querySelectorAll('.liste-work-files button').forEach(button=>{
+                const wrong=reportFiles.some(item=>item.filename.toLocaleLowerCase()===button.textContent.trim().toLocaleLowerCase() && !item.is_report);
+                if(wrong){button.disabled=true;button.dataset.reportNatureDisabled='true';button.title='Ce fichier généré n’est pas de nature Rapport CA.';}
+                else if(button.dataset.reportNatureDisabled){button.disabled=false;delete button.dataset.reportNatureDisabled;button.removeAttribute('title');}
+            });
+            const wrongReport=Boolean(report?.value && reportFiles.some(item=>item.filename.toLocaleLowerCase()===report.value.toLocaleLowerCase() && !item.is_report));
+            let reportInfo=guard.form.querySelector('[data-report-nature-error]');
+            if(report && !reportInfo){reportInfo=document.createElement('p');reportInfo.dataset.reportNatureError='';reportInfo.className='generated-act-provenance is-mismatch';reportInfo.setAttribute('role','alert');report.closest('.projet_rapport_ca_pj').append(reportInfo);}
+            if(reportInfo){reportInfo.hidden=!wrongReport;reportInfo.textContent='Ce fichier a été généré pour une autre nature. Choisissez un fichier généré à partir d’un modèle de nature Rapport CA, ou un rapport rédigé manuellement.';}
+            guard.blocked=guard.historyBlocked || mismatch || replacementBlocked || wrongReport;
             guard.form.querySelectorAll('button[type="submit"],button.btn-envoyer-complement').forEach(button=>{
-                if((mismatch || replacementBlocked) && !buttons.has(button)) buttons.set(button,button.disabled);
-                if(mismatch || replacementBlocked) button.disabled=true;
+                if((mismatch || replacementBlocked || wrongReport) && !buttons.has(button)) buttons.set(button,button.disabled);
+                if(mismatch || replacementBlocked || wrongReport) button.disabled=true;
                 else if(buttons.has(button)){button.disabled=buttons.get(button);buttons.delete(button);}
             });
             if(shared) {
-                shared.hidden=match;
+                shared.hidden=match || mismatch;
                 shared.querySelectorAll('input,select,textarea,button').forEach(input=>{
-                    if(match) {
+                    if(match || mismatch) {
                         if(!saved.has(input)) saved.set(input,{disabled:input.disabled,required:input.required});
                         input.disabled=true;input.required=false;
                     } else if(saved.has(input)) {
@@ -83,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result=await response.json();
             if(typeof result.missing!=='number' || typeof result.unknown!=='number' || typeof result.blocked!=='boolean') throw new Error('Réponse invalide');
             recognized=result.recognized_files || [];
+            reportFiles=result.generated_report_files || [];
             guards.forEach(guard=>guard.updateProvenance?.());
             badge.hidden=!result.missing && !result.unknown;
             badge.textContent=result.missing || '!';

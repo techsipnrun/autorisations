@@ -15,6 +15,7 @@
 .act-history-guard-notice a:hover { background:#ffedd7; }
 .generated-act-selection-layout { display:flex; flex-wrap:wrap; align-items:flex-start; gap:1rem; }
 .generated-act-selection-layout > .selection-fichier-work { flex:0 1 auto; min-width:0; }
+.generated-act-selection-layout .fichier-selectionne { contain:inline-size; overflow-wrap:anywhere; }
 .generated-act-provenance { flex:1 1 13rem; max-width:25rem; margin:.2rem 0; padding:.65rem .8rem; background:#edf5ef; border-left:3px solid #7ca68c; border-radius:5px; color:#356247; font-size:.85rem; line-height:1.5; }
 .generated-act-provenance[hidden] { display:none; }
 .generated-act-provenance.is-mismatch { color:#b2342d; background:#fff3ef; border-color:#d4887e; font-style:italic; }

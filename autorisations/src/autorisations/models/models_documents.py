@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 import re
+from autorisations.utils.act_filename import DEFAULT_PATTERN, validate_act_filename
 
 from .models_utilisateurs import DossierRelecteur
 
@@ -25,6 +26,9 @@ class DocumentFormat(models.Model):
 
 
 class DocumentNature(models.Model):
+    nom_fichier_signe = models.CharField(max_length=200, default=DEFAULT_PATTERN,
+        validators=[validate_act_filename], verbose_name='Nom du fichier signé',
+        help_text='Texte libre et variables ; extension PDF imposée. Doublons : suffixes _2, _3, etc.')
     class Numerotation(models.TextChoices):
         AUTOMATIQUE = "automatique", "Automatique"
         MANUELLE = "manuelle", "Manuelle"
@@ -88,14 +92,13 @@ class DocumentNature(models.Model):
         prefixe = self.prefixe_numero or ""
         return numero if numero.startswith(prefixe) else f"{prefixe}{numero}"
 
-    def formater_nom_acte(self, numero, suffixe_date):
+    def formater_nom_acte(self, numero, suffixe_date=None, *, dossier=None, today=None):
         # Contrôle aussi les configurations saisies directement en SQL.
-        self._meta.get_field("prefixe_nom_fichier").clean(self.prefixe_nom_fichier, self)
+        if '{prefixe_fichier}' in self.nom_fichier_signe:
+            self._meta.get_field("prefixe_nom_fichier").clean(self.prefixe_nom_fichier, self)
         # La référence affichée reste intacte ; seuls les noms NAS sont nettoyés.
-        reference_fichier = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '-', numero or '').strip(' .')
-        if not reference_fichier:
-            raise ValidationError("Le numéro de l'acte ne permet pas de former un nom de fichier.")
-        return f"{self.prefixe_nom_fichier}{reference_fichier}_{suffixe_date}"
+        from autorisations.utils.act_filename import render_act_filename
+        return render_act_filename(self, numero, dossier=dossier, today=today, day_month=suffixe_date)[:-4]
     
 class DocumentStatut(models.Model):
     id = models.AutoField(primary_key=True)

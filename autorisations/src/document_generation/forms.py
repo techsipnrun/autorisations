@@ -29,7 +29,7 @@ class DocumentTemplateForm(forms.ModelForm):
 class BaliseConfigurationForm(forms.ModelForm):
     class Meta:
         model = Balise
-        fields = ("code", "libelle", "source", "source_propriete", "type", "libelle_element", "required", "help_text", "actif")
+        fields = ("code", "libelle", "source", "id_template", "source_propriete", "type", "libelle_element", "required", "help_text", "actif")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,6 +47,8 @@ class BaliseConfigurationForm(forms.ModelForm):
         source = data.get('source')
         self.instance.mode = Balise.Mode.A_RENSEIGNER if source == Balise.Source.MANUELLE else Balise.Mode.CONNUE
         self.instance.allow_blank = not data.get('required', False)
+        if source == Balise.Source.AGIDA:
+            data['id_template'] = None
         if source == Balise.Source.AGIDA and not data.get('source_propriete'):
             self.add_error('source_propriete', 'Choisissez une information AGIDA.')
         if source != Balise.Source.AGIDA:

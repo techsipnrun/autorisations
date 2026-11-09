@@ -146,6 +146,12 @@ class DocumentNumberTests(SimpleTestCase):
         self.assertEqual(resolve_filename('jeudi_{document.numero}.docx',self.dossier,document_number='2026-011'),'jeudi_2026-011.docx')
         values=filename_editor_context('jeudi_{document.numero}.docx',self.dossier)
         self.assertTrue(values['document.numero']['pending'])
+        self.assertEqual(values['document.numero']['value'], 'Numéro de l’acte')
+        avis = filename_editor_context('{document.numero}.docx', self.dossier, numbering_kind='avis')
+        self.assertEqual(avis['document.numero']['value'], 'Numéro de l’avis')
+        assigned = filename_editor_context('{document.numero}.docx', self.dossier, '2026-011')
+        self.assertEqual(assigned['document.numero']['value'], '2026-011')
+        self.assertFalse(assigned['document.numero']['pending'])
 
     def test_creation_classique_acte_dev_utilise_le_meme_compteur(self):
         document=Document(id_nature=self.nature,id_format_id=1,titre='Acte.docx',emplacement='Test/')

@@ -14,6 +14,41 @@ from document_generation.services.analyzer import AnalysisReport
 from document_generation.services.verification import TemplateVerificationService
 
 
+class SharedBaliseMetadataTests(SimpleTestCase):
+    def test_meme_code_local_necrase_pas_la_definition_dun_autre_template(self):
+        with patch.object(documents.Balise.objects, 'values', return_value=[
+            {'id': 1, 'code': 'toto', 'source': 'MANUELLE', 'id_template_id': 10, 'required': True},
+            {'id': 2, 'code': 'toto', 'source': 'FORMULAIRE', 'id_template_id': 20, 'required': False},
+        ]), patch.object(documents.TemplateBalise.objects, 'values') as usages:
+            usages.return_value.order_by.return_value = [
+                {'code': 'toto', 'id_template_id': 10, 'id_template__nom': 'Acte'},
+                {'code': 'toto', 'id_template_id': 20, 'id_template__nom': 'Fiche'},
+                {'code': 'toto', 'id_template_id': 30, 'id_template__nom': 'Autre'},
+            ]
+            result = documents.catalogue_balises()
+        self.assertEqual(set(result), {'10:toto', '20:toto'})
+        self.assertEqual(result['10:toto']['templates'], [{'id': 10, 'nom': 'Acte'}])
+        self.assertEqual(result['20:toto']['templates'], [{'id': 20, 'nom': 'Fiche'}])
+        self.assertTrue(result['10:toto']['required'])
+        self.assertFalse(result['20:toto']['required'])
+
+    def test_configuration_globale_et_usages_par_code_sans_lecture_nas(self):
+        with patch.object(documents.Balise.objects, 'values', return_value=[{
+            'id': 7, 'code': 'dossier.numero', 'source': 'AGIDA', 'mode': 'CONNUE',
+            'type': 'INTEGER', 'required': True, 'actif': True,
+        }]), patch.object(documents.TemplateBalise.objects, 'values') as usages:
+            usages.return_value.order_by.return_value = [
+                {'code': 'dossier.numero', 'id_template_id': 1, 'id_template__nom': 'Acte'},
+                {'code': 'dossier.numero', 'id_template_id': 2, 'id_template__nom': 'Fiche'},
+                {'code': 'inconnue', 'id_template_id': 2, 'id_template__nom': 'Fiche'},
+            ]
+            result = documents.catalogue_balises()
+        self.assertEqual(set(result), {'*:dossier.numero'})
+        self.assertEqual(result['*:dossier.numero']['source'], 'AGIDA')
+        self.assertTrue(result['*:dossier.numero']['required'])
+        self.assertEqual(result['*:dossier.numero']['templates'], [{'id': 1, 'nom': 'Acte'}, {'id': 2, 'nom': 'Fiche'}])
+
+
 @override_settings(ENVIRONMENT="dev")
 class TemplateVerificationTests(SimpleTestCase):
     def run_service(self, report):
@@ -115,7 +150,8 @@ class DocumentsBackofficeTests(SimpleTestCase):
             response = documents.catalogue(self.request())
         self.assertEqual(json.loads(response.content), {"templates": []})
 
-    def test_options_demarches_utilisent_seulement_le_type(self):
+    @patch('backoffice.views.documents.catalogue_balises', return_value={})
+    def test_options_demarches_utilisent_seulement_le_type(self, catalogue):
         with patch("backoffice.views.documents.DocumentNature.objects.order_by", return_value=[]), patch(
             "backoffice.views.documents.Demarche.objects.order_by",
             return_value=[SimpleNamespace(pk=7, type="Travaux")],
@@ -124,7 +160,8 @@ class DocumentsBackofficeTests(SimpleTestCase):
         self.assertEqual(json.loads(response.content)["demarches"], [{"id": 7, "nom": "Travaux"}])
 
     @override_settings(NAS_ROOT=r"\\serveur\partage_dev")
-    def test_options_affichent_la_racine_configuree_sans_acces_nas(self):
+    @patch('backoffice.views.documents.catalogue_balises', return_value={})
+    def test_options_affichent_la_racine_configuree_sans_acces_nas(self, catalogue):
         with patch("backoffice.views.documents.DocumentNature.objects.order_by", return_value=[]), patch(
             "backoffice.views.documents.Demarche.objects.order_by", return_value=[]
         ):

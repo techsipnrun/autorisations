@@ -17,7 +17,7 @@ class ActFileGuardTests(SimpleTestCase):
     def test_provenance_du_work_et_nature_de_la_reservation(self):
         nature = SimpleNamespace(pk=3, nature='Arrêté directeur', prefixe_numero='DIR-I-')
         user = SimpleNamespace(first_name='Louis', last_name='Calu')
-        row = SimpleNamespace(id_document_id=4, id_document=SimpleNamespace(emplacement='Autre/Test/Work/', titre='projet.docx',
+        row = SimpleNamespace(id_document_id=4, id_document_signe_id=None, id_document=SimpleNamespace(emplacement='Autre/Test/Work/', titre='projet.docx',
             id_nature_id=2, id_statut_id=None, publie_au_raa=False, url_ds=None, url_dm=None),
             id_numero=SimpleNamespace(id_nature=nature, numero='2026-0123'), user=user, date=timezone.now())
         elsewhere = SimpleNamespace(id_document=SimpleNamespace(emplacement='Autre/AutreDossier/Work/'))
@@ -94,3 +94,19 @@ class ActFileGuardTests(SimpleTestCase):
                 document.objects.get_or_create.assert_not_called()
                 roles.objects.filter.assert_not_called()
                 update.assert_not_called()
+
+    def test_rapport_genere_autre_nature_refuse_avant_integration_acte(self):
+        from django.core.exceptions import ValidationError
+        dossier = SimpleNamespace(numero=123, emplacement='Test/')
+        request = RequestFactory().post('/test', {
+            'piece_jointe_work':'acte.docx', 'piece_jointe_rapport_ca_work':'mauvais.docx',
+            'nature_document':'3'})
+        blocked = HttpResponse(status=400)
+        with patch.object(guard, 'act_file_status', return_value={'blocked':False}), patch(
+            'document_generation.services.report_file_guard.validate_generated_report',
+            side_effect=ValidationError('Nature Rapport CA requise')
+        ) as check, patch('document_generation.services.act_integration.find_generated_act') as find, patch.object(
+            changement_etape, 'redirect_error', return_value=blocked):
+            self.assertIs(changement_etape._verifier_fichiers_generes_actes(request,dossier),blocked)
+        check.assert_called_once_with(dossier,'mauvais.docx')
+        find.assert_not_called()

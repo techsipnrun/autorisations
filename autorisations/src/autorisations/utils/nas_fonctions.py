@@ -42,7 +42,7 @@ NAS_UNC_PREFIX = _normalize_unc_path(f"{NAS_ROOT}")
 NAS_MOUNT_POINT = "/mnt/nas_autorisations"  # point de montage sur Linux
 
 
-def ecrire_file_sur_nas(source, chemin_destination):
+def ecrire_file_sur_nas(source, chemin_destination, *, exclusive=False):
     """
     Écrit un fichier sur le NAS via SMB (écrase si un fichier du meme nom existe deja)
     Peut écrire depuis :
@@ -54,6 +54,10 @@ def ecrire_file_sur_nas(source, chemin_destination):
     :param source: objet UploadedFile OU chemin complet local (str)
     :param chemin_destination: chemin complet SMB distant (ex: //x-wing/autodev_data\Annexes\doc.pdf)
     :return: True si succès, False sinon
+
+    exclusive=True interdit l’écrasement, y compris si un autre processus crée
+    le fichier après le choix du nom. Une copie interrompue peut laisser un
+    fichier partiel ; aucune référence BDD ne doit être validée dans ce cas.
     """
 
     try:
@@ -68,7 +72,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
         # --- Écriture selon le type de source ---
         if isinstance(source, UploadedFile):
             # Cas 1 : Fichier uploadé via Django
-            with smbclient.open_file(chemin_destination, mode="wb") as dst:
+            with smbclient.open_file(chemin_destination, mode="xb" if exclusive else "wb") as dst:
                 for chunk in source.chunks():
                     dst.write(chunk)
             loggerApp.info(f"[NAS] ✅ Fichier {source.name} écrit sur {chemin_destination}")
@@ -82,7 +86,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
                 loggerApp.error(f"[NAS] ❌ Le fichier local n'existe pas : {source}")
                 return False
             
-            with smbclient.open_file(source, "rb") as src, smbclient.open_file(chemin_destination, "wb") as dst:
+            with smbclient.open_file(source, "rb") as src, smbclient.open_file(chemin_destination, "xb" if exclusive else "wb") as dst:
                 for chunk in iter(lambda: src.read(4096), b""):
                     dst.write(chunk)
 
@@ -91,7 +95,7 @@ def ecrire_file_sur_nas(source, chemin_destination):
         elif isinstance(source, bytes):
             src_label = chemin_destination.split("/")[-1]
 
-            with smbclient.open_file(chemin_destination, mode="wb") as dst:
+            with smbclient.open_file(chemin_destination, mode="xb" if exclusive else "wb") as dst:
                 dst.write(source)
 
             loggerApp.info(f"[NAS] Fichier {src_label} écrit sur {chemin_destination}")

@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 def act_status(request, num_dossier):
     dossier = _dossier_context(request, num_dossier)
     def operation():
-        return {**act_file_status(dossier), 'recognized_files': act_file_provenance(dossier)}
+        from .services.report_file_guard import generated_report_files
+        return {**act_file_status(dossier), 'recognized_files': act_file_provenance(dossier),
+                'generated_report_files': generated_report_files(dossier)}
     response = api_result(operation)
     response['Cache-Control'] = 'private, no-store'
     return response

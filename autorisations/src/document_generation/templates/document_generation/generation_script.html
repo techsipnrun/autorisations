@@ -1,5 +1,19 @@
 <script>
 (() => {
+    document.querySelectorAll('[data-copy-destination]').forEach(button=>button.addEventListener('click',async()=>{
+        const path=button.dataset.copyDestination.replaceAll('/',String.fromCharCode(92));
+        const feedback=button.parentElement.querySelector('[data-copy-destination-feedback]');
+        try {
+            if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(path);
+            else {
+                const input=document.createElement('textarea');
+                input.value=path;input.style.position='fixed';input.style.opacity='0';document.body.append(input);
+                try {input.select();if(!document.execCommand('copy')) throw new Error('Copie impossible');}
+                finally {input.remove();button.focus({preventScroll:true});}
+            }
+            feedback.textContent='Emplacement copié !';
+        } catch(error) {feedback.textContent='Impossible de copier l’emplacement.';}
+    }));
     window.showDocumentGenerationLoading=()=>{
         const overlay=document.querySelector('[data-generation-progress]');
         if(!overlay.open) overlay.showModal();

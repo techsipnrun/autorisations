@@ -3,7 +3,7 @@
     <label id="output-filename-label">Nom du fichier à générer</label>
     <input type="hidden" name="output_filename" value="{{ filename_pattern }}">
     <div class="output-filename-box"><div role="group" aria-labelledby="output-filename-label" data-output-editor></div><span>.docx</span></div>
-    <small>Le texte brute est modifiable. Les variables sont protégées.</small>
+    <small>Le texte est modifiable. Une fois sa valeur disponible, double-cliquez sur une variable pour la modifier, ou utilisez sa croix pour la supprimer.</small>
     {% if filename_error %}<p class="filename-error" role="alert">{{ filename_error }}</p>{% endif %}
     {{ filename_values|json_script:'output-filename-values' }}
 </div>

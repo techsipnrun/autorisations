@@ -23,7 +23,7 @@ class BalisesInterfaceTests(SimpleTestCase):
             types:[{code:'TEXT',nom:'Texte'},{code:'INTEGER',nom:'Entier'},{code:'LIST',nom:'Liste répétable (texte)'}],demarches:[{id:14,nom:'Test'},{id:99,nom:'Autre'}],
             templates:[{id:1,nom:'Template Test',demarche_ids:[14],balise_codes:['projet.commune']},
                 {id:2,nom:'Template global',demarche_ids:[],balise_codes:['projet.inactive']},
-                {id:3,nom:'Template autre',demarche_ids:[99],balise_codes:[]}]};
+                {id:3,nom:'Template autre',demarche_ids:[99],balise_codes:['projet.commune']}]};
         const response=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
         window.fetch=async(url,options={})=>{
             if(url.includes('/champs/14/')) return response({champs:[{id:7,nom:'Commune',type:'Texte'}]});
@@ -31,7 +31,8 @@ class BalisesInterfaceTests(SimpleTestCase):
                 if(options.body.get('csrfmiddlewaretoken')!=='test-token') throw new Error('CSRF absent');
                 const sources=JSON.parse(options.body.get('sources'));
                 if(sources.length!==1 || sources[0].id_demarche!=='14' || sources[0].id_champ!=='7') throw new Error('Source perdue');
-                saved={id:42,code:options.body.get('code'),libelle:options.body.get('libelle'),source:options.body.get('source'),
+                if(options.body.get('id_template')!=='1') throw new Error('Template de rattachement perdu');
+                saved={id:42,id_template:1,template_nom:'Template Test',code:options.body.get('code'),libelle:options.body.get('libelle'),source:options.body.get('source'),
                     source_propriete:'',mode:'CONNUE',type:options.body.get('type'),required:true,allow_blank:false,help_text:'',actif:true,
                     sources:[{id_demarche:14,id_champ:7,demarche:'Test',champ:'Commune'}],erreurs:[]};
                 payload.balises=[saved];return response({balise:saved,warnings:[]});
@@ -62,6 +63,9 @@ class BalisesInterfaceTests(SimpleTestCase):
                 if(!location.hash.startsWith('#documents/balises/42')) throw new Error('URL non mémorisée');
                 if(document.querySelector('[data-balise-back]').textContent!=='← Revenir au template') throw new Error('Retour template perdu');
                 await wait(()=>document.querySelector('[data-source-champ]')?.value==='7');
+                const impact=document.querySelector('[data-balise-impact]');
+                if(!impact.hidden) throw new Error('Balise formulaire présentée comme partagée');
+                if(form.elements.id_template.value!=='1') throw new Error('Template local non prérempli');
                 form.elements.type.value='LIST';form.elements.type.dispatchEvent(new Event('change'));
                 if(form.elements.source.value!=='MANUELLE' || document.querySelector('[data-balise-item-label]').hidden) throw new Error('Configuration de liste indisponible');
                 form.elements.libelle_element.value='Nom';
@@ -90,7 +94,7 @@ class BalisesInterfaceTests(SimpleTestCase):
                 templateFilter.value='1';templateFilter.dispatchEvent(new Event('change'));
                 if(document.querySelectorAll('[data-balises-list] button').length!==1) throw new Error('Filtre template associé incorrect');
                 demarcheFilter.value='99';demarcheFilter.dispatchEvent(new Event('change'));
-                if(document.querySelectorAll('[data-balises-list] button').length!==0) throw new Error('Démarche sans source non filtrée');
+                if(document.querySelectorAll('[data-balises-list] button').length!==0) throw new Error('Balise locale proposée pour un autre template');
                 sourceFilter.value='AGIDA';sourceFilter.dispatchEvent(new Event('change'));
                 if(document.querySelector('[data-balises-demarche-label]').hidden || demarcheFilter.value!=='99') throw new Error('Filtre démarche indépendant perdu');
                 if(document.querySelectorAll('[data-balises-list] button').length!==0) throw new Error('Filtre AGIDA incorrect');

@@ -15,9 +15,11 @@
         <form data-balise-form class="bo-balise-form">
             {% csrf_token %}
             <h2 data-balise-title>Nouvelle balise</h2>
+            <aside class="bo-balise-impact" data-balise-impact hidden aria-label="Templates concernés"></aside>
             <label>Code dans Word<input name="code" required maxlength="150" pattern="[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*" placeholder="projet.commune"><small>Sans accolades. Le code reste fixe après création.</small></label>
             <label>Libellé<input name="libelle" required maxlength="200" placeholder="Commune du projet"></label>
             <label>Origine de la valeur<select name="source" required><option value="MANUELLE">Saisie instructeur — À renseigner</option><option value="AGIDA">Information AGIDA — Connue</option><option value="FORMULAIRE">Champ de formulaire — Connue</option></select></label>
+            <label data-balise-template>Template de rattachement<select name="id_template"></select><small>Les balises Formulaire et Saisie instructeur sont propres à ce template. Seules les balises AGIDA sont globales.</small></label>
             <label data-balise-property>Information AGIDA<select name="source_propriete"></select></label>
             <fieldset data-balise-mappings><legend>Champs de formulaire par démarche</legend><p>Choisissez le champ source pour chaque démarche. Une réponse absente pourra être complétée par l'instructeur.</p><div data-balise-sources></div><button type="button" data-balise-add-source>Ajouter une démarche</button></fieldset>
             <label>Type de valeur et de saisie<select name="type" required></select></label>

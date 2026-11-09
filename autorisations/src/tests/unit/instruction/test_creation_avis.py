@@ -234,6 +234,84 @@ class CreationAvisTests(SimpleTestCase):
         self.modeles["Avis"].objects.create.assert_not_called()
         self.outbox.assert_not_called()
 
+    def test_envoi_avis_valide_a_envoyer_sans_recharger_ses_pj(self):
+        self.ancien = self.creer_avis(statut='À envoyer', id_dossier=self.dossier,
+            id_demarche=self.dossier.id_demarche, id_expert=self.expert,
+            id_instructeur=self.user, id_avis_nature=self.nature,
+            id_avis_thematique=self.thematique, destinataire='CS', note='',
+            formulation='Demande validée', mode_contact='Application',
+            emplacement='Dossier/Avis/instance/', id_projet_avis=self.document,
+            id_projet_acte=self.document)
+        response = vues.instruction_dossier_confirmer_ajout_avis(
+            self.requete(formulation_avis='Demande validée'), 123456, avis_id=101)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.ancien.statut, 'Envoyé')
+        self.modeles['Message'].objects.create.assert_called_once()
+        self.enregistrer.assert_not_called()
+        self.outbox.assert_called_once()
+
+    def test_brouillon_existant_enregistre_les_deux_projets_selectionnes(self):
+        self.ancien = self.creer_avis(id_dossier=self.dossier, id_demarche=self.dossier.id_demarche,
+            id_expert=self.expert, id_avis_nature=self.nature, id_avis_thematique=self.thematique,
+            destinataire='CS', note='', formulation='', mode_contact='Application',
+            emplacement='Dossier/Avis/instance/')
+        avis_doc = SimpleNamespace(id=51, pk=51)
+        acte_doc = SimpleNamespace(id=52, pk=52)
+        self.enregistrer.side_effect = [avis_doc, acte_doc]
+        response = vues.instruction_dossier_enregistrer_brouillon_avis(self.requete(
+            pj_demande_avis=SimpleUploadedFile('demande.docx', b'word'),
+            pj_projet_acte=SimpleUploadedFile('acte.pdf', b'pdf')), 123456, avis_id=101)
+        self.assertEqual(response.status_code, 302)
+        self.assertIs(self.ancien.id_projet_avis, avis_doc)
+        self.assertIs(self.ancien.id_projet_acte, acte_doc)
+        self.assertEqual(self.enregistrer.call_count, 2)
+
+    def test_enregistrement_avis_a_envoyer_conserve_statut_et_sauvegarde_pj(self):
+        self.ancien = self.creer_avis(statut='À envoyer', id_dossier=self.dossier,
+            id_demarche=self.dossier.id_demarche, id_expert=self.expert,
+            id_avis_nature=self.nature, id_avis_thematique=self.thematique,
+            destinataire='CS', note='', formulation='Texte initial',
+            mode_contact='Application', emplacement='Dossier/Avis/instance/')
+        request = self.requete(note_demandeur='Note corrigée', formulation_avis='Texte corrigé',
+            pj_demande_avis=SimpleUploadedFile('demande.docx', b'word'),
+            pj_projet_acte=SimpleUploadedFile('acte.pdf', b'pdf'))
+        response = vues.instruction_dossier_enregistrer_brouillon_avis(request, 123456, avis_id=101)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(request.creation_avis_validee)
+        self.assertEqual(self.ancien.statut, 'À envoyer')
+        self.assertEqual(self.ancien.note, 'Note corrigée')
+        self.assertEqual(self.ancien.formulation, 'Texte corrigé')
+        self.assertIs(self.ancien.id_projet_avis, self.document)
+        self.assertIs(self.ancien.id_projet_acte, self.document)
+        self.assertEqual(self.enregistrer.call_count, 2)
+        self.outbox.assert_not_called()
+        self.modeles['Message'].objects.create.assert_not_called()
+
+    def test_pj_complementaire_avis_a_valider_enregistree_sans_changer_statut(self):
+        self.ancien = self.creer_avis(statut='À valider', id_dossier=self.dossier,
+            id_demarche=self.dossier.id_demarche, id_expert=self.expert,
+            id_avis_nature=self.nature, id_avis_thematique=self.thematique,
+            destinataire='CS', note='', formulation='Texte à valider',
+            mode_contact='Application', emplacement='Dossier/Avis/instance/')
+        request = self.requete(pj_lie_avis=SimpleUploadedFile('annexe.pdf', b'pdf'))
+        response = vues.instruction_dossier_enregistrer_brouillon_avis(request, 123456, avis_id=101)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(request.creation_avis_validee)
+        self.assertEqual(self.ancien.statut, 'À valider')
+        self.modeles['AvisDocument'].objects.get_or_create.assert_called_once_with(
+            id_avis=self.ancien, id_document=self.document)
+        self.enregistrer.assert_called_once()
+        self.outbox.assert_not_called()
+        self.modeles['Message'].objects.create.assert_not_called()
+
+    def test_avis_a_valider_ne_peut_pas_etre_envoye_avant_validation(self):
+        self.ancien = self.creer_avis(statut='À valider')
+        response = vues.instruction_dossier_confirmer_ajout_avis(self.requete(), 123456, avis_id=101)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.ancien.statut, 'À valider')
+        self.outbox.assert_not_called()
+        self.modeles['Message'].objects.create.assert_not_called()
+
     def test_brouillon_deja_envoye_ne_declenche_pas_un_second_envoi(self):
         self.ancien = self.creer_avis(statut="Envoyé")
         response = vues.instruction_dossier_confirmer_ajout_avis(self.requete(), 123456, avis_id=101)

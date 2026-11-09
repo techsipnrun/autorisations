@@ -111,7 +111,7 @@ class TemplateAnalyzerTests(SimpleTestCase):
         with patch("document_generation.services.analyzer.Balise.objects.filter", return_value=MagicMock(prefetch_related=MagicMock(return_value=self.catalogue))) as lookup:
             report = self.analyzer.analyze_bytes(word_bytes("{{ dossier.numero }}"))
         self.assertTrue(report.valide)
-        lookup.assert_called_once_with(code__in={"dossier.numero"})
+        lookup.assert_called_once_with(Balise.perimetre(), code__in={"dossier.numero"})
 
     @override_settings(ENVIRONMENT="prod")
     def test_prod_refusee_avant_tout_acces(self):

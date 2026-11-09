@@ -7,6 +7,7 @@ from backoffice.views import balises
 
 
 urlpatterns = [
+    path('back-office/types-actes/rapport-ca/nommage/', types_actes.enregistrer_nommage_rapport_ca, name='back_office_nommage_rapport_ca'),
     path("back-office/documents/balises/", balises.catalogue, name="back_office_balises"),
     path("back-office/documents/balises/creer/", balises.enregistrer, name="back_office_balise_creer"),
     path("back-office/documents/balises/<int:balise_id>/enregistrer/", balises.enregistrer, name="back_office_balise_enregistrer"),

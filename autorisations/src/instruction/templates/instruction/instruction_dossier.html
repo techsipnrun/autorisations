@@ -43,7 +43,7 @@
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}?v=13"></script>
-    <script src="{% static 'instruction/js/actions_dossier.js' %}?v=1" defer></script>
+    <script src="{% static 'instruction/js/actions_dossier.js' %}?v=2" defer></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=4" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
@@ -1270,7 +1270,7 @@ Le Parc national de La Réunion</textarea>
                                         <!-- Délib CA : L'insertion du numéro se fait plus tard -->
                                         {% if doc.numero_effectif and not signature_ca %}
                                             <span class="rappel-numero-acte">
-                                                N'oubliez pas d'insérer le numéro dans le projet d'acte
+                                                Pensez à contrôler l'insertion du numéro dans le fichier
                                             </span>
                                         {% endif %}
                                     {% endfor %}
@@ -1481,53 +1481,6 @@ Le Parc national de La Réunion</textarea>
                 ########################### BLOCS AVIS ###########################
                 ###############################################################-->
 
-                <!-- ######################## AVIS ENVOYÉS ######################### -->
-                {% if actes_deja_envoyes or etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "Refusé" or etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "En attente réponse d'avis" %}
-                    {% if actes_deja_envoyes or avis_envoye %}
-                        <div class="validation-documents">
-                            {% if actes_deja_envoyes %}
-                                <h2>Acte{{ actes_deja_envoyes|pluralize }} déjà envoyé{{ actes_deja_envoyes|pluralize }}</h2>
-                                <ul class="doc-a-valider-liste">
-                                    {% for doc in actes_deja_envoyes %}
-                                        {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                            {% if avis_envoye %}
-                            <h2>Demandes d'avis envoyées</h2>
-                            <ul class="avis-a-valider-liste">
-                                {% for da in avis_envoye %}
-                                    <li>
-                                        <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}" title="Voir l'avis">
-                                            Avis n°{{ da.id_avis.numero_affiche }} –
-                                            
-                                            {% if da.id_avis.id_expert %}
-                                                {{ da.id_avis.id_expert }}
-                                            {% endif %}
-
-                                            {% if da.id_avis.reponse %}
-                                                ({{ da.id_avis.get_reponse_display }})
-                                            {% endif %}
-                                        </a>
-
-                                        {% if da.id_avis.documents %}
-                                            {% for avis_signe in da.id_avis.documents %}
-                                                <a id="download_avis_signe" href="{% url 'afficher_annexe' chemin=avis_signe.emplacement titre=avis_signe.titre %}" target="_blank">
-                                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger l'avis signé" title="Télécharger l'avis signé">
-                                                </a>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </li>
-
-                                {% empty %}
-                                    <li>Aucun avis à envoyer</li>
-                                {% endfor %}
-                            </ul>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                {% endif %}   
-
                 <!-- ######################## AVIS À ENVOYER ######################### -->
                 {% if etape_actuelle.etape == "Avis à envoyer" %}
                     {% if avis_a_envoyer %}
@@ -1585,6 +1538,55 @@ Le Parc national de La Réunion</textarea>
 
 
 
+                <!-- ######################## AVIS ENVOYÉS ######################### -->
+                {% if actes_deja_envoyes or etape_actuelle.etape == "En instruction" or etape_actuelle.etape == "En relecture qualité" or etape_actuelle.etape == "À valider avant demande d'avis" or etape_actuelle.etape == "À valider avant signature" or etape_actuelle.etape == "Refusé" or etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "En attente de signature" or etape_actuelle.etape == "À publier au RAA" or etape_actuelle.etape == "Acte à envoyer" or etape_actuelle.etape == "En attente réponse d'avis" %}
+                    {% if actes_deja_envoyes or avis_envoye %}
+                        <div class="validation-documents">
+                            {% if actes_deja_envoyes %}
+                                <h2>Acte{{ actes_deja_envoyes|pluralize }} déjà envoyé{{ actes_deja_envoyes|pluralize }}</h2>
+                                <ul class="doc-a-valider-liste">
+                                    {% for doc in actes_deja_envoyes %}
+                                        {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if avis_envoye %}
+                            <h2>Demandes d'avis envoyées</h2>
+                            <ul class="avis-a-valider-liste">
+                                {% for da in avis_envoye %}
+                                    <li>
+                                        <a href="{% url 'instruction_dossier_avis' num_dossier=dossier.numero avis_id=da.id_avis.id %}" title="Voir l'avis">
+                                            Avis n°{{ da.id_avis.numero_affiche }} –
+                                            
+                                            {% if da.id_avis.id_expert %}
+                                                {{ da.id_avis.id_expert }}
+                                            {% endif %}
+
+                                            {% if da.id_avis.reponse %}
+                                                ({{ da.id_avis.get_reponse_display }})
+                                            {% endif %}
+                                        </a>
+
+                                        {% if da.id_avis.documents %}
+                                            {% for avis_signe in da.id_avis.documents %}
+                                                <a id="download_avis_signe" href="{% url 'afficher_annexe' chemin=avis_signe.emplacement titre=avis_signe.titre %}" target="_blank">
+                                                    <img src="{% static 'instruction/img/logo_pdf.png' %}" alt="Télécharger l'avis signé" title="Télécharger l'avis signé">
+                                                </a>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </li>
+
+                                {% empty %}
+                                    <li>Aucun avis à envoyer</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endif %}   
+
+
+                <!-- FIN ACTES ET AVIS ENVOYES -->
                 <!-- 
                 ####################################################################
                 ######################## CHAMPS FORMULAIRE #########################
@@ -2863,7 +2865,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
                 if (attente) attente.hidden = false;
 
                 // Envoi du formulaire
-                form.submit();
+                form.requestSubmit();
             }
         }
 
@@ -2871,7 +2873,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
         function confirmerPublicationRAA() {
             const confirmation = confirm("Vous avez bien publié l'acte final dans le RAA ?");
             if (confirmation) {
-                document.getElementById("form-retour-instruction-2").submit();
+                document.getElementById("form-retour-instruction-2").requestSubmit();
             }
         }
 
@@ -2921,7 +2923,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
             const confirmation = confirm("Confirmer la transmission du dossier à l’intermédiaire CA ?");
             if (confirmation) {
-                select.closest("form").submit();
+                select.closest("form").requestSubmit();
             }
         }
 
@@ -2937,7 +2939,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
             const confirmation = confirm("Avez-vous bien pensé à renseigner le numéro de l'acte ?");
             if (confirmation) {
-                select.closest("form").submit();
+                select.closest("form").requestSubmit();
             }
         }
 
@@ -3045,7 +3047,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
 
             if (confirm("Confirmez-vous l’envoi pour validation avant signature ?")) {
-                form.submit();
+                form.requestSubmit();
             }
         }
 
@@ -3103,7 +3105,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
 
             if (confirm("Confirmez-vous l’envoi pour validation avant demande d'avis ?")) {
-                document.querySelector('#formulaire-validation-demande-avis form').submit();
+                document.querySelector('#formulaire-validation-demande-avis form').requestSubmit();
             }
         }
 
@@ -3145,14 +3147,14 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
 
             if (rappCA) {
                 if (confirm("Confirmez-vous que l'acte est bien signé et qu'il a été publié au RAA ?")) {
-                    document.querySelector('#formulaire-acte-pret form').submit();
+                    document.querySelector('#formulaire-acte-pret form').requestSubmit();
                 }
             }
 
             if (!rappCA) {
 
                 if (confirm("Confirmez-vous que l'acte est bien signé ?")) {
-                    document.querySelector('#formulaire-acte-pret form').submit();
+                    document.querySelector('#formulaire-acte-pret form').requestSubmit();
                 }
             }
         }
@@ -3167,7 +3169,7 @@ N’hésitez pas à me faire part de tout ajustement que vous jugeriez nécessai
             }
 
             if (confirm("Confirmez-vous l’envoi pour relecture qualité ?")) {
-                document.querySelector('#formulaire-relecture-qualite form').submit();
+                document.querySelector('#formulaire-relecture-qualite form').requestSubmit();
             }
         }
 

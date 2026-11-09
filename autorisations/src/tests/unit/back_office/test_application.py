@@ -17,6 +17,18 @@ from backoffice.views import accueil, services
 
 # Adresses et noms publics existant avant l'extraction de l'application.
 ROUTES = (
+    ('back_office_nommage_rapport_ca', '/back-office/types-actes/rapport-ca/nommage/', {}, 'post'),
+    ('back_office_balises', '/back-office/documents/balises/', {}, 'get'),
+    ('back_office_balise_creer', '/back-office/documents/balises/creer/', {}, 'post'),
+    ('back_office_balise_enregistrer', '/back-office/documents/balises/7/enregistrer/', {'balise_id':7}, 'post'),
+    ('back_office_balise_champs', '/back-office/documents/balises/champs/7/', {'demarche_id':7}, 'get'),
+    ('back_office_templates_verifier', '/back-office/documents/templates/verifier/', {}, 'post'),
+    ('back_office_template_options', '/back-office/documents/templates/options/', {}, 'get'),
+    ('back_office_template_creer', '/back-office/documents/templates/creer/', {}, 'post'),
+    ('back_office_template_enregistrer', '/back-office/documents/templates/7/enregistrer/', {'template_id':7}, 'post'),
+    ('back_office_templates', '/back-office/documents/templates/', {}, 'get'),
+    ('back_office_template_verifier', '/back-office/documents/templates/7/verifier/', {'template_id':7}, 'post'),
+    ('back_office_template_telecharger', '/back-office/documents/templates/7/telecharger/', {'template_id':7}, 'get'),
     ("back_office", "/back-office/", {}, "get"),
     ("back_office_actions", "/back-office/actions/", {}, "get"),
     ("back_office_actions_priorites", "/back-office/actions/priorites/", {}, "post"),

@@ -60,5 +60,7 @@ def act_file_provenance(dossier):
                        'replaceable': not (row.id_document.id_statut_id or row.id_document.publie_au_raa
                                            or row.id_document.url_ds or row.id_document.url_dm),
                        'nature': nature.nature,
+                       'author': author, 'date': date,
+                       'signed': bool(row.id_document_signe_id),
                        'description': f'{title} {number} généré par {author} le {date}'})
     return result

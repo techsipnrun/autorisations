@@ -46,11 +46,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    form.querySelector(".btn-confirmer-envoi").addEventListener("click", event => soumettre(event.currentTarget, "confirmer"));
+    form.querySelector(".btn-confirmer-envoi")?.addEventListener("click", event => soumettre(event.currentTarget, "confirmer"));
     form.querySelector(".btn-brouillon").addEventListener("click", event => soumettre(event.currentTarget, "brouillon"));
     form.addEventListener("submit", event => {
         event.preventDefault();
-        if (!actions.hidden) soumettre(form.querySelector(".btn-confirmer-envoi"), "confirmer");
+        if (!actions.hidden) {
+            const envoyer = form.querySelector(".btn-confirmer-envoi");
+            soumettre(envoyer || form.querySelector(".btn-brouillon"), envoyer ? "confirmer" : "brouillon");
+        }
     });
 
     form.querySelectorAll("[data-remplacer-pj]").forEach(button => {

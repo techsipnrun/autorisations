@@ -336,7 +336,7 @@ admin.site.register(DocumentFormat)
 class DocumentNatureAdmin(admin.ModelAdmin):
     list_display = ("id", "nature", "est_acte", "actif", "mode_numerotation", "prefixe_numero", "prefixe_nom_fichier", "circuit_signature", "rapport_ca_obligatoire", "mode_publication_raa", "autorise_dm")
     list_filter = ("est_acte", "actif", "mode_numerotation", "circuit_signature", "mode_publication_raa", "autorise_dm")
-    search_fields = ("nature", "prefixe_numero", "prefixe_nom_fichier")
+    search_fields = ("nature", "prefixe_numero", "prefixe_nom_fichier", "nom_fichier_signe")
     ordering = ("ordre_affichage", "nature")
 
     def get_readonly_fields(self, request, obj=None):

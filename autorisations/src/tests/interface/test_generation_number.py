@@ -65,6 +65,8 @@ class NumberInterfaceTests(SimpleTestCase):
                 if(control.hidden) throw new Error('Numéro masqué malgré les autres informations valides');
                 if(!control.closest('.manual-fields') || control.nextElementSibling?.className!=='actions') throw new Error('Numéro mal placé');
                 if(requests!==0 || !editor.querySelector('.is-pending')) throw new Error('Numéro attribué au chargement');
+                editor.querySelector('[data-variable-label]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
+                if(!editor.querySelector('.is-pending') || editor.querySelector('[data-editing-variable]')) throw new Error('Variable sans valeur modifiable');
                 if(control.querySelector('.number-format-example').hidden) throw new Error('Exemple absent avant attribution');
                 control.querySelector('[data-number-reserve]').click();
                 if(requests!==0 || confirmations!==1) throw new Error('Confirmation réservation ignorée');
@@ -72,7 +74,7 @@ class NumberInterfaceTests(SimpleTestCase):
                 await wait(()=>requests===1 && !control.querySelector('[data-number-reserve]').disabled);
                 if(control.querySelector('[data-number-value]').textContent!=='2026-011' || editor.querySelector('.is-pending')) throw new Error('Numéro non injecté dans la chip');
                 if(!control.querySelector('.number-format-example').hidden) throw new Error('Exemple encore affiché après attribution');
-                if(!control.querySelector('.number-actions').hidden || editor.querySelector('.output-variable button')) throw new Error('Actions ou suppression de chip encore visibles');
+                if(!control.querySelector('.number-actions').hidden || !editor.querySelector('.output-variable button')) throw new Error('Actions ou suppression de chip incorrectes');
                 control.querySelector('[data-number-toggle]').click();
                 if(control.querySelector('.number-actions').hidden) throw new Error('Actions non réaffichées');
                 control.querySelector('[data-number-recover]').click();
@@ -90,8 +92,18 @@ class NumberInterfaceTests(SimpleTestCase):
                 if(document.querySelector('[name=output_filename]').value!=='jeudi_{document.numero}-corrige.docx') throw new Error('Nom modifié perdu');
                 const selection=window.getSelection(),range=document.createRange();range.selectNodeContents(editor);selection.removeAllRanges();selection.addRange(range);
                 const deletion=new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true});
-                editor.dispatchEvent(deletion);if(!deletion.defaultPrevented) throw new Error('Suppression des chips autorisée');
+                editor.dispatchEvent(deletion);if(deletion.defaultPrevented) throw new Error('Suppression des chips bloquée');
                 if(editor.querySelectorAll('[data-variable]').length!==1) throw new Error('Chip disparue');
+                editor.querySelector('[data-variable-label]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
+                let editing=editor.querySelector('[data-editing-variable]');
+                if(!editing || editing.textContent!=='2026-112') throw new Error('Modification de variable impossible');
+                editing.blur();
+                if(!editor.querySelector('.output-variable') || document.querySelector('[name=output_filename]').value!=='jeudi_{document.numero}-corrige.docx') throw new Error('Chip non restaurée sans modification');
+                editor.querySelector('[data-variable-label]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
+                editing=editor.querySelector('[data-editing-variable]');editing.textContent='numero-personnalise';
+                editing.dispatchEvent(new Event('input',{bubbles:true}));editing.blur();
+                if(editor.querySelector('[data-variable-label]').textContent!=='numero-personnalise' || !editor.querySelector('.output-variable')) throw new Error('Chip modifiée non restaurée');
+                if(document.querySelector('[name=output_filename]').value!=='jeudi_numero-personnalise-corrige.docx') throw new Error('Valeur personnalisée non transmise');
                 if(document.documentElement.scrollWidth>innerWidth+1) throw new Error('Débordement');
                 result.textContent='NUMBERS_OK';
             }catch(error){result.textContent=error.stack;}

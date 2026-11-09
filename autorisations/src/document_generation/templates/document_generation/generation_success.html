@@ -1,0 +1,6 @@
+{% load static %}
+{% if generated_file %}<div class="generation-file-result success" role="status">Le fichier <strong>{{ generated_file.filename }}</strong> a été généré ici : <strong>{{ generated_file.destination }}</strong>
+    <button type="button" class="generation-copy-destination" data-copy-destination="{{ generated_file.destination }}" title="Copier l’emplacement du dossier" aria-label="Copier l’emplacement du dossier"><img src="{% static 'instruction/img/copy.png' %}" alt=""></button>
+    <span data-copy-destination-feedback aria-live="polite"></span>
+    <p class="generation-review-reminder">Ce fichier peut nécessiter des compléments ou des ajouts manuels. Une vérification et une relecture humaines sont indispensables avant son utilisation.</p>
+</div>{% endif %}

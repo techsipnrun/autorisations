@@ -101,8 +101,10 @@
     {% endif %}
 
     <div class="avis-form-actions" hidden>
-        <button type="button" class="avis-form-button btn-brouillon" formaction="{% if avis %}{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}{% else %}{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero %}{% endif %}">Enregistrer le brouillon</button>
+        <button type="button" class="avis-form-button btn-brouillon" formaction="{% if avis %}{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero avis_id=avis.id %}{% else %}{% url 'instruction_dossier_enregistrer_brouillon_avis' num_dossier=dossier.numero %}{% endif %}">{% if avis.statut == "À valider" or avis.statut == "À envoyer" %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
+        {% if avis.statut != "À valider" %}
         <button type="button" class="avis-form-button btn-confirmer-envoi" formaction="{% if avis %}{% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero avis_id=avis.id %}{% else %}{% url 'instruction_dossier_confirmer_ajout_avis' num_dossier=dossier.numero %}{% endif %}">Envoyer</button>
+        {% endif %}
     </div>
     <p class="avis-form-erreur" role="alert" hidden></p>
     <div class="notes-loading" data-avis-loading role="status" aria-live="polite" hidden>

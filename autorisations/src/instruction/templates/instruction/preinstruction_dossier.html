@@ -39,7 +39,8 @@
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
     <script src="{% static 'instruction/js/dossier_commun.js' %}?v=13"></script>
-    <script src="{% static 'instruction/js/actions_dossier.js' %}?v=1" defer></script>
+    <script src="{% static 'instruction/js/actions_dossier.js' %}?v=2" defer></script>
+    <link rel="stylesheet" href="{% static 'instruction/css/etape_loading.css' %}?v=1">
     <script src="{% static 'instruction/js/document_hover_preview.js' %}"></script>
     <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_actions_menu.css' %}?v=3">
@@ -51,6 +52,13 @@
 <body>
     {% include 'navbar.html' %}
     {% include 'timeline.html' with numero_dossier=dossier.numero %}
+    <div id="envoi-acte-attente" class="etape-loading" role="status" aria-live="assertive" hidden>
+        <div class="etape-loading-contenu">
+            <span class="etape-loading-spinner" aria-hidden="true"></span>
+            <strong id="attente-action-titre">Changement d’étape en cours…</strong>
+            <span id="attente-action-detail">Veuillez patienter pendant le traitement du dossier.</span>
+        </div>
+    </div>
 
     <div class="page_preinstruction_dossier">
         {% breadcrumb breadcrumb_items %}

@@ -3,13 +3,19 @@ from django import forms
 from autorisations.models.models_documents import Document, DocumentNature
 
 
+class RapportCAForm(forms.ModelForm):
+    class Meta:
+        model = DocumentNature
+        fields = ('nom_fichier_signe',)
+
+
 class TypeActeForm(forms.ModelForm):
     """Configuration d'un acte, distincte des autres natures documentaires."""
 
     class Meta:
         model = DocumentNature
         fields = (
-            "nature", "actif", "mode_numerotation", "prefixe_numero", "prefixe_nom_fichier",
+            "nature", "actif", "mode_numerotation", "prefixe_numero", "prefixe_nom_fichier", "nom_fichier_signe",
             "circuit_signature", "rapport_ca_obligatoire", "mode_publication_raa", "autorise_dm",
         )
         labels = {
@@ -42,7 +48,7 @@ class TypeActeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["prefixe_numero"].required = False
-        self.fields["prefixe_nom_fichier"].required = True
+        self.fields["prefixe_nom_fichier"].required = False
         for nom in ("actif", "rapport_ca_obligatoire", "autorise_dm"):
             self.initial[nom] = "true" if getattr(self.instance, nom) else "false"
             self.fields[nom] = forms.TypedChoiceField(

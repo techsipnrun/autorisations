@@ -14,7 +14,7 @@ class DocumentPreparationService:
         if not report.valide:
             return result
         codes = [entry["code"] for entry in report.balises]
-        catalogue = {b.code: b for b in Balise.objects.filter(code__in=codes).prefetch_related("sources_champs__id_champ")}
+        catalogue = {b.code: b for b in Balise.objects.filter(Balise.perimetre(template), code__in=codes).prefetch_related("sources_champs__id_champ")}
         if set(codes) != set(catalogue):
             result["errors"].append("Le catalogue a changé pendant la préparation. Rechargez la page.")
             return result

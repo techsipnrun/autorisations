@@ -66,7 +66,10 @@ def integrate_generated_act(dossier, filename, nature, statut, file_format, *, r
         # Sérialise les intégrations de versions dans un même dossier.
         Dossier.objects.select_for_update().get(pk=dossier.pk)
         reservation = DocumentNumberReservation.objects.select_for_update().get(pk=row.id_numero_id)
-        document = Document.objects.select_for_update().select_related('id_nature', 'id_statut').get(pk=row.id_document_id)
+        # Verrouillage sans jointure : le statut est nullable, et FOR UPDATE OF
+        # n'accepte pas le db_table qualifié par schéma utilisé par nos modèles.
+        # Les relations seront lues séparément au besoin, sous ce verrou.
+        document = Document.objects.select_for_update().get(pk=row.id_document_id)
         work = ntpath.normpath(ntpath.join(dossier.emplacement, 'Work')).casefold()
         if (reservation.id_nature_id != nature.pk or reservation.id_dossier_id != dossier.pk
                 or ntpath.normpath(document.emplacement).casefold() != work

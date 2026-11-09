@@ -14,6 +14,7 @@ MIGRATIONS_SCHEMA_EXTERNE = (
     "0044_avis_aides_et_thematiques",
     "0045_actes_numerotation_manuelle",
     "0046_contact_raison_sociale_raccourci",
+    "0050_nommage_acte_signe",
 )
 
 

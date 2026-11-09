@@ -17,9 +17,10 @@ class BaliseSourceChampInline(admin.TabularInline):
 @admin.register(Balise)
 class BaliseAdmin(admin.ModelAdmin):
     form = BaliseConfigurationForm
-    list_display = ("code", "libelle", "source", "type", "required", "actif")
-    list_filter = ("source", "type", "required", "actif")
-    search_fields = ("code", "libelle", "source_propriete")
+    list_display = ("code", "libelle", "source", "id_template", "type", "required", "actif")
+    list_filter = ("source", "id_template", "type", "required", "actif")
+    search_fields = ("code", "libelle", "source_propriete", "id_template__nom")
+    list_select_related = ('id_template',)
     readonly_fields = ('mode',)
     inlines = (BaliseSourceChampInline,)
 
@@ -92,9 +93,9 @@ class DocumentGenerationAdmin(admin.ModelAdmin):
     search_fields = ('id_dossier__numero', 'id_document__titre', 'id_template__nom', 'user__username')
     date_hierarchy = 'date'
     readonly_fields = ('id',)
-    fields = ('id', 'date', 'id_dossier', 'id_template', 'id_document', 'user',
+    fields = ('id', 'date', 'id_dossier', 'id_template', 'id_document', 'id_document_signe', 'user',
               'context_snapshot', 'template_snapshot', 'file_corrections', 'circuit_events', 'id_numero')
-    autocomplete_fields = ('id_dossier', 'id_template', 'id_document', 'user')
+    autocomplete_fields = ('id_dossier', 'id_template', 'id_document', 'id_document_signe', 'user')
 
 
 @admin.register(DocumentNumberReservation)

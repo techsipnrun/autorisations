@@ -25,6 +25,18 @@
 {% endfor %}
 </div>
 
+<details class="back-office-config-block back-office-acte-card" data-rapport-ca-section>
+    <summary class="back-office-fields-heading"><h2>Rapport CA</h2><span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span></summary>
+    {% if formulaire_rapport_ca %}
+    <form class="back-office-acte-form" data-type-acte-form data-prefix="{{ rapport_ca.prefixe_nom_fichier }}" data-next-number="{% now 'Y' %}-012" action="{% url 'back_office_nommage_rapport_ca' %}" method="post">
+        {% csrf_token %}
+        {% include 'backoffice/act_filename_field.html' with form=formulaire_rapport_ca nom_document='du rapport CA signé au format PDF' %}
+        <button type="submit" class="external-services-refresh">Enregistrer</button>
+        <p data-type-acte-status role="status" aria-live="polite"></p>
+    </form>
+    {% else %}<p>La nature de document « Rapport CA » doit être créée pour configurer son nommage.</p>{% endif %}
+</details>
+
 <details class="back-office-config-block back-office-acte-card back-office-acte-create">
     <summary class="back-office-fields-heading"><h2>Ajouter un type d’acte</h2><span class="back-office-collapse-icon" aria-hidden="true"><span class="back-office-collapse-icon-open">−</span><span class="back-office-collapse-icon-closed">+</span></span></summary>
     {% include "backoffice/type_acte_form.html" with form=formulaire_nouveau_type_acte type_id=0 prochain_numero=premier_numero_acte %}

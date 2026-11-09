@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from autorisations.models.models_generation import DocumentTemplate
+from autorisations.models.models_generation import DocumentTemplate, Balise, TemplateBalise
 from autorisations.models.models_documents import DocumentNature
 from autorisations.models.models_instruction import Demarche
 
@@ -49,7 +49,22 @@ def serialiser(template):
 
 
 def erreur_schema():
-    return JsonResponse({"erreur": "Tables de génération inaccessibles. Vérifiez les scripts dev jusqu’à 0013_balise_liste_repetable.sql et les droits."}, status=503)
+    return JsonResponse({"erreur": "Tables de génération inaccessibles. Vérifiez les scripts jusqu’à 0021_perimetre_balises.sql et les droits."}, status=503)
+
+
+def catalogue_balises():
+    """Définitions globales et usages détectés, deux lectures sans accès NAS."""
+    definitions = {}
+    for row in Balise.objects.values('id', 'code', 'source', 'mode', 'type', 'required', 'actif', 'id_template_id'):
+        template_id = row.get('id_template_id')
+        if row['source'] != 'AGIDA' and not template_id:
+            continue
+        definitions[f"{template_id or '*'}:{row['code']}"] = {**row, 'templates': []}
+    for row in TemplateBalise.objects.values('code', 'id_template_id', 'id_template__nom').order_by('id_template__nom', 'id_template_id'):
+        definition = definitions.get(f"{row['id_template_id']}:{row['code']}") or definitions.get(f"*:{row['code']}")
+        if definition:
+            definition['templates'].append({'id': row['id_template_id'], 'nom': row['id_template__nom']})
+    return definitions
 
 
 @login_required
@@ -128,9 +143,14 @@ def options_edition(request):
         prefix = "//" if nas_root.startswith("//") else "/" if nas_root.startswith("/") else ""
         nas_root = prefix + "/".join(part for part in nas_root.split("/") if part) + "/"
     today = timezone.localdate()
+    try:
+        definitions = catalogue_balises()
+    except (ProgrammingError, OperationalError):
+        return erreur_schema()
     return JsonResponse({
         "nas_root": nas_root,
         "filename_date": {"year": str(today.year), "day": today.strftime("%d-%m-%y")},
+        "balises_catalogue": definitions,
         "natures": [{"id": nature.pk, "nom": nature.nature} for nature in DocumentNature.objects.order_by("nature")],
         "demarches": [{"id": demarche.pk, "nom": demarche.type} for demarche in Demarche.objects.order_by("type", "numero")],
     })

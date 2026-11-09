@@ -35,7 +35,7 @@ class BackofficeBalisesTests(SimpleTestCase):
         with patch('backoffice.views.balises.Balise.objects.prefetch_related',side_effect=ProgrammingError):
             response = balises.catalogue(self.request())
         self.assertEqual(response.status_code,503)
-        self.assertIn('0013',json.loads(response.content)['erreur'])
+        self.assertIn('0021',json.loads(response.content)['erreur'])
 
     def test_commune_non_proposee_comme_information_agida(self):
         with patch('backoffice.views.balises.DocumentTemplate.objects.prefetch_related') as templates, patch('backoffice.views.balises.Balise.objects.prefetch_related',return_value=[]),patch(
@@ -86,7 +86,7 @@ class BackofficeBalisesTests(SimpleTestCase):
         form.return_value.save.assert_not_called()
 
     def test_sauvegarde_invalide_et_reanalyse_les_templates_utilisant_le_code(self):
-        definition=Balise(id=42,code='projet.commune')
+        definition=Balise(id=42,code='projet.commune',source='FORMULAIRE',id_template_id=1)
         with patch('backoffice.views.balises.transaction.atomic',return_value=nullcontext()),patch(
             'backoffice.views.balises.BaliseConfigurationForm') as form,patch('backoffice.views.balises.valider_sources',return_value=[(14,7)]),patch(
             'backoffice.views.balises.BaliseSourceChamp.objects.filter'),patch('backoffice.views.balises.BaliseSourceChamp.objects.bulk_create') as create,patch(
@@ -96,10 +96,11 @@ class BackofficeBalisesTests(SimpleTestCase):
             form.return_value.is_valid.return_value=True
             form.return_value.cleaned_data={'source':'FORMULAIRE'}
             form.return_value.save.return_value=definition
-            used.return_value.values_list.return_value.distinct.return_value=[1,3]
+            used.return_value.filter.return_value.values_list.return_value.distinct.return_value=[1]
             response=balises.enregistrer(self.request(post=True))
         self.assertEqual(response.status_code,200)
         used.assert_called_once_with(code='projet.commune')
+        used.return_value.filter.assert_called_once_with(id_template_id=1)
         templates.return_value.update.assert_called_once_with(rapport_validation=None,date_verification=None)
-        self.assertEqual([call.args[0] for call in verify.call_args_list],[1,3])
+        self.assertEqual([call.args[0] for call in verify.call_args_list],[1])
         self.assertEqual(create.call_args.args[0][0].id_champ_id,7)

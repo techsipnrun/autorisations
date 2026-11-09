@@ -147,7 +147,7 @@ class GenerationPageTests(SimpleTestCase):
                          "known_rows": [{"code": "dossier.numero", "libelle": "Numéro", "value": 30769307}],
                          "form_balises": [self.definitions[1]], "errors": []}
 
-    def call_view(self, data=None, superuser=True, prepared=None, preview_available=False, shell=None, reloads=0, session=None):
+    def call_view(self, data=None, superuser=True, prepared=None, preview_available=False, shell=None, reloads=0, session=None, follow=True):
         request = RequestFactory().get("/") if data is None else RequestFactory().post("/", data)
         request.user = SimpleNamespace(is_authenticated=True, is_superuser=superuser, pk=42)
         request.session = session if session is not None else {}
@@ -158,7 +158,7 @@ class GenerationPageTests(SimpleTestCase):
             stack.enter_context(patch("document_generation.views.DocumentPreparationService.prepare", return_value=prepared or self.prepared))
             rendered = stack.enter_context(patch("document_generation.views.render", return_value=HttpResponse()))
             response = views.generer_document(request, 30769307, 1, _shell=shell)
-            if response.status_code == 303:
+            if response.status_code == 303 and follow:
                 self.assertEqual(response['Location'], request.get_full_path())
                 restored = RequestFactory().get(response['Location'])
                 restored.user, restored.session = request.user, request.session
@@ -173,20 +173,20 @@ class GenerationPageTests(SimpleTestCase):
         self.assertFalse(context["complete"])
         self.assertEqual(response["Cache-Control"], "private, no-store")
 
-    def test_nom_du_brouillon_suit_la_configuration_modifiee_sans_perdre_les_saisies(self):
+    def test_nom_du_fichier_jamais_restaure_depuis_la_session(self):
         from hashlib import sha256
         key = sha256(b'/').hexdigest()
         self.template.nom_fichier = 'nouveau_{dossier.numero}.docx'
-        for original, expected in [('ancien.docx', self.template.nom_fichier),
-                                   (self.template.nom_fichier, 'personnalise.docx')]:
+        for original in ('ancien.docx', self.template.nom_fichier):
             with self.subTest(original=original):
                 session = {'document_generation_drafts': {key: {
                     'template_filename': original,
                     'values': {'output_filename': ['personnalise.docx'], 'balise_42': ['15']},
                 }}}
                 _, context = self.call_view(session=session)
-                self.assertEqual(context['filename_pattern'], expected)
+                self.assertEqual(context['filename_pattern'], self.template.nom_fichier)
                 self.assertEqual(context['form']['balise_42'].value(), '15')
+                self.assertNotIn('output_filename', session['document_generation_drafts'][key]['values'])
 
     def test_brouillon_dune_autre_url_ne_preremplit_pas_les_champs(self):
         from hashlib import sha256
@@ -277,6 +277,20 @@ class GenerationPageTests(SimpleTestCase):
         with patch("document_generation.views.RecordGenerationService.save") as save:
             self.call_view({"balise_42": "incorrect", "action": "generate_file"})
         save.assert_not_called()
+
+    def test_generation_reussie_revient_au_choix_template_sans_perdre_confirmation(self):
+        output = {'filename': 'acte.docx', 'destination': '//nas/dev/Work/'}
+        session = {}
+        with patch('document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')), patch(
+            'document_generation.views.RecordGenerationService.save', return_value=output
+        ):
+            response, _ = self.call_view({'balise_42': '15', 'action': 'generate_file'},
+                prepared={**self.prepared, 'template_bytes': b'source'},
+                shell={'selected_demarche': SimpleNamespace(pk=14)}, session=session, follow=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response['Location'], '/?demarche=14')
+        self.assertEqual(session['document_generation_success']['30769307']['generated_file'], output)
+        self.assertIsNone(next(iter(session['document_generation_drafts'].values()))['generated_file'])
 
     def test_numero_systeme_ignore_les_saisies_falsifiees_et_est_transmis_au_fichier(self):
         from uuid import uuid4

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from docx import Document
 from django.http import QueryDict
 from django.test import SimpleTestCase
-from autorisations.models.models_generation import Balise
+from autorisations.models.models_generation import Balise, DocumentTemplate
 from document_generation.forms import DynamicDocumentForm, BaliseConfigurationForm
 from document_generation.services.docx_renderer import DocxRenderer
 from document_generation.services.test_template import add_repeated_names_example
@@ -54,7 +54,8 @@ class RepeatedNamesTests(SimpleTestCase):
 
     def test_configuration_liste_reservee_a_la_saisie_instructeur(self):
         data={'code':'projet.noms','libelle':'Noms','type':'LIST','source':'MANUELLE','libelle_element':'Nom','actif':'on'}
-        with patch.object(Balise,'validate_unique'):
+        with patch.object(Balise,'validate_unique'), patch('django.forms.models.ModelChoiceField.clean', return_value=DocumentTemplate(id=1)), patch('django.db.models.fields.related.ForeignKey.validate'), patch.object(Balise.objects,'filter') as lookup:
+            lookup.return_value.exclude.return_value.filter.return_value.exists.return_value = False
             form=BaliseConfigurationForm(data)
             self.assertTrue(form.is_valid(),form.errors)
             self.assertEqual(form.cleaned_data['libelle_element'], 'Nom')

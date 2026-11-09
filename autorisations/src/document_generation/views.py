@@ -107,7 +107,13 @@ def dossier_generation(request, num_dossier):
         return generer_document(request, num_dossier, template.pk, _shell=shell, _work=(dossier, template))
     if request.method == "POST":
         raise Http404("Sélectionnez un template.")
-    response = render(request, "document_generation/dossier_generation.html", {**shell, **dossier_history(dossier)})
+    notifications = request.session.get('document_generation_success', {})
+    notification = notifications.pop(str(dossier.numero), {})
+    if notification:
+        request.session['document_generation_success'] = notifications
+    response = render(request, "document_generation/dossier_generation.html", {
+        **shell, **dossier_history(dossier), **notification,
+    })
     response["Cache-Control"] = "private, no-store"
     return response
 
@@ -125,10 +131,10 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
         submitted = QueryDict('', mutable=True)
         for name, values in draft['values'].items():
             submitted.setlist(name, values)
-        # Une configuration modifiée dans le back-office remplace l'ancien nom
-        # du brouillon, tout en conservant les autres saisies de l'instructeur.
-        if draft.get('template_filename') != template.nom_fichier:
-            submitted.pop('output_filename', None)
+        # Le nom personnalisé ne vaut que pour le POST courant : toute nouvelle
+        # page repart du patron du template, y compris avec une ancienne session.
+        submitted.pop('output_filename', None)
+        draft['values'].pop('output_filename', None)
         # Seul le retour immédiat d'un POST en cours peut conserver la sélection.
         # Ni une nouvelle ouverture ni une actualisation ne reprennent ce numéro.
         if not draft.pop('return_number_once', False):
@@ -160,7 +166,7 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
             token = submitted.get('number_selection', '') if submitted is not None else ''
             number_reservation = selected_number(token, dossier, template, request.user)
         dossier._generation_number = number_reservation.numero if number_reservation else None
-        filename_values = filename_editor_context(filename_pattern, dossier, dossier._generation_number)
+        filename_values = filename_editor_context(filename_pattern, dossier, dossier._generation_number, numbering_kind=numbering_kind)
         prepared = DocumentPreparationService().prepare(dossier, template)
         rows, errors = [row for row in prepared['known_rows'] if row['code'] != 'document.numero'], list(prepared["errors"])
         if not errors:
@@ -272,7 +278,7 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
 
     if request.method == 'POST':
         values = {name: values for name, values in request.POST.lists()
-                  if name.startswith(('balise_', 'known-balise_')) or name in ('edit_known','number_selection','output_filename')}
+                  if name.startswith(('balise_', 'known-balise_')) or name in ('edit_known','number_selection')}
         keep_number = not (action == 'generate_file' and generated_file and not generation_error)
         if not keep_number:
             values.pop('number_selection', None)
@@ -284,7 +290,17 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
                              'scroll_position': _scroll_position(request)}
         # Limite le nombre de brouillons conservés dans la session.
         request.session['document_generation_drafts'] = dict(list(drafts.items())[-5:])
-        response = HttpResponseRedirect(request.get_full_path())
+        destination = request.get_full_path()
+        if _shell and not keep_number and not errors:
+            notifications = request.session.get('document_generation_success', {})
+            notifications[str(dossier.numero)] = {
+                'generated_file': generated_file, 'scroll_position': _scroll_position(request),
+            }
+            request.session['document_generation_success'] = dict(list(notifications.items())[-5:])
+            drafts[draft_key]['generated_file'] = None
+            request.session['document_generation_drafts'] = dict(list(drafts.items())[-5:])
+            destination = request.path + '?demarche=' + str(_shell['selected_demarche'].pk)
+        response = HttpResponseRedirect(destination)
         response.status_code = 303
         response['Cache-Control'] = 'private, no-store'
         return response

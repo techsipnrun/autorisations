@@ -136,7 +136,7 @@ class MenuArchivageTests(SimpleTestCase):
                         for(const bouton of menu.querySelectorAll('[data-confirmer-action]')){
                             const form=bouton.closest('form');
                             let envois=0, message='';
-                            form.submit=()=>{envois++;};
+                            form.requestSubmit=()=>{envois++;};
                             window.confirm=texte=>{message=texte;return false;};
                             bouton.click();assert(envois===0,'Archivage direct annulé');
                             window.confirm=()=>true;bouton.click();

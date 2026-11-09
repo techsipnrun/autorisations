@@ -39,8 +39,10 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
         source = get_template("instruction/instruction_dossier_ajouter_avis.html").template.source
         entete = source[source.index('<div class="header_nouvelle_demande_avis">'):source.index('{% include "instruction/refacto/demande_avis_formulaire.html" %}')]
         pages = {}
-        for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus", "configuration"):
+        for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus", "configuration", "a_valider", "a_envoyer"):
             contexte["avis"] = avis if scenario in ("brouillon", "envoi", "apercus") else None
+            if scenario in ("a_valider", "a_envoyer"):
+                contexte["avis"] = SimpleNamespace(**{**vars(avis), "statut": chr(192) + (" valider" if scenario == "a_valider" else " envoyer")})
             if scenario == "apercus":
                 contexte["avis"] = SimpleNamespace(**{**vars(avis),
                     "id_projet_avis": SimpleNamespace(id=31, titre="projet.docx", emplacement=fichier.emplacement),
@@ -102,7 +104,7 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
         thread = Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus", "configuration"):
+            for scenario in ("nouveau", "nouveau_brouillon", "interne", "brouillon", "envoi", "apercus", "configuration", "a_valider", "a_envoyer"):
                 with self.subTest(scenario=scenario), tempfile.TemporaryDirectory(prefix="agida-form-avis-") as profile:
                     resultat = subprocess.run([
                         str(CHROME), "--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking",
@@ -135,6 +137,14 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
             };
             try {
                 const scenario=document.body.dataset.scenario;
+                if(['a_valider','a_envoyer'].includes(scenario)) {
+                    assert(q('.btn-brouillon').textContent.trim()==='Enregistrer','Libellé Enregistrer');
+                    assert(Boolean(q('.btn-confirmer-envoi'))===(scenario==='a_envoyer'),'Disponibilité Envoyer selon statut');
+                    if(scenario==='a_valider') form.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+                    else q('.btn-brouillon').click();
+                    assert(envoi?.url.includes('enregistrer_brouillon_avis'),'Enregistrement opérationnel sans bouton Envoyer');
+                    sortie.textContent='FORMULAIRE_AVIS_OK';return;
+                }
                 if(scenario==='configuration') {
                     choisir('#nature','1');choisir('#expert_externe','20');choisir('#thematique','3');
                     assert(q('#note_demandeur').value==='Note n° 1026','Valeur initiale configurée et variable remplacée');
@@ -225,8 +235,15 @@ class FormulaireAvisInterfaceTests(SimpleTestCase):
                             assert(envoi?.url.includes('confirmer_ajout_avis'),'Envoi direct possible sans brouillon préalable');
                         } else {
                             q('#formulation_avis').value='';
+                            selectionFichier(q('#pj_demande_avis'),'brouillon.docx');
+                            selectionFichier(q('#pj_projet_acte'),'acte.pdf');
+                            selectionFichier(q('#pj_rapport_cs'),'rapport.pdf');
+                            selectionFichier(q('#pj_lie_avis'),'annexe.pdf');
                             q('.btn-brouillon').click();
                             assert(envoi?.url.includes('enregistrer_brouillon_avis'),'Brouillon possible sans projets ni formulation');
+                            for(const [champ,nom] of [['pj_demande_avis','brouillon.docx'],['pj_projet_acte','acte.pdf'],['pj_rapport_cs','rapport.pdf'],['pj_lie_avis','annexe.pdf']]) {
+                                assert(envoi.donnees.get(champ)?.name===nom,'Pièce jointe perdue dans le brouillon : '+champ);
+                            }
                         }
                         assert(envoi.donnees.get('reservation')==='6ae3c209-3546-407f-a7df-b07cdf02c53d','Clé de réservation stable transmise depuis Consultation');
                     } else {

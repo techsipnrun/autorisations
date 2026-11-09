@@ -11,7 +11,7 @@ from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
 from autorisations.models.models_documents import DocumentNature
-from backoffice.forms.types_actes import TypeActeForm
+from backoffice.forms.types_actes import TypeActeForm, RapportCAForm
 
 
 CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -27,6 +27,9 @@ class TypesActesInterfaceTests(SimpleTestCase):
             mode_publication_raa="non_requise", autorise_dm=False,
         )
         html = render_to_string("backoffice/back_office.html", {
+            'rapport_ca': DocumentNature(id=92,nature='Rapport CA'),
+            'formulaire_rapport_ca': RapportCAForm(instance=DocumentNature(id=92,nature='Rapport CA',
+                nom_fichier_signe='RapportCA_{date.jour_mois}.pdf'),auto_id='rapport-ca-%s'),
             "demarches_back_office": [], "csrf_token": "test",
             "formulaires_types_actes": [
                 {"type": nature, "form": TypeActeForm(instance=nature, auto_id="acte-90-%s"), "prochain_numero": "2026-1044", "position": 1},
@@ -60,6 +63,14 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 assert(!document.getElementById('back-office-circuit-nav').hidden, 'Second clic redéplie le menu');
                 const cards = panel.querySelectorAll('details');
                 assert([...cards].every(card => !card.open), 'Fiches repliées par défaut');
+                const report=panel.querySelector('[data-rapport-ca-section]');report.open=true;
+                const reportForm=report.querySelector('form');
+                assert(reportForm && !reportForm.elements.mode_numerotation,'Section dédiée au seul nommage du rapport');
+                assert(reportForm.querySelector('[data-type-acte-filename-preview]').textContent.includes('RapportCA_'),'Exemple Rapport CA initialisé');
+                const reportChoice=reportForm.querySelector('button[data-variable="dossier.numero"]');reportChoice.click();
+                assert(reportForm.elements.nom_fichier_signe.value.includes('{dossier.numero}'),'Chips du Rapport CA fonctionnelles');
+                assert(reportForm.action.includes('/rapport-ca/nommage/'),'Sauvegarde spécifique Rapport CA');
+                report.open=false;
                 assert(getComputedStyle(panel.querySelector('.back-office-acte-create')).borderTopColor === 'rgb(0, 0, 0)', 'Bordure noire du bloc d’ajout');
                 const card = panel.querySelector('[data-type-acte-id="90"]');
                 card.open = true;
@@ -87,7 +98,29 @@ class TypesActesInterfaceTests(SimpleTestCase):
                 if (CSS.supports('appearance', 'base-select') && CSS.supports('selector(select::picker(select))')) {
                     assert(getComputedStyle(form.elements.actif, '::picker(select)').borderTopColor === 'rgb(0, 0, 0)', 'Bordure noire du menu déroulant');
                 }
-                assert([...form.querySelectorAll('input:not([type="hidden"]):not([name="prefixe_numero"]), select')].every(field => field.required), 'Champs obligatoires');
+                assert([...form.querySelectorAll('input:not([type="hidden"]):not([name="prefixe_numero"]):not([name="prefixe_nom_fichier"]), select')].every(field => field.required), 'Champs obligatoires');
+                const naming=form.querySelector('[data-act-filename]'),editor=naming.querySelector('[data-act-filename-editor]');
+                editor.focus();
+                assert(getComputedStyle(editor).outlineStyle==='none','Pas de second contour au focus');
+                for(const character of ['/',String.fromCharCode(92),':','*','?','"','<','>','|']) {
+                    const event=new InputEvent('beforeinput',{inputType:'insertText',data:character,bubbles:true,cancelable:true});
+                    editor.dispatchEvent(event);assert(event.defaultPrevented,'Caractère interdit bloqué : '+character);
+                }
+                editor.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'A',bubbles:true,cancelable:true}));
+                const namingField=naming.closest('.act-filename-field'),save=form.querySelector('[type="submit"]');
+                assert(Boolean(preview.compareDocumentPosition(namingField)&Node.DOCUMENT_POSITION_FOLLOWING),'Nommage après le prochain numéro');
+                assert(Boolean(namingField.compareDocumentPosition(save)&Node.DOCUMENT_POSITION_FOLLOWING),'Nommage avant Enregistrer');
+                assert(namingField.textContent.includes('Actes/'),'Destination du PDF précisée');
+                assert(getComputedStyle(naming.querySelector('.act-filename-box > span')).borderLeftWidth==='1px','Séparation extension');
+                assert(editor.querySelectorAll('[data-variable]').length===3,'Règle initiale en chips');
+                assert(naming.querySelector('[data-example="document.numero"]').textContent==='2026-1044','Exemple numéro actualisé');
+                const choice=naming.querySelector('button[data-variable="dossier.numero"]');
+                choice.click();assert(form.elements.nom_fichier_signe.value.includes('{dossier.numero}'),'Ajout variable');
+                assert(choice.disabled,'Variable non répétable');
+                editor.querySelector('[data-variable="dossier.numero"] button').click();
+                assert(!choice.disabled && !form.elements.nom_fichier_signe.value.includes('{dossier.numero}'),'Suppression variable');
+                editor.append(document.createTextNode('_manuel'));editor.dispatchEvent(new Event('input',{bubbles:true}));
+                assert(form.elements.nom_fichier_signe.value.endsWith('_manuel.pdf'),'Texte fixe et extension');
                 assert(!form.elements.prefixe_numero.required, 'Préfixe du numéro facultatif');
                 const icon = card.querySelector('.back-office-collapse-icon-open');
                 assert(getComputedStyle(icon).display !== 'none', 'Icône moins visible');

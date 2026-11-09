@@ -1,0 +1,5 @@
+.etape-loading { position:fixed; inset:0; z-index:1000000; display:grid; place-items:center; padding:1rem; background:rgba(255,255,255,.78); backdrop-filter:blur(2px); }
+.etape-loading[hidden] { display:none; }
+.etape-loading-contenu { display:flex; flex-direction:column; align-items:center; gap:.7rem; max-width:30rem; padding:1.5rem 2rem; border:1px solid #b7c9bd; border-radius:10px; color:#194f31; background:white; box-shadow:0 8px 30px rgba(0,0,0,.18); text-align:center; }
+.etape-loading-spinner { width:2.6rem; height:2.6rem; border:.32rem solid #dce8e0; border-top-color:#176b3a; border-radius:50%; animation:etape-loading-rotation .75s linear infinite; }
+@keyframes etape-loading-rotation { to { transform:rotate(360deg); } }

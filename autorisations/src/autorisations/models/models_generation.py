@@ -7,6 +7,7 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
@@ -89,7 +90,7 @@ class Balise(models.Model):
         MULTISELECT = "MULTISELECT", "Liste à choix multiples"
 
     id = models.AutoField(primary_key=True)
-    code = models.CharField(max_length=150, unique=True, validators=[RegexValidator(
+    code = models.CharField(max_length=150, validators=[RegexValidator(
         regex=r"\A[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*\Z",
         message="Utilisez un code comme dossier.numero, sans accolades ni espaces.",
     )])
@@ -103,9 +104,33 @@ class Balise(models.Model):
     source = models.CharField(max_length=12, choices=Source.choices, blank=True, default="")
     source_propriete = models.CharField(max_length=150, blank=True, default="")
     libelle_element = models.CharField(max_length=100, blank=True, default="Élément", verbose_name="Libellé d'un élément")
+    id_template = models.ForeignKey('DocumentTemplate', models.CASCADE, null=True, blank=True,
+        db_column='id_template', related_name='balises_locales', verbose_name='Template de rattachement')
+
+    @staticmethod
+    def perimetre(template=None):
+        scope = Q(source='AGIDA', id_template__isnull=True)
+        if template is not None and template.pk:
+            scope |= Q(id_template_id=template.pk, source__in=['FORMULAIRE', 'MANUELLE'])
+        return scope
 
     def clean(self):
         super().clean()
+        if self.source == self.Source.AGIDA:
+            if self.id_template_id:
+                raise ValidationError({'id_template': 'Une balise AGIDA est globale et ne doit pas être rattachée à un template.'})
+        elif self.source in (self.Source.FORMULAIRE, self.Source.MANUELLE) and not self.id_template_id:
+            raise ValidationError({'id_template': 'Choisissez le template auquel appartient cette balise.'})
+        if self.code and self.source:
+            others = Balise.objects.filter(code=self.code).exclude(pk=self.pk)
+            if self.source == self.Source.AGIDA:
+                conflict = others.filter(Q(source='AGIDA') | Q(id_template__isnull=False)).exists()
+            else:
+                conflict = others.filter(Q(source='AGIDA', id_template__isnull=True) | Q(id_template_id=self.id_template_id)).exists() if self.id_template_id else False
+            if conflict:
+                raise ValidationError({'code': 'Ce code existe déjà dans ce périmètre ou entre en conflit avec une balise AGIDA globale.'})
+        if self.pk and self.id_template_id and TemplateBalise.objects.filter(id_balise_id=self.pk).exclude(id_template_id=self.id_template_id).exists():
+            raise ValidationError({'id_template': 'Cette définition est encore utilisée par un autre template. Son périmètre ne peut pas être modifié ainsi.'})
         if self.code == 'document.numero' and not (
             self.mode == self.Mode.CONNUE and self.source == self.Source.AGIDA
             and self.source_propriete == 'document.numero' and self.required and self.type == self.Type.TEXT
@@ -128,7 +153,7 @@ class Balise(models.Model):
     class Meta:
         managed = False
         db_table = '"generation"."balise"'
-        ordering = ("code",)
+        ordering = ("code", "id_template_id", "pk")
         verbose_name = "Balise"
         verbose_name_plural = "Balises"
 
@@ -278,6 +303,9 @@ class DocumentGeneration(models.Model):
                                   related_name='documents_generes')
     id_document = models.OneToOneField('autorisations.Document', models.RESTRICT, db_column='id_document',
                                       related_name='generation')
+    id_document_signe = models.ForeignKey('autorisations.Document', models.RESTRICT,
+        db_column='id_document_signe', null=True, blank=True, related_name='sources_generees',
+        verbose_name='Acte signé issu du Word')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.SET_NULL, null=True, blank=True,
                              db_column='id_user', related_name='documents_generes')
     date = models.DateTimeField(default=timezone.now)

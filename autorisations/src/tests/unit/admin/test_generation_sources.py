@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
-from autorisations.models.models_generation import Balise, BaliseSourceChamp
+from autorisations.models.models_generation import Balise, BaliseSourceChamp, DocumentTemplate
 from autorisations.models.models_instruction import Dossier, Champ
 from document_generation.forms import BaliseConfigurationForm
 from document_generation.services.catalogue_sources import resolve_catalogue_source, source_errors
@@ -77,7 +77,8 @@ class ConfiguredSourcesTests(SimpleTestCase):
 
     def test_formulaire_derive_le_mode_et_bloque_les_proprietes_arbitraires(self):
         base = dict(code='projet.commentaire', libelle='Commentaire', type='TEXTAREA', source='MANUELLE', allow_blank='on', actif='on')
-        with patch.object(Balise, 'validate_unique'):
+        with patch.object(Balise, 'validate_unique'), patch('django.forms.models.ModelChoiceField.clean', return_value=DocumentTemplate(id=1)), patch('django.db.models.fields.related.ForeignKey.validate'), patch.object(Balise.objects, 'filter') as lookup:
+            lookup.return_value.exclude.return_value.filter.return_value.exists.return_value = False
             form = BaliseConfigurationForm(base)
             self.assertTrue(form.is_valid(), form.errors)
             self.assertEqual(form.instance.mode, 'A_RENSEIGNER')

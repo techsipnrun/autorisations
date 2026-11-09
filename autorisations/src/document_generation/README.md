@@ -1,5 +1,29 @@
 # Accès depuis le dossier
 
+Pour préparer une base de production, suivre exclusivement
+[l'ordre de déploiement SQL](../../../sql/generation_doc/README.md).
+Les anciens scripts de données de démonstration ont été supprimés : les
+templates et les balises sont désormais configurés manuellement par environnement.
+La préparation SQL ne lève pas les restrictions dev du code applicatif.
+
+Sur la fiche d'un template, le tableau des balises présente leur source, type,
+caractère obligatoire et leur réutilisation dans les autres templates. Le lien
+dépliable **Partagée avec X autres templates** liste les fiches concernées et
+rappelle qu'un sens métier différent exige un autre code dans le Word.
+La fiche d'édition d'une balise AGIDA partagée indique l'impact sur les templates
+qui l'utilisent. Les usages reposent sur la dernière analyse des Word.
+
+Après exécution manuelle de `sql/generation_doc/0021_perimetre_balises.sql`, seules
+les balises **AGIDA** sont partagées. Les balises **Formulaire** et **Saisie
+instructeur** doivent être configurées pour chaque template, avec un template
+de rattachement obligatoire. Un code identique peut alors désigner des sources
+et règles différentes dans deux templates. L'analyse d'un Word ignore les
+définitions locales des autres templates ; une balise non configurée pour ce
+template reste inconnue. Un conflit de code avec AGIDA globale est refusé,
+sans priorité implicite. Les définitions locales déjà partagées sont dupliquées
+par la migration, sources comprises ; les définitions sans usage sont conservées
+désactivées jusqu'à rattachement. Les anciens snapshots restent intacts.
+
 ## Templates sans code technique
 
 Exécuter manuellement en **BDD dev**, après 0019,
@@ -234,8 +258,8 @@ menus se placent côte à côte si leur largeur le permet, puis sur deux lignes 
 Le Word `Templates/TEST/test_generation.docx` a été enrichi avec une condition
 sur `dossier.commune`, une boucle sur trois textes fixes et des textes en couleur.
 Son original a été conservé dans une sauvegarde `.bak` sur le NAS dev.
-Exécuter manuellement `sql/generation_doc/0011_balise_commune_test.sql` pour
-déclarer la balise connue qui lit le champ Commune de la démarche Test. Les
+Créer manuellement la balise `dossier.commune`, source Formulaire, et lui associer
+le champ Commune de la démarche de test dans le back-office. Les
 contrôles Jinja et les variables locales d'une boucle ne sont pas des entrées
 du catalogue ; une nouvelle donnée dynamique doit, elle, y être déclarée.
 
@@ -313,9 +337,8 @@ catalogue : il résout tous les codes du registre, ou la sélection explicite re
 L'exploitation de `actif`, `mode`, `required`, `allow_blank` et du type du catalogue
 pour préparer une génération sera une étape distincte.
 
-Le script `sql/generation_doc/0003_premieres_balises_connues.sql` prépare les cinq
-entrées du catalogue sans écraser celles déjà configurées. Il est à exécuter
-manuellement en dev ; aucun changement de structure SQL n'est nécessaire.
+Créer manuellement les cinq entrées du catalogue dans le back-office avec
+leurs sources AGIDA correspondantes ; aucun import de catalogue n'est fourni.
 
 Vérifications isolées, sans BDD réelle ni NAS :
 
@@ -331,9 +354,8 @@ est désormais `Templates/TEST/test_generation.docx` sur le NAS dev ; une copie 
 conservée dans `test_templates/test_generation.docx`. Il s'agit d'un Word de test,
 pas d'un document produit par le moteur de génération.
 
-1. Exécuter manuellement en dev `sql/generation_doc/0004_balise_manuelle_test.sql`
-   pour ajouter `quantite_prelevement` en mode `A_RENSEIGNER` (sans modifier une
-   éventuelle entrée existante). Les balises connues viennent du script 0003.
+1. Créer manuellement `quantite_prelevement`, source Saisie instructeur, ainsi
+   que les balises connues utilisées par le Word avec leurs sources AGIDA.
 2. Créer un template dans l'admin, avec une nature existante et le chemin relatif
    `TEST/test_generation.docx`, sans préfixer par `Templates/`.
 3. Revenir à la liste des templates (pas à la fiche du template), cocher la case
@@ -543,8 +565,7 @@ Un futur `fiche_de_suivi.docx` pourra rester directement à la racine de
 associations aux démarches en BDD et ne les modifie pas automatiquement.
 
 Le test a été déplacé physiquement dans `TEST/`, sans modification du contenu.
-Mettre à jour son chemin dans la fiche via le crayon, ou exécuter manuellement
-`sql/generation_doc/0007_chemin_template_test.sql` sur la BDD dev.
+Mettre à jour son chemin dans la fiche via le crayon.
 
 Le crayon en haut à droite d'« Informations du modèle » active l'édition : nom,
 nature, chemin relatif, activation et sélection de zéro, une ou plusieurs
@@ -578,12 +599,11 @@ et leurs copies de référence dans `test_templates/` :
 - `test_syntaxe_invalide.docx` : un bloc `if` non refermé, rapport invalide avec
   erreur Jinja attendue.
 - `test_if.docx` : condition sur `beneficiaire.nom_complet`, puis balise
-  `dossier.numero` ; rapport valide avec le catalogue du script 0003.
+  `dossier.numero` ; rapport valide lorsque ces balises sont configurées.
 - `test_for.docx` : boucle sur deux libellés littéraux et `dossier.numero` ;
   rapport valide, les variables locales de boucle ne sont pas des balises.
 
-Exécuter manuellement `sql/generation_doc/0008_templates_tests_analyse.sql` en BDD
-dev pour ajouter leurs fiches. Aucune nouvelle table ni balise n'est nécessaire.
+Créer manuellement leurs fiches depuis le back-office en dev.
 Aucun Word n'est rendu par le moteur et aucun PDF n'est créé.
 
 # Étape 6 — page de travail et formulaire dynamique
@@ -637,10 +657,9 @@ rendu et aucun PDF n'est créé. La réponse est privée et non mise en cache.
 ## Test manuel du parcours
 
 1. Le modèle `Templates/TEST/test_formulaire.docx` est déposé sur le NAS dev.
-2. Exécuter manuellement `sql/generation_doc/0009_template_formulaire_dynamique.sql`
-   sur la BDD dev après les scripts précédents. Il ajoute deux balises manuelles
-   (`projet.quantite_prelevement` et `projet.commentaire`) et la fiche du modèle,
-   sans écraser les configurations existantes. Il affiche l'identifiant du modèle.
+2. Créer manuellement les balises `projet.quantite_prelevement` (Décimal,
+   obligatoire) et `projet.commentaire` (Texte multiligne, facultatif), source
+   Saisie instructeur, puis la fiche du template. Relever son identifiant.
 3. Ouvrir `/document-generation/dossier/<numero_existant>/template/<id_retourne>/`.
 4. Vérifier les informations connues et les deux champs : quantité obligatoire,
    commentaire facultatif.
@@ -945,4 +964,32 @@ pas de doublon. Les aperçus restent locaux et temporaires ; la purge est inchan
 Tests isolés, sans BDD/NAS réels :
 ```powershell
 python -m tests tests.unit.admin.test_generation_record tests.unit.admin.test_generation_workflow tests.unit.admin.test_generation_output tests.unit.admin.test_generation_dossier
+```
+
+### Sécurité de la transmission de l’acte signé
+
+La confirmation de transmission regroupe dans une même transaction SQL les
+documents (acte et rapport CA), leurs statuts, les liens de génération, les
+rôles signataire/envoyeur, le journal d’action et l’étape du dossier. Une erreur
+avant validation annule ces écritures ensemble. Le dossier est verrouillé et
+l’état du projet est revérifié pour éviter une double confirmation concurrente.
+La notification est déclenchée après le commit ; son échec ne doit pas annuler
+une transmission déjà enregistrée.
+
+Les PDF sont copiés avant cette transaction, avec création exclusive : un fichier
+existant n’est jamais écrasé. Si une copie ou l’enregistrement échoue, les Word
+dans Work restent en place. Les copies PDF, éventuellement partielles, sont
+conservées et les chemins sont journalisés ; une nouvelle tentative utilise un
+nom disponible. On ne supprime pas automatiquement ces fichiers, notamment
+lorsqu’une rupture de connexion rend le résultat du commit incertain. Dans ce
+cas, recharger le dossier permet de vérifier son état avant une nouvelle tentative.
+
+Cette protection concerne la transmission signée ; elle ne constitue pas un
+audit transactionnel de tous les autres changements d’étape. Elle ne remplace
+pas les sauvegardes PostgreSQL et NAS, avec rétention et tests de restauration.
+Ces sauvegardes d’infrastructure ne sont pas configurées par ce module.
+
+Tests de pannes isolés (aucune écriture BDD/NAS réelle) :
+```powershell
+python -m tests tests.unit.instruction.test_signature_transaction tests.unit.admin.test_signed_act
 ```

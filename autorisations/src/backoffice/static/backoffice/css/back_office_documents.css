@@ -14,6 +14,10 @@
 .bo-documents-status:empty { display:none; }
 .bo-documents-status.is-error { color:#a12828; padding:.8rem 1rem; background:#fff3f1; border-radius:8px; }
 .bo-documents-liste { display:grid; justify-items:start; gap:.75rem; }
+@media(min-width:1300px) {
+    [data-documents-liste] { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:2rem; position:relative; }
+    [data-documents-liste]:has(> :nth-child(2))::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:1px; background:#dde6df; pointer-events:none; }
+}
 [data-balises-list] { grid-template-columns:minmax(0,max-content); align-items:start; justify-content:start; column-gap:1.1rem; }
 @media(min-width:1000px) { [data-balises-list] { grid-template-columns:repeat(2,minmax(0,max-content)); } }
 @media(min-width:1450px) { [data-balises-list] { grid-template-columns:repeat(3,minmax(0,max-content)); } }
@@ -115,3 +119,13 @@
 @media(max-width:650px) { .bo-balise-source-row { grid-template-columns:minmax(0,1fr); } .bo-balise-form { padding:1rem; } }
 @media(max-width:1050px) { .bo-documents-workspace { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:650px) { .bo-documents-card { flex-direction:column; align-items:flex-start !important; } .bo-documents-card-status { justify-content:flex-start; flex-shrink:1; } .bo-documents-toolbar label { width:100%; } .bo-documents-toolbar input,.bo-documents-toolbar select { width:100%; } .bo-documents-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .bo-documents-identite,.bo-documents-controle { padding:1rem; } }
+.bo-balise-shared { min-width:0; max-width:25rem; }
+.bo-balise-shared summary { color:#356247; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.bo-balise-shared ul, .bo-balise-impact ul { margin:.6rem 0; padding-left:1.2rem; }
+.bo-balise-shared a, .bo-balise-impact a { color:#356247; }
+.bo-balise-shared p { font-size:.8rem; line-height:1.5; color:#63756a; }
+.bo-balise-impact { padding:.85rem 1rem; border:1px solid #e1c695; border-radius:7px; background:#fff7e8; color:#805411; font-size:.9rem; }
+.bo-balise-impact[hidden] { display:none; }
+.bo-balise-impact details { margin-top:.5rem; }
+.bo-balise-impact summary { cursor:pointer; }
+.bo-documents-table td > small { display:block; margin-top:.35rem; color:#63756a; }

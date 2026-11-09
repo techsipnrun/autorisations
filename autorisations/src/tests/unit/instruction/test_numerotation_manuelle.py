@@ -127,9 +127,13 @@ class NumerotationManuelleTests(SimpleTestCase):
             self.assertIn("ne peut plus être changé", str(form.errors))
 
     def test_depot_acte_signe_utilise_reference_et_nom_nas_sur_les_deux_circuits(self):
-        for circuit in ("direction", "ca"):
+        for circuit, pattern in (("direction", None), ("ca", None),
+                                 ("direction", 'Signe_{dossier.numero}_{document.numero}.pdf'),
+                                 ("ca", 'Signe_{dossier.numero}_{document.numero}.pdf')):
             with self.subTest(circuit=circuit), ExitStack() as stack:
                 self.nature.circuit_signature = circuit
+                from autorisations.utils.act_filename import DEFAULT_PATTERN
+                self.nature.nom_fichier_signe = pattern or DEFAULT_PATTERN
                 doc = self.document(id=1, numero_reference="2025-018/PF")
                 mocks = {nom: stack.enter_context(patch.object(changement_etape, nom)) for nom in (
                     "get_dossier_or_redirect", "get_instructeur_or_redirect", "get_type_acte",
@@ -152,7 +156,10 @@ class NumerotationManuelleTests(SimpleTestCase):
                 changement_etape.acte_pret_a_etre_envoye(request)
                 self.assertTrue(mocks["generate_unique_filename"].called, str(mocks["redirect_error"].call_args))
                 base = mocks["generate_unique_filename"].call_args.kwargs["base_filename"]
-                self.assertTrue(base.startswith("PF-2025-018-PF_"), base)
+                if pattern:
+                    self.assertEqual(base, 'Signe_1_2025-018-PF.pdf')
+                else:
+                    self.assertTrue(base.startswith("PF-2025-018-PF_"), base)
                 self.assertNotIn("/", base)
                 self.assertEqual(doc.numero_reference, "2025-018/PF")
 

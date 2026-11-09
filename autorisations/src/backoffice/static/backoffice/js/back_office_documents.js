@@ -223,9 +223,17 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const balise of data.balises) {
             const ligne = element('tr', '');
             const classement = element('td', '');
-            classement.append(badge(balise.statut.replaceAll('_', ' '), balise.statut === 'CONNUE' ? 'is-success' : balise.statut === 'INCONNUE' ? 'is-error' : 'is-warning'));
+            const definition=optionsEdition?.balises_catalogue?.[`${selection.id}:${balise.code}`] || optionsEdition?.balises_catalogue?.[`*:${balise.code}`];
+            const source=definition?.source || (definition?.mode==='A_RENSEIGNER' ? 'MANUELLE' : 'AGIDA');
+            const label=balise.statut==='CONNUE' && definition ? (source==='FORMULAIRE' ? 'CONNUE FORMULAIRE' : 'CONNUE - AGIDA') : balise.statut.replaceAll('_', ' ');
+            classement.append(badge(label, balise.statut === 'CONNUE' ? 'is-success' : balise.statut === 'INCONNUE' ? 'is-error' : 'is-warning'));
+            if(definition) {
+                const type={TEXT:'Texte',TEXTAREA:'Texte multiligne',INTEGER:'Entier',DECIMAL:'Décimal',DATE:'Date',BOOLEAN:'Oui / Non',LIST:'Liste répétable',SELECT:'Liste simple',MULTISELECT:'Choix multiples'}[definition.type] || definition.type;
+                classement.append(element('small',`${type} · ${definition.required ? 'Obligatoire' : 'Facultative'}${definition.actif ? '' : ' · Inactive'}`));
+                const configure=element('a','Configurer cette balise');configure.href=`#documents/balises/${definition.id}?template=${selection.id}`;configure.className='bo-balise-configurer';classement.append(configure);
+            } else {classement.append(element('small','Non configurée'));}
             ligne.append(element('td', balise.code), classement);
-            if(balise.statut==='INCONNUE') {
+            if(balise.statut==='INCONNUE' && !definition) {
                 const configure=element('a','Configurer cette balise');
                 configure.href=`#documents/balises/nouvelle?code=${encodeURIComponent(balise.code)}&template=${selection.id}`;
                 configure.className='bo-balise-configurer';classement.append(configure);
@@ -257,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         panel.querySelector('.bo-documents-identite').classList.toggle('is-incomplete', !template.configuration_complete);
         const infos = panel.querySelector('[data-document-informations]');
         infos.replaceChildren();
+        infos.append(element('dt','Nom'),element('dd',template.nom));
         for (const [label, valeur] of Object.entries({Nature: template.nature, 'Chemin sous Templates/': template.chemin_relatif, État: template.actif ? 'Actif' : 'Inactif', Démarches: template.demarches.join(', ') || 'Global — toutes les démarches', 'Destination du fichier généré': template.destination_relative || 'Non définie', 'Nom du fichier': template.nom_fichier || 'Non défini'})) {
             const key={Nature:'id_nature','Chemin sous Templates/':'chemin_relatif','Destination du fichier généré':'destination_relative','Nom du fichier':'nom_fichier'}[label];
             const invalid=key && (template.configuration_errors?.[key] || (key!=='id_nature' && (!valeur || valeur==='Non définie' || valeur==='Non défini')));

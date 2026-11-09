@@ -105,14 +105,14 @@ class TemplateAnalyzer:
             data = read_template_bytes(template)
         except TemplatePathError as exc:
             return b"", AnalysisReport(erreurs=[str(exc)])
-        report = self.analyze_bytes(data)
+        report = self.analyze_bytes(data, template=template)
         if any(entry['code'] == 'document.numero' for entry in report.balises):
             from .numbers import number_kind
             if not number_kind(template):
                 report.erreurs.append('document.numero nécessite une nature de template avec numérotation (acte ou Avis instance).')
         return data, report
 
-    def analyze_bytes(self, data, catalogue=None):
+    def analyze_bytes(self, data, catalogue=None, *, template=None):
         """Analyse un DOCX en mémoire ; catalogue injectable pour les tests isolés."""
         report = AnalysisReport()
         env = AnalysisEnvironment()
@@ -133,7 +133,7 @@ class TemplateAnalyzer:
         report.erreurs.extend(sorted(errors))
         report.analyse_complete = not errors
         if catalogue is None:
-            catalogue = Balise.objects.filter(code__in=codes).prefetch_related("sources_champs__id_champ")
+            catalogue = Balise.objects.filter(Balise.perimetre(template), code__in=codes).prefetch_related("sources_champs__id_champ")
         by_code = {balise.code: balise for balise in catalogue}
         for code in sorted(codes):
             balise = by_code.get(code)

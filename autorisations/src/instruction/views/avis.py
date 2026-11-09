@@ -89,6 +89,10 @@ def _valider_formulaire_configure(request, dossier=None, avis=None, brouillon=Fa
                 for code in ("date_demande_avis", "date_reponse_avis"):
                     valeur = formulaire.cleaned_data.get(code)
                     formulaire.donnees[code] = valeur.isoformat() if valeur else ""
+            logger.info('[FORMULAIRE AVIS %s] Validation %s : fichiers reçus=%s ; fichiers actifs=%s',
+                        getattr(avis, 'pk', None), 'brouillon' if brouillon else 'envoi',
+                        {cle: len(request.FILES.getlist(cle)) for cle in request.FILES},
+                        {cle: len(formulaire.fichiers_actifs.getlist(cle)) for cle in formulaire.fichiers_actifs})
             request.POST = formulaire.donnees
             request._files = formulaire.fichiers_actifs
             return None
@@ -109,7 +113,12 @@ def _creation_avec_numero_reserve(vue):
         try:
             if avis_id:
                 with modification_brouillon_verrouillee(request, num_dossier, avis_id) as avis:
-                    if avis and avis.statut != "Brouillon":
+                    statuts_autorises = {"Brouillon", "À envoyer"}
+                    if vue.__name__ == "instruction_dossier_enregistrer_brouillon_avis":
+                        statuts_autorises.add("À valider")
+                    if avis and avis.statut not in statuts_autorises:
+                        if avis.statut == "À valider":
+                            return redirect_error(request, "Cette demande d'avis doit être validée avant de pouvoir être envoyée. Vous pouvez enregistrer ses modifications et ses pièces jointes.")
                         return redirect("instruction_dossier_consultation", num_dossier=num_dossier)
                     request.brouillon_reservation = avis
                     if not avis or request.POST.get("generer_numero") == "1":
@@ -1572,6 +1581,8 @@ def instruction_dossier_enregistrer_brouillon_avis(request, num_dossier, avis_id
         return redirect_error(request, f"Erreur lors de la transmission du formulaire : méthode POST requise. Contactez le support.")
         
 
+    logger.info('[AVIS %s] Brouillon enregistré : projet avis=%s ; projet acte=%s ; rapport=%s',
+                avis.id, avis.id_projet_avis_id, avis.id_projet_acte_id, avis.id_rapport_instance_id)
     return redirect('instruction_dossier_consultation', num_dossier=num_dossier)
 
 

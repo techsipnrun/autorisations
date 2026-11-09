@@ -31,6 +31,7 @@ class RecordGenerationService:
         template_snapshot = {
             'id': template.pk, 'nom': template.nom, 'chemin_relatif': template.chemin_relatif,
             'destination_relative': template.destination_relative, 'nom_fichier': template.nom_fichier,
+            'nature_cible': template.id_nature.nature if isinstance(getattr(template, 'id_nature_id', None), int) else None,
             'source_sha256': hashlib.sha256(template_bytes).hexdigest(),
             'document_sha256': hashlib.sha256(buffer.getvalue()).hexdigest(),
         }

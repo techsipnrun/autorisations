@@ -54,7 +54,7 @@ def template_mail_name_from_etape(label):
 
 
 
-def changer_etape_si_differente(dossier, nom_etape, user, request):
+def changer_etape_si_differente(dossier, nom_etape, user, request, *, notify_after_commit=False):
     """
     Change l'étape du dossier si elle est différente.
     Envoie aussi une notification mail si nécessaire.
@@ -87,6 +87,14 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
         raise Exception(f"[DOSSIER {dossier.numero}] Erreur lors du changement d'étape vers '{nom_etape}' par {user} : {e}")
 
 
+    if notify_after_commit:
+        from django.db import transaction
+        transaction.on_commit(lambda: _notifier_changement_etape(dossier, nouvelle_etape, nom_etape, user, request), robust=True)
+    else:
+        _notifier_changement_etape(dossier, nouvelle_etape, nom_etape, user, request)
+
+
+def _notifier_changement_etape(dossier, nouvelle_etape, nom_etape, user, request):
     #######################
     # NOTIFICATION PAR MAIL 
     #######################
@@ -154,9 +162,6 @@ def changer_etape_si_differente(dossier, nom_etape, user, request):
         else:
             logger.error(f"[DOSSIER {dossier.numero}] Échec envoi notification email {outbox.id} ({outbox.sujet}) à {', '.join(outbox.to)} : {err}")
             messages.error(request, f"{emails_txt} n'a pas été notifié du changement d'étape à '{nouvelle_etape.etape}'. Contactez le support pour en savoir plus.")
-
-    return
-
 
 
 

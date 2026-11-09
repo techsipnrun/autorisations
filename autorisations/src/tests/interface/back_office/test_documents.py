@@ -35,7 +35,7 @@ class DocumentsInterfaceTests(SimpleTestCase):
                     nom_fichier:options.body.get('nom_fichier'),configuration_complete:true,configuration_errors:{},demarches:[],demarche_ids:[]}}),
                     {status:201,headers:{'Content-Type':'application/json'}});
             }
-            if(url.includes('/options/')) return new Response(JSON.stringify({filename_date:{year:'2026',day:'04-11-26'},nas_root:'//serveur/dev/',natures:[{id:3,nom:'Arrêté directeur'}],demarches:[{id:1,nom:'Démarche test'}]}),{headers:{'Content-Type':'application/json'}});
+            if(url.includes('/options/')) return new Response(JSON.stringify({filename_date:{year:'2026',day:'04-11-26'},nas_root:'//serveur/dev/',balises_catalogue:{'*:dossier.numero':{id:7,source:'AGIDA',type:'INTEGER',required:true,actif:true,templates:[{id:1,nom:'Projet d’arrêté'},{id:2,nom:'Modèle démarche test'}]}},natures:[{id:3,nom:'Arrêté directeur'}],demarches:[{id:1,nom:'Démarche test'}]}),{headers:{'Content-Type':'application/json'}});
             if(url==='/enregistrer/') {
                 template.nom=options.body.get('nom');template.chemin_relatif=options.body.get('chemin_relatif');
                 template.destination_relative=options.body.get('destination_relative');template.nom_fichier=options.body.get('nom_fichier');
@@ -145,6 +145,10 @@ class DocumentsInterfaceTests(SimpleTestCase):
                 if(!texte.includes('2 Balises détectées') || !texte.includes('Syntaxe docxtpl valide') || !texte.includes('Template invalide')) throw new Error(texte);
                 if(document.querySelector('[data-document-verifier]')) throw new Error('Bouton manuel encore présent');
                 if(texte.includes('Dernière vérification')) throw new Error('Horodatage encore présent');
+                const columns=[...document.querySelectorAll('.bo-documents-table th')].map(item=>item.textContent);
+                if(JSON.stringify(columns)!==JSON.stringify(['Balise','Classement'])) throw new Error('Colonnes du rapport incorrectes');
+                if(!document.querySelector('.bo-documents-table tbody').textContent.includes('CONNUE - AGIDA')) throw new Error('Source AGIDA absente du classement');
+                if(!texte.includes('Obligatoire') || !texte.includes('AGIDA')) throw new Error('Source ou règles absentes');
                 const metric=document.querySelector('.bo-documents-metrics .is-success');
                 const badge=document.querySelector('.bo-documents-table .is-success');
                 if(getComputedStyle(metric).backgroundColor!==getComputedStyle(badge).backgroundColor) throw new Error('Couleurs différentes');

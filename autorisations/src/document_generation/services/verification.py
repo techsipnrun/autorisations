@@ -22,7 +22,7 @@ class TemplateVerificationService:
                 report = AnalysisReport(erreurs=[str(exc)])
             if report.analyse_complete:
                 codes = [entry["code"] for entry in report.balises]
-                catalogue = dict(Balise.objects.filter(code__in=codes).values_list("code", "pk"))
+                catalogue = dict(Balise.objects.filter(Balise.perimetre(template), code__in=codes).values_list("code", "pk"))
                 TemplateBalise.objects.filter(id_template=template).delete()
                 TemplateBalise.objects.bulk_create([
                     TemplateBalise(id_template=template, code=code, id_balise_id=catalogue.get(code))

@@ -7,7 +7,8 @@
     <title>Back Office — AGiDA</title>
     <link rel="icon" type="image/x-icon" href="{% static 'instruction/img/favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'backoffice/css/back_office.css' %}?v=41">
-    <script src="{% static 'backoffice/js/back_office_types_actes.js' %}?v=5" defer></script>
+    <script src="{% static 'backoffice/js/back_office_types_actes.js' %}?v=8" defer></script>
+    <link rel="stylesheet" href="{% static 'backoffice/css/act_filename.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'backoffice/css/back_office_actions.css' %}?v=8">
     <script src="{% static 'backoffice/js/back_office_actions.js' %}?v=13" defer></script>
     <link rel="stylesheet" href="{% static 'backoffice/css/back_office_avis.css' %}?v=9">
@@ -25,7 +26,7 @@
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js" defer></script>
     <script src="{% static 'instruction/js/cartographie.js' %}?v=5" defer></script>
     <script src="{% static 'backoffice/js/back_office_cartographie.js' %}?v=12" defer></script>
-{% if generation_documents_dev %}<link rel="stylesheet" href="{% static 'backoffice/css/back_office_documents.css' %}?v=7"><script src="{% static 'backoffice/js/back_office_documents.js' %}?v=13" defer></script>{% endif %}
+{% if generation_documents_dev %}<link rel="stylesheet" href="{% static 'backoffice/css/back_office_documents.css' %}?v=9"><script src="{% static 'backoffice/js/back_office_documents.js' %}?v=18" defer></script>{% endif %}
 </head>
 <body>
     <div class="back-office-layout">
@@ -444,7 +445,7 @@
             {% if generation_documents_dev %}
                 {% include "backoffice/back_office_documents.html" %}
                 {% include "backoffice/back_office_balises.html" %}
-                <script src="{% static 'backoffice/js/back_office_balises.js' %}?v=5" defer></script>
+                <script src="{% static 'backoffice/js/back_office_balises.js' %}?v=7" defer></script>
             {% endif %}
         </main>
     </div>

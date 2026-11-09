@@ -25,6 +25,7 @@ class GenerationDossierTests(SimpleTestCase):
     def call(self, query="", method="get"):
         request = getattr(RequestFactory(), method)("/document-generation/dossier/30655697/" + query)
         request.user = SimpleNamespace(is_authenticated=True, is_superuser=True)
+        request.session = {}
         with ExitStack() as stack:
             stack.enter_context(patch("document_generation.views.dossier_history", return_value={"generation_history": []}))
             stack.enter_context(patch("document_generation.views._dossier_context", return_value=self.dossier))

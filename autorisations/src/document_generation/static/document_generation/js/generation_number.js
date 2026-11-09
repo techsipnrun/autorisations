@@ -4,14 +4,35 @@ document.addEventListener('DOMContentLoaded',()=>{
     let refreshNumberChip=()=>{};
     if(filename) {
         const editor=filename.querySelector('[data-output-editor]'),input=filename.querySelector('[name=output_filename]');
-        const raw=()=>[...editor.childNodes].map(node=>node.dataset?.variable ? `{${node.dataset.variable}}` : node.textContent).join('').replaceAll('\u200b','').replace(/\.docx$/i,'')+'.docx';
+        const raw=()=>[...editor.childNodes].map(node=>{
+            if(node.dataset?.variable) return Object.hasOwn(node.dataset,'literalValue') ? node.dataset.literalValue : `{${node.dataset.variable}}`;
+            if(node.dataset?.editingVariable && node.textContent===node.dataset.initialText) return node.dataset.initialRaw;
+            return node.textContent;
+        }).join('').replaceAll('\u200b','').replace(/\.docx$/i,'')+'.docx';
         const sync=()=>{input.value=raw();input.dispatchEvent(new Event('input',{bubbles:true}));};
-        function chip(code) {
+        function chip(code, literal=null) {
             const info=filenameValues[code] || {label:code,value:'À compléter',pending:true};
             const node=document.createElement('span');node.className='output-variable';node.dataset.variable=code;node.contentEditable='false';
-            node.classList.toggle('is-pending',info.pending);
-            const label=document.createElement('span');label.dataset.variableLabel='';label.textContent=info.value;label.title=info.label;
-            node.title=info.label;node.append(label);return node;
+            if(literal!==null) node.dataset.literalValue=literal;
+            const pending=literal===null && info.pending;
+            node.classList.toggle('is-pending',pending);
+            const label=document.createElement('span');label.dataset.variableLabel='';label.textContent=literal===null ? info.value : literal;label.title=info.label;
+            const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Supprimer cette variable';remove.setAttribute('aria-label',`Supprimer ${info.label}`);
+            remove.addEventListener('click',()=>{node.remove();sync();});
+            label.title=pending ? 'Cette variable sera modifiable une fois sa valeur disponible.' : 'Double-cliquez pour modifier cette valeur';
+            label.addEventListener('dblclick',()=>{
+                if(node.classList.contains('is-pending')) return;
+                const initial=label.textContent,text=textPart(initial);
+                text.dataset.editingVariable=code;text.dataset.initialText=initial;
+                text.dataset.initialRaw=Object.hasOwn(node.dataset,'literalValue') ? node.dataset.literalValue : `{${code}}`;
+                text.addEventListener('blur',()=>{
+                    if(!text.isConnected) return;
+                    const value=text.textContent===initial ? literal : text.textContent;
+                    text.replaceWith(chip(code,value));sync();
+                },{once:true});
+                node.replaceWith(text);text.focus();
+            });
+            node.title=info.label;node.append(label,remove);return node;
         }
         function textPart(value) {
             const node=document.createElement('span');node.contentEditable='true';node.className='output-filename-text';
@@ -20,17 +41,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         const value=input.value.replace(/\.docx$/i,'');let start=0;
         for(const match of value.matchAll(/\{([^{}]+)\}/g)) {editor.append(textPart(value.slice(start,match.index)),chip(match[1]));start=match.index+match[0].length;}
         editor.append(textPart(value.slice(start)));
-        editor.addEventListener('beforeinput',event=>{
-            const selection=window.getSelection();
-            if(selection.rangeCount && !selection.isCollapsed && [...editor.querySelectorAll('[data-variable]')].some(node=>selection.getRangeAt(0).intersectsNode(node))) event.preventDefault();
-        });
         editor.addEventListener('drop',event=>event.preventDefault());
-        editor.addEventListener('cut',event=>{
-            const selection=window.getSelection();
-            if(selection.rangeCount && [...editor.querySelectorAll('[data-variable]')].some(node=>selection.getRangeAt(0).intersectsNode(node))) event.preventDefault();
-        });
         editor.addEventListener('input',sync);
-        editor.addEventListener('keydown',event=>{if(event.key==='Enter') event.preventDefault();});
+        editor.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();if(event.target.dataset.editingVariable)event.target.blur();}});
         editor.addEventListener('paste',event=>{
             event.preventDefault();const text=event.clipboardData.getData('text/plain').replace(/[\r\n]/g,'');
             const selection=window.getSelection();if(!selection.rangeCount) return;
@@ -38,9 +51,13 @@ document.addEventListener('DOMContentLoaded',()=>{
             if(!event.target.closest('.output-filename-text')) return;
             range.deleteContents();const node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.collapse(true);sync();
         });
-        refreshNumberChip=numero=>editor.querySelectorAll('[data-variable="document.numero"]').forEach(node=>{
-            node.querySelector('[data-variable-label]').textContent=numero;node.classList.remove('is-pending');
-        });
+        refreshNumberChip=numero=>{
+            filenameValues['document.numero']={...(filenameValues['document.numero'] || {}),value:numero,pending:false};
+            editor.querySelectorAll('[data-variable="document.numero"]').forEach(node=>{
+                if(Object.hasOwn(node.dataset,'literalValue'))return;
+                node.replaceWith(chip('document.numero'));
+            });
+        };
     }
     if(!control) return;
     const dialog=control.querySelector('[data-number-dialog]'),choice=control.querySelector('[data-number-choice]'),message=control.querySelector('[data-number-message]');

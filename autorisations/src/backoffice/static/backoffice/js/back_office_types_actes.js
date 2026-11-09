@@ -16,13 +16,68 @@ window.addEventListener('resize', repositionnerAidesTypesActes);
 window.addEventListener('scroll', repositionnerAidesTypesActes, {passive: true, capture: true});
 
 document.querySelectorAll('[data-type-acte-form]').forEach(form => {
+  const naming=form.querySelector('[data-act-filename]'),editor=naming.querySelector('[data-act-filename-editor]'),choices=naming.querySelector('[data-act-filename-choices]');
+  const labels={'prefixe_fichier':'Préfixe du fichier','document.numero':'Numéro de l’acte','dossier.numero':'Numéro du dossier','date.jour_mois':'Jour-Mois','date.jour':'Jour-Mois-Année','date.annee':'Année','beneficiaire.identite':'Bénéficiaire'};
+  const samples=()=>({'prefixe_fichier':form.elements.prefixe_nom_fichier?.value ?? form.dataset.prefix ?? '', 'document.numero':form.dataset.nextNumber,
+    'dossier.numero':'31770683','date.jour_mois':naming.dataset.day,'date.jour':naming.dataset.date,'date.annee':naming.dataset.year,'beneficiaire.identite':'DUPONT-Jean'});
+  const raw=()=>[...editor.childNodes].map(node=>node.dataset?.variable ? `{${node.dataset.variable}}` : node.textContent).join('').replaceAll('\u200b','').replace(/\.pdf$/i,'')+'.pdf';
+  function sync(){form.elements.nom_fichier_signe.value=raw();choices.querySelectorAll('button').forEach(button=>{button.disabled=raw().includes(`{${button.dataset.variable}}`);});}
+  function token(code){
+    const chip=document.createElement('span');chip.className='act-filename-token';chip.contentEditable='false';chip.dataset.variable=code;
+    const label=document.createElement('span');label.textContent=labels[code];
+    const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label',`Retirer ${labels[code]}`);
+    remove.addEventListener('click',()=>{chip.remove();sync();apercu();editor.focus();});chip.append(label,remove);return chip;
+  }
+  const pattern=form.elements.nom_fichier_signe.value.replace(/\.pdf$/i,'');let start=0;
+  for(const match of pattern.matchAll(/\{([^{}]+)\}/g)){
+    if(!Object.hasOwn(labels,match[1]))continue;
+    editor.append(document.createTextNode(pattern.slice(start,match.index)),token(match[1]));start=match.index+match[0].length;
+  }
+  editor.append(document.createTextNode(pattern.slice(start)));
+  for(const [code,label] of Object.entries(labels)){
+    const wrapper=document.createElement('div'),button=document.createElement('button'),example=document.createElement('small');
+    button.type='button';button.textContent=label;button.dataset.variable=code;example.dataset.example=code;
+    button.addEventListener('mousedown',event=>event.preventDefault());
+    button.addEventListener('click',()=>{
+      if(raw().includes(`{${code}}`))return;
+      const selection=window.getSelection();let range=selection.rangeCount ? selection.getRangeAt(0) : null;
+      if(!range || !editor.contains(range.commonAncestorContainer)){range=document.createRange();range.selectNodeContents(editor);range.collapse(false);}
+      const chip=token(code);range.deleteContents();range.insertNode(chip);range.setStartAfter(chip);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
+      sync();apercu();editor.focus();
+    });wrapper.append(button,example);choices.append(wrapper);
+  }
+  editor.addEventListener('input',sync);
+  const forbidden=/[\\/:*?"<>|\x00-\x1f]/;
+  const nameError=naming.querySelector('[data-act-filename-error]');
+  function rejectInvalid(text){
+    const invalid=forbidden.test(text);
+    nameError.hidden=!invalid;
+    nameError.textContent=invalid ? 'Caractère interdit dans un nom de fichier : /, \\, :, *, ?, ", <, >, | ou caractère de contrôle.' : '';
+    return invalid;
+  }
+  editor.addEventListener('beforeinput',event=>{if(event.data && rejectInvalid(event.data))event.preventDefault();});
+  editor.addEventListener('keydown',event=>{if(event.key==='Enter')event.preventDefault();});
+  editor.addEventListener('drop',event=>event.preventDefault());
+  editor.addEventListener('paste',event=>{
+    event.preventDefault();const selection=window.getSelection();if(!selection.rangeCount)return;
+    const range=selection.getRangeAt(0);if(!editor.contains(range.commonAncestorContainer))return;
+    const pasted=event.clipboardData.getData('text/plain');if(rejectInvalid(pasted))return;
+    range.deleteContents();const text=document.createTextNode(pasted);range.insertNode(text);range.setStartAfter(text);range.collapse(true);sync();apercu();
+  });
+  sync();
   const apercu = () => {
-    const manuel = form.elements.mode_numerotation.value === 'manuelle';
-    form.querySelector('.back-office-acte-number-preview').hidden = manuel;
-    form.querySelector('[data-type-acte-manual-help]').hidden = !manuel;
-    const numero = form.dataset.nextNumber;
-    form.querySelector('[data-type-acte-preview]').textContent = `Prochain numéro estimé : ${form.elements.prefixe_numero.value}${numero}`;
-    form.querySelector('[data-type-acte-filename-preview]').textContent = `Exemple de fichier signé : ${form.elements.prefixe_nom_fichier.value}${numero}_JJ-MM.pdf`;
+    if(form.elements.mode_numerotation){
+      const manuel = form.elements.mode_numerotation.value === 'manuelle';
+      form.querySelector('.back-office-acte-number-preview').hidden = manuel;
+      form.querySelector('[data-type-acte-manual-help]').hidden = !manuel;
+      const numero = form.dataset.nextNumber;
+      form.querySelector('[data-type-acte-preview]').textContent = `Prochain numéro estimé : ${form.elements.prefixe_numero.value}${numero}`;
+    }
+    const values=samples();
+    naming.querySelectorAll('[data-example]').forEach(node=>{node.textContent=values[node.dataset.example] || '(vide)';});
+    editor.querySelectorAll('[data-variable]').forEach(node=>{node.title=values[node.dataset.variable] || '(vide)';});
+    const filename=raw().replace(/\{([^{}]+)\}/g,(match,code)=>Object.hasOwn(values,code) ? values[code].replace(/[\\/:*?"<>|\x00-\x1f]/g,'-') : match).replace(/\s+/g,'-');
+    form.querySelector('[data-type-acte-filename-preview]').textContent = `Exemple de fichier signé : ${filename}`;
   };
   form.addEventListener('input', apercu);
   apercu();

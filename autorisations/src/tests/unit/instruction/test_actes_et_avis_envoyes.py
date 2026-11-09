@@ -17,7 +17,7 @@ class ActesEtAvisEnvoyesTests(SimpleTestCase):
         super().setUpClass()
         source = get_template("instruction/instruction_dossier.html").template.source
         bloc = source.split("<!-- ######################## AVIS ENVOYÉS ######################### -->", 1)[1]
-        bloc = bloc.split("<!-- ######################## AVIS À ENVOYER ######################### -->", 1)[0]
+        bloc = bloc.split('<!-- FIN ACTES ET AVIS ENVOYES -->', 1)[0]
         cls.template = Template("{% load static %}" + bloc)
 
     def setUp(self):

@@ -61,6 +61,10 @@ def _verifier_fichiers_generes_actes(request, dossier):
     try:
         status = act_file_status(dossier)
         if not status['blocked'] and request is not None:
+            report_filename = (request.POST.get('piece_jointe_rapport_ca_work') or '').strip()
+            if report_filename:
+                from document_generation.services.report_file_guard import validate_generated_report
+                validate_generated_report(dossier, report_filename)
             request._generated_act = find_generated_act(dossier, request.POST.get('piece_jointe_work', ''), request.POST.get('nature_document'))
             if request._generated_act is not None:
                 previous = replacement_candidate(request._generated_act, dossier)
@@ -2571,13 +2575,14 @@ def acte_pret_a_etre_envoye(request):
         logger.error(f"[DOSSIER {dossier.numero}] Type de document non configuré comme acte : {nature_document}.")
         return redirect_error(request, f"❌ Nature de document '{nature_document}' non reconnue. Contactez le support.")
     
-    date_du_jour = datetime.today().strftime("%d-%m")
     try:
-        nom_acte_genere = doc_nature.formater_nom_acte(numero_document(projet_acte), date_du_jour)
-    except ValidationError:
+        nom_acte_genere = doc_nature.formater_nom_acte(numero_document(projet_acte), dossier=dossier)
+        if fichier_rapportCA:
+            nom_rapportCA_genere = doc_nature_rapportCA.formater_nom_acte(numero_document(projet_acte), dossier=dossier)
+    except ValidationError as erreur:
         return redirect_error(
             request,
-            "Le préfixe du nom de fichier est invalide. Corrigez la nature du document dans l’administration.",
+            "Le nom du PDF signé ne peut pas être calculé : " + ' '.join(erreur.messages),
         )
 
 
@@ -2592,7 +2597,7 @@ def acte_pret_a_etre_envoye(request):
     
 
     # === 3. On écrit dans le dossier /Actes ===
-    if not ecrire_file_sur_nas(fichier, abs_file_path_acte_signe): 
+    if not ecrire_file_sur_nas(fichier, abs_file_path_acte_signe, exclusive=True):
         logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Échec de l’écriture du fichier {nom_acte_genere}.pdf sur {abs_file_path_acte_signe}.")
         return redirect_error(request, f"❌ Échec de l’écriture du fichier {nom_acte_genere}.pdf sur {abs_file_path_acte_signe}. Contactez le support.")
 
@@ -2613,7 +2618,6 @@ def acte_pret_a_etre_envoye(request):
     if fichier_rapportCA :
 
         # === 1. On génère le nom (ex : RapportCA_05-03-26) ===
-        nom_rapportCA_genere = f"RapportCA_{date_du_jour}"
 
         
         # === 2. On s'assure qu'on a un nom unique ===
@@ -2627,8 +2631,9 @@ def acte_pret_a_etre_envoye(request):
 
 
         # === 3. On écrit dans le dossier /Actes ===
-        if not ecrire_file_sur_nas(fichier_rapportCA, abs_file_path_rapportCA): 
-            raise (f"Échec de l’écriture du fichier {nom_rapportCA_genere}.pdf sur {abs_file_path_rapportCA}")
+        if not ecrire_file_sur_nas(fichier_rapportCA, abs_file_path_rapportCA, exclusive=True):
+            logger.error("[DOSSIER %s] Echec copie rapport CA : %s", dossier.numero, abs_file_path_rapportCA)
+            return redirect_error(request, "La copie du rapport CA a échoué. Les projets et l’étape sont conservés ; vous pouvez réessayer.")
         
         logger.info(f"[DOSSIER {dossier.numero}] Transmission de l'acte signé par {request.user} : Rapport CA ({nom_rapportCA_genere}.pdf) écrit dans le dossier Actes.")
 
@@ -2643,139 +2648,50 @@ def acte_pret_a_etre_envoye(request):
     # -----------------------------------
     # Remise à zéro des statuts documents 
     # -----------------------------------
-    statuts_cibles = {"à envoyer", "à signer", "à relire", "à valider"}
-    documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
-
-    for lien in documents_du_dossier:
-        doc = lien.id_document
-        statut_actuel = doc.id_statut.statut.lower() if doc.id_statut else ""
-
-        if statut_actuel in statuts_cibles:
-            try :
-                doc.id_statut = None
-                doc.save()
-                # logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : statut du document '{doc.titre}' remis à NULL.")
-            
-            except Exception as e:
-                logger.error(f"[DOSSIER {dossier.numero}] Changement d'étape à 'Acte à envoyer' par {request.user} : Erreur MAJ statut document {doc.id} : {e}")
-
-
-    # ----------------------------------
-    # Création du doc (Acte) "À envoyer" 
-    # ----------------------------------
-
-    """
-    On met à jour le doc projet_acte (projet acte word devient acte signé pdf : statut, format, numero, path, description) plutot que de faire un get_or_create
-    --> titre_final_acte_signe à la place du fichier.name 
-    """
-
     try:
-        projet_acte.id_statut = statut_a_envoyer
-        projet_acte.id_format = format_pdf
-        projet_acte.titre = f"{titre_final_acte_signe}.pdf"
-        projet_acte.emplacement = dossier_path
-        projet_acte.description = f"{nature_document} pour le dossier {dossier.numero}"
-        projet_acte.save()
+        with transaction.atomic():
+            locked = Dossier.objects.select_for_update().get(pk=dossier.pk)
+            if locked.id_etape_dossier_id != dossier.id_etape_dossier_id:
+                raise ValueError("L’étape du dossier a changé. Rechargez la page.")
+            if not Document.objects.filter(pk=projet_acte.pk, id_statut__statut="À signer").exists():
+                raise ValueError("Ce projet n’est plus à signer. Rechargez la page.")
+            from document_generation.services.signed_act import save_signed_documents
+            report_values = None
+            if fichier_rapportCA:
+                report_values = {
+                    'id_statut': statut_a_envoyer, 'id_format': format_pdf,
+                    'id_nature': doc_nature_rapportCA,
+                    'titre': f"{titre_final_rapportCA}.pdf", 'emplacement': dossier_path,
+                    'description': f"{doc_nature_rapportCA} du dossier {dossier.numero}",
+                }
+            projet_acte, rapport_signe = save_signed_documents(dossier, projet_acte, {
+                'id_statut': statut_a_envoyer, 'id_format': format_pdf,
+                'titre': f"{titre_final_acte_signe}.pdf", 'emplacement': dossier_path,
+                'description': f"{nature_document} pour le dossier {dossier.numero}",
+            }, report=projet_rapportCA if fichier_rapportCA else None,
+                report_values=report_values, user=request.user)
+            if rapport_signe is not None:
+                projet_rapportCA = rapport_signe
 
-    except Exception as e:
-        logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Échec MAJ {nature_document} (id={projet_acte.id}) en BDD : {e}")
-        return redirect_error(request,f"❌ {nature_document} copié dans le Dossier '/Actes' mais échec de sa mise à jour en base. Contactez le support.")
-                
+            from instruction.utils_instru import changer_etape_si_differente, enregistrer_action
+            for model, person in ((DossierSignataire, signataire), (DossierEnvoiActe, envoyeur)):
+                model.objects.filter(id_dossier=dossier).delete()
+                model.objects.create(id_dossier=dossier, id_instructeur=person)
+            description = f"{signataire.id_agent_autorisations.nom} {signataire.id_agent_autorisations.prenom}"
+            enregistrer_action(dossier, instructeur, "Acte signé", description=description)
+            changer_etape_si_differente(dossier, "Acte à envoyer", request.user, request,
+                                       notify_after_commit=True)
 
-    # doc, created = Document.objects.get_or_create(
-    #                         emplacement=dossier_path, titre=fichier.name,
-    #                         defaults={
-    #                             "id_format": format_pdf,
-    #                             "id_nature": doc_nature,
-    #                             "id_statut": statut_a_envoyer,
-    #                             "description": f"{doc_nature.nature} du dossier {dossier.numero}",
-    #                         }
-    #                     )
-    
-    # if created:
-    #     DossierDocument.objects.create(id_dossier=dossier, id_document=doc)
-    #     logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : {fichier.name} ({doc_nature.nature} 'À envoyer') créé et lié au dossier")
-    # else:
-    #     try :
-    #         doc.id_statut = statut_a_envoyer
-    #         doc.save()
-    #         logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé : {fichier.name} ({doc_nature.nature}, {doc.id_statut.statut}) déjà existant – statut changé à 'À envoyer'")
-    #     except Exception as e:
-    #         logger.error(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé ({request.user}) : Erreur lors de la MAJ au statut 'à envoyer' du document {doc.id} : {e}")
-
-
-    # ---------------------------------
-    # Création Document Rapport CA
-    # ---------------------------------
-    if fichier_rapportCA :
-
-        """ 
-        On met à jour le doc projet_rapportCA (Projet Rapport CA word devient Rapport CA (Word ou pdf ici ?) : statut, format, path, description) plutot que de faire un get_or_create
-        --> nom unique à la place du fichier_rapportCA.name  (TO DO)   
-        """
-
-        try:
-            projet_rapportCA.id_statut = statut_a_envoyer
-            projet_rapportCA.id_format = format_pdf
-            projet_rapportCA.id_nature = doc_nature_rapportCA
-            projet_rapportCA.titre = f"{titre_final_rapportCA}.pdf"
-            projet_rapportCA.emplacement = dossier_path
-            projet_rapportCA.description = f"{doc_nature_rapportCA} du dossier {dossier.numero}"
-            projet_rapportCA.save()
-
-        except Exception as e:
-            logger.error(f"[DOSSIER {dossier.numero}] Echec du changement d'étape à 'Acte à envoyer' ({request.user}) : Échec MAJ Projet Rapport CA (id={projet_rapportCA.id}) en BDD : {e}")
-            return redirect_error(request,f"❌ {doc_nature_rapportCA} copié dans le Dossier '/Actes' mais échec de sa mise à jour en base. Contactez le support.")
-
-        # doc_ca, created = Document.objects.get_or_create(
-        #                         emplacement=dossier_path, titre=fichier_rapportCA.name,
-        #                         defaults={
-        #                             "id_format": format_pdf,
-        #                             "id_nature": doc_nature_rapportCA,
-        #                             "description": f"{doc_nature_rapportCA.nature} du dossier {dossier.numero}",
-        #                         }
-        #                     )
-        
-        # if created:
-        #     DossierDocument.objects.create(id_dossier=dossier, id_document=doc_ca)
-        #     logger.info(f"[DOSSIER {dossier.numero}] Acte prêt à être envoyé - Transmission du Rapport CA : {fichier.name} (Document {doc_ca.numero}) créé et lié au dossier")
-        # else:
-        #     try :
-        #         doc_ca.id_statut = statut_a_envoyer
-        #         doc_ca.save()
-        #         logger.warning(f"[DOSSIER {dossier.numero}] Transmission du Rapport CA par {request.user} : {fichier.name} (Document {doc_ca.numero}, Statut {doc_ca.id_statut.statut}) déjà existant – statut changé à 'À envoyer'")
-
-        #     except Exception as e:
-        #         logger.error(f"[DOSSIER {dossier.numero}] Passage Étape 'Acte prêt à être envoyé' par {request.user} - Transmission du Rapport CA : Erreur lors de la MAJ au statut 'à envoyer' du document {doc_ca.id} existant : {e}")
-
-
-
-
-    # Ajout du signataire au dossier
-    err = set_dossier_role(DossierSignataire, dossier, signataire, "Signataire", request)
-    if err:
-        return err
-    
-
-    # Ajout de l'envoyeur d'acte au dossier
-    err = set_dossier_role(DossierEnvoiActe, dossier, envoyeur, "Envoyeur d'acte", request)
-    if err:
-        return err
-    
-
-    # --- Mise à jour Étape ---
-    err = safe_update_etape(dossier, "Acte à envoyer", request, break_si_erreur=True)
-    if err:
-        return err
-
-
-    # --- Enregistrer Action ---
-    signataire_nom_prenom = f"{signataire.id_agent_autorisations.nom} {signataire.id_agent_autorisations.prenom}"
-    safe_enregistrer_action(dossier, instructeur, "Acte signé", request, description=signataire_nom_prenom)
+    except Exception:
+        logger.exception("[DOSSIER %s] Transmission annulee ; copies NAS a verifier : %s / %s",
+                         dossier.numero, abs_file_path_acte_signe,
+                         locals().get('abs_file_path_rapportCA'))
+        return redirect_error(request, "La transmission n’a pas pu être confirmée. "
+                              "Rechargez la page pour vérifier l’état du dossier avant de réessayer. "
+                              "Les PDF déjà copiés dans Actes sont conservés.")
 
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
- 
 
 @require_POST
 @login_required

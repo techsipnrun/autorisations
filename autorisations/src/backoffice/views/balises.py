@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 def serialiser(balise):
-    return {**{name: getattr(balise, name) for name in BaliseConfigurationForm.Meta.fields},
+    return {**{name: getattr(balise, name) for name in BaliseConfigurationForm.Meta.fields if name != 'id_template'},
+            'id_template': balise.id_template_id,
+            'template_nom': balise.id_template.nom if balise.id_template_id else '',
             'id': balise.pk, 'mode': balise.mode,
             'source': balise.source or (Balise.Source.MANUELLE if balise.mode == Balise.Mode.A_RENSEIGNER else Balise.Source.AGIDA),
             'source_propriete': balise.source_propriete or (balise.code if not balise.source and balise.mode == Balise.Mode.CONNUE else ''),
@@ -29,7 +31,7 @@ def serialiser(balise):
 
 
 def erreur_schema():
-    return JsonResponse({'erreur': 'Catalogue inaccessible. Exécutez manuellement les scripts dev jusqu’à 0013_balise_liste_repetable.sql et vérifiez les droits.'}, status=503)
+    return JsonResponse({'erreur': 'Catalogue inaccessible. Exécutez manuellement les scripts jusqu’à 0021_perimetre_balises.sql et vérifiez les droits.'}, status=503)
 
 
 @login_required
@@ -37,7 +39,7 @@ def erreur_schema():
 def catalogue(request):
     verifier_acces(request)
     try:
-        rows = Balise.objects.prefetch_related('sources_champs__id_champ', 'sources_champs__id_demarche')
+        rows = Balise.objects.prefetch_related('id_template', 'sources_champs__id_champ', 'sources_champs__id_demarche')
         templates = DocumentTemplate.objects.prefetch_related('demarches', 'balises_detectees').order_by('nom')
         return JsonResponse({'balises': [serialiser(row) for row in rows],
             'templates': [{'id': template.pk, 'nom': template.nom,
@@ -101,7 +103,12 @@ def enregistrer(request, balise_id=None):
             balise = form.save()
             BaliseSourceChamp.objects.filter(id_balise=balise).delete()
             BaliseSourceChamp.objects.bulk_create([BaliseSourceChamp(id_balise=balise, id_demarche_id=d, id_champ_id=c) for d, c in pairs])
-            template_ids = list(TemplateBalise.objects.filter(code=balise.code).values_list('id_template_id', flat=True).distinct())
+            impacted = TemplateBalise.objects.filter(code=balise.code)
+            if balise.source != Balise.Source.AGIDA:
+                impacted = impacted.filter(id_template_id=balise.id_template_id)
+            template_ids = list(impacted.values_list('id_template_id', flat=True).distinct())
+            if balise.id_template_id and balise.id_template_id not in template_ids:
+                template_ids.append(balise.id_template_id)
             DocumentTemplate.objects.filter(pk__in=template_ids).update(rapport_validation=None, date_verification=None)
         # Le catalogue est enregistré avant les lectures NAS, qui peuvent échouer.
         from document_generation.services.verification import TemplateVerificationService
@@ -119,6 +126,6 @@ def enregistrer(request, balise_id=None):
     except ValidationError as exc:
         return JsonResponse({'erreur': ' '.join(exc.messages)}, status=400)
     except IntegrityError:
-        return JsonResponse({'erreur': 'Ce code existe déjà ou une source est invalide.'}, status=400)
+        return JsonResponse({'erreur': 'Ce code existe déjà dans ce périmètre, entre en conflit avec une balise AGIDA globale, ou une source est invalide.'}, status=400)
     except (ProgrammingError, OperationalError):
         return erreur_schema()
