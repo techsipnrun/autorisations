@@ -45,6 +45,25 @@ class DocumentNumberTests(SimpleTestCase):
             self.assertIsNone(numbers.selected_number('',self.dossier,self.template,self.user))
         self.assertTrue(state['request_key']);create.assert_not_called();cursor.assert_not_called()
 
+    def test_reference_saisie_pour_nature_manuelle_sans_compteur(self):
+        self.nature.mode_numerotation='manuelle'
+        with ExitStack() as stack:
+            self.environment(stack)
+            numbers.choose_number(self.request,self.dossier,self.template,manual='COURRIER/42/Texte')
+        self.assertEqual(self.create.call_args.kwargs['numero'],'COURRIER/42/Texte')
+        self.assertEqual(self.create.call_args.kwargs['origine'],'SAISI')
+        self.assertEqual(resolve_filename('Acte_{document.numero}.docx',self.dossier,
+            document_number='COURRIER/42/Texte'),'Acte_COURRIER-42-Texte.docx')
+        self.assertFalse(any('prochain_numero_acte' in call.args[0] or 'nextval' in call.args[0] for call in self.cursor.execute.call_args_list))
+
+    def test_reference_saisie_interdite_pour_nature_automatique_ou_chemin(self):
+        with self.assertRaises(ValidationError):
+            numbers.choose_number(self.request,self.dossier,self.template,manual='2026-42')
+        self.nature.mode_numerotation='manuelle'
+        for value in ('', 'ABC\\DEF', 'A\nB', 'x'*151):
+            with self.subTest(value=value), self.assertRaises(ValidationError):
+                numbers.choose_number(self.request,self.dossier,self.template,manual=value)
+
     def test_reservation_acte_via_compteur_partage_et_rotation_du_jeton(self):
         with ExitStack() as stack:
             self.environment(stack)
@@ -146,9 +165,9 @@ class DocumentNumberTests(SimpleTestCase):
         self.assertEqual(resolve_filename('jeudi_{document.numero}.docx',self.dossier,document_number='2026-011'),'jeudi_2026-011.docx')
         values=filename_editor_context('jeudi_{document.numero}.docx',self.dossier)
         self.assertTrue(values['document.numero']['pending'])
-        self.assertEqual(values['document.numero']['value'], 'Numéro de l’acte')
+        self.assertEqual(values['document.numero']['value'], 'Numéro du document')
         avis = filename_editor_context('{document.numero}.docx', self.dossier, numbering_kind='avis')
-        self.assertEqual(avis['document.numero']['value'], 'Numéro de l’avis')
+        self.assertEqual(avis['document.numero']['value'], 'Numéro du document')
         assigned = filename_editor_context('{document.numero}.docx', self.dossier, '2026-011')
         self.assertEqual(assigned['document.numero']['value'], '2026-011')
         self.assertFalse(assigned['document.numero']['pending'])

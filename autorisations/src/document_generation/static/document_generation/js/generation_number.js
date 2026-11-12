@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             range.deleteContents();const node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.collapse(true);sync();
         });
         refreshNumberChip=numero=>{
-            filenameValues['document.numero']={...(filenameValues['document.numero'] || {}),value:numero,pending:false};
+            filenameValues['document.numero']={...(filenameValues['document.numero'] || {}),value:numero.replace(/[\s<>:"\/\\|?*\x00-\x1f]+/g,'-').replace(/^[ .-]+|[ .-]+$/g,''),pending:false};
             editor.querySelectorAll('[data-variable="document.numero"]').forEach(node=>{
                 if(Object.hasOwn(node.dataset,'literalValue'))return;
                 node.replaceWith(chip('document.numero'));
@@ -80,23 +80,30 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(!response.headers.get('content-type')?.includes('application/json')) throw new Error('Session expirée ou accès refusé.');
         const result=await response.json();if(!response.ok) throw new Error(result.error || 'Action impossible.');return result;
     }
-    async function select(action,source='') {
+    async function select(action,source='',manual='') {
         if(busy) return;
-        const text=action==='reserve' ? 'Réserver un nouveau numéro unique ?' : `Récupérer ${choice.selectedOptions[0].textContent} pour ce document ?`;
+        const text=action==='manual' ? `Utiliser la référence ${manual} pour ce document ?` : action==='reserve' ? 'Réserver un nouveau numéro unique ?' : `Récupérer ${choice.selectedOptions[0].textContent} pour ce document ?`;
         if(!window.confirm(text)) return;
         busy=true;control.querySelectorAll('button').forEach(button=>{button.disabled=true;});message.textContent='Attribution du numéro…';
         try {
-            const data=new FormData();data.set('action',action);data.set('choice',source);data.set('request_key',control.querySelector('[data-number-request]').value);
+            const data=new FormData();data.set('action',action);data.set('choice',source);data.set('numero',manual);data.set('request_key',control.querySelector('[data-number-request]').value);
             const result=await api(control.dataset.selectUrl,data);
             const selected=control.querySelector('[name=number_selection]');selected.value=result.selection;selected.dispatchEvent(new Event('input',{bubbles:true}));
             control.querySelector('[data-number-request]').value=result.request_key;control.querySelector('[data-number-value]').textContent=result.numero;
             control.querySelector('[data-number-value]').classList.remove('is-unassigned');toggle.hidden=false;actions.hidden=true;toggle.setAttribute('aria-expanded','false');refreshNumberChip(result.numero);
+            control.classList.remove('needs-number');
             control.querySelector('.number-format-example').hidden=true;
-            message.textContent='';dialog.close();
+            message.textContent='';dialog.close();control.querySelector('[data-number-manual-dialog]')?.close();
         } catch(error) {message.textContent=error.message;dialog.close();}
         finally {busy=false;control.querySelectorAll('button').forEach(button=>{button.disabled=false;});confirm.disabled=!choice.value;}
     }
-    control.querySelector('[data-number-reserve]').addEventListener('click',()=>select('reserve'));
+    control.querySelector('[data-number-reserve]')?.addEventListener('click',()=>select('reserve'));
+    const manualDialog=control.querySelector('[data-number-manual-dialog]'),manualInput=control.querySelector('[data-number-manual-value]'),manualConfirm=control.querySelector('[data-number-manual-confirm]');
+    control.querySelector('[data-number-manual]')?.addEventListener('click',()=>{manualInput.value='';manualConfirm.disabled=true;manualDialog.showModal();manualInput.focus();});
+    manualInput?.addEventListener('input',()=>{manualConfirm.disabled=!manualInput.value.trim() || /[\\:*?"<>|\x00-\x1f]/.test(manualInput.value);});
+    manualInput?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();if(!manualConfirm.disabled) manualConfirm.click();}});
+    manualConfirm?.addEventListener('click',()=>{if(!manualConfirm.disabled) select('manual','',manualInput.value.trim());});
+    control.querySelector('[data-number-manual-cancel]')?.addEventListener('click',()=>manualDialog.close());
     control.querySelector('[data-number-recover]').addEventListener('click',async()=>{
         if(busy) return;busy=true;message.textContent='';loading(true);
         try {

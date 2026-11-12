@@ -94,9 +94,14 @@ def number_choices(dossier, template, user, *, deduplicate=True):
     return list(unique.values())
 
 
-def choose_number(request, dossier, template, *, recover=None):
+def choose_number(request, dossier, template, *, recover=None, manual=None):
     if settings.ENVIRONMENT != 'dev' or not number_kind(template):
         raise ValidationError('Aucune numérotation disponible pour cette nature de template.')
+    if manual is not None:
+        manual = manual.strip()
+        if (not template.id_nature.numerotation_manuelle or not manual or len(manual) > 150
+                or any(ord(char) < 32 or char in '\\:*?"<>|' for char in manual)):
+            raise ValidationError('Saisissez une référence valide (150 caractères maximum, sans caractères interdits dans un nom de fichier).')
     state = session_state(request, dossier, template)
     try:
         key = UUID(request.POST.get('request_key', ''))
@@ -111,7 +116,9 @@ def choose_number(request, dossier, template, *, recover=None):
         else:
             if str(key) != state['request_key']:
                 raise ValidationError('Cette préparation a changé. Rechargez la page.')
-            if recover:
+            if manual is not None:
+                numero = manual
+            elif recover:
                 candidate = next((item for item in number_choices(dossier, template, request.user) if item['key'] == recover), None)
                 if not candidate:
                     raise ValidationError('Ce numéro n’est pas disponible pour ce dossier et cette nature.')
@@ -128,7 +135,7 @@ def choose_number(request, dossier, template, *, recover=None):
                     numero = str(cursor.fetchone()[0])
             reservation = DocumentNumberReservation.objects.create(pk=key, id_template=template,
                 id_nature_id=template.id_nature_id, id_dossier=dossier, user=request.user,
-                numero=numero, origine='RECUPERE' if recover else 'GENERE', source=recover or '')
+                numero=numero, origine='SAISI' if manual is not None else 'RECUPERE' if recover else 'GENERE', source=recover or '')
     state.update(request_key=str(uuid4()))
     states = request.session['document_number_states']
     states[scope_key(dossier, template)] = state

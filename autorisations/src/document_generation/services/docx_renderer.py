@@ -33,7 +33,7 @@ def build_preview_filename(template, dossier):
 
 
 class DocxRenderer:
-    def render_to_memory(self, template_source, context):
+    def render_to_memory(self, template_source, context, *, missing_markers=None):
         """Accepte le snapshot binaire validé, ou un fichier local pour les tests.
 
         Les vues utilisent exclusivement les octets lus et analysés dans le POST
@@ -48,7 +48,11 @@ class DocxRenderer:
                     template_source = Path(template_source).read_bytes()
             if isinstance(template_source, bytes):
                 template_source = BytesIO(template_source)
-            tpl = DocxTemplate(template_source)
+            if missing_markers:
+                from .preview_markers import MarkedPreviewTemplate
+                tpl = MarkedPreviewTemplate(template_source, missing_markers)
+            else:
+                tpl = DocxTemplate(template_source)
             tpl.init_docx()
         except Exception as exc:
             raise DocxRenderError("Le modèle Word est introuvable ou illisible.") from exc
@@ -61,6 +65,11 @@ class DocxRenderer:
         try:
             tpl.save(buffer)
             buffer.seek(0)
+            if missing_markers:
+                from .preview_markers import color_preview_markers
+                marked = color_preview_markers(buffer, tpl.labels)
+                buffer.close()
+                buffer = marked
             return buffer
         except Exception as exc:
             buffer.close()

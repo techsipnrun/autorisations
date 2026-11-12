@@ -12,6 +12,6 @@ def filename_editor_context(pattern, dossier, number=None, *, numbering_kind=Non
             value = resolve_filename('{'+code+'}.docx', dossier, document_number=number)
             values[code] = {'label': LABELS.get(code,code), 'value':value[:-5], 'pending':False}
         except (ValueError, KeyError):
-            pending_number = 'Numéro de l’avis' if numbering_kind == 'avis' else 'Numéro de l’acte'
+            pending_number = 'Numéro du document'
             values[code] = {'label':LABELS.get(code,code),'value':pending_number if code=='document.numero' else 'À compléter','pending':True}
     return values

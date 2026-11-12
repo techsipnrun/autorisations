@@ -66,6 +66,10 @@ def _verifier_fichiers_generes_actes(request, dossier):
                 from document_generation.services.report_file_guard import validate_generated_report
                 validate_generated_report(dossier, report_filename)
             request._generated_act = find_generated_act(dossier, request.POST.get('piece_jointe_work', ''), request.POST.get('nature_document'))
+            from document_generation.services.manual_act import validate_transition
+            request._manual_preparation = validate_transition(request, dossier)
+            if request._manual_preparation is None and request._generated_act is None:
+                raise ValidationError('Préparez d’abord un numéro dans « Préparer un projet d’acte », ou sélectionnez un fichier généré avec un numéro attribué, avant de déclarer le projet d’acte.')
             if request._generated_act is not None:
                 previous = replacement_candidate(request._generated_act, dossier)
                 if previous is not None and str(previous.pk) != request.POST.get('generated_act_replace_id', ''):
@@ -85,9 +89,13 @@ def _integrer_fichier_acte_genere(dossier, filename, nature, statut, file_format
     if django_settings.ENVIRONMENT != 'dev':
         return None
     from document_generation.services.act_integration import integrate_generated_act
-    return integrate_generated_act(dossier, filename, nature, statut, file_format,
+    generated = integrate_generated_act(dossier, filename, nature, statut, file_format,
         replace_document_id=request.POST.get('generated_act_replace_id') if request else None,
         user=request.user if request else None)
+    if request is not None:
+        from document_generation.services.manual_act import integrate_preparation
+        return integrate_preparation(request, dossier, filename, nature, statut, file_format, generated=generated)
+    return generated
 
 
 def _deposer_acte_sur_dm(request, resultat_dm, document, fichier, root_folder):
@@ -292,6 +300,8 @@ def _appliquer_numero_partage(request, dossier, document, nature, *, ancien_nume
 
 
 def _verifier_reference_acte(request, nature):
+    if getattr(request, '_manual_preparation', None) is not None:
+        return None
     if getattr(request, '_generated_act', None) is not None:
         return None
     if getattr(nature, "numerotation_manuelle", False) is True and request.POST.get("projet_acte_identique") != "on":

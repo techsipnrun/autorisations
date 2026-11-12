@@ -1,1 +1,1 @@
-<button type="button" class="btn_dropdown_instruction" onclick="afficherFormulaireActePretALaSignature()">Acte prêt à la signature</button>
+<button type="button" class="btn_dropdown_instruction" {% if generation_documents_dev %}data-requires-numbered-nature disabled{% endif %} onclick="afficherFormulaireActePretALaSignature()">Acte prêt à la signature</button>

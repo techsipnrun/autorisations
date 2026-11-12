@@ -25,6 +25,8 @@ def type_apercu_document(titre):
     titre = str(titre or "").lower()
     if titre.endswith(".pdf"):
         return "pdf"
+    if titre.endswith(".docx"):
+        return "docx"
     if titre.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp")):
         return "image"
     return ""

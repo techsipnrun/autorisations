@@ -2,7 +2,7 @@
 {% load custom_filters %}
 {% if msg.pj_emplacement and msg.pj_title %}
     {% url 'afficher_annexe' chemin=msg.pj_emplacement titre=msg.pj_title as piece_jointe_url %}
-    {% with titre_lower=msg.pj_title|lower %}
+    {% with type_apercu=msg.pj_title|type_apercu_document %}
         <div class="pj-download">
             <div class="pj-title">📎 1 pièce jointe</div>
             <div class="pj-card document-avec-apercu">
@@ -13,8 +13,8 @@
                 <a href="{{ piece_jointe_url }}?download=1" class="document-download-link" title="Télécharger le document" aria-label="Télécharger {{ msg.pj_title }}">
                     <img src="{% static 'instruction/img/download.png' %}" alt="" class="document-action-icon">
                 </a>
-                {% if ".pdf" in titre_lower %}
-                    <button type="button" class="document-apercu-trigger" data-preview-url="{{ piece_jointe_url }}" data-preview-type="pdf" aria-label="Visualiser {{ msg.pj_title }}" title="Visualiser le document PDF">
+                {% if type_apercu == 'pdf' or type_apercu == 'docx' %}
+                    <button type="button" class="document-apercu-trigger" data-preview-url="{{ piece_jointe_url }}" data-preview-type="{{ type_apercu }}" aria-label="Visualiser {{ msg.pj_title }}" title="Aperçu du document">
                         <img src="{% static 'instruction/img/loupe.png' %}" alt="" class="document-action-icon">
                     </button>
                     <span class="document-apercu-pont" aria-hidden="true"></span>

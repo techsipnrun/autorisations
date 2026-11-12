@@ -2582,3 +2582,5 @@
 @keyframes envoi-acte-rotation {
     to { transform: rotate(360deg); }
 }
+
+.avis-validation-fields:disabled { opacity:.55; }

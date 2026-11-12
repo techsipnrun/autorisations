@@ -1,7 +1,7 @@
 {% load static %}
     {{ scroll_position|json_script:"generation-scroll-position" }}
     <div class="generation-workspace"><div>
-    {% if form is not None %}<form method="post" id="generation-form" data-generation-started="{% if form.is_bound %}true{% else %}false{% endif %}">{% csrf_token %}{% endif %}
+    {% if form is not None %}<form method="post" id="generation-form" data-draft-key="{{ request.user.pk }}:{{ dossier.pk }}:{{ document_template.pk }}" data-generation-started="{% if form.is_bound %}true{% else %}false{% endif %}">{% csrf_token %}{% endif %}
     <section class="known-information">
         <div class="card-heading"><h2>Informations déjà connues</h2>
         {% if known_form.fields %}<button type="button" class="edit-known" aria-label="Modifier les informations déjà connues" aria-expanded="{% if known_edited %}true{% else %}false{% endif %}" aria-controls="known-editor"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z"/><path d="m14 5 5 5"/></svg></button>{% endif %}</div>
@@ -43,10 +43,21 @@
     {% if complete %}
     <details><summary>Contexte JSON · Développement</summary><pre>{{ context_json }}</pre></details>
     {% endif %}
-    </div><aside class="preview-panel"><div class="preview-heading"><h2>Aperçu PDF</h2>{% if form is not None %}<button type="submit" form="generation-form" name="action" value="preview_pdf" data-requires-valid-form disabled>Actualiser l’aperçu</button>{% endif %}</div>
-        {% if preview_exists %}
-        {% if errors or form.errors or known_form.errors or generation_error %}<p>Le dernier aperçu valide est conservé.</p>{% endif %}
-        <iframe src="{{ preview_url }}" title="Aperçu PDF du document" class="document-preview"></iframe>
-        <p><a href="{{ preview_url }}" target="_blank" rel="noopener">Ouvrir le PDF dans un nouvel onglet</a></p>
-        {% else %}<p>Aucun aperçu généré.</p>{% endif %}
+    </div>
+    <aside class="preview-panel docx-preview-panel" data-docx-preview
+           data-pdf-filename="apercu_{{ dossier.numero }}.pdf"
+           data-canvas-url="{% static 'document_generation/vendor/html2canvas-1.4.1.min.js' %}"
+           data-pdf-library-url="{% static 'document_generation/vendor/jspdf-4.2.1.min.js' %}"
+           data-jszip-url="{% static 'document_generation/vendor/jszip-3.10.2.min.js' %}"
+           data-renderer-url="{% static 'document_generation/vendor/docx-preview-0.4.1.min.js' %}">
+        <div class="preview-heading"><h2>Aperçu du fichier généré</h2></div>
+        <p class="docx-preview-notice"><em>Cet aperçu est indicatif : des décalages de mise en page peuvent apparaître par rapport au fichier généré.</em></p>
+        <p data-docx-preview-status role="status"></p>
+        <p data-docx-preview-error role="alert" hidden></p>
+        <div class="docx-preview-viewport"><div data-docx-preview-content></div>
+            <div class="docx-preview-loading" data-docx-preview-loading hidden role="status"><img src="{% static 'document_generation/img/loading.gif' %}" width="48" height="48" alt=""><span>Actualisation de l’aperçu…</span></div>
+        </div>
+        <div class="docx-preview-missing" data-docx-preview-missing hidden aria-live="polite"><h3>Balises à renseigner</h3><ul></ul></div>
     </aside></div>
+    <script src="{% static 'document_generation/js/docx_preview.js' %}?v=10" defer></script>
+    <script src="{% static 'document_generation/js/generation_autosave.js' %}?v=1" defer></script>

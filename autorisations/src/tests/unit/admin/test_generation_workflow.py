@@ -241,6 +241,98 @@ class GenerationPageTests(SimpleTestCase):
         self.assertEqual(context['form'].data['balise_42'], '15')
         create.assert_called_once()
 
+    def test_apercu_word_en_memoire_sans_pdf_nas_ni_brouillon(self):
+        session = {}
+        with patch('document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')) as renderer, patch(
+            'document_generation.views.PdfPreviewService.create_preview') as pdf, patch(
+            'document_generation.views.RecordGenerationService.save') as save:
+            response, context = self.call_view({'action': 'preview_docx', 'balise_42': '15'},
+                prepared={**self.prepared, 'template_bytes': b'source'}, session=session)
+            self.assertEqual(__import__('base64').b64decode(__import__('json').loads(response.content)['docx']), b'docx')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/json', response['Content-Type'])
+        self.assertEqual(response['Cache-Control'], 'private, no-store')
+        self.assertIsNone(context)
+        self.assertNotIn('document_generation_drafts', session)
+        renderer.assert_called_once()
+        pdf.assert_not_called()
+        save.assert_not_called()
+
+    def test_apercu_word_incomplet_ou_invalide_reste_disponible(self):
+        for value in ('', 'invalide'):
+            with self.subTest(value=value), patch('document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')) as renderer:
+                response, _ = self.call_view({'action': 'preview_docx', 'balise_42': value},
+                    prepared={**self.prepared, 'template_bytes': b'source'})
+            self.assertEqual(response.status_code, 200)
+            data = __import__('json').loads(response.content)
+            self.assertEqual(data['missing'][0]['code'], 'projet.quantite')
+            self.assertIsNone(renderer.call_args.args[1]['projet']['quantite'])
+            self.assertEqual(renderer.call_args.args[1]['dossier']['numero'], 30769307)
+
+    def test_apercu_word_numerote_ne_reecrit_pas_etat_session(self):
+        self.template.id_nature_id = 3
+        with patch('document_generation.views.number_kind', return_value='acte'), patch(
+            'document_generation.views.selected_number', return_value=SimpleNamespace(numero='2026-0123')), patch(
+            'document_generation.views.session_state') as state, patch(
+            'document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')):
+            response, _ = self.call_view({'action': 'preview_docx', 'balise_42': '15', 'number_selection': 'token'},
+                prepared={**self.prepared, 'template_bytes': b'source'})
+        response.close()
+        self.assertEqual(response.status_code, 200)
+        state.assert_not_called()
+
+    def test_apercu_incomplet_rend_un_vrai_word_avec_boucle_et_condition(self):
+        source = BytesIO()
+        word = Document()
+        word.add_paragraph('Quantité : {{ projet.quantite }}{% if projet.quantite %} renseignée{% endif %}')
+        word.add_paragraph('Noms : {% for nom in projet.noms %}{{ nom }} {% endfor %}')
+        word.save(source)
+        names = balise(43, 'projet.noms', type='LIST')
+        prepared = {**self.prepared, 'template_bytes': source.getvalue(),
+                    'balises': [*self.definitions, names], 'form_balises': [self.definitions[1], names]}
+        response, _ = self.call_view({'action': 'preview_docx'}, prepared=prepared)
+        data = __import__('json').loads(response.content)
+        rendered = Document(BytesIO(__import__('base64').b64decode(data['docx'])))
+        self.assertEqual([p.text for p in rendered.paragraphs],
+                         ['Quantité : [Quantité][Quantité à renseigner pour afficher du contenu]',
+                          'Noms : [Quantité à renseigner]'])
+        self.assertEqual({item['code'] for item in data['missing']}, {'projet.quantite', 'projet.noms'})
+
+    def test_apercu_zero_et_non_ne_sont_pas_des_valeurs_manquantes(self):
+        boolean = balise(43, 'projet.accord', type='BOOLEAN')
+        prepared = {**self.prepared, 'template_bytes': b'source',
+                    'balises': [*self.definitions, boolean], 'form_balises': [self.definitions[1], boolean]}
+        with patch('document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')) as renderer:
+            response, _ = self.call_view({'action': 'preview_docx', 'balise_42': '0', 'balise_43': 'false'}, prepared=prepared)
+        self.assertEqual(__import__('json').loads(response.content)['missing'], [])
+        self.assertEqual(renderer.call_args.args[1]['projet'], {'quantite': 0, 'accord': False})
+
+    def test_apercu_avant_attribution_du_numero(self):
+        self.template.id_nature_id = 3
+        with patch('document_generation.views.number_kind', return_value='acte'), patch(
+            'document_generation.views.selected_number', return_value=None), patch(
+            'document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')) as renderer:
+            response, _ = self.call_view({'action': 'preview_docx', 'balise_42': '15'},
+                prepared={**self.prepared, 'template_bytes': b'source'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(__import__('json').loads(response.content)['missing'][0]['code'], 'document.numero')
+        self.assertIsNone(renderer.call_args.args[1]['document']['numero'])
+
+    def test_apercu_correction_connue_invalide_ne_reprend_pas_ancienne_valeur(self):
+        with patch('document_generation.views.DocxRenderer.render_to_memory', return_value=BytesIO(b'docx')) as renderer:
+            response, _ = self.call_view({'action': 'preview_docx', 'balise_42': '15',
+                'edit_known': '1', 'known-balise_1': 'invalide'}, prepared={**self.prepared, 'template_bytes': b'source'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(renderer.call_args.args[1]['dossier']['numero'])
+        self.assertEqual(__import__('json').loads(response.content)['missing'][0]['code'], 'dossier.numero')
+
+    def test_erreur_apercu_word_retourne_json(self):
+        with patch('document_generation.views.DocxRenderer.render_to_memory', side_effect=DocxRenderError('Template cassé')):
+            response, _ = self.call_view({'action': 'preview_docx', 'balise_42': '15'},
+                prepared={**self.prepared, 'template_bytes': b'source'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Template cassé', __import__('json').loads(response.content)['error'])
+
     def test_post_valide_reconstruit_et_revalide_sans_rendu_word(self):
         with patch("docxtpl.DocxTemplate.render", side_effect=AssertionError("Rendu interdit")):
             _, context = self.call_view({"balise_42": "15", "balise_1": "999"})
@@ -391,7 +483,7 @@ class GenerationPageTests(SimpleTestCase):
                            prepared={**self.prepared, "errors": ["Erreur Jinja"]})
         renderer.assert_not_called()
 
-    def test_preview_valide_conserve_saisie_et_affiche_iframe(self):
+    def test_pdf_historique_reste_accessible_mais_interface_affiche_seulement_word(self):
         self.template.pk = 5
         with patch("document_generation.views.DocxRenderer.render_to_memory", return_value=BytesIO(b"docx")), patch(
             "document_generation.views.PdfPreviewService.create_preview"
@@ -403,7 +495,10 @@ class GenerationPageTests(SimpleTestCase):
         self.assertEqual(context["form"].data["balise_42"], "15")
         self.assertEqual(create.call_args.args[1:], (42, 1, 5))
         html = render_to_string("document_generation/generation_form.html", {**context, "csrf_token": "test-token"})
-        self.assertIn('<iframe src="/document-generation/preview/30769307/5/?v=', html)
+        self.assertNotIn('<h2>Aperçu PDF</h2>', html)
+        self.assertNotIn('<iframe src="/document-generation/preview/', html)
+        self.assertIn('class="preview-panel docx-preview-panel"', html)
+        self.assertIn('Balises à renseigner', html)
         self.assertIn('value="15"', html)
 
     def test_preview_erreur_conserve_ancien_pdf_et_saisie(self):

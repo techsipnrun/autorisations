@@ -1,5 +1,5 @@
 {% load static %}
-<div class="projet-acte-identique-option"
+<div class="projet-acte-identique-option" hidden
      data-nature-select="{{ nature_select_id }}"
      data-search-url="{% url 'rechercher_projets_acte' dossier.numero %}"
      data-demandeur-id="{% if demandeur %}{{ demandeur.id }}{% endif %}">

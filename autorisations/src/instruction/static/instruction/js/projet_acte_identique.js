@@ -166,6 +166,7 @@ function synchroniserReferenceManuelle(bloc) {
   zone.querySelector('[data-reference-prefixe]').textContent = nature?.dataset.prefixe || '';
   const form = bloc.closest('form');
   const fichier = form.querySelector('[name="piece_jointe_work"]')?.value || '';
+  if(!document.querySelector('[data-act-history-guard]')) bloc.hidden=!fichier || !nature?.value;
   const cle = `${nature?.value}:${fichier}`;
   if (champ.dataset.cle !== cle) {
     const references = JSON.parse(document.getElementById('references-actes-manuelles')?.textContent || '{}');

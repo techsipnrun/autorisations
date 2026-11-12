@@ -17,8 +17,8 @@
                     <span class="generated-act-repair-count" data-act-repair-count hidden aria-live="polite"></span>
                 </a>
                 <span hidden data-act-history-guard data-status-url="{% url 'document_generation:act_history_status' dossier.numero %}" data-repair-url="{% url 'document_generation:dossier_generation' dossier.numero %}#generation-history"></span>
-                <script src="{% static 'document_generation/js/act_file_guard.js' %}?v=10" defer></script>
-                <link rel="stylesheet" href="{% static 'document_generation/css/act_file_guard.css' %}?v=6">
+                <script src="{% static 'document_generation/js/act_file_guard.js' %}?v=23" defer></script>
+                <link rel="stylesheet" href="{% static 'document_generation/css/act_file_guard.css' %}?v=13">
             {% endif %}
         {% endif %}
     </nav>

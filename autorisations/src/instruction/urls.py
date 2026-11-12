@@ -7,6 +7,7 @@ from django.views.generic import RedirectView, TemplateView
 from django.templatetags.static import static
 from instruction.views import dossiers_lies
 from instruction.views import cartographie
+from instruction.views import manual_act
 
 
 def rediriger_vers_dossier_avec_slash(request, num_dossier):
@@ -18,6 +19,7 @@ def rediriger_vers_avis_avec_slash(request, avis_id):
 
 
 urlpatterns = [
+    path('instruction/<int:num_dossier>/preparer-acte/', manual_act.prepare_act, name='prepare_manual_act'),
 
     # GESTION
     path("gestion_groupes/", views.gestion_groupes, name="gestion_groupes"),

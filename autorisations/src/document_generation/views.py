@@ -1,6 +1,7 @@
 """Page dev : validation et téléchargement d'un DOCX de test en mémoire."""
 
 from copy import deepcopy
+from base64 import b64encode
 from hashlib import sha256
 import json
 import logging
@@ -12,7 +13,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import OperationalError, ProgrammingError
 from django.db.models import Q
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, QueryDict
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, QueryDict, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -24,6 +25,7 @@ from instruction.templatetags.group_tags import est_concerne_par_le_dossier
 from .forms import DynamicDocumentForm
 from .services.context_utils import merge_contexts
 from .services.preparation import DocumentPreparationService
+from .services.partial_preview import partial_preview_context
 from .services.validation import GenerationContextValidator, lire_contexte, valeur_vide
 from .services.docx_renderer import DocxRenderer, DocxRenderError, build_preview_filename
 from .services.pdf_preview import PdfPreviewService, PdfPreviewError
@@ -162,7 +164,10 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
         if isinstance(template.id_nature_id, int):
             numbering_kind = number_kind(template)
         if numbering_kind:
-            number_state = session_state(request, dossier, template)
+            # Le rafraîchissement automatique ne doit pas réécrire la session
+            # ni entrer en concurrence avec une génération définitive.
+            if action != 'preview_docx':
+                number_state = session_state(request, dossier, template)
             token = submitted.get('number_selection', '') if submitted is not None else ''
             number_reservation = selected_number(token, dossier, template, request.user)
         dossier._generation_number = number_reservation.numero if number_reservation else None
@@ -188,6 +193,15 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
             effective_context = deepcopy(prepared["known_context"])
             form = DynamicDocumentForm(data=submitted,
                                        balises=prepared["form_balises"])
+            if action == 'preview_docx':
+                preview_context, missing = partial_preview_context(
+                    prepared, form, known_form, known_edited=known_edited,
+                    number=dossier._generation_number, numbering_kind=numbering_kind)
+                with DocxRenderer().render_to_memory(prepared['template_bytes'], preview_context, missing_markers=missing) as buffer:
+                    response = JsonResponse({'docx': b64encode(buffer.getvalue()).decode('ascii'), 'missing': missing})
+                response['Cache-Control'] = 'private, no-store'
+                response['X-Content-Type-Options'] = 'nosniff'
+                return response
             if submitted is not None and form.is_valid() and known_valid:
                 if known_edited:
                     # Seules les balises connues affichées et typées sont modifiables.
@@ -275,6 +289,21 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
         logging.getLogger(__name__).exception("Échec de préparation du contexte de document")
         errors.append("Les données nécessaires sont inaccessibles. Vérifiez les scripts SQL et les droits en dev.")
         form = None
+
+    if action == 'preview_docx':
+        # Aperçu en mémoire uniquement : ni LibreOffice, ni NAS, ni historique,
+        # ni mémorisation du formulaire dans la session.
+        details = list(errors)
+        for current_form in (form, known_form):
+            if current_form is not None and current_form.is_bound:
+                for name, messages in current_form.errors.items():
+                    label = current_form.fields[name].label if name in current_form.fields else ''
+                    details.extend(f"{label} : {message}" if label else str(message) for message in messages)
+        if filename_error:
+            details.append(filename_error)
+        response = JsonResponse({'error': ' '.join(details) or 'Complétez les informations nécessaires à l’aperçu.'}, status=400)
+        response['Cache-Control'] = 'private, no-store'
+        return response
 
     if request.method == 'POST':
         values = {name: values for name, values in request.POST.lists()
@@ -366,7 +395,10 @@ def preview_pdf(request, num_dossier, template_id):
     except OSError:
         logger.exception("Lecture aperçu impossible dossier=%s template=%s utilisateur=%s", dossier.numero, template.pk, request.user.pk)
         raise Http404("Aperçu inaccessible.") from None
-    response = FileResponse(buffer, content_type="application/pdf")
+    response = FileResponse(buffer, content_type="application/pdf",
+                            as_attachment=request.GET.get('download') == '1',
+                            filename=build_preview_filename(template, dossier).removesuffix('.docx') + '.pdf'
+                            if request.GET.get('download') == '1' else '')
     response["Cache-Control"] = "private, no-store, max-age=0"
     response["X-Content-Type-Options"] = "nosniff"
     return response

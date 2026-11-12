@@ -31,13 +31,14 @@ def select(request, num_dossier, template_id):
     dossier, template = _work_context(request, num_dossier, template_id)
     try:
         action = request.POST.get('action')
-        if action not in ('reserve','recover') or (action == 'recover' and not request.POST.get('choice')):
+        if action not in ('reserve','recover','manual') or (action == 'recover' and not request.POST.get('choice')):
             raise ValidationError('Choisissez Générer le numéro ou Récupérer le numéro.')
         reservation, state = choose_number(request, dossier, template,
-            recover=request.POST.get('choice') if action == 'recover' else None)
+            recover=request.POST.get('choice') if action == 'recover' else None,
+            manual=request.POST.get('numero', '') if action == 'manual' else None)
         return JsonResponse({'numero':reservation.numero,'selection':str(reservation.pk),'request_key':state['request_key']})
     except ValidationError as exc:
         return JsonResponse({'error':' '.join(exc.messages)}, status=400)
     except DatabaseError:
         logger.exception('Réservation impossible dossier=%s template=%s user=%s', dossier.pk, template.pk, request.user.pk)
-        return JsonResponse({'error':'Réservation impossible. Vérifiez le script SQL dev 0017 et les droits.'}, status=503)
+        return JsonResponse({'error':'Réservation impossible. Vérifiez les scripts SQL DEV 0017 et 0027 ainsi que les droits.'}, status=503)

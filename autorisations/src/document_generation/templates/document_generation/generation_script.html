@@ -60,6 +60,8 @@
         if(number && !number.value) valid=false;
         if(form.querySelector('.output-variable.is-pending')) valid=false;
         document.querySelectorAll('[data-requires-valid-form]').forEach(button=>{button.disabled=!valid || form.getAttribute('aria-busy')==='true';});
+        form.dataset.generationValid=String(valid);
+        form.dispatchEvent(new Event('generation-validity'));
     }
     form.addEventListener('input',refreshValidity);
     form.addEventListener('change',refreshValidity);
@@ -108,6 +110,7 @@
     const hasWork=() => JSON.stringify(manualValues())!==initialManual
         || (flag.value==='1' && changed(knownInputs, initialKnown));
     window.confirmDocumentGenerationLeave=() => {
+        if(window.saveDocumentGenerationDraft?.()) {leaving=true;return true;}
         if(hasWork() && !window.confirm('Voulez-vous vraiment abandonner la génération en cours ?')) return false;
         leaving=true;
         window.setTimeout(()=>{leaving=false;},1000);
@@ -144,6 +147,7 @@
         toggleEdition(false);
     });
     window.addEventListener('beforeunload', event => {
+        if(window.saveDocumentGenerationDraft?.()) return;
         if (leaving || !hasWork()) return;
         event.preventDefault();
         event.returnValue='';
@@ -151,9 +155,14 @@
     window.addEventListener('pageshow', () => {leaving=false;});
     document.addEventListener('click', event => {
         const link=event.target.closest('a[href]');
+        if(link?.matches('.generation-return') && !event.defaultPrevented && event.button===0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+            if(!window.confirmDocumentGenerationLeave()) {event.preventDefault();return;}
+            window.showDocumentGenerationLoading();return;
+        }
         if (!link || event.defaultPrevented || event.button!==0 || event.ctrlKey || event.metaKey
             || event.shiftKey || event.altKey || link.target==='_blank' || link.hasAttribute('download')
             || link.getAttribute('href').startsWith('#') || !hasWork()) return;
+        if(window.saveDocumentGenerationDraft?.()) {leaving=true;return;}
         if (!window.confirm('Voulez-vous vraiment abandonner la génération en cours ?')) {
             event.preventDefault();
         } else {

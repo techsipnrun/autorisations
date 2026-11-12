@@ -110,3 +110,29 @@ class ActFileGuardTests(SimpleTestCase):
             self.assertIs(changement_etape._verifier_fichiers_generes_actes(request,dossier),blocked)
         check.assert_called_once_with(dossier,'mauvais.docx')
         find.assert_not_called()
+
+    def test_declaration_exige_numero_prepare_ou_fichier_genere_numerote(self):
+        request=RequestFactory().post('/test',{'piece_jointe_work':'acte.docx','nature_document':'3'})
+        dossier=SimpleNamespace(numero=123)
+        blocked=HttpResponse(status=400)
+        for manual,generated in ((None,None),(object(),None),(None,object())):
+            with self.subTest(manual=manual is not None,generated=generated is not None), patch.object(
+                    guard,'act_file_status',return_value={'blocked':False}), patch(
+                    'document_generation.services.manual_act.validate_transition',return_value=manual), patch(
+                    'document_generation.services.act_integration.find_generated_act',return_value=generated), patch(
+                    'document_generation.services.act_integration.replacement_candidate',return_value=None), patch.object(
+                    changement_etape,'get_type_acte',return_value=SimpleNamespace(numerotation_manuelle=False)), patch.object(
+                    changement_etape,'redirect_error',return_value=blocked):
+                result=changement_etape._verifier_fichiers_generes_actes(request,dossier)
+            if manual is None and generated is None:
+                self.assertIs(result,blocked)
+            else:
+                self.assertIsNone(result)
+
+    def test_reference_manuelle_exige_aussi_preparation(self):
+        request=RequestFactory().post('/test',{'piece_jointe_work':'courrier.docx','nature_document':'3'})
+        with patch.object(guard,'act_file_status',return_value={'blocked':False}), patch(
+                'document_generation.services.manual_act.validate_transition',return_value=None), patch(
+                'document_generation.services.act_integration.find_generated_act',return_value=None), patch.object(
+                changement_etape,'redirect_error',return_value='blocked'):
+            self.assertEqual(changement_etape._verifier_fichiers_generes_actes(request,SimpleNamespace(numero=123)),'blocked')

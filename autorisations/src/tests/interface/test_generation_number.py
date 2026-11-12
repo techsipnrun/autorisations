@@ -78,7 +78,7 @@ class NumberInterfaceTests(SimpleTestCase):
                 control.querySelector('[data-number-toggle]').click();
                 if(control.querySelector('.number-actions').hidden) throw new Error('Actions non réaffichées');
                 control.querySelector('[data-number-recover]').click();
-                await wait(()=>control.querySelector('dialog').open);
+                await wait(()=>control.querySelector('[data-number-dialog]').open);
                 const choice=control.querySelector('[data-number-choice]');
                 if(choice.options[1].textContent!=='2026-112 (Arrêté - Dossier 12892949)') throw new Error('Choix dossier lié incorrect');
                 if(!control.querySelector('[data-number-confirm]').disabled) throw new Error('Confirmation active sans choix');
@@ -86,7 +86,7 @@ class NumberInterfaceTests(SimpleTestCase):
                 if(!control.querySelector('.number-picker-options em')) throw new Error('Métadonnées non italiques');
                 control.querySelector('.number-picker-options button').click();
                 control.querySelector('[data-number-confirm]').click();
-                await wait(()=>requests===2 && !control.querySelector('dialog').open);
+                await wait(()=>requests===2 && !control.querySelector('[data-number-dialog]').open);
                 if(control.querySelector('[data-number-value]').textContent!=='2026-112' || !editor.textContent.includes('2026-112')) throw new Error('Numéro récupéré non affiché');
                 editor.querySelector('.output-filename-text:last-child').textContent='-corrige';editor.dispatchEvent(new Event('input',{bubbles:true}));
                 if(document.querySelector('[name=output_filename]').value!=='jeudi_{document.numero}-corrige.docx') throw new Error('Nom modifié perdu');
@@ -104,6 +104,10 @@ class NumberInterfaceTests(SimpleTestCase):
                 editing.dispatchEvent(new Event('input',{bubbles:true}));editing.blur();
                 if(editor.querySelector('[data-variable-label]').textContent!=='numero-personnalise' || !editor.querySelector('.output-variable')) throw new Error('Chip modifiée non restaurée');
                 if(document.querySelector('[name=output_filename]').value!=='jeudi_numero-personnalise-corrige.docx') throw new Error('Valeur personnalisée non transmise');
+                const workspace=document.querySelector('.generation-workspace'),preview=workspace.querySelector('.docx-preview-panel');
+                if(preview.parentElement!==workspace || preview.getBoundingClientRect().left<workspace.firstElementChild.getBoundingClientRect().right) throw new Error('Apercu absent de la colonne droite');
+                if(parseFloat(getComputedStyle(document.querySelector('.docx-preview-notice')).marginBottom)!==16) throw new Error('Espacement avertissement incorrect');
+                if(parseFloat(getComputedStyle(document.querySelector('.output-filename-box > span')).borderLeftWidth)!==1) throw new Error('Separateur extension absent');
                 if(document.documentElement.scrollWidth>innerWidth+1) throw new Error('Débordement');
                 result.textContent='NUMBERS_OK';
             }catch(error){result.textContent=error.stack;}

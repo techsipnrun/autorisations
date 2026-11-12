@@ -1,5 +1,41 @@
 document.addEventListener("DOMContentLoaded", () => {
     let activeContainer = null;
+    const script=document.querySelector('script[data-docx-url][data-jszip-url]');
+    let wordLibraries;
+    function loadScript(url) {
+        return new Promise((resolve,reject)=>{
+            if(!url) {reject(new Error('Bibliothèque d’aperçu indisponible.'));return;}
+            const asset=document.createElement('script');asset.src=url;
+            asset.onload=resolve;asset.onerror=()=>{asset.remove();reject(new Error('Chargement de l’aperçu Word impossible.'));};
+            document.head.append(asset);
+        });
+    }
+    function loadWordLibraries() {
+        if(window.docx?.renderAsync && window.JSZip) return Promise.resolve();
+        if(!wordLibraries) wordLibraries=(window.JSZip ? Promise.resolve() : loadScript(script?.dataset.jszipUrl))
+            .then(()=>window.docx?.renderAsync ? undefined : loadScript(script?.dataset.docxUrl))
+            .catch(error=>{wordLibraries=null;throw error;});
+        return wordLibraries;
+    }
+    async function renderWord(url,popover) {
+        const [response]=await Promise.all([fetch(url,{credentials:'same-origin',signal:AbortSignal.timeout(20000)}),loadWordLibraries()]);
+        if(!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob=await response.blob();
+        const frame=document.createElement('iframe');frame.className='document-apercu-contenu';frame.title='Aperçu Word';
+        frame.setAttribute('sandbox','allow-same-origin');
+        const ready=new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));
+        frame.srcdoc=`<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; font-src data: blob:; style-src 'unsafe-inline'"><style>body{margin:0;background:#edf0ee} .docx-wrapper{padding:12px!important}</style></head><body><div id="word"></div></body></html>`;
+        popover.replaceChildren(frame);
+        await ready;
+        const host=frame.contentDocument.getElementById('word');
+        await window.docx.renderAsync(blob,host,null,{useBase64URL:true,renderAltChunks:false,ignoreLastRenderedPageBreak:false});
+        await frame.contentDocument.fonts.ready;
+        const fit=()=>{
+            const width=Math.max(0,...[...host.querySelectorAll('section.docx')].map(page=>page.offsetWidth))+24;
+            if(width>24) {host.style.width=width+'px';host.style.zoom=String(Math.min(1,frame.contentDocument.documentElement.clientWidth/width));}
+        };
+        new ResizeObserver(fit).observe(frame);fit();
+    }
 
     const closePreview = (container) => {
         if (!container) return;
@@ -60,6 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const bridge = container?.querySelector(".document-apercu-pont");
         const correctionButton = container?.querySelector(".remplacer-acte-toggle");
         let previewLoaded = false;
+        let previewLoading = false;
         let closeTimeout = null;
 
         const cancelScheduledClose = () => {
@@ -82,13 +119,19 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const loadPreview = async () => {
-            if (previewLoaded || !popover) return;
+            if (previewLoaded || previewLoading || !popover) return;
+            previewLoading=true;
 
             const previewUrl = trigger.dataset.previewUrl;
             const previewType = trigger.dataset.previewType;
             let previewElement;
 
             try {
+                if(previewType === 'docx') {
+                    await renderWord(previewUrl,popover);
+                    previewLoaded=true;
+                    return;
+                }
                 if (previewType === "pdf") {
                     const response = await fetch(previewUrl, {
                         credentials: "same-origin",
@@ -104,6 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     previewElement.title = "Aperçu PDF";
                 } else {
                     previewElement = document.createElement("img");
+                    // Réduire les grandes images sans agrandir les petites.
+                    previewElement.style.objectFit = "scale-down";
                     previewElement.src = previewUrl;
                     previewElement.alt = "Aperçu du document";
                 }
@@ -117,6 +162,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 message.textContent = "L’aperçu ne peut pas être chargé.";
                 popover.replaceChildren(message);
                 console.error("Erreur de chargement de l’aperçu :", error);
+            } finally {
+                previewLoading=false;
             }
         };
 

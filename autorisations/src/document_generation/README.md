@@ -966,6 +966,94 @@ Tests isolés, sans BDD/NAS réels :
 python -m tests tests.unit.admin.test_generation_record tests.unit.admin.test_generation_workflow tests.unit.admin.test_generation_output tests.unit.admin.test_generation_dossier
 ```
 
+### Aperçu Word automatique et export PDF
+
+Le panneau « Aperçu Word », seul aperçu affiché dans la colonne de droite, utilise docx-preview 0.4.1 et JSZip
+3.10.2, distribués localement dans `static/document_generation/vendor/` avec
+leurs licences. Les bibliothèques sont chargées au premier aperçu valide seulement.
+Le POST `action=preview_docx` réutilise la validation et le rendu DOCX en mémoire,
+avec les saisies courantes et les contrôles d’accès habituels. Il ne convertit
+pas de PDF, n’écrit aucun fichier NAS et ne crée ni historique ni brouillon de
+session, même pour un document numéroté. Les réponses sont privées et non mises en cache.
+
+Le rendu est automatique, sans bouton : après 650 ms sans changement pertinent
+des saisies, même si le formulaire est incomplet. La signature des valeurs
+évite les requêtes identiques ; il n’y a aucun polling. Une nouvelle saisie annule
+la requête obsolète et les rendus sont exécutés en série. Une réponse dépassée
+ne remplace jamais l’aperçu courant. Le GIF et l’état de chargement sont limités
+au panneau Word ; les autres actions restent utilisables. Le nom de fichier seul
+n’entraîne pas un nouveau rendu car il ne change pas le contenu du document.
+
+Un contexte partiel, exclusivement destiné à cet aperçu, conserve les saisies
+correctement typées et les données connues. Les valeurs absentes ou invalides
+restent vides (`None`, ou `[]` pour les listes) ; `0` et `False` restent des valeurs
+valides. La réponse JSON contient le DOCX encodé en base64 et les balises à
+compléter/corriger, affichées sous l’aperçu dans « Balises à renseigner » avec
+leur seul libellé utilisateur. La bordure du panneau devient orange lorsqu’il
+reste des balises dans cette liste. Le numéro système reste issu d’une
+réservation vérifiée, jamais d’un texte saisi librement. Les droits d’accès,
+les erreurs de configuration du template et la validation stricte de la génération
+définitive/PDF sont inchangés. Un template exécutant une opération incompatible
+avec une valeur vide peut toujours produire une erreur de rendu : aucune valeur
+métier fictive n’est inventée pour la contourner.
+
+Dans l’aperçu uniquement, une interpolation simple d’une balise manquante
+(`{{ dossier.commune }}` par exemple) affiche `[Commune à renseigner]` en rouge
+sur fond rose pâle. L’annotation se fait sur une copie en mémoire du template,
+après normalisation des runs Word ; les textes voisins gardent leur style.
+Seul le nom du champ est en gras dans les repères (interpolation, condition ou
+boucle) ; les crochets et la mention « à renseigner… » restent en caractères normaux.
+Si une condition `if/elif/else` dépend d’une balise manquante, le bloc entier
+est remplacé dans l’aperçu par `[Commune à renseigner pour afficher du contenu]`.
+Une boucle dont la collection manque affiche `[Liste des bénéficiaires à renseigner]`,
+avec le libellé configuré pour la balise. Aucune branche ni ligne fictive n’est
+générée. Les blocs imbriqués dans une zone déjà indéterminée ne multiplient pas
+les repères. Les paragraphes et les lignes de tableaux structurels docxtpl sont
+pris en compte. Lorsque les données sont disponibles, les blocs retrouvent
+leur fonctionnement normal. Les variables locales de boucle ne sont pas annotées
+comme des balises globales. La liste sous l’aperçu reste disponible pour les
+cas sans repère visible. Le Word définitif n’utilise jamais ces annotations ;
+l’export PDF de l’aperçu, lui, reproduit naturellement les repères visibles.
+
+L’affichage se fait dans une iframe isolée sans scripts ni ressources réseau,
+avec les images et polices embarquées. Les fragments HTML altChunk sont
+désactivés. Le temps de rendu n’est pas affiché. Un échec
+conserve le dernier aperçu Word valide. Un avertissement en italique rappelle
+que le rendu est indicatif et peut différer de la mise en page du fichier. Le rendu HTML peut différer du PDF,
+notamment pour les sauts de page automatiques ; il ne remplace pas une relecture.
+
+La barre d’outils affiche la page courante et le total du rendu docx-preview,
+avec navigation précédente/suivante ou saisie du numéro de page. Le compteur
+suit le défilement dans l’aperçu. Le zoom va de 25 à 200 % ; l’ajustement à la
+largeur est actif au chargement et suit les redimensionnements tant qu’un zoom
+manuel n’est pas choisi. Ces commandes ne modifient ni le Word ni le PDF.
+Le pourcentage de zoom peut aussi être saisi directement (25 à 200 %).
+La barre sombre regroupe les commandes compactes et un menu à trois points
+(ajuster la largeur, ajuster la page). Rotation et impression disposent uniquement
+de leurs icônes dans la barre. Les pages restent blanches sur fond gris clair. La rotation
+se fait par quarts de tour avec adaptation de l’espace occupé par chaque page.
+L’impression porte sur le rendu HTML, sans barre d’outils et dans l’orientation
+d’origine, indépendamment du zoom et de la rotation de consultation.
+Une règle `@page { margin: 0 }` évite l’ajout des en-têtes/pieds de page du
+navigateur (dont l’URL) avec les réglages par défaut de Chrome. Les marges propres
+au Word sont conservées dans les pages. Des réglages d’impression personnalisés
+peuvent nécessiter de décocher « En-têtes et pieds de page » dans le navigateur.
+
+Le menu propose également « Vue sur 2 pages », réversible, avec lecture par
+paires et ajustement à la largeur des deux pages. Le téléchargement PDF, à
+gauche de l’impression, exporte le rendu docx-preview affiché, sans utiliser
+l’aperçu LibreOffice ni faire de requête serveur. html2canvas 1.4.1 et jsPDF
+4.2.1 sont distribués localement avec leurs licences et chargés uniquement au
+premier export. Chaque page est capturée séparément, en orientation d’origine,
+sans zoom ni vue en double page, puis ajoutée comme image au PDF : le texte
+n’est donc pas sélectionnable. Un seul canvas est conservé à la fois, limité
+à huit millions de pixels. L’export ne modifie pas l’aperçu consulté ; les
+actualisations automatiques attendent sa fin. Le chargement reste local au bloc.
+
+Tests : `tests.unit.admin.test_generation_workflow` et
+`tests.interface.test_docx_preview` (rendu réel d’un DOCX de test dans Chrome,
+sans accès BDD/NAS).
+
 ### Sécurité de la transmission de l’acte signé
 
 La confirmation de transmission regroupe dans une même transaction SQL les
@@ -992,4 +1080,52 @@ Ces sauvegardes d’infrastructure ne sont pas configurées par ce module.
 Tests de pannes isolés (aucune écriture BDD/NAS réelle) :
 ```powershell
 python -m tests tests.unit.instruction.test_signature_transaction tests.unit.admin.test_signed_act
+```
+
+
+### Préparation anticipée d’un acte manuel (pilote DEV)
+
+Le bloc « Préparer un projet d’acte » se trouve au-dessus des identités
+sur le formulaire du dossier, seulement en DEV et à l’étape En instruction.
+La route `instruction/<numero>/preparer-acte/` contrôle la connexion, l’accès
+au dossier et l’étape courante. Sans le script 0026 et les droits 0099, une
+indisponibilité explicite est affichée, sans requête de mutation ni repli vers
+une nouvelle numérotation lors de la confirmation.
+
+Les templates proposés sont actifs, valides et complets, avec la nature cible
+choisie, pour la démarche du dossier (templates globaux inclus). Un seul modèle
+éligible est présélectionné ; plusieurs modèles laissent le choix ouvert.
+Sans modèle éligible, la rédaction manuelle est proposée directement.
+
+La table `generation.preparation_acte_manuel` est indépendante des templates
+et conserve une seule ligne ACTIVE par dossier. Une UUID rend le POST idempotent,
+et le verrou du dossier sérialise avec les réservations et sorties d’instruction.
+Le numéro est produit par `generation.prochain_numero_acte`, comme la génération
+Word. Le récupérer ne sollicite pas le compteur : les sources doivent appartenir
+au dossier ou aux dossiers liés accessibles, et à la même nature. Les anciennes
+préparations UTILISE sont aussi proposées pour les séries automatiques, même si
+le circuit manuel a supprimé l’ancienne référence Document en revenant en instruction.
+Une nature à référence libre ne peut pas générer de numéro automatique :
+elle permet la récupération d’un acte déjà déclaré, ou le circuit manuel habituel.
+
+L’annulation conserve la ligne ABANDONNE et ne recycle pas le compteur.
+À la sortie d’instruction, la préparation devient UTILISE si un Document a été
+associé, ABANDONNE sinon. Cette clôture est dans la transaction du changement
+d’étape. Elle ne réapparaît pas à un retour en instruction. Le lien Document
+est SET NULL en PostgreSQL lors d’une suppression du projet manuel ; le numéro
+historique reste conservé. Les FK ORM sont DO_NOTHING sur ce modèle non géré :
+le collecteur Django ne doit pas consulter une table DEV absente en production.
+Les contraintes du script SQL assurent l’intégrité en DEV.
+
+Les trois formulaires de déclaration de projet (validation acte, validation avant
+avis CS et raccourci SPPN prêt à signer) affichent la nature et le numéro préparés.
+Le partage ancien est masqué. Le serveur recontrôle la préparation, sa nature et
+la source récupérée ; il reprend le numéro avant le premier Document.save,
+sans numéro intermédiaire. Sans préparation, les circuits existants restent actifs.
+Aucun Word n’est créé, renommé ou modifié par ce bloc : le numéro est à
+reporter manuellement dans le contenu et le nom du fichier.
+
+Vérification isolée, sans BDD/NAS réels :
+```powershell
+python -m tests tests.unit.instruction.test_manual_act_preparation tests.interface.test_manual_act_preparation
 ```

@@ -1,0 +1,43 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'instruction/css/manual_act_preparation.css' %}?v=9">
+<section class="manual-act-preparation" data-manual-act data-dossier="{{ dossier.numero }}" data-url="{% url 'prepare_manual_act' dossier.numero %}">
+    {% csrf_token %}
+    <h2>Préparer un projet d’acte</h2>
+    <p data-preparation-error role="alert" hidden></p>
+    <div data-preparation-loading role="status"><img src="{% static 'document_generation/img/loading.gif' %}" width="24" height="24" alt=""> Chargement…</div>
+    <div data-preparation-config hidden>
+        <div class="manual-act-field"><label for="manual-act-nature">Nature de l’acte :</label>
+        <select id="manual-act-nature" data-preparation-nature><option value="">Sélectionner une nature</option></select></div>
+        <div class="manual-act-options" data-preparation-options hidden>
+            <a data-preparation-generate>Générer le fichier <strong>(recommandé)</strong><img src="{% static 'instruction/img/service-externe.png' %}" alt=""></a>
+            <button type="button" data-preparation-manual>Rédiger manuellement <img src="{% static 'instruction/img/modifier.svg' %}" alt=""></button>
+        </div>
+        <div class="manual-act-number-options" data-preparation-number-options hidden>
+            <h2>Rédaction manuelle</h2>
+            <div class="manual-act-field"><span>Numéro du document <span class="manual-act-info" tabindex="0" aria-label="Aide sur le choix du numéro" aria-describedby="manual-act-number-help"><span class="manual-act-info-icon" aria-hidden="true">i</span><span id="manual-act-number-help" class="manual-act-info-bubble" role="tooltip"><span>Récupérer un existant : reprendre le numéro d'un acte ou d'un projet d'acte existant sur ce dossier ou sur ses dossiers liés.</span><span>Générer un nouveau : obtenir un nouveau numéro unique pour le futur acte.</span></span></span> :</span>
+            <div class="manual-act-options"><button type="button" data-preparation-enter hidden>Saisir à la main</button><button type="button" data-preparation-reserve>Générer un nouveau</button><button type="button" data-preparation-recover>Récupérer un existant</button></div></div>
+        </div>
+    </div>
+    <div data-preparation-current hidden>
+        <span data-preparation-label></span>
+        <span class="manual-act-number"><strong data-preparation-number></strong></span>
+        <button type="button" class="manual-act-copy" data-preparation-copy title="Copier le numéro" aria-label="Copier le numéro"><img src="{% static 'instruction/img/copy.png' %}" alt=""></button>
+        <button type="button" data-preparation-cancel title="Annuler cette réservation" aria-label="Annuler cette réservation">×</button>
+        <p data-preparation-used></p>
+        <p><strong>Reportez ce numéro dans votre projet d'acte avant de passer à l’étape suivante.</strong></p>
+    </div>
+    <dialog data-preparation-dialog class="manual-act-dialog" aria-labelledby="manual-act-dialog-title">
+        <h2 id="manual-act-dialog-title">Récupérer un numéro existant</h2>
+        <p data-preparation-description></p>
+        <label for="manual-act-choice">Sélectionner un numéro :</label><select id="manual-act-choice" data-preparation-choice><option value="">Sélectionner un numéro</option></select>
+        <p data-preparation-empty hidden>Aucun numéro disponible pour cette nature dans ce dossier ou ses dossiers liés.</p>
+        <div class="manual-act-options"><button type="button" data-preparation-close>Annuler</button><button type="button" data-preparation-confirm disabled>Récupérer ce numéro</button></div>
+    </dialog>
+    <dialog class="manual-act-dialog" data-preparation-entry-dialog aria-labelledby="manual-act-entry-title">
+        <h2 id="manual-act-entry-title">Saisir un numéro</h2>
+        <div class="manual-act-field manual-act-entry-field"><label for="manual-act-entry">Numéro du document :</label><input id="manual-act-entry" data-preparation-entry maxlength="150" autocomplete="off" placeholder="Ex. MP/AS/JPD"></div>
+        <div class="manual-act-options"><button type="button" data-preparation-entry-cancel>Annuler</button><button type="button" data-preparation-entry-confirm disabled>Utiliser ce numéro</button></div>
+    </dialog>
+    <dialog class="manual-act-progress" data-preparation-progress aria-label="Chargement en cours"><img src="{% static 'document_generation/img/loading.gif' %}" width="48" height="48" alt="Chargement en cours"></dialog>
+</section>
+<script src="{% static 'instruction/js/manual_act_preparation.js' %}?v=9" defer></script>

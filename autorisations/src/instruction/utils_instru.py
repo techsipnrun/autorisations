@@ -74,13 +74,26 @@ def changer_etape_si_differente(dossier, nom_etape, user, request, *, notify_aft
 
     # --- Tentative de changement d'étape ---
     try :
+        ancienne_etape = dossier.id_etape_dossier
         dossier.id_etape_dossier = nouvelle_etape
 
         # Une étape finale clôt la période d'instruction.
         if nouvelle_etape.est_archivage:
             dossier.date_fin_instruction = timezone.now()
             
-        dossier.save()
+        from django.conf import settings as django_settings
+        if (django_settings.ENVIRONMENT == 'dev' and ancienne_etape.etape == 'En instruction'
+                and nouvelle_etape.etape != 'En instruction'):
+            from django.db import transaction
+            from document_generation.services.manual_act import finish_instruction
+            with transaction.atomic():
+                current = Dossier.objects.select_for_update().get(pk=dossier.pk)
+                if current.id_etape_dossier_id != ancienne_etape.pk:
+                    raise ValueError('Le dossier a changé d’étape. Rechargez la page.')
+                dossier.save()
+                finish_instruction(dossier)
+        else:
+            dossier.save()
         logger.info(f"[DOSSIER {dossier.numero}] Passage à l'étape --> '{nom_etape}' par {user}")
 
     except Exception as e:

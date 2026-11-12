@@ -155,3 +155,20 @@ class PreviewHttpTests(SimpleTestCase):
             "document_generation.views.PdfPreviewService.read_preview", side_effect=FileNotFoundError
         ), self.assertRaises(Http404):
             views.preview_pdf(self.request(user=43), 30769307, 5)
+
+    def test_telechargement_pdf_en_piece_jointe_sans_conversion(self):
+        request = self.request()
+        request.GET = request.GET.copy()
+        request.GET['download'] = '1'
+        with patch('document_generation.views._work_context', return_value=(SimpleNamespace(pk=1), SimpleNamespace(pk=5))), patch(
+            'document_generation.views.PdfPreviewService.read_preview', return_value=BytesIO(b'%PDF-test')), patch(
+            'document_generation.views.build_preview_filename', return_value='Projet_30769307.docx'), patch(
+            'document_generation.views.PdfPreviewService.create_preview') as create:
+            response = views.preview_pdf(request, 30769307, 5)
+        try:
+            self.assertIn('attachment', response['Content-Disposition'])
+            self.assertIn('Projet_30769307.pdf', response['Content-Disposition'])
+            self.assertEqual(b''.join(response.streaming_content), b'%PDF-test')
+            create.assert_not_called()
+        finally:
+            response.close()

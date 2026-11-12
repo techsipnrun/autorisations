@@ -327,6 +327,31 @@ class DocumentGeneration(models.Model):
         return f'Génération {self.pk} — dossier {self.id_dossier_id}'
 
 
+class ManualActPreparation(models.Model):
+    # Table pilote DEV : laisser PostgreSQL appliquer les FK du script 0026.
+    # Le collecteur Django ne doit pas interroger cette table absente en PROD.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id_dossier = models.ForeignKey('autorisations.Dossier', models.DO_NOTHING, db_column='id_dossier')
+    id_nature = models.ForeignKey('autorisations.DocumentNature', models.DO_NOTHING, db_column='id_nature')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, db_column='id_user')
+    numero = models.CharField(max_length=150)
+    origine = models.CharField(max_length=10)
+    source = models.CharField(max_length=80, blank=True, default='')
+    etat = models.CharField(max_length=10, default='ACTIVE')
+    id_document = models.ForeignKey('autorisations.Document', models.DO_NOTHING, null=True, blank=True, db_column='id_document')
+    date = models.DateTimeField(default=timezone.now)
+    date_fin = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = '"generation"."preparation_acte_manuel"'
+        verbose_name = 'Préparation manuelle d’acte'
+        verbose_name_plural = 'Préparations manuelles d’actes'
+
+    def __str__(self):
+        return self.numero
+
+
 class DocumentNumberReservation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     id_template = models.ForeignKey(DocumentTemplate, models.RESTRICT, db_column='id_template')
@@ -334,7 +359,7 @@ class DocumentNumberReservation(models.Model):
     id_dossier = models.ForeignKey('autorisations.Dossier', models.RESTRICT, db_column='id_dossier')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.RESTRICT, db_column='id_user')
     numero = models.CharField(max_length=150)
-    origine = models.CharField(max_length=10, choices=(('GENERE','Généré'),('RECUPERE','Récupéré')))
+    origine = models.CharField(max_length=10, choices=(('GENERE','Généré'),('RECUPERE','Récupéré'),('SAISI','Saisi manuellement')))
     source = models.CharField(max_length=80, blank=True, default='')
     date = models.DateTimeField(default=timezone.now)
 
