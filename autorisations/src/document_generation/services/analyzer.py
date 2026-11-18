@@ -2,9 +2,11 @@
 
 from dataclasses import asdict, dataclass, field
 from io import BytesIO
+import re
+from html import unescape
 from django.core.exceptions import ValidationError
 from docxtpl import DocxTemplate
-from jinja2 import Environment, TemplateError, nodes
+from jinja2 import Environment, TemplateError, TemplateSyntaxError, nodes
 
 from autorisations.models.models_generation import Balise
 from .providers import KNOWN_PROVIDERS
@@ -17,6 +19,8 @@ class AnalysisReport:
     erreurs: list = field(default_factory=list)
     syntaxe_valide: bool = False
     analyse_complete: bool = False
+    conditions: dict = field(default_factory=dict)
+    avertissements: list = field(default_factory=list)
 
     @property
     def valide(self):
@@ -34,11 +38,41 @@ class AnalysisEnvironment(Environment):
     def __init__(self):
         super().__init__()
         self.trees = []
+        self.analysis_source = ""
 
-    def parse(self, *args, **kwargs):
-        tree = super().parse(*args, **kwargs)
+    def parse(self, source, *args, **kwargs):
+        # Word n'a pas de lignes stables : une ligne d'analyse par paragraphe.
+        # Cette copie ne sert qu'à l'analyse, jamais au rendu du document.
+        self.analysis_source = re.sub(r"(<w:p(?:\s|>))", r"\n\1", source)
+        tree = super().parse(self.analysis_source, *args, **kwargs)
         self.trees.append(tree)
         return tree
+
+
+def _syntax_diagnostic(exc, source):
+    """Explication concise accompagnée de l'extrait Word concerné."""
+    message = exc.message
+    expected = re.search(r"expected token '([^']+)', got '([^']+)'", message)
+    if expected:
+        token, found = expected.groups()
+        token = {"end of print statement": "la fermeture de la balise (}})",
+                 "end of statement block": "la fermeture de l’instruction (%})"}.get(token, f"« {token} »")
+        reason = f"Élément inattendu : « {found} » ; élément attendu : {token}. Vérifiez l’expression : les noms de balise doivent être sans espaces (exemple : numero_acte)."
+    elif "Unexpected end of template" in message:
+        reason = "Une condition ou une boucle n’est pas fermée. Vérifiez les instructions {% endif %} et {% endfor %}, ainsi que leur ordre."
+    elif "unknown tag" in message.lower():
+        tag = re.search(r"unknown tag '([^']+)'", message, re.I)
+        reason = f"Instruction inconnue ou mal placée{f' : « {tag.group(1)} »' if tag else ''}. Vérifiez son orthographe et l’imbrication des blocs if/for."
+    elif "No filter named" in message:
+        reason = "Un filtre utilisé dans une balise n’est pas disponible. Vérifiez le nom placé après le caractère |."
+    else:
+        reason = "Expression de balise incorrecte. Vérifiez les délimiteurs {{ … }} / {% … %}, les guillemets, les opérateurs et la fermeture des blocs."
+    lines = source.splitlines(keepends=True)
+    index = max(0, min((getattr(exc, "lineno", 1) or 1) - 1, len(lines) - 1))
+    current = lines[index] if lines else ""
+    excerpt = unescape(re.sub(r"<[^>]+>", "", current))
+    excerpt = " ".join(excerpt.split())[:400]
+    return reason + (f" Extrait concerné : « {excerpt} »." if excerpt else "")
 
 
 def _path(node):
@@ -119,8 +153,11 @@ class TemplateAnalyzer:
         try:
             tpl = DocxTemplate(BytesIO(data))
             roots = tpl.get_undeclared_template_variables(jinja_env=env)
-        except TemplateError as exc:
-            report.erreurs.append(f"Erreur Jinja/docxtpl : {exc}")
+        except TemplateSyntaxError as exc:
+            report.erreurs.append(_syntax_diagnostic(exc, env.analysis_source))
+            return report
+        except TemplateError:
+            report.erreurs.append("Le modèle contient une expression Jinja/docxtpl non prise en charge. Vérifiez les balises et les filtres utilisés.")
             return report
         except Exception as exc:
             report.erreurs.append(f"DOCX inexploitable : {type(exc).__name__}.")
@@ -131,11 +168,14 @@ class TemplateAnalyzer:
         for tree in env.trees:
             _collect(tree, roots, codes, errors)
         report.erreurs.extend(sorted(errors))
+        from .conditions import collect_conditions
         report.analyse_complete = not errors
         if catalogue is None:
             catalogue = Balise.objects.filter(Balise.perimetre(template), code__in=codes).prefetch_related("sources_champs__id_champ")
         by_code = {balise.code: balise for balise in catalogue}
+        report.conditions, report.avertissements = collect_conditions(env.trees, codes, {code: balise.type for code, balise in by_code.items()})
         for code in sorted(codes):
+            first_error = len(report.erreurs)
             balise = by_code.get(code)
             statut = balise.mode if balise else "INCONNUE"
             report.balises.append({"code": code, "statut": statut})
@@ -150,4 +190,6 @@ class TemplateAnalyzer:
             elif balise.source:
                 from .catalogue_sources import source_errors
                 report.erreurs.extend(f"{code} : {error}" for error in source_errors(balise))
+            if balise is not None and len(report.erreurs) > first_error:
+                report.balises[-1]['erreurs'] = report.erreurs[first_error:]
         return report

@@ -108,13 +108,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.addEventListener('manual-act-preparation-updated',()=>updateNumberActions());
     updateNumberActions();
-    guards.forEach(guard=>{
+    guards.forEach((guard,guardIndex)=>{
         const selection=guard.form.querySelector('[name="piece_jointe_work"]');
         const nature=guard.form.querySelector('[name="nature_document"]');
         const box=selection.closest('.projet_acte_pj');
         if(!box || !nature) return;
         box.classList.add('generated-act-selection-layout');
         const info=document.createElement('p');info.className='generated-act-provenance';info.hidden=true;info.setAttribute('role','status');box.append(info);
+        info.id=`act-candidate-message-${guardIndex}`;
+        let hoveredFilename=null;
+        function candidateError(filename) {
+            if(!nature.value) return 'Sélectionnez d’abord la nature de l’acte pour choisir le projet.';
+            const rows=recognized.filter(item=>item.filename.toLocaleLowerCase()===filename.toLocaleLowerCase() && item.numero);
+            if(rows.length>1) return 'Ce fichier correspond à plusieurs générations. Réparez son historique avant de poursuivre.';
+            if(rows.length) {
+                const row=rows[0];
+                if(String(row.nature_id)!==nature.value) {
+                    const label=row.nature || 'nature différente',article=/^[aeiouyàâéèêëîïôùûüœ]/i.test(label) ? 'd’' : 'de ';
+                    const author=row.author && row.date ? ` par ${row.author} le ${row.date}` : '';
+                    return `Ce fichier a été généré à partir d’un modèle ${article}${label}${author}. La nature du fichier généré doit correspondre à la nature de l’acte sélectionnée plus haut dans le formulaire.`;
+                }
+                if(guard.form.dataset.manualPreparationNumber && row.numero!==guard.form.dataset.manualPreparationNumber)
+                    return 'Ce fichier généré ne porte pas le numéro réservé. Choisissez le bon projet ou annulez la réservation du numéro.';
+                return '';
+            }
+            return guard.form.dataset.manualPreparationNumber ? '' : "Ce document Word a été rédigé à la main. Pour l'utiliser, réservez d’abord un numéro dans le bloc « Préparer un projet d’acte ».";
+        }
+        function fileButton(target) {
+            const item=target.closest?.('.selection-fichier-work .liste-work-files li');
+            return item?.querySelector('button[data-act-candidate]');
+        }
+        box.addEventListener('pointerover',event=>{
+            const button=fileButton(event.target);
+            hoveredFilename=button?.dataset.actCandidate || null;guard.updateProvenance();
+        });
+        box.addEventListener('pointerout',event=>{
+            const button=fileButton(event.target);
+            if(button && !button.closest('li').contains(event.relatedTarget)) {hoveredFilename=null;guard.updateProvenance();}
+        });
+        box.addEventListener('focusin',event=>{hoveredFilename=fileButton(event.target)?.dataset.actCandidate || null;guard.updateProvenance();});
+        box.addEventListener('focusout',()=>{hoveredFilename=null;guard.updateProvenance();});
+        box.addEventListener('click',event=>{
+            if(event.target.closest?.('[data-act-candidate-blocked]')) {event.preventDefault();event.stopImmediatePropagation();}
+        },true);
         const alignProvenance=()=>{
             const list=box.querySelector('.liste-work-files'),files=box.querySelector('.selection-fichier-work');
             if(!list || !files || info.hidden) return;
@@ -131,6 +167,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const shared=guard.form.querySelector('.projet-acte-identique-option');
         const saved=new Map(),buttons=new Map();
         guard.updateProvenance=()=>{
+            box.querySelectorAll('.selection-fichier-work .liste-work-files button').forEach(button=>{
+                const filename=button.dataset.actCandidate || button.textContent.trim();
+                button.dataset.actCandidate=filename;
+                const error=candidateError(filename),item=button.closest('li');
+                if(error) {
+                    if(!button.hasAttribute('data-act-candidate-blocked')) button.dataset.candidateWasDisabled=String(button.disabled);
+                    button.dataset.actCandidateBlocked='';button.disabled=true;button.classList.remove('selected');
+                    button.removeAttribute('title');button.setAttribute('aria-describedby',info.id);
+                    if(item) {item.tabIndex=0;item.setAttribute('aria-describedby',info.id);}
+                } else if(button.hasAttribute('data-act-candidate-blocked')) {
+                    button.disabled=button.dataset.candidateWasDisabled==='true';delete button.dataset.actCandidateBlocked;delete button.dataset.candidateWasDisabled;
+                    button.removeAttribute('aria-describedby');if(item){item.removeAttribute('tabindex');item.removeAttribute('aria-describedby');}
+                }
+            });
+            if(selection.value && candidateError(selection.value)) {
+                selection.value='';
+                box.querySelectorAll('.liste-work-files button.selected').forEach(button=>button.classList.remove('selected'));
+                const label=box.querySelector('.fichier-selectionne strong');if(label) label.textContent='Aucun';
+                queueMicrotask(()=>selection.dispatchEvent(new Event('change',{bubbles:true})));
+            }
             const selected=recognized.filter(item=>item.filename.toLocaleLowerCase()===selection.value.toLocaleLowerCase());
             const ready=Boolean(selection.value && nature.value);
             const mismatch=ready && selected.length>0 && (selected.length!==1 || String(selected[0].nature_id)!==nature.value);
@@ -159,6 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             requestAnimationFrame(alignProvenance);
             if(match && previous.length && !previous[0].replaceable) {info.hidden=false;info.textContent='Le projet précédent est encore dans le circuit ou a été diffusé. Son remplacement est bloqué.';info.classList.add('is-mismatch');}
+            const hoverError=hoveredFilename && candidateError(hoveredFilename);
+            if(hoverError) {info.hidden=false;info.textContent=hoverError;info.classList.remove('is-manual-reminder');info.classList.add('is-mismatch');}
             const report=guard.form.querySelector('[name="piece_jointe_rapport_ca_work"]');
             report?.closest('.projet_rapport_ca_pj')?.querySelectorAll('.liste-work-files button').forEach(button=>{
                 const wrong=reportFiles.some(item=>item.filename.toLocaleLowerCase()===button.textContent.trim().toLocaleLowerCase() && !item.is_report);
@@ -169,10 +227,11 @@ document.addEventListener('DOMContentLoaded', () => {
             let reportInfo=guard.form.querySelector('[data-report-nature-error]');
             if(report && !reportInfo){reportInfo=document.createElement('p');reportInfo.dataset.reportNatureError='';reportInfo.className='generated-act-provenance is-mismatch';reportInfo.setAttribute('role','alert');report.closest('.projet_rapport_ca_pj').append(reportInfo);}
             if(reportInfo){reportInfo.hidden=!wrongReport;reportInfo.textContent='Ce fichier a été généré pour une autre nature. Choisissez un fichier généré à partir d’un modèle de nature Rapport CA, ou un rapport rédigé manuellement.';}
-            guard.blocked=guard.historyBlocked || mismatch || replacementBlocked || wrongReport || wrongPreparedNumber;
+            const invalidCandidate=!ready || Boolean(candidateError(selection.value));
+            guard.blocked=guard.historyBlocked || invalidCandidate || mismatch || replacementBlocked || wrongReport || wrongPreparedNumber;
             guard.form.querySelectorAll('button[type="submit"],button.btn-envoyer-complement').forEach(button=>{
-                if((mismatch || replacementBlocked || wrongReport || wrongPreparedNumber) && !buttons.has(button)) buttons.set(button,button.disabled);
-                if(mismatch || replacementBlocked || wrongReport || wrongPreparedNumber) button.disabled=true;
+                if((invalidCandidate || mismatch || replacementBlocked || wrongReport || wrongPreparedNumber) && !buttons.has(button)) buttons.set(button,button.disabled);
+                if(invalidCandidate || mismatch || replacementBlocked || wrongReport || wrongPreparedNumber) button.disabled=true;
                 else if(buttons.has(button)){button.disabled=buttons.get(button);buttons.delete(button);}
             });
             if(shared) {

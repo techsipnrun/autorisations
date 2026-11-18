@@ -25,8 +25,8 @@
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js" defer></script>
     <script src="https://unpkg.com/leaflet.browser.print/dist/leaflet.browser.print.min.js" defer></script>
     <script src="{% static 'instruction/js/cartographie.js' %}?v=5" defer></script>
-    <script src="{% static 'backoffice/js/back_office_cartographie.js' %}?v=12" defer></script>
-{% if generation_documents_dev %}<link rel="stylesheet" href="{% static 'backoffice/css/back_office_documents.css' %}?v=9"><script src="{% static 'backoffice/js/back_office_documents.js' %}?v=18" defer></script>{% endif %}
+    <script src="{% static 'backoffice/js/back_office_cartographie.js' %}?v=13" defer></script>
+{% if generation_documents_dev %}<link rel="stylesheet" href="{% static 'backoffice/css/back_office_documents.css' %}?v=31"><script src="{% static 'backoffice/js/back_office_documents.js' %}?v=28" defer></script>{% endif %}
 </head>
 <body>
     <div class="back-office-layout">
@@ -445,7 +445,7 @@
             {% if generation_documents_dev %}
                 {% include "backoffice/back_office_documents.html" %}
                 {% include "backoffice/back_office_balises.html" %}
-                <script src="{% static 'backoffice/js/back_office_balises.js' %}?v=7" defer></script>
+                <script src="{% static 'backoffice/js/back_office_balises.js' %}?v=20" defer></script>
             {% endif %}
         </main>
     </div>

@@ -1,6 +1,6 @@
 {% load static %}
 {% load group_tags %}
-<li class="doc-item">
+<li class="doc-item"{% if doc.envoi_title %} title="{{ doc.envoi_title }}"{% endif %}>
     <div class="doc-copy-row"
         data-path="{{ NAS_ROOT }}{{ doc.emplacement }}{{ doc.titre }}"
         onclick="copyPathDocument(this)">

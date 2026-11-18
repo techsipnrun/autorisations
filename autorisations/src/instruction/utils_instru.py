@@ -214,7 +214,7 @@ def enregistrer_action(dossier, instructeur, nom_action, description=None, date=
                 id_instructeur=instructeur,
                 id_action=action_obj,
                 description=description,
-                date=date
+                date=timezone.now() if date is None else date
             )
 
         except Exception as e:

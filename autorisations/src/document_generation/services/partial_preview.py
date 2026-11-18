@@ -15,7 +15,15 @@ def partial_preview_context(prepared, form, known_form, *, known_edited=False,
         known_form.is_valid()
         fields.update({balise.code: (known_form, name) for name, balise in known_form.balise_map.items()})
     context, missing = {}, []
+    from .conditions import active
+    values = dict(form.condition_context)
+    for current in (form, known_form if known_edited else None):
+        if current is not None:
+            values.update({balise.code: current.cleaned_data.get(name) for name, balise in current.balise_map.items()})
     for balise in prepared['balises']:
+        if not active(balise, values):
+            set_nested_value(context, balise.code, None)
+            continue
         invalid = False
         raw = None
         if balise.code == 'document.numero':

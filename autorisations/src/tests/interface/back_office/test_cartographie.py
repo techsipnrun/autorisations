@@ -359,6 +359,24 @@ class CartographieInterfaceTests(SimpleTestCase):
                     const source = await nativeFetch('/static/'+(name.startsWith('back_office')?'backoffice':'instruction')+'/js/'+name).then(r=>r.text());
                     try { new Function(source); } catch(error) { throw new Error(name+': '+error.message); }
                 }
+                location.hash='carto/catalogue';window.dispatchEvent(new HashChangeEvent('hashchange'));await wait();
+                root.querySelector('[data-carto-new-source=geojson]').click();
+                const stableForm=root.querySelector('[data-carto-source-form]');
+                const snapshotUpload=new DataTransfer();
+                snapshotUpload.items.add(new File([JSON.stringify({type:'FeatureCollection',features:[feature]})],'stable.geojson',{type:'application/geo+json'}));
+                stableForm.elements.fichier.files=snapshotUpload.files;
+                stableForm.elements.fichier.dispatchEvent(new Event('change'));
+                for(let tentative=0;tentative<60&&!root.querySelector('[data-carto-import-status]').textContent.includes('validé');tentative++) await wait();
+                const original=stableForm.elements.fichier.files[0];
+                Object.defineProperty(original,'arrayBuffer',{value:()=>Promise.reject(new Error('ERR_UPLOAD_FILE_CHANGED'))});
+                stableForm.elements.nom.value='Copie stable';
+                const beforeSave=posts.length;
+                stableForm.querySelector('[type=submit]').click();
+                for(let tentative=0;tentative<40&&posts.length===beforeSave;tentative++) await wait();
+                assert(posts.length===beforeSave+1,'Fichier modifie apres apercu : copie stable envoyee');
+                const sent=posts.at(-1).body.get('fichier');
+                assert(sent && sent!==original && sent.name==='stable.geojson','Original local non reutilise pour le POST');
+                assert(JSON.parse(await sent.text()).features.length===1,'Contenu de la selection conserve');
                 output.textContent='CARTOGRAPHIE_OK';
             } catch(error) { output.textContent='ERREUR: '+error.message; }
         });

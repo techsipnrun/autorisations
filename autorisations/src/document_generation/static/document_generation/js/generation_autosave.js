@@ -2,8 +2,8 @@
     const form=document.querySelector('#generation-form');
     if(!form?.dataset.draftKey) return;
     const key='agida:generation-draft:'+form.dataset.draftKey;
-    const fields=()=>[...form.querySelectorAll('.known-information input,.known-information select,.known-information textarea,.manual-fields input,.manual-fields select,.manual-fields textarea')]
-        .filter(input=>input.name.startsWith('balise_') || input.name.startsWith('known-balise_') || input.name==='edit_known');
+    const fields=()=>[...form.querySelectorAll('[name=edit_known],.known-information input,.known-information select,.known-information textarea,.manual-fields input,.manual-fields select,.manual-fields textarea')]
+        .filter(input=>input.name.startsWith('balise_') || input.name.startsWith('known-balise_') || input.name.startsWith('edit_known'));
     let timer;
     function save() {
         clearTimeout(timer);
@@ -34,11 +34,21 @@
             if(['checkbox','radio'].includes(input.type)) input.checked=Boolean(item.checked);
         });
         if(form.querySelector('[name=edit_known]')?.value==='1') {
-            form.querySelector('#known-editor').hidden=false;
-            form.querySelector('#known-editor fieldset').disabled=false;
-            form.querySelector('#known-display').hidden=true;
-            form.querySelector('.edit-known')?.setAttribute('aria-expanded','true');
+            if(form.querySelector('[name^=edit_known_]')) {
+                form.querySelectorAll('.known-information').forEach(block=>{
+                    const editing=block.querySelector('[name^=edit_known_]')?.value==='1';
+                    block.querySelector('[data-known-editor]').hidden=!editing;
+                    block.querySelector('[data-known-editor] fieldset').disabled=!editing;
+                    block.querySelector('[data-known-display]').hidden=editing;
+                    block.querySelector('.edit-known')?.setAttribute('aria-expanded',String(editing));
+                });
+            } else {
+            form.querySelectorAll('[data-known-editor],#known-editor').forEach(editor=>{editor.hidden=false;editor.querySelector('fieldset').disabled=false;});
+            form.querySelectorAll('[data-known-display],#known-display').forEach(display=>{display.hidden=true;});
+            form.querySelectorAll('.edit-known').forEach(button=>button.setAttribute('aria-expanded','true'));
+            }
         }
+        form.dispatchEvent(new Event('generation-draft-restored'));
         form.dispatchEvent(new Event('change',{bubbles:true}));
     }
     const schedule=()=>{clearTimeout(timer);timer=setTimeout(save,250);};

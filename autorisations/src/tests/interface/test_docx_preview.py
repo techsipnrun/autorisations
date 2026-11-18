@@ -22,6 +22,18 @@ class DocxPreviewTests(SimpleTestCase):
         document.add_paragraph('Projet de test DOCX {{ projet.nom }}')
         document.add_paragraph('{% if projet.commune %}Commune renseignée{% else %}Commune absente{% endif %}')
         document.add_paragraph('{% for nom in projet.beneficiaires %}{{ nom }}{% endfor %}')
+        from docx.enum.style import WD_STYLE_TYPE
+        from docx.shared import Pt
+        document.styles['Normal'].paragraph_format.space_after = Pt(10)
+        from docx.oxml.ns import qn
+        for spacing in document.styles.element.xpath('./w:docDefaults/w:pPrDefault/w:pPr/w:spacing'):
+            spacing.set(qn('w:after'), '0')
+        document.styles.add_style('StandardSansHeritage', WD_STYLE_TYPE.PARAGRAPH)
+        document.add_paragraph('{%p if projet.commune %}')
+        document.add_paragraph('Vu sans espacement herite', style='StandardSansHeritage')
+        document.add_paragraph('{%p endif %}')
+        explicit = document.add_paragraph('Espacement volontaire', style='StandardSansHeritage')
+        explicit.paragraph_format.space_after = Pt(18)
         document.add_page_break()
         document.add_paragraph('Deuxieme page')
         document.add_page_break()
@@ -109,6 +121,11 @@ class DocxPreviewTests(SimpleTestCase):
                 const frame=content.querySelector('iframe');
                 if(!frame?.contentDocument.body.textContent.includes('Projet de test DOCX')) throw new Error('Rendu DOCX absent: '+document.querySelector('[data-docx-preview-error]').textContent);
                 if(frame.getAttribute('sandbox')!=='allow-same-origin allow-modals') throw new Error('Isolation absente');
+                const paragraphs=[...frame.contentDocument.querySelectorAll('p')];
+                const compact=paragraphs.find(p=>p.textContent==='Vu sans espacement herite');
+                const spaced=paragraphs.find(p=>p.textContent==='Espacement volontaire');
+                if(!compact || parseFloat(frame.contentWindow.getComputedStyle(compact).marginBottom)>0.1) throw new Error('Espacement Normal applique au style sans heritage');
+                if(!spaced || parseFloat(frame.contentWindow.getComputedStyle(spaced).marginBottom)<20) throw new Error('Espacement volontaire perdu');
                 if(!document.getElementById('pdf')) throw new Error('PDF perdu');
                 const toolbar=document.querySelector('.docx-preview-toolbar'),pageInput=toolbar.querySelector('[data-docx-page]');
                 if(getComputedStyle(toolbar).backgroundColor!=='rgb(56, 58, 57)') throw new Error('Style sombre absent');

@@ -12,6 +12,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtreStatut = panel.querySelector('[data-documents-statut]');
     const edition = panel.querySelector('[data-document-edition]');
     const editButton = panel.querySelector('[data-document-edit]');
+    const refreshButton = panel.querySelector('[data-document-refresh]');
+    refreshButton.addEventListener('click', async () => {
+        if(!selection?.verification_url || refreshButton.disabled) return;
+        const id=selection.id;
+        const requestedRoute=location.hash;
+        refreshButton.disabled=true;refreshButton.setAttribute('aria-busy','true');
+        signaler('Relecture du Word et synchronisation des balises…');
+        try {
+            const response=await fetch(selection.verification_url,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'X-CSRFToken':edition.querySelector('[name=csrfmiddlewaretoken]').value}});
+            if(!response.headers.get('content-type')?.includes('application/json')) throw new Error('Session expirée. Rechargez la page.');
+            const result=await response.json();
+            if(!response.ok) throw new Error(result.erreur || 'Impossible d’actualiser le modèle.');
+            const updated=result.template;
+            templates=templates.map(item=>item.id===id ? updated : item);
+            const choices=await fetch(panel.dataset.documentsOptions,{credentials:'same-origin',cache:'no-store'});
+            if(choices.ok && choices.headers.get('content-type')?.includes('application/json')) optionsEdition=await choices.json();
+            if(selection?.id===id && !fiche.hidden && !panel.hidden && location.hash===requestedRoute) {
+                selection=updated;
+                if(edition.hidden) ouvrir(updated,false,false);else afficherRapport(updated.rapport);
+                signaler('');
+            }
+        } catch(error) {if(selection?.id===id) signaler(error.message,true);}
+        finally {refreshButton.disabled=false;refreshButton.removeAttribute('aria-busy');}
+    });
     let optionsEdition = null;
     let creating = false;
     let chargement = false, selection = null, templates = [];
@@ -187,6 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function afficherRapport(data) {
         rapport.replaceChildren();
+        const balisesSection=panel.querySelector('[data-document-balises]');
+        panel.querySelector('[data-document-balise-add]').href=`#documents/balises/nouvelle?template=${selection.id}`;
+        const balisesTable=panel.querySelector('[data-document-balises-table]');
+        balisesTable.replaceChildren();balisesSection.hidden=creating;
         if (!data) {
             const vide = element('p', 'Le rapport de ce modèle est indisponible.');
             vide.className = 'bo-documents-empty';
@@ -206,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         rapport.append(compte);
         if (!data.analyse_complete) rapport.append(element('p', 'Analyse incomplète : la dernière liste synchronisée en base n’a pas été actualisée.'));
+        for(const warning of data.avertissements || []) rapport.append(element('p', warning));
         if (data.erreurs.length) {
             const erreurs = element('ul', '');
             erreurs.className = 'bo-documents-errors';
@@ -225,31 +254,59 @@ document.addEventListener('DOMContentLoaded', () => {
             const classement = element('td', '');
             const definition=optionsEdition?.balises_catalogue?.[`${selection.id}:${balise.code}`] || optionsEdition?.balises_catalogue?.[`*:${balise.code}`];
             const source=definition?.source || (definition?.mode==='A_RENSEIGNER' ? 'MANUELLE' : 'AGIDA');
+            const errors=balise.erreurs || (data.erreurs || []).filter(error=>error.startsWith(`${balise.code} :`) || error===`Balise inactive : ${balise.code}.` || error===`Balise connue sans provider : ${balise.code}.`);
+            const invalid=balise.statut==='INCONNUE' || errors.length>0;
+            ligne.classList.toggle('is-unconfigured',invalid);
             const label=balise.statut==='CONNUE' && definition ? (source==='FORMULAIRE' ? 'CONNUE FORMULAIRE' : 'CONNUE - AGIDA') : balise.statut.replaceAll('_', ' ');
             classement.append(badge(label, balise.statut === 'CONNUE' ? 'is-success' : balise.statut === 'INCONNUE' ? 'is-error' : 'is-warning'));
+            if(invalid) {
+                classement.append(badge('À configurer','is-error'));
+                for(const error of errors) {const explanation=element('small',error);explanation.className='bo-balise-error';classement.append(explanation);}
+            }
             if(definition) {
                 const type={TEXT:'Texte',TEXTAREA:'Texte multiligne',INTEGER:'Entier',DECIMAL:'Décimal',DATE:'Date',BOOLEAN:'Oui / Non',LIST:'Liste répétable',SELECT:'Liste simple',MULTISELECT:'Choix multiples'}[definition.type] || definition.type;
-                classement.append(element('small',`${type} · ${definition.required ? 'Obligatoire' : 'Facultative'}${definition.actif ? '' : ' · Inactive'}`));
-                const configure=element('a','Configurer cette balise');configure.href=`#documents/balises/${definition.id}?template=${selection.id}`;configure.className='bo-balise-configurer';classement.append(configure);
-            } else {classement.append(element('small','Non configurée'));}
+                classement.append(element('small',`${type}${definition.actif ? '' : ' · Inactive'}`));
+                const configure=element('a','→ Configurer cette balise');configure.href=`#documents/balises/${definition.id}?template=${selection.id}`;configure.className='bo-balise-configurer';classement.append(configure);
+            }
             ligne.append(element('td', balise.code), classement);
+            const obligation=element('label','');obligation.className='bo-document-required';
+            const required=document.createElement('input');required.type='checkbox';
+            required.checked=balise.code==='document.numero' || !!selection.balise_required?.[balise.code];
+            required.disabled=balise.code==='document.numero';
+            required.setAttribute('aria-label',`Obligatoire dans ce template : ${balise.code}`);
+            obligation.append(required,document.createTextNode('Obligatoire'));
+            classement.append(obligation);
+            required.addEventListener('change',async()=>{
+                const template=selection, previous=!required.checked;
+                required.disabled=true;
+                const payload=new FormData();payload.set('code',balise.code);payload.set('required',String(required.checked));
+                try {
+                    const response=await fetch(`/back-office/documents/templates/${template.id}/obligation/`,{method:'POST',credentials:'same-origin',headers:{'X-CSRFToken':edition.querySelector('[name=csrfmiddlewaretoken]').value},body:payload});
+                    if(!response.headers.get('content-type')?.includes('application/json')) throw new Error('Session expirée. Rechargez la page.');
+                    const result=await response.json();
+                    if(!response.ok) throw new Error(result.erreur || 'Impossible d’enregistrer cette règle.');
+                    template.balise_required={...template.balise_required,[balise.code]:result.required};
+                    signaler('Règle enregistrée pour ce template.');
+                } catch(error) {required.checked=previous;signaler(error.message,true);}
+                finally {required.disabled=false;}
+            });
             if(balise.statut==='INCONNUE' && !definition) {
-                const configure=element('a','Configurer cette balise');
+                const configure=element('a','→ Configurer cette balise');
                 configure.href=`#documents/balises/nouvelle?code=${encodeURIComponent(balise.code)}&template=${selection.id}`;
                 configure.className='bo-balise-configurer';classement.append(configure);
             }
             body.append(ligne);
         }
         table.append(body);
-        rapport.append(table);
+        balisesTable.append(table);
     }
-    function ouvrir(template, creation = false) {
+    function ouvrir(template, creation = false, updateUrl = true) {
         fermerEdition();
         creating = creation;
         editButton.hidden=creation;
         panel.querySelector('.bo-documents-controle').hidden=creation;
         selection = template;
-        history.replaceState(null, '', `#documents/templates/${creation ? 'nouveau' : template.id}`);
+        if(updateUrl) history.replaceState(null, '', `#documents/templates/${creation ? 'nouveau' : template.id}`);
         const download=panel.querySelector('[data-document-download]');
         download.hidden=!template.telechargement_url;
         if(template.telechargement_url) download.href=template.telechargement_url;
@@ -290,16 +347,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const route=window.location.hash.match(/^#documents\/templates(?:\/(nouveau|\d+))?$/);
         if(!route || panel.hidden) return;
         if(route[1]==='nouveau') {
-            ouvrir({nom:'',code:'',chemin_relatif:'',destination_relative:'',nom_fichier:'',nature:'',id_nature:null,
+            if(creating && !fiche.hidden && !edition.hidden) return;
+            ouvrir({nom:'',code:'',chemin_relatif:'',destination_relative:'{dossier.emplacement}/Work',nom_fichier:'',nature:'',id_nature:null,
                 actif:true,demarches:[],demarche_ids:[],configuration_complete:false,configuration_errors:{},rapport:null},true);
             ouvrirEdition();return;
         }
+        if(route[1] && String(selection?.id)===route[1] && !fiche.hidden) return;
         const template=route[1] && templates.find(item=>String(item.id)===route[1]);
-        if(template) ouvrir(template);
+        if(template) {
+            if(selection?.id===template.id && !fiche.hidden) return;
+            ouvrir(template,false,false);
+        }
         else {
             afficherListe();
             if(route[1]) {
-                history.replaceState(null,'','#documents/templates');
                 signaler('Ce template n’est plus disponible.',true);
             }
         }
@@ -341,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         signaler('');
         recherche.focus({preventScroll:true});
     });
-    window.addEventListener('hashchange',()=>{if(!chargement) restaurerDepuisUrl();});
+    window.addEventListener('hashchange',()=>{if(!chargement || templates.length) restaurerDepuisUrl();});
     recherche.addEventListener('input', dessinerListe);
     filtre.addEventListener('change', dessinerListe);
     filtreDemarche.addEventListener('change', dessinerListe);
@@ -413,6 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         const boutons=edition.querySelectorAll('button');
+        const requestedRoute=location.hash;
         boutons.forEach(b => { b.disabled=true; });editButton.disabled=true;
         messageLocal(statutEdition, 'Enregistrement…');
         try {
@@ -430,8 +492,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if(creating) templates.push(data.template);
             else templates=templates.map(t=>t.id===data.template.id ? data.template : t);
-            ouvrir(data.template);
-            signaler('Informations enregistrées et modèle analysé.');
+            if(!panel.hidden && location.hash===requestedRoute) {
+                ouvrir(data.template);
+                signaler('Informations enregistrées et modèle analysé.');
+            }
         } catch(error) { messageLocal(statutEdition,error.message,true); }
         finally { boutons.forEach(b=>{b.disabled=false;});tokenFields.forEach(field=>field.sync());editButton.disabled=false; }
     });

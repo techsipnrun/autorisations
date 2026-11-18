@@ -19,14 +19,14 @@ class BalisesInterfaceTests(SimpleTestCase):
         mock="""
         history.replaceState(null,'','#documents/balises/nouvelle?code=projet.commune&template=1');
         let saved=null, reads=0;
-        const payload={balises:[{id:43,code:'projet.inactive',libelle:'Balise inactive',actif:false,erreurs:[],mode:'A_RENSEIGNER'}],proprietes:[{code:'dossier.numero',nom:'Numéro du dossier'}],
+        const payload={balises:[{id:43,code:'projet.inactive',libelle:'Balise inactive',actif:false,erreurs:[],mode:'A_RENSEIGNER'}],proprietes:[{categorie:'Dossier',code:'dossier.numero',nom:'Numéro du dossier'}],
             types:[{code:'TEXT',nom:'Texte'},{code:'INTEGER',nom:'Entier'},{code:'LIST',nom:'Liste répétable (texte)'}],demarches:[{id:14,nom:'Test'},{id:99,nom:'Autre'}],
             templates:[{id:1,nom:'Template Test',demarche_ids:[14],balise_codes:['projet.commune']},
                 {id:2,nom:'Template global',demarche_ids:[],balise_codes:['projet.inactive']},
                 {id:3,nom:'Template autre',demarche_ids:[99],balise_codes:['projet.commune']}]};
         const response=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
         window.fetch=async(url,options={})=>{
-            if(url.includes('/champs/14/')) return response({champs:[{id:7,nom:'Commune',type:'Texte'}]});
+            if(url.includes('/champs/14/')) return response({champs:[{id:7,nom:'Commune',type:'Texte',erreurs_types:{INTEGER:'Champ incompatible avec Entier.'}},{id:8,nom:'Libelle de champ tres long '.repeat(30),type:'Texte'}]});
             if(options.method==='POST') {
                 if(options.body.get('csrfmiddlewaretoken')!=='test-token') throw new Error('CSRF absent');
                 const sources=JSON.parse(options.body.get('sources'));
@@ -48,14 +48,37 @@ class BalisesInterfaceTests(SimpleTestCase):
                 const panel=document.querySelector('[data-panel="balises"]');panel.hidden=false;
                 await wait(()=>reads===1 && !document.querySelector('[data-balise-detail]').hidden);
                 const form=document.querySelector('[data-balise-form]');
+                if(!form.elements.source_propriete.querySelector('optgroup[label="Dossier"] option[value="dossier.numero"]')) throw new Error('Categorie AGIDA absente');
+                const initialFilter=document.querySelector('[data-balises-source]');
+                if(initialFilter.value!=='AGIDA') throw new Error('Filtre AGIDA absent par defaut');
+                initialFilter.value='';initialFilter.dispatchEvent(new Event('change'));
+                if(form.elements.type.value!=='' || !form.querySelector('[type="submit"]').disabled) throw new Error('Formulaire incomplet enregistrable');
+                if(form.elements.libelle.placeholder) throw new Error('Ancien exemple de libelle encore present');
+                form.elements.type.value='TEXT';form.elements.type.dispatchEvent(new Event('change'));
                 if(form.elements.code.value!=='projet.commune') throw new Error('Code inconnu non prérempli');
                 form.elements.libelle.value='Commune du projet';
                 form.elements.source.value='FORMULAIRE';form.elements.source.dispatchEvent(new Event('change'));
                 if(document.querySelector('[data-balise-mappings]').hidden) throw new Error('Sources masquées');
-                document.querySelector('[data-balise-add-source]').click();
-                const demarche=document.querySelector('[data-source-demarche]');demarche.value='14';demarche.dispatchEvent(new Event('change'));
+                if(!document.querySelector('[data-balise-add-source]').hidden) throw new Error('Ajout inutile pour une seule demarche');
+                const demarche=document.querySelector('[data-source-demarche]');
+                if(demarche.value!=='14' || !demarche.disabled || demarche.querySelector('option[value="99"]')) throw new Error('Demarche du template non imposee');
                 await wait(()=>document.querySelector('[data-source-champ] option[value="7"]'));
-                document.querySelector('[data-source-champ]').value='7';form.elements.required.checked=true;
+                const trigger=document.querySelector('.bo-balise-field-trigger');
+                if(trigger.hidden || !trigger.getClientRects().length || trigger.getBoundingClientRect().height<20) throw new Error('Selecteur de champ masque');
+                if(!document.querySelector('[data-source-remove]').hidden) throw new Error('Retrait de la demarche unique encore visible');
+                trigger.click();
+                const popup=document.querySelector('.bo-balise-field-options'),bounds=popup.getBoundingClientRect();
+                if(popup.hidden || bounds.left<0 || bounds.right>innerWidth || bounds.bottom>innerHeight || popup.scrollWidth>popup.clientWidth+1) throw new Error('Menu de champs hors ecran');
+                popup.querySelector('button').click();
+                if(!popup.hidden || document.querySelector('[data-source-champ]').value!=='7') throw new Error('Selection du champ incorrecte');
+                document.querySelector('[data-source-champ]').value='7';
+                if(form.elements.required) throw new Error('Obligation globale encore configurable');
+                document.querySelector('[data-source-champ]').dispatchEvent(new Event('change',{bubbles:true}));
+                if(form.querySelector('[type="submit"]').disabled) throw new Error('Formulaire valide non enregistrable');
+                form.elements.type.value='INTEGER';form.elements.type.dispatchEvent(new Event('change'));
+                if(!form.querySelector('[type="submit"]').disabled || document.querySelector('[data-source-feedback]').hidden) throw new Error('Incompatibilite non signalee');
+                form.elements.type.value='TEXT';form.elements.type.dispatchEvent(new Event('change'));
+                if(form.querySelector('[type="submit"]').disabled || !document.querySelector('[data-source-feedback]').hidden) throw new Error('Correction de type non prise en compte');
                 if(form.elements.allow_blank) throw new Error('Ancien réglage vide encore présent');
                 form.querySelector('[type="submit"]').click();
                 await wait(()=>document.querySelector('[data-balise-save-status]').textContent.includes('Balise enregistrée'));
@@ -64,7 +87,7 @@ class BalisesInterfaceTests(SimpleTestCase):
                 if(document.querySelector('[data-balise-back]').textContent!=='← Revenir au template') throw new Error('Retour template perdu');
                 await wait(()=>document.querySelector('[data-source-champ]')?.value==='7');
                 const impact=document.querySelector('[data-balise-impact]');
-                if(!impact.hidden) throw new Error('Balise formulaire présentée comme partagée');
+                if(impact.hidden || !impact.textContent.includes('1 template.') || !impact.textContent.includes('Voir le template concerné')) throw new Error('Utilisation unique non affichee');
                 if(form.elements.id_template.value!=='1') throw new Error('Template local non prérempli');
                 form.elements.type.value='LIST';form.elements.type.dispatchEvent(new Event('change'));
                 if(form.elements.source.value!=='MANUELLE' || document.querySelector('[data-balise-item-label]').hidden) throw new Error('Configuration de liste indisponible');

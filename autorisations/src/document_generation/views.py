@@ -147,7 +147,12 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
 
     form, context_json, final_context = None, None, None
     known_form = None
+    condition_values, condition_rules = {}, {}
     known_edited = submitted is not None and submitted.get("edit_known") == "1"
+    known_edit_groups = {key for key in ('agida', 'formulaire') if submitted is not None and
+                         submitted.get(f'edit_known_{key}') == '1'}
+    if known_edited and submitted is not None and not any(f'edit_known_{key}' in submitted for key in ('agida', 'formulaire')):
+        known_edit_groups = {'agida', 'formulaire'}
     rows, errors = [], []
     complete = False
     generated_file = draft.get('generated_file')
@@ -175,24 +180,45 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
         prepared = DocumentPreparationService().prepare(dossier, template)
         rows, errors = [row for row in prepared['known_rows'] if row['code'] != 'document.numero'], list(prepared["errors"])
         if not errors:
+            from .services.validation import ABSENT
+            condition_rules = {b.code: getattr(b, 'visibility_rule', None) for b in prepared['balises']}
+            for b in prepared['balises']:
+                value = lire_contexte(prepared['known_context'], b.code)
+                condition_values[b.code] = None if value is ABSENT else value
+                prefix = 'known-' if b.mode == Balise.Mode.CONNUE else ''
+                group = 'formulaire' if b.source == Balise.Source.FORMULAIRE else 'agida'
+                if submitted is not None and (not prefix or group in known_edit_groups):
+                    field = DynamicDocumentForm.build_field(b)
+                    field.required = False
+                    try:
+                        condition_values[b.code] = field.clean(field.widget.value_from_datadict(submitted, {}, f'{prefix}balise_{b.pk}'))
+                    except ValidationError:
+                        condition_values[b.code] = None
             editable = [b for b in prepared["balises"] if b.mode == Balise.Mode.CONNUE
                         and b.code != 'document.numero' and b.code in {row["code"] for row in rows}]
             initial = {f"balise_{b.pk}": lire_contexte(prepared["known_context"], b.code) for b in editable}
             for b in editable:
                 if b.type == Balise.Type.BOOLEAN and initial[f"balise_{b.pk}"] is not None:
                     initial[f"balise_{b.pk}"] = "true" if initial[f"balise_{b.pk}"] else "false"
+            known_data = submitted.copy() if known_edited else None
+            if known_data is not None:
+                for b in editable:
+                    group = 'formulaire' if b.source == Balise.Source.FORMULAIRE else 'agida'
+                    if group not in known_edit_groups:
+                        known_data[f'known-balise_{b.pk}'] = initial[f'balise_{b.pk}']
             known_form = DynamicDocumentForm(
-                data=submitted if known_edited else None, prefix="known", balises=editable, initial=initial)
+                data=known_data, prefix="known", balises=editable, initial=initial, condition_context=condition_values)
+            known_form.edit_groups = known_edit_groups
             known_valid = True
             if known_edited:
                 known_valid = known_form.is_valid()
                 for name, b in known_form.balise_map.items():
-                    if name in known_form.cleaned_data and b.required and valeur_vide(known_form.cleaned_data[name]):
+                    if name not in known_form.inactive_fields and name in known_form.cleaned_data and b.required and valeur_vide(known_form.cleaned_data[name]):
                         known_form.add_error(name, "La valeur saisie ne peut pas être vide.")
                         known_valid = False
             effective_context = deepcopy(prepared["known_context"])
             form = DynamicDocumentForm(data=submitted,
-                                       balises=prepared["form_balises"])
+                                       balises=prepared["form_balises"], condition_context=condition_values)
             if action == 'preview_docx':
                 preview_context, missing = partial_preview_context(
                     prepared, form, known_form, known_edited=known_edited,
@@ -307,7 +333,7 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
 
     if request.method == 'POST':
         values = {name: values for name, values in request.POST.lists()
-                  if name.startswith(('balise_', 'known-balise_')) or name in ('edit_known','number_selection')}
+                  if name.startswith(('balise_', 'known-balise_', 'edit_known_')) or name in ('edit_known','number_selection')}
         keep_number = not (action == 'generate_file' and generated_file and not generation_error)
         if not keep_number:
             values.pop('number_selection', None)
@@ -351,6 +377,7 @@ def generer_document(request, num_dossier, template_id, _shell=None, _work=None)
         **dossier_history(dossier),
         "dossier": dossier, "document_template": template, "resolved_balises": rows,
         "form": form, "known_form": known_form, "known_edited": known_edited, "errors": errors, "complete": complete,
+        'generation_conditions': {'rules': condition_rules, 'values': condition_values},
         "final_context": final_context, "context_json": context_json,
         "preview_exists": preview_exists, "preview_url": preview_url,
         "generated_file": generated_file,

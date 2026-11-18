@@ -1,10 +1,10 @@
 <section class="back-office-panel bo-documents" data-panel="balises" data-balises-catalogue="{% url 'back_office_balises' %}" hidden>
-    <header class="back-office-panel-header"><p class="back-office-eyebrow">Back Office · Documents · Balises</p><h1>Balises</h1><p>Définissez l'origine des valeurs et les informations à demander à l'instructeur.</p></header>
+    <header class="back-office-panel-header"><p class="back-office-eyebrow">Back Office · Documents · Balises</p><h1>Balises</h1><p>Définissez l'origine des valeurs et les informations à demander à l'instructeur.</p><p><em>Les balises connues AGIDA peuvent être partagées entre plusieurs templates. Les balises issues d’un formulaire ou à renseigner sont propres à chaque template.</em></p></header>
     <p data-balises-status class="bo-documents-status" role="status" aria-live="polite"></p>
     <div data-balises-toolbar class="bo-documents-toolbar">
         <label>Rechercher une balise<input type="search" data-balises-search placeholder="Code, libellé…"></label>
         <label>État<select data-balises-state><option value="">Toutes</option><option value="actif">Actives</option><option value="inactif">Inactives</option></select></label>
-        <label>Type de balise<select data-balises-source><option value="">Tous les types</option><option value="AGIDA">Connue AGIDA</option><option value="FORMULAIRE">Connue Formulaire</option><option value="MANUELLE">À renseigner</option></select></label>
+        <label>Type de balise<select data-balises-source><option value="">Tous les types</option><option value="AGIDA" selected>Connue AGIDA</option><option value="FORMULAIRE">Connue Formulaire</option><option value="MANUELLE">À renseigner</option></select></label>
         <label data-balises-demarche-label>Démarche concernée<select data-balises-demarche></select></label>
         <label data-balises-template-label hidden>Template<select data-balises-template></select></label>
         <button type="button" data-balise-new class="bo-documents-primary">Ajouter une balise</button>
@@ -16,20 +16,18 @@
             {% csrf_token %}
             <h2 data-balise-title>Nouvelle balise</h2>
             <aside class="bo-balise-impact" data-balise-impact hidden aria-label="Templates concernés"></aside>
-            <label>Code dans Word<input name="code" required maxlength="150" pattern="[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*" placeholder="projet.commune"><small>Sans accolades. Le code reste fixe après création.</small></label>
-            <label>Libellé<input name="libelle" required maxlength="200" placeholder="Commune du projet"></label>
-            <label>Origine de la valeur<select name="source" required><option value="MANUELLE">Saisie instructeur — À renseigner</option><option value="AGIDA">Information AGIDA — Connue</option><option value="FORMULAIRE">Champ de formulaire — Connue</option></select></label>
-            <label data-balise-template>Template de rattachement<select name="id_template"></select><small>Les balises Formulaire et Saisie instructeur sont propres à ce template. Seules les balises AGIDA sont globales.</small></label>
-            <label data-balise-property>Information AGIDA<select name="source_propriete"></select></label>
+            <label><span>Nom de la balise * {% include 'backoffice/balise_help.html' with key='code' text='Nom utilisé dans le fichier Word, dans une balise {{ xxx }}, une condition if ou une boucle for. Saisissez-le sans accolades ni espaces. Il reste fixe après création.' %}</span><input name="code" required maxlength="150" pattern="[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*" placeholder="projet.commune"></label>
+            <label><span>Libellé * {% include 'backoffice/balise_help.html' with key='libelle' text='Nom du champ présenté à l’instructeur dans le formulaire de génération.' %}</span><input name="libelle" required maxlength="200"></label>
+            <label>Origine de la valeur *<select name="source" required><option value="MANUELLE">Saisie instructeur — À renseigner</option><option value="AGIDA">Information AGIDA — Connue</option><option value="FORMULAIRE">Champ de formulaire — Connue</option></select></label>
+            <label data-balise-template><span>Template de rattachement * {% include 'backoffice/balise_help.html' with key='template' text='Les balises Formulaire et Saisie instructeur sont propres à ce template. Seules les balises AGIDA sont globales.' %}</span><select name="id_template"></select></label>
+            <label data-balise-property>Information AGIDA *<span class="bo-balise-property-row"><select name="source_propriete" aria-describedby="balise-property-description"></select><small id="balise-property-description" data-balise-property-description hidden aria-live="polite"></small></span></label>
             <fieldset data-balise-mappings><legend>Champs de formulaire par démarche</legend><p>Choisissez le champ source pour chaque démarche. Une réponse absente pourra être complétée par l'instructeur.</p><div data-balise-sources></div><button type="button" data-balise-add-source>Ajouter une démarche</button></fieldset>
-            <label>Type de valeur et de saisie<select name="type" required></select></label>
-            <label data-balise-item-label hidden>Libellé d'un élément<input name="libelle_element" maxlength="100" placeholder="Ex. : Nom"><small>Libellé affiché sur chaque ligne de la liste, distinct du libellé général de la balise. Les lignes vides sont ignorées ; 100 éléments maximum.</small></label>
-            <label class="bo-documents-checkbox"><input name="required" type="checkbox">Obligatoire</label>
-            <small>Si la balise est obligatoire et sa valeur connue est absente, l'instructeur devra la renseigner. Une balise facultative peut rester vide.</small>
-            <label>Texte d'aide pour l'instructeur<textarea name="help_text" rows="3"></textarea><small>Affiché pour aider l'instructeur lorsqu'il doit renseigner ce champ manuellement.</small></label>
+            <label>Type de valeur et de saisie *<select name="type" required></select></label>
+            <label data-balise-item-label hidden><span>Libellé d'un élément * {% include 'backoffice/balise_help.html' with key='element' text='Libellé de chaque ligne de la liste, distinct du libellé général. Les lignes vides sont ignorées ; 100 éléments maximum.' %}</span><input name="libelle_element" maxlength="100" placeholder="Ex. : Nom"></label>
+            <label><span>Texte d'aide pour l'instructeur {% include 'backoffice/balise_help.html' with key='help' text='Aide affichée lorsqu’il doit renseigner ce champ manuellement.' %}</span><textarea name="help_text" rows="3"></textarea></label>
             <label class="bo-documents-checkbox"><input name="actif" type="checkbox">Balise active</label>
             <p data-balise-save-status class="bo-documents-status" role="status" aria-live="polite"></p>
-            <div class="bo-documents-edition-actions"><button type="button" data-balise-cancel>Annuler</button><button type="submit" class="bo-documents-primary">Enregistrer</button></div>
+            <div class="bo-documents-edition-actions"><button type="button" data-balise-delete class="bo-balise-delete" hidden>Supprimer</button><button type="button" data-balise-cancel>Annuler</button><button type="submit" class="bo-documents-primary">Enregistrer</button></div>
         </form>
     </article>
 </section>

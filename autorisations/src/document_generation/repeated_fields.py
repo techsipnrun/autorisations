@@ -18,6 +18,7 @@ class RepeatedTextWidget(forms.Widget):
         context = super().get_context(name, value, attrs)
         values = value if isinstance(value, (list, tuple)) else ([] if value is None else [value])
         context['widget'].update(items=values or [''], item_label=self.item_label)
+        context['widget']['condition_code'] = self.attrs.get('data-balise-code', '')
         return context
 
     def use_required_attribute(self, initial):

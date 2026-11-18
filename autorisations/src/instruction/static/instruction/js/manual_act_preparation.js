@@ -131,7 +131,18 @@
         const fields=body('cancel');fields.set('preparation',data.preparation.id);
         const result=await api(fields);if(result){nature.value='';key=crypto.randomUUID();render(result);}
     };
-    get('copy').onclick=async()=>{try{await navigator.clipboard.writeText(data.preparation.display);}catch{get('error').textContent='Copie impossible. Sélectionnez le numéro pour le copier.';get('error').hidden=false;}};
+    let copyFeedbackTimeout;
+    get('copy').onclick=async()=>{
+        try {
+            await navigator.clipboard.writeText(data.preparation.display);
+            const button=get('copy'),feedback=button.querySelector('.manual-act-copy-feedback');
+            feedback.textContent='Numéro copié !';button.classList.add('show-feedback');
+            clearTimeout(copyFeedbackTimeout);
+            copyFeedbackTimeout=setTimeout(()=>{button.classList.remove('show-feedback');feedback.textContent='';},2000);
+        } catch {
+            get('error').textContent='Copie impossible. Sélectionnez le numéro pour le copier.';get('error').hidden=false;
+        }
+    };
     get('recover').onclick=async()=>{
         const result=await api(null,'?nature='+encodeURIComponent(nature.value),true);if(!result) return;
         choice.replaceChildren(new Option('Sélectionner un numéro',''));

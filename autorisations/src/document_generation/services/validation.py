@@ -68,6 +68,15 @@ class GenerationContextValidator:
             })
 
         selected = {balise.code for balise in balises}
+        from .conditions import active
+        values = dict(manual_values)
+        for balise in balises:
+            if balise.code not in values:
+                try:
+                    value = lire_contexte(context, balise.code)
+                except ValueError:
+                    value = ABSENT  # Le diagnostic métier est ajouté ci-dessous.
+                values[balise.code] = None if value is ABSENT else value
         for code in sorted(set(manual_values) - selected):
             erreur(code, "Cette balise ne fait pas partie de la sélection.")
         seen = set()
@@ -77,6 +86,9 @@ class GenerationContextValidator:
                 erreur(code, "Balise présente plusieurs fois dans la sélection.")
                 continue
             seen.add(code)
+            if not active(balise, values):
+                inserer_contexte(result['resolved'], code, None)
+                continue
             if not balise.actif or balise.mode not in Balise.Mode.values:
                 erreur(code, "Balise inactive ou mode inconnu.")
                 continue

@@ -103,10 +103,33 @@ class ContextUtilsTests(SimpleTestCase):
 
 
 class PreparationTests(SimpleTestCase):
+    def test_meme_balise_obligatoire_sur_un_template_et_facultative_sur_un_autre(self):
+        shared=Balise(id=90,code='dossier.nom',libelle='Nom',source='AGIDA',source_propriete='dossier.nom',mode='CONNUE',type='TEXT',required=True)
+        report=AnalysisReport(balises=[{'code':'dossier.nom','statut':'CONNUE'}],syntaxe_valide=True,analyse_complete=True)
+        with patch('document_generation.services.preparation.TemplateAnalyzer.analyze_with_source',return_value=(b'word',report)), patch(
+            'document_generation.services.preparation.Balise.objects.filter') as definitions, patch(
+            'document_generation.services.preparation.DocumentContextBuilder.build',return_value={'dossier':{'nom':None}}):
+            definitions.return_value.prefetch_related.return_value=[shared]
+            self.requirements.return_value.values_list.return_value=[('dossier.nom',True)]
+            required=DocumentPreparationService().prepare(Dossier(id=1),DocumentTemplate(id=1))
+            self.requirements.return_value.values_list.return_value=[('dossier.nom',False)]
+            optional=DocumentPreparationService().prepare(Dossier(id=1),DocumentTemplate(id=2))
+        self.assertEqual(len(required['validation']['missing']),1)
+        self.assertFalse(optional['validation']['missing'])
+        self.assertTrue(required['balises'][0].required)
+        self.assertFalse(optional['balises'][0].required)
+        self.assertTrue(shared.required)
+
+    def setUp(self):
+        links=patch('document_generation.services.preparation.TemplateBalise.objects.filter')
+        self.requirements=links.start()
+        self.requirements.return_value.values_list.return_value=[]
+        self.addCleanup(links.stop)
+
     def test_template_de_formulaire_utilise_les_balises_attendues(self):
         path = Path(__file__).resolve().parents[3] / "document_generation/test_templates/test_formulaire.docx"
         definitions = [balise(1, "dossier.numero", mode="CONNUE"),
-                       balise(2, "beneficiaire.nom_complet", mode="CONNUE"),
+                       balise(2, "beneficiaire.nom_complet", mode="A_RENSEIGNER"),
                        balise(3, "projet.quantite_prelevement", type="DECIMAL"),
                        balise(4, "projet.commentaire", type="TEXTAREA", required=False, allow_blank=True)]
         report = TemplateAnalyzer().analyze_bytes(path.read_bytes(), definitions)
@@ -172,6 +195,31 @@ class GenerationPageTests(SimpleTestCase):
         self.assertEqual(list(context["form"].fields), ["balise_42"])
         self.assertFalse(context["complete"])
         self.assertEqual(response["Cache-Control"], "private, no-store")
+
+    def test_edition_formulaire_ne_modifie_pas_agida(self):
+        source = balise(50, 'commune', type='TEXT', mode='CONNUE')
+        source.source = 'FORMULAIRE'
+        self.prepared['balises'].append(source)
+        self.known['commune'] = 'Saint-Paul'
+        self.prepared['known_rows'].append({'code': 'commune', 'libelle': 'Commune', 'value': 'Saint-Paul', 'source': 'FORMULAIRE'})
+        _, context = self.call_view({'action': 'validate', 'balise_42': '15', 'edit_known': '1',
+                                    'edit_known_agida': '0', 'edit_known_formulaire': '1',
+                                    'known-balise_50': 'Saint-Denis', 'known-balise_1': '999'})
+        self.assertTrue(context['complete'], context['known_form'].errors)
+        self.assertEqual(context['final_context']['dossier']['numero'], 30769307)
+        self.assertEqual(context['final_context']['commune'], 'Saint-Denis')
+        self.assertEqual(context['known_form'].edit_groups, {'formulaire'})
+
+    def test_condition_masquee_ne_bloque_pas_validation_page(self):
+        control = balise(43, 'drone', type='BOOLEAN')
+        self.definitions[1].visibility_rule = ['value', 'drone']
+        self.prepared['balises'].append(control)
+        self.prepared['form_balises'].append(control)
+        _, context = self.call_view({'action': 'validate', 'balise_43': 'false'})
+        self.assertTrue(context['complete'], context['form'].errors)
+        _, context = self.call_view({'action': 'validate', 'balise_43': 'true'})
+        self.assertFalse(context['complete'])
+        self.assertIn('balise_42', context['form'].errors)
 
     def test_nom_du_fichier_jamais_restaure_depuis_la_session(self):
         from hashlib import sha256

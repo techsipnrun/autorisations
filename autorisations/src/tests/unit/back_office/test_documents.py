@@ -59,7 +59,7 @@ class TemplateVerificationTests(SimpleTestCase):
             "document_generation.services.verification.TemplateAnalyzer.analyze", return_value=report
         ), patch("document_generation.services.verification.Balise.objects.filter") as catalogue, patch(
             "document_generation.services.verification.TemplateBalise.objects.filter"
-        ) as liens, patch("document_generation.services.verification.TemplateBalise.objects.bulk_create") as create, patch.object(
+        ) as liens, patch("document_generation.services.verification.TemplateBalise.objects.update_or_create") as create, patch.object(
             template, "save"
         ) as save:
             locked.return_value.get.return_value = template
@@ -73,9 +73,11 @@ class TemplateVerificationTests(SimpleTestCase):
             erreurs=["Balise inconnue : toto.foo."], syntaxe_valide=True, analyse_complete=True,
         )
         template, liens, create, save = self.run_service(report)
-        liens.return_value.delete.assert_called_once()
-        entries = create.call_args.args[0]
-        self.assertEqual([(e.code, e.id_balise_id) for e in entries], [("dossier.numero", 7), ("toto.foo", None)])
+        liens.return_value.exclude.return_value.delete.assert_called_once()
+        self.assertEqual(create.call_count, 2)
+        self.assertEqual(create.call_args_list[0].kwargs['defaults'], {'id_balise_id': 7})
+        self.assertNotIn('required', create.call_args_list[0].kwargs['defaults'])
+        self.assertEqual(create.call_args_list[1].kwargs['defaults'], {'id_balise_id': None})
         self.assertFalse(template.rapport_validation["valide"])
         self.assertEqual(template.rapport_validation["compteurs"]["INCONNUE"], 1)
         save.assert_called_once_with(update_fields=("rapport_validation", "date_verification"))
@@ -89,8 +91,8 @@ class TemplateVerificationTests(SimpleTestCase):
 
     def test_word_sans_balise_supprime_les_anciens_liens(self):
         _, liens, create, _ = self.run_service(AnalysisReport(syntaxe_valide=True, analyse_complete=True))
-        liens.return_value.delete.assert_called_once()
-        create.assert_called_once_with([])
+        liens.return_value.exclude.return_value.delete.assert_called_once()
+        create.assert_not_called()
 
     @override_settings(ENVIRONMENT="prod")
     def test_service_interdit_en_prod(self):
@@ -100,6 +102,21 @@ class TemplateVerificationTests(SimpleTestCase):
 
 @override_settings(ENVIRONMENT="dev")
 class DocumentsBackofficeTests(SimpleTestCase):
+    def test_obligation_enregistree_uniquement_pour_le_template_cible(self):
+        template=SimpleNamespace(pk=15,balises_detectees=SimpleNamespace(all=lambda:[]),rapport_validation={'balises':[{'code':'dossier.nom'}]})
+        request=self.factory.post('/',{'code':'dossier.nom','required':'true'})
+        request.user=SimpleNamespace(is_authenticated=True,is_superuser=True)
+        with patch('backoffice.views.documents.transaction.atomic',return_value=nullcontext()), patch(
+            'backoffice.views.documents.get_object_or_404',return_value=template), patch(
+            'backoffice.views.documents.DocumentTemplate.objects.select_for_update'), patch(
+            'backoffice.views.documents.Balise.objects.filter') as definition, patch(
+            'backoffice.views.documents.Balise.perimetre',return_value=None), patch(
+            'backoffice.views.documents.TemplateBalise.objects.update_or_create') as save:
+            definition.return_value.first.return_value=None
+            response=documents.enregistrer_obligation(request,15)
+        self.assertEqual(response.status_code,200)
+        save.assert_called_once_with(id_template=template,code='dossier.nom',defaults={'required':True,'id_balise':None})
+
     def setUp(self):
         self.factory = RequestFactory()
 
@@ -174,6 +191,7 @@ class DocumentsBackofficeTests(SimpleTestCase):
                                     destination_relative="{dossier.emplacement}/Work/",
                                     nom_fichier="DIR-I-{num_doss}.docx")
         from autorisations.models.models_documents import DocumentNature
+        template._prefetched_objects_cache = {"balises_detectees": []}
         template.id_nature = DocumentNature(id=3, nature="Arrêté directeur")
         with patch.object(type(template.demarches), "all", return_value=[]):
             data = documents.serialiser(template)

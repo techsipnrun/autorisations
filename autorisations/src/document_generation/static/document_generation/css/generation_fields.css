@@ -37,10 +37,10 @@
 
 #generation-form .manual-fields > .field {
     margin: 0;
-    padding: 1.25rem 0;
+    padding: 0.6rem 0;
 }
 #generation-form .manual-fields > .field + .field { border-top: 1px solid #dce5df; }
-#generation-form .manual-fields > .field > label { margin-bottom: .65rem; }
+#generation-form .manual-fields > .field > label { margin:0; align-self:center; }
 #generation-form .manual-fields > .field > small { margin-top: .5rem; font-size: .82rem; line-height: 1.5; }
 #generation-form .manual-fields .field :is(input, select, textarea) { padding: .4rem .55rem; }
 #generation-form .field input,
@@ -227,7 +227,15 @@
 .docx-preview-loading { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:.6rem; background:#ffffffe0; color:#496152; font-size:.85rem; }
 .docx-preview-loading[hidden] { display:none; }
 .docx-preview-notice { color:#617168; font-size:.85rem; margin-bottom:1rem; }
-.generation-workspace,.document-generation .generation-workspace { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.generation-workspace,.document-generation .generation-workspace { position:relative; grid-template-columns:minmax(0,var(--generation-left,1fr)) minmax(0,var(--generation-right,1fr)); }
+.generation-splitter { position:absolute; top:1rem; bottom:1rem; width:1.5rem; transform:translateX(-50%); z-index:3; cursor:url("../img/resize-columns.svg?v=2") 12 12, col-resize; touch-action:none; outline-offset:-3px; }
+.generation-splitter:focus:not(:focus-visible) { outline:none; }
+.generation-workspace.is-resizing { user-select:none; cursor:url("../img/resize-columns.svg?v=2") 12 12, col-resize; }
+@media(max-width:1100px) {
+    .generation-splitter { display:none; }
+    .generation-workspace,.document-generation .generation-workspace { grid-template-columns:minmax(0,1fr); }
+    .generation-workspace > aside.docx-preview-panel { grid-column:1; grid-row:auto; }
+}
 .generation-workspace > .docx-preview-panel { grid-column:2; grid-row:1; min-width:0; }
 .docx-preview-panel.has-missing-values,.document-generation .docx-preview-panel.has-missing-values { border-color:#d99a36; }
 .docx-preview-missing { margin-top:.85rem; padding:.8rem 1rem; border:1px solid #e6c58d; border-radius:6px; background:#fff9ee; color:#79531e; font-size:.85rem; }
@@ -240,3 +248,35 @@
 
 .document-number-controls.needs-number { border:1px solid #e3a85a; border-radius:7px; padding:.8rem; }
 .document-number-value.is-unassigned { background:#fff0d8; color:#875214; font-style:normal; font-size:.75rem; font-weight:600; padding:.15rem .5rem; border-radius:20px; }
+.information-block { container-type:inline-size; }
+#generation-form [data-known-editor] fieldset { border:0; padding:0; margin:0; min-width:0; }
+#generation-form .information-block.has-missing-information { border-color:#d78b28; }
+#generation-form .known-fields-grid { display:block; }
+#generation-form .known-fields-grid::before { display:none; }
+#generation-form .information-value,
+#generation-form [data-information-field] {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    column-gap:.65rem;
+    row-gap:.15rem;
+    margin:0;
+    padding:.65rem 0;
+    min-width:0;
+}
+#generation-form [data-information-field] > label,
+#generation-form .information-value dt { flex:0 1 auto; min-width:0; margin:0; overflow-wrap:anywhere; }
+#generation-form :is(.information-value dt,.information-value dd,[data-information-field] > label,.information-control) { align-self:center; }
+#generation-form .information-value dd { margin:0; min-width:0; }
+#generation-form .information-control { flex:0 1 auto; min-width:0; max-width:100%; }
+#generation-form .information-control :is(input,select,textarea) { max-width:100%; }
+#generation-form .information-block .information-control :is(input,select,textarea) { padding-top:.28rem; padding-bottom:.28rem; }
+#generation-form .information-help,
+#generation-form [data-information-field] > .errorlist { flex-basis:100%; margin:.2rem 0 0; }
+@container (max-width:27rem) {
+    #generation-form .information-value,
+    #generation-form [data-information-field] { flex-direction:column; align-items:stretch; }
+    #generation-form .information-control { width:100%; }
+    #generation-form [data-information-field] > label,
+    #generation-form .information-value dt { font-size:.85rem; line-height:1.35; }
+}

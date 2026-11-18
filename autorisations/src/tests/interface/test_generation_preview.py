@@ -22,6 +22,103 @@ CHROME = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
 @skipUnless(CHROME.exists(), "Chrome absent")
 @override_settings(ROOT_URLCONF=__name__)
 class GenerationPreviewInterfaceTests(SimpleTestCase):
+    def test_three_information_blocks_compact_responsive_and_missing_border(self):
+        agida=Balise(id=1,code='dossier.numero',libelle='Numéro du dossier',type='TEXT',source='AGIDA',mode='CONNUE')
+        source=Balise(id=2,code='form.commune',libelle='Commune du projet',type='TEXT',source='FORMULAIRE',mode='CONNUE')
+        missing=Balise(id=3,code='form.date',libelle='Date du projet',type='DATE',source='FORMULAIRE',mode='CONNUE',required=True)
+        manual=Balise(id=4,code='texte',libelle='Commentaire',type='TEXT',source='MANUELLE',mode='A_RENSEIGNER',required=True)
+        html=render_to_string('document_generation/generation_form.html',{
+            'form':DynamicDocumentForm(balises=[missing,manual]),
+            'known_form':DynamicDocumentForm(balises=[agida,source],prefix='known',initial={'balise_1':'123','balise_2':'Saint-Paul'}),
+            'resolved_balises':[{'code':'dossier.numero','libelle':agida.libelle,'value':'123'},
+                                {'code':'form.commune','libelle':source.libelle,'value':'Saint-Paul'}],
+            'dossier':SimpleNamespace(numero=123),'document_template':SimpleNamespace(nom='Test'),
+        })
+        src=Path(__file__).resolve().parents[2]
+        css='\n'.join((src/f'document_generation/static/document_generation/css/{name}.css').read_text(encoding='utf-8') for name in ['generation_form','generation_fields'])
+        html=re.sub(r'<link rel="stylesheet"[^>]*>','',html).replace('</head>',f'<style>{css}</style></head>')
+        scenario='''<script>
+        const result=document.createElement('pre');result.id='result';document.body.append(result);
+        try {
+            const form=document.querySelector('#generation-form');
+            const blocks=[...form.querySelectorAll('[data-information-block]')];
+            if(blocks.length!==3) throw Error('Three blocks missing');
+            if(blocks[0].textContent.includes('Saint-Paul') || !blocks[1].textContent.includes('Saint-Paul')) throw Error('Sources mixed');
+            if(!blocks[1].classList.contains('has-missing-information') || !blocks[2].classList.contains('has-missing-information')) throw Error('Missing border absent');
+            if(blocks[0].classList.contains('has-missing-information')) throw Error('Filled block orange');
+            const field=form.elements.balise_3;if(!blocks[1].contains(field)) throw Error('Missing source in manual block');
+            field.value='2026-11-18';field.dispatchEvent(new Event('input',{bubbles:true}));
+            if(blocks[1].classList.contains('has-missing-information')) throw Error('Border not cleared');
+            const row=blocks[0].querySelector('.information-value');
+            const label=row.querySelector('dt').getBoundingClientRect(),value=row.querySelector('dd').getBoundingClientRect();
+            if(innerWidth>900 && Math.abs(label.top-value.top)>2) throw Error('Value below label');
+            if(document.documentElement.scrollWidth>innerWidth+1) throw Error('Horizontal overflow');
+            blocks[1].querySelector('.edit-known').click();
+            if(!blocks[0].querySelector('[data-known-editor]').hidden || blocks[0].querySelector('[data-known-display]').hidden) throw Error('AGIDA editing changed with formulaire');
+            const source=form.elements['known-balise_2'];source.value='Saint-Denis';
+            const sourceRow=source.closest('.field'),sourceLabel=sourceRow.querySelector('label');
+            if(innerWidth>900) {
+                sourceLabel.style.maxWidth='110px';sourceLabel.textContent='Un libelle suffisamment long sur plusieurs lignes :';
+                const labelBox=sourceLabel.getBoundingClientRect(),inputBox=source.getBoundingClientRect();
+                if(Math.abs((labelBox.top+labelBox.bottom-inputBox.top-inputBox.bottom)/2)>3) throw Error('Multiline label alignment');
+            }
+            if(parseFloat(getComputedStyle(source).paddingTop)>5) throw Error('Input padding too large');
+            blocks[1].querySelector('[data-known-save]').click();
+            if(new FormData(form).has('known-balise_1')) throw Error('Unedited AGIDA submitted');
+            if(!blocks[1].querySelector('[data-known-display]').textContent.includes('Saint-Denis')) throw Error('Edit source lost');
+            result.textContent='GROUPS_OK';
+        } catch(error) {result.textContent=error.stack;}
+        </script>'''
+        html=html.replace('</body>',scenario+'</body>')
+        with tempfile.TemporaryDirectory() as temporary:
+            page=Path(temporary)/'groups.html';page.write_text(html,encoding='utf-8')
+            for width in (390,1600):
+                response=subprocess.run([str(CHROME),'--headless=new','--disable-gpu','--no-first-run',
+                    '--disable-background-networking',f'--window-size={width},1000',f'--user-data-dir={temporary}/profile-{width}',
+                    '--virtual-time-budget=2000','--dump-dom',page.as_uri()],capture_output=True,timeout=45,creationflags=subprocess.CREATE_NO_WINDOW)
+                dom=response.stdout.decode('utf-8',errors='replace')
+                self.assertEqual(re.findall(r'<pre id="result">(.*?)</pre>',dom,re.S),['GROUPS_OK'])
+
+    def test_conditional_required_fields_and_preserved_values(self):
+        definitions = [Balise(id=i, code=code, libelle=code, type=kind, required=True, mode='A_RENSEIGNER')
+                       for i, code, kind in [(1, 'a', 'BOOLEAN'), (2, 'b', 'BOOLEAN'), (3, 'x', 'TEXT'), (4, 'y', 'TEXT')]]
+        rules = {'b': ['value', 'a'], 'x': ['or', ['value', 'a'], ['value', 'b']],
+                 'y': ['and', ['value', 'a'], ['value', 'b']]}
+        html = render_to_string('document_generation/generation_form.html', {
+            'form': DynamicDocumentForm(balises=definitions), 'known_form': DynamicDocumentForm(prefix='known'),
+            'dossier': SimpleNamespace(numero=1), 'document_template': SimpleNamespace(nom='Test'),
+            'generation_conditions': {'rules': rules, 'values': {}},
+        })
+        scenario = '''<script>
+        const form=document.querySelector('#generation-form');
+        const result=document.createElement('pre');result.id='result';document.body.append(result);
+        const input=n=>form.elements['balise_'+n];
+        const row=n=>input(n).closest('.field');
+        const set=(n,value)=>{input(n).value=value;input(n).dispatchEvent(new Event('change',{bubbles:true}));};
+        try {
+            if(!row(2).hidden || !row(3).hidden || !row(4).hidden) throw Error('Initial visibility');
+            set(1,'true');
+            if(row(2).hidden || row(3).hidden || !row(4).hidden) throw Error('Nested controller / or');
+            set(2,'true');if(row(4).hidden) throw Error('Nested field');
+            set(3,'Saved');set(4,'Detail');
+            if(!form.checkValidity()) throw Error('Visible form invalid');
+            set(2,'false');if(!row(4).hidden || !input(4).disabled) throw Error('Hidden required active');
+            set(2,'true');if(input(4).value!=='Detail') throw Error('Value lost');
+            set(1,'false');set(2,'false');
+            if(!row(3).hidden || !form.checkValidity()) throw Error('Hidden fields block validation');
+            result.textContent='CONDITIONS_OK';
+        } catch(error) {result.textContent=error.stack;}
+        </script>'''
+        html = html.replace('</body>', scenario+'</body>')
+        with tempfile.TemporaryDirectory() as temporary:
+            page=Path(temporary)/'conditions.html';page.write_text(html,encoding='utf-8')
+            response=subprocess.run([str(CHROME),'--headless=new','--disable-gpu','--no-first-run',
+                '--disable-background-networking',f'--user-data-dir={temporary}/profile',
+                '--virtual-time-budget=2000','--dump-dom',page.as_uri()],capture_output=True,timeout=45,
+                creationflags=subprocess.CREATE_NO_WINDOW)
+            dom=response.stdout.decode('utf-8',errors='replace')
+            self.assertEqual(re.findall(r'<pre id="result">(.*?)</pre>',dom,re.S),['CONDITIONS_OK'])
+
     def test_iframe_valeurs_et_action_post_desactivation(self):
         definition = Balise(id=42, code="projet.quantite", libelle="Quantité", type="INTEGER",
                             mode="A_RENSEIGNER", required=True, allow_blank=False)

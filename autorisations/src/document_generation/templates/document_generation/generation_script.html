@@ -1,3 +1,4 @@
+{{ generation_conditions|json_script:'generation-conditions' }}
 <script>
 (() => {
     document.querySelectorAll('[data-copy-destination]').forEach(button=>button.addEventListener('click',async()=>{
@@ -32,13 +33,65 @@
     }
     const form=document.querySelector('#generation-form');
     if (!form) return;
+    const conditions=JSON.parse(document.getElementById('generation-conditions').textContent || 'null') || {rules:{},values:{}};
+    const truth=value=>Array.isArray(value) ? value.length>0 : value && typeof value==='object' ? Object.keys(value).length>0 : Boolean(value);
+    function evaluate(rule,values) {
+        if(!rule) return true;
+        const [op,...args]=rule;
+        if(op==='value') return values[args[0]] ?? null;
+        if(op==='const') return args[0];
+        if(op==='and') return args.every(arg=>truth(evaluate(arg,values)));
+        if(op==='or') return args.some(arg=>truth(evaluate(arg,values)));
+        if(op==='not') return !truth(evaluate(args[0],values));
+        if(op==='compare') {
+            let left=evaluate(args[0],values);
+            for(const [kind,rightRule] of args[1]) {
+                let right=evaluate(rightRule,values);
+                if(typeof left==='boolean' && typeof right==='number') left=Number(left);
+                if(typeof right==='boolean' && typeof left==='number') right=Number(right);
+                const compatible=left!==null && right!==null && typeof left===typeof right;
+                const result=kind==='eq' ? left===right : kind==='ne' ? left!==right : !compatible ? false :
+                    kind==='gt' ? left>right : kind==='gteq' ? left>=right : kind==='lt' ? left<right : left<=right;
+                if(!result) return false;
+                left=right;
+            }
+            return true;
+        }
+        return true;
+    }
+    function refreshConditions() {
+        const values={...conditions.values};
+        const inputs=[...form.querySelectorAll('[data-balise-code]')];
+        for(const input of inputs) {
+            const code=input.dataset.baliseCode,type=input.dataset.baliseType;
+            if(input.name.startsWith('known-') && (input.closest('.known-information')?.querySelector('[name^=edit_known_]') || form.querySelector('[name=edit_known]'))?.value!=='1') {
+                if(['INTEGER','DECIMAL'].includes(type) && values[code]!==null && values[code]!==undefined) values[code]=Number(values[code]);
+                continue;
+            }
+            values[code]=type==='BOOLEAN' ? (input.value==='' ? null : input.value==='true') :
+                ['INTEGER','DECIMAL'].includes(type) ? (input.value==='' ? null : Number(input.value)) :
+                type==='LIST' ? inputs.filter(item=>item.name===input.name).map(item=>item.value).filter(Boolean) : input.value;
+        }
+        for(const input of inputs) {
+            const visible=truth(evaluate(conditions.rules[input.dataset.baliseCode],values));
+            const row=input.closest('.field');
+            if(row) row.hidden=!visible;
+            input.disabled=!visible;
+        }
+        for(const value of form.querySelectorAll('[data-information-value]')) {
+            value.closest('.information-value').hidden=!truth(evaluate(conditions.rules[value.dataset.code],values));
+        }
+    }
     function refreshValidity() {
+        refreshConditions();
         const fields=[...form.querySelectorAll('input,select,textarea')];
         let valid=fields.filter(field=>!field.disabled).every(field=>field.validity.valid && (!field.required || field.value.trim()!==''));
         for(const group of form.querySelectorAll('[data-repeated-text]')) {
+            if(group.closest('.field')?.hidden) continue;
             if(group.closest('[data-field-required="true"]') && ![...group.querySelectorAll('input')].some(input=>input.value.trim())) valid=false;
         }
-        for(const field of form.querySelectorAll('.manual-fields > .field')) {
+        for(const field of form.querySelectorAll('[data-information-field]')) {
+            if(field.hidden) continue;
             const inputs=[...field.querySelectorAll('input,select,textarea')].filter(input=>!input.disabled);
             const emptyList=field.dataset.fieldRequired==='true' && field.querySelector('[data-repeated-text]') && !inputs.some(input=>input.value.trim());
             const invalid=inputs.some(input=>!input.validity.valid || (input.required && !input.value.trim()));
@@ -50,6 +103,17 @@
                 const text=inputs.some(input=>input.value.trim()) && !emptyList ? 'À corriger' : 'À renseigner';
                 if(hint.textContent!==text) hint.textContent=text;
             }
+        }
+        for(const block of form.querySelectorAll('[data-information-block]')) {
+            const missing=[...block.querySelectorAll('[data-information-field]')].some(row=>
+                !row.hidden && !row.closest('[hidden]') && (()=>{
+                    const inputs=[...row.querySelectorAll('input,select,textarea')].filter(input=>input.willValidate);
+                    return inputs.length>0 && (inputs.some(input=>!input.validity.valid) || inputs.every(input=>!input.value.trim()));
+                })()) ||
+                [...block.querySelectorAll('[data-information-value]')].some(value=>!value.closest('[hidden]') && ['', '—'].includes(value.textContent.trim())) ||
+                Boolean(block.querySelector('.output-variable.is-pending')) ||
+                Boolean(block.querySelector('[name=number_selection]') && !block.querySelector('[name=number_selection]').value);
+            block.classList.toggle('has-missing-information',missing);
         }
         const number=form.querySelector('[name=number_selection]');
         if(form.querySelector('.output-variable.is-pending:not([data-variable="document.numero"])')) valid=false;
@@ -95,57 +159,50 @@
         });
         renumber();
     });
-    const pencil=form.querySelector('.edit-known');
-    const editor=form.querySelector('#known-editor');
-    const display=form.querySelector('#known-display');
     const flag=form.querySelector('[name="edit_known"]');
-    const knownInputs=[...editor.querySelectorAll('input, select, textarea')];
-    const manualValues=()=>[...form.querySelectorAll('input, select, textarea')].filter(
-        input => input.name.startsWith('balise_') || ['number_selection','output_filename'].includes(input.name)).map(input=>[input.name,input.value]);
-    const values=inputs => inputs.map(input => input.value);
-    const initialKnown=values(knownInputs), initialManual=JSON.stringify(manualValues());
-    let savedKnown=values(knownInputs), savedActive=flag.value==='1';
+    const groups=[...form.querySelectorAll('.known-information')].map(block=>{
+        const editor=block.querySelector('[data-known-editor]'),display=block.querySelector('[data-known-display]');
+        const inputs=[...editor.querySelectorAll('input,select,textarea')];
+        const groupFlag=block.querySelector('[name^=edit_known_]');
+        return {block,editor,display,inputs,flag:groupFlag,pencil:block.querySelector('.edit-known'),
+                saved:inputs.map(input=>input.value),active:groupFlag?.value==='1'};
+    });
+    const manualValues=()=>[...form.querySelectorAll('input,select,textarea')].filter(input=>input.name.startsWith('balise_') || ['number_selection','output_filename'].includes(input.name)).map(input=>[input.name,input.value]);
+    const initialManual=JSON.stringify(manualValues());
+    const initialKnown=groups.map(group=>group.inputs.map(input=>input.value));
     let leaving=false;
-    const changed=(inputs, initial) => values(inputs).some((value, i) => value!==initial[i]);
-    const hasWork=() => JSON.stringify(manualValues())!==initialManual
-        || (flag.value==='1' && changed(knownInputs, initialKnown));
-    window.confirmDocumentGenerationLeave=() => {
+    const hasWork=()=>JSON.stringify(manualValues())!==initialManual || groups.some((group,index)=>group.flag?.value==='1' && group.inputs.some((input,i)=>input.value!==initialKnown[index][i]));
+    window.confirmDocumentGenerationLeave=()=>{
         if(window.saveDocumentGenerationDraft?.()) {leaving=true;return true;}
-        if(hasWork() && !window.confirm('Voulez-vous vraiment abandonner la génération en cours ?')) return false;
-        leaving=true;
-        window.setTimeout(()=>{leaving=false;},1000);
-        return true;
+        if(hasWork() && !window.confirm('Voulez-vous vraiment abandonner la g\u00e9n\u00e9ration en cours ?')) return false;
+        leaving=true;window.setTimeout(()=>{leaving=false;},1000);return true;
     };
-    function toggleEdition(editing) {
-        pencil?.setAttribute('aria-expanded', String(editing));
-        editor.hidden=!editing;
-        display.hidden=editing;
-        editor.querySelector('fieldset').disabled=!(editing || savedActive);
-        flag.value=editing || savedActive ? '1' : '0';
-        refreshValidity();
-        if (editing) knownInputs[0]?.focus();
+    function toggleEdition(group,editing) {
+        group.pencil?.setAttribute('aria-expanded',String(editing));
+        group.editor.hidden=!editing;group.display.hidden=editing;
+        group.editor.querySelector('fieldset').disabled=!(editing || group.active);
+        if(group.flag) group.flag.value=editing || group.active ? '1' : '0';
+        flag.value=groups.some(item=>item.flag?.value==='1') ? '1' : '0';
+        refreshValidity();if(editing) group.inputs[0]?.focus();
     }
-    function cancelEdition() {
-        knownInputs.forEach((input, i) => {input.value=savedKnown[i];});
-        toggleEdition(false);
-    }
-    pencil?.addEventListener('click', () => {
-        if (pencil.getAttribute('aria-expanded')==='true') cancelEdition();
-        else toggleEdition(true);
-    });
-    form.querySelector('[data-known-cancel]').addEventListener('click', cancelEdition);
-    form.querySelector('[data-known-save]').addEventListener('click', () => {
-        for (const input of knownInputs) {
-            if (!input.reportValidity()) return;
-        }
-        savedKnown=values(knownInputs);
-        savedActive=true;
-        display.querySelectorAll('dd').forEach((value, i) => {
-            const input=knownInputs[i];
-            value.textContent=input.tagName==='SELECT' ? input.selectedOptions[0]?.textContent || '—' : input.value || '—';
+    for(const group of groups) {
+        const cancel=()=>{group.inputs.forEach((input,i)=>{input.value=group.saved[i];});toggleEdition(group,false);};
+        group.pencil?.addEventListener('click',()=>group.pencil.getAttribute('aria-expanded')==='true' ? cancel() : toggleEdition(group,true));
+        group.block.querySelector('[data-known-cancel]')?.addEventListener('click',cancel);
+        group.block.querySelector('[data-known-save]')?.addEventListener('click',()=>{
+            if(group.inputs.some(input=>!input.reportValidity())) return;
+            group.saved=group.inputs.map(input=>input.value);group.active=true;
+            group.display.querySelectorAll('dd').forEach(value=>{
+                const input=group.inputs.find(input=>input.dataset.baliseCode===value.dataset.code);
+                if(input) value.textContent=input.tagName==='SELECT' ? input.selectedOptions[0]?.textContent || '\u2014' : input.value || '\u2014';
+            });
+            toggleEdition(group,false);
         });
-        toggleEdition(false);
-    });
+    }
+    form.addEventListener('generation-draft-restored',()=>groups.forEach(group=>{
+        group.active=group.flag?.value==='1';
+        group.saved=group.inputs.map(input=>input.value);
+    }));
     window.addEventListener('beforeunload', event => {
         if(window.saveDocumentGenerationDraft?.()) return;
         if (leaving || !hasWork()) return;

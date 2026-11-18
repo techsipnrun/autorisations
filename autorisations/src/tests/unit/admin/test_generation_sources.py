@@ -15,6 +15,33 @@ from tests.unit.admin.test_generation_analyzer import word_bytes
 
 
 class ConfiguredSourcesTests(SimpleTestCase):
+    def test_types_formulaire_controles_avant_generation(self):
+        from document_generation.services.catalogue_sources import formulaire_type_error
+        for field, kind in [('DateChamp', 'DATE'), ('date', 'DATE'), ('IntegerNumberChamp', 'INTEGER'),
+                            ('DecimalNumberChamp', 'DECIMAL'), ('CheckboxChamp', 'BOOLEAN'), ('DatetimeChamp', 'TEXT')]:
+            self.assertEqual(formulaire_type_error(field, kind), '')
+        for field, kind in [('DatetimeChamp', 'DATE'), ('TextChamp', 'DATE'),
+                            ('DecimalNumberChamp', 'INTEGER'), ('TextChamp', 'BOOLEAN')]:
+            self.assertIn('incompatible', formulaire_type_error(field, kind))
+
+    def test_analyse_signale_date_heure_incompatible(self):
+        from autorisations.models.models_instruction import ChampType
+        definition = self.definition('DATE')
+        definition.sources_champs.all()[0].id_champ.id_champ_type = ChampType(id=1, type='DatetimeChamp')
+        report = TemplateAnalyzer().analyze_bytes(word_bytes('{{ projet.commune }}'), [definition])
+        self.assertFalse(report.valide)
+        self.assertIn('incompatible', ' '.join(source_errors(definition)))
+
+    def test_identite_beneficiaire_et_repli_organisation(self):
+        from document_generation.services.catalogue_sources import AVAILABLE_PROPERTIES
+        source=ResolutionSource(Dossier(id=1))
+        for prenom, nom, expected in [('Louis', 'Calu', 'Louis CALU'), ('', 'Calu', 'CALU'), ('Louis', None, 'Louis'), (None, None, None)]:
+            source.beneficiaire=SimpleNamespace(prenom=prenom,nom=nom)
+            self.assertEqual(AVAILABLE_PROPERTIES['beneficiaire.prenom_nom'](source),expected)
+        for raison, organisation, expected in [(' Société ', 'Autre', 'Société'), ('  ', ' Organisation ', 'Organisation'), (None, None, None)]:
+            source.beneficiaire=SimpleNamespace(raison_sociale=raison,organisation=organisation)
+            self.assertEqual(AVAILABLE_PROPERTIES['beneficiaire.raison_sociale'](source),expected)
+
     def setUp(self):
         self.dossier = Dossier(id=1, numero=123, id_demarche_id=14)
 
@@ -79,11 +106,17 @@ class ConfiguredSourcesTests(SimpleTestCase):
         base = dict(code='projet.commentaire', libelle='Commentaire', type='TEXTAREA', source='MANUELLE', allow_blank='on', actif='on')
         with patch.object(Balise, 'validate_unique'), patch('django.forms.models.ModelChoiceField.clean', return_value=DocumentTemplate(id=1)), patch('django.db.models.fields.related.ForeignKey.validate'), patch.object(Balise.objects, 'filter') as lookup:
             lookup.return_value.exclude.return_value.filter.return_value.exists.return_value = False
+            lookup.return_value.exclude.return_value.exists.return_value = False
             form = BaliseConfigurationForm(base)
             self.assertTrue(form.is_valid(), form.errors)
             self.assertEqual(form.instance.mode, 'A_RENSEIGNER')
             form = BaliseConfigurationForm({**base, 'source':'AGIDA','source_propriete':'dossier.numero'})
             self.assertTrue(form.is_valid(), form.errors)
             self.assertEqual(form.instance.mode, 'CONNUE')
+            lookup.return_value.exclude.return_value.exists.return_value = True
+            duplicate = BaliseConfigurationForm({**base, 'source':'AGIDA','source_propriete':'dossier.numero'})
+            self.assertFalse(duplicate.is_valid())
+            self.assertIn('source_propriete', duplicate.errors)
+            lookup.return_value.exclude.return_value.exists.return_value = False
             form = BaliseConfigurationForm({**base, 'source':'AGIDA','source_propriete':'request.user.password'})
             self.assertFalse(form.is_valid())

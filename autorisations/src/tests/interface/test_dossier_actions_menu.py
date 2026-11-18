@@ -36,6 +36,8 @@ class DossierActionsMenuTests(SimpleTestCase):
             if(positions.some((rect,index)=>index && rect.top<positions[index-1].bottom)) throw new Error('Actions non verticales');
             const h1=document.querySelector('h1').getBoundingClientRect(), bounds=menu.getBoundingClientRect();
             if(h1.right>bounds.left || h1.top>=bounds.bottom) throw new Error('Titre sous le menu');
+            const message=document.querySelector('.django-messages').getBoundingClientRect();
+            if(message.top<bounds.bottom && message.bottom>bounds.top && message.right>bounds.left && message.left<bounds.right) throw new Error('Message sous le menu actions');
             if(document.documentElement.scrollWidth>innerWidth+1) throw new Error('Débordement');
             result.textContent='ACTIONS_OK';
         } catch(error) {result.textContent=error.stack;}
@@ -46,7 +48,7 @@ class DossierActionsMenuTests(SimpleTestCase):
                                 for name in ('dossier', mode, 'dossiers_lies', 'dossier_actions_menu'))
                 page = Path(temporary) / f'{mode}.html'
                 page.write_text(f'<!doctype html><meta charset="utf-8"><style>body{{margin:16px}}{css}</style>'
-                                f'<div class="formulaire">{header}</div><script>{scenario}</script>', encoding='utf-8')
+                                f'<div class="formulaire">{header}<div class="django-messages"><div class="message error">La transmission n’a pas pu être confirmée. Rechargez la page pour vérifier l’état du dossier avant de réessayer. Les PDF déjà copiés dans Actes sont conservés.</div></div></div><script>{scenario}</script>', encoding='utf-8')
                 for width in (540, 1600):
                     with self.subTest(mode=mode, width=width):
                         response = subprocess.run([str(CHROME), '--headless=new', '--disable-gpu', '--no-first-run',

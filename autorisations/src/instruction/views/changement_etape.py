@@ -3541,7 +3541,10 @@ def envoyer_l_acte(request):
                 safe_update_etat(dossier, "accepte", request, break_si_erreur=False) # On continue si Erreur
 
                 # --- Enregistrer Action ---
-                safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
+                from instruction.utils.document_utils import description_documents_envoyes
+                documents_du_dossier = list(DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature"))
+                safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request,
+                                        description=description_documents_envoyes(documents_du_dossier))
                 if not nature_obj.publication_raa_requise :
                     safe_enregistrer_action(dossier, instructeur, "Classé comme accepté", request)
 
@@ -3550,7 +3553,7 @@ def envoyer_l_acte(request):
                 # ==============================================
                 #     Mise à jour Doc "À envoyer" --> "Envoyé"
                 # ==============================================
-                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
+
                 for lien in documents_du_dossier:
                     doc = lien.id_document
                     statut = doc.id_statut.statut.lower() if doc.id_statut else ""
@@ -3912,7 +3915,10 @@ def envoyer_l_acte_de_refus(request):
                 safe_update_etat(dossier, "refuse", request, break_si_erreur=False) # On continue si Erreur
 
                 # --- Enregistrer Action ---
-                safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request)
+                from instruction.utils.document_utils import description_documents_envoyes
+                documents_du_dossier = list(DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature"))
+                safe_enregistrer_action(dossier, instructeur, "Acte envoyé", request,
+                                        description=description_documents_envoyes(documents_du_dossier))
                 if not nature_obj.publication_raa_requise :
                     safe_enregistrer_action(dossier, instructeur, "Classé comme refusé", request)
 
@@ -3921,7 +3927,7 @@ def envoyer_l_acte_de_refus(request):
                 # ==============================================
                 #     Mise à jour Doc "À envoyer" --> "Envoyé"
                 # ==============================================
-                documents_du_dossier = DossierDocument.objects.filter(id_dossier=dossier).select_related("id_document__id_statut", "id_document__id_nature")
+
                 for lien in documents_du_dossier:
                     doc = lien.id_document
                     statut = doc.id_statut.statut.lower() if doc.id_statut else ""

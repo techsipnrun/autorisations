@@ -38,6 +38,10 @@ class TemplateAnalyzerTests(SimpleTestCase):
                 self.assertEqual(report.syntaxe_valide, valide)
 
     def setUp(self):
+        # Anciennes fixtures Word : leurs balises sont locales, configurables en saisie.
+        self.fixture_provider = patch.dict("document_generation.services.analyzer.KNOWN_PROVIDERS", {"beneficiaire.nom_complet": lambda source: None})
+        self.fixture_provider.start()
+        self.addCleanup(self.fixture_provider.stop)
         path_exists = patch("document_generation.services.template_path.smbclient.path.isfile", return_value=True)
         path_exists.start()
         self.addCleanup(path_exists.stop)
@@ -82,10 +86,38 @@ class TemplateAnalyzerTests(SimpleTestCase):
     def test_syntaxe_jinja_invalide(self):
         report = self.analyzer.analyze_bytes(word_bytes("{{ dossier.numero }"), [])
         self.assertFalse(report.valide)
-        self.assertIn("Jinja", report.erreurs[0])
+        self.assertIn("Extrait concerné", report.erreurs[0])
 
     def test_fichier_corrompu(self):
         self.assertFalse(self.analyzer.analyze_bytes(b"pas un docx", []).valide)
+
+    def test_erreur_francaise_concise_avec_extrait(self):
+        doc = Document()
+        doc.add_paragraph("Premier paragraphe correct")
+        p = doc.add_paragraph()
+        p.add_run("Numéro : {{ numero ")
+        p.add_run("acte }}")
+        stream = BytesIO()
+        doc.save(stream)
+        report = self.analyzer.analyze_bytes(stream.getvalue(), [])
+        error = report.erreurs[0]
+        self.assertIn("fermeture de la balise", error)
+        self.assertIn("« acte »", error)
+        self.assertNotIn("paragraphe", error)
+        self.assertNotIn("Emplacement", error)
+        self.assertIn("{{ numero acte }}", error)
+        self.assertNotIn("expected token", error)
+
+    def test_localisation_erreur_dans_entete_et_pied(self):
+        for field, region in (("header", "en-tête"), ("footer", "pied de page")):
+            with self.subTest(field=field):
+                report = self.analyzer.analyze_bytes(word_bytes("Corps correct", **{field: "{{ numero acte }}"}), [])
+                self.assertIn("Extrait concerné : « {{ numero acte }} »", report.erreurs[0])
+
+    def test_bloc_non_ferme_explique_en_francais(self):
+        report = self.analyzer.analyze_bytes(word_bytes("{% if commune %}Texte"), [])
+        self.assertIn("n’est pas fermée", report.erreurs[0])
+        self.assertIn("{% endif %}", report.erreurs[0])
 
     def test_condition_filtre_et_acces_statique(self):
         data = word_bytes("{% if dossier.numero %}{{ beneficiaire['nom_complet']|upper }}{% endif %}")

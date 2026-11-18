@@ -12,6 +12,19 @@ from autorisations.utils import nas_fonctions
 
 
 class SignatureTransactionTests(SimpleTestCase):
+    def test_action_sans_date_prend_date_courante_et_preserve_date_fournie(self):
+        from datetime import datetime, timezone
+        now=datetime(2026,11,16,6,28,tzinfo=timezone.utc)
+        supplied=datetime(2026,10,20,8,30,tzinfo=timezone.utc)
+        for explicit,expected in ((None,now),(supplied,supplied)):
+            with self.subTest(explicit=explicit), patch.object(utils_instru.Action,'objects') as actions, patch.object(
+                    utils_instru.DossierAction,'objects') as records, patch.object(utils_instru.timezone,'now',return_value=now):
+                dossier,instructeur=Mock(),Mock()
+                utils_instru.enregistrer_action(dossier,instructeur,'Acte signé',description='FERRAND Paul',date=explicit)
+                self.assertEqual(records.create.call_args.kwargs['date'],expected)
+                self.assertIs(records.create.call_args.kwargs['id_dossier'],dossier)
+                self.assertEqual(records.create.call_args.kwargs['description'],'FERRAND Paul')
+
     def test_failures_after_document_save_escape_atomic_block(self):
         for failure in ('role', 'action', 'step', None):
             with self.subTest(failure=failure), ExitStack() as stack:

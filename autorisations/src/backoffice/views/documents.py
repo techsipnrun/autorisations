@@ -41,6 +41,7 @@ def serialiser(template):
         "configuration_complete": not configuration_errors,
         "configuration_errors": configuration_errors,
         "rapport": template.rapport_validation,
+        "balise_required": {row.code: row.required for row in template.balises_detectees.all()},
         "date_verification": template.date_verification.isoformat() if template.date_verification else None,
         "verification_url": reverse("back_office_template_verifier", args=[template.pk]),
         "edition_url": reverse("back_office_template_enregistrer", args=[template.pk]),
@@ -49,13 +50,35 @@ def serialiser(template):
 
 
 def erreur_schema():
-    return JsonResponse({"erreur": "Tables de génération inaccessibles. Vérifiez les scripts jusqu’à 0021_perimetre_balises.sql et les droits."}, status=503)
+    return JsonResponse({"erreur": "Tables de génération inaccessibles. Vérifiez les scripts jusqu’à 0030_obligation_par_template.sql et les droits."}, status=503)
+
+
+@login_required
+@require_POST
+def enregistrer_obligation(request, template_id):
+    verifier_acces(request)
+    try:
+        with transaction.atomic():
+            template = get_object_or_404(DocumentTemplate.objects.select_for_update(), pk=template_id)
+            code, value = request.POST.get('code', ''), request.POST.get('required')
+            codes = {row.code for row in template.balises_detectees.all()}
+            codes.update(row['code'] for row in (template.rapport_validation or {}).get('balises', []))
+            if code not in codes or value not in ('true', 'false'):
+                return JsonResponse({'erreur': 'Balise ou obligation invalide pour ce template.'}, status=400)
+            if code == 'document.numero' and value != 'true':
+                return JsonResponse({'erreur': 'Le numéro du document reste obligatoire.'}, status=400)
+            definition = Balise.objects.filter(Balise.perimetre(template), code=code).first()
+            TemplateBalise.objects.update_or_create(id_template=template, code=code,
+                defaults={'required': value == 'true', 'id_balise': definition})
+        return JsonResponse({'code': code, 'required': value == 'true'})
+    except (ProgrammingError, OperationalError):
+        return erreur_schema()
 
 
 def catalogue_balises():
     """Définitions globales et usages détectés, deux lectures sans accès NAS."""
     definitions = {}
-    for row in Balise.objects.values('id', 'code', 'source', 'mode', 'type', 'required', 'actif', 'id_template_id'):
+    for row in Balise.objects.values('id', 'code', 'source', 'mode', 'type', 'actif', 'id_template_id'):
         template_id = row.get('id_template_id')
         if row['source'] != 'AGIDA' and not template_id:
             continue
@@ -90,7 +113,7 @@ def telecharger(request, template_id):
 def catalogue(request):
     verifier_acces(request)
     try:
-        templates = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches")
+        templates = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches", "balises_detectees")
         return JsonResponse({"templates": [serialiser(template) for template in templates]})
     except (ProgrammingError, OperationalError):
         return erreur_schema()
@@ -111,7 +134,7 @@ def verifier_tous(request):
                 service.verify(template_id)
             except DocumentTemplate.DoesNotExist:
                 continue  # Fiche supprimée pendant la vérification du catalogue.
-        templates = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches")
+        templates = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches", "balises_detectees")
         return JsonResponse({"templates": [serialiser(template) for template in templates]})
     except (ProgrammingError, OperationalError):
         return erreur_schema()
@@ -125,7 +148,7 @@ def verifier(request, template_id):
     try:
         get_object_or_404(DocumentTemplate, pk=template_id)
         TemplateVerificationService().verify(template_id)
-        template = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches").get(pk=template_id)
+        template = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches", "balises_detectees").get(pk=template_id)
         return JsonResponse({"template": serialiser(template)})
     except (ProgrammingError, OperationalError):
         return erreur_schema()
@@ -177,7 +200,7 @@ def enregistrer(request, template_id=None):
                 form.save_m2m()
             from document_generation.services.verification import TemplateVerificationService
             TemplateVerificationService().verify(template.pk)
-        template = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches").get(pk=template.pk)
+        template = DocumentTemplate.objects.select_related("id_nature").prefetch_related("demarches", "balises_detectees").get(pk=template.pk)
         return JsonResponse({"template": serialiser(template)}, status=201 if creation else 200)
     except IntegrityError:
         return JsonResponse({"erreur": "L’enregistrement entre en conflit avec une donnée existante ou une association est invalide."}, status=400)

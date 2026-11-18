@@ -17,8 +17,8 @@ class BaliseSourceChampInline(admin.TabularInline):
 @admin.register(Balise)
 class BaliseAdmin(admin.ModelAdmin):
     form = BaliseConfigurationForm
-    list_display = ("code", "libelle", "source", "id_template", "type", "required", "actif")
-    list_filter = ("source", "id_template", "type", "required", "actif")
+    list_display = ("code", "libelle", "source", "id_template", "type", "actif")
+    list_filter = ("source", "id_template", "type", "actif")
     search_fields = ("code", "libelle", "source_propriete", "id_template__nom")
     list_select_related = ('id_template',)
     readonly_fields = ('mode',)
@@ -79,9 +79,9 @@ class BaliseSourceChampAdmin(admin.ModelAdmin):
 
 @admin.register(TemplateBalise)
 class TemplateBaliseAdmin(admin.ModelAdmin):
-    list_display = ('id_template', 'code', 'id_balise')
+    list_display = ('id_template', 'code', 'id_balise', 'required')
     list_select_related = ('id_template', 'id_balise')
-    list_filter = ('id_template',)
+    list_filter = ('id_template', 'required')
     search_fields = ('code', 'id_template__nom')
 
 

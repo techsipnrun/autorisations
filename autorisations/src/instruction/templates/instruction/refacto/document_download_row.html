@@ -1,7 +1,7 @@
 {% load static %}
 {% load group_tags %}
 
-<li class="doc-item">
+<li class="doc-item"{% if doc.envoi_title %} title="{{ doc.envoi_title }}"{% endif %}>
     <div class="doc-download-row">
 
         <span class="doc-titre-no-download">

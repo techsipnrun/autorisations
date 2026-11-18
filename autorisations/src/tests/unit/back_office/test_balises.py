@@ -12,6 +12,29 @@ from autorisations.models.models_generation import Balise
 
 @override_settings(ENVIRONMENT='dev')
 class BackofficeBalisesTests(SimpleTestCase):
+    def test_usages_incluent_balises_du_rapport_partiel(self):
+        template=SimpleNamespace(balises_detectees=MagicMock(),rapport_validation={
+            'analyse_complete':False,'balises':[{'code':'dossier.petitionnaire'},{'code':'dossier.numero'}]})
+        template.balises_detectees.all.return_value=[SimpleNamespace(code='dossier.numero')]
+        self.assertEqual(balises.codes_utilises(template),['dossier.numero','dossier.petitionnaire'])
+
+    def test_suppression_conserve_detections_et_invalide_templates(self):
+        definition=Balise(id=11,code='projet.commune',source='MANUELLE',id_template_id=7)
+        with patch('backoffice.views.balises.transaction.atomic',return_value=nullcontext()), patch(
+            'backoffice.views.balises.get_object_or_404',return_value=definition), patch(
+            'backoffice.views.balises.Balise.objects.select_for_update'), patch(
+            'backoffice.views.balises.TemplateBalise.objects.filter') as used, patch(
+            'backoffice.views.balises.DocumentTemplate.objects.filter') as templates, patch.object(definition,'delete') as delete:
+            used.return_value.filter.return_value.values_list.return_value.distinct.return_value=[7]
+            response=balises.supprimer(self.request(post=True),11)
+        self.assertEqual(response.status_code,200)
+        used.return_value.filter.assert_called_once_with(id_template_id=7)
+        used.return_value.update.assert_called_once_with(id_balise=None)
+        templates.assert_any_call(pk__in=[7])
+        templates.return_value.update.assert_called_once_with(rapport_validation=None,date_verification=None)
+        delete.assert_called_once()
+        self.assertEqual(json.loads(response.content)['templates_concernes'],1)
+
     def request(self, post=False, admin=True, data=None):
         request = RequestFactory().post('/',data or {}) if post else RequestFactory().get('/')
         request.user = SimpleNamespace(is_authenticated=True, is_superuser=admin)
@@ -51,6 +74,11 @@ class BackofficeBalisesTests(SimpleTestCase):
         with patch('backoffice.views.balises.Champ.objects.filter') as fields:
             fields.return_value.in_bulk.return_value = {42:SimpleNamespace(id_demarche_id=14)}
             self.assertEqual(balises.valider_sources('[{"id_demarche":14,"id_champ":42}]','FORMULAIRE'),[(14,42)])
+            fields.return_value.in_bulk.return_value = {42:SimpleNamespace(id_demarche_id=14,
+                id_champ_type_id=1, id_champ_type=SimpleNamespace(type='DatetimeChamp'), nom='Début activité')}
+            with self.assertRaisesMessage(ValidationError, 'incompatible'):
+                balises.valider_sources('[{"id_demarche":14,"id_champ":42}]','FORMULAIRE','DATE')
+            self.assertEqual(balises.valider_sources('[{"id_demarche":14,"id_champ":42}]','FORMULAIRE','TEXT'),[(14,42)])
             with self.assertRaises(ValidationError):
                 balises.valider_sources('[{"id_demarche":15,"id_champ":42}]','FORMULAIRE')
         for value in ('[]','{}','[{"id_demarche":14,"id_champ":true}]',
@@ -94,7 +122,7 @@ class BackofficeBalisesTests(SimpleTestCase):
             'document_generation.services.verification.TemplateVerificationService.verify') as verify,patch('backoffice.views.balises.Balise.objects.prefetch_related'),patch(
             'backoffice.views.balises.serialiser',return_value={'id':42}):
             form.return_value.is_valid.return_value=True
-            form.return_value.cleaned_data={'source':'FORMULAIRE'}
+            form.return_value.cleaned_data={'source':'FORMULAIRE','type':'TEXT'}
             form.return_value.save.return_value=definition
             used.return_value.filter.return_value.values_list.return_value.distinct.return_value=[1]
             response=balises.enregistrer(self.request(post=True))

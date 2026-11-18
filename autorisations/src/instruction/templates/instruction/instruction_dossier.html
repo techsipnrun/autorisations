@@ -17,7 +17,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'instruction/css/dossier.css' %}?v=31">
-    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=12">
+    <link rel="stylesheet" href="{% static 'instruction/css/instruction_dossier.css' %}?v=13">
     <link rel="stylesheet" href="{% static 'instruction/css/dossier_manif_sportive.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'instruction/css/formulaire_carto.css' %}">
 
@@ -42,13 +42,13 @@
     <script src="{% static 'instruction/js/partage_mails.js' %}"></script>
 
     <!-- JS commun à instruction_dossier et preinstruction_dossier -->
-    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=13"></script>
+    <script src="{% static 'instruction/js/dossier_commun.js' %}?v=14"></script>
     <script src="{% static 'instruction/js/actions_dossier.js' %}?v=2" defer></script>
     <script src="{% static 'instruction/js/document_hover_preview.js' %}?v=5" data-jszip-url="{% static 'document_generation/vendor/jszip-3.10.2.min.js' %}" data-docx-url="{% static 'document_generation/vendor/docx-preview-0.4.1.min.js' %}"></script>
     <script src="{% static 'instruction/js/projet_acte_identique.js' %}?v=5" defer></script>
     <script src="{% static 'instruction/js/mails_dossier.js' %}?v=1" defer></script>
     <link rel="stylesheet" href="{% static 'instruction/css/dossiers_lies.css' %}?v=4">
-    <link rel="stylesheet" href="{% static 'instruction/css/dossier_actions_menu.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'instruction/css/dossier_actions_menu.css' %}?v=4">
     <script src="{% static 'instruction/js/dossiers_lies.js' %}?v=3" defer></script>
 
 </head>
@@ -304,6 +304,10 @@
                         </a>
                     {% endif %}
                 </div>
+
+                {% if generation_documents_dev and dossier.id_etape_dossier.etape == 'En instruction' %}
+                    {% include 'instruction/refacto/manual_act_preparation.html' %}
+                {% endif %}
 
                 {% if date_debut_manifestation or doss_manif_sportive %}
                     <div class="dates-manifestation-ligne">
@@ -1371,7 +1375,7 @@ Le Parc national de La Réunion</textarea>
                     {% if etape_actuelle.etape == "Accepté" or etape_actuelle.etape == "Refusé" %}
                         {% if acte_envoye_et_pas_publie %}
                             <div class="validation-documents">            
-                                <h2>Documents envoyés</h2>
+                                <h2>Document{{ acte_envoye_et_pas_publie|pluralize }} envoyé{{ acte_envoye_et_pas_publie|pluralize }}</h2>
                                 <form method="post" action="#">
                                     {% csrf_token %}
                                     <ul class="doc-a-valider-liste">
@@ -1545,7 +1549,7 @@ Le Parc national de La Réunion</textarea>
                     {% if actes_deja_envoyes or avis_envoye %}
                         <div class="validation-documents">
                             {% if actes_deja_envoyes %}
-                                <h2>Acte{{ actes_deja_envoyes|pluralize }} déjà envoyé{{ actes_deja_envoyes|pluralize }}</h2>
+                                <h2>Document{{ actes_deja_envoyes|pluralize }} envoyé{{ actes_deja_envoyes|pluralize }}</h2>
                                 <ul class="doc-a-valider-liste">
                                     {% for doc in actes_deja_envoyes %}
                                         {% include "instruction/refacto/document_download_row.html" with doc=doc show_numero=True %}
@@ -1599,9 +1603,6 @@ Le Parc national de La Réunion</textarea>
                     <!--------------------------->
                     <!-- Identité bénéficiaire -->
                     <!--------------------------->
-                    {% if generation_documents_dev and dossier.id_etape_dossier.etape == 'En instruction' %}
-                        {% include 'instruction/refacto/manual_act_preparation.html' %}
-                    {% endif %}
                     <div class="identites-dossier">
                         {% if beneficiaire %}
                             <div class="identite_demandeur">

@@ -97,7 +97,7 @@ class Balise(models.Model):
     libelle = models.CharField(max_length=200, verbose_name="Libellé")
     mode = models.CharField(max_length=12, choices=Mode.choices, default=Mode.CONNUE)
     type = models.CharField(max_length=12, choices=Type.choices, default=Type.TEXT)
-    required = models.BooleanField(default=False, verbose_name="Obligatoire")
+    required = models.BooleanField(default=False, editable=False, verbose_name="Ancienne règle obligatoire")
     allow_blank = models.BooleanField(default=True, editable=False, verbose_name="Valeur vide autorisée (compatibilité)")
     help_text = models.TextField(blank=True, default="", verbose_name="Texte d'aide")
     actif = models.BooleanField(default=True)
@@ -133,7 +133,7 @@ class Balise(models.Model):
             raise ValidationError({'id_template': 'Cette définition est encore utilisée par un autre template. Son périmètre ne peut pas être modifié ainsi.'})
         if self.code == 'document.numero' and not (
             self.mode == self.Mode.CONNUE and self.source == self.Source.AGIDA
-            and self.source_propriete == 'document.numero' and self.required and self.type == self.Type.TEXT
+            and self.source_propriete == 'document.numero' and self.type == self.Type.TEXT
         ):
             raise ValidationError('document.numero est une balise système obligatoire de type Texte, source AGIDA document.numero.')
         if self.type == self.Type.LIST and self.mode != self.Mode.A_RENSEIGNER:
@@ -147,6 +147,11 @@ class Balise(models.Model):
             from document_generation.services.catalogue_sources import AVAILABLE_PROPERTIES
             if self.source_propriete not in AVAILABLE_PROPERTIES:
                 raise ValidationError({"source_propriete": "Choisissez une information AGIDA disponible."})
+            if Balise.objects.filter(
+                Q(source=self.Source.AGIDA, source_propriete=self.source_propriete)
+                | Q(source='', mode=self.Mode.CONNUE, code=self.source_propriete)
+            ).exclude(pk=self.pk).exists():
+                raise ValidationError({'source_propriete': 'Cette information AGIDA est déjà utilisée par une autre balise. Réutilisez cette balise dans vos templates.'})
         elif self.source_propriete:
             raise ValidationError({"source_propriete": "Cette origine n'utilise pas de propriété AGIDA."})
 
@@ -278,9 +283,15 @@ class TemplateBalise(models.Model):
         DocumentTemplate, models.CASCADE, db_column="id_template", related_name="balises_detectees",
     )
     code = models.CharField(max_length=150)
+    required = models.BooleanField(default=False, verbose_name="Obligatoire dans ce template")
     id_balise = models.ForeignKey(
         Balise, models.SET_NULL, db_column="id_balise", null=True, blank=True,
     )
+
+    def clean(self):
+        super().clean()
+        if self.code == 'document.numero' and not self.required:
+            raise ValidationError({'required': 'Le numéro du document reste obligatoire dans ce template.'})
 
     class Meta:
         managed = False

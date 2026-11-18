@@ -114,7 +114,7 @@ class ManualActPreparationInterfaceTests(SimpleTestCase):
                 if(!get('used').textContent.includes('456') || get('dialog').open) throw new Error('Provenance recuperation absente');
                 await wait(()=>[...document.querySelectorAll('form')].every(form=>form.querySelector('button[type=submit]').disabled));
                 for(const form of document.querySelectorAll('form')) {
-                    if(!form.querySelector('button[type=submit]').disabled || !form.querySelector('.generated-act-provenance').textContent.includes('numéro réservé')) throw new Error('Conflit numero genere non bloque');
+                    if(!form.querySelector('button[type=submit]').disabled || form.querySelector('[name=piece_jointe_work]').value) throw new Error('Conflit numero genere non bloque');
                     form.querySelector('[name=piece_jointe_work]').value='manuel.docx';form.dispatchEvent(new Event('change'));
                     if(form.querySelector('button[type=submit]').disabled) throw new Error('Projet manuel bloque apres correction');
                     const reminder=form.querySelector('.generated-act-provenance');

@@ -38,20 +38,19 @@ class ActFileGuardInterfaceTests(SimpleTestCase):
                 const event=new Event('submit',{bubbles:true,cancelable:true});form.dispatchEvent(event);if(!event.defaultPrevented) throw new Error('Soumission non bloquée');
                 status={missing:0,unknown:1,blocked:true};refresh();await wait(()=>badge.textContent==='!');
                 if(!form.querySelector('button[type=submit]').matches(':disabled') || !form.querySelector('.act-history-guard-notice').textContent.includes('impossible')) throw new Error('Indisponibilité non bloquante');
-                status={missing:0,unknown:0,blocked:false,recognized_files:[{filename:'projet.docx',nature_id:3,author:'Louis CALU',date:'06/11/2026',description:'Projet généré par Louis CALU'}]};refresh();await wait(()=>badge.hidden);
-                if(form.querySelector('button[type=submit]').matches(':disabled') || !form.querySelector('.act-history-guard-notice').hidden) throw new Error('Réparation non débloquante');
+                status={missing:0,unknown:0,blocked:false,recognized_files:[{filename:'projet.docx',nature_id:3,numero:'2026-0123',author:'Louis CALU',date:'06/11/2026',description:'Projet généré par Louis CALU'}]};refresh();await wait(()=>badge.hidden);
+                if(!form.querySelector('button[type=submit]').matches(':disabled') || !form.querySelector('.act-history-guard-notice').hidden) throw new Error('Réparation non débloquante');
                 if(form.querySelector('fieldset').hidden) throw new Error('Formulaire réparé encore masqué');
                 const file=form.querySelector('input'),nature=form.querySelector('select'),info=form.querySelector('.generated-act-provenance');
                 file.value='projet.docx';file.dispatchEvent(new Event('change',{bubbles:true}));
                 if(info.hidden || !info.textContent.includes('Louis CALU')) throw new Error('Provenance absente');
                 if(!form.querySelector('.projet-acte-identique-option').hidden) throw new Error('Option numéro partagé non masquée');
                 nature.value='4';nature.dispatchEvent(new Event('change',{bubbles:true}));
-                if(info.hidden || !info.classList.contains('is-mismatch') || !form.querySelector('button[type=submit]').disabled) throw new Error('Mauvaise nature non bloquée');
+                if(file.value || !form.querySelector('button[type=submit]').disabled) throw new Error('Mauvaise nature non bloquée');
                 if(!form.querySelector('[name="projet_acte_identique"]').disabled) throw new Error('Partage du numéro actif malgré la mauvaise nature');
                 if(!form.querySelector('.projet-acte-identique-option').hidden) throw new Error('Partage du numéro visible malgré la mauvaise nature');
-                if(!info.textContent.includes('à partir d’un modèle') || !info.textContent.includes('Louis CALU le 06/11/2026')) throw new Error('Message de mauvaise nature incomplet');
-                nature.value='3';file.value='manuel.docx';file.dispatchEvent(new Event('change',{bubbles:true}));if(!info.hidden) throw new Error('Provenance sur fichier manuel');
-                if(form.querySelector('.projet-acte-identique-option').hidden || form.querySelector('button[type=submit]').disabled) throw new Error('Parcours manuel non restauré');
+                nature.value='3';form.dataset.manualPreparation='prepared';form.dataset.manualPreparationNumber='2026-0123';file.value='manuel.docx';file.dispatchEvent(new Event('change',{bubbles:true}));if(info.hidden || !info.classList.contains('is-manual-reminder')) throw new Error('Rappel manuel absent');
+                if(form.querySelector('button[type=submit]').disabled) throw new Error('Parcours manuel non restauré');
                 status={missing:0,unknown:0,blocked:false,recognized_files:[
                     {filename:'projet.docx',document_id:7,nature_id:3,numero:'2026-0123',active:false,replaceable:true,description:'Nouvelle version'},
                     {filename:'ancien.docx',document_id:9,nature_id:3,numero:'2026-0123',active:true,replaceable:true,description:'Ancienne version'}]};
@@ -63,7 +62,7 @@ class ActFileGuardInterfaceTests(SimpleTestCase):
                 if(form.querySelector('button[type=submit]').disabled || replacementId.value!=='9') throw new Error('Consentement non pris en compte');
                 file.value='manuel.docx';file.dispatchEvent(new Event('change',{bubbles:true}));
                 if(replacementId.value || consent.checked) throw new Error('Consentement conservé pour un autre fichier');
-                status.recognized_files=[{filename:'source.docx',nature_id:3,signed:true,description:'Word réutilisable'}];
+                status.recognized_files=[{filename:'source.docx',nature_id:3,numero:'2026-0123',signed:true,description:'Word réutilisable'}];
                 file.value='source.docx';refresh();
                 await wait(()=>info.textContent==='Word réutilisable');
                 if(form.querySelector('button[type=submit]').disabled) throw new Error('Word déjà transmis refusé');

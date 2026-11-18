@@ -5,6 +5,15 @@
 // --------------------- Menu déroulant Etape dossier ------------------------
 // ---------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", function () {
+    const stateContainer = document.querySelector(".etat-badge-container");
+    const dossierForm = stateContainer?.closest(".formulaire");
+    if (dossierForm) {
+        // Les zones fermées restent invisibles ; la zone ouverte précède ainsi
+        // toujours les blocs de préparation, de documents et d'identité.
+        const zones = [...dossierForm.querySelectorAll(".zone-complement")]
+            .filter(zone => !zone.parentElement.closest(".zone-complement"));
+        stateContainer.after(...zones);
+    }
     const toggleBtn = document.getElementById("etapeMenuToggle");
     const menuContent = document.getElementById("etapeMenuContent");
 

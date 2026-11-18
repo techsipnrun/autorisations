@@ -6,6 +6,7 @@ import smbclient
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from autorisations.models.models_instruction import Action, DossierAction
 from autorisations.models.models_utilisateurs import Instructeur
 from autorisations.models.models_documents import (
@@ -18,6 +19,42 @@ from autorisations.models.models_documents import (
 PROJETS_ACTES_OU_RAPPORT = Q(id_nature__est_acte=True) | Q(id_nature__nature="Projet Rapport CA")
 ACTION_CHANGEMENT_NUMERO_ACTE = "Numéro d'acte changé"
 _NUMERO_ACTUEL = object()
+DESCRIPTION_DOCUMENTS_ENVOYES = 'Documents envoyés :\n'
+
+
+def description_documents_envoyes(liaisons):
+    titres = [lien.id_document.titre for lien in liaisons
+              if lien.id_document.id_statut and lien.id_document.id_statut.statut.casefold() == 'à envoyer']
+    return DESCRIPTION_DOCUMENTS_ENVOYES + '\n'.join(titres)
+
+
+def renseigner_survol_documents_envoyes(dossier, documents):
+    """Associe la trace d'envoi aux documents, sans utiliser leur date de création."""
+    documents = {doc.pk: doc for doc in documents}
+    if not documents:
+        return
+    actions = list(DossierAction.objects.filter(id_dossier=dossier, id_action__action='Acte envoyé')
+        .select_related('id_instructeur__id_agent_autorisations').order_by('-date', '-pk'))
+    for document in documents.values():
+        document.envoi_title = ''
+        candidates = [action for action in actions
+                      if (action.description or '').startswith(DESCRIPTION_DOCUMENTS_ENVOYES)
+                      and document.titre in action.description.splitlines()[1:]]
+        # Ancien circuit : une seule trace d'envoi ne présente pas d'ambiguïté de cycle.
+        if not candidates and len(actions) == 1 and not actions[0].description:
+            if document.date and actions[0].date and document.date <= actions[0].date:
+                candidates = actions
+        if not candidates:
+            continue
+        action = candidates[0]
+        if not action.date:
+            continue
+        personne = action.id_instructeur
+        agent = personne.id_agent_autorisations if personne else None
+        auteur = ' '.join(part for part in ((agent.prenom or '').strip(), (agent.nom or '').strip().upper()) if part) if agent else ''
+        auteur = auteur or (personne.email if personne else '')
+        date = timezone.localtime(action.date).strftime('%d/%m/%Y')
+        document.envoi_title = f'Envoyé par {auteur} le {date}' if auteur else f'Envoyé le {date}'
 
 
 def numero_document(document):

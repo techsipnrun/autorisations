@@ -1,5 +1,5 @@
 {% load static %}
-<link rel="stylesheet" href="{% static 'instruction/css/manual_act_preparation.css' %}?v=9">
+<link rel="stylesheet" href="{% static 'instruction/css/manual_act_preparation.css' %}?v=10">
 <section class="manual-act-preparation" data-manual-act data-dossier="{{ dossier.numero }}" data-url="{% url 'prepare_manual_act' dossier.numero %}">
     {% csrf_token %}
     <h2>Préparer un projet d’acte</h2>
@@ -21,8 +21,8 @@
     <div data-preparation-current hidden>
         <span data-preparation-label></span>
         <span class="manual-act-number"><strong data-preparation-number></strong></span>
-        <button type="button" class="manual-act-copy" data-preparation-copy title="Copier le numéro" aria-label="Copier le numéro"><img src="{% static 'instruction/img/copy.png' %}" alt=""></button>
-        <button type="button" data-preparation-cancel title="Annuler cette réservation" aria-label="Annuler cette réservation">×</button>
+        <button type="button" class="manual-act-copy" data-preparation-copy title="Copier le numéro" aria-label="Copier le numéro"><img src="{% static 'instruction/img/copy.png' %}" alt=""><span class="manual-act-copy-feedback" role="status" aria-live="polite"></span></button>
+        <button type="button" data-preparation-cancel title="Annuler cette réservation de numéro" aria-label="Annuler cette réservation">×</button>
         <p data-preparation-used></p>
         <p><strong>Reportez ce numéro dans votre projet d'acte avant de passer à l’étape suivante.</strong></p>
     </div>
@@ -40,4 +40,4 @@
     </dialog>
     <dialog class="manual-act-progress" data-preparation-progress aria-label="Chargement en cours"><img src="{% static 'document_generation/img/loading.gif' %}" width="48" height="48" alt="Chargement en cours"></dialog>
 </section>
-<script src="{% static 'instruction/js/manual_act_preparation.js' %}?v=9" defer></script>
+<script src="{% static 'instruction/js/manual_act_preparation.js' %}?v=10" defer></script>

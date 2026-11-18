@@ -7,6 +7,17 @@ from document_generation.services.docx_renderer import DocxRenderer
 
 
 class PreviewMarkerTests(SimpleTestCase):
+    def test_paragraph_if_no_blank_lines_in_preview_or_export(self):
+        word = Document()
+        for text in ['Avant', '{%p if actif %}', '{{ contenu }}', '{%p endif %}', 'Après']:
+            word.add_paragraph(text)
+        for enabled, missing in [(True, None), (False, None),
+                                 (True, [{'code': 'contenu', 'label': 'Contenu'}])]:
+            with self.subTest(enabled=enabled, marked=bool(missing)):
+                with self.render(word, {'actif': enabled, 'contenu': None if missing else 'Texte'}, missing) as buffer:
+                    texts = [p.text for p in Document(buffer).paragraphs]
+                self.assertEqual(texts, ['Avant'] + (['[Contenu]' if missing else 'Texte'] if enabled else []) + ['Après'])
+
     def test_liste_manquante_utilise_libelle_du_formulaire(self):
         from autorisations.models.models_generation import Balise
         from document_generation.forms import DynamicDocumentForm

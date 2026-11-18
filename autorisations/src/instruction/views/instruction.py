@@ -1414,6 +1414,10 @@ def instruction_dossier(request, num_dossier):
     # Documents
     #############################
     documents_data = build_documents_for_dossier(dossier)
+    from instruction.utils.document_utils import renseigner_survol_documents_envoyes
+    renseigner_survol_documents_envoyes(dossier, [
+        *documents_data.get('doc_envoye', []), *documents_data.get('rapports_ca_envoyes', []),
+    ])
     # Les actes des cycles précédents restent accessibles pendant la reprise.
     # Aux étapes finales, ils disposent déjà de leurs rubriques dédiées.
     actes_deja_envoyes = (

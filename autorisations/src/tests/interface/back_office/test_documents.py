@@ -19,12 +19,22 @@ class DocumentsInterfaceTests(SimpleTestCase):
         javascript = (src / "backoffice/static/backoffice/js/back_office_documents.js").read_text(encoding="utf-8")
         css = (src / "backoffice/static/backoffice/css/back_office_documents.css").read_text(encoding="utf-8")
         mock = """
-        let posts = 0, creations = 0;
+        let posts = 0, creations = 0, refreshes = 0, holdVerification=false, releaseVerification;
         history.replaceState(null,'','#documents/templates/1');
         const template = {id:1,nom:'Projet d’arrêté',nature:'Arrêté directeur',
             chemin_relatif:'test.docx',destination_relative:'',nom_fichier:'',configuration_complete:false,configuration_errors:{destination_relative:['Vide'],nom_fichier:['Vide']},actif:true,demarches:[],demarche_ids:[],id_nature:3,rapport:null,
             date_verification:null,verification_url:'/verifier/',edition_url:'/enregistrer/'};
         window.fetch = async (url, options = {}) => {
+            if(url==='/back-office/documents/templates/1/obligation/') {
+                if(options.body.get('code')!=='dossier.numero' || options.headers['X-CSRFToken']!=='token-test') throw new Error('Regle incorrecte');
+                const required=options.body.get('required')==='true';
+                template.balise_required={'dossier.numero':required};
+                return new Response(JSON.stringify({code:'dossier.numero',required}),{headers:{'Content-Type':'application/json'}});
+            }
+            if(url==='/verifier/') {
+                if(options.method!=='POST' || options.headers['X-CSRFToken']!=='token-test') throw new Error('Actualisation non protegee');
+                refreshes++;return new Response(JSON.stringify({template}),{headers:{'Content-Type':'application/json'}});
+            }
             if(url.includes('/creer/')) {
                 if(options.body.get('chemin_relatif')==='../invalide.docx') return new Response(JSON.stringify({erreur:'Vérifiez les champs.',fields:{chemin_relatif:[{message:'Saisissez un chemin relatif à Templates/.'}]}}),{status:400,headers:{'Content-Type':'application/json'}});
                 creations++;
@@ -45,6 +55,7 @@ class DocumentsInterfaceTests(SimpleTestCase):
             if (options.method === 'POST') {
                 if (options.headers['X-CSRFToken'] !== 'token-test') throw new Error('CSRF absent');
                 posts++;
+                if(holdVerification) await new Promise(resolve=>{releaseVerification=resolve;});
                 template.rapport={valide:false,syntaxe_valide:true,analyse_complete:true,total:2,
                     compteurs:{CONNUE:1,A_RENSEIGNER:0,INCONNUE:1},
                     balises:[{code:'dossier.numero',statut:'CONNUE'},{code:'toto.foo',statut:'INCONNUE'}],
@@ -69,6 +80,9 @@ class DocumentsInterfaceTests(SimpleTestCase):
                 document.querySelector('[data-panel]').hidden = false;
                 await attendre(()=>document.querySelector('[data-documents-liste] button'));
                 if(document.querySelector('[data-document-fiche]').hidden || !document.querySelector('[data-document-nom]').textContent.includes('Projet')) throw new Error('Fiche non restaurée depuis URL');
+                document.querySelector('[data-document-refresh]').click();
+                await attendre(()=>refreshes===1 && !document.querySelector('[data-document-refresh]').disabled);
+                if(document.querySelector('[data-documents-status]').textContent) throw new Error('Message inutile apres actualisation');
                 document.querySelector('[data-document-retour]').click();
                 if(location.hash!=='#documents/templates') throw new Error('Retour catalogue non mémorisé');
                 const statutFilter=document.querySelector('[data-documents-statut]');
@@ -148,9 +162,18 @@ class DocumentsInterfaceTests(SimpleTestCase):
                 const columns=[...document.querySelectorAll('.bo-documents-table th')].map(item=>item.textContent);
                 if(JSON.stringify(columns)!==JSON.stringify(['Balise','Classement'])) throw new Error('Colonnes du rapport incorrectes');
                 if(!document.querySelector('.bo-documents-table tbody').textContent.includes('CONNUE - AGIDA')) throw new Error('Source AGIDA absente du classement');
-                if(!texte.includes('Obligatoire') || !texte.includes('AGIDA')) throw new Error('Source ou règles absentes');
+                const balises=document.querySelector('[data-document-balises]');
+                if(!balises.textContent.includes('Obligatoire') || !balises.textContent.includes('AGIDA')) throw new Error('Source ou règles absentes');
+                if(balises.closest('.bo-documents-workspace') || balises.getBoundingClientRect().top<document.querySelector('.bo-documents-workspace').getBoundingClientRect().bottom) throw new Error('Balises pas sous les deux blocs');
+                const rows=[...balises.querySelectorAll('tbody tr')];
+                const twoColumns=window.innerWidth>=1200;
+                if((Math.abs(rows[0].getBoundingClientRect().top-rows[1].getBoundingClientRect().top)<2)!==twoColumns) throw new Error('Nombre de colonnes des balises incorrect');
                 const metric=document.querySelector('.bo-documents-metrics .is-success');
                 const badge=document.querySelector('.bo-documents-table .is-success');
+                const requiredCheckbox=balises.querySelector('input[type=checkbox]');
+                requiredCheckbox.click();
+                await attendre(()=>!requiredCheckbox.disabled && template.balise_required?.['dossier.numero']===true);
+                if(!requiredCheckbox.checked) throw new Error('Obligation non enregistree');
                 if(getComputedStyle(metric).backgroundColor!==getComputedStyle(badge).backgroundColor) throw new Error('Couleurs différentes');
                 document.querySelector('[data-document-retour]').click();
                 if(document.querySelector('[data-documents-liste]').hidden) throw new Error('Retour liste impossible');
@@ -159,10 +182,17 @@ class DocumentsInterfaceTests(SimpleTestCase):
                 if(posts!==1) throw new Error('Analyse répétée sur une simple ouverture de fiche');
                 document.querySelector('[data-panel]').hidden=true;
                 await new Promise(r=>setTimeout(r,30));
+                holdVerification=true;
                 document.querySelector('[data-panel]').hidden=false;
                 await attendre(()=>posts===2);
+                document.querySelector('[data-document-new]').click();
+                await attendre(()=>!edition.hidden && location.hash==='#documents/templates/nouveau');
+                edition.elements.nom.value='Saisie en cours';
+                releaseVerification();holdVerification=false;
                 if(document.documentElement.scrollWidth>window.innerWidth+1) throw new Error('Débordement horizontal');
                 await attendre(()=>document.querySelector('[data-panel]').getAttribute('aria-busy')!=='true');
+                if(location.hash!=='#documents/templates/nouveau' || edition.hidden || edition.elements.nom.value!=='Saisie en cours') throw new Error('Analyse automatique a change la page ou efface la saisie');
+                window.confirm=()=>true;
                 document.querySelector('[data-document-retour]').click();
                 document.querySelector('[data-document-new]').click();
                 await attendre(()=>location.hash==='#documents/templates/nouveau' && !edition.hidden);

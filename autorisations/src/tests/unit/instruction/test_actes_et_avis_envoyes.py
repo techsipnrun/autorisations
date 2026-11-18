@@ -1,4 +1,4 @@
-"""Actes déjà envoyés et avis réunis dans le même encadré du dossier."""
+"""Documents envoyés et avis réunis dans le même encadré du dossier."""
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -41,7 +41,7 @@ class ActesEtAvisEnvoyesTests(SimpleTestCase):
     def test_acte_seul_reste_visible_sans_avis(self):
         html = self.rendu([self.acte])
         self.assertEqual(html.count('class="validation-documents"'), 1)
-        self.assertIn("Acte déjà envoyé</h2>", html)
+        self.assertIn("Document envoyé</h2>", html)
         self.assertIn("acte-premier-envoi.pdf", html)
         self.assertIn("C-2026-1002", html)
         self.assertIn('class="document-download-link"', html)
@@ -52,7 +52,7 @@ class ActesEtAvisEnvoyesTests(SimpleTestCase):
                          id_nature=self.acte.id_nature)
         html = self.rendu([self.acte, autre], [self.avis])
         self.assertEqual(html.count('class="validation-documents"'), 1)
-        self.assertLess(html.index("Actes déjà envoyés"), html.index("Demandes d'avis envoyées"))
+        self.assertLess(html.index("Documents envoyés"), html.index("Demandes d'avis envoyées"))
         self.assertIn("acte-second-envoi.pdf", html)
         self.assertIn("Expert test", html)
         self.assertIn("Favorable", html)
@@ -63,7 +63,7 @@ class ActesEtAvisEnvoyesTests(SimpleTestCase):
             with self.subTest(etape=etape):
                 html = self.rendu(avis=[self.avis], etape=etape)
                 self.assertIn("Demandes d'avis envoyées", html)
-                self.assertNotIn("Acte déjà envoyé", html)
+                self.assertNotIn("Document envoyé", html)
 
     def test_reference_externe_dans_bloc_avis_et_lien_interne_inchange(self):
         self.avis.id_avis.numero_affiche = "CS-2026-042"
@@ -74,8 +74,39 @@ class ActesEtAvisEnvoyesTests(SimpleTestCase):
     def test_pas_de_bloc_vide(self):
         self.assertNotIn('class="validation-documents"', self.rendu())
 
+    def test_date_et_auteur_correspondent_a_lenvoi_du_document(self):
+        from datetime import datetime, timezone
+        agent=SimpleNamespace(prenom='Louis',nom='Calu')
+        self.acte.date=datetime(2026,10,1,tzinfo=timezone.utc)
+        action=SimpleNamespace(
+            description=document_utils.DESCRIPTION_DOCUMENTS_ENVOYES+self.acte.titre,
+            date=datetime(2026,11,16,8,tzinfo=timezone.utc),
+            id_instructeur=SimpleNamespace(id_agent_autorisations=agent,email='louis@example.test'))
+        autre=SimpleNamespace(description=document_utils.DESCRIPTION_DOCUMENTS_ENVOYES+'autre.pdf',
+            date=datetime(2026,11,17,8,tzinfo=timezone.utc),
+            id_instructeur=SimpleNamespace(id_agent_autorisations=SimpleNamespace(prenom='Paul',nom='Ferrand')))
+        with patch.object(document_utils.DossierAction,'objects') as actions:
+            actions.filter.return_value.select_related.return_value.order_by.return_value=[autre,action]
+            document_utils.renseigner_survol_documents_envoyes(SimpleNamespace(pk=1),[self.acte])
+        self.assertEqual(self.acte.envoi_title,'Envoyé par Louis CALU le 16/11/2026')
+        self.assertIn('title="Envoyé par Louis CALU le 16/11/2026"',self.rendu([self.acte]))
+
+    def test_historique_ambigu_ne_reutilise_pas_date_de_creation(self):
+        from datetime import datetime, timezone
+        actions=[SimpleNamespace(description=None,date=datetime(2026,11,16,tzinfo=timezone.utc))]*2
+        with patch.object(document_utils.DossierAction,'objects') as objects:
+            objects.filter.return_value.select_related.return_value.order_by.return_value=actions
+            document_utils.renseigner_survol_documents_envoyes(SimpleNamespace(pk=1),[self.acte])
+        self.assertEqual(self.acte.envoi_title,'')
+
+    def test_description_envoi_reference_seulement_documents_a_envoyer(self):
+        pending=Document(id=2,titre='courrier-a-envoyer.pdf',id_statut=DocumentStatut(statut='À envoyer'))
+        result=document_utils.description_documents_envoyes([
+            SimpleNamespace(id_document=self.acte),SimpleNamespace(id_document=pending)])
+        self.assertEqual(result,document_utils.DESCRIPTION_DOCUMENTS_ENVOYES+'courrier-a-envoyer.pdf')
+
     def test_actes_restent_visibles_pendant_une_nouvelle_demande_avis(self):
-        self.assertIn("Acte déjà envoyé", self.rendu([self.acte], etape="Avis à envoyer"))
+        self.assertIn("Document envoyé", self.rendu([self.acte], etape="Avis à envoyer"))
 
     def test_liste_existante_contient_les_actes_publies_et_non_publies_uniquement_envoyes(self):
         publie = Document(id=2, titre="acte-publie.pdf", emplacement="Dossier/Actes/", publie_au_raa=True,

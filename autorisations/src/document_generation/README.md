@@ -1,3 +1,54 @@
+# Configuration des obligations et du catalogue AGIDA
+
+Après exécution manuelle de `0030_obligation_par_template.sql`, le caractère
+obligatoire se règle dans la fiche du template, sur chaque balise, avec la case
+**Obligatoire dans ce template**. Le choix est enregistré immédiatement.
+Une même information AGIDA peut être obligatoire dans un modèle et facultative
+dans un autre. La définition globale et les valeurs d'un autre template ne sont
+pas modifiées. Les réanalyses conservent ces règles pour les codes toujours présents.
+Un nouveau code est facultatif par défaut ; `document.numero` reste obligatoire.
+
+Le script reprend les obligations globales existantes dans les associations,
+y compris les balises identifiées dans les rapports partiels. L'ancienne colonne
+`generation.balise.required` est conservée pour compatibilité et n'est plus une
+configuration utilisée par la génération. Les copies en mémoire des balises
+reçoivent la règle du template avant toute validation, formulaire ou aperçu.
+
+Pour ajouter une nouvelle **information AGIDA** :
+
+1. Écrire une fonction dans `services/providers.py`, recevant un
+   `ResolutionSource`. Elle lit uniquement les données du dossier concerné,
+   retourne `None` si la valeur est absente et signale les identités ambiguës.
+   Les lectures réutilisables peuvent être mises en cache sur ce `ResolutionSource`,
+   jamais globalement entre dossiers.
+2. Importer cette fonction dans `services/catalogue_sources.py` et ajouter une
+   seule entrée dans `AGIDA_PROPERTIES`, avec un identifiant technique stable,
+   un libellé, une description des règles de repli, une catégorie et la fonction.
+   Les catégories actuelles sont Année, Date, Dossier, Document et Pétitionnaire.
+   `AVAILABLE_PROPERTIES`, les libellés, les aides et les catégories sont dérivés
+   automatiquement : ne pas les modifier séparément. `KNOWN_PROVIDERS` reste
+   réservé aux anciennes sources implicites ; inutile de l'étendre pour ce parcours.
+3. Tester les valeurs présentes, absentes, les replis et les éventuelles ambiguïtés,
+   ainsi que l'isolation entre dossiers. Vérifier le test de complétude du catalogue.
+4. Redémarrer/recharger l'application, créer la balise dans le back-office,
+   choisir **Connue AGIDA** et la nouvelle information, puis actualiser l'analyse
+   du template. Régler son obligation dans chaque template.
+
+Exemple de définition (la fonction doit être implémentée et importée) :
+
+```python
+'dossier.reference_externe': AgidaProperty(
+    'Référence externe du dossier',
+    'Référence externe enregistrée dans AGIDA ; vide si absente.',
+    'Dossier', dossier_reference_externe,
+),
+```
+
+L'ajout d'une information basée sur des champs existants ne nécessite pas de SQL.
+Une information AGIDA ne peut être attribuée qu'à une seule définition de balise,
+réutilisable par plusieurs templates. Ne pas renommer son identifiant technique
+sans migrer les configurations qui le référencent.
+
 # Accès depuis le dossier
 
 Pour préparer une base de production, suivre exclusivement
@@ -224,6 +275,24 @@ activation. Le code est fixe après création afin de ne pas casser les Word exi
 
 Trois origines sont proposées : information AGIDA choisie dans une liste contrôlée,
 champ de formulaire identifié par démarche et champ, ou saisie instructeur.
+
+Pour une source de formulaire, le back-office contrôle la compatibilité du type
+de champ avec celui de la balise avant l'enregistrement. Une date avec heure ne
+peut pas alimenter une balise `DATE` (date seule) : utiliser `TEXT` pour conserver
+la réponse complète, ou choisir un champ de date seule. Les incompatibilités
+des configurations existantes sont également signalées lors de l'analyse du modèle.
+
+Les champs de génération suivent les conditions `if` du Word : `and`, `or`,
+`not`, branches `elif`/`else`, imbrications et comparaisons simples. Une balise
+utilisée hors condition reste visible ; plusieurs utilisations conditionnelles
+sont réunies par un « ou ». La règle s'applique aussi aux questions qui pilotent
+une condition imbriquée. Les saisies sont conservées dans le navigateur lors du
+masquage. Un champ masqué ne participe ni aux obligations, ni à la validation de
+son type, ni aux marqueurs manquants de l'aperçu. Le serveur recalcule ces règles
+depuis le modèle analysé et les valeurs typées, sans faire confiance au masquage HTML.
+Les expressions non prises en charge (filtres, variables locales de boucle,
+comparaisons de dates/listes) conservent leurs champs visibles et produisent un
+avertissement dans l'analyse du modèle. Aucun changement BDD n'est nécessaire.
 Le mode CONNUE / A_RENSEIGNER est déduit de l'origine. Une même balise peut utiliser
 un champ différent dans chaque démarche ; une seule source est autorisée par
 démarche. Aucune expression Python, SQL ou accès arbitraire aux attributs n'est
@@ -366,11 +435,16 @@ pas d'un document produit par le moteur de génération.
 Résultat attendu :
 
 ```text
-beneficiaire.nom_complet    CONNUE
+beneficiaire.nom_complet    A_RENSEIGNER (à configurer localement)
 dossier.numero             CONNUE
 quantite_prelevement        A_RENSEIGNER
 toto.foo                   INCONNUE
 ```
+
+Les anciennes sources AGIDA expérimentales `dossier.commune`,
+`beneficiaire.nom_complet` et `beneficiaire.prenom` ont été retirées.
+Leur présence dans un Word de test ne crée plus de correspondance automatique :
+configurer une balise locale Formulaire ou Saisie instructeur si nécessaire.
 
 Le rapport est volontairement invalide à cause de `toto.foo`. Retirer cette
 balise du Word sur le NAS permet de vérifier le cas valide. L'analyseur seul reste

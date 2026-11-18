@@ -29,14 +29,14 @@ class DocumentTemplateForm(forms.ModelForm):
 class BaliseConfigurationForm(forms.ModelForm):
     class Meta:
         model = Balise
-        fields = ("code", "libelle", "source", "id_template", "source_propriete", "type", "libelle_element", "required", "help_text", "actif")
+        fields = ("code", "libelle", "source", "id_template", "source_propriete", "type", "libelle_element", "help_text", "actif")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from .services.catalogue_sources import PROPERTY_LABELS, AVAILABLE_PROPERTIES
+        from .services.catalogue_sources import grouped_property_choices
         self.fields['source'].required = True
         self.fields['source_propriete'] = forms.ChoiceField(required=False, choices=[('', 'Choisir une information')]
-            + [(code, PROPERTY_LABELS.get(code, code)) for code in AVAILABLE_PROPERTIES if code != 'dossier.commune'])
+            + grouped_property_choices())
         self.fields['type'].choices = [(value, label) for value, label in Balise.Type.choices
                                       if value not in (Balise.Type.SELECT, Balise.Type.MULTISELECT)]
         if self.instance.pk:
@@ -46,7 +46,6 @@ class BaliseConfigurationForm(forms.ModelForm):
         data = super().clean()
         source = data.get('source')
         self.instance.mode = Balise.Mode.A_RENSEIGNER if source == Balise.Source.MANUELLE else Balise.Mode.CONNUE
-        self.instance.allow_blank = not data.get('required', False)
         if source == Balise.Source.AGIDA:
             data['id_template'] = None
         if source == Balise.Source.AGIDA and not data.get('source_propriete'):
@@ -62,8 +61,10 @@ class BaliseConfigurationForm(forms.ModelForm):
 
 
 class DynamicDocumentForm(forms.Form):
-    def __init__(self, *args, balises=None, **kwargs):
+    def __init__(self, *args, balises=None, condition_context=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.condition_context = condition_context or {}
+        self.inactive_fields = set()
         self.balise_map = {}
         for balise in balises or []:
             if balise.pk is None:
@@ -74,12 +75,13 @@ class DynamicDocumentForm(forms.Form):
             self.balise_map[name] = balise
             self.fields[name] = self.build_field(balise)
             self.fields[name].balise_code = balise.code
+            self.fields[name].widget.attrs.update({'data-balise-code': balise.code, 'data-balise-type': balise.type})
 
     @staticmethod
     def build_field(balise):
         options = dict(label=balise.libelle or balise.code,
                        required=balise.required,
-                       help_text=balise.help_text)
+                       help_text='' if (balise.source_propriete or balise.code) == 'dossier.numero' else balise.help_text)
         if balise.type == Balise.Type.TEXT:
             return forms.CharField(**options)
         if balise.type == Balise.Type.LIST:
@@ -102,7 +104,17 @@ class DynamicDocumentForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        from .services.conditions import active
+        values = dict(self.condition_context)
+        values.update({b.code: cleaned.get(name) for name, b in self.balise_map.items()})
         for name, balise in self.balise_map.items():
+            if not active(balise, values):
+                self.inactive_fields.add(name)
+                self._errors.pop(name, None)
+                cleaned[name] = None
+        for name, balise in self.balise_map.items():
+            if name in self.inactive_fields:
+                continue
             if name not in cleaned:
                 continue
             if balise.required and self.add_prefix(name) not in self.data:
@@ -120,6 +132,8 @@ class DynamicDocumentForm(forms.Form):
             raise ValueError("Le formulaire doit être valide avant de construire son contexte.")
         values = {}
         for name, balise in self.balise_map.items():
+            if name in self.inactive_fields:
+                continue
             value = self.cleaned_data[name]
             if balise.type == Balise.Type.LIST:
                 values[balise.code] = value

@@ -146,7 +146,9 @@ class DocumentNumberTests(SimpleTestCase):
         self.nature.est_acte=False
         with self.assertRaises(ValidationError):numbers.choose_number(self.request,self.dossier,self.template)
 
-    def test_numero_systeme_non_resolu_ne_devient_pas_un_champ_manuel(self):
+    @patch("document_generation.services.preparation.TemplateBalise.objects.filter")
+    def test_numero_systeme_non_resolu_ne_devient_pas_un_champ_manuel(self, requirements):
+        requirements.return_value.values_list.return_value=[]
         from document_generation.services.preparation import DocumentPreparationService
         from document_generation.services.analyzer import AnalysisReport
         definition=Balise(id=7,code='document.numero',libelle='Numéro',mode='CONNUE',source='AGIDA',source_propriete='document.numero',required=True)

@@ -1,0 +1,6 @@
+<div class="field" data-information-field data-field-required="{{ field.field.required|yesno:'true,false' }}">
+    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}&nbsp;<span aria-hidden="true">*</span>{% endif %}&nbsp;: <span class="field-completion-hint" data-field-status hidden>À renseigner</span></label>
+    <div class="information-control">{{ field }}</div>
+    {% if field.help_text %}<small class="information-help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</small>{% endif %}
+    {{ field.errors }}
+</div>

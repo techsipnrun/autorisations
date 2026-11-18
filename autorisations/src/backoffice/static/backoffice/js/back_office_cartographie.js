@@ -9,6 +9,7 @@
     let donnees, profil, membres = [], carteApercu, chargement = false, charge = false, modifie = false, sourceModifie = false;
     let lectureProprietes = 0, lectureApercu = 0;
     const conversions = new WeakMap();
+    const fichiersStables = new WeakMap();
     const clone = valeur => JSON.parse(JSON.stringify(valeur));
     const csrf = $("[name=csrfmiddlewaretoken]").value;
     const styles = {color: ["Couleur du contour", "color"], fillColor: ["Couleur de remplissage", "color"], weight: ["Épaisseur du contour", "number", 20], opacity: ["Opacité du contour", "number", 1], fillOpacity: ["Opacité de remplissage", "number", 1], radius: ["Rayon des points", "number", 30]};
@@ -39,7 +40,15 @@
         message($("[data-carto-config-status]"), "Modifications à enregistrer.");
     }
     async function appeler(url, options = {}) {
-        const reponse = await fetch(url, {credentials: "same-origin", ...options, headers: {"X-CSRFToken": csrf, ...options.headers}});
+        let reponse;
+        try {
+            reponse = await fetch(url, {credentials: "same-origin", ...options, headers: {"X-CSRFToken": csrf, ...options.headers}});
+        } catch (erreur) {
+            if (!(erreur instanceof TypeError)) throw erreur;
+            throw new Error(`Connexion interrompue avec le serveur (${new URL(url, location.href).pathname}). Aucune réponse HTTP reçue : vérifiez la requête dans l’onglet Réseau du navigateur. L’enregistrement n’est pas confirmé ; actualisez le catalogue avant de réessayer.`);
+        }
+        if(reponse.status===413) throw new Error("Le serveur refuse la taille de cet envoi (HTTP 413). Le fichier peut être accepté en local mais dépasser la limite du serveur ou de son proxy.");
+        if(reponse.status===403) throw new Error("Le serveur refuse cette requête (HTTP 403). Vérifiez votre session et les droits d’accès ; le contrôle CSRF peut également être en cause.");
         const resultat = await reponse.json().catch(() => { throw new Error(`Réponse inattendue (HTTP ${reponse.status}).`); });
         if (!reponse.ok) throw new Error(resultat.erreur || `Erreur HTTP ${reponse.status}.`);
         return resultat;
@@ -308,11 +317,24 @@
         url.searchParams.set("apercu", "1");
         return url.href;
     }
+    function fichierStable(fichier) {
+        if(!fichiersStables.has(fichier)) {
+            const lecture=(async()=>{
+                if(fichier.size>5*1024*1024) throw new Error('Le fichier dépasse la limite de 5 Mo.');
+                let contenu;
+                try {contenu=await fichier.arrayBuffer();}
+                catch(erreur) {throw new Error('Le fichier sélectionné a changé ou n’est plus accessible. Sélectionnez-le à nouveau pour utiliser sa dernière version.');}
+                return new File([contenu],fichier.name,{type:fichier.type,lastModified:fichier.lastModified});
+            })().catch(erreur=>{fichiersStables.delete(fichier);throw erreur;});
+            fichiersStables.set(fichier,lecture);
+        }
+        return fichiersStables.get(fichier);
+    }
     function convertirFichier(fichier) {
         if (!conversions.has(fichier)) {
             const promesse = (async () => {
                 if (fichier.size > 5 * 1024 * 1024) throw new Error("Le fichier dépasse la limite de 5 Mo.");
-                const formulaire = new FormData(); formulaire.append("fichier", fichier);
+                const formulaire = new FormData(); formulaire.append("fichier", await fichierStable(fichier));
                 const resultat = await appeler(racine.dataset.convertUrl, {method: "POST", body: formulaire});
                 return resultat.geojson;
             })().catch(erreur => { conversions.delete(fichier); throw erreur; });
@@ -321,7 +343,7 @@
         const actuel = () => !sourceForm.hidden && sourceForm.elements.format.value === "geojson" && sourceForm.elements.fichier.files[0] === fichier;
         if (actuel()) message($("[data-carto-import-status]"), "Conversion et validation du fichier en GeoJSON…");
         return conversions.get(fichier).then(geojson => {
-            if (actuel()) message($("[data-carto-import-status]"), "Fichier converti et validé en GeoJSON. Cliquez sur « Actualiser l’aperçu ». Rien n’est enregistré avant « Enregistrer la source ».");
+            if (actuel()) message($("[data-carto-import-status]"), "Fichier converti et validé en GeoJSON. Cliquez sur « Actualiser l’aperçu ». Rien n’est enregistré avant « Enregistrer la source ». Si vous modifiez le fichier local, sélectionnez-le à nouveau pour utiliser sa dernière version.");
             return geojson;
         }).catch(erreur => {
             if (actuel()) message($("[data-carto-import-status]"), `Import impossible : ${erreur.message}`, true);
@@ -493,7 +515,7 @@
                 await convertirFichier(fichier);
                 // Le serveur reconvertit l’original lors de la sauvegarde : ne pas
                 // faire confiance au GeoJSON ou à la validation du navigateur.
-                formulaire.append("fichier", fichier);
+                formulaire.append("fichier", await fichierStable(fichier));
             }
             const resultat = await appeler(source.id ? `${racine.dataset.sourceUrl}${source.id}/` : racine.dataset.sourceUrl, {method: "POST", body: formulaire});
             const index = donnees.sources.findIndex(item => item.id === resultat.source.id);

@@ -1,3 +1,4 @@
+{% load static %}
 <section class="back-office-panel bo-documents" data-panel="documents" data-documents-catalogue="{% url 'back_office_templates' %}" data-documents-verification="{% url 'back_office_templates_verifier' %}" data-documents-options="{% url 'back_office_template_options' %}" data-documents-create="{% url 'back_office_template_creer' %}" hidden>
     <header class="back-office-panel-header">
         <p class="back-office-eyebrow">Back Office · Documents · Templates</p>
@@ -53,10 +54,14 @@
             </form>
         </aside>
         <div class="bo-documents-controle">
-        <div class="bo-documents-controle-heading"><div><h3>Analyse du modèle</h3></div>
+        <div class="bo-documents-controle-heading"><div class="bo-documents-analysis-title"><h3>Analyse du modèle</h3><button type="button" data-document-refresh class="bo-documents-refresh" title="Relire le Word et synchroniser les balises" aria-label="Actualiser l’analyse du modèle"><img src="{% static 'instruction/img/actualiser.png' %}" alt=""></button></div>
         </div>
         <div data-document-rapport aria-live="polite"></div>
         </div>
         </div>
+        <section class="bo-documents-balises" data-document-balises hidden aria-label="Balises du modèle">
+            <div class="bo-document-balises-heading"><h3>Balises du modèle</h3><a class="bo-document-balise-add" data-document-balise-add title="Ajouter une balise à ce template" aria-label="Ajouter une balise à ce template"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></a></div>
+            <div data-document-balises-table></div>
+        </section>
     </article>
 </section>

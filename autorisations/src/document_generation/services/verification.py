@@ -23,11 +23,12 @@ class TemplateVerificationService:
             if report.analyse_complete:
                 codes = [entry["code"] for entry in report.balises]
                 catalogue = dict(Balise.objects.filter(Balise.perimetre(template), code__in=codes).values_list("code", "pk"))
-                TemplateBalise.objects.filter(id_template=template).delete()
-                TemplateBalise.objects.bulk_create([
-                    TemplateBalise(id_template=template, code=code, id_balise_id=catalogue.get(code))
-                    for code in codes
-                ])
+                TemplateBalise.objects.filter(id_template=template).exclude(code__in=codes).delete()
+                for code in codes:
+                    defaults = {'id_balise_id': catalogue.get(code)}
+                    if code == 'document.numero':
+                        defaults['required'] = True
+                    TemplateBalise.objects.update_or_create(id_template=template, code=code, defaults=defaults)
             # En cas de syntaxe illisible ou analyse partielle, conserver la
             # dernière liste complète et signaler qu'elle n'a pas été actualisée.
             template.rapport_validation = report.as_dict()

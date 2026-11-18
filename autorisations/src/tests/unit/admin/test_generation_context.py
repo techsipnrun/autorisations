@@ -2,18 +2,19 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from autorisations.models.models_instruction import Dossier, Demarche
+from autorisations.models.models_instruction import Dossier
 from autorisations.models.models_utilisateurs import ContactExterne
 from document_generation.services.context import (
     BaliseNonResolueError, BaliseResolver, DocumentContextBuilder,
 )
-from document_generation.services.providers import BeneficiaireAmbiguError, ResolutionSource
+from document_generation.services.providers import BeneficiaireAmbiguError, ResolutionSource, KNOWN_PROVIDERS, beneficiaire_prenom_nom
 
 
 class DocumentContextTests(SimpleTestCase):
     def setUp(self):
         self.dossier = Dossier(id=12, numero=30769307, nom_dossier=" Mission scientifique ")
-        self.builder = DocumentContextBuilder()
+        self.resolver = BaliseResolver({**KNOWN_PROVIDERS, "beneficiaire.prenom_nom": beneficiaire_prenom_nom})
+        self.builder = DocumentContextBuilder(self.resolver)
 
     def contacts(self, *contacts):
         mocked = patch("document_generation.services.providers.ContactExterne.objects.filter")
@@ -25,8 +26,8 @@ class DocumentContextTests(SimpleTestCase):
     def test_contexte_complet_et_une_seule_lecture_beneficiaire(self):
         manager = self.contacts(ContactExterne(id=1, nom=" DUPONT ", prenom=" Jean "))
         self.assertEqual(self.builder.build(self.dossier), {
-            "dossier": {"numero": 30769307, "nom": "Mission scientifique", "commune": None},
-            "beneficiaire": {"nom": "DUPONT", "prenom": "Jean", "nom_complet": "Jean DUPONT"},
+            "dossier": {"numero": 30769307, "nom": "Mission scientifique"},
+            "beneficiaire": {"prenom_nom": "Jean DUPONT"},
         })
         manager.assert_called_once_with(
             dossierbeneficiaire__id_dossier_interlocuteur__id_dossier=self.dossier,
@@ -37,38 +38,20 @@ class DocumentContextTests(SimpleTestCase):
             "dossier": {"numero": 30769307},
         })
 
-    def test_commune_lue_dans_le_formulaire_de_la_demarche_test(self):
-        self.dossier.id_demarche = Demarche(id=14, type="Test")
-        with patch("document_generation.services.providers.Champ.objects.filter") as fields, patch(
-            "document_generation.services.providers.DossierChamp.objects.filter"
-        ) as answers:
-            fields.return_value.order_by.return_value.values_list.return_value.__getitem__.return_value = [42]
-            answers.return_value.order_by.return_value.values_list.return_value.first.return_value = " Saint-Paul "
-            result = self.builder.build(self.dossier, ["dossier.commune"])
-        self.assertEqual(result, {"dossier": {"commune": "Saint-Paul"}})
-        fields.assert_called_once_with(id_demarche_id=14, nom__iexact="Commune")
-        answers.assert_called_once_with(id_dossier=self.dossier, id_champ_id=42)
-
-    def test_commune_absente_et_champ_ambigu(self):
-        self.dossier.id_demarche = Demarche(id=14, type="Test")
-        with patch("document_generation.services.providers.Champ.objects.filter") as fields:
-            ids = fields.return_value.order_by.return_value.values_list.return_value.__getitem__
-            ids.return_value = []
-            self.assertEqual(self.builder.build(self.dossier, ["dossier.commune"]), {"dossier": {"commune": None}})
-            ids.return_value = [42, 43]
-            with self.assertRaisesRegex(ValueError, "Plusieurs champs Commune"):
-                self.builder.build(self.dossier, ["dossier.commune"])
-
-    def test_commune_pas_lue_pour_une_autre_demarche(self):
-        self.dossier.id_demarche = Demarche(id=15, type="Travaux")
-        with patch("document_generation.services.providers.Champ.objects.filter") as fields:
-            self.assertEqual(self.builder.build(self.dossier, ["dossier.commune"]), {"dossier": {"commune": None}})
-        fields.assert_not_called()
+    def test_sources_experimentales_retirees(self):
+        from document_generation.services.catalogue_sources import AVAILABLE_PROPERTIES, PROPERTY_LABELS, PROPERTY_DESCRIPTIONS
+        for code in ('dossier.commune', 'test_commune_formulaire', 'beneficiaire.nom_complet', 'beneficiaire.prenom'):
+            with self.subTest(code=code):
+                self.assertNotIn(code, AVAILABLE_PROPERTIES)
+                self.assertNotIn(code, PROPERTY_LABELS)
+                self.assertNotIn(code, PROPERTY_DESCRIPTIONS)
+                with self.assertRaises(BaliseNonResolueError):
+                    self.builder.build(self.dossier, [code])
 
     def test_beneficiaire_absent(self):
         self.contacts()
         self.assertEqual(self.builder.build(self.dossier)["beneficiaire"], {
-            "nom": None, "prenom": None, "nom_complet": None,
+            "prenom_nom": None,
         })
 
     def test_identite_partielle_ou_vide_et_casse_conservee(self):
@@ -76,7 +59,7 @@ class DocumentContextTests(SimpleTestCase):
             with self.subTest(nom=nom, prenom=prenom):
                 source = ResolutionSource(self.dossier)
                 source.beneficiaire = ContactExterne(nom=nom, prenom=prenom)
-                self.assertEqual(BaliseResolver().resolve("beneficiaire.nom_complet", source), attendu)
+                self.assertEqual(self.resolver.resolve("beneficiaire.prenom_nom", source), attendu.upper() if nom and not prenom else attendu)
 
     def test_plusieurs_beneficiaires_distincts_sont_ambigus(self):
         self.contacts(ContactExterne(id=1), ContactExterne(id=2))

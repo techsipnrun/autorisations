@@ -55,3 +55,6 @@
 .manual-act-entry-field label { white-space:nowrap; }
 .manual-act-entry-field input { box-sizing:border-box; flex:0 1 19rem; width:19rem; max-width:100%; min-width:0; padding:.5rem .65rem; border:1px solid #aebbb2; border-radius:6px; background:white; color:#303832; font:inherit; }
 .manual-act-entry-field input:focus { outline:2px solid #7ca68c; outline-offset:2px; border-color:#7ca68c; }
+.manual-act-copy { position:relative; }
+.manual-act-copy-feedback { position:absolute; z-index:10; bottom:calc(100% + .4rem); left:50%; width:max-content; padding:.3rem .5rem; border-radius:5px; background:#25362d; color:white; font-size:.78rem; font-weight:400; pointer-events:none; opacity:0; transform:translate(-50%,3px); transition:opacity .2s ease,transform .2s ease; }
+.manual-act-copy.show-feedback .manual-act-copy-feedback { opacity:1; transform:translate(-50%,0); }

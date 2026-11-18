@@ -15,7 +15,7 @@ class TestWordExamplesTests(SimpleTestCase):
         original.save(source)
         enriched = enrich_test_template(source.getvalue())
         self.assertEqual(enrich_test_template(enriched), enriched)
-        report = TemplateAnalyzer().analyze_bytes(enriched, [Balise(code=code, mode="CONNUE")
+        report = TemplateAnalyzer().analyze_bytes(enriched, [Balise(code=code, mode="CONNUE" if code == "dossier.numero" else "A_RENSEIGNER")
                                                             for code in ("dossier.numero", "dossier.commune")])
         self.assertTrue(report.valide, report.erreurs)
         self.assertEqual({item['code'] for item in report.balises}, {"dossier.numero", "dossier.commune"})

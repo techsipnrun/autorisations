@@ -337,7 +337,42 @@
             if (currentVersion !== version) return;
             if (typeof result.docx !== 'string') throw new Error('Aperçu Word indisponible.');
             const bytes = Uint8Array.from(atob(result.docx), char => char.charCodeAt(0));
-            const blob = new Blob([bytes], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+            let blob = new Blob([bytes], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+            // docx-preview applies the default paragraph style to every <p>, even
+            // custom Word styles which do not inherit from it. Make their actual
+            // spacing explicit in this display copy; never change the source DOCX.
+            const zip=await window.JSZip.loadAsync(blob);
+            const stylesFile=zip.file('word/styles.xml');
+            if(stylesFile) {
+                const ns='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+                const xml=new DOMParser().parseFromString(await stylesFile.async('string'),'application/xml');
+                const child=(node,name)=>[...node.children].find(item=>item.namespaceURI===ns && item.localName===name);
+                const styles=[...xml.getElementsByTagNameNS(ns,'style')].filter(style=>style.getAttributeNS(ns,'type')==='paragraph');
+                const byId=new Map(styles.map(style=>[style.getAttributeNS(ns,'styleId'),style]));
+                const defaults=xml.getElementsByTagNameNS(ns,'pPrDefault')[0];
+                const defaultSpacing=defaults && child(child(defaults,'pPr') || defaults,'spacing');
+                const originals=new Map(styles.map(style=>[style,child(child(style,'pPr') || style,'spacing')?.cloneNode(true)]));
+                const spacing=(style,attribute,seen=new Set())=>{
+                    if(!style || seen.has(style)) return defaultSpacing?.getAttributeNS(ns,attribute) || '0';
+                    seen.add(style);
+                    const own=originals.get(style);
+                    if(own?.hasAttributeNS(ns,attribute)) return own.getAttributeNS(ns,attribute);
+                    const parent=child(style,'basedOn')?.getAttributeNS(ns,'val');
+                    return spacing(byId.get(parent),attribute,seen);
+                };
+                for(const style of styles) {
+                    if(['1','true','on'].includes(style.getAttributeNS(ns,'default'))) continue;
+                    let properties=child(style,'pPr');
+                    if(!properties) {properties=xml.createElementNS(ns,'w:pPr');style.append(properties);}
+                    let margins=child(properties,'spacing');
+                    if(!margins) {margins=xml.createElementNS(ns,'w:spacing');properties.append(margins);}
+                    for(const attribute of ['before','after']) {
+                        if(!margins.hasAttributeNS(ns,attribute)) margins.setAttributeNS(ns,`w:${attribute}`,spacing(style,attribute));
+                    }
+                }
+                zip.file('word/styles.xml',new XMLSerializer().serializeToString(xml));
+                blob=await zip.generateAsync({type:'blob',mimeType:blob.type});
+            }
             const missingBox = panel.querySelector('[data-docx-preview-missing]');
             const list = missingBox.querySelector('ul');
             list.replaceChildren();
